@@ -1,19 +1,21 @@
 /** @type {import('next').NextConfig} */
+const subdomains = ["constants"];
+
 const nextConfig = {
   reactStrictMode: true,
   rewrites() {
     return {
       beforeFiles: [
-        {
+        ...subdomains.map((subdomain) => ({
           source: "/:path*",
           has: [
             {
               type: "host",
-              value: "constants.swiss-knife.xyz",
+              value: `${subdomain}.swiss-knife.xyz`,
             },
           ],
-          destination: "/constants/:path*",
-        },
+          destination: `/${subdomain}/:path*`,
+        })),
       ],
     };
   },
