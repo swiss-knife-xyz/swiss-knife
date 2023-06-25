@@ -7,7 +7,7 @@ const nextConfig = {
     return {
       beforeFiles: [
         ...subdomains.map((subdomain) => ({
-          source: "/:path*",
+          source: "/:path((?!_next).*)",
           has: [
             {
               type: "host",
