@@ -8,7 +8,7 @@ interface MainContainerParams {
 
 export default function MainContainer({ children }: MainContainerParams) {
   return (
-    <Container mt="8" minW="40vw">
+    <Container mt="8" minW="70vw">
       <Flex
         flexDir={"column"}
         mt="0.5rem"
