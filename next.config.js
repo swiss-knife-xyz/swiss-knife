@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const subdomains = ["constants"];
+const subdomains = require("./subdomains.json");
 
 const nextConfig = {
   reactStrictMode: true,
