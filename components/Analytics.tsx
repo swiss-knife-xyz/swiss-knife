@@ -1,7 +1,6 @@
 import Script from "next/script";
 
-// TODO: set correct GA_ID
-const GA_ID = "G-GRSTHJ7MXH";
+const GA_ID = "G-9BJG2FRNP5";
 
 export default function Analytics() {
   return (
