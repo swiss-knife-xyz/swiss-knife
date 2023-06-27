@@ -16,7 +16,7 @@ export default function Home() {
         <Button>Epoch Converter</Button>
       </Link>
       <Link href={getPath(subdomains[2])}>
-        <Button>ETH</Button>
+        <Button>Explorer</Button>
       </Link>
     </Layout>
   );

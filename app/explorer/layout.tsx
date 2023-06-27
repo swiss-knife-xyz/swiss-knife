@@ -23,7 +23,7 @@ const isValidTransaction = (tx: string) => {
   return /^0x([A-Fa-f0-9]{64})$/.test(tx);
 };
 
-export default function ETHLayout({ children }: { children: ReactNode }) {
+export default function ExplorerLayout({ children }: { children: ReactNode }) {
   const segments = useSelectedLayoutSegments();
   const router = useRouter();
 
