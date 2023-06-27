@@ -11,6 +11,8 @@ import {
   InputRightElement,
   Button,
   Box,
+  HStack,
+  Spacer,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
 import { isAddress } from "viem";
@@ -73,7 +75,11 @@ export default function ExplorerLayout({ children }: { children: ReactNode }) {
   return (
     <Layout>
       <Center flexDir={"column"} mt="5">
-        <Heading fontSize={"2xl"}>Search Address or Transaction</Heading>
+        <Heading fontSize={"4xl"}>Explorer</Heading>
+        <HStack mt="1rem" w="60%">
+          <Heading fontSize={"xl"}>Search Address or Transaction</Heading>{" "}
+          <Spacer />
+        </HStack>
         <InputGroup mt="1rem" maxW="60%">
           <Input
             placeholder="address / ens / transaction"
@@ -86,6 +92,7 @@ export default function ExplorerLayout({ children }: { children: ReactNode }) {
             }}
             onPaste={(e) => {
               e.preventDefault();
+              setIsLoading(true);
               const pastedData = e.clipboardData.getData("Text");
               setUserInput(pastedData);
               handleSearch(pastedData);

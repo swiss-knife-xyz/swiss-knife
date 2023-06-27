@@ -36,8 +36,14 @@ export const addressExplorers: {
   Dedaub: {
     baseUrl: "https://library.dedaub.com/ethereum/address/",
   },
-  Etherscan: {
+  "Etherscan (Mainnet)": {
     baseUrl: "https://etherscan.io/address/",
+  },
+  "Etherscan (Goerli)": {
+    baseUrl: "https://goerli.etherscan.io/address/",
+  },
+  "Etherscan (Sepolia)": {
+    baseUrl: "https://sepolia.etherscan.io/address/",
   },
   Ethtective: {
     baseUrl: "https://ethtective.com/address/",

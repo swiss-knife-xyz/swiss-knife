@@ -9,6 +9,7 @@ import subdomains from "@/subdomains.json";
 export default function Home() {
   return (
     <Layout>
+      {/* TODO: auto generate Link Buttons via mapping */}
       <Link href={getPath(subdomains[0])}>
         <Button>Constants</Button>
       </Link>

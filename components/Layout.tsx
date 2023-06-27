@@ -16,7 +16,7 @@ export default function Layout({ children }: LayoutParams) {
           flexDir={"column"}
           mt="0.5rem"
           p="4"
-          h="70vh"
+          minH="70vh"
           border="1px"
           borderColor={"custom.pale"}
           rounded={"lg"}
