@@ -2,6 +2,7 @@
 
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { ReactNode, useState, useEffect } from "react";
 import {
   Center,
@@ -87,7 +88,9 @@ export default function ExplorerLayout({ children }: { children: ReactNode }) {
   return (
     <Layout>
       <Center flexDir={"column"} mt="5">
-        <Heading fontSize={"4xl"}>Explorer</Heading>
+        <Heading fontSize={"4xl"}>
+          <Link href={getPath(subdomains[2])}>Explorer</Link>
+        </Heading>
         <HStack mt="1rem" w="60%">
           <Heading fontSize={"xl"}>Search Address or Transaction</Heading>{" "}
           <Spacer />
