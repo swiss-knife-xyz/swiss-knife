@@ -1,7 +1,7 @@
 "use client";
 
 import { useSelectedLayoutSegments } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { ReactNode, useState, useEffect } from "react";
 import {
   Center,
@@ -28,6 +28,8 @@ const isValidTransaction = (tx: string) => {
 export default function ExplorerLayout({ children }: { children: ReactNode }) {
   const segments = useSelectedLayoutSegments();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const userInputFromUrl = segments[1] ?? segments[0];
 
@@ -62,8 +64,6 @@ export default function ExplorerLayout({ children }: { children: ReactNode }) {
         }
       }
     }
-
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -71,6 +71,18 @@ export default function ExplorerLayout({ children }: { children: ReactNode }) {
       handleSearch(userInputFromUrl);
     }
   }, []);
+
+  useEffect(() => {
+    const url = `${pathname}?${searchParams}`;
+    // new url has loaded
+    setIsLoading(false);
+  }, [pathname, searchParams]);
+
+  useEffect(() => {
+    if (isInputInvalid) {
+      setIsLoading(false);
+    }
+  }, [isInputInvalid]);
 
   return (
     <Layout>
