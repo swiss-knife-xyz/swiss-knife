@@ -19,7 +19,7 @@ import { SearchIcon } from "@chakra-ui/icons";
 import { isAddress } from "viem";
 import { normalize } from "viem/ens";
 import { publicClient, getPath } from "@/utils";
-import subdomains from "@/subdomains.json";
+import subdomains from "@/subdomains";
 import Layout from "@/components/Layout";
 
 const isValidTransaction = (tx: string) => {
@@ -45,9 +45,9 @@ export default function ExplorerLayout({ children }: { children: ReactNode }) {
 
     if (__userInput) {
       if (isValidTransaction(__userInput)) {
-        router.push(`${getPath(subdomains[2])}tx/${__userInput}`);
+        router.push(`${getPath(subdomains.EXPLORER)}tx/${__userInput}`);
       } else if (isAddress(__userInput)) {
-        router.push(`${getPath(subdomains[2])}address/${__userInput}`);
+        router.push(`${getPath(subdomains.EXPLORER)}address/${__userInput}`);
       } else {
         try {
           const ensResolvedAddress = await publicClient.getEnsAddress({
@@ -55,7 +55,7 @@ export default function ExplorerLayout({ children }: { children: ReactNode }) {
           });
           if (ensResolvedAddress) {
             router.push(
-              `${getPath(subdomains[2])}address/${ensResolvedAddress}`
+              `${getPath(subdomains.EXPLORER)}address/${ensResolvedAddress}`
             );
           } else {
             setIsInputInvalid(true);
@@ -89,7 +89,7 @@ export default function ExplorerLayout({ children }: { children: ReactNode }) {
     <Layout>
       <Center flexDir={"column"} mt="5">
         <Heading fontSize={"4xl"}>
-          <Link href={getPath(subdomains[2])}>Explorer</Link>
+          <Link href={getPath(subdomains.EXPLORER)}>Explorer</Link>
         </Heading>
         <HStack mt="1rem" w="60%">
           <Heading fontSize={"xl"}>Search Address or Transaction</Heading>{" "}

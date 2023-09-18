@@ -1,12 +1,12 @@
 /** @type {import('next').NextConfig} */
-const subdomains = require("./subdomains.json");
+const subdomains = require("./subdomains.js");
 
 const nextConfig = {
   reactStrictMode: true,
   rewrites() {
     return {
       beforeFiles: [
-        ...subdomains.map((subdomain) => ({
+        ...Object.values(subdomains).map((subdomain) => ({
           source: "/:path((?!_next).*)",
           has: [
             {
