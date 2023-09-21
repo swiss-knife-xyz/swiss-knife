@@ -20,7 +20,7 @@ import { isAddress } from "viem";
 import { normalize } from "viem/ens";
 import { publicClient, getPath } from "@/utils";
 import subdomains from "@/subdomains";
-import Layout from "@/components/Layout";
+import { Layout } from "@/components/Layout";
 
 const isValidTransaction = (tx: string) => {
   return /^0x([A-Fa-f0-9]{64})$/.test(tx);

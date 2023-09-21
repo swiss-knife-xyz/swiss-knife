@@ -7,7 +7,7 @@ interface LayoutParams {
   children: ReactNode;
 }
 
-export default function Layout({ children }: LayoutParams) {
+export function Layout({ children }: LayoutParams) {
   return (
     <Box>
       <Navbar />

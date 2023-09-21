@@ -1,7 +1,7 @@
 "use client";
 
 import { Heading, Table, Tbody, Th, Thead, Tr, Td } from "@chakra-ui/react";
-import Layout from "@/components/Layout";
+import { Layout } from "@/components/Layout";
 import { constants } from "@/data/constants";
 import CopyToClipboard from "@/components/CopyToClipboard";
 

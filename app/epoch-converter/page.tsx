@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { HStack, Heading, Input, Button, Text, Box } from "@chakra-ui/react";
-import Layout from "@/components/Layout";
+import { Layout } from "@/components/Layout";
 import CopyToClipboard from "@/components/CopyToClipboard";
 import DarkSelect from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
