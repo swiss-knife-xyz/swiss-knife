@@ -26,7 +26,7 @@ const isValidTransaction = (tx: string) => {
   return /^0x([A-Fa-f0-9]{64})$/.test(tx);
 };
 
-export default function ExplorerLayout({ children }: { children: ReactNode }) {
+const ExplorerLayout = ({ children }: { children: ReactNode }) => {
   const segments = useSelectedLayoutSegments();
   const router = useRouter();
   const pathname = usePathname();
@@ -136,4 +136,6 @@ export default function ExplorerLayout({ children }: { children: ReactNode }) {
       </Center>
     </Layout>
   );
-}
+};
+
+export default ExplorerLayout;

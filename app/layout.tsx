@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { Providers } from "./providers";
-import Analytics from "@/components/Analytics";
+import { Analytics } from "@/components/Analytics";
 
 const poppins = Poppins({ weight: "400", subsets: ["latin"] });
 
@@ -26,11 +26,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en">
       <body className={poppins.className}>
@@ -39,4 +35,6 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
+};
+
+export default RootLayout;

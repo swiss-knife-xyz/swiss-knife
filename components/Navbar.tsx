@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Center, Heading } from "@chakra-ui/react";
 import { baseURL } from "@/config";
 
-export default function Navbar() {
+export const Navbar = () => {
   return (
     <Center pt={"10"}>
       <Heading color="custom.pale">
@@ -10,4 +10,4 @@ export default function Navbar() {
       </Heading>
     </Center>
   );
-}
+};

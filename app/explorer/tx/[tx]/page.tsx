@@ -11,13 +11,13 @@ import {
 } from "@chakra-ui/react";
 import { txExplorers } from "@/data/txExplorers";
 
-export default function Tx({
+const Tx = ({
   params: { tx },
 }: {
   params: {
     tx: string;
   };
-}) {
+}) => {
   return (
     <Box
       px="1rem"
@@ -74,4 +74,6 @@ export default function Tx({
       </SimpleGrid>
     </Box>
   );
-}
+};
+
+export default Tx;

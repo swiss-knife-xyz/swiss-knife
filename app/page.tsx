@@ -21,7 +21,7 @@ const Btn = ({ subdomain }: { subdomain: string }) => (
   </GridItem>
 );
 
-export default function Home() {
+const Home = () => {
   return (
     <Layout>
       <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
@@ -31,4 +31,6 @@ export default function Home() {
       </SimpleGrid>
     </Layout>
   );
-}
+};
+
+export default Home;

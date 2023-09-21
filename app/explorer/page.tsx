@@ -1,5 +1,7 @@
 "use client";
 
-export default function Explorer() {
+const Explorer = () => {
   return <></>;
-}
+};
+
+export default Explorer;

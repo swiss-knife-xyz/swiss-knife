@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button, HStack, Text } from "@chakra-ui/react";
 import { CopyIcon, CheckCircleIcon } from "@chakra-ui/icons";
 
-const CopyToClipboard = ({
+export const CopyToClipboard = ({
   textToCopy,
   labelText,
 }: {
@@ -37,5 +37,3 @@ const CopyToClipboard = ({
     </Button>
   );
 };
-
-export default CopyToClipboard;

@@ -2,7 +2,7 @@ import Script from "next/script";
 
 const GA_ID = "G-9BJG2FRNP5";
 
-export default function Analytics() {
+export const Analytics = () => {
   return (
     <>
       <Script
@@ -23,4 +23,4 @@ export default function Analytics() {
       />
     </>
   );
-}
+};

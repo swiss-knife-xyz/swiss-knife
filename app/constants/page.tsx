@@ -3,10 +3,10 @@
 import { Heading, Table, Tbody, Th, Thead, Tr, Td } from "@chakra-ui/react";
 import { Layout } from "@/components/Layout";
 import { constants } from "@/data/constants";
-import CopyToClipboard from "@/components/CopyToClipboard";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
 
 // TODO: custom metadata title based on current page
-export default function Constants() {
+const Constants = () => {
   return (
     <Layout>
       <Heading>Constants</Heading>
@@ -51,4 +51,6 @@ export default function Constants() {
       </Table>
     </Layout>
   );
-}
+};
+
+export default Constants;

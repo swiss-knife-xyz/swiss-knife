@@ -11,13 +11,13 @@ import {
 } from "@chakra-ui/react";
 import { addressExplorers } from "@/data/addressExplorers";
 
-export default function Address({
+const Address = ({
   params: { address },
 }: {
   params: {
     address: string;
   };
-}) {
+}) => {
   return (
     <Box
       px="1rem"
@@ -79,4 +79,6 @@ export default function Address({
       </SimpleGrid>
     </Box>
   );
-}
+};
+
+export default Address;

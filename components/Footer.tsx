@@ -12,7 +12,7 @@ import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTwitter } from "@fortawesome/free-brands-svg-icons";
 
-export default function Footer() {
+export const Footer = () => {
   return (
     <Box
       mt="6rem"
@@ -47,4 +47,4 @@ export default function Footer() {
       </Container>
     </Box>
   );
-}
+};

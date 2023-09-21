@@ -1,5 +1,7 @@
 "use client";
 
-export default function Slug() {
+const Slug = () => {
   return <></>;
-}
+};
+
+export default Slug;

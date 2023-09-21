@@ -19,14 +19,14 @@ interface Props {
 const selectBg: ColorProps["color"] = "whiteAlpha.200";
 const selectHover: ColorProps["color"] = "whiteAlpha.400";
 
-export default function DarkSelect({
+export const DarkSelect = ({
   placeholder,
   options,
   selectedOption,
   setSelectedOption,
   boxProps,
   isCreatable,
-}: Props) {
+}: Props) => {
   return (
     <Box cursor="pointer" {...boxProps}>
       {isCreatable ? (
@@ -103,4 +103,4 @@ export default function DarkSelect({
       )}
     </Box>
   );
-}
+};

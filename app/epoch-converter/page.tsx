@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { HStack, Heading, Input, Button, Text, Box } from "@chakra-ui/react";
 import { Layout } from "@/components/Layout";
-import CopyToClipboard from "@/components/CopyToClipboard";
-import DarkSelect from "@/components/DarkSelect";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 
 const timeOptions = ["minutes", "hours", "days"];
 
-export default function Epoch() {
+const Epoch = () => {
   const [timestamp, setTimestamp] = useState<number>(
     Math.floor(Date.now() / 1000)
   );
@@ -128,4 +128,6 @@ export default function Epoch() {
       )}
     </Layout>
   );
-}
+};
+
+export default Epoch;

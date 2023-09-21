@@ -1,13 +1,13 @@
 import { ReactNode } from "react";
 import { Box, Container, Spacer, Flex } from "@chakra-ui/react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 interface LayoutParams {
   children: ReactNode;
 }
 
-export function Layout({ children }: LayoutParams) {
+export const Layout = ({ children }: LayoutParams) => {
   return (
     <Box>
       <Navbar />
@@ -28,4 +28,4 @@ export function Layout({ children }: LayoutParams) {
       <Footer />
     </Box>
   );
-}
+};
