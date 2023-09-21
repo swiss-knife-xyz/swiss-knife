@@ -43,7 +43,7 @@ export default function Constants() {
                 {c.data}
               </Td>
               <Td>
-                <CopyToClipboard txt={c.data} />
+                <CopyToClipboard textToCopy={c.data} />
               </Td>
             </Tr>
           ))}

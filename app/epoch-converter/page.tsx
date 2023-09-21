@@ -36,7 +36,7 @@ export default function Epoch() {
       <HStack mt="8">
         <Text>Current timestamp:</Text>
         <Text color="blue.100">{timestamp}</Text>
-        <CopyToClipboard txt={timestamp.toString()} />
+        <CopyToClipboard textToCopy={timestamp.toString()} />
       </HStack>
       <HStack mt="6">
         <Button
@@ -90,7 +90,7 @@ export default function Epoch() {
         {futureTimestamp && (
           <>
             <Text color={"blue.200"}>{futureTimestamp}</Text>
-            <CopyToClipboard txt={futureTimestamp.toString()} />
+            <CopyToClipboard textToCopy={futureTimestamp.toString()} />
           </>
         )}
       </HStack>
