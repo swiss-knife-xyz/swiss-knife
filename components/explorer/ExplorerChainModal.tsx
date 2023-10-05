@@ -57,11 +57,25 @@ export const ExplorerChainModal = ({
           <Box py="2rem" px={{ base: 0, md: "2rem" }}>
             <Text>Select from the supported chains:</Text>
             <Box
+              px="1rem"
               minH="25rem"
               maxH="25rem"
               overflow="scroll"
               overflowX="auto"
               overflowY="auto"
+              sx={{
+                "::-webkit-scrollbar": {
+                  w: "10px",
+                },
+                "::-webkit-scrollbar-track ": {
+                  bg: "gray.700",
+                  rounded: "lg",
+                },
+                "::-webkit-scrollbar-thumb": {
+                  bg: "gray.600",
+                  rounded: "lg",
+                },
+              }}
             >
               <SimpleGrid pt="1rem" columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
                 {supportedChainIds.map((chainId) => (
