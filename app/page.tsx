@@ -10,7 +10,7 @@ const subdomainToLabel = {
   [subdomains.CONSTANTS]: "Constants",
   [subdomains.EPOCH_CONVERTER]: "Epoch Converter",
   [subdomains.EXPLORER]: "Explorer",
-  [subdomains.ETH_CONVERTER]: "ETH Converter",
+  [subdomains.CONVERTER]: "Converter",
 };
 
 const Btn = ({ subdomain }: { subdomain: string }) => (
