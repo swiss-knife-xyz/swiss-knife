@@ -1,6 +1,7 @@
 export const txExplorers: {
   [label: string]: {
     baseUrl: string;
+    isTestnet?: boolean;
   };
 } = {
   Arbiscan: {
@@ -32,12 +33,14 @@ export const txExplorers: {
   },
   "BlockSec (Goerli)": {
     baseUrl: "https://phalcon.blocksec.com/tx/goerli/",
+    isTestnet: true,
   },
   "BlockSec (Polygon)": {
     baseUrl: "https://phalcon.blocksec.com/tx/polygon/",
   },
   "BlockSec (Sepolia)": {
     baseUrl: "https://phalcon.blocksec.com/tx/sepolia/",
+    isTestnet: true,
   },
   Bloxy: {
     baseUrl: "https://bloxy.info/tx/",
@@ -56,21 +59,42 @@ export const txExplorers: {
   },
   "Etherscan (Goerli)": {
     baseUrl: "https://goerli.etherscan.io/tx/",
+    isTestnet: true,
   },
   "Etherscan (Sepolia)": {
     baseUrl: "https://sepolia.etherscan.io/tx/",
+    isTestnet: true,
   },
   "Ethtx.info (Mainnet)": {
     baseUrl: "https://ethtx.info/mainnet/", // TODO: add option to select networks
   },
   "Ethtx.info (Goerli)": {
     baseUrl: "https://ethtx.info/goerli/",
+    isTestnet: true,
   },
   FTMscan: {
     baseUrl: "https://ftmscan.com/tx/",
   },
-  Openchain: {
+  "Openchain (Mainnet)": {
     baseUrl: "https://openchain.xyz/trace/ethereum/",
+  },
+  "Openchain (Arbitrum)": {
+    baseUrl: "https://openchain.xyz/trace/arbitrum/",
+  },
+  "Openchain (Avalanche)": {
+    baseUrl: "https://openchain.xyz/trace/avalanche/",
+  },
+  "Openchain (BSC)": {
+    baseUrl: "https://openchain.xyz/trace/binance/",
+  },
+  "Openchain (Fantom)": {
+    baseUrl: "https://openchain.xyz/trace/fantom/",
+  },
+  "Openchain (Optimism)": {
+    baseUrl: "https://openchain.xyz/trace/optimism/",
+  },
+  "Openchain (Polygon)": {
+    baseUrl: "https://openchain.xyz/trace/polygon/",
   },
   Optiscan: {
     baseUrl: "https://optimistic.etherscan.io/tx/",
@@ -101,6 +125,7 @@ export const txExplorers: {
   },
   "Tenderly (Goerli)": {
     baseUrl: "https://dashboard.tenderly.co/tx/goerli/",
+    isTestnet: true,
   },
   "Tenderly (Optimism)": {
     baseUrl: "https://dashboard.tenderly.co/tx/optimistic/",
@@ -110,6 +135,10 @@ export const txExplorers: {
   },
   "Tenderly (Sepolia)": {
     baseUrl: "https://dashboard.tenderly.co/tx/sepolia/",
+    isTestnet: true,
+  },
+  TokenFlow: {
+    baseUrl: "https://app.tokenflow.live/anytx/mainnet/",
   },
   Viewblock: {
     baseUrl: "https://viewblock.io/starknet/tx/",
