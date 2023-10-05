@@ -1,282 +1,366 @@
-export const addressExplorers: {
-  [label: string]: {
-    baseUrl: string;
-    forContracts?: boolean;
-    isTestnet?: boolean;
-  };
-} = {
+import { ExplorersData, ExplorerData } from "@/types";
+import { CHAINLABEL_KEY, ADDRESS_KEY, c } from "./common";
+
+export const addressExplorers: ExplorersData = {
   ABIw1nt3r: {
-    baseUrl: "https://abi.w1nt3r.xyz/mainnet/",
+    urlLayout: `https://abi.w1nt3r.xyz/mainnet/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+    forContracts: true,
+  },
+  AnyABI: {
+    urlLayout: `https://anyabi.xyz/api/get-abi/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
+    // Supports all EVM chains
+    chainIdToLabel: (() => {
+      let res: ExplorerData["chainIdToLabel"] = {};
+
+      Object.values(c).map((val) => {
+        res[val.id] = val.id.toString();
+      });
+      return res;
+    })(),
     forContracts: true,
   },
   Arbiscan: {
-    baseUrl: "https://arbiscan.io/address/",
+    urlLayout: `https://arbiscan.io/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.arbitrum.id]: "",
+    },
   },
   Basescan: {
-    baseUrl: "https://basescan.org/address/",
+    urlLayout: `https://basescan.org/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.base.id]: "",
+    },
   },
   Blockscan: {
-    baseUrl: "https://blockscan.com/address/",
+    urlLayout: `https://blockscan.com/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
   },
   Breadcrumbs: {
-    baseUrl: "https://www.breadcrumbs.app/reports/",
+    urlLayout: `https://breadcrumbs.app/reports/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+      [c.polygon.id]: "",
+    },
   },
   BscScan: {
-    baseUrl: "https://bscscan.com/address/",
+    urlLayout: `https://bscscan.com/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.bsc.id]: "",
+    },
   },
   Bytegraph: {
-    baseUrl: "https://bytegraph.xyz/contract/",
+    urlLayout: `https://bytegraph.xyz/contract/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
     forContracts: true,
   },
   CeloScan: {
-    baseUrl: "https://celoscan.io/address/",
+    urlLayout: `https://celoscan.io/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.celo.id]: "",
+    },
   },
   ContractReader: {
-    baseUrl: "https://www.contractreader.io/contract/",
+    urlLayout: `https://www.contractreader.io/contract/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "mainnet",
+      [c.arbitrum.id]: "arbitrum",
+      [c.base.id]: "base",
+      [c.bsc.id]: "bsc",
+      [c.goerli.id]: "goerli",
+      [c.optimism.id]: "optimism",
+      [c.polygon.id]: "polygon",
+      [c.sepolia.id]: "sepolia",
+    },
     forContracts: true,
   },
   Debank: {
-    baseUrl: "https://debank.com/profile/",
+    urlLayout: `https://debank.com/profile/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+      [c.arbitrum.id]: "",
+      [c.arbitrumNova.id]: "",
+      [c.avalanche.id]: "",
+      [c.aurora.id]: "",
+      [c.boba.id]: "",
+      [c.bsc.id]: "",
+      [c.canto.id]: "",
+      [c.celo.id]: "",
+      [c.confluxESpace.id]: "",
+      [c.cronos.id]: "",
+      [c.dfk.id]: "",
+      [c.dogechain.id]: "",
+      [c.evmos.id]: "",
+      [c.fantom.id]: "",
+      [c.fuse.id]: "",
+      [c.gnosis.id]: "",
+      [c.harmonyOne.id]: "",
+      [c.iotex.id]: "",
+      [c.klaytn.id]: "",
+      [c.metis.id]: "",
+      [c.moonbeam.id]: "",
+      [c.moonriver.id]: "",
+      [c.okc.id]: "",
+      [c.optimism.id]: "",
+      [c.polygon.id]: "",
+      [c.telos.id]: "",
+      [c.wanchain.id]: "",
+    },
   },
-  "DecompileTools (Mainnet)": {
-    baseUrl: "https://decompile.tools/contract/1/",
+  DecompileTools: {
+    urlLayout: `https://decompile.tools/contract/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: c.mainnet.id.toString(),
+      [c.arbitrum.id]: c.arbitrum.id.toString(),
+      [c.arbitrumGoerli.id]: c.arbitrumGoerli.id.toString(),
+      [c.avalanche.id]: c.avalanche.id.toString(),
+      [c.avalancheFuji.id]: c.avalancheFuji.id.toString(),
+      [c.bsc.id]: c.bsc.id.toString(),
+      [c.bscTestnet.id]: c.bscTestnet.id.toString(),
+      [c.fantom.id]: c.fantom.id.toString(),
+      [c.fantomTestnet.id]: c.fantomTestnet.id.toString(),
+      [c.goerli.id]: c.goerli.id.toString(),
+      [c.optimism.id]: c.optimism.id.toString(),
+      [c.optimismGoerli.id]: c.optimismGoerli.id.toString(),
+      [c.polygon.id]: c.polygon.id.toString(),
+      [c.polygonMumbai.id]: c.polygonMumbai.id.toString(),
+    },
     forContracts: true,
-  },
-  "DecompileTools (Arbitrum)": {
-    baseUrl: "https://decompile.tools/contract/42161/",
-    forContracts: true,
-  },
-  "DecompileTools (Arbitrum Goerli)": {
-    baseUrl: "https://decompile.tools/contract/42163/",
-    forContracts: true,
-    isTestnet: true,
-  },
-  "DecompileTools (Avalanche)": {
-    baseUrl: "https://decompile.tools/contract/43114/",
-    forContracts: true,
-  },
-  "DecompileTools (Avalanche Fuji Testnet)": {
-    baseUrl: "https://decompile.tools/contract/43113/",
-    forContracts: true,
-    isTestnet: true,
-  },
-  "DecompileTools (BSC)": {
-    baseUrl: "https://decompile.tools/contract/56/",
-    forContracts: true,
-  },
-  "DecompileTools (BSC Testnet)": {
-    baseUrl: "https://decompile.tools/contract/97/",
-    forContracts: true,
-    isTestnet: true,
-  },
-  "DecompileTools (Fantom)": {
-    baseUrl: "https://decompile.tools/contract/250/",
-    forContracts: true,
-  },
-  "DecompileTools (Fantom Testnet)": {
-    baseUrl: "https://decompile.tools/contract/4002/",
-    forContracts: true,
-  },
-  "DecompileTools (Goerli)": {
-    baseUrl: "https://decompile.tools/contract/5/",
-    forContracts: true,
-    isTestnet: true,
-  },
-  "DecompileTools (Optimism)": {
-    baseUrl: "https://decompile.tools/contract/10/",
-    forContracts: true,
-  },
-  "DecompileTools (Optimism Goerli Testnet)": {
-    baseUrl: "https://decompile.tools/contract/420/",
-    forContracts: true,
-    isTestnet: true,
-  },
-  "DecompileTools (Polygon)": {
-    baseUrl: "https://decompile.tools/contract/137/",
-    forContracts: true,
-  },
-  "DecompileTools (Polygon Mumbai Testnet)": {
-    baseUrl: "https://decompile.tools/contract/80001/",
-    forContracts: true,
-    isTestnet: true,
   },
   Dedaub: {
-    baseUrl: "https://library.dedaub.com/ethereum/address/",
+    urlLayout: `https://library.dedaub.com/${CHAINLABEL_KEY}/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "ethereum",
+      [c.arbitrum.id]: "arbitrum",
+      [c.base.id]: "base",
+      [c.fantom.id]: "fantom",
+    },
     forContracts: true,
   },
-  "Etherscan (Mainnet)": {
-    baseUrl: "https://etherscan.io/address/",
+  Etherscan: {
+    urlLayout: `https://etherscan.io/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
   },
-  "Etherscan (Goerli)": {
-    baseUrl: "https://goerli.etherscan.io/address/",
-    isTestnet: true,
-  },
-  "Etherscan (Sepolia)": {
-    baseUrl: "https://sepolia.etherscan.io/address/",
-    isTestnet: true,
+  "Etherscan (Testnet)": {
+    urlLayout: `https://${CHAINLABEL_KEY}.etherscan.io/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.goerli.id]: "goerli",
+      [c.sepolia.id]: "sepolia",
+    },
   },
   Ethtective: {
-    baseUrl: "https://ethtective.com/address/",
+    urlLayout: `https://ethtective.com/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
   },
   FTMScan: {
-    baseUrl: "https://ftmscan.com/address/",
+    urlLayout: `https://ftmscan.com/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.fantom.id]: "",
+    },
   },
   GnosisScan: {
-    baseUrl: "https://gnosisscan.io/address/",
+    urlLayout: `https://gnosisscan.io/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.gnosis.id]: "",
+    },
   },
   Impersonator: {
-    baseUrl: "https://www.impersonator.xyz/?address=",
+    urlLayout: `https://impersonator.xyz/?address=${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
   },
-  "MetaSleuth (Mainnet)": {
-    baseUrl: "https://metasleuth.io/result/eth/",
-  },
-  "MetaSleuth (Arbitrum)": {
-    baseUrl: "https://metasleuth.io/result/arbitrum/",
-  },
-  "MetaSleuth (Avalanche)": {
-    baseUrl: "https://metasleuth.io/result/avalanche/",
-  },
-  "MetaSleuth (Base)": {
-    baseUrl: "https://metasleuth.io/result/base/",
-  },
-  "MetaSleuth (BSC)": {
-    baseUrl: "https://metasleuth.io/result/bsc/",
-  },
-  "MetaSleuth (Cronos)": {
-    baseUrl: "https://metasleuth.io/result/cronos/",
-  },
-  "MetaSleuth (Fantom)": {
-    baseUrl: "https://metasleuth.io/result/fantom/",
-  },
-  "MetaSleuth (Linea)": {
-    baseUrl: "https://metasleuth.io/result/linea/",
-  },
-  "MetaSleuth (Moonbeam)": {
-    baseUrl: "https://metasleuth.io/result/moonbeam/",
-  },
-  "MetaSleuth (Optimism)": {
-    baseUrl: "https://metasleuth.io/result/optimism/",
-  },
-  "MetaSleuth (Polygon)": {
-    baseUrl: "https://metasleuth.io/result/polygon/",
-  },
-  "MetaSleuth (Tron)": {
-    baseUrl: "https://metasleuth.io/result/tron/",
+  MetaSleuth: {
+    urlLayout: `https://metasleuth.io/result/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "eth",
+      [c.arbitrum.id]: "arbitrum",
+      [c.avalanche.id]: "avalanche",
+      [c.base.id]: "base",
+      [c.bsc.id]: "bsc",
+      [c.cronos.id]: "cronos",
+      [c.fantom.id]: "fantom",
+      [c.linea.id]: "linea",
+      [c.moonbeam.id]: "moonbeam",
+      [c.optimism.id]: "optimism",
+      [c.polygon.id]: "polygon",
+    },
   },
   Monobase: {
-    baseUrl: "https://monobase.xyz/address/",
+    urlLayout: `https://${CHAINLABEL_KEY}monobase.xyz/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+      [c.goerli.id]: "goerli.",
+      [c.sepolia.id]: "sepolia.",
+    },
   },
   Nansen: {
-    baseUrl: "https://pro.nansen.ai/wallet-profiler?address=",
+    urlLayout: `https://pro.nansen.ai/wallet-profiler?address=${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+      [c.arbitrum.id]: "",
+      [c.avalanche.id]: "",
+      [c.bsc.id]: "",
+      [c.celo.id]: "",
+      [c.fantom.id]: "",
+      [c.linea.id]: "",
+      [c.polygon.id]: "",
+      [c.ronin.id]: "",
+    },
   },
   OpenSea: {
-    baseUrl: "https://opensea.io/",
+    urlLayout: `https://opensea.io/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+      [c.arbitrum.id]: "",
+      [c.avalanche.id]: "",
+      [c.base.id]: "",
+      [c.bsc.id]: "",
+      [c.klaytn.id]: "",
+      [c.optimism.id]: "",
+      [c.polygon.id]: "",
+      [c.zora.id]: "",
+    },
   },
   "OpenSeaPro Profile": {
-    baseUrl: "https://pro.opensea.io/profile/",
+    urlLayout: `https://pro.opensea.io/profile/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
   },
   "OpenSeaPro Collection": {
-    baseUrl: "https://pro.opensea.io/collection/",
+    urlLayout: `https://pro.opensea.io/collection/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+    forContracts: true,
+  },
+  "OpenSea Testnet": {
+    urlLayout: `https://testnets.opensea.io/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.goerli.id]: "",
+      [c.arbitrumGoerli.id]: "",
+      [c.avalancheFuji.id]: "",
+      [c.baseGoerli.id]: "",
+      [c.bscTestnet.id]: "",
+      [c.optimismGoerli.id]: "",
+      [c.polygonMumbai.id]: "",
+      [c.sepolia.id]: "",
+      [c.zoraTestnet.id]: "",
+    },
   },
   OptimismScan: {
-    baseUrl: "https://optimistic.etherscan.io/address/",
+    urlLayout: `https://optimistic.etherscan.io/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.optimism.id]: "",
+    },
   },
   PolygonScan: {
-    baseUrl: "https://polygonscan.com/address/",
+    urlLayout: `https://polygonscan.com/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.polygon.id]: "",
+    },
   },
   Remix: {
-    baseUrl: "https://remix.ethereum.org/#address=",
+    urlLayout: `https://remix.ethereum.org/#address=${ADDRESS_KEY}`,
+    // Supports all EVM chains
+    chainIdToLabel: (() => {
+      let res: ExplorerData["chainIdToLabel"] = {};
+
+      Object.values(c).map((val) => {
+        res[val.id] = "";
+      });
+      return res;
+    })(),
     forContracts: true,
+  },
+  Scopescan: {
+    urlLayout: `https://scopescan.ai/address/${ADDRESS_KEY}?network=${CHAINLABEL_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "eth",
+      [c.bsc.id]: "bsc",
+      [c.arbitrum.id]: "arb",
+      [c.polygon.id]: "polygon",
+    },
   },
   SnowTrace: {
-    baseUrl: "https://snowtrace.io/address/",
+    urlLayout: `https://snowtrace.io/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.avalanche.id]: "",
+    },
   },
-  "Tenderly (Mainnet)": {
-    baseUrl: "https://dashboard.tenderly.co/contract/mainnet/",
+  Tenderly: {
+    urlLayout: `https://dashboard.tenderly.co/contract/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "mainnet",
+      [c.arbitrum.id]: "arbitrum",
+      [c.avalanche.id]: "avalanche-mainnet",
+      [c.bsc.id]: "bsc-mainnet",
+      [c.cronos.id]: "cronos",
+      [c.fantom.id]: "fantom",
+      [c.gnosis.id]: "gnosis-chain",
+      [c.goerli.id]: "goerli",
+      [c.optimism.id]: "optimistic",
+      [c.polygon.id]: "polygon",
+      [c.sepolia.id]: "sepolia",
+    },
     forContracts: true,
   },
-  "Tenderly (Arbitrum)": {
-    baseUrl: "https://dashboard.tenderly.co/contract/arbitrum/",
-    forContracts: true,
-  },
-  "Tenderly (Avalanche)": {
-    baseUrl: "https://dashboard.tenderly.co/contract/avalanche-mainnet/",
-    forContracts: true,
-  },
-  "Tenderly (BSC)": {
-    baseUrl: "https://dashboard.tenderly.co/contract/bsc-mainnet/",
-    forContracts: true,
-  },
-  "Tenderly (Cronos)": {
-    baseUrl: "https://dashboard.tenderly.co/contract/cronos/",
-    forContracts: true,
-  },
-  "Tenderly (Fantom)": {
-    baseUrl: "https://dashboard.tenderly.co/contract/fantom/",
-    forContracts: true,
-  },
-  "Tenderly (Gnosis)": {
-    baseUrl: "https://dashboard.tenderly.co/contract/gnosis-chain/",
-    forContracts: true,
-  },
-  "Tenderly (Goerli)": {
-    baseUrl: "https://dashboard.tenderly.co/contract/goerli/",
-    forContracts: true,
-    isTestnet: true,
-  },
-  "Tenderly (Optimism)": {
-    baseUrl: "https://dashboard.tenderly.co/contract/optimistic/",
-    forContracts: true,
-  },
-  "Tenderly (Polygon)": {
-    baseUrl: "https://dashboard.tenderly.co/contract/polygon/",
-    forContracts: true,
-  },
-  "Tenderly (Sepolia)": {
-    baseUrl: "https://dashboard.tenderly.co/contract/sepolia/",
-    forContracts: true,
-    isTestnet: true,
-  },
-  "UpgradeHub (Mainnet)": {
-    baseUrl: "https://upgradehub.xyz/diffs/etherscan/",
-    forContracts: true,
-  },
-  "UpgradeHub (Arbitrum)": {
-    baseUrl: "https://upgradehub.xyz/diffs/arbiscan/",
-    forContracts: true,
-  },
-  "UpgradeHub (Avalanche)": {
-    baseUrl: "https://upgradehub.xyz/diffs/snowtrace/",
-    forContracts: true,
-  },
-  "UpgradeHub (BSC)": {
-    baseUrl: "https://upgradehub.xyz/diffs/bscscan/",
-    forContracts: true,
-  },
-  "UpgradeHub (Cronos)": {
-    baseUrl: "https://upgradehub.xyz/diffs/cronoscan/",
-    forContracts: true,
-  },
-  "UpgradeHub (Fantom)": {
-    baseUrl: "https://upgradehub.xyz/diffs/ftmscan/",
-    forContracts: true,
-  },
-  "UpgradeHub (Moonbeam)": {
-    baseUrl: "https://upgradehub.xyz/diffs/moonbeam/",
-    forContracts: true,
-  },
-  "UpgradeHub (Optimism)": {
-    baseUrl: "https://upgradehub.xyz/diffs/optimistic.etherscan/",
-    forContracts: true,
-  },
-  "UpgradeHub (Polygon)": {
-    baseUrl: "https://upgradehub.xyz/diffs/polygonscan/",
+  UpgradeHub: {
+    urlLayout: `https://upgradehub.xyz/diffs/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "etherscan",
+      [c.arbitrum.id]: "arbiscan",
+      [c.avalanche.id]: "snowtrace",
+      [c.bsc.id]: "bscscan",
+      [c.cronos.id]: "cronoscan",
+      [c.fantom.id]: "ftmscan",
+      [c.moonbeam.id]: "moonbeam",
+      [c.optimism.id]: "optimistic.etherscan",
+      [c.polygon.id]: "polygonscan",
+    },
     forContracts: true,
   },
   Zapper: {
-    baseUrl: "https://zapper.fi/account/",
+    urlLayout: `https://zapper.xyz/account/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+      [c.avalanche.id]: "",
+      [c.arbitrum.id]: "",
+      [c.aurora.id]: "",
+      [c.bsc.id]: "",
+      [c.base.id]: "",
+      [c.celo.id]: "",
+      [c.cronos.id]: "",
+      [c.fantom.id]: "",
+      [c.gnosis.id]: "",
+      [c.moonriver.id]: "",
+      [c.optimism.id]: "",
+      [c.polygon.id]: "",
+    },
   },
   Zerion: {
-    baseUrl: "https://app.zerion.io/",
+    urlLayout: `https://app.zerion.io/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+      [c.arbitrum.id]: "",
+      [c.aurora.id]: "",
+      [c.avalanche.id]: "",
+      [c.bsc.id]: "",
+      [c.fantom.id]: "",
+      [c.gnosis.id]: "",
+      [c.optimism.id]: "",
+      [c.polygon.id]: "",
+    },
   },
 };

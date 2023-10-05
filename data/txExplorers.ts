@@ -1,146 +1,142 @@
-export const txExplorers: {
-  [label: string]: {
-    baseUrl: string;
-    isTestnet?: boolean;
-  };
-} = {
+import { ExplorersData } from "@/types";
+import { CHAINLABEL_KEY, TX_KEY, c } from "./common";
+
+export const txExplorers: ExplorersData = {
   Arbiscan: {
-    baseUrl: "https://arbiscan.io/tx/",
+    urlLayout: `https://arbiscan.io/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.arbitrum.id]: "",
+    },
   },
   Avaxscan: {
-    baseUrl: "https://snowtrace.io/tx/",
+    urlLayout: `https://snowtrace.io/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.avalanche.id]: "",
+    },
   },
-  "BlockSec (Mainnet)": {
-    baseUrl: "https://phalcon.blocksec.com/tx/eth/", // TODO: add option to select networks
-  },
-  "BlockSec (Arbitrum)": {
-    baseUrl: "https://phalcon.blocksec.com/tx/arbitrum/",
-  },
-  "BlockSec (Avalanche)": {
-    baseUrl: "https://phalcon.blocksec.com/tx/avax/",
-  },
-  "BlockSec (BSC)": {
-    baseUrl: "https://phalcon.blocksec.com/tx/bsc/",
-  },
-  "BlockSec (Cronos)": {
-    baseUrl: "https://phalcon.blocksec.com/tx/cro/",
-  },
-  "BlockSec (Fantom)": {
-    baseUrl: "https://phalcon.blocksec.com/tx/ftm/",
-  },
-  "BlockSec (Optimism)": {
-    baseUrl: "https://phalcon.blocksec.com/tx/optimism/",
-  },
-  "BlockSec (Goerli)": {
-    baseUrl: "https://phalcon.blocksec.com/tx/goerli/",
-    isTestnet: true,
-  },
-  "BlockSec (Polygon)": {
-    baseUrl: "https://phalcon.blocksec.com/tx/polygon/",
-  },
-  "BlockSec (Sepolia)": {
-    baseUrl: "https://phalcon.blocksec.com/tx/sepolia/",
-    isTestnet: true,
+  BlocSec: {
+    urlLayout: `https://phalcon.blocksec.com/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "eth",
+      [c.arbitrum.id]: "arbitrum",
+      [c.avalanche.id]: "avax",
+      [c.bsc.id]: "bsc",
+      [c.cronos.id]: "cro",
+      [c.fantom.id]: "ftm",
+      [c.goerli.id]: "goerli",
+      [c.optimism.id]: "optimism",
+      [c.polygon.id]: "polygon",
+      [c.sepolia.id]: "sepolia",
+    },
   },
   Bloxy: {
-    baseUrl: "https://bloxy.info/tx/",
+    urlLayout: `https://bloxy.info/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
   },
   Celoscan: {
-    baseUrl: "https://celoscan.io/tx/",
+    urlLayout: `https://celoscan.io/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.celo.id]: "",
+    },
   },
   Cruise: {
-    baseUrl: "https://cruise.supremacy.team/detail/?tx=",
+    urlLayout: `https://cruise.supremacy.team/detail/?tx=${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
   },
   EigenPhi: {
-    baseUrl: "https://tx.eigenphi.io/analyseTransaction?chain=ALL&tx=",
+    urlLayout: `https://tx.eigenphi.io/analyseTransaction?chain=ALL&tx=${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+      [c.arbitrum.id]: "",
+      [c.avalanche.id]: "",
+      [c.bsc.id]: "",
+      [c.cronos.id]: "",
+      [c.fantom.id]: "",
+      [c.optimism.id]: "",
+      [c.polygon.id]: "",
+    },
   },
-  "Etherscan (Mainnet)": {
-    baseUrl: "https://etherscan.io/tx/",
+  Etherscan: {
+    urlLayout: `https://etherscan.io/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
   },
-  "Etherscan (Goerli)": {
-    baseUrl: "https://goerli.etherscan.io/tx/",
-    isTestnet: true,
+  "Etherscan (Testnet)": {
+    urlLayout: `https://${CHAINLABEL_KEY}.etherscan.io/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.goerli.id]: "goerli",
+      [c.sepolia.id]: "sepolia",
+    },
   },
-  "Etherscan (Sepolia)": {
-    baseUrl: "https://sepolia.etherscan.io/tx/",
-    isTestnet: true,
-  },
-  "Ethtx.info (Mainnet)": {
-    baseUrl: "https://ethtx.info/mainnet/", // TODO: add option to select networks
-  },
-  "Ethtx.info (Goerli)": {
-    baseUrl: "https://ethtx.info/goerli/",
-    isTestnet: true,
+  "Ethtx.info": {
+    urlLayout: `https://ethtx.info/${CHAINLABEL_KEY}/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "mainnet",
+      [c.goerli.id]: "goerli",
+    },
   },
   FTMscan: {
-    baseUrl: "https://ftmscan.com/tx/",
+    urlLayout: `https://ftmscan.com/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.fantom.id]: "",
+    },
   },
-  "Openchain (Mainnet)": {
-    baseUrl: "https://openchain.xyz/trace/ethereum/",
-  },
-  "Openchain (Arbitrum)": {
-    baseUrl: "https://openchain.xyz/trace/arbitrum/",
-  },
-  "Openchain (Avalanche)": {
-    baseUrl: "https://openchain.xyz/trace/avalanche/",
-  },
-  "Openchain (BSC)": {
-    baseUrl: "https://openchain.xyz/trace/binance/",
-  },
-  "Openchain (Fantom)": {
-    baseUrl: "https://openchain.xyz/trace/fantom/",
-  },
-  "Openchain (Optimism)": {
-    baseUrl: "https://openchain.xyz/trace/optimism/",
-  },
-  "Openchain (Polygon)": {
-    baseUrl: "https://openchain.xyz/trace/polygon/",
+  Openchain: {
+    urlLayout: `https://openchain.xyz/trace/${CHAINLABEL_KEY}/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "ethereum",
+      [c.arbitrum.id]: "arbitrum",
+      [c.avalanche.id]: "avalanche",
+      [c.bsc.id]: "binance",
+      [c.cronos.id]: "cronos",
+      [c.fantom.id]: "fantom",
+      [c.optimism.id]: "optimism",
+      [c.polygon.id]: "polygon",
+    },
   },
   Optiscan: {
-    baseUrl: "https://optimistic.etherscan.io/tx/",
+    urlLayout: `https://optimistic.etherscan.io/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.optimism.id]: "",
+    },
   },
   Polyscan: {
-    baseUrl: "https://polygonscan.com/tx/",
+    urlLayout: `https://polygonscan.com/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.polygon.id]: "",
+    },
   },
-  "Tenderly (Mainnet)": {
-    baseUrl: "https://dashboard.tenderly.co/tx/mainnet/", // TODO: add option to select networks
-  },
-  "Tenderly (Arbitrum)": {
-    baseUrl: "https://dashboard.tenderly.co/tx/arbitrum/",
-  },
-  "Tenderly (Avalanche)": {
-    baseUrl: "https://dashboard.tenderly.co/tx/avalanche-mainnet/",
-  },
-  "Tenderly (BSC)": {
-    baseUrl: "https://dashboard.tenderly.co/tx/bsc-mainnet/",
-  },
-  "Tenderly (Cronos)": {
-    baseUrl: "https://dashboard.tenderly.co/tx/cronos/",
-  },
-  "Tenderly (Fantom)": {
-    baseUrl: "https://dashboard.tenderly.co/tx/fantom/",
-  },
-  "Tenderly (Gnosis)": {
-    baseUrl: "https://dashboard.tenderly.co/tx/gnosis-chain/",
-  },
-  "Tenderly (Goerli)": {
-    baseUrl: "https://dashboard.tenderly.co/tx/goerli/",
-    isTestnet: true,
-  },
-  "Tenderly (Optimism)": {
-    baseUrl: "https://dashboard.tenderly.co/tx/optimistic/",
-  },
-  "Tenderly (Polygon)": {
-    baseUrl: "https://dashboard.tenderly.co/tx/polygon/",
-  },
-  "Tenderly (Sepolia)": {
-    baseUrl: "https://dashboard.tenderly.co/tx/sepolia/",
-    isTestnet: true,
+  Tenderly: {
+    urlLayout: `https://dashboard.tenderly.co/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "mainnet",
+      [c.arbitrum.id]: "arbitrum",
+      [c.avalanche.id]: "avalanche-mainnet",
+      [c.bsc.id]: "bsc-mainnet",
+      [c.cronos.id]: "cronos",
+      [c.fantom.id]: "fantom",
+      [c.gnosis.id]: "gnosis-chain",
+      [c.goerli.id]: "goerli",
+      [c.optimism.id]: "optimistic",
+      [c.polygon.id]: "polygon",
+      [c.sepolia.id]: "sepolia",
+    },
   },
   TokenFlow: {
-    baseUrl: "https://app.tokenflow.live/anytx/mainnet/",
+    urlLayout: `https://app.tokenflow.live/anytx/mainnet/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
   },
   Viewblock: {
-    baseUrl: "https://viewblock.io/starknet/tx/",
+    urlLayout: `https://viewblock.io/starknet/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
   },
 };
