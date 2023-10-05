@@ -6,8 +6,14 @@ const nextConfig = {
   rewrites() {
     return {
       beforeFiles: [
+        // Rewrite for static assets in the public folder
+        {
+          source: "/chainIcons/:asset*",
+          destination: "/chainIcons/:asset*",
+        },
+        // set up subdomains
         ...Object.values(subdomains).map((subdomain) => ({
-          source: "/:path((?!_next).*)",
+          source: "/:path((?!_next|chainIcons).*)", // Exclude chainIcons from subdomain rewrites
           has: [
             {
               type: "host",
