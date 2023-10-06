@@ -143,6 +143,12 @@ export const addressExplorers: ExplorersData = {
     },
     forContracts: true,
   },
+  EarniFi: {
+    urlLayout: `https://earni.fi/?address=${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+  },
   Etherscan: {
     urlLayout: `https://etherscan.io/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
