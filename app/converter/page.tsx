@@ -50,13 +50,21 @@ const ETHUnitConverter = () => {
 
   const handleOnChange = (
     e: React.ChangeEvent<HTMLInputElement>,
+    unit: "wei" | "gwei" | "eth",
     valueToWei: (value: string) => string
   ) => {
     const value = e.target.value;
 
+    // Directly set the value of the unit that is being changed
+    // to handle cases like 0.0000 ETH to not be converted to 0 ETH due to parsing
+    // setting what was input by user as it is, and excluding it in the setValues function
+    if (unit === "wei") setWei(value);
+    else if (unit === "gwei") setGwei(value);
+    else if (unit === "eth") setEth(value);
+
     if (value.length > 0) {
       const wei = valueToWei(value);
-      setValues(wei);
+      setValues(wei, unit);
     } else {
       setWei("");
       setGwei("");
@@ -64,12 +72,12 @@ const ETHUnitConverter = () => {
     }
   };
 
-  const setValues = (inWei: string) => {
+  const setValues = (inWei: string, exceptUnit: "wei" | "gwei" | "eth") => {
     setWei(inWei);
 
     if (inWei.length > 0) {
-      setGwei(formatGwei(BigInt(inWei)));
-      setEth(formatEther(BigInt(inWei)));
+      if (exceptUnit !== "gwei") setGwei(formatGwei(BigInt(inWei)));
+      if (exceptUnit !== "eth") setEth(formatEther(BigInt(inWei)));
     } else {
       setGwei("");
       setEth("");
@@ -86,7 +94,7 @@ const ETHUnitConverter = () => {
             <InputField
               placeholder="Wei"
               value={wei}
-              onChange={(e) => handleOnChange(e, (value) => value)}
+              onChange={(e) => handleOnChange(e, "wei", (value) => value)}
             />
           </Tr>
           <Tr>
@@ -95,7 +103,9 @@ const ETHUnitConverter = () => {
               placeholder="Gwei"
               value={gwei}
               onChange={(e) =>
-                handleOnChange(e, (value) => parseGwei(value).toString())
+                handleOnChange(e, "gwei", (value) =>
+                  parseGwei(value).toString()
+                )
               }
             />
           </Tr>
@@ -105,7 +115,9 @@ const ETHUnitConverter = () => {
               placeholder="Ether"
               value={eth}
               onChange={(e) =>
-                handleOnChange(e, (value) => parseEther(value).toString())
+                handleOnChange(e, "eth", (value) =>
+                  parseEther(value).toString()
+                )
               }
             />
           </Tr>
