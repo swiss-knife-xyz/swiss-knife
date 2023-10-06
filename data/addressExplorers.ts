@@ -40,6 +40,12 @@ export const addressExplorers: ExplorersData = {
       [c.mainnet.id]: "",
     },
   },
+  Bloxy: {
+    urlLayout: `https://bloxy.info/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+  },
   Breadcrumbs: {
     urlLayout: `https://breadcrumbs.app/reports/${ADDRESS_KEY}`,
     chainIdToLabel: {
@@ -182,6 +188,12 @@ export const addressExplorers: ExplorersData = {
   },
   Impersonator: {
     urlLayout: `https://impersonator.xyz/?address=${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+  },
+  Llamafolio: {
+    urlLayout: `https://llamafolio.com/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "",
     },
