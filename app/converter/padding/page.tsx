@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Heading, Table, Tbody, Tr, Td } from "@chakra-ui/react";
-import { pad } from "viem";
+import { isHex, pad } from "viem";
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
 import { startHexWith0x } from "@/utils";
@@ -11,6 +11,15 @@ const Padding = () => {
   const [userInput, setUserInput] = useState<string>();
   const [leftPadded, setLeftPadded] = useState<string>();
   const [rightPadded, setRightPadded] = useState<string>();
+
+  const [isHexadecimalInvalid, setIsHexadecimalInvalid] =
+    useState<boolean>(false);
+
+  const checkInvalidHex = (value?: string): boolean => {
+    value = value ?? "";
+
+    return !isHex(startHexWith0x(value));
+  };
 
   return (
     <>
@@ -27,11 +36,19 @@ const Padding = () => {
                   const value = e.target.value;
                   setUserInput(value);
 
-                  const inHex = startHexWith0x(value);
+                  const isInvalid = checkInvalidHex(value);
+                  if (!isInvalid) {
+                    const inHex = startHexWith0x(value);
 
-                  setLeftPadded(pad(inHex));
-                  setRightPadded(pad(inHex, { dir: "right" }));
+                    setLeftPadded(pad(inHex));
+                    setRightPadded(pad(inHex, { dir: "right" }));
+
+                    if (isHexadecimalInvalid) setIsHexadecimalInvalid(false);
+                  } else {
+                    setIsHexadecimalInvalid(true);
+                  }
                 }}
+                isInvalid={isHexadecimalInvalid}
               />
             </Td>
           </Tr>
