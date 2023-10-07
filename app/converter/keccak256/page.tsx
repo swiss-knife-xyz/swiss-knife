@@ -44,6 +44,17 @@ const Keccak256 = () => {
               />
             </Td>
           </Tr>
+          <Tr>
+            <Label>4 Bytes</Label>
+            <Td>
+              <InputField
+                placeholder="first 4 bytes after Keccak256"
+                value={keccak256 ? keccak256.slice(0, 10) : ""}
+                onChange={() => {}}
+                isReadOnly
+              />
+            </Td>
+          </Tr>
         </Tbody>
       </Table>
     </>
