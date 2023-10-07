@@ -14,6 +14,7 @@ const LinkItems: Array<NavItemProps> = [
   { name: "ETH", path: "eth" },
   { name: "Hexadecimal", path: "hexadecimal" },
   { name: "Keccak256", path: "keccak256" },
+  { name: "Padding", path: "padding" },
 ];
 
 const NavItem = ({ name, path }: NavItemProps) => {

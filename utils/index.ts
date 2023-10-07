@@ -41,3 +41,11 @@ export const checkDifferentUrlsExist = (data: ExplorerData): boolean => {
   }
   return false;
 };
+
+export const startHexWith0x = (hexValue: string): `0x${string}` => {
+  return hexValue.startsWith("0x")
+    ? hexValue === "0x"
+      ? "0x0"
+      : (hexValue as `0x${string}`)
+    : `0x${hexValue}`;
+};

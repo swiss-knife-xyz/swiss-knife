@@ -6,6 +6,7 @@ import { numberToHex, hexToBigInt, isHex } from "viem";
 import bigInt from "big-integer";
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
+import { startHexWith0x } from "@/utils";
 
 const Hexadecimal = () => {
   const [hexadecimal, setHexadecimal] = useState<string>();
@@ -15,14 +16,6 @@ const Hexadecimal = () => {
   const [isHexadecimalInvalid, setIsHexadecimalInvalid] =
     useState<boolean>(false);
   const [isBinaryInvalid, setIsBinaryInvalid] = useState<boolean>(false);
-
-  const startHexWith0x = (hexValue: string): `0x${string}` => {
-    return hexValue.startsWith("0x")
-      ? hexValue === "0x"
-        ? "0x0"
-        : (hexValue as `0x${string}`)
-      : `0x${hexValue}`;
-  };
 
   const checkInvalid = (
     unit: "hexadecimal" | "decimal" | "binary",
