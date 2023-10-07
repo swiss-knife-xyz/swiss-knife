@@ -1,4 +1,5 @@
 import { ZeroAddress, ZeroHash, MaxUint256 } from "ethers";
+import { numberToHex } from "viem";
 
 export const constants: {
   label: string;
@@ -11,6 +12,10 @@ export const constants: {
   {
     label: "Max Uint256",
     data: MaxUint256.toString(),
+  },
+  {
+    label: "Max Uint256 (Hex)",
+    data: numberToHex(BigInt(MaxUint256)),
   },
   {
     label: "Zero Bytes32",
