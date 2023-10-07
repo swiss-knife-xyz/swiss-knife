@@ -5,6 +5,7 @@ import { Heading, Table, Tbody, Tr, Td } from "@chakra-ui/react";
 import { numberToHex, hexToBigInt, isHex } from "viem";
 import bigInt from "big-integer";
 import { InputField } from "@/components/InputField";
+import { Label } from "@/components/Label";
 
 const Hexadecimal = () => {
   const [hexadecimal, setHexadecimal] = useState<string>();
@@ -102,7 +103,7 @@ const Hexadecimal = () => {
       <Table mt={"3rem"} variant={"unstyled"}>
         <Tbody>
           <Tr>
-            <Td>Hexadecimal</Td>
+            <Label>Hexadecimal</Label>
             <Td>
               <InputField
                 placeholder="Hexadecimal"
@@ -115,7 +116,7 @@ const Hexadecimal = () => {
             </Td>
           </Tr>
           <Tr>
-            <Td>Decimal</Td>
+            <Label>Decimal</Label>
             <Td>
               <InputField
                 type="number"
@@ -130,7 +131,7 @@ const Hexadecimal = () => {
             </Td>
           </Tr>
           <Tr>
-            <Td>Binary</Td>
+            <Label>Binary</Label>
             <Td>
               <InputField
                 type="number"

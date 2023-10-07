@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Heading, Table, Tbody, Tr, Td } from "@chakra-ui/react";
 import { toHex, keccak256 as toKeccak256 } from "viem";
-import bigInt from "big-integer";
 import { InputField } from "@/components/InputField";
+import { Label } from "@/components/Label";
 
 const Keccak256 = () => {
   const [userInput, setUserInput] = useState<string>();
@@ -16,7 +16,7 @@ const Keccak256 = () => {
       <Table mt={"3rem"} variant={"unstyled"}>
         <Tbody>
           <Tr>
-            <Td>Input</Td>
+            <Label>Input</Label>
             <Td>
               <InputField
                 placeholder="string or hex (starting with 0x)"
@@ -34,7 +34,7 @@ const Keccak256 = () => {
             </Td>
           </Tr>
           <Tr>
-            <Td>Keccak256</Td>
+            <Label>Keccak256</Label>
             <Td>
               <InputField
                 placeholder="Keccak256"
