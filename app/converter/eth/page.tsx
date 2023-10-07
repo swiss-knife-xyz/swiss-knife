@@ -1,46 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Heading,
-  Table,
-  Tbody,
-  Tr,
-  Td,
-  Input,
-  InputGroup,
-  InputRightElement,
-} from "@chakra-ui/react";
+import { Heading, Table, Tbody, Tr, Td } from "@chakra-ui/react";
 import { parseEther, parseGwei, formatEther, formatGwei } from "viem";
-import { CopyToClipboard } from "@/components/CopyToClipboard";
-
-const Label = ({ children }: { children: React.ReactNode }) => (
-  <Td textAlign={"center"}>{children}</Td>
-);
-
-const InputField = ({
-  placeholder,
-  value,
-  onChange,
-}: {
-  placeholder: string;
-  value?: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) => (
-  <Td>
-    <InputGroup>
-      <Input
-        type="number"
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-      />
-      <InputRightElement pr={1}>
-        <CopyToClipboard textToCopy={value ?? ""} />
-      </InputRightElement>
-    </InputGroup>
-  </Td>
-);
+import { InputField } from "@/components/InputField";
+import { Label } from "@/components/Label";
 
 const ETHUnitConverter = () => {
   const [wei, setWei] = useState<string>();
@@ -90,27 +54,34 @@ const ETHUnitConverter = () => {
         <Tbody>
           <Tr>
             <Label>Wei</Label>
-            <InputField
-              placeholder="Wei"
-              value={wei}
-              onChange={(e) => handleOnChange(e, "wei", (value) => value)}
-            />
+            <Td>
+              <InputField
+                type="number"
+                placeholder="Wei"
+                value={wei}
+                onChange={(e) => handleOnChange(e, "wei", (value) => value)}
+              />
+            </Td>
           </Tr>
           <Tr>
             <Label>Gwei</Label>
-            <InputField
-              placeholder="Gwei"
-              value={gwei}
-              onChange={(e) =>
-                handleOnChange(e, "gwei", (value) =>
-                  parseGwei(value).toString()
-                )
-              }
-            />
+            <Td>
+              <InputField
+                type="number"
+                placeholder="Gwei"
+                value={gwei}
+                onChange={(e) =>
+                  handleOnChange(e, "gwei", (value) =>
+                    parseGwei(value).toString()
+                  )
+                }
+              />
+            </Td>
           </Tr>
           <Tr>
             <Label>Ether</Label>
             <InputField
+              type="number"
               placeholder="Ether"
               value={eth}
               onChange={(e) =>
