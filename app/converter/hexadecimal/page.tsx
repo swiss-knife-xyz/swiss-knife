@@ -47,8 +47,6 @@ const Hexadecimal = () => {
     const value = e.target.value;
     const isInvalid = checkInvalid(unit, value);
 
-    console.log({ isInvalid, value, unit });
-
     // Directly set the value of the unit that is being changed
     // to handle cases like 0.0000 to not be converted to 0 due to parsing
     // setting what was input by user as it is, and excluding it in the setValues function

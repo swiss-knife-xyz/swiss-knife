@@ -80,16 +80,18 @@ const ETHUnitConverter = () => {
           </Tr>
           <Tr>
             <Label>Ether</Label>
-            <InputField
-              type="number"
-              placeholder="Ether"
-              value={eth}
-              onChange={(e) =>
-                handleOnChange(e, "eth", (value) =>
-                  parseEther(value).toString()
-                )
-              }
-            />
+            <Td>
+              <InputField
+                type="number"
+                placeholder="Ether"
+                value={eth}
+                onChange={(e) =>
+                  handleOnChange(e, "eth", (value) =>
+                    parseEther(value).toString()
+                  )
+                }
+              />
+            </Td>
           </Tr>
         </Tbody>
       </Table>
