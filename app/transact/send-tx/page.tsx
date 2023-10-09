@@ -262,7 +262,11 @@ const SendTx = () => {
             <InputField
               type="number"
               placeholder="value"
-              value={ethValue}
+              value={
+                selectedEthFormatOption?.value === "ETH"
+                  ? ethValue
+                  : parseEther(ethValue ?? "0").toString()
+              }
               onChange={(e) => {
                 const value = e.target.value;
 
