@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { Button, HStack, Text } from "@chakra-ui/react";
+import { Button, HStack, Text, ButtonProps } from "@chakra-ui/react";
 import { CopyIcon, CheckCircleIcon } from "@chakra-ui/icons";
+
+interface CopyToClipboardParams extends ButtonProps {
+  textToCopy: string;
+  labelText?: string;
+}
 
 export const CopyToClipboard = ({
   textToCopy,
   labelText,
-}: {
-  textToCopy: string;
-  labelText?: string;
-}) => {
+  ...rest
+}: CopyToClipboardParams) => {
   const [loading, setLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -23,6 +26,7 @@ export const CopyToClipboard = ({
         setTimeout(() => setCopySuccess(false), 2_000);
       }}
       isLoading={loading}
+      {...rest}
     >
       <HStack>
         {copySuccess ? <CheckCircleIcon color={"green.300"} /> : <CopyIcon />}

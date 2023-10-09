@@ -8,7 +8,6 @@ import { WarningIcon } from "@chakra-ui/icons";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 
 interface InputFieldProps extends InputProps {
-  type?: "text" | "number";
   placeholder: string;
   value?: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;

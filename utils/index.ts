@@ -1,4 +1,4 @@
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, Hex } from "viem";
 import { mainnet } from "viem/chains";
 import { ADDRESS_KEY, CHAINLABEL_KEY, TX_KEY } from "@/data/common";
 import { ExplorerData, ExplorerType } from "@/types";
@@ -42,10 +42,12 @@ export const checkDifferentUrlsExist = (data: ExplorerData): boolean => {
   return false;
 };
 
-export const startHexWith0x = (hexValue: string): `0x${string}` => {
-  return hexValue.startsWith("0x")
-    ? hexValue === "0x"
-      ? "0x0"
-      : (hexValue as `0x${string}`)
-    : `0x${hexValue}`;
+export const startHexWith0x = (hexValue?: string): Hex => {
+  return hexValue
+    ? hexValue.startsWith("0x")
+      ? hexValue === "0x"
+        ? "0x00"
+        : (hexValue as Hex)
+      : `0x${hexValue}`
+    : "0x00";
 };

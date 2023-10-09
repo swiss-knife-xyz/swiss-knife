@@ -3,6 +3,7 @@ const subdomains = {
   EPOCH_CONVERTER: "epoch-converter",
   EXPLORER: "explorer",
   CONVERTER: "converter",
+  TRANSACT: "transact",
 };
 
 module.exports = subdomains;

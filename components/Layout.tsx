@@ -9,14 +9,14 @@ interface LayoutParams {
 
 export const Layout = ({ children }: LayoutParams) => {
   return (
-    <Box>
+    <Box minHeight="100vh">
       <Navbar />
       <Container mt="8" minW="70vw">
         <Flex
           flexDir={"column"}
           mt="0.5rem"
           p="4"
-          minH="70vh"
+          h="full"
           border="1px"
           borderColor={"custom.pale"}
           rounded={"lg"}

@@ -6,7 +6,7 @@ export const Navbar = () => {
   return (
     <Center pt={"10"}>
       <Heading color="custom.pale">
-        <Link href={baseURL}>Swiss Knife 🔪</Link>
+        <Link href={baseURL}>🗡️ Swiss Knife 🔪</Link>
       </Heading>
     </Center>
   );

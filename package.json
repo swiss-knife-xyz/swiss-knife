@@ -17,10 +17,12 @@
     "@fortawesome/fontawesome-svg-core": "^6.4.0",
     "@fortawesome/free-brands-svg-icons": "^6.4.0",
     "@fortawesome/react-fontawesome": "^0.2.0",
+    "@rainbow-me/rainbowkit": "^1.1.1",
     "@types/node": "20.2.5",
     "@types/react": "18.2.7",
     "@types/react-dom": "18.2.4",
     "big-integer": "^1.6.51",
+    "blo": "^1.1.1",
     "chakra-react-select": "^4.6.0",
     "eslint": "8.41.0",
     "eslint-config-next": "13.4.4",
@@ -30,6 +32,10 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "5.0.4",
-    "viem": "^1.15.3"
+    "viem": "^1.15.3",
+    "wagmi": "^1.4.3"
+  },
+  "devDependencies": {
+    "pino-pretty": "^10.2.3"
   }
 }

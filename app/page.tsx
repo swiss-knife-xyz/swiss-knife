@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Button, GridItem, SimpleGrid } from "@chakra-ui/react";
+import { Box, Button, GridItem, SimpleGrid } from "@chakra-ui/react";
 import { Layout } from "@/components/Layout";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
@@ -11,6 +11,7 @@ const subdomainToLabel = {
   [subdomains.EPOCH_CONVERTER]: "Epoch Converter",
   [subdomains.EXPLORER]: "Explorer",
   [subdomains.CONVERTER]: "Converter",
+  [subdomains.TRANSACT]: "Transact",
 };
 
 const Btn = ({ subdomain }: { subdomain: string }) => (
@@ -24,11 +25,13 @@ const Btn = ({ subdomain }: { subdomain: string }) => (
 const Home = () => {
   return (
     <Layout>
-      <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
-        {Object.values(subdomains).map((subdomain, i) => (
-          <Btn key={i} subdomain={subdomain} />
-        ))}
-      </SimpleGrid>
+      <Box minH="50vh">
+        <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
+          {Object.values(subdomains).map((subdomain, i) => (
+            <Btn key={i} subdomain={subdomain} />
+          ))}
+        </SimpleGrid>
+      </Box>
     </Layout>
   );
 };

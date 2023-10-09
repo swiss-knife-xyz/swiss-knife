@@ -78,7 +78,6 @@ const Epoch = () => {
           boxProps={{
             w: "9rem",
           }}
-          isCreatable
           selectedOption={selectedTimeOption}
           setSelectedOption={setSelectedTimeOption}
           options={timeOptions.map((str) => ({

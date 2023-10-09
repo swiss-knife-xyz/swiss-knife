@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Heading, Table, Tbody, Tr, Td } from "@chakra-ui/react";
-import { toHex, keccak256 as toKeccak256 } from "viem";
+import { Hex, toHex, keccak256 as toKeccak256 } from "viem";
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
 
@@ -26,7 +26,7 @@ const Keccak256 = () => {
                   setUserInput(value);
 
                   const inHex = value.startsWith("0x")
-                    ? (value as `0x${string}`)
+                    ? (value as Hex)
                     : toHex(value);
                   setKeccak256(toKeccak256(inHex));
                 }}
