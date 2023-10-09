@@ -46,6 +46,18 @@ export const addressExplorers: ExplorersData = {
       [c.mainnet.id]: "",
     },
   },
+  Bubblemaps: {
+    urlLayout: `https://app.bubblemaps.io/${CHAINLABEL_KEY}/token/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "eth",
+      [c.arbitrum.id]: "arbi",
+      [c.avalanche.id]: "avax",
+      [c.bsc.id]: "bsc",
+      [c.cronos.id]: "cro",
+      [c.fantom.id]: "ftm",
+      [c.polygon.id]: "poly",
+    },
+  },
   Breadcrumbs: {
     urlLayout: `https://breadcrumbs.app/reports/${ADDRESS_KEY}`,
     chainIdToLabel: {
@@ -148,6 +160,22 @@ export const addressExplorers: ExplorersData = {
       [c.fantom.id]: "fantom",
     },
     forContracts: true,
+  },
+  DethCode: {
+    urlLayout: `https://${CHAINLABEL_KEY}.deth.net/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "etherscan",
+      [c.base.id]: "basescan",
+      [c.baseGoerli.id]: "goerli.basescan",
+      [c.bsc.id]: "bscscan",
+      [c.bscTestnet.id]: "testnet.bscscan",
+      [c.cronos.id]: "cronoscan",
+      [c.fantom.id]: "ftmscan",
+      [c.fantomTestnet.id]: "testnet.ftmscan",
+      [c.gnosis.id]: "gnosisscan",
+      [c.goerli.id]: "goerli.etherscan",
+      [c.optimism.id]: "optimistic.etherscan",
+    },
   },
   EarniFi: {
     urlLayout: `https://earni.fi/?address=${ADDRESS_KEY}`,
