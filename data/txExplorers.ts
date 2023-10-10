@@ -14,21 +14,6 @@ export const txExplorers: ExplorersData = {
       [c.avalanche.id]: "",
     },
   },
-  BlocSec: {
-    urlLayout: `https://phalcon.blocksec.com/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
-    chainIdToLabel: {
-      [c.mainnet.id]: "eth",
-      [c.arbitrum.id]: "arbitrum",
-      [c.avalanche.id]: "avax",
-      [c.bsc.id]: "bsc",
-      [c.cronos.id]: "cro",
-      [c.fantom.id]: "ftm",
-      [c.goerli.id]: "goerli",
-      [c.optimism.id]: "optimism",
-      [c.polygon.id]: "polygon",
-      [c.sepolia.id]: "sepolia",
-    },
-  },
   Bloxy: {
     urlLayout: `https://bloxy.info/tx/${TX_KEY}`,
     chainIdToLabel: {
@@ -103,6 +88,21 @@ export const txExplorers: ExplorersData = {
     urlLayout: `https://optimistic.etherscan.io/tx/${TX_KEY}`,
     chainIdToLabel: {
       [c.optimism.id]: "",
+    },
+  },
+  Phalcon: {
+    urlLayout: `https://explorer.phalcon.xyz/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "eth",
+      [c.arbitrum.id]: "arbitrum",
+      [c.avalanche.id]: "avax",
+      [c.bsc.id]: "bsc",
+      [c.cronos.id]: "cro",
+      [c.fantom.id]: "ftm",
+      [c.goerli.id]: "goerli",
+      [c.optimism.id]: "optimism",
+      [c.polygon.id]: "polygon",
+      [c.sepolia.id]: "sepolia",
     },
   },
   Polyscan: {
