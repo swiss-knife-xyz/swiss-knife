@@ -6,6 +6,10 @@ import {
   Image,
   Text,
   useDisclosure,
+  Flex,
+  Spacer,
+  VStack,
+  HStack,
 } from "@chakra-ui/react";
 
 import { ExplorerData, ExplorerType } from "@/types";
@@ -58,9 +62,22 @@ export const ExplorerGridItem = ({
       }}
       rounded="lg"
     >
+      {explorerData.forContracts ? (
+        <HStack>
+          <Spacer />
+          <Text>🤖</Text>
+        </HStack>
+      ) : null}
       {hasDifferentUrls ? (
         <>
-          <Center flexDir={"column"} h="100%" p="1rem" onClick={openModal}>
+          <Center
+            flexDir={"column"}
+            h="100%"
+            p="1rem"
+            pt={explorerData.forContracts ? "0" : undefined}
+            mt={explorerData.forContracts ? "-4" : undefined}
+            onClick={openModal}
+          >
             <Image
               bg="white"
               w="2rem"
@@ -95,9 +112,14 @@ export const ExplorerGridItem = ({
           }}
           isExternal
         >
-          {/* TODO: highlight with a robot emoji if explorer is for contracts */}
           {/* TODO: allow bookmarking, and show the bookmarked explorers on the top */}
-          <Center flexDir={"column"} h="100%" p="1rem">
+          <Center
+            flexDir={"column"}
+            h="100%"
+            p="1rem"
+            pt={explorerData.forContracts ? "0" : undefined}
+            mt={explorerData.forContracts ? "-4" : undefined}
+          >
             <Image
               bg="white"
               w="2rem"
