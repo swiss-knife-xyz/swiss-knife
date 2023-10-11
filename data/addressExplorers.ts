@@ -57,6 +57,7 @@ export const addressExplorers: ExplorersData = {
       [c.fantom.id]: "ftm",
       [c.polygon.id]: "poly",
     },
+    forContracts: true,
   },
   Breadcrumbs: {
     urlLayout: `https://breadcrumbs.app/reports/${ADDRESS_KEY}`,
@@ -176,7 +177,7 @@ export const addressExplorers: ExplorersData = {
       [c.goerli.id]: "goerli.etherscan",
       [c.optimism.id]: "optimistic.etherscan",
     },
-    forContracts: true
+    forContracts: true,
   },
   EarniFi: {
     urlLayout: `https://earni.fi/?address=${ADDRESS_KEY}`,
