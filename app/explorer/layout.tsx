@@ -45,23 +45,46 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
 
     if (__userInput) {
       if (isValidTransaction(__userInput)) {
-        router.push(`${getPath(subdomains.EXPLORER)}tx/${__userInput}`);
+        const newUrl = `${getPath(subdomains.EXPLORER)}tx/${__userInput}`;
+        if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
+          router.push(newUrl);
+        } else {
+          // Have a delay so the loading spinner shows up
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 300);
+        }
       } else if (isAddress(__userInput)) {
-        router.push(`${getPath(subdomains.EXPLORER)}address/${__userInput}`);
+        const newUrl = `${getPath(subdomains.EXPLORER)}address/${__userInput}`;
+        if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
+          router.push(newUrl);
+        } else {
+          // Have a delay so the loading spinner shows up
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 300);
+        }
       } else {
         try {
           const ensResolvedAddress = await publicClient.getEnsAddress({
             name: normalize(__userInput),
           });
           if (ensResolvedAddress) {
-            router.push(
-              `${getPath(subdomains.EXPLORER)}address/${ensResolvedAddress}`
-            );
+            const newUrl = `${getPath(
+              subdomains.EXPLORER
+            )}address/${ensResolvedAddress}`;
+            if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
+              router.push(newUrl);
+            } else {
+              setIsLoading(false);
+            }
           } else {
             setIsInputInvalid(true);
+            setIsLoading(false);
           }
         } catch (e) {
           setIsInputInvalid(true);
+          setIsLoading(false);
         }
       }
     }
