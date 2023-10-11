@@ -204,6 +204,13 @@ export const addressExplorers: ExplorersData = {
       [c.mainnet.id]: "",
     },
   },
+  EVMStorage: {
+    urlLayout: `https://evm.storage/eth/latest/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+    forContracts: true,
+  },
   FTMScan: {
     urlLayout: `https://ftmscan.com/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
