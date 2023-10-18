@@ -252,12 +252,15 @@ export const addressExplorers: ExplorersData = {
     },
   },
   Monobase: {
-    urlLayout: `https://${CHAINLABEL_KEY}monobase.xyz/address/${ADDRESS_KEY}`,
+    urlLayout: `https://monobase.xyz/${CHAINLABEL_KEY}/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
-      [c.mainnet.id]: "",
-      [c.goerli.id]: "goerli.",
-      [c.sepolia.id]: "sepolia.",
+      [c.mainnet.id]: "ethereum",
+      [c.base.id]: "base",
+      [c.baseGoerli.id]: "base-goerli",
+      [c.goerli.id]: "goerli",
+      [c.sepolia.id]: "sepolia",
     },
+    forContracts: true,
   },
   Nansen: {
     urlLayout: `https://pro.nansen.ai/wallet-profiler?address=${ADDRESS_KEY}`,
