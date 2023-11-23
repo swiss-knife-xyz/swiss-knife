@@ -9,6 +9,12 @@ export const addressExplorers: ExplorersData = {
     },
     forContracts: true,
   },
+  "address.vision": {
+    urlLayout: `https://address.vision/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+  },
   AnyABI: {
     urlLayout: `https://anyabi.xyz/api/get-abi/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
     // Supports all EVM chains
