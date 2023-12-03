@@ -7,12 +7,14 @@ import {
   AddressParam,
   TupleParam,
   ArrayParam,
+  IntParam,
 } from "@/components/fnParams";
 
-// TODO: add int256
 export const renderParamTypes = (input: ParamType, value: any) => {
   if (input.baseType.includes("uint")) {
     return <UintParam value={value} />;
+  } else if (input.baseType.includes("int")) {
+    return <IntParam value={value} />;
   } else if (input.baseType === "address") {
     return <AddressParam value={value} />;
   } else if (input.baseType === "tuple") {
