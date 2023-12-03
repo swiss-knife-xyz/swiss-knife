@@ -15,8 +15,7 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { utils, BigNumber } from "ethers";
-import { TransactionDescription, JsonFragmentType } from "@ethersproject/abi";
+import { Interface, TransactionDescription, ParamType } from "ethers";
 import axios from "axios";
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
@@ -28,8 +27,8 @@ import {
 } from "@/components/fnParams";
 
 // TODO: handle uint256[] and other arrays. In case of empty array, the value is "" so show "[]" instead
-const renderParamTypes = (input: JsonFragmentType, value: any) => {
-  switch (input.type) {
+const renderParamTypes = (input: ParamType, value: any) => {
+  switch (input.baseType) {
     case "uint256":
       return <UintParam value={value} />;
     case "address":
@@ -41,11 +40,9 @@ const renderParamTypes = (input: JsonFragmentType, value: any) => {
   }
 };
 
-export const renderParams = (
-  key: number,
-  input: JsonFragmentType,
-  value: any
-) => {
+export const renderParams = (key: number, input: ParamType, value: any) => {
+  const type = input.type.includes("tuple") ? "tuple" : input.type;
+
   return (
     <Stack
       key={key}
@@ -58,12 +55,12 @@ export const renderParams = (
       {input.name ? (
         <Box>
           <Box fontSize={"xs"} fontWeight={"thin"}>
-            {input.type}
+            {type}
           </Box>
           <Box>{input.name}</Box>
         </Box>
       ) : (
-        <Text fontSize={"sm"}>{input.type}</Text>
+        <Text fontSize={"sm"}>{type}</Text>
       )}
       <Stack spacing={2}>{renderParamTypes(input, value)}</Stack>
     </Stack>
@@ -85,33 +82,26 @@ const CalldataDecoder = () => {
     }
   }, [calldata]);
 
-  const recursiveBNToString = (args: any) => {
-    return args.map((arg: any) =>
-      BigNumber.isBigNumber(arg)
-        ? arg.toString()
-        : // if arg is a struct in solidity
-        arg.constructor === Array
-        ? recursiveBNToString(arg)
-        : arg
-    );
-  };
-
   const _getAllPossibleDecoded = (functionsArr: string[]) => {
     let allPossibleDecoded = [];
     for (var i = 0; i < functionsArr.length; i++) {
       const fn = functionsArr[i];
       const _abi = [`function ${fn}`];
 
-      const iface = new utils.Interface(_abi);
+      const iface = new Interface(_abi);
       try {
         if (!calldata) return [];
 
         let res = iface.parseTransaction({ data: calldata });
+        if (res === null) {
+          continue;
+        }
+
         console.log(res);
         setFnDescription(res);
         allPossibleDecoded.push({
           function: fn,
-          params: recursiveBNToString(res.args),
+          params: res.args,
         });
       } catch {
         continue;
@@ -265,7 +255,7 @@ const CalldataDecoder = () => {
             borderColor={"whiteAlpha.500"}
             rounded={"lg"}
           >
-            {fnDescription.functionFragment.inputs.map((input, i) => {
+            {fnDescription.fragment.inputs.map((input, i) => {
               const value = fnDescription.args[i];
               return renderParams(i, input, value);
             })}

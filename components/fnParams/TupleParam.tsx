@@ -1,10 +1,9 @@
 import React from "react";
-import { Box, HStack } from "@chakra-ui/react";
+import { ParamType } from "ethers";
 import { renderParams } from "@/app/calldata/decoder/page";
-import { JsonFragmentType } from "@ethersproject/abi";
 
 interface Params {
-  input: JsonFragmentType;
+  input: ParamType;
   value: any;
 }
 
