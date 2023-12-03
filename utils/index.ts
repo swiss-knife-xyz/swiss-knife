@@ -51,3 +51,5 @@ export const startHexWith0x = (hexValue?: string): Hex => {
       : `0x${hexValue}`
     : "0x";
 };
+
+export const ethFormatOptions = ["ETH", "Wei"];

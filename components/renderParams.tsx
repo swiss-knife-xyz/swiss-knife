@@ -9,7 +9,6 @@ import {
   ArrayParam,
 } from "@/components/fnParams";
 
-// TODO: handle uint256[] and other arrays. In case of empty array, the value is "" so show "[]" instead
 // TODO: add int256
 export const renderParamTypes = (input: ParamType, value: any) => {
   if (input.baseType.includes("uint")) {
