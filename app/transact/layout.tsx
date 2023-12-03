@@ -2,16 +2,21 @@
 
 import { HStack, Center, Flex, Spacer } from "@chakra-ui/react";
 import { Layout } from "@/components/Layout";
-import { Sidebar, SidebarItemProps } from "@/components/Sidebar";
+import { Sidebar, SidebarItem } from "@/components/Sidebar";
 import { ConnectButton } from "@/components/ConnectButton";
+import subdomains from "@/subdomains";
 
-const SidebarItems: SidebarItemProps[] = [{ name: "Send Tx", path: "send-tx" }];
+const SidebarItems: SidebarItem[] = [{ name: "Send Tx", path: "send-tx" }];
 
 const TransactLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <Layout>
       <HStack alignItems={"stretch"}>
-        <Sidebar heading="Transact" items={SidebarItems} />
+        <Sidebar
+          heading="Transact"
+          items={SidebarItems}
+          subdomain={subdomains.TRANSACT}
+        />
         <Center flexDir={"column"} w="full">
           <Flex w="100%" mb="3rem">
             <Spacer />

@@ -1,6 +1,6 @@
 import React from "react";
 import { ParamType } from "ethers";
-import { renderParams } from "@/app/calldata/decoder/page";
+import { renderParams } from "@/components/renderParams";
 
 interface Params {
   input: ParamType;
