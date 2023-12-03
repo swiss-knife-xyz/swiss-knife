@@ -3,20 +3,21 @@ import { Box, Flex, Center, Heading } from "@chakra-ui/react";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 
-export interface SidebarItemProps {
+export interface SidebarItem {
   name: string;
   path: string;
 }
 
-const SidebarItem = ({ name, path }: SidebarItemProps) => {
+export interface SidebarItemProps extends SidebarItem {
+  subdomain: string;
+}
+
+const SidebarItem = ({ name, subdomain, path }: SidebarItemProps) => {
   const router = useRouter();
   const pathname = usePathname();
 
   return (
-    <Box
-      my={1}
-      onClick={() => router.push(`${getPath(subdomains.CONVERTER)}${path}`)}
-    >
+    <Box my={1} onClick={() => router.push(`${getPath(subdomain)}${path}`)}>
       <Flex
         align="center"
         p="4"
@@ -40,9 +41,11 @@ const SidebarItem = ({ name, path }: SidebarItemProps) => {
 export const Sidebar = ({
   heading,
   items,
+  subdomain,
 }: {
   heading: string;
-  items: SidebarItemProps[];
+  items: SidebarItem[];
+  subdomain: string;
 }) => {
   return (
     <Flex
@@ -64,7 +67,12 @@ export const Sidebar = ({
       </Center>
       <Box mt="1rem">
         {items.map((item) => (
-          <SidebarItem key={item.name} name={item.name} path={item.path} />
+          <SidebarItem
+            key={item.name}
+            name={item.name}
+            subdomain={subdomain}
+            path={item.path}
+          />
         ))}
       </Box>
     </Flex>

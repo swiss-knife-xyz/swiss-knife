@@ -4,6 +4,7 @@ const subdomains = {
   EXPLORER: "explorer",
   CONVERTER: "converter",
   TRANSACT: "transact",
+  CALLDATA: "calldata",
 };
 
 module.exports = subdomains;

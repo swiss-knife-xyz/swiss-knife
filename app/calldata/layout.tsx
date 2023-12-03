@@ -6,20 +6,18 @@ import { Sidebar, SidebarItem } from "@/components/Sidebar";
 import subdomains from "@/subdomains";
 
 const SidebarItems: SidebarItem[] = [
-  { name: "ETH", path: "eth" },
-  { name: "Hexadecimal", path: "hexadecimal" },
-  { name: "Keccak256", path: "keccak256" },
-  { name: "Padding", path: "padding" },
+  { name: "Decoder", path: "decoder" },
+  { name: "Encoder", path: "encoder" },
 ];
 
-const ConverterLayout = ({ children }: { children: React.ReactNode }) => {
+const CalldataLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <Layout>
       <HStack alignItems={"stretch"} h="full">
         <Sidebar
-          heading="Converters"
+          heading="Calldata"
           items={SidebarItems}
-          subdomain={subdomains.CONVERTER}
+          subdomain={subdomains.CALLDATA}
         />
         <Center flexDir={"column"} w="full">
           {children}
@@ -29,4 +27,4 @@ const ConverterLayout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export default ConverterLayout;
+export default CalldataLayout;
