@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import {
   Heading,
@@ -8,16 +9,14 @@ import {
   Tr,
   Td,
   Box,
-  Button,
   Container,
   Center,
   useToast,
   Stack,
-  Text,
   FormControl,
   FormLabel,
 } from "@chakra-ui/react";
-import { Interface, TransactionDescription, ParamType } from "ethers";
+import { Interface, TransactionDescription } from "ethers";
 import axios from "axios";
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
@@ -36,11 +35,26 @@ const networkOptions: { label: string; value: number }[] = networkInfo.map(
   })
 );
 
-// TODO: get data from URL
 const CalldataDecoder = () => {
   const toast = useToast();
+  const searchParams = useSearchParams();
 
-  const [calldata, setCalldata] = useState<string>();
+  // get data from URL
+  const calldataFromURL = searchParams.get("calldata");
+  const addressFromURL = searchParams.get("address");
+  const chainIdFromURL = searchParams.get("chainId");
+
+  let networkIndexFromURL;
+  if (chainIdFromURL) {
+    for (var i = 0; i < networkInfo.length; i++) {
+      if (networkInfo[i].chainID === parseInt(chainIdFromURL)) {
+        networkIndexFromURL = i;
+        break;
+      }
+    }
+  }
+
+  const [calldata, setCalldata] = useState<string>(calldataFromURL || "");
   const [fnDescription, setFnDescription] = useState<TransactionDescription>();
   const [isLoading, setIsLoading] = useState(false);
   const [pasted, setPasted] = useState(false);
@@ -49,9 +63,20 @@ const CalldataDecoder = () => {
 
   const [abi, setAbi] = useState<any>();
 
-  const [contractAddress, setContractAddress] = useState<string>();
+  const [contractAddress, setContractAddress] = useState<string>(
+    addressFromURL ?? ""
+  );
   const [selectedNetworkOption, setSelectedNetworkOption] =
-    useState<SelectedOptionState>(networkOptions[0]);
+    useState<SelectedOptionState>(networkOptions[networkIndexFromURL ?? 0]);
+
+  useEffect(() => {
+    if (calldataFromURL && addressFromURL) {
+      setSelectedTabIndex(2);
+      decodeWithAddress();
+    } else if (calldataFromURL) {
+      decodeWithSelector();
+    }
+  }, [calldataFromURL]);
 
   useEffect(() => {
     if (pasted && selectedTabIndex === 0) {
