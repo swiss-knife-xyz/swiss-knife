@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Box, Button, GridItem, SimpleGrid } from "@chakra-ui/react";
+import { Box, GridItem, SimpleGrid } from "@chakra-ui/react";
 import { Layout } from "@/components/Layout";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
+import { DarkButton } from "@/components/DarkButton";
 
 const subdomainToLabel = {
   [subdomains.CONSTANTS]: "Constants",
@@ -18,7 +19,9 @@ const subdomainToLabel = {
 const Btn = ({ subdomain }: { subdomain: string }) => (
   <GridItem>
     <Link href={getPath(subdomain)}>
-      <Button w="100%">{subdomainToLabel[subdomain] ?? subdomain}</Button>
+      <DarkButton w="100%">
+        {subdomainToLabel[subdomain] ?? subdomain}
+      </DarkButton>
     </Link>
   </GridItem>
 );

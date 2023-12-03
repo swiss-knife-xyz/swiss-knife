@@ -28,6 +28,7 @@ import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { publicClient, startHexWith0x } from "@/utils";
+import { DarkButton } from "@/components/DarkButton";
 
 const ethFormatOptions = ["ETH", "Wei"];
 
@@ -280,14 +281,13 @@ const SendTx = () => {
             />
           </Box>
           <Center>
-            <Button
-              colorScheme="blue"
+            <DarkButton
               onClick={() => sendTx()}
               isDisabled={!walletClient}
               isLoading={isLoading}
             >
               Send Tx
-            </Button>
+            </DarkButton>
           </Center>
         </VStack>
       </Container>

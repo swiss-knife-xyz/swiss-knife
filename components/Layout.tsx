@@ -18,7 +18,8 @@ export const Layout = ({ children }: LayoutParams) => {
           p="4"
           h="full"
           border="1px"
-          borderColor={"custom.pale"}
+          borderColor={"whiteAlpha.700"}
+          borderStyle={"dotted"}
           rounded={"lg"}
         >
           {children}
