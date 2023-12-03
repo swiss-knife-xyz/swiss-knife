@@ -29,9 +29,11 @@
     "eslint-config-next": "13.4.4",
     "ethers": "^6.9.0",
     "framer-motion": "^10.12.17",
+    "highlight.js": "^11.2.0",
     "next": "13.4.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-simple-code-editor": "^0.11.0",
     "typescript": "5.0.4",
     "viem": "^1.15.3",
     "wagmi": "^1.4.3"

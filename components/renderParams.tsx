@@ -1,24 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { Box, Stack, Text } from "@chakra-ui/react";
+import { Box, HStack, Stack, Text } from "@chakra-ui/react";
 import { ParamType } from "ethers";
 import {
   UintParam,
   StringParam,
   AddressParam,
   TupleParam,
+  ArrayParam,
 } from "@/components/fnParams";
 
 // TODO: handle uint256[] and other arrays. In case of empty array, the value is "" so show "[]" instead
-const renderParamTypes = (input: ParamType, value: any) => {
-  switch (input.baseType) {
-    case "uint256":
-      return <UintParam value={value} />;
-    case "address":
-      return <AddressParam value={value} />;
-    case "tuple":
-      return <TupleParam value={value} input={input} />;
-    default:
-      return <StringParam value={value} />;
+// TODO: add int256
+export const renderParamTypes = (input: ParamType, value: any) => {
+  if (input.baseType.includes("uint")) {
+    return <UintParam value={value} />;
+  } else if (input.baseType === "address") {
+    return <AddressParam value={value} />;
+  } else if (input.baseType === "tuple") {
+    return <TupleParam value={value} input={input} />;
+  } else if (input.baseType === "array") {
+    return <ArrayParam value={value} input={input} />;
+  } else {
+    return <StringParam value={value} />;
   }
 };
 
@@ -36,10 +39,17 @@ export const renderParams = (key: number, input: ParamType, value: any) => {
     >
       {input.name ? (
         <Box>
-          <Box fontSize={"xs"} fontWeight={"thin"}>
+          <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
             {type}
           </Box>
-          <Box>{input.name}</Box>
+          <HStack>
+            <Box>{input.name}</Box>
+            {input.baseType === "array" ? (
+              <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
+                (length: {value.length})
+              </Box>
+            ) : null}
+          </HStack>
         </Box>
       ) : (
         <Text fontSize={"sm"}>{type}</Text>

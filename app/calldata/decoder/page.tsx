@@ -14,6 +14,8 @@ import {
   useToast,
   Stack,
   Text,
+  FormControl,
+  FormLabel,
 } from "@chakra-ui/react";
 import { Interface, TransactionDescription, ParamType } from "ethers";
 import axios from "axios";
@@ -21,7 +23,20 @@ import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
 import { renderParams } from "@/components/renderParams";
 import { DarkButton } from "@/components/DarkButton";
+import TabsSelector from "@/components/Tabs/TabsSelector";
+import JsonTextArea from "@/components/JsonTextArea";
+import { DarkSelect } from "@/components/DarkSelect";
+import { SelectedOptionState } from "@/types";
+import networkInfo from "@/data/networkInfo";
 
+const networkOptions: { label: string; value: number }[] = networkInfo.map(
+  (n, i) => ({
+    label: n.name,
+    value: i, // index in the networkInfo array
+  })
+);
+
+// TODO: get data from URL
 const CalldataDecoder = () => {
   const toast = useToast();
 
@@ -30,39 +45,49 @@ const CalldataDecoder = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [pasted, setPasted] = useState(false);
 
+  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+
+  const [abi, setAbi] = useState<any>();
+
+  const [contractAddress, setContractAddress] = useState<string>();
+  const [selectedNetworkOption, setSelectedNetworkOption] =
+    useState<SelectedOptionState>(networkOptions[0]);
+
   useEffect(() => {
-    if (pasted) {
+    if (pasted && selectedTabIndex === 0) {
       decodeWithSelector();
       setPasted(false);
     }
   }, [calldata]);
 
   const _getAllPossibleDecoded = (functionsArr: string[]) => {
-    let allPossibleDecoded = [];
+    let decodedStatus = false;
     for (var i = 0; i < functionsArr.length; i++) {
       const fn = functionsArr[i];
       const _abi = [`function ${fn}`];
 
-      const iface = new Interface(_abi);
       try {
-        if (!calldata) return [];
-
-        let res = iface.parseTransaction({ data: calldata });
-        if (res === null) {
-          continue;
-        }
-
-        console.log(res);
-        setFnDescription(res);
-        allPossibleDecoded.push({
-          function: fn,
-          params: res.args,
-        });
+        decodedStatus = _decodeWithABI(_abi, calldata);
       } catch {
         continue;
       }
     }
-    return allPossibleDecoded;
+
+    if (decodedStatus) {
+      toast({
+        title: "Successfully Decoded",
+        status: "success",
+        isClosable: true,
+        duration: 1000,
+      });
+    } else {
+      toast({
+        title: "Can't Decode Calldata",
+        status: "error",
+        isClosable: true,
+        duration: 4000,
+      });
+    }
   };
 
   const fetchFunctionInterface = async (selector: string): Promise<any[]> => {
@@ -99,6 +124,31 @@ const CalldataDecoder = () => {
     }
   };
 
+  const fetchContractABI = async (): Promise<any> => {
+    if (!contractAddress) return {};
+
+    try {
+      const response = await axios.get(
+        `https://anyabi.xyz/api/get-abi/${
+          networkInfo[
+            selectedNetworkOption?.value
+              ? parseInt(selectedNetworkOption?.value.toString())
+              : 0
+          ].chainID
+        }/${contractAddress}`
+      );
+      return JSON.stringify(response.data.abi);
+    } catch {
+      toast({
+        title: "Can't fetch ABI from Address",
+        status: "error",
+        isClosable: true,
+        duration: 1000,
+      });
+      return {};
+    }
+  };
+
   const decodeWithSelector = async () => {
     if (!calldata) return;
     setIsLoading(true);
@@ -109,35 +159,10 @@ const CalldataDecoder = () => {
 
       if (results.length > 0) {
         // can have multiple entries with the same selector
-        const allPossibleDecoded = _getAllPossibleDecoded(results);
-
-        if (allPossibleDecoded.length > 0) {
-          toast({
-            title: "Successfully Decoded",
-            status: "success",
-            isClosable: true,
-            duration: 1000,
-          });
-        } else {
-          console.log(
-            JSON.stringify(
-              {
-                possibleFunctions: results,
-              },
-              undefined,
-              2
-            )
-          );
-          toast({
-            title: "Can't Decode Calldata",
-            status: "error",
-            isClosable: true,
-            duration: 4000,
-          });
-        }
+        _getAllPossibleDecoded(results);
       } else {
         toast({
-          title: "Can't Decode Calldata",
+          title: "Can't fetch function interface",
           status: "error",
           isClosable: true,
           duration: 1000,
@@ -156,10 +181,123 @@ const CalldataDecoder = () => {
     }
   };
 
+  const _decodeWithABI = (_abi: any, _calldata?: string) => {
+    let decodedStatus = false;
+
+    const iface = new Interface(_abi);
+    if (!_calldata) return decodedStatus;
+
+    let res = iface.parseTransaction({ data: _calldata });
+    if (res === null) {
+      return decodedStatus;
+    }
+
+    console.log(res);
+    setFnDescription(res);
+
+    decodedStatus = true;
+    return decodedStatus;
+  };
+
+  const decodeWithABI = async () => {
+    setIsLoading(true);
+    _decodeWithABI(abi, calldata);
+    setIsLoading(false);
+  };
+
+  const decodeWithAddress = async () => {
+    if (!calldata) return;
+
+    setIsLoading(true);
+
+    const fetchedABI = await fetchContractABI();
+    setAbi(JSON.stringify(JSON.parse(fetchedABI), undefined, 2));
+
+    toast({
+      title: "ABI Fetched from Address",
+      status: "success",
+      isClosable: true,
+      duration: 1000,
+    });
+    setSelectedTabIndex(1);
+
+    _decodeWithABI(fetchedABI, calldata);
+
+    setIsLoading(false);
+  };
+
+  const FromABIBody = () => {
+    return (
+      <Tr>
+        <Td colSpan={2}>
+          <Center maxW={"50rem"}>
+            <FormControl>
+              <FormLabel>Input ABI</FormLabel>
+              <JsonTextArea
+                value={abi}
+                setValue={setAbi}
+                placeholder="JSON ABI"
+                ariaLabel="json abi"
+              />
+            </FormControl>
+          </Center>
+        </Td>
+      </Tr>
+    );
+  };
+
+  const FromAddressBody = () => {
+    return (
+      <>
+        <Tr>
+          <Label>Contract Address</Label>
+          <Td>
+            <InputField
+              placeholder="Address"
+              value={contractAddress}
+              onChange={(e) => setContractAddress(e.target.value)}
+            />
+          </Td>
+        </Tr>
+        <Tr>
+          <Label>Chain</Label>
+          <Td>
+            <DarkSelect
+              boxProps={{
+                w: "100%",
+              }}
+              selectedOption={selectedNetworkOption}
+              setSelectedOption={setSelectedNetworkOption}
+              options={networkOptions}
+            />
+          </Td>
+        </Tr>
+      </>
+    );
+  };
+
+  const renderTabsBody = () => {
+    switch (selectedTabIndex) {
+      case 0:
+        return null;
+      case 1:
+        return <FromABIBody />;
+      case 2:
+        return <FromAddressBody />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <>
       <Heading color={"custom.pale"}>Calldata Decoder</Heading>
-      <Table mt={"3rem"} variant={"unstyled"}>
+      <TabsSelector
+        tabs={["No ABI", "from ABI", "from Address"]}
+        selectedTabIndex={selectedTabIndex}
+        setSelectedTabIndex={setSelectedTabIndex}
+      />
+      <Table mt={"1rem"} variant={"unstyled"}>
         <Tbody>
           <Tr>
             <Label>Calldata</Label>
@@ -176,12 +314,22 @@ const CalldataDecoder = () => {
               />
             </Td>
           </Tr>
+          {renderTabsBody()}
           <Tr>
             <Td colSpan={2}>
               <Container mt={0}>
                 <Center>
                   <DarkButton
-                    onClick={() => decodeWithSelector()}
+                    onClick={() => {
+                      switch (selectedTabIndex) {
+                        case 0:
+                          return decodeWithSelector();
+                        case 1:
+                          return decodeWithABI();
+                        case 2:
+                          return decodeWithAddress();
+                      }
+                    }}
                     isLoading={isLoading}
                   >
                     Decode
