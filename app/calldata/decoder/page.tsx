@@ -16,6 +16,11 @@ import {
   FormControl,
   FormLabel,
 } from "@chakra-ui/react";
+import {
+  parseAsInteger,
+  parseAsString,
+  useQueryState,
+} from "next-usequerystate";
 import { Interface, TransactionDescription } from "ethers";
 import axios from "axios";
 import { SelectedOptionState } from "@/types";
@@ -41,7 +46,6 @@ const CalldataDecoder = () => {
   const toast = useToast();
   const searchParams = useSearchParams();
 
-  // TODO: keep the url data updated with the state
   // get data from URL
   const calldataFromURL = searchParams.get("calldata");
   const addressFromURL = searchParams.get("address");
@@ -57,7 +61,10 @@ const CalldataDecoder = () => {
     }
   }
 
-  const [calldata, setCalldata] = useState<string>(calldataFromURL || "");
+  const [calldata, setCalldata] = useQueryState<string>(
+    "calldata",
+    parseAsString.withDefault("")
+  );
   const [fnDescription, setFnDescription] = useState<TransactionDescription>();
   const [isLoading, setIsLoading] = useState(false);
   const [pasted, setPasted] = useState(false);
@@ -66,8 +73,13 @@ const CalldataDecoder = () => {
 
   const [abi, setAbi] = useState<any>();
 
-  const [contractAddress, setContractAddress] = useState<string>(
-    addressFromURL ?? ""
+  const [contractAddress, setContractAddress] = useQueryState<string>(
+    "address",
+    parseAsString.withDefault("")
+  );
+  const [chainId, setChainId] = useQueryState<number>(
+    "chainId",
+    parseAsInteger.withDefault(1)
   );
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>(networkOptions[networkIndexFromURL ?? 0]);
@@ -82,9 +94,25 @@ const CalldataDecoder = () => {
   }, [calldataFromURL]);
 
   useEffect(() => {
+    if (selectedTabIndex === 2) {
+      setChainId(
+        networkInfo[parseInt(selectedNetworkOption!.value.toString())].chainID
+      );
+    } else if (!abi) {
+      setChainId(null);
+    }
+  }, [selectedNetworkOption, selectedTabIndex]);
+
+  useEffect(() => {
     if (pasted && selectedTabIndex === 0) {
       decodeWithSelector();
       setPasted(false);
+    }
+
+    // remove from url params if calldata updated
+    if (selectedTabIndex === 0 || selectedTabIndex === 1) {
+      setContractAddress(null);
+      setChainId(null);
     }
   }, [calldata]);
 

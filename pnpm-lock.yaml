@@ -23,6 +23,7 @@ specifiers:
   framer-motion: ^10.12.17
   highlight.js: ^11.2.0
   next: 13.4.4
+  next-usequerystate: ^1.13.0
   pino-pretty: ^10.2.3
   react: 18.2.0
   react-dom: 18.2.0
@@ -54,6 +55,7 @@ dependencies:
   framer-motion: 10.16.5_biqbaboplfbrettd7655fr4n2y
   highlight.js: 11.9.0
   next: 13.4.4_biqbaboplfbrettd7655fr4n2y
+  next-usequerystate: 1.13.0_next@13.4.4
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
   react-simple-code-editor: 0.11.3_biqbaboplfbrettd7655fr4n2y
@@ -5205,6 +5207,10 @@ packages:
   /minimist/1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
 
+  /mitt/3.0.1:
+    resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
+    dev: false
+
   /mlly/1.4.2:
     resolution: {integrity: sha512-i/Ykufi2t1EZ6NaPLdfnZk2AX8cs0d+mTzVKuPfqPKPatxLApaBoxJQ9x1/uckXtrS/U5oisPMDkNs0yQTaBRg==}
     dependencies:
@@ -5254,6 +5260,15 @@ packages:
 
   /natural-compare/1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
+    dev: false
+
+  /next-usequerystate/1.13.0_next@13.4.4:
+    resolution: {integrity: sha512-5AeBzUqTcs+uNaQTYBNWNxpwvhsAOFlpJ2xKio3KDX4JVN/S2OwZGx2REw013Jx2D4yvkAyUMYOMtXRq+MVURA==}
+    peerDependencies:
+      next: '>=13.4 <14.0.2 || ^14.0.3'
+    dependencies:
+      mitt: 3.0.1
+      next: 13.4.4_biqbaboplfbrettd7655fr4n2y
     dev: false
 
   /next/13.4.4_biqbaboplfbrettd7655fr4n2y:

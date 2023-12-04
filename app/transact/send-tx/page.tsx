@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Container,
   FormControl,
@@ -13,15 +14,19 @@ import {
   Textarea,
   Spacer,
   Center,
-  Button,
   useToast,
   ToastId,
   Link,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
+import {
+  parseAsInteger,
+  parseAsString,
+  useQueryState,
+} from "next-usequerystate";
 import { Hex, parseEther, formatEther, isAddress } from "viem";
 import { normalize } from "viem/ens";
-import { useNetwork, useWalletClient } from "wagmi";
+import { useNetwork, useWalletClient, useSwitchNetwork } from "wagmi";
 import { waitForTransaction } from "wagmi/actions";
 import { InputField } from "@/components/InputField";
 import { DarkSelect } from "@/components/DarkSelect";
@@ -29,17 +34,40 @@ import { SelectedOptionState } from "@/types";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { ethFormatOptions, publicClient, startHexWith0x } from "@/utils";
 import { DarkButton } from "@/components/DarkButton";
+import { parse } from "path";
+import { chainIdToChain } from "@/data/common";
 
 const SendTx = () => {
   const { data: walletClient } = useWalletClient();
   const { chain } = useNetwork();
+  const { switchNetwork } = useSwitchNetwork({
+    onSuccess: () => {
+      onChainIdMatched();
+    },
+  });
 
   const toast = useToast();
   const toastIdRef = useRef<ToastId>();
+  const searchParams = useSearchParams();
 
-  const [to, setTo] = useState<string>();
-  const [calldata, setCalldata] = useState<string>();
-  const [ethValue, setEthValue] = useState<string>();
+  const [to, setTo] = useQueryState<string>(
+    "to",
+    parseAsString.withDefault("")
+  );
+  const [calldata, setCalldata] = useQueryState<string>(
+    "calldata",
+    parseAsString.withDefault("")
+  );
+  const [ethValue, setEthValue] = useQueryState<string>(
+    "eth",
+    parseAsString.withDefault("")
+  );
+  const [chainId, setChainId] = useQueryState<number>(
+    "chainId",
+    parseAsInteger.withDefault(1)
+  );
+  const [chainIdFromURLOnLoad, setChainIdFromURLOnLoad] =
+    useState<number>(chainId);
 
   const [selectedEthFormatOption, setSelectedEthFormatOption] =
     useState<SelectedOptionState>({
@@ -47,7 +75,49 @@ const SendTx = () => {
       value: ethFormatOptions[0],
     });
 
+  const [chainIdMismatch, setChainIdMismatch] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (
+      switchNetwork &&
+      chain &&
+      chainIdFromURLOnLoad &&
+      chain.id !== chainIdFromURLOnLoad
+    ) {
+      toastIdRef.current = toast({
+        title: "Wallet's Network should match the chainId passed via URL",
+        description: `Switch network to ${chainIdToChain[chainIdFromURLOnLoad]?.name} to continue`,
+        status: "error",
+        position: "bottom-right",
+        duration: null,
+        isClosable: false,
+      });
+
+      setChainIdMismatch(true);
+      switchNetwork(chainIdFromURLOnLoad);
+    }
+  }, [chainIdFromURLOnLoad, switchNetwork]);
+
+  useEffect(() => {
+    if (chain) {
+      if (chainIdFromURLOnLoad) {
+        if (chain.id === chainIdFromURLOnLoad) {
+          onChainIdMatched();
+        }
+      } else {
+        setChainId(chain.id);
+      }
+    }
+  }, [chain]);
+
+  const onChainIdMatched = () => {
+    if (toastIdRef.current) {
+      toast.close(toastIdRef.current);
+    }
+    setChainIdMismatch(false);
+    setChainIdFromURLOnLoad(0);
+  };
 
   const resolveAddress = async (addressOrEns: string) => {
     if (isAddress(addressOrEns)) {
@@ -281,7 +351,7 @@ const SendTx = () => {
           <Center>
             <DarkButton
               onClick={() => sendTx()}
-              isDisabled={!walletClient}
+              isDisabled={!walletClient || chainIdMismatch}
               isLoading={isLoading}
             >
               Send Tx
