@@ -28,6 +28,7 @@ export const DarkSelect = ({
   isCreatable,
 }: Props) => {
   return (
+    // TODO: fix the select getting cut off by this component parent's size
     <Box cursor="pointer" {...boxProps}>
       {isCreatable ? (
         <CreatableSelect

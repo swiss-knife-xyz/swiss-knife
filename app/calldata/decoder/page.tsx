@@ -18,6 +18,10 @@ import {
 } from "@chakra-ui/react";
 import { Interface, TransactionDescription } from "ethers";
 import axios from "axios";
+import { SelectedOptionState } from "@/types";
+import { fetchFunctionInterface } from "@/utils";
+import networkInfo from "@/data/networkInfo";
+
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
 import { renderParams } from "@/components/renderParams";
@@ -25,8 +29,6 @@ import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import JsonTextArea from "@/components/JsonTextArea";
 import { DarkSelect } from "@/components/DarkSelect";
-import { SelectedOptionState } from "@/types";
-import networkInfo from "@/data/networkInfo";
 
 const networkOptions: { label: string; value: number }[] = networkInfo.map(
   (n, i) => ({
@@ -39,6 +41,7 @@ const CalldataDecoder = () => {
   const toast = useToast();
   const searchParams = useSearchParams();
 
+  // TODO: keep the url data updated with the state
   // get data from URL
   const calldataFromURL = searchParams.get("calldata");
   const addressFromURL = searchParams.get("address");
@@ -112,40 +115,6 @@ const CalldataDecoder = () => {
         isClosable: true,
         duration: 4000,
       });
-    }
-  };
-
-  const fetchFunctionInterface = async (selector: string): Promise<any[]> => {
-    // from api.openchain.xyz
-    const response = await axios.get(
-      "https://api.openchain.xyz/signature-database/v1/lookup",
-      {
-        params: {
-          function: selector,
-        },
-      }
-    );
-    const results = response.data.result.function[selector].map(
-      (f: { name: string }) => f.name
-    );
-
-    if (results.length > 0) {
-      return results;
-    } else {
-      // from 4byte.directory
-      const response = await axios.get(
-        "https://www.4byte.directory/api/v1/signatures/",
-        {
-          params: {
-            hex_signature: selector,
-          },
-        }
-      );
-      const results = response.data.results.map(
-        (f: { text_signature: string }) => f.text_signature
-      );
-
-      return results;
     }
   };
 

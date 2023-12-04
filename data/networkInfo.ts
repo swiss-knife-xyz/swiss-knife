@@ -48,4 +48,6 @@ const networkInfo = [
   },
 ];
 
+// TODO: add missing major chains
+
 export default networkInfo;

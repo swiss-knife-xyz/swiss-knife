@@ -75,7 +75,6 @@ const Hexadecimal = () => {
     setHexadecimal(inHex);
 
     if (inHex.length > 0) {
-      // TODO - convert to decimal and binary
       if (exceptUnit !== "decimal")
         setDecimal(hexToBigInt(startHexWith0x(inHex)).toString());
       if (exceptUnit !== "binary")

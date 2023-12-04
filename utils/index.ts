@@ -2,6 +2,7 @@ import { createPublicClient, http, Hex } from "viem";
 import { mainnet } from "viem/chains";
 import { ADDRESS_KEY, CHAINLABEL_KEY, TX_KEY } from "@/data/common";
 import { ExplorerData, ExplorerType } from "@/types";
+import axios from "axios";
 
 export const getPath = (subdomain: string) => {
   return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
@@ -53,3 +54,39 @@ export const startHexWith0x = (hexValue?: string): Hex => {
 };
 
 export const ethFormatOptions = ["ETH", "Wei"];
+
+export const fetchFunctionInterface = async (
+  selector: string
+): Promise<any[]> => {
+  // from api.openchain.xyz
+  const response = await axios.get(
+    "https://api.openchain.xyz/signature-database/v1/lookup",
+    {
+      params: {
+        function: selector,
+      },
+    }
+  );
+  const results = response.data.result.function[selector].map(
+    (f: { name: string }) => f.name
+  );
+
+  if (results.length > 0) {
+    return results;
+  } else {
+    // from 4byte.directory
+    const response = await axios.get(
+      "https://www.4byte.directory/api/v1/signatures/",
+      {
+        params: {
+          hex_signature: selector,
+        },
+      }
+    );
+    const results = response.data.results.map(
+      (f: { text_signature: string }) => f.text_signature
+    );
+
+    return results;
+  }
+};

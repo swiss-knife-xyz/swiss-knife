@@ -1,5 +1,12 @@
-import React, { useState } from "react";
-import { Collapse, HStack, Stack, Text, useDisclosure } from "@chakra-ui/react";
+import React from "react";
+import {
+  Box,
+  Collapse,
+  HStack,
+  Stack,
+  Text,
+  useDisclosure,
+} from "@chakra-ui/react";
 import { ParamType } from "ethers";
 import { StringParam } from "./StringParam";
 import { renderParamTypes } from "../renderParams";
@@ -39,7 +46,21 @@ export const ArrayParam = ({ input, value }: Params) => {
             rounded={"lg"}
           >
             {value.map((v: any, i: number) => {
-              return renderParamTypes(input.arrayChildren!, v);
+              return (
+                <>
+                  <HStack>
+                    <Text fontSize={"sm"}>{input.arrayChildren!.baseType}</Text>
+                    <Text
+                      fontSize={"xs"}
+                      fontWeight={"thin"}
+                      color={"whiteAlpha.600"}
+                    >
+                      (index: {i})
+                    </Text>
+                  </HStack>
+                  <Box mt={-4}>{renderParamTypes(input.arrayChildren!, v)}</Box>
+                </>
+              );
             })}
           </Stack>
         </Collapse>
