@@ -1,3 +1,4 @@
+import { useSearchParams } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -13,6 +14,7 @@ import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
 import { Interface, TransactionDescription } from "ethers";
 import { hexToBigInt } from "viem";
 import bigInt from "big-integer";
+import axios from "axios";
 import { fetchFunctionInterface, startHexWith0x } from "@/utils";
 import { StringParam } from "./StringParam";
 import { renderParams } from "../renderParams";
@@ -28,6 +30,10 @@ interface Params {
 // TODO: for multicall the address is the current contract (get it from the url)
 export const BytesParam = ({ value }: Params) => {
   const { isOpen, onToggle } = useDisclosure();
+  const searchParams = useSearchParams();
+
+  const addressFromURL = searchParams.get("address");
+  const chainIdFromURL = searchParams.get("chainId");
 
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
 
@@ -40,7 +46,7 @@ export const BytesParam = ({ value }: Params) => {
 
   useEffect(() => {
     if (selectedTabIndex === 0) {
-      decodeWithSelector();
+      decodeCalldata();
     } else {
       setDecimal(hexToBigInt(startHexWith0x(value)).toString());
       setBinary(
@@ -49,6 +55,7 @@ export const BytesParam = ({ value }: Params) => {
     }
   }, [selectedTabIndex]);
 
+  // TODO: the following functions are duplicated from app/calldata/decoder/page.tsx and can be put into separate hooks
   const _decodeWithABI = (_abi: any, _calldata?: string) => {
     let decodedStatus = false;
 
@@ -106,6 +113,45 @@ export const BytesParam = ({ value }: Params) => {
       setDecodedStatus(false);
       setIsLoading(false);
     }
+  };
+
+  const fetchContractABI = async (): Promise<any> => {
+    if (!addressFromURL && !chainIdFromURL) return {};
+
+    try {
+      const response = await axios.get(
+        `https://anyabi.xyz/api/get-abi/${chainIdFromURL}/${addressFromURL}`
+      );
+      return JSON.stringify(response.data.abi);
+    } catch {
+      return {};
+    }
+  };
+
+  const decodeCalldata = async () => {
+    setIsLoading(true);
+
+    console.log({
+      addressFromURL,
+      chainIdFromURL,
+    });
+
+    if (addressFromURL && chainIdFromURL) {
+      try {
+        const fetchedABI = await fetchContractABI();
+        const status = _decodeWithABI(fetchedABI, value);
+
+        if (status === false) {
+          decodeWithSelector();
+        }
+      } catch {
+        decodeWithSelector();
+      }
+    } else {
+      decodeWithSelector();
+    }
+
+    setIsLoading(false);
   };
 
   const renderConverted = () => {

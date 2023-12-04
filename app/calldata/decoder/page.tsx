@@ -15,7 +15,13 @@ import {
   Stack,
   FormControl,
   FormLabel,
+  Collapse,
+  useDisclosure,
+  HStack,
+  Spacer,
+  Text,
 } from "@chakra-ui/react";
+import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
 import {
   parseAsInteger,
   parseAsString,
@@ -241,7 +247,6 @@ const CalldataDecoder = () => {
       isClosable: true,
       duration: 1000,
     });
-    setSelectedTabIndex(1);
 
     _decodeWithABI(fetchedABI, calldata);
 
@@ -269,6 +274,8 @@ const CalldataDecoder = () => {
   };
 
   const FromAddressBody = () => {
+    const { isOpen, onToggle } = useDisclosure();
+
     return (
       <>
         <Tr>
@@ -294,6 +301,41 @@ const CalldataDecoder = () => {
             />
           </Td>
         </Tr>
+        {abi && (
+          <Tr>
+            <Td colSpan={2}>
+              <Center maxW={"50rem"}>
+                <FormControl>
+                  <FormLabel>
+                    <HStack
+                      w="100%"
+                      p={2}
+                      bg={"blackAlpha.400"}
+                      cursor={"pointer"}
+                      onClick={onToggle}
+                      rounded={"lg"}
+                    >
+                      <Box>ABI</Box>
+                      <Spacer />
+                      <Text fontSize={"xl"} fontWeight={"bold"}>
+                        {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                      </Text>
+                    </HStack>
+                  </FormLabel>
+                  <Collapse in={isOpen} animateOpacity>
+                    <JsonTextArea
+                      value={abi}
+                      setValue={setAbi}
+                      placeholder="JSON ABI"
+                      ariaLabel="json abi"
+                      readOnly
+                    />
+                  </Collapse>
+                </FormControl>
+              </Center>
+            </Td>
+          </Tr>
+        )}
       </>
     );
   };

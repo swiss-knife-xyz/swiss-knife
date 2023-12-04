@@ -7,10 +7,10 @@ import {
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
+import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
 import { ParamType } from "ethers";
 import { StringParam } from "./StringParam";
 import { renderParamTypes } from "../renderParams";
-import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
 
 interface Params {
   input: ParamType;
