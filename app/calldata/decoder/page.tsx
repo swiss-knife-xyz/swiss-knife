@@ -20,6 +20,7 @@ import {
   HStack,
   Spacer,
   Text,
+  useUpdateEffect,
 } from "@chakra-ui/react";
 import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
 import {
@@ -97,7 +98,7 @@ const CalldataDecoder = () => {
     } else if (calldataFromURL) {
       decodeWithSelector();
     }
-  }, [calldataFromURL]);
+  }, []);
 
   useEffect(() => {
     if (selectedTabIndex === 2) {
@@ -109,7 +110,8 @@ const CalldataDecoder = () => {
     }
   }, [selectedNetworkOption, selectedTabIndex]);
 
-  useEffect(() => {
+  // not using useEffect because else it loads the page with selectedTabIndex = 0 as default, and removes the address & chainId
+  useUpdateEffect(() => {
     if (pasted && selectedTabIndex === 0) {
       decodeWithSelector();
       setPasted(false);

@@ -37,9 +37,9 @@ const nextConfig = {
   compiler: {
     styledComponents: true,
   },
-  // experimental: {
-  //   windowHistorySupport: true,
-  // },
+  experimental: {
+    windowHistorySupport: true,
+  },
 };
 
 module.exports = nextConfig;

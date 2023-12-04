@@ -27,7 +27,6 @@ interface Params {
   value: string;
 }
 
-// TODO: for multicall the address is the current contract (get it from the url)
 export const BytesParam = ({ value }: Params) => {
   const { isOpen, onToggle } = useDisclosure();
   const searchParams = useSearchParams();
