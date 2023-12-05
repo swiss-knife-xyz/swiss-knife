@@ -15,6 +15,7 @@ import {
   metaMaskWallet,
   walletConnectWallet,
   rainbowWallet,
+  safeWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { configureChains, createConfig, WagmiConfig } from "wagmi";
 import {
@@ -65,6 +66,7 @@ const connectors = connectorsForWallets([
       metaMaskWallet({ projectId, chains }),
       walletConnectWallet({ projectId, chains }),
       rainbowWallet({ projectId, chains }),
+      safeWallet({ chains, allowedDomains: [/./s] }),
     ],
   },
 ]);
