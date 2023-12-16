@@ -45,6 +45,12 @@ export const txExplorers: ExplorersData = {
       [c.polygon.id]: "",
     },
   },
+  Ethernow: {
+    urlLayout: `https://ethernow.xyz/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+  },
   Etherscan: {
     urlLayout: `https://etherscan.io/tx/${TX_KEY}`,
     chainIdToLabel: {
