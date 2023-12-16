@@ -329,6 +329,20 @@ export const addressExplorers: ExplorersData = {
       [c.optimism.id]: "",
     },
   },
+  Parsec: {
+    urlLayout: `https://parsec.fi/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+      [c.arbitrum.id]: "",
+      [c.avalanche.id]: "",
+      [c.base.id]: "",
+      [c.canto.id]: "",
+      [c.mantle.id]: "",
+      [c.optimism.id]: "",
+      [c.scroll.id]: "",
+      [c.zkSync.id]: "",
+    }
+  },
   PolygonScan: {
     urlLayout: `https://polygonscan.com/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
