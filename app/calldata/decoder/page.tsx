@@ -28,7 +28,15 @@ import {
   parseAsString,
   useQueryState,
 } from "next-usequerystate";
-import { Interface, TransactionDescription } from "ethers";
+import {
+  Interface,
+  ParamType,
+  TransactionDescription,
+  AbiCoder,
+  Result,
+  FunctionFragment,
+} from "ethers";
+import { guessAbiEncodedData } from "@openchainxyz/abi-guesser";
 import axios from "axios";
 import { SelectedOptionState } from "@/types";
 import { fetchFunctionInterface } from "@/utils";
@@ -72,6 +80,7 @@ const CalldataDecoder = () => {
     "calldata",
     parseAsString.withDefault("")
   );
+  // can be function calldata or abi.encode bytes
   const [fnDescription, setFnDescription] = useState<TransactionDescription>();
   const [isLoading, setIsLoading] = useState(false);
   const [pasted, setPasted] = useState(false);
@@ -201,12 +210,52 @@ const CalldataDecoder = () => {
 
       setIsLoading(false);
     } catch {
-      toast({
-        title: "Can't Decode Calldata",
-        status: "error",
-        isClosable: true,
-        duration: 1000,
-      });
+      try {
+        // try decoding the `abi.encode` custom bytes
+        const paramTypes: ParamType[] = guessAbiEncodedData(calldata)!;
+        console.log({ paramTypes });
+
+        const abiCoder = AbiCoder.defaultAbiCoder();
+        const decoded = abiCoder.decode(paramTypes, calldata);
+
+        console.log({ decoded });
+
+        const _fnDescription: TransactionDescription = {
+          name: "",
+          args: decoded,
+          signature: "abi.encode",
+          selector: "",
+          value: BigInt(0),
+          fragment: FunctionFragment.from({
+            inputs: paramTypes,
+            name: "test",
+            outputs: [],
+            type: "function",
+            stateMutability: "nonpayable",
+          }),
+        };
+
+        setFnDescription(_fnDescription);
+
+        if (!decoded || decoded.length === 0) {
+          toast({
+            title: "Can't Decode Calldata",
+            status: "error",
+            isClosable: true,
+            duration: 1000,
+          });
+        }
+      } catch (e) {
+        console.error(e);
+
+        toast({
+          title: "Can't Decode Calldata",
+          status: "error",
+          isClosable: true,
+          duration: 1000,
+        });
+      }
+
       setIsLoading(false);
     }
   };
@@ -408,12 +457,14 @@ const CalldataDecoder = () => {
       </Table>
       {fnDescription && (
         <Box minW={"80%"}>
-          <Box>
-            <Box fontSize={"xs"} color={"whiteAlpha.600"}>
-              function
+          {fnDescription.name ? (
+            <Box>
+              <Box fontSize={"xs"} color={"whiteAlpha.600"}>
+                function
+              </Box>
+              <Box>{fnDescription.name}</Box>
             </Box>
-            <Box>{fnDescription.name}</Box>
-          </Box>
+          ) : null}
           <Stack
             mt={2}
             p={4}

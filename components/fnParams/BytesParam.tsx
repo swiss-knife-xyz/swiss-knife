@@ -11,8 +11,15 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
-import { Interface, TransactionDescription } from "ethers";
+import {
+  AbiCoder,
+  FunctionFragment,
+  Interface,
+  ParamType,
+  TransactionDescription,
+} from "ethers";
 import { hexToBigInt } from "viem";
+import { guessAbiEncodedData } from "@openchainxyz/abi-guesser";
 import bigInt from "big-integer";
 import axios from "axios";
 import { fetchFunctionInterface, startHexWith0x } from "@/utils";
@@ -109,7 +116,42 @@ export const BytesParam = ({ value }: Params) => {
 
       setIsLoading(false);
     } catch {
-      setDecodedStatus(false);
+      try {
+        // try decoding the `abi.encode` custom bytes
+        const paramTypes: ParamType[] = guessAbiEncodedData(value)!;
+        console.log({ paramTypes });
+
+        const abiCoder = AbiCoder.defaultAbiCoder();
+        const decoded = abiCoder.decode(paramTypes, value);
+
+        console.log({ decoded });
+
+        const _fnDescription: TransactionDescription = {
+          name: "",
+          args: decoded,
+          signature: "abi.encode",
+          selector: "",
+          value: BigInt(0),
+          fragment: FunctionFragment.from({
+            inputs: paramTypes,
+            name: "test",
+            outputs: [],
+            type: "function",
+            stateMutability: "nonpayable",
+          }),
+        };
+
+        setFnDescription(_fnDescription);
+
+        if (!decoded || decoded.length === 0) {
+          setDecodedStatus(false);
+        }
+      } catch (e) {
+        console.error(e);
+
+        setDecodedStatus(false);
+      }
+
       setIsLoading(false);
     }
   };
@@ -158,12 +200,14 @@ export const BytesParam = ({ value }: Params) => {
       case 0:
         return fnDescription ? (
           <Box minW={"80%"}>
-            <Box>
-              <Box fontSize={"xs"} color={"whiteAlpha.600"}>
-                function
+            {fnDescription.name ? (
+              <Box>
+                <Box fontSize={"xs"} color={"whiteAlpha.600"}>
+                  function
+                </Box>
+                <Box>{fnDescription.name}</Box>
               </Box>
-              <Box>{fnDescription.name}</Box>
-            </Box>
+            ) : null}
             <Stack
               mt={2}
               p={4}
