@@ -14,6 +14,7 @@ const subdomainToLabel = {
   [subdomains.CONVERTER]: "Converter",
   [subdomains.TRANSACT]: "Transact",
   [subdomains.CALLDATA]: "Calldata",
+  [subdomains.STORAGE_SLOTS]: "Storage Slots",
 };
 
 const Btn = ({ subdomain }: { subdomain: string }) => (
