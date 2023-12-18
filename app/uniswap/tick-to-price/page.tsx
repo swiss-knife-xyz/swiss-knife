@@ -14,6 +14,7 @@ import {
   Stack,
   Box,
   Text,
+  useUpdateEffect,
 } from "@chakra-ui/react";
 
 const TokenInput = ({
@@ -68,35 +69,37 @@ const TokenInput = ({
 };
 
 const TickToPrice = () => {
-  const [tokenAName, setTokenAName] = useState<string | undefined>(
-    localStorage.getItem("tokenAName") ?? undefined
-  );
-  const [tokenAAddress, setTokenAAddress] = useState<string | undefined>(
-    localStorage.getItem("tokenAAddress") ?? undefined
-  );
-  const [tokenADecimals, setTokenADecimals] = useState<number | undefined>(
-    localStorage.getItem("tokenADecimals")
-      ? parseInt(localStorage.getItem("tokenADecimals")!)
-      : undefined
-  );
+  const [tokenAName, setTokenAName] = useState<string | undefined>();
+  const [tokenAAddress, setTokenAAddress] = useState<string | undefined>();
+  const [tokenADecimals, setTokenADecimals] = useState<number | undefined>();
 
-  const [tokenBName, setTokenBName] = useState<string | undefined>(
-    localStorage.getItem("tokenBName") ?? undefined
-  );
-  const [tokenBAddress, setTokenBAddress] = useState<string | undefined>(
-    localStorage.getItem("tokenBAddress") ?? undefined
-  );
-  const [tokenBDecimals, setTokenBDecimals] = useState<number | undefined>(
-    localStorage.getItem("tokenBDecimals")
-      ? parseInt(localStorage.getItem("tokenBDecimals")!)
-      : undefined
-  );
+  const [tokenBName, setTokenBName] = useState<string | undefined>();
+  const [tokenBAddress, setTokenBAddress] = useState<string | undefined>();
+  const [tokenBDecimals, setTokenBDecimals] = useState<number | undefined>();
 
   const [tickInput, setTickInput] = useState<string>();
 
   const [isTokenA0, setIsTokenA0] = useState<boolean>(false);
   const [token1PerToken0InDecimals, setToken1PerToken0InDecimals] =
     useState<number>();
+
+  // localstorage cannot be accessed server side, so using it inside useEffect after page has loaded
+  useEffect(() => {
+    setTokenAName(localStorage.getItem("tokenAName") ?? undefined);
+    setTokenAAddress(localStorage.getItem("tokenAAddress") ?? undefined);
+    setTokenADecimals(
+      localStorage.getItem("tokenADecimals")
+        ? parseInt(localStorage.getItem("tokenADecimals")!)
+        : undefined
+    );
+    setTokenBName(localStorage.getItem("tokenBName") ?? undefined);
+    setTokenBAddress(localStorage.getItem("tokenBAddress") ?? undefined);
+    setTokenBDecimals(
+      localStorage.getItem("tokenBDecimals")
+        ? parseInt(localStorage.getItem("tokenBDecimals")!)
+        : undefined
+    );
+  }, []);
 
   useEffect(() => {
     if (
@@ -122,7 +125,7 @@ const TickToPrice = () => {
   }, [tokenAAddress, tokenBAddress, tickInput, tokenADecimals, tokenBDecimals]);
 
   // keep localstorage in sync with the state
-  useEffect(() => {
+  useUpdateEffect(() => {
     if (tokenAName) {
       localStorage.setItem("tokenAName", tokenAName);
     } else {
@@ -130,7 +133,7 @@ const TickToPrice = () => {
     }
   }, [tokenAName]);
 
-  useEffect(() => {
+  useUpdateEffect(() => {
     if (tokenAAddress) {
       localStorage.setItem("tokenAAddress", tokenAAddress);
     } else {
@@ -138,7 +141,7 @@ const TickToPrice = () => {
     }
   }, [tokenAAddress]);
 
-  useEffect(() => {
+  useUpdateEffect(() => {
     if (tokenADecimals) {
       localStorage.setItem("tokenADecimals", tokenADecimals.toString());
     } else {
@@ -146,7 +149,7 @@ const TickToPrice = () => {
     }
   }, [tokenADecimals]);
 
-  useEffect(() => {
+  useUpdateEffect(() => {
     if (tokenBName) {
       localStorage.setItem("tokenBName", tokenBName);
     } else {
@@ -154,7 +157,7 @@ const TickToPrice = () => {
     }
   }, [tokenBName]);
 
-  useEffect(() => {
+  useUpdateEffect(() => {
     if (tokenBAddress) {
       localStorage.setItem("tokenBAddress", tokenBAddress);
     } else {
@@ -162,7 +165,7 @@ const TickToPrice = () => {
     }
   }, [tokenBAddress]);
 
-  useEffect(() => {
+  useUpdateEffect(() => {
     if (tokenBDecimals) {
       localStorage.setItem("tokenBDecimals", tokenBDecimals.toString());
     } else {
