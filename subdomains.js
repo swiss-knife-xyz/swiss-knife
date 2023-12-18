@@ -6,6 +6,7 @@ const subdomains = {
   TRANSACT: "transact",
   CALLDATA: "calldata",
   STORAGE_SLOTS: "storage-slots",
+  UNISWAP: "uniswap",
 };
 
 module.exports = subdomains;
