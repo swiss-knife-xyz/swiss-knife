@@ -141,9 +141,16 @@ export const BytesParam = ({ value }: Params) => {
           }),
         };
 
-        setFnDescription(_fnDescription);
+        // handle edge-case to prevent infinite recursion of decoding
+        // for bytesN values, the decoded type also comes out to be bytesN and the decoding is not needed further
+        let stopDecode = false;
+        if (decoded.length === 1 && decoded[0] === value) {
+          stopDecode = true;
+        } else {
+          setFnDescription(_fnDescription);
+        }
 
-        if (!decoded || decoded.length === 0) {
+        if (!decoded || decoded.length === 0 || stopDecode) {
           setDecodedStatus(false);
         }
       } catch (e) {
@@ -173,6 +180,7 @@ export const BytesParam = ({ value }: Params) => {
     setIsLoading(true);
 
     console.log({
+      value,
       addressFromURL,
       chainIdFromURL,
     });
