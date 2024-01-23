@@ -117,6 +117,24 @@ export const txExplorers: ExplorersData = {
       [c.polygon.id]: "",
     },
   },
+  Sentio: {
+    urlLayout: `https://app.sentio.xyz/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: c.mainnet.id.toString(),
+      [c.arbitrum.id]: c.arbitrum.id.toString(),
+      [c.avalanche.id]: c.avalanche.id.toString(),
+      [c.aurora.id]: c.aurora.id.toString(),
+      [c.bsc.id]: c.bsc.id.toString(),
+      [c.cronos.id]: c.cronos.id.toString(),
+      [c.fantom.id]: c.fantom.id.toString(),
+      [c.moonbeam.id]: c.moonbeam.id.toString(),
+      [c.okc.id]: c.okc.id.toString(),
+      [c.optimism.id]: c.optimism.id.toString(),
+      [c.polygon.id]: c.polygon.id.toString(),
+      [c.polygonZkEvm.id]: c.polygonZkEvm.id.toString(),
+      [c.zkSync.id]: c.zkSync.id.toString(),
+    },
+  },
   Tenderly: {
     urlLayout: `https://dashboard.tenderly.co/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
     chainIdToLabel: {
