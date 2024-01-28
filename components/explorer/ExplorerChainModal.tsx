@@ -78,44 +78,49 @@ export const ExplorerChainModal = ({
               }}
             >
               <SimpleGrid pt="1rem" columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
-                {supportedChainIds.map((chainId) => (
-                  <GridItem
-                    key={chainId}
-                    border="2px solid"
-                    borderColor={"gray.500"}
-                    bg={"white"}
-                    color={"black"}
-                    _hover={{
-                      cursor: "pointer",
-                      bgColor: "gray.600",
-                      color: "white",
-                    }}
-                    rounded="lg"
-                  >
-                    <Link
-                      href={generateUrl(
-                        explorerData.urlLayout,
-                        explorerData.chainIdToLabel[chainId],
-                        addressOrTx,
-                        explorerType
-                      )}
-                      isExternal
+                {supportedChainIds
+                  // sort according to chain names instead of chainIds
+                  .sort((a, b) =>
+                    chainIdToChain[a].name.localeCompare(chainIdToChain[b].name)
+                  )
+                  .map((chainId) => (
+                    <GridItem
+                      key={chainId}
+                      border="2px solid"
+                      borderColor={"gray.500"}
+                      bg={"white"}
+                      color={"black"}
+                      _hover={{
+                        cursor: "pointer",
+                        bgColor: "gray.600",
+                        color: "white",
+                      }}
+                      rounded="lg"
                     >
-                      <Center flexDir={"column"} h="100%" p="1rem">
-                        <Image
-                          bg="white"
-                          w="2rem"
-                          src={chainIdToImage[chainId]}
-                          alt={explorerName}
-                          borderRadius="full"
-                        />
-                        <Text mt="0.5rem" textAlign={"center"}>
-                          {chainIdToChain[chainId].name}
-                        </Text>
-                      </Center>
-                    </Link>
-                  </GridItem>
-                ))}
+                      <Link
+                        href={generateUrl(
+                          explorerData.urlLayout,
+                          explorerData.chainIdToLabel[chainId],
+                          addressOrTx,
+                          explorerType
+                        )}
+                        isExternal
+                      >
+                        <Center flexDir={"column"} h="100%" p="1rem">
+                          <Image
+                            bg="white"
+                            w="2rem"
+                            src={chainIdToImage[chainId]}
+                            alt={explorerName}
+                            borderRadius="full"
+                          />
+                          <Text mt="0.5rem" textAlign={"center"}>
+                            {chainIdToChain[chainId].name}
+                          </Text>
+                        </Center>
+                      </Link>
+                    </GridItem>
+                  ))}
               </SimpleGrid>
             </Box>
           </Box>
