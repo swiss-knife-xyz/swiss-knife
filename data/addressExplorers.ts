@@ -35,9 +35,10 @@ export const addressExplorers: ExplorersData = {
     },
   },
   Basescan: {
-    urlLayout: `https://basescan.org/address/${ADDRESS_KEY}`,
+    urlLayout: `https://${CHAINLABEL_KEY}basescan.org/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.base.id]: "",
+      [c.baseSepolia.id]: "sepolia.",
     },
   },
   Blockscan: {

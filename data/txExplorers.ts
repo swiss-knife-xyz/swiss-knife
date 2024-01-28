@@ -14,6 +14,13 @@ export const txExplorers: ExplorersData = {
       [c.avalanche.id]: "",
     },
   },
+  Basescan:{
+    urlLayout: `https://${CHAINLABEL_KEY}basescan.org/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.base.id]: "",
+      [c.baseSepolia.id]: "sepolia.",
+    }
+  },
   Bloxy: {
     urlLayout: `https://bloxy.info/tx/${TX_KEY}`,
     chainIdToLabel: {
