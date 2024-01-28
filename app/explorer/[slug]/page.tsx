@@ -1,7 +1,13 @@
 "use client";
 
+import { Spinner } from "@chakra-ui/react";
+
 const Slug = () => {
-  return <></>;
+  return (
+    <>
+      <Spinner />
+    </>
+  );
 };
 
 export default Slug;
