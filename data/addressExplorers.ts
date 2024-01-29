@@ -330,6 +330,12 @@ export const addressExplorers: ExplorersData = {
       [c.optimism.id]: "",
     },
   },
+  Otterscan: {
+    urlLayout: `https://sepolia.otterscan.io/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+       [c.sepolia.id]: "",
+    },
+  },
   Parsec: {
     urlLayout: `https://parsec.fi/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
