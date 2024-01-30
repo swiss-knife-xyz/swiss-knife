@@ -103,6 +103,12 @@ export const txExplorers: ExplorersData = {
       [c.optimism.id]: "",
     },
   },
+  Otterscan:{
+    urlLayout: `https://sepolia.otterscan.io/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.sepolia.id]: "",
+    }
+  },
   Phalcon: {
     urlLayout: `https://explorer.phalcon.xyz/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
     chainIdToLabel: {
