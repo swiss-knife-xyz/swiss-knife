@@ -8,7 +8,7 @@ export const txExplorers: ExplorersData = {
       [c.arbitrum.id]: "",
     },
   },
-  Avaxscan: {
+  Snowtrace: {
     urlLayout: `https://snowtrace.io/tx/${TX_KEY}`,
     chainIdToLabel: {
       [c.avalanche.id]: "",
@@ -103,11 +103,11 @@ export const txExplorers: ExplorersData = {
       [c.optimism.id]: "",
     },
   },
-  Otterscan:{
+  Otterscan: {
     urlLayout: `https://sepolia.otterscan.io/tx/${TX_KEY}`,
     chainIdToLabel: {
       [c.sepolia.id]: "",
-    }
+    },
   },
   Phalcon: {
     urlLayout: `https://explorer.phalcon.xyz/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
@@ -208,6 +208,7 @@ export const txExplorers: ExplorersData = {
       [c.wanchain.id]: c.wanchain.id.toString(),
       [c.zkSync.id]: c.zkSync.id.toString(),
     },
+    faviconUrl: "https://scan.vf.at/favicon.ico",
   },
   Viewblock: {
     urlLayout: `https://viewblock.io/starknet/tx/${TX_KEY}`,

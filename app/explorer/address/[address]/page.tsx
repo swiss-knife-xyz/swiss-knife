@@ -12,6 +12,7 @@ const Address = ({
     address: string;
   };
 }) => {
+  console.log({ addressExplorers });
   return (
     <Box>
       <ExplorerGridBase

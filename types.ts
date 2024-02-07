@@ -14,6 +14,10 @@ export interface ExplorersData {
 export interface ExplorerData {
   urlLayout: string;
   chainIdToLabel: { [chainId: number]: string };
+  // some explorer favicons don't automatically work via gstatic
+  faviconUrl?: string;
+  // some icons can be entirely white in color, which would require the background color to change from white
+  faviconWhite?: boolean;
   forContracts?: boolean;
 }
 

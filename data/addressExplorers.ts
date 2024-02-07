@@ -14,6 +14,8 @@ export const addressExplorers: ExplorersData = {
     chainIdToLabel: {
       [c.mainnet.id]: "",
     },
+    faviconUrl:
+      "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>👀</text></svg>",
   },
   AnyABI: {
     urlLayout: `https://anyabi.xyz/api/get-abi/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
@@ -333,7 +335,7 @@ export const addressExplorers: ExplorersData = {
   Otterscan: {
     urlLayout: `https://sepolia.otterscan.io/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
-       [c.sepolia.id]: "",
+      [c.sepolia.id]: "",
     },
   },
   Parsec: {
@@ -348,7 +350,7 @@ export const addressExplorers: ExplorersData = {
       [c.optimism.id]: "",
       [c.scroll.id]: "",
       [c.zkSync.id]: "",
-    }
+    },
   },
   PolygonScan: {
     urlLayout: `https://polygonscan.com/address/${ADDRESS_KEY}`,
@@ -415,6 +417,7 @@ export const addressExplorers: ExplorersData = {
       [c.polygon.id]: "polygonscan",
     },
     forContracts: true,
+    faviconWhite: true,
   },
   VFatScan: {
     urlLayout: `https://scan.vf.at/address/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
@@ -454,6 +457,7 @@ export const addressExplorers: ExplorersData = {
       [c.wanchain.id]: c.wanchain.id.toString(),
       [c.zkSync.id]: c.zkSync.id.toString(),
     },
+    faviconUrl: "https://scan.vf.at/favicon.ico",
   },
   Zapper: {
     urlLayout: `https://zapper.xyz/account/${ADDRESS_KEY}`,

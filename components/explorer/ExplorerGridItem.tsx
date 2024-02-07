@@ -47,6 +47,9 @@ export const ExplorerGridItem = ({
     "",
     explorerType
   );
+  const imageUrl =
+    explorerData.faviconUrl ??
+    `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=${baseUrlForImage}`;
 
   return (
     <GridItem
@@ -79,9 +82,9 @@ export const ExplorerGridItem = ({
             onClick={openModal}
           >
             <Image
-              bg="white"
+              bg={explorerData.faviconWhite ? "gray.800" : "white"}
               w="2rem"
-              src={`https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=${baseUrlForImage}`}
+              src={imageUrl}
               alt={explorerName}
               borderRadius="full"
             />
@@ -123,7 +126,7 @@ export const ExplorerGridItem = ({
             <Image
               bg="white"
               w="2rem"
-              src={`https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=${baseUrlForImage}`}
+              src={imageUrl}
               alt={explorerName}
               borderRadius="full"
             />
