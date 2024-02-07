@@ -7,10 +7,11 @@ import {
   Center,
   HStack,
   Heading,
+  VStack,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTwitter } from "@fortawesome/free-brands-svg-icons";
+import { faTwitter, faDiscord } from "@fortawesome/free-brands-svg-icons";
 
 export const Footer = () => {
   return (
@@ -22,28 +23,33 @@ export const Footer = () => {
       borderTopWidth={1}
       borderColor={"custom.greenDarker"}
     >
-      <Container as={Stack} maxW={"8xl"} py={10}>
-        <Center flexDir={"column"}>
+      <Container as={Stack} maxW={"8xl"} py={10} >
+      <VStack spacing={5}>
+        <Center flexDir={"column"} >
           <Heading size="md">
-            Built by:{" "}
             <Link
-              color={"twitter.300"}
-              href="https://twitter.com/apoorvlathey"
+              color={"white"}
+              href="https://twitter.com/swissknifexyz"
               isExternal
             >
               <HStack>
                 <FontAwesomeIcon icon={faTwitter} size="lg" />
                 {"  "}
-                <Text display="inline">@apoorvlathey</Text> <ExternalLinkIcon />
+                <Text display="inline">@swissknifexyz</Text> <ExternalLinkIcon />
               </HStack>
             </Link>
           </Heading>
-          <Heading mt="2rem" size="md" color="custom.greenLight">
-            <Link href="https://apoorv.xyz/" isExternal>
-              <Text display="inline">[apoorv.xyz]</Text>
-            </Link>
-          </Heading>
+          </Center>
+          <Center>
+          <Link
+            href={"https://discord.gg/xB38wGeF"}
+            color="twitter.200"
+            isExternal
+          >
+            <FontAwesomeIcon icon={faDiscord} size="2x" />
+          </Link>
         </Center>
+        </VStack>
       </Container>
     </Box>
   );
