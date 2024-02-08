@@ -120,7 +120,7 @@ const TickToPrice = () => {
     const token1Decimals = _isTokenA0 ? tokenBDecimals : tokenADecimals;
 
     setToken1PerToken0InDecimals(
-      (price * 10 ** token0Decimals) / 10 ** token1Decimals
+      ((price * 10 ** token0Decimals) / 10 ** token1Decimals).toFixed(token1Decimals)
     );
   }, [tokenAAddress, tokenBAddress, tickInput, tokenADecimals, tokenBDecimals]);
 
@@ -227,10 +227,10 @@ const TickToPrice = () => {
                 >
                   <Center>
                     <Box>
-                      <Text>{`${tokenADecimals ? token1PerToken0InDecimals.toFixed(tokenADecimals) : token1PerToken0InDecimals} ${
+                      <Text>{`${ token1PerToken0InDecimals } ${
                         isTokenA0 ? tokenBName : tokenAName
                       } per 1 ${isTokenA0 ? tokenAName : tokenBName}`}</Text>
-                      <Text>{`${1 / tokenBDecimals ? token1PerToken0InDecimals.toFixed(tokenBDecimals) : token1PerToken0InDecimals} ${
+                      <Text>{`${1 / token1PerToken0InDecimals} ${
                         isTokenA0 ? tokenAName : tokenBName
                       } per 1 ${isTokenA0 ? tokenBName : tokenAName}`}</Text>
                     </Box>
