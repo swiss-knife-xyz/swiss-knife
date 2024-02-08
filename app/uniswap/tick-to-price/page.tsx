@@ -217,7 +217,11 @@ const TickToPrice = () => {
               </Center>
             </Td>
           </Tr>
-          {token1PerToken0InDecimals && tokenAName && tokenBName ? (
+          {token1PerToken0InDecimals &&
+          tokenAName &&
+          tokenBName &&
+          tokenADecimals &&
+          tokenBDecimals ? (
             <>
               <Tr>
                 <Td
@@ -227,12 +231,16 @@ const TickToPrice = () => {
                 >
                   <Center>
                     <Box>
-                      <Text>{`${token1PerToken0InDecimals} ${
-                        isTokenA0 ? tokenBName : tokenAName
-                      } per 1 ${isTokenA0 ? tokenAName : tokenBName}`}</Text>
-                      <Text>{`${1 / token1PerToken0InDecimals} ${
+                      <Text>{`${token1PerToken0InDecimals.toFixed(
+                        !isTokenA0 ? tokenADecimals : tokenBDecimals
+                      )} ${isTokenA0 ? tokenBName : tokenAName} per 1 ${
                         isTokenA0 ? tokenAName : tokenBName
-                      } per 1 ${isTokenA0 ? tokenBName : tokenAName}`}</Text>
+                      }`}</Text>
+                      <Text>{`${(1 / token1PerToken0InDecimals).toFixed(
+                        isTokenA0 ? tokenADecimals : tokenBDecimals
+                      )} ${isTokenA0 ? tokenAName : tokenBName} per 1 ${
+                        isTokenA0 ? tokenBName : tokenAName
+                      }`}</Text>
                     </Box>
                   </Center>
                 </Td>
