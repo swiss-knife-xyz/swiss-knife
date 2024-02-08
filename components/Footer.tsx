@@ -23,32 +23,33 @@ export const Footer = () => {
       borderTopWidth={1}
       borderColor={"custom.greenDarker"}
     >
-      <Container as={Stack} maxW={"8xl"} py={10} >
-      <VStack spacing={5}>
-        <Center flexDir={"column"} >
-          <Heading size="md">
-            <Link
-              color={"white"}
-              href="https://twitter.com/swissknifexyz"
-              isExternal
-            >
-              <HStack>
-                <FontAwesomeIcon icon={faTwitter} size="lg" />
-                {"  "}
-                <Text display="inline">@swissknifexyz</Text> <ExternalLinkIcon />
-              </HStack>
-            </Link>
-          </Heading>
+      <Container as={Stack} maxW={"8xl"} py={10}>
+        <VStack spacing={5}>
+          <Center flexDir={"column"}>
+            <Heading size="md">
+              <Link
+                color={"white"}
+                href="https://twitter.com/swissknifexyz"
+                isExternal
+              >
+                <HStack>
+                  <FontAwesomeIcon icon={faTwitter} size="lg" />
+                  {"  "}
+                  <Text display="inline">@swissknifexyz</Text>{" "}
+                  <ExternalLinkIcon />
+                </HStack>
+              </Link>
+            </Heading>
           </Center>
           <Center>
-          <Link
-            href={"https://discord.gg/xB38wGeF"}
-            color="twitter.200"
-            isExternal
-          >
-            <FontAwesomeIcon icon={faDiscord} size="2x" />
-          </Link>
-        </Center>
+            <Link
+              href={"https://discord.gg/w9uDexf9vR"}
+              color="twitter.200"
+              isExternal
+            >
+              <FontAwesomeIcon icon={faDiscord} size="2x" />
+            </Link>
+          </Center>
         </VStack>
       </Container>
     </Box>
