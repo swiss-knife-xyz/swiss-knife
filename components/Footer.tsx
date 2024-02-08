@@ -7,10 +7,11 @@ import {
   Center,
   HStack,
   Heading,
+  VStack,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTwitter } from "@fortawesome/free-brands-svg-icons";
+import { faTwitter, faDiscord } from "@fortawesome/free-brands-svg-icons";
 
 export const Footer = () => {
   return (
@@ -23,27 +24,33 @@ export const Footer = () => {
       borderColor={"custom.greenDarker"}
     >
       <Container as={Stack} maxW={"8xl"} py={10}>
-        <Center flexDir={"column"}>
-          <Heading size="md">
-            Built by:{" "}
+        <VStack spacing={5}>
+          <Center flexDir={"column"}>
+            <Heading size="md">
+              <Link
+                color={"white"}
+                href="https://twitter.com/swissknifexyz"
+                isExternal
+              >
+                <HStack>
+                  <FontAwesomeIcon icon={faTwitter} size="lg" />
+                  {"  "}
+                  <Text display="inline">@swissknifexyz</Text>{" "}
+                  <ExternalLinkIcon />
+                </HStack>
+              </Link>
+            </Heading>
+          </Center>
+          <Center>
             <Link
-              color={"twitter.300"}
-              href="https://twitter.com/apoorvlathey"
+              href={"https://discord.gg/w9uDexf9vR"}
+              color="twitter.200"
               isExternal
             >
-              <HStack>
-                <FontAwesomeIcon icon={faTwitter} size="lg" />
-                {"  "}
-                <Text display="inline">@apoorvlathey</Text> <ExternalLinkIcon />
-              </HStack>
+              <FontAwesomeIcon icon={faDiscord} size="2x" />
             </Link>
-          </Heading>
-          <Heading mt="2rem" size="md" color="custom.greenLight">
-            <Link href="https://apoorv.xyz/" isExternal>
-              <Text display="inline">[apoorv.xyz]</Text>
-            </Link>
-          </Heading>
-        </Center>
+          </Center>
+        </VStack>
       </Container>
     </Box>
   );
