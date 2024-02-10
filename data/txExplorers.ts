@@ -2,16 +2,12 @@ import { ExplorersData } from "@/types";
 import { CHAINLABEL_KEY, TX_KEY, c } from "./common";
 
 export const txExplorers: ExplorersData = {
-  Arbiscan: {
-    urlLayout: `https://arbiscan.io/tx/${TX_KEY}`,
+  Arbitrum: {
+    urlLayout: `https://${CHAINLABEL_KEY}arbiscan.io/tx/${TX_KEY}`,
     chainIdToLabel: {
       [c.arbitrum.id]: "",
-    },
-  },
-  Snowtrace: {
-    urlLayout: `https://snowtrace.io/tx/${TX_KEY}`,
-    chainIdToLabel: {
-      [c.avalanche.id]: "",
+      [c.arbitrumNova.id]: "nova.",
+      [c.arbitrumSepolia.id]: "sepolia.",
     },
   },
   Basescan: {
@@ -28,17 +24,18 @@ export const txExplorers: ExplorersData = {
     },
   },
   Celoscan: {
-    urlLayout: `https://celoscan.io/tx/${TX_KEY}`,
+    urlLayout: `https://${CHAINLABEL_KEY}celoscan.io/tx/${TX_KEY}`,
     chainIdToLabel: {
       [c.celo.id]: "",
+      [c.celoAlfajores.id]: "alfajores.",
     },
   },
-  Cruise: {
-    urlLayout: `https://cruise.supremacy.team/detail/?tx=${TX_KEY}`,
-    chainIdToLabel: {
-      [c.mainnet.id]: "",
-    },
-  },
+  // Cruise: {
+  //   urlLayout: `https://cruise.supremacy.team/detail/?tx=${TX_KEY}`,
+  //   chainIdToLabel: {
+  //     [c.mainnet.id]: "",
+  //   },
+  // },
   EigenPhi: {
     urlLayout: `https://tx.eigenphi.io/analyseTransaction?chain=ALL&tx=${TX_KEY}`,
     chainIdToLabel: {
@@ -53,7 +50,8 @@ export const txExplorers: ExplorersData = {
     },
   },
   Ethernow: {
-    urlLayout: `https://ethernow.xyz/tx/${TX_KEY}`,
+    // "www" is required here, unless doesn't load
+    urlLayout: `https://www.ethernow.xyz/tx/${TX_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "",
     },
@@ -79,10 +77,13 @@ export const txExplorers: ExplorersData = {
     },
   },
   FTMscan: {
-    urlLayout: `https://ftmscan.com/tx/${TX_KEY}`,
+    urlLayout: `https://${CHAINLABEL_KEY}ftmscan.com/tx/${TX_KEY}`,
     chainIdToLabel: {
       [c.fantom.id]: "",
+      [c.fantomTestnet.id]: "testnet.",
     },
+    faviconUrl: "https://ftmscan.com/assets/generic/html/favicon-light.ico",
+    faviconWhite: true,
   },
   Openchain: {
     urlLayout: `https://openchain.xyz/trace/${CHAINLABEL_KEY}/${TX_KEY}`,
@@ -97,10 +98,11 @@ export const txExplorers: ExplorersData = {
       [c.polygon.id]: "polygon",
     },
   },
-  Optiscan: {
-    urlLayout: `https://optimistic.etherscan.io/tx/${TX_KEY}`,
+  OptimismScan: {
+    urlLayout: `https://${CHAINLABEL_KEY}etherscan.io/tx/${TX_KEY}`,
     chainIdToLabel: {
-      [c.optimism.id]: "",
+      [c.optimism.id]: "optimistic.",
+      [c.optimismSepolia.id]: "sepolia-optimism.",
     },
   },
   Otterscan: {
@@ -124,11 +126,15 @@ export const txExplorers: ExplorersData = {
       [c.sepolia.id]: "sepolia",
     },
   },
-  Polyscan: {
-    urlLayout: `https://polygonscan.com/tx/${TX_KEY}`,
+  PolygonScan: {
+    urlLayout: `https://${CHAINLABEL_KEY}polygonscan.com/tx/${TX_KEY}`,
     chainIdToLabel: {
       [c.polygon.id]: "",
+      [c.polygonMumbai.id]: "mumbai.",
+      [c.polygonZkEvm.id]: "zkevm.",
+      [c.polygonZkEvmTestnet.id]: "testnet-zkevm.",
     },
+    faviconUrl: "https://polygonscan.com/assets/generic/html/favicon-light.ico",
   },
   Sentio: {
     urlLayout: `https://app.sentio.xyz/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
@@ -146,6 +152,14 @@ export const txExplorers: ExplorersData = {
       [c.polygon.id]: c.polygon.id.toString(),
       [c.polygonZkEvm.id]: c.polygonZkEvm.id.toString(),
       [c.zkSync.id]: c.zkSync.id.toString(),
+    },
+    faviconUrl: "https://app.sentio.xyz/favicon.ico",
+  },
+  Snowtrace: {
+    urlLayout: `https://${CHAINLABEL_KEY}snowtrace.io/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.avalanche.id]: "",
+      [c.avalancheFuji.id]: "testnet.",
     },
   },
   Tenderly: {

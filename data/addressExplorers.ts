@@ -30,10 +30,12 @@ export const addressExplorers: ExplorersData = {
     })(),
     forContracts: true,
   },
-  Arbiscan: {
-    urlLayout: `https://arbiscan.io/address/${ADDRESS_KEY}`,
+  Arbitrum: {
+    urlLayout: `https://${CHAINLABEL_KEY}arbiscan.io/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.arbitrum.id]: "",
+      [c.arbitrumNova.id]: "nova.",
+      [c.arbitrumSepolia.id]: "sepolia.",
     },
   },
   Basescan: {
@@ -76,9 +78,10 @@ export const addressExplorers: ExplorersData = {
     },
   },
   BscScan: {
-    urlLayout: `https://bscscan.com/address/${ADDRESS_KEY}`,
+    urlLayout: `https://${CHAINLABEL_KEY}bscscan.com/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.bsc.id]: "",
+      [c.bscTestnet.id]: "testnet",
     },
   },
   Bytegraph: {
@@ -89,13 +92,20 @@ export const addressExplorers: ExplorersData = {
     forContracts: true,
   },
   CeloScan: {
-    urlLayout: `https://celoscan.io/address/${ADDRESS_KEY}`,
+    urlLayout: `https://${CHAINLABEL_KEY}celoscan.io/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.celo.id]: "",
+      [c.celoAlfajores.id]: "alfajores.",
+    },
+  },
+  Claimables: {
+    urlLayout: `https://bankless.com/claimables/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
     },
   },
   ContractReader: {
-    urlLayout: `https://www.contractreader.io/contract/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
+    urlLayout: `https://contractreader.io/contract/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "mainnet",
       [c.arbitrum.id]: "arbitrum",
@@ -188,12 +198,6 @@ export const addressExplorers: ExplorersData = {
     },
     forContracts: true,
   },
-  EarniFi: {
-    urlLayout: `https://earni.fi/?address=${ADDRESS_KEY}`,
-    chainIdToLabel: {
-      [c.mainnet.id]: "",
-    },
-  },
   Etherscan: {
     urlLayout: `https://etherscan.io/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
@@ -221,10 +225,13 @@ export const addressExplorers: ExplorersData = {
     forContracts: true,
   },
   FTMScan: {
-    urlLayout: `https://ftmscan.com/address/${ADDRESS_KEY}`,
+    urlLayout: `https://${CHAINLABEL_KEY}ftmscan.com/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.fantom.id]: "",
+      [c.fantomTestnet.id]: "testnet.",
     },
+    faviconUrl: "https://ftmscan.com/assets/generic/html/favicon-light.ico",
+    faviconWhite: true,
   },
   GnosisScan: {
     urlLayout: `https://gnosisscan.io/address/${ADDRESS_KEY}`,
@@ -327,9 +334,10 @@ export const addressExplorers: ExplorersData = {
     },
   },
   OptimismScan: {
-    urlLayout: `https://optimistic.etherscan.io/address/${ADDRESS_KEY}`,
+    urlLayout: `https://${CHAINLABEL_KEY}etherscan.io/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
-      [c.optimism.id]: "",
+      [c.optimism.id]: "optimistic.",
+      [c.optimismSepolia.id]: "sepolia-optimism.",
     },
   },
   Otterscan: {
@@ -353,10 +361,14 @@ export const addressExplorers: ExplorersData = {
     },
   },
   PolygonScan: {
-    urlLayout: `https://polygonscan.com/address/${ADDRESS_KEY}`,
+    urlLayout: `https://${CHAINLABEL_KEY}polygonscan.com/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.polygon.id]: "",
+      [c.polygonMumbai.id]: "mumbai.",
+      [c.polygonZkEvm.id]: "zkevm.",
+      [c.polygonZkEvmTestnet.id]: "testnet-zkevm.",
     },
+    faviconUrl: "https://polygonscan.com/assets/generic/html/favicon-light.ico",
   },
   Remix: {
     urlLayout: `https://remix.ethereum.org/#address=${ADDRESS_KEY}`,
@@ -380,10 +392,11 @@ export const addressExplorers: ExplorersData = {
       [c.polygon.id]: "polygon",
     },
   },
-  SnowTrace: {
-    urlLayout: `https://snowtrace.io/address/${ADDRESS_KEY}`,
+  Snowtrace: {
+    urlLayout: `https://${CHAINLABEL_KEY}snowtrace.io/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.avalanche.id]: "",
+      [c.avalancheFuji.id]: "testnet.",
     },
   },
   Tenderly: {
