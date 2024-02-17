@@ -2,6 +2,27 @@ import { ExplorersData, ExplorerData } from "@/types";
 import { CHAINLABEL_KEY, ADDRESS_KEY, c } from "./common";
 
 export const addressExplorers: ExplorersData = {
+  ABINinja: {
+    urlLayout: `https://abi.ninja/${ADDRESS_KEY}/${CHAINLABEL_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: c.mainnet.id.toString(),
+      [c.arbitrum.id]: c.arbitrum.id.toString(),
+      [c.base.id]: c.base.id.toString(),
+      [c.baseSepolia.id]: c.baseSepolia.id.toString(),
+      [c.gnosis.id]: c.gnosis.id.toString(),
+      [c.goerli.id]: c.goerli.id.toString(),
+      [c.optimism.id]: c.optimism.id.toString(),
+      [c.optimismGoerli.id]: c.optimismGoerli.id.toString(),
+      [c.polygon.id]: c.polygon.id.toString(),
+      [c.polygonMumbai.id]: c.polygonMumbai.id.toString(),
+      [c.sepolia.id]: c.sepolia.id.toString(),
+      [c.scroll.id]: c.scroll.id.toString(),
+      [c.scrollSepolia.id]: c.scrollSepolia.id.toString(),
+      [c.zkSync.id]: c.zkSync.id.toString(),
+      [c.zkSyncTestnet.id]: c.zkSyncTestnet.id.toString(),
+    },
+    forContracts: true,
+  },
   ABIw1nt3r: {
     urlLayout: `https://abi.w1nt3r.xyz/mainnet/${ADDRESS_KEY}`,
     chainIdToLabel: {
