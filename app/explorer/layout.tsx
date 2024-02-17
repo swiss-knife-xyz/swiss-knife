@@ -112,6 +112,12 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
     }
   }, [isInputInvalid]);
 
+  useEffect(() => {
+    if (resolvedAddress) {
+      setResolvedAddress("");
+    }
+  }, [userInput]);
+
   return (
     <Layout>
       <Center flexDir={"column"} mt="5">
