@@ -14,13 +14,15 @@ import {
   Box,
   HStack,
   Spacer,
+  Text,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
 import { isAddress } from "viem";
 import { normalize } from "viem/ens";
-import { publicClient, getPath } from "@/utils";
+import { publicClient, getPath, slicedText } from "@/utils";
 import subdomains from "@/subdomains";
 import { Layout } from "@/components/Layout";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
 
 const isValidTransaction = (tx: string) => {
   return /^0x([A-Fa-f0-9]{64})$/.test(tx);
@@ -35,6 +37,7 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
   const userInputFromUrl = segments[1] ?? segments[0];
 
   const [userInput, setUserInput] = useState<string>(userInputFromUrl);
+  const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
   const [isInputInvalid, setIsInputInvalid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -70,6 +73,7 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
             name: normalize(__userInput),
           });
           if (ensResolvedAddress) {
+            setResolvedAddress(ensResolvedAddress);
             const newUrl = `${getPath(
               subdomains.EXPLORER
             )}address/${ensResolvedAddress}`;
@@ -155,6 +159,20 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
             </Button>
           </InputRightElement>
         </InputGroup>
+        {resolvedAddress && (
+          <Box
+            mt="2"
+            p="2"
+            border={"1px solid"}
+            borderColor={"whiteAlpha.300"}
+            rounded="lg"
+          >
+            <HStack fontSize={"sm"}>
+              <Text>{slicedText(resolvedAddress)}</Text>
+              <CopyToClipboard textToCopy={resolvedAddress} />
+            </HStack>
+          </Box>
+        )}
         <Box mt="5">{children}</Box>
       </Center>
     </Layout>
