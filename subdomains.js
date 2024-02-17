@@ -7,6 +7,7 @@ const subdomains = {
   CALLDATA: "calldata",
   STORAGE_SLOTS: "storage-slots",
   UNISWAP: "uniswap",
+  CHARACTER_COUNT: "character-counter",
 };
 
 module.exports = subdomains;

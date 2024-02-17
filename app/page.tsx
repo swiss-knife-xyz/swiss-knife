@@ -16,6 +16,7 @@ const subdomainToLabel = {
   [subdomains.CALLDATA]: "Calldata",
   [subdomains.STORAGE_SLOTS]: "Storage Slots",
   [subdomains.UNISWAP]: "Uniswap V3",
+  [subdomains.CHARACTER_COUNT]: "Character Counter",
 };
 
 const Btn = ({ subdomain }: { subdomain: string }) => (
