@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Heading,
   Textarea,
@@ -16,10 +16,21 @@ const CharacterCounter = () => {
   const [input, setInput] = useState<string>();
   const [count, setCount] = useState<number>();
 
+  useEffect(() => {
+    document.addEventListener("mouseup", (e) => {
+      if (document.activeElement !== document.getElementById("input")) {
+        setCount(input?.length);
+      }
+    });
+    return () => {
+      document.removeEventListener("mouseup", () => {});
+    };
+  }, [input]);
+
   return (
     <>
       <Heading color={"custom.pale"}>Character Counter</Heading>
-      <Container pb="3rem" maxWidth="inherit">
+      <Container maxWidth="inherit">
         <VStack spacing={5}>
           <FormControl mt="1rem">
             <FormLabel>
@@ -30,6 +41,7 @@ const CharacterCounter = () => {
             </FormLabel>
             <Textarea
               placeholder=""
+              id="input"
               value={input}
               onChange={(e) => {
                 setInput(e.target.value);
@@ -51,6 +63,10 @@ const CharacterCounter = () => {
             </FormLabel>
           </FormControl>
         </VStack>
+        <Text mt="2rem" fontSize={"sm"}>
+          (Note: select on the input text to only get the character count for
+          the selection)
+        </Text>
       </Container>
     </>
   );
