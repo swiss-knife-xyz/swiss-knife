@@ -90,3 +90,9 @@ export const fetchFunctionInterface = async (
     return results;
   }
 };
+
+export const slicedText = (txt: string) => {
+  return txt.length > 10
+    ? `${txt.slice(0, 6)}...${txt.slice(txt.length - 4, txt.length)}`
+    : txt;
+};

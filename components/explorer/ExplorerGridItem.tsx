@@ -10,11 +10,14 @@ import {
   Spacer,
   VStack,
   HStack,
+  AvatarGroup,
+  Avatar,
 } from "@chakra-ui/react";
 
 import { ExplorerData, ExplorerType } from "@/types";
 import { checkDifferentUrlsExist, generateUrl } from "@/utils";
 import { ExplorerChainModal } from "./ExplorerChainModal";
+import { chainIdToChain, chainIdToImage } from "@/data/common";
 
 interface Params {
   explorerName: string;
@@ -91,6 +94,21 @@ export const ExplorerGridItem = ({
             <Text mt="0.5rem" textAlign={"center"}>
               {explorerName}
             </Text>
+            <AvatarGroup size="2xs" spacing={"2px"} max={5}>
+              {supportedChainIds
+                // sort according to chain names instead of chainIds
+                .sort((a, b) =>
+                  chainIdToChain[a].name.localeCompare(chainIdToChain[b].name)
+                )
+                .map((chainId) => (
+                  <Avatar
+                    key={chainId}
+                    src={chainIdToImage[chainId]}
+                    name={chainIdToChain[chainId].name}
+                    bg={"white"}
+                  />
+                ))}
+            </AvatarGroup>
           </Center>
           <ExplorerChainModal
             isModalOpen={isModalOpen}
@@ -133,6 +151,21 @@ export const ExplorerGridItem = ({
             <Text mt="0.5rem" textAlign={"center"}>
               {explorerName}
             </Text>
+            <AvatarGroup size="2xs" spacing={"2px"} max={5}>
+              {supportedChainIds
+                // sort according to chain names instead of chainIds
+                .sort((a, b) =>
+                  chainIdToChain[a].name.localeCompare(chainIdToChain[b].name)
+                )
+                .map((chainId) => (
+                  <Avatar
+                    key={chainId}
+                    src={chainIdToImage[chainId]}
+                    name={chainIdToChain[chainId].name}
+                    bg={"white"}
+                  />
+                ))}
+            </AvatarGroup>
           </Center>
         </Link>
       )}

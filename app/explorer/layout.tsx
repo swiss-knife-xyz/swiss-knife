@@ -14,13 +14,19 @@ import {
   Box,
   HStack,
   Spacer,
+  Text,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { isAddress } from "viem";
 import { normalize } from "viem/ens";
-import { publicClient, getPath } from "@/utils";
+import { publicClient, getPath, slicedText } from "@/utils";
 import subdomains from "@/subdomains";
 import { Layout } from "@/components/Layout";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { AddressBook } from "@/components/AddressBook";
 
 const isValidTransaction = (tx: string) => {
   return /^0x([A-Fa-f0-9]{64})$/.test(tx);
@@ -35,8 +41,15 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
   const userInputFromUrl = segments[1] ?? segments[0];
 
   const [userInput, setUserInput] = useState<string>(userInputFromUrl);
+  const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
   const [isInputInvalid, setIsInputInvalid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    isOpen: isAddressBookOpen,
+    onOpen: openAddressBook,
+    onClose: closeAddressBook,
+  } = useDisclosure();
 
   const handleSearch = async (_userInput?: string) => {
     setIsLoading(true);
@@ -70,6 +83,7 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
             name: normalize(__userInput),
           });
           if (ensResolvedAddress) {
+            setResolvedAddress(ensResolvedAddress);
             const newUrl = `${getPath(
               subdomains.EXPLORER
             )}address/${ensResolvedAddress}`;
@@ -108,6 +122,12 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
     }
   }, [isInputInvalid]);
 
+  useEffect(() => {
+    if (resolvedAddress) {
+      setResolvedAddress("");
+    }
+  }, [userInput]);
+
   return (
     <Layout>
       <Center flexDir={"column"} mt="5">
@@ -118,43 +138,73 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
           <Heading fontSize={"xl"}>Search Address or Transaction</Heading>{" "}
           <Spacer />
         </HStack>
-        <InputGroup mt="1rem" maxW="60%">
-          <Input
-            placeholder="address / ens / transaction"
-            value={userInput}
-            onChange={(e) => {
-              setUserInput(e.target.value);
-              if (isInputInvalid) {
-                setIsInputInvalid(false);
-              }
-            }}
-            onPaste={(e) => {
-              e.preventDefault();
-              setIsLoading(true);
-              const pastedData = e.clipboardData.getData("Text");
-              setUserInput(pastedData);
-              handleSearch(pastedData);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSearch();
-              }
-            }}
-            isInvalid={isInputInvalid}
-          />
-          <InputRightElement w="4rem">
-            <Button
-              mr="0.5rem"
-              w="100%"
-              size="sm"
-              colorScheme={isInputInvalid ? "red" : "blue"}
-              onClick={() => handleSearch()}
-              isLoading={isLoading}
-            >
-              <SearchIcon />
-            </Button>
-          </InputRightElement>
-        </InputGroup>
+        <HStack mt="1rem">
+          <InputGroup w="30rem">
+            <Input
+              placeholder="address / ens / transaction"
+              value={userInput}
+              onChange={(e) => {
+                setUserInput(e.target.value);
+                if (isInputInvalid) {
+                  setIsInputInvalid(false);
+                }
+              }}
+              onPaste={(e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                const pastedData = e.clipboardData.getData("Text");
+                setUserInput(pastedData);
+                handleSearch(pastedData);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
+              isInvalid={isInputInvalid}
+            />
+            <InputRightElement w="4rem">
+              <Button
+                mr="0.5rem"
+                w="100%"
+                size="sm"
+                colorScheme={isInputInvalid ? "red" : "blue"}
+                onClick={() => handleSearch()}
+                isLoading={isLoading}
+              >
+                <SearchIcon />
+              </Button>
+            </InputRightElement>
+          </InputGroup>
+          {pathname.includes("/address/") && (
+            <>
+              <Button onClick={openAddressBook}>
+                <FontAwesomeIcon icon={faBook} />
+              </Button>
+              <AddressBook
+                isAddressBookOpen={isAddressBookOpen}
+                closeAddressBook={closeAddressBook}
+                showAddress={userInput}
+                setAddress={setUserInput}
+                handleSearch={handleSearch}
+              />
+            </>
+          )}
+        </HStack>
+        {resolvedAddress && (
+          <Box
+            mt="2"
+            p="2"
+            border={"1px solid"}
+            borderColor={"whiteAlpha.300"}
+            rounded="lg"
+          >
+            <HStack fontSize={"sm"}>
+              <Text>{slicedText(resolvedAddress)}</Text>
+              <CopyToClipboard textToCopy={resolvedAddress} />
+            </HStack>
+          </Box>
+        )}
         <Box mt="5">{children}</Box>
       </Center>
     </Layout>
