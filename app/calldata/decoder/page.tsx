@@ -36,11 +36,13 @@ import {
   Result,
   FunctionFragment,
 } from "ethers";
+import { createPublicClient, http, Hex } from "viem";
 import { guessAbiEncodedData } from "@openchainxyz/abi-guesser";
 import axios from "axios";
 import { SelectedOptionState } from "@/types";
 import { fetchFunctionInterface } from "@/utils";
 import networkInfo from "@/data/networkInfo";
+import { c } from "@/data/common";
 
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
@@ -99,6 +101,8 @@ const CalldataDecoder = () => {
   );
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>(networkOptions[networkIndexFromURL ?? 0]);
+
+  const [fromTxInput, setFromTxInput] = useState<string>("");
 
   useEffect(() => {
     if (calldataFromURL && addressFromURL) {
@@ -163,18 +167,23 @@ const CalldataDecoder = () => {
     }
   };
 
-  const fetchContractABI = async (): Promise<any> => {
-    if (!contractAddress) return {};
+  const fetchContractABI = async (
+    _contractAddress?: string,
+    _chainId?: number
+  ): Promise<any> => {
+    const __contractAddress = _contractAddress || contractAddress;
+    if (!__contractAddress) return {};
 
+    const __chainId =
+      _chainId ||
+      networkInfo[
+        selectedNetworkOption?.value
+          ? parseInt(selectedNetworkOption?.value.toString())
+          : 0
+      ].chainID;
     try {
       const response = await axios.get(
-        `https://anyabi.xyz/api/get-abi/${
-          networkInfo[
-            selectedNetworkOption?.value
-              ? parseInt(selectedNetworkOption?.value.toString())
-              : 0
-          ].chainID
-        }/${contractAddress}`
+        `https://anyabi.xyz/api/get-abi/${__chainId}/${__contractAddress}`
       );
       return JSON.stringify(response.data.abi);
     } catch {
@@ -284,12 +293,17 @@ const CalldataDecoder = () => {
     setIsLoading(false);
   };
 
-  const decodeWithAddress = async () => {
-    if (!calldata) return;
+  const decodeWithAddress = async (
+    _address?: string,
+    _calldata?: string,
+    _chainId?: number
+  ) => {
+    const __calldata = _calldata || calldata;
+    if (!__calldata) return;
 
     setIsLoading(true);
 
-    const fetchedABI = await fetchContractABI();
+    const fetchedABI = await fetchContractABI(_address, _chainId);
     setAbi(JSON.stringify(JSON.parse(fetchedABI), undefined, 2));
 
     toast({
@@ -299,9 +313,29 @@ const CalldataDecoder = () => {
       duration: 1000,
     });
 
-    _decodeWithABI(fetchedABI, calldata);
+    _decodeWithABI(fetchedABI, __calldata);
 
     setIsLoading(false);
+  };
+
+  const decodeFromTx = async (_fromTxInput?: string) => {
+    const __fromTxInput = _fromTxInput || fromTxInput;
+
+    let txHash: string;
+    if (/^0x([A-Fa-f0-9]{64})$/.test(__fromTxInput)) {
+      txHash = __fromTxInput;
+    } else {
+      txHash = __fromTxInput.split("/").pop()!;
+    }
+
+    const publicClient = createPublicClient({
+      chain: c.mainnet,
+      transport: http(),
+    });
+    const transaction = await publicClient.getTransaction({
+      hash: txHash as Hex,
+    });
+    decodeWithAddress(transaction.to!, transaction.input, c.mainnet.id);
   };
 
   const FromABIBody = () => {
@@ -391,6 +425,27 @@ const CalldataDecoder = () => {
     );
   };
 
+  const FromTxBody = () => {
+    return (
+      <Tr>
+        <Td>
+          <InputField
+            placeholder="etherscan link / tx hash"
+            value={fromTxInput}
+            onChange={(e) => setFromTxInput(e.target.value)}
+            onPaste={(e) => {
+              e.preventDefault();
+              setPasted(true);
+              const _fromTxInput = e.clipboardData.getData("text");
+              setFromTxInput(_fromTxInput);
+              decodeFromTx(_fromTxInput);
+            }}
+          />
+        </Td>
+      </Tr>
+    );
+  };
+
   const renderTabsBody = () => {
     switch (selectedTabIndex) {
       case 0:
@@ -399,6 +454,8 @@ const CalldataDecoder = () => {
         return <FromABIBody />;
       case 2:
         return <FromAddressBody />;
+      case 3:
+        return <FromTxBody />;
       default:
         return null;
     }
@@ -408,27 +465,29 @@ const CalldataDecoder = () => {
     <>
       <Heading color={"custom.pale"}>Calldata Decoder</Heading>
       <TabsSelector
-        tabs={["No ABI", "from ABI", "from Address"]}
+        tabs={["No ABI", "from ABI", "from Address", "from Tx"]}
         selectedTabIndex={selectedTabIndex}
         setSelectedTabIndex={setSelectedTabIndex}
       />
       <Table mt={"1rem"} variant={"unstyled"}>
         <Tbody>
-          <Tr>
-            <Label>Calldata</Label>
-            <Td>
-              <InputField
-                placeholder="calldata"
-                value={calldata}
-                onChange={(e) => setCalldata(e.target.value)}
-                onPaste={(e) => {
-                  e.preventDefault();
-                  setPasted(true);
-                  setCalldata(e.clipboardData.getData("text"));
-                }}
-              />
-            </Td>
-          </Tr>
+          {selectedTabIndex !== 3 && (
+            <Tr>
+              <Label>Calldata</Label>
+              <Td>
+                <InputField
+                  placeholder="calldata"
+                  value={calldata}
+                  onChange={(e) => setCalldata(e.target.value)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    setPasted(true);
+                    setCalldata(e.clipboardData.getData("text"));
+                  }}
+                />
+              </Td>
+            </Tr>
+          )}
           {renderTabsBody()}
           <Tr>
             <Td colSpan={2}>
@@ -443,6 +502,8 @@ const CalldataDecoder = () => {
                           return decodeWithABI();
                         case 2:
                           return decodeWithAddress();
+                        case 3:
+                          return decodeFromTx();
                       }
                     }}
                     isLoading={isLoading}
