@@ -36,13 +36,13 @@ import {
   Result,
   FunctionFragment,
 } from "ethers";
-import { createPublicClient, http, Hex } from "viem";
+import { createPublicClient, http, Hex, Chain } from "viem";
 import { guessAbiEncodedData } from "@openchainxyz/abi-guesser";
 import axios from "axios";
 import { SelectedOptionState } from "@/types";
 import { fetchFunctionInterface } from "@/utils";
 import networkInfo from "@/data/networkInfo";
-import { c } from "@/data/common";
+import { c, chainIdToChain } from "@/data/common";
 
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
@@ -51,6 +51,7 @@ import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import JsonTextArea from "@/components/JsonTextArea";
 import { DarkSelect } from "@/components/DarkSelect";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
 
 const networkOptions: { label: string; value: number }[] = networkInfo.map(
   (n, i) => ({
@@ -67,6 +68,7 @@ const CalldataDecoder = () => {
   const calldataFromURL = searchParams.get("calldata");
   const addressFromURL = searchParams.get("address");
   const chainIdFromURL = searchParams.get("chainId");
+  const txFromURL = searchParams.get("tx");
 
   let networkIndexFromURL;
   if (chainIdFromURL) {
@@ -102,7 +104,11 @@ const CalldataDecoder = () => {
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>(networkOptions[networkIndexFromURL ?? 0]);
 
-  const [fromTxInput, setFromTxInput] = useState<string>("");
+  const [fromTxInput, setFromTxInput] = useQueryState<string>(
+    "tx",
+    parseAsString.withDefault("")
+  );
+  const [txShowSelectNetwork, setTxShowSelectNetwork] = useState(false);
 
   useEffect(() => {
     if (calldataFromURL && addressFromURL) {
@@ -110,18 +116,39 @@ const CalldataDecoder = () => {
       decodeWithAddress();
     } else if (calldataFromURL) {
       decodeWithSelector();
+    } else if (txFromURL) {
+      setSelectedTabIndex(3);
+      decodeFromTx(
+        txFromURL,
+        chainIdFromURL === null ? undefined : parseInt(chainIdFromURL)
+      );
     }
   }, []);
+
+  useEffect(() => {
+    if (selectedTabIndex === 3) {
+      setCalldata(null);
+      setContractAddress(null);
+    }
+  }, [selectedTabIndex]);
 
   useEffect(() => {
     if (selectedTabIndex === 2) {
       setChainId(
         networkInfo[parseInt(selectedNetworkOption!.value.toString())].chainID
       );
+    } else if (selectedTabIndex === 3) {
+      if (txShowSelectNetwork) {
+        setChainId(
+          networkInfo[parseInt(selectedNetworkOption!.value.toString())].chainID
+        );
+      } else {
+        setChainId(null);
+      }
     } else if (!abi) {
       setChainId(null);
     }
-  }, [selectedNetworkOption, selectedTabIndex]);
+  }, [txShowSelectNetwork, selectedNetworkOption, selectedTabIndex]);
 
   // not using useEffect because else it loads the page with selectedTabIndex = 0 as default, and removes the address & chainId
   useUpdateEffect(() => {
@@ -137,20 +164,25 @@ const CalldataDecoder = () => {
     }
   }, [calldata]);
 
-  const _getAllPossibleDecoded = (functionsArr: string[]) => {
-    let decodedStatus = false;
+  const _getAllPossibleDecoded = (
+    functionsArr: string[],
+    _calldata?: string
+  ) => {
+    const __calldata = _calldata || calldata;
+
+    let decodedSuccess = false;
     for (var i = 0; i < functionsArr.length; i++) {
       const fn = functionsArr[i];
       const _abi = [`function ${fn}`];
 
       try {
-        decodedStatus = _decodeWithABI(_abi, calldata);
+        decodedSuccess = _decodeWithABI(_abi, __calldata);
       } catch {
         continue;
       }
     }
 
-    if (decodedStatus) {
+    if (decodedSuccess) {
       toast({
         title: "Successfully Decoded",
         status: "success",
@@ -197,17 +229,19 @@ const CalldataDecoder = () => {
     }
   };
 
-  const decodeWithSelector = async () => {
-    if (!calldata) return;
+  const decodeWithSelector = async (_calldata?: string) => {
+    const __calldata = _calldata || calldata;
+
+    if (!__calldata) return;
     setIsLoading(true);
 
-    const selector = calldata.slice(0, 10);
+    const selector = __calldata.slice(0, 10);
     try {
       const results = await fetchFunctionInterface(selector);
 
       if (results.length > 0) {
         // can have multiple entries with the same selector
-        _getAllPossibleDecoded(results);
+        _getAllPossibleDecoded(results, _calldata);
       } else {
         toast({
           title: "Can't fetch function interface",
@@ -221,11 +255,11 @@ const CalldataDecoder = () => {
     } catch {
       try {
         // try decoding the `abi.encode` custom bytes
-        const paramTypes: ParamType[] = guessAbiEncodedData(calldata)!;
+        const paramTypes: ParamType[] = guessAbiEncodedData(__calldata)!;
         console.log({ paramTypes });
 
         const abiCoder = AbiCoder.defaultAbiCoder();
-        const decoded = abiCoder.decode(paramTypes, calldata);
+        const decoded = abiCoder.decode(paramTypes, __calldata);
 
         console.log({ decoded });
 
@@ -270,21 +304,21 @@ const CalldataDecoder = () => {
   };
 
   const _decodeWithABI = (_abi: any, _calldata?: string) => {
-    let decodedStatus = false;
+    let decodedSuccess = false;
 
     const iface = new Interface(_abi);
-    if (!_calldata) return decodedStatus;
+    if (!_calldata) return decodedSuccess;
 
     let res = iface.parseTransaction({ data: _calldata });
     if (res === null) {
-      return decodedStatus;
+      return decodedSuccess;
     }
 
     console.log(res);
     setFnDescription(res);
 
-    decodedStatus = true;
-    return decodedStatus;
+    decodedSuccess = true;
+    return decodedSuccess;
   };
 
   const decodeWithABI = async () => {
@@ -303,55 +337,124 @@ const CalldataDecoder = () => {
 
     setIsLoading(true);
 
-    const fetchedABI = await fetchContractABI(_address, _chainId);
-    setAbi(JSON.stringify(JSON.parse(fetchedABI), undefined, 2));
+    try {
+      const fetchedABI = await fetchContractABI(_address, _chainId);
+      setAbi(JSON.stringify(JSON.parse(fetchedABI), undefined, 2));
 
-    toast({
-      title: "ABI Fetched from Address",
-      status: "success",
-      isClosable: true,
-      duration: 1000,
-    });
+      toast({
+        title: "ABI Fetched from Address",
+        status: "success",
+        isClosable: true,
+        duration: 1000,
+      });
 
-    _decodeWithABI(fetchedABI, __calldata);
+      const decodeSuccess = _decodeWithABI(fetchedABI, __calldata);
+      if (!decodeSuccess) {
+        decodeWithSelector(__calldata);
+      }
 
-    setIsLoading(false);
+      setIsLoading(false);
+    } catch {
+      decodeWithSelector(__calldata);
+    }
   };
 
-  const decodeFromTx = async (_fromTxInput?: string) => {
+  const decodeFromTx = async (_fromTxInput?: string, _chainId?: number) => {
+    setIsLoading(true);
+
     const __fromTxInput = _fromTxInput || fromTxInput;
 
-    let txHash: string;
-    if (/^0x([A-Fa-f0-9]{64})$/.test(__fromTxInput)) {
-      txHash = __fromTxInput;
-    } else {
-      txHash = __fromTxInput.split("/").pop()!;
-    }
+    let chain: Chain =
+      chainIdToChain[
+        _chainId ??
+          networkInfo[parseInt(selectedNetworkOption!.value.toString())].chainID
+      ];
+    try {
+      let txHash: string;
+      if (/^0x([A-Fa-f0-9]{64})$/.test(__fromTxInput)) {
+        txHash = __fromTxInput;
 
-    const publicClient = createPublicClient({
-      chain: c.mainnet,
-      transport: http(),
-    });
-    const transaction = await publicClient.getTransaction({
-      hash: txHash as Hex,
-    });
-    decodeWithAddress(transaction.to!, transaction.input, c.mainnet.id);
+        if (!txShowSelectNetwork) {
+          // if tx hash is provided, but chainId is not, then show select network
+          setTxShowSelectNetwork(true);
+
+          // if chainId not provided (from URL)
+          if (!_chainId) {
+            setIsLoading(false);
+            return;
+          }
+        }
+      } else {
+        txHash = __fromTxInput.split("/").pop()!;
+
+        const chainKey = Object.keys(c).filter((chainKey) => {
+          const chain = c[chainKey as keyof typeof c] as Chain;
+
+          // using "null" instead of "" because __fromTxInput.split("/") contains ""
+          let explorerDomainDefault = "null";
+          let explorerDomainEtherscan = "null";
+          if (chain.blockExplorers) {
+            explorerDomainDefault = chain.blockExplorers.default.url
+              .split("//")
+              .pop()!;
+
+            if (chain.blockExplorers.etherscan) {
+              explorerDomainEtherscan = chain.blockExplorers.etherscan.url
+                .split("//")
+                .pop()!;
+            }
+          }
+
+          return (
+            __fromTxInput
+              .split("/")
+              .filter(
+                (urlPart) =>
+                  urlPart.toLowerCase() ===
+                    explorerDomainDefault.toLowerCase() ||
+                  urlPart.toLowerCase() ===
+                    explorerDomainEtherscan.toLowerCase()
+              ).length > 0
+          );
+        })[0];
+        chain = c[chainKey as keyof typeof c];
+      }
+
+      const publicClient = createPublicClient({
+        chain,
+        transport: http(),
+      });
+      const transaction = await publicClient.getTransaction({
+        hash: txHash as Hex,
+      });
+      decodeWithAddress(transaction.to!, transaction.input, chain.id);
+    } catch {
+      setIsLoading(false);
+      toast({
+        title: "Can't fetch transaction",
+        status: "error",
+        isClosable: true,
+        duration: 4000,
+      });
+    }
   };
 
   const FromABIBody = () => {
     return (
       <Tr>
         <Td colSpan={2}>
-          <Center maxW={"50rem"}>
-            <FormControl>
-              <FormLabel>Input ABI</FormLabel>
-              <JsonTextArea
-                value={abi}
-                setValue={setAbi}
-                placeholder="JSON ABI"
-                ariaLabel="json abi"
-              />
-            </FormControl>
+          <Center>
+            <Center w={"50rem"}>
+              <FormControl>
+                <FormLabel>Input ABI</FormLabel>
+                <JsonTextArea
+                  value={abi}
+                  setValue={setAbi}
+                  placeholder="JSON ABI"
+                  ariaLabel="json abi"
+                />
+              </FormControl>
+            </Center>
           </Center>
         </Td>
       </Tr>
@@ -389,34 +492,40 @@ const CalldataDecoder = () => {
         {abi && (
           <Tr>
             <Td colSpan={2}>
-              <Center maxW={"50rem"}>
-                <FormControl>
-                  <FormLabel>
-                    <HStack
-                      w="100%"
-                      p={2}
-                      bg={"blackAlpha.400"}
-                      cursor={"pointer"}
-                      onClick={onToggle}
-                      rounded={"lg"}
-                    >
-                      <Box>ABI</Box>
-                      <Spacer />
-                      <Text fontSize={"xl"} fontWeight={"bold"}>
-                        {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                      </Text>
+              <Center>
+                <Center w={"40rem"}>
+                  <FormControl>
+                    <HStack mb={isOpen ? "0.5rem" : ""}>
+                      <HStack
+                        p={2}
+                        w="37rem"
+                        bg={"blackAlpha.400"}
+                        cursor={"pointer"}
+                        onClick={onToggle}
+                        rounded={"lg"}
+                      >
+                        <Box>ABI</Box>
+                        <Spacer />
+                        <Text fontSize={"xl"} fontWeight={"bold"}>
+                          {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                        </Text>
+                      </HStack>
+
+                      <Center>
+                        <CopyToClipboard textToCopy={abi} />
+                      </Center>
                     </HStack>
-                  </FormLabel>
-                  <Collapse in={isOpen} animateOpacity>
-                    <JsonTextArea
-                      value={abi}
-                      setValue={setAbi}
-                      placeholder="JSON ABI"
-                      ariaLabel="json abi"
-                      readOnly
-                    />
-                  </Collapse>
-                </FormControl>
+                    <Collapse in={isOpen} animateOpacity>
+                      <JsonTextArea
+                        value={abi}
+                        setValue={setAbi}
+                        placeholder="JSON ABI"
+                        ariaLabel="json abi"
+                        readOnly
+                      />
+                    </Collapse>
+                  </FormControl>
+                </Center>
               </Center>
             </Td>
           </Tr>
@@ -427,22 +536,44 @@ const CalldataDecoder = () => {
 
   const FromTxBody = () => {
     return (
-      <Tr>
-        <Td>
-          <InputField
-            placeholder="etherscan link / tx hash"
-            value={fromTxInput}
-            onChange={(e) => setFromTxInput(e.target.value)}
-            onPaste={(e) => {
-              e.preventDefault();
-              setPasted(true);
-              const _fromTxInput = e.clipboardData.getData("text");
-              setFromTxInput(_fromTxInput);
-              decodeFromTx(_fromTxInput);
-            }}
-          />
-        </Td>
-      </Tr>
+      <>
+        <Tr>
+          <Td colSpan={2}>
+            <Center>
+              <Box>
+                <InputField
+                  w={"40rem"}
+                  placeholder="etherscan link / tx hash"
+                  value={fromTxInput}
+                  onChange={(e) => setFromTxInput(e.target.value)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    setPasted(true);
+                    const _fromTxInput = e.clipboardData.getData("text");
+                    setFromTxInput(_fromTxInput);
+                    decodeFromTx(_fromTxInput);
+                  }}
+                />
+              </Box>
+            </Center>
+          </Td>
+        </Tr>
+        {txShowSelectNetwork && (
+          <Tr>
+            <Label>Chain</Label>
+            <Td>
+              <DarkSelect
+                boxProps={{
+                  w: "100%",
+                }}
+                selectedOption={selectedNetworkOption}
+                setSelectedOption={setSelectedNetworkOption}
+                options={networkOptions}
+              />
+            </Td>
+          </Tr>
+        )}
+      </>
     );
   };
 
