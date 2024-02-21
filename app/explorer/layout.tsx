@@ -141,6 +141,7 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
         <HStack mt="1rem">
           <InputGroup w="30rem">
             <Input
+              autoFocus
               placeholder="address / ens / transaction"
               value={userInput}
               onChange={(e) => {

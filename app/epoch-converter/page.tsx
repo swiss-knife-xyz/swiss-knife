@@ -95,6 +95,7 @@ const Epoch = () => {
       </HStack>
       <HStack mt="8">
         <Input
+          autoFocus
           type="number"
           w="15rem"
           placeholder="Timestamp in seconds"

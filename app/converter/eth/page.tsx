@@ -56,6 +56,7 @@ const ETHUnitConverter = () => {
             <Label>Wei</Label>
             <Td>
               <InputField
+                autoFocus
                 type="number"
                 placeholder="Wei"
                 value={wei}

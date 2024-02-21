@@ -607,6 +607,7 @@ const CalldataDecoder = () => {
               <Label>Calldata</Label>
               <Td>
                 <InputField
+                  autoFocus
                   placeholder="calldata"
                   value={calldata}
                   onChange={(e) => setCalldata(e.target.value)}
