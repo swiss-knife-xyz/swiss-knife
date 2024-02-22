@@ -19,6 +19,7 @@ const Keccak256 = () => {
             <Label>Input</Label>
             <Td>
               <InputField
+                autoFocus
                 placeholder="string or hex (starting with 0x)"
                 value={userInput}
                 onChange={(e) => {

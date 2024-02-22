@@ -281,6 +281,7 @@ const StorageSlots = () => {
           <FormControl mt={16}>
             <FormLabel>Contract Address</FormLabel>
             <Input
+              autoFocus
               autoComplete="off"
               placeholder="0x00..."
               value={address}

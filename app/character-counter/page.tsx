@@ -40,6 +40,7 @@ const CharacterCounter = () => {
               </HStack>
             </FormLabel>
             <Textarea
+              autoFocus
               placeholder=""
               id="input"
               value={input}

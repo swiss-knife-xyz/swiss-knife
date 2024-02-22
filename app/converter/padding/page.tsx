@@ -30,6 +30,7 @@ const Padding = () => {
             <Label>Input</Label>
             <Td>
               <InputField
+                autoFocus
                 placeholder="hex value"
                 value={userInput}
                 onChange={(e) => {

@@ -98,6 +98,7 @@ const Hexadecimal = () => {
             <Label>Hexadecimal</Label>
             <Td>
               <InputField
+                autoFocus
                 placeholder="Hexadecimal"
                 value={hexadecimal}
                 onChange={(e) =>
