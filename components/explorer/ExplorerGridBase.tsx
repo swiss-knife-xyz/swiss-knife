@@ -1,3 +1,4 @@
+import { useSearchParams } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -51,16 +52,27 @@ export const ExplorerGridBase = ({
   explorerType,
   addressOrTx,
 }: Params) => {
+  const searchParams = useSearchParams();
+
   const [searchExplorer, setSearchExplorer] = useState<string>();
   const [filteredExplorerNames, setFilteredExplorerNames] = useState<string[]>(
     []
   );
   const [chainIdsSelected, setChainIdsSelected] = useState<number[]>([]);
 
+  const forContractsFromURL = searchParams.get("forContracts");
   const [forContracts, setForContracts] = useQueryState<boolean>(
     "forContracts",
-    parseAsBoolean.withDefault(false)
+    parseAsBoolean.withDefault(
+      forContractsFromURL ? forContractsFromURL === "true" : false
+    )
   );
+
+  useEffect(() => {
+    setForContracts(
+      forContractsFromURL ? forContractsFromURL === "true" : false
+    );
+  }, [forContractsFromURL, setForContracts]);
 
   useEffect(() => {
     setFilteredExplorerNames(
