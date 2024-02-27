@@ -17,8 +17,10 @@ import {
   PopoverArrow,
   PopoverCloseButton,
   PopoverBody,
+  Tooltip,
 } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
+import { parseAsBoolean, useQueryState } from "next-usequerystate";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilter } from "@fortawesome/free-solid-svg-icons";
 import { ExplorerGridItem } from "./ExplorerGridItem";
@@ -55,6 +57,11 @@ export const ExplorerGridBase = ({
   );
   const [chainIdsSelected, setChainIdsSelected] = useState<number[]>([]);
 
+  const [forContracts, setForContracts] = useQueryState<boolean>(
+    "forContracts",
+    parseAsBoolean.withDefault(false)
+  );
+
   useEffect(() => {
     setFilteredExplorerNames(
       Object.keys(explorersData)
@@ -76,8 +83,20 @@ export const ExplorerGridBase = ({
             )
           );
         })
+        .filter((explorerName) => {
+          if (explorerType === ExplorerType.ADDRESS && forContracts) {
+            return explorersData[explorerName].forContracts;
+          }
+          return true;
+        })
     );
-  }, [searchExplorer, chainIdsSelected, explorersData]);
+  }, [
+    searchExplorer,
+    chainIdsSelected,
+    forContracts,
+    explorerType,
+    explorersData,
+  ]);
 
   return (
     <Box>
@@ -173,6 +192,20 @@ export const ExplorerGridBase = ({
             </PopoverBody>
           </PopoverContent>
         </Popover>
+        {explorerType === ExplorerType.ADDRESS && (
+          <Tooltip label="Filter explorers only for contracts">
+            <Button
+              ml="0.5rem"
+              size={"xs"}
+              p={"1.2rem"}
+              variant={forContracts ? "solid" : "outline"}
+              bg={forContracts ? "whiteAlpha.500" : ""}
+              onClick={() => setForContracts(!forContracts)}
+            >
+              🤖
+            </Button>
+          </Tooltip>
+        )}
       </Center>
       <Box
         mt="1rem"
