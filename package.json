@@ -23,6 +23,8 @@
     "@types/node": "20.2.5",
     "@types/react": "18.2.7",
     "@types/react-dom": "18.2.4",
+    "@upstash/ratelimit": "^1.0.1",
+    "@upstash/redis": "^1.28.4",
     "axios": "^1.6.2",
     "big-integer": "^1.6.51",
     "blo": "^1.1.1",
@@ -39,7 +41,8 @@
     "react-simple-code-editor": "^0.11.0",
     "typescript": "5.0.4",
     "viem": "^1.15.3",
-    "wagmi": "^1.4.3"
+    "wagmi": "^1.4.3",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "pino-pretty": "^10.2.3"
