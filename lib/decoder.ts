@@ -184,6 +184,7 @@ function decodeAllPossibilities({
 }) {
   const results: TransactionDescription[] = [];
   for (const signature of functionSignatures) {
+    console.log(`Decoding calldata with signature ${signature}`);
     try {
       const parsedTransaction = decodeWithABI({
         abi: signature,
@@ -193,9 +194,12 @@ function decodeAllPossibilities({
         results.push(parsedTransaction);
       }
     } catch (error) {
-      console.error(error);
+      console.error(
+        `Failed to decode calldata with signature ${signature}, skipping`
+      );
     }
   }
+  console.log(`Decoded calldata with ${results.length} signatures`);
   return results;
 }
 
@@ -206,7 +210,8 @@ export function decodeWithABI({
   abi: InterfaceAbi;
   calldata: string;
 }) {
-  const abiInterface = new Interface(abi);
+  const functionSignature = [`function ${abi}`];
+  const abiInterface = new Interface(functionSignature);
   const parsedTransaction = abiInterface.parseTransaction({ data: calldata });
   return parsedTransaction;
 }
