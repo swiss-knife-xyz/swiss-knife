@@ -48,15 +48,15 @@ export const fetchFunctionInterfaceOpenApiSchema = z.object({
           name: z.string(),
           filtered: z.boolean(),
         })
-      )
+      ).optional()
     ),
-    evnent: z.record(
+    event: z.record(
       z.array(
         z.object({
           name: z.string(),
           filtered: z.boolean(),
         })
-      )
+      ).optional()
     ),
   }),
 });
