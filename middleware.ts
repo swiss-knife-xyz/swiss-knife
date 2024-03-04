@@ -1,7 +1,5 @@
 import { ratelimit } from "@/lib/rateLimit";
 import getIP from "@/utils";
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import {
   type NextFetchEvent,
   type NextRequest,
@@ -29,5 +27,5 @@ export default async function middleware(
 }
 
 export const config = {
-  matcher: "/api/*",
+  matcher: "\/api\/(.*)",
 };
