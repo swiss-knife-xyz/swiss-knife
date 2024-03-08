@@ -73,8 +73,8 @@ export async function decodeWithSelector({ calldata }: { calldata: string }) {
     }
     const abiCoder = AbiCoder.defaultAbiCoder();
     const decoded = abiCoder.decode(paramTypes, calldata);
-    const reuslt = {
-      name: "Unknown",
+    const result = {
+      name: "",
       args: decoded,
       signature: "abi.encode",
       selector: selector,
@@ -87,7 +87,7 @@ export async function decodeWithSelector({ calldata }: { calldata: string }) {
         stateMutability: "nonpayable",
       }),
     } satisfies TransactionDescription;
-    return [reuslt];
+    return [result];
   } catch (error) {
     console.error(`Failed to guess ABI encoded data for calldata ${calldata}`);
     return null;
