@@ -12,12 +12,15 @@ export const POST = async (request: Request) => {
     const requestBody = await request.json();
     body = calldataDecoderRequestSchema.parse(requestBody);
   } catch (error) {
-    return Response.json(
-      {
+    return new Response(
+      JSON.stringify({
         error: "Invalid request body",
-      },
+      }),
       {
         status: 400,
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
     );
   }
@@ -32,29 +35,42 @@ export const POST = async (request: Request) => {
       chainId: body.chainId!,
     });
     if (!decoded) {
-      return Response.json(
-        {
+      return new Response(
+        JSON.stringify({
           error: "Failed to decode calldata with ABI for contract",
-        },
+        }),
         {
           status: 500,
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
     }
     // we need to use viem's stringify since the result includes a bigint and it is not serializable
-    return Response.json(stringify(decoded));
+    return new Response(JSON.stringify(decoded), {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
   const decoded = await decodeWithSelector({ calldata: body.calldata });
   if (!decoded) {
-    return Response.json(
-      {
+    return new Response(
+      JSON.stringify({
         error: "Failed to decode calldata with selector",
-      },
+      }),
       {
         status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
     );
   }
-  // we need to use viem's stringify since the result includes a bigint and it is not serializable
-  return Response.json(stringify(decoded));
+  return new Response(stringify(decoded), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 };

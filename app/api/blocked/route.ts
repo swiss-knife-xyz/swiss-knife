@@ -1,10 +1,13 @@
 function requestHandler(request: Request) {
-  const response = Response.json(
-    {
+  const response = new Response(
+    JSON.stringify({
       error: "Rate limited",
-    },
+    }),
     {
       status: 429,
+      headers: {
+        "Content-Type": "application/json",
+      },
     }
   );
   return response;
