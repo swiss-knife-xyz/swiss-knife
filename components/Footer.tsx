@@ -22,9 +22,6 @@ export const Footer = () => {
       borderTop={"solid"}
       borderTopWidth={1}
       borderColor={"custom.greenDarker"}
-      position="absolute"
-      bottom={0}
-      width="100%"
     >
       <Container as={Stack} maxW={"8xl"} py={10}>
         <VStack spacing={5}>
