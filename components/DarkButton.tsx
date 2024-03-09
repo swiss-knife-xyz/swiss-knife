@@ -10,7 +10,7 @@ export const DarkButton = ({ ...rest }: DarkButtonProps) => (
       bg: "blackAlpha.100",
     }}
     border="1px solid"
-    borderColor={"whiteAlpha.500"}
+    borderColor={"whiteAlpha.200"}
     {...rest}
   >
     {rest.children}

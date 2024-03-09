@@ -444,7 +444,7 @@ const CalldataDecoder = () => {
       <Tr>
         <Td colSpan={2}>
           <Center>
-            <Center w={"50rem"}>
+            <Center w={"20rem"}>
               <FormControl>
                 <FormLabel>Input ABI</FormLabel>
                 <JsonTextArea
@@ -540,9 +540,10 @@ const CalldataDecoder = () => {
         <Tr>
           <Td colSpan={2}>
             <Center>
-              <Box>
+              <Box w="100%">
                 <InputField
-                  w={"40rem"}
+                  w="100%"
+                  maxW={"30rem"}
                   placeholder="etherscan link / tx hash"
                   value={fromTxInput}
                   onChange={(e) => setFromTxInput(e.target.value)}
