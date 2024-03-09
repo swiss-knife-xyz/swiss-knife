@@ -36,7 +36,7 @@ import {
   Result,
   FunctionFragment,
 } from "ethers";
-import { createPublicClient, http, Hex, Chain } from "viem";
+import { createPublicClient, http, Hex, Chain, stringify } from "viem";
 import { guessAbiEncodedData } from "@openchainxyz/abi-guesser";
 import axios from "axios";
 import { SelectedOptionState } from "@/types";
@@ -314,7 +314,7 @@ const CalldataDecoder = () => {
       return decodedSuccess;
     }
 
-    console.log(res);
+    console.log({ fnDescription: res });
     setFnDescription(res);
 
     decodedSuccess = true;
@@ -651,12 +651,26 @@ const CalldataDecoder = () => {
       {fnDescription && (
         <Box minW={"80%"}>
           {fnDescription.name ? (
-            <Box>
-              <Box fontSize={"xs"} color={"whiteAlpha.600"}>
-                function
+            <HStack>
+              <Box>
+                <Box fontSize={"xs"} color={"whiteAlpha.600"}>
+                  function
+                </Box>
+                <Box>{fnDescription.name}</Box>
               </Box>
-              <Box>{fnDescription.name}</Box>
-            </Box>
+              <Spacer />
+              <CopyToClipboard
+                textToCopy={JSON.stringify(
+                  {
+                    function: fnDescription.signature,
+                    params: JSON.parse(stringify(fnDescription.args)),
+                  },
+                  undefined,
+                  2
+                )}
+                labelText={"Copy params"}
+              />
+            </HStack>
           ) : null}
           <Stack
             mt={2}
