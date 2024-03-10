@@ -289,14 +289,53 @@ const CalldataDecoder = () => {
           });
         }
       } catch (e) {
-        console.error(e);
+        try {
+          // try decoding just the params of the calldata
+          const encodedParams = "0x" + __calldata.slice(10);
+          const paramTypes: ParamType[] = guessAbiEncodedData(encodedParams)!;
+          console.log({ paramTypes });
 
-        toast({
-          title: "Can't Decode Calldata",
-          status: "error",
-          isClosable: true,
-          duration: 1000,
-        });
+          const abiCoder = AbiCoder.defaultAbiCoder();
+          const decoded = abiCoder.decode(paramTypes, encodedParams);
+
+          console.log({ decoded });
+
+          const _fnDescription: TransactionDescription = {
+            name: "",
+            args: decoded,
+            signature: "abi.encode",
+            selector: "",
+            value: BigInt(0),
+            fragment: FunctionFragment.from({
+              inputs: paramTypes,
+              name: "test",
+              outputs: [],
+              type: "function",
+              stateMutability: "nonpayable",
+            }),
+          };
+
+          setFnDescription(_fnDescription);
+
+          if (!decoded || decoded.length === 0) {
+            toast({
+              title: "Can't Decode Calldata",
+              status: "error",
+              isClosable: true,
+              duration: 1000,
+            });
+          }
+        } catch (ee) {
+          console.error(e);
+          console.error(ee);
+
+          toast({
+            title: "Can't Decode Calldata",
+            status: "error",
+            isClosable: true,
+            duration: 1000,
+          });
+        }
       }
 
       setIsLoading(false);
