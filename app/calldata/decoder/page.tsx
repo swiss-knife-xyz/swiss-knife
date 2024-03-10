@@ -493,12 +493,13 @@ const CalldataDecoder = () => {
           <Tr>
             <Td colSpan={2}>
               <Center>
-                <Center w={"40rem"}>
+                <Center maxW={"40rem"}>
                   <FormControl>
                     <HStack mb={isOpen ? "0.5rem" : ""}>
                       <HStack
                         p={2}
-                        w="37rem"
+                        minW="20rem"
+                        maxW="37rem"
                         bg={"blackAlpha.400"}
                         cursor={"pointer"}
                         onClick={onToggle}
@@ -540,10 +541,8 @@ const CalldataDecoder = () => {
         <Tr>
           <Td colSpan={2}>
             <Center>
-              <Box w="100%">
+              <Box w="100%" maxW="30rem">
                 <InputField
-                  w="100%"
-                  maxW={"30rem"}
                   placeholder="etherscan link / tx hash"
                   value={fromTxInput}
                   onChange={(e) => setFromTxInput(e.target.value)}
