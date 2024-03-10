@@ -37,9 +37,12 @@
     "next": "14.0.3",
     "next-usequerystate": "^1.13.0",
     "react": "18.2.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "18.2.0",
     "react-simple-code-editor": "^0.11.0",
     "typescript": "5.0.4",
+    "usehooks-ts": "^3.0.1",
     "viem": "^1.15.3",
     "wagmi": "^1.4.3",
     "zod": "^3.22.4"

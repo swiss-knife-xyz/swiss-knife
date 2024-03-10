@@ -1,5 +1,5 @@
 import { useSearchParams } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Button,
@@ -19,14 +19,19 @@ import {
   PopoverCloseButton,
   PopoverBody,
   Tooltip,
+  Divider,
 } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
 import { parseAsBoolean, useQueryState } from "next-usequerystate";
+import { useLocalStorage } from "usehooks-ts";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilter } from "@fortawesome/free-solid-svg-icons";
-import { ExplorerGridItem } from "./ExplorerGridItem";
+import { ExplorerGridItem, FavoriteExplorerGridItem } from "./ExplorerGridItem";
 import { ExplorersData, ExplorerType } from "@/types";
 import { c, chainIdToChain, chainIdToImage } from "@/data/common";
+import { swap } from "@/utils";
 
 interface Params {
   explorersData: ExplorersData;
@@ -60,12 +65,39 @@ export const ExplorerGridBase = ({
   );
   const [chainIdsSelected, setChainIdsSelected] = useState<number[]>([]);
 
+  const [favoriteExplorerNames, setFavoriteExplorerNames] = useLocalStorage<
+    string[]
+  >(
+    `${
+      explorerType === ExplorerType.ADDRESS ? "address" : "tx"
+    }-favorite-explorers`,
+    []
+  );
+
   const forContractsFromURL = searchParams.get("forContracts");
   const [forContracts, setForContracts] = useQueryState<boolean>(
     "forContracts",
     parseAsBoolean.withDefault(
       forContractsFromURL ? forContractsFromURL === "true" : false
     )
+  );
+
+  const toggleFavorite = (explorerName: string) => {
+    if (favoriteExplorerNames.includes(explorerName)) {
+      setFavoriteExplorerNames(
+        favoriteExplorerNames.filter((name) => name !== explorerName)
+      );
+    } else {
+      setFavoriteExplorerNames([...favoriteExplorerNames, explorerName]);
+    }
+  };
+
+  const swapFavExplorers = useCallback(
+    (i: number, j: number) => {
+      // swapping explorer i_th with j_th
+      setFavoriteExplorerNames((prev) => swap(prev, i, j));
+    },
+    [setFavoriteExplorerNames]
   );
 
   useEffect(() => {
@@ -241,16 +273,45 @@ export const ExplorerGridBase = ({
           },
         }}
       >
+        {favoriteExplorerNames.length > 0 && (
+          <>
+            <Box>
+              <Text fontSize="sm" fontWeight="bold">
+                Favorites:
+              </Text>
+              <DndProvider backend={HTML5Backend}>
+                <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
+                  {favoriteExplorerNames.map((explorerName, i) => (
+                    <FavoriteExplorerGridItem
+                      key={i}
+                      explorerName={explorerName}
+                      explorerData={explorersData[explorerName]}
+                      explorerType={explorerType}
+                      addressOrTx={addressOrTx}
+                      toggleFavorite={toggleFavorite}
+                      index={i}
+                      handleDropHover={swapFavExplorers}
+                    />
+                  ))}
+                </SimpleGrid>
+              </DndProvider>
+            </Box>
+            <Divider my="1rem" />
+          </>
+        )}
         <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
-          {filteredExplorerNames.map((explorerName, i) => (
-            <ExplorerGridItem
-              key={i}
-              explorerName={explorerName}
-              explorerData={explorersData[explorerName]}
-              explorerType={explorerType}
-              addressOrTx={addressOrTx}
-            />
-          ))}
+          {filteredExplorerNames
+            .filter((name) => !favoriteExplorerNames.includes(name))
+            .map((explorerName, i) => (
+              <ExplorerGridItem
+                key={i}
+                explorerName={explorerName}
+                explorerData={explorersData[explorerName]}
+                explorerType={explorerType}
+                addressOrTx={addressOrTx}
+                toggleFavorite={toggleFavorite}
+              />
+            ))}
         </SimpleGrid>
       </Box>
     </Box>

@@ -6,31 +6,37 @@ import {
   Image,
   Text,
   useDisclosure,
-  Flex,
   Spacer,
-  VStack,
   HStack,
   AvatarGroup,
   Avatar,
+  Button,
 } from "@chakra-ui/react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faHeart } from "@fortawesome/free-solid-svg-icons";
 
 import { ExplorerData, ExplorerType } from "@/types";
 import { checkDifferentUrlsExist, generateUrl } from "@/utils";
 import { ExplorerChainModal } from "./ExplorerChainModal";
 import { chainIdToChain, chainIdToImage } from "@/data/common";
+import { useFavExplorerDragNDrop } from "@/hooks/useFavExplorerDragNDrop";
 
 interface Params {
   explorerName: string;
   explorerData: ExplorerData;
   explorerType: ExplorerType;
   addressOrTx: string;
+  toggleFavorite: (explorerName: string) => void;
+  isFavorite?: boolean;
 }
 
-export const ExplorerGridItem = ({
+const CommonExplorerGridItem = ({
   explorerName,
   explorerData,
   explorerType,
   addressOrTx,
+  toggleFavorite,
+  isFavorite,
 }: Params) => {
   const {
     isOpen: isModalOpen,
@@ -55,33 +61,38 @@ export const ExplorerGridItem = ({
     `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=${baseUrlForImage}`;
 
   return (
-    <GridItem
-      border="2px solid"
-      borderColor={"gray.500"}
-      bg={"white"}
-      color={"black"}
-      _hover={{
-        cursor: "pointer",
-        bgColor: "whiteAlpha.300",
-        color: "white",
-        borderColor: "gray.400",
-      }}
-      rounded="lg"
-    >
-      {explorerData.forContracts ? (
-        <HStack>
-          <Spacer />
-          <Text>🤖</Text>
-        </HStack>
-      ) : null}
+    <>
+      <HStack>
+        <Button
+          size="xs"
+          color={isFavorite ? "orange.500" : "white"}
+          bg={isFavorite ? "orange.100" : "orange.200"}
+          roundedTopRight={0}
+          roundedBottomLeft={0}
+          _hover={{
+            color: "orange.300",
+            bg: "orange.100",
+          }}
+          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          onClick={() => toggleFavorite(explorerName)}
+        >
+          <FontAwesomeIcon icon={faHeart} />
+        </Button>
+        {explorerData.forContracts ? (
+          <>
+            <Spacer />
+            <Text>🤖</Text>
+          </>
+        ) : null}
+      </HStack>
       {hasDifferentUrls ? (
         <>
           <Center
             flexDir={"column"}
             h="100%"
             p="1rem"
-            pt={explorerData.forContracts ? "0" : undefined}
-            mt={explorerData.forContracts ? "-4" : undefined}
+            pt={"0"}
+            mt={"-4"}
             onClick={openModal}
           >
             <Image
@@ -134,13 +145,7 @@ export const ExplorerGridItem = ({
           isExternal
         >
           {/* TODO: allow bookmarking, and show the bookmarked explorers on the top */}
-          <Center
-            flexDir={"column"}
-            h="100%"
-            p="1rem"
-            pt={explorerData.forContracts ? "0" : undefined}
-            mt={explorerData.forContracts ? "-4" : undefined}
-          >
+          <Center flexDir={"column"} h="100%" p="1rem" pt={"0"} mt={"-4"}>
             <Image
               bg="white"
               w="2rem"
@@ -169,6 +174,87 @@ export const ExplorerGridItem = ({
           </Center>
         </Link>
       )}
+    </>
+  );
+};
+
+export const ExplorerGridItem = ({
+  explorerName,
+  explorerData,
+  explorerType,
+  addressOrTx,
+  toggleFavorite,
+  isFavorite,
+}: Params) => {
+  return (
+    <GridItem
+      border="2px solid"
+      borderColor={"gray.500"}
+      bg={"white"}
+      color={"black"}
+      _hover={{
+        cursor: "pointer",
+        bgColor: "whiteAlpha.300",
+        color: "white",
+        borderColor: "gray.400",
+      }}
+      rounded="lg"
+    >
+      <CommonExplorerGridItem
+        explorerName={explorerName}
+        explorerData={explorerData}
+        explorerType={explorerType}
+        addressOrTx={addressOrTx}
+        toggleFavorite={toggleFavorite}
+        isFavorite={isFavorite}
+      />
+    </GridItem>
+  );
+};
+
+interface FavoriteParams extends Params {
+  index: number;
+  handleDropHover: (i: number, j: number) => void;
+}
+
+export const FavoriteExplorerGridItem = ({
+  explorerName,
+  explorerData,
+  explorerType,
+  addressOrTx,
+  toggleFavorite,
+  index,
+  handleDropHover,
+}: FavoriteParams) => {
+  const { ref, isDragging } = useFavExplorerDragNDrop<HTMLDivElement>({
+    explorerName,
+    index,
+    handleDropHover,
+  });
+
+  return (
+    <GridItem
+      ref={ref}
+      border="2px solid"
+      borderColor={"gray.500"}
+      bg={"white"}
+      color={"black"}
+      _hover={{
+        cursor: "pointer",
+        bgColor: "whiteAlpha.300",
+        color: "white",
+        borderColor: "gray.400",
+      }}
+      rounded="lg"
+    >
+      <CommonExplorerGridItem
+        explorerName={explorerName}
+        explorerData={explorerData}
+        explorerType={explorerType}
+        addressOrTx={addressOrTx}
+        toggleFavorite={toggleFavorite}
+        isFavorite={true}
+      />
     </GridItem>
   );
 };

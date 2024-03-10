@@ -97,9 +97,17 @@ export const slicedText = (txt: string) => {
     : txt;
 };
 import { NextRequest } from "next/server";
+import { array } from "zod";
 
 export default function getIP(request: Request | NextRequest) {
   const xff = request.headers.get("x-forwarded-for");
 
   return xff ? (Array.isArray(xff) ? xff[0] : xff.split(",")[0]) : "127.0.0.1";
 }
+
+export const swap = <T>(arr: T[], i: number, j: number): T[] => {
+  const temp = arr[i];
+  arr[i] = arr[j];
+  arr[j] = temp;
+  return arr;
+};
