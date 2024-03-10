@@ -43,7 +43,7 @@
     "react-simple-code-editor": "^0.11.0",
     "typescript": "5.0.4",
     "usehooks-ts": "^3.0.1",
-    "viem": "^1.15.3",
+    "viem": "^1.21.4",
     "wagmi": "^1.4.3",
     "zod": "^3.22.4"
   },

@@ -66,6 +66,47 @@ export const addressExplorers: ExplorersData = {
       [c.baseSepolia.id]: "sepolia.",
     },
   },
+  Blockhead: {
+    urlLayout: `https://blockhead.info/explorer/${CHAINLABEL_KEY}/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "ethereum",
+      [c.arbitrum.id]: "arbitrum-one",
+      [c.arbitrumSepolia.id]: "arbitrum-sepolia",
+      [c.aurora.id]: "aurora",
+      [c.avalanche.id]: "avalanche",
+      [c.avalancheFuji.id]: "avalanche-fuji",
+      [c.base.id]: "base",
+      [c.bsc.id]: "bsc",
+      [c.bscTestnet.id]: "bsc-testnet",
+      [c.celo.id]: "celo",
+      [c.celoAlfajores.id]: "celo-alfajores",
+      [c.cronos.id]: "cronos",
+      [c.evmos.id]: "evmos",
+      [c.fantom.id]: "fantom",
+      [c.filecoin.id]: "filecoin",
+      [c.gnosis.id]: "gnosis",
+      [c.klaytn.id]: "klaytn-cypress",
+      [c.linea.id]: "linea",
+      [c.mantle.id]: "mantle",
+      [c.metis.id]: "metis",
+      [c.moonbeam.id]: "moonbeam",
+      [c.moonriver.id]: "moonriver",
+      [c.okc.id]: "oktc",
+      [c.opBNB.id]: "opbnb",
+      [c.optimism.id]: "optimism",
+      [c.optimismSepolia.id]: "optimism-sepolia",
+      [c.polygon.id]: "polygon",
+      [c.polygonMumbai.id]: "polygon-mumbai",
+      [c.polygonZkEvm.id]: "polygon-zkevm",
+      [c.scroll.id]: "scroll",
+      [c.scrollSepolia.id]: "scroll-sepolia",
+      [c.sepolia.id]: "ethereum-sepolia",
+      [c.telos.id]: "telos",
+      [c.wanchain.id]: "wanchain",
+      [c.zora.id]: "zora",
+      [c.zoraTestnet.id]: "zora-goerli",
+    },
+  },
   Blockscan: {
     urlLayout: `https://blockscan.com/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
@@ -123,6 +164,20 @@ export const addressExplorers: ExplorersData = {
     urlLayout: `https://bankless.com/claimables/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "",
+    },
+  },
+  Codeslaw: {
+    urlLayout: `https://www.codeslaw.app/contracts/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "ethereum",
+      [c.arbitrum.id]: "arbitrum",
+      [c.base.id]: "base",
+      [c.bsc.id]: "bnbchain",
+      [c.holesky.id]: "holesky",
+      [c.optimism.id]: "optimism",
+      [c.polygon.id]: "polygon",
+      [c.scroll.id]: "scroll",
+      [c.sepolia.id]: "sepolia",
     },
   },
   ContractReader: {
@@ -436,6 +491,18 @@ export const addressExplorers: ExplorersData = {
       [c.sepolia.id]: "sepolia",
     },
     forContracts: true,
+  },
+  Thirdweb: {
+    urlLayout: `https://thirdweb.com/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
+    // Supports all EVM chains
+    chainIdToLabel: (() => {
+      let res: ExplorerData["chainIdToLabel"] = {};
+
+      Object.values(c).map((val) => {
+        res[val.id] = val.id.toString();
+      });
+      return res;
+    })(),
   },
   UpgradeHub: {
     urlLayout: `https://upgradehub.xyz/diffs/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
