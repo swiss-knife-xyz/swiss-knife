@@ -10,6 +10,7 @@ const SidebarItems: SidebarItem[] = [
   { name: "Hexadecimal", path: "hexadecimal" },
   { name: "Keccak256", path: "keccak256" },
   { name: "Padding", path: "padding" },
+  { name: "Address checksum", path: "address-checksum" },
 ];
 
 const ConverterLayout = ({ children }: { children: React.ReactNode }) => {
