@@ -35,8 +35,7 @@ const Hexadecimal = () => {
     } else if (unit === "binary") {
       return /[^01]/.test(value);
     } else {
-      // decimal input is of number type, so always valid
-      // text input is always valid
+      // decimal input is of number or text type, so always valid
       return false;
     }
   };
