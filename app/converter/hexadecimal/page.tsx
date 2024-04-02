@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { Heading, Table, Tbody, Tr, Td } from "@chakra-ui/react";
-import { numberToHex, hexToBigInt, isHex } from "viem";
+import {
+  numberToHex,
+  hexToBigInt,
+  isHex,
+  hexToString,
+  stringToHex,
+} from "viem";
 import bigInt from "big-integer";
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
@@ -12,13 +18,14 @@ const Hexadecimal = () => {
   const [hexadecimal, setHexadecimal] = useState<string>();
   const [decimal, setDecimal] = useState<string>();
   const [binary, setBinary] = useState<string>();
+  const [text, setText] = useState<string>();
 
   const [isHexadecimalInvalid, setIsHexadecimalInvalid] =
     useState<boolean>(false);
   const [isBinaryInvalid, setIsBinaryInvalid] = useState<boolean>(false);
 
   const checkInvalid = (
-    unit: "hexadecimal" | "decimal" | "binary",
+    unit: "hexadecimal" | "decimal" | "binary" | "text",
     value?: string
   ): boolean => {
     value = value ?? "";
@@ -28,14 +35,14 @@ const Hexadecimal = () => {
     } else if (unit === "binary") {
       return /[^01]/.test(value);
     } else {
-      // decimal input is of number type, so always valid
+      // decimal input is of number or text type, so always valid
       return false;
     }
   };
 
   const handleOnChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    unit: "hexadecimal" | "decimal" | "binary",
+    unit: "hexadecimal" | "decimal" | "binary" | "text",
     valueToHexadecimal: (value: string) => string
   ) => {
     const value = e.target.value;
@@ -47,6 +54,7 @@ const Hexadecimal = () => {
     if (unit === "hexadecimal") setHexadecimal(value);
     else if (unit === "decimal") setDecimal(value);
     else if (unit === "binary") setBinary(value);
+    else if (unit === "text") setText(value);
 
     if (isInvalid) {
       if (unit === "hexadecimal") setIsHexadecimalInvalid(true);
@@ -65,12 +73,13 @@ const Hexadecimal = () => {
       setHexadecimal("");
       setDecimal("");
       setBinary("");
+      setText("");
     }
   };
 
   const setValues = (
     inHex: string,
-    exceptUnit: "hexadecimal" | "decimal" | "binary"
+    exceptUnit: "hexadecimal" | "decimal" | "binary" | "text"
   ) => {
     setHexadecimal(inHex);
 
@@ -83,9 +92,11 @@ const Hexadecimal = () => {
             2
           )
         );
+      if (exceptUnit !== "text") setText(hexToString(startHexWith0x(inHex)));
     } else {
       setDecimal("");
       setBinary("");
+      setText("");
     }
   };
 
@@ -136,6 +147,18 @@ const Hexadecimal = () => {
                   )
                 }
                 isInvalid={isBinaryInvalid}
+              />
+            </Td>
+          </Tr>
+          <Tr>
+            <Label>Text</Label>
+            <Td>
+              <InputField
+                placeholder="text"
+                value={text}
+                onChange={(e) =>
+                  handleOnChange(e, "text", (value) => stringToHex(value))
+                }
               />
             </Td>
           </Tr>
