@@ -8,6 +8,7 @@ const subdomains = {
   STORAGE_SLOTS: "storage-slots",
   UNISWAP: "uniswap",
   CHARACTER_COUNT: "character-counter",
+  CONTRACT_ADDRESS: "contract-address",
 };
 
 module.exports = subdomains;
