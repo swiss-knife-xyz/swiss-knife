@@ -58,6 +58,19 @@ export const txExplorers: ExplorersData = {
       [c.zoraTestnet.id]: "zora-goerli",
     },
   },
+  Blockscout: {
+    urlLayout: `https://${CHAINLABEL_KEY}.blockscout.com/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "eth",
+      [c.base.id]: "base",
+      [c.holesky.id]: "eth-holesky",
+      [c.optimism.id]: "optimism",
+      [c.optimismSepolia.id]: "optimism-sepolia",
+      [c.polygonZkEvm.id]: "zkevm",
+      [c.zkSync.id]: "zksync",
+      [c.zkSyncTestnet.id]: "zksync-sepolia",
+    },
+  },
   Bloxy: {
     urlLayout: `https://bloxy.info/tx/${TX_KEY}`,
     chainIdToLabel: {

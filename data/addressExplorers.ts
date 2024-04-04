@@ -113,6 +113,19 @@ export const addressExplorers: ExplorersData = {
       [c.mainnet.id]: "",
     },
   },
+  Blockscout: {
+    urlLayout: `https://${CHAINLABEL_KEY}.blockscout.com/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "eth",
+      [c.base.id]: "base",
+      [c.holesky.id]: "eth-holesky",
+      [c.optimism.id]: "optimism",
+      [c.optimismSepolia.id]: "optimism-sepolia",
+      [c.polygonZkEvm.id]: "zkevm",
+      [c.zkSync.id]: "zksync",
+      [c.zkSyncTestnet.id]: "zksync-sepolia",
+    },
+  },
   Bloxy: {
     urlLayout: `https://bloxy.info/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
@@ -284,6 +297,7 @@ export const addressExplorers: ExplorersData = {
     urlLayout: `https://${CHAINLABEL_KEY}.etherscan.io/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.goerli.id]: "goerli",
+      [c.holesky.id]: "holesky",
       [c.sepolia.id]: "sepolia",
     },
   },
