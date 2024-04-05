@@ -25,8 +25,7 @@ export const ArrayParam = ({ input, value }: Params) => {
   } else {
     return (
       <>
-        <HStack>
-          <StringParam value={value} />
+        <HStack my={isOpen ? -3 : 0}>
           <Text
             fontSize={"xl"}
             fontWeight={"bold"}
@@ -35,20 +34,24 @@ export const ArrayParam = ({ input, value }: Params) => {
           >
             {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
           </Text>
+          {!isOpen && <StringParam value={value} />}
         </HStack>
         <Collapse in={isOpen} animateOpacity>
           <Stack
-            p={4}
+            ml={2}
+            px={4}
+            pb={4}
             spacing={4}
-            border="1px"
+            borderLeft="1px"
+            borderBottom="1px"
             borderStyle={"dashed"}
-            borderColor={"whiteAlpha.500"}
-            rounded={"lg"}
+            borderColor={"whiteAlpha.300"}
+            roundedBottom={"lg"}
           >
             {value.map((v: any, i: number) => {
               return (
-                <>
-                  <HStack>
+                <Box p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
+                  <HStack mt={-2}>
                     <Text fontSize={"sm"}>{input.arrayChildren!.baseType}</Text>
                     <Text
                       fontSize={"xs"}
@@ -58,8 +61,8 @@ export const ArrayParam = ({ input, value }: Params) => {
                       (index: {i})
                     </Text>
                   </HStack>
-                  <Box mt={-4}>{renderParamTypes(input.arrayChildren!, v)}</Box>
-                </>
+                  <Box mt={2}>{renderParamTypes(input.arrayChildren!, v)}</Box>
+                </Box>
               );
             })}
           </Stack>

@@ -33,21 +33,17 @@ export const renderParams = (key: number, input: ParamType, value: any) => {
   const type = input.type.includes("tuple") ? "tuple" : input.type;
 
   return (
-    <Stack
-      key={key}
-      p={4}
-      bg={"whiteAlpha.100"}
-      border="1px"
-      borderColor={"whiteAlpha.500"}
-      rounded={"lg"}
-    >
+    <Stack key={key} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
       {input.name ? (
         <Box>
           <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
             {type}
           </Box>
           <HStack>
-            <Box>{input.name}</Box>
+            <Box>
+              {input.name}
+              {input.baseType === "array" ? "[]" : ""}
+            </Box>
             {input.baseType === "array" ? (
               <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
                 (length: {value.length})
@@ -57,7 +53,10 @@ export const renderParams = (key: number, input: ParamType, value: any) => {
         </Box>
       ) : (
         <HStack>
-          <Text fontSize={"sm"}>{type}</Text>
+          <Text fontSize={"sm"}>
+            {type}
+            {input.baseType === "array" ? "[]" : ""}
+          </Text>
           {input.baseType === "array" ? (
             <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
               (length: {value.length})

@@ -209,27 +209,34 @@ export const BytesParam = ({ value }: Params) => {
         return fnDescription ? (
           <Box minW={"80%"}>
             {fnDescription.name ? (
-              <Box>
-                <Box fontSize={"xs"} color={"whiteAlpha.600"}>
-                  function
+              <>
+                <Box>
+                  <Box fontSize={"xs"} color={"whiteAlpha.600"}>
+                    function
+                  </Box>
+                  <Box>{fnDescription.name}</Box>
                 </Box>
-                <Box>{fnDescription.name}</Box>
-              </Box>
-            ) : null}
-            <Stack
-              mt={2}
-              p={4}
-              spacing={4}
-              border="1px"
-              borderStyle={"dashed"}
-              borderColor={"whiteAlpha.500"}
-              rounded={"lg"}
-            >
-              {fnDescription.fragment.inputs.map((input, i) => {
-                const value = fnDescription.args[i];
-                return renderParams(i, input, value);
-              })}
-            </Stack>
+                <Stack
+                  mt={2}
+                  p={4}
+                  spacing={2}
+                  bg={"whiteAlpha.50"}
+                  rounded={"lg"}
+                >
+                  {fnDescription.fragment.inputs.map((input, i) => {
+                    const value = fnDescription.args[i];
+                    return renderParams(i, input, value);
+                  })}
+                </Stack>
+              </>
+            ) : (
+              <Stack spacing={2}>
+                {fnDescription.fragment.inputs.map((input, i) => {
+                  const value = fnDescription.args[i];
+                  return renderParams(i, input, value);
+                })}
+              </Stack>
+            )}
           </Box>
         ) : decodedStatus === false ? (
           <Center color="red.300">Unable to decode calldata</Center>
@@ -252,16 +259,8 @@ export const BytesParam = ({ value }: Params) => {
   };
 
   return (
-    <Stack
-      mt={2}
-      p={4}
-      spacing={4}
-      border="2px"
-      borderColor={"whiteAlpha.500"}
-      rounded={"lg"}
-    >
+    <Stack mt={2} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
       <HStack>
-        <StringParam value={value} />
         <Text
           fontSize={"xl"}
           fontWeight={"bold"}
@@ -270,22 +269,35 @@ export const BytesParam = ({ value }: Params) => {
         >
           {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </Text>
+        <StringParam value={value} />
       </HStack>
       <Collapse in={isOpen} animateOpacity>
-        <Box pb={4} fontSize={"sm"}>
-          <TabsSelector
-            tabs={BytesFormatOptions}
-            selectedTabIndex={selectedTabIndex}
-            setSelectedTabIndex={setSelectedTabIndex}
-          />
-        </Box>
-        {isLoading ? (
-          <Center mt={4}>
-            <Spinner />
-          </Center>
-        ) : (
-          renderConverted()
-        )}
+        <Stack
+          ml={2}
+          px={4}
+          pb={4}
+          borderLeft="1px"
+          borderBottom="1px"
+          borderStyle={"dashed"}
+          borderColor={"whiteAlpha.300"}
+          roundedBottom={"lg"}
+        >
+          <Box fontSize={"sm"}>
+            <TabsSelector
+              mt={0}
+              tabs={BytesFormatOptions}
+              selectedTabIndex={selectedTabIndex}
+              setSelectedTabIndex={setSelectedTabIndex}
+            />
+          </Box>
+          {isLoading ? (
+            <Center mt={4}>
+              <Spinner />
+            </Center>
+          ) : (
+            renderConverted()
+          )}
+        </Stack>
       </Collapse>
     </Stack>
   );

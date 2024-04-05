@@ -5,17 +5,19 @@ interface Props {
   tabs: string[];
   selectedTabIndex: number;
   setSelectedTabIndex: (value: number) => void;
+  mt?: string | number;
 }
 
 export default function TabsSelector({
   tabs,
   selectedTabIndex,
   setSelectedTabIndex,
+  mt,
 }: Props) {
   return (
     <Center flexDir="column">
       <HStack
-        mt="1rem"
+        mt={mt ?? "1rem"}
         minH="3rem"
         px="1.5rem"
         spacing={"8"}

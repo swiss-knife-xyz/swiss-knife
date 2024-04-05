@@ -711,15 +711,7 @@ const CalldataDecoder = () => {
               />
             </HStack>
           ) : null}
-          <Stack
-            mt={2}
-            p={4}
-            spacing={4}
-            border="1px"
-            borderStyle={"dashed"}
-            borderColor={"whiteAlpha.500"}
-            rounded={"lg"}
-          >
+          <Stack mt={2} p={4} spacing={4} bg={"whiteAlpha.50"} rounded={"lg"}>
             {fnDescription.fragment.inputs.map((input, i) => {
               const value = fnDescription.args[i];
               return renderParams(i, input, value);
