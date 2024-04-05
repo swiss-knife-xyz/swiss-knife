@@ -50,7 +50,7 @@ export const ArrayParam = ({ input, value }: Params) => {
           >
             {value.map((v: any, i: number) => {
               return (
-                <Box p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
+                <Box key={i} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
                   <HStack mt={-2}>
                     <Text fontSize={"sm"}>{input.arrayChildren!.baseType}</Text>
                     <Text
