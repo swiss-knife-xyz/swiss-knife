@@ -31,6 +31,7 @@
     "chakra-react-select": "^4.6.0",
     "eslint": "8.41.0",
     "eslint-config-next": "14.0.3",
+    "ethereum-block-by-date": "^1.4.9",
     "ethers": "^6.9.0",
     "framer-motion": "^10.12.17",
     "highlight.js": "^11.2.0",
@@ -48,6 +49,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/ethereum-block-by-date": "^1.4.1",
     "pino-pretty": "^10.2.3"
   }
 }

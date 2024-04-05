@@ -1,13 +1,37 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { HStack, Heading, Input, Button, Text, Box } from "@chakra-ui/react";
+import {
+  HStack,
+  Heading,
+  Input,
+  Button,
+  Text,
+  Box,
+  Divider,
+  Container,
+  FormControl,
+  FormLabel,
+  Center,
+} from "@chakra-ui/react";
+import { ethers } from "ethers";
+import EthDater from "ethereum-block-by-date";
 import { Layout } from "@/components/Layout";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
+import networkInfo from "@/data/networkInfo";
+import { DarkButton } from "@/components/DarkButton";
+import { chainIdToChain } from "@/data/common";
 
 const timeOptions = ["minutes", "hours", "days"];
+
+const networkOptions: { label: string; value: number }[] = networkInfo.map(
+  (n, i) => ({
+    label: n.name,
+    value: i, // index in the networkInfo array
+  })
+);
 
 const Epoch = () => {
   const [timestamp, setTimestamp] = useState<number>(
@@ -23,6 +47,14 @@ const Epoch = () => {
   const [toHumanDateInput, setToHumanDateInput] = useState<number>();
   const [humanDateUTC, setHumanDateUTC] = useState<string>();
   const [humanDateLocal, setHumanDateLocal] = useState<string>();
+
+  // dateTime to block
+  const [dateTime, setDateTime] = useState<string>();
+  const [selectedNetworkOption, setSelectedNetworkOption] =
+    useState<SelectedOptionState>(networkOptions[0]);
+  const [getBlockIsLoading, setGetBlockIsLoading] = useState<boolean>(false);
+  const [blockNumber, setBlockNumber] = useState<number>();
+  const [blockDate, setBlockDate] = useState<string>();
 
   useEffect(() => {
     setInterval(() => {
@@ -126,6 +158,87 @@ const Epoch = () => {
           </HStack>
         </Box>
       )}
+      <Divider mt={10} />
+      <Box my={5}>
+        <Heading size={"md"}>Get Block by Date & Time</Heading>
+        <Container>
+          <FormControl mt={8}>
+            <FormLabel>Date & Time (in your timezone)</FormLabel>
+            <Center>
+              <Input
+                type={"datetime-local"}
+                maxW="15rem"
+                autoComplete="off"
+                placeholder="0x00..."
+                value={dateTime}
+                onChange={(e) => {
+                  setDateTime(e.target.value);
+                }}
+                bg={"blackAlpha.300"}
+              />
+            </Center>
+          </FormControl>
+          <DarkSelect
+            boxProps={{
+              w: "100%",
+              mt: "2",
+            }}
+            selectedOption={selectedNetworkOption}
+            setSelectedOption={setSelectedNetworkOption}
+            options={networkOptions}
+          />
+          <Center mt={4} flexDir={"column"}>
+            <DarkButton
+              onClick={async () => {
+                if (!dateTime) return;
+
+                setGetBlockIsLoading(true);
+                try {
+                  const provider = new ethers.JsonRpcProvider(
+                    chainIdToChain[
+                      networkInfo[
+                        parseInt(selectedNetworkOption!.value.toString())
+                      ].chainID
+                    ]?.rpcUrls.default.http[0]
+                  );
+
+                  const dater = new EthDater(
+                    // @ts-ignore
+                    provider // Ethers provider, required.
+                  );
+
+                  console.log({ dateTime });
+
+                  const { block, date } = await dater.getDate(
+                    new Date(dateTime), // Date, required. Any valid moment.js value: string, milliseconds, Date() object, moment() object.
+                    true // Block after, optional. Search for the nearest block before or after the given date. By default true.
+                  );
+
+                  setBlockNumber(block);
+                  setBlockDate(date);
+                } catch {}
+                setGetBlockIsLoading(false);
+              }}
+              isLoading={getBlockIsLoading}
+              isDisabled={!dateTime}
+            >
+              Get Block
+            </DarkButton>
+            {blockNumber && blockDate && (
+              <Box mt={5}>
+                <HStack>
+                  <Text color={"whiteAlpha.700"}>Block Number:</Text>
+                  <Text>{blockNumber}</Text>
+                </HStack>
+                <HStack>
+                  <Text color={"whiteAlpha.700"}>Block Date:</Text>
+                  <Text>{blockDate}</Text>
+                </HStack>
+              </Box>
+            )}
+          </Center>
+        </Container>
+      </Box>
     </Layout>
   );
 };
