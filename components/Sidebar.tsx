@@ -1,7 +1,6 @@
 import { useRouter, usePathname } from "next/navigation";
 import { Box, Flex, Center, Heading } from "@chakra-ui/react";
 import { getPath } from "@/utils";
-import subdomains from "@/subdomains";
 
 export interface SidebarItem {
   name: string;

@@ -80,14 +80,14 @@ const Explorer = () => {
             title="USDC"
             description="contract"
             url={`${getPath(
-              subdomains.EXPLORER
+              subdomains.EXPLORER.base
             )}address/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48`}
           />
           <Card
             title="Seaport MatchOrders"
             description="tx"
             url={`${getPath(
-              subdomains.EXPLORER
+              subdomains.EXPLORER.base
             )}tx/0x242810fae4b8279dfeb728ccf29b575e792bc575e7c48461495cae3d7846a821`}
           />
         </Stack>

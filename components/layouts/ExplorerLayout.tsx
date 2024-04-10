@@ -68,7 +68,7 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
 
     if (__userInput) {
       if (isValidTransaction(__userInput)) {
-        const newUrl = `${getPath(subdomains.EXPLORER)}tx/${__userInput}`;
+        const newUrl = `${getPath(subdomains.EXPLORER.base)}tx/${__userInput}`;
         if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
           router.push(newUrl);
         } else {
@@ -78,7 +78,9 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
           }, 300);
         }
       } else if (isAddress(__userInput)) {
-        const newUrl = `${getPath(subdomains.EXPLORER)}address/${__userInput}`;
+        const newUrl = `${getPath(
+          subdomains.EXPLORER.base
+        )}address/${__userInput}`;
         if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
           router.push(newUrl);
         } else {
@@ -99,7 +101,7 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
           if (ensResolvedAddress) {
             setResolvedAddress(ensResolvedAddress);
             const newUrl = `${getPath(
-              subdomains.EXPLORER
+              subdomains.EXPLORER.base
             )}address/${ensResolvedAddress}`;
             if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
               router.push(newUrl);
@@ -160,7 +162,7 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
     <Layout>
       <Center flexDir={"column"} mt="5">
         <Heading fontSize={"4xl"}>
-          <Link href={getPath(subdomains.EXPLORER)}>Explorer</Link>
+          <Link href={getPath(subdomains.EXPLORER.base)}>Explorer</Link>
         </Heading>
         <HStack mt="1rem" w="60%">
           <Heading fontSize={"xl"}>Search Address or Transaction</Heading>{" "}

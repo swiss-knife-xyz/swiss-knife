@@ -9,7 +9,7 @@ const Uniswap = () => {
   const router = useRouter();
 
   useEffect(() => {
-    router.push(`${getPath(subdomains.UNISWAP)}tick-to-price`);
+    router.push(`${getPath(subdomains.UNISWAP.base)}tick-to-price`);
   }, []);
 
   return <></>;

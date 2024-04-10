@@ -9,7 +9,7 @@ const Transact = () => {
   const router = useRouter();
 
   useEffect(() => {
-    router.push(`${getPath(subdomains.TRANSACT)}send-tx`);
+    router.push(`${getPath(subdomains.TRANSACT.base)}send-tx`);
   }, []);
 
   return <></>;

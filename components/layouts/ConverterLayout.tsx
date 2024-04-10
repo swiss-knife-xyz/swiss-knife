@@ -24,7 +24,7 @@ export const ConverterLayout = ({
         <Sidebar
           heading="Converters"
           items={SidebarItems}
-          subdomain={subdomains.CONVERTER}
+          subdomain={subdomains.CONVERTER.base}
         />
         <Center flexDir={"column"} w="full">
           {children}

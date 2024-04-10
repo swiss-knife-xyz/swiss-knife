@@ -16,7 +16,7 @@ export const UniswapLayout = ({ children }: { children: React.ReactNode }) => {
         <Sidebar
           heading="UniswapV3"
           items={SidebarItems}
-          subdomain={subdomains.UNISWAP}
+          subdomain={subdomains.UNISWAP.base}
         />
         <Center flexDir={"column"} w="full">
           {children}

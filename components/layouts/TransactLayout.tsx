@@ -15,7 +15,7 @@ export const TransactLayout = ({ children }: { children: React.ReactNode }) => {
         <Sidebar
           heading="Transact"
           items={SidebarItems}
-          subdomain={subdomains.TRANSACT}
+          subdomain={subdomains.TRANSACT.base}
         />
         <Center flexDir={"column"} w="full">
           <Flex w="100%" mb="3rem">

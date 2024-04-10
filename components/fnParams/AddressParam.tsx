@@ -82,7 +82,7 @@ export const AddressParam = ({ value: address }: Params) => {
           </InputRightElement>
         </InputGroup>
         <Link
-          href={`${getPath(subdomains.EXPLORER)}address/${value}`}
+          href={`${getPath(subdomains.EXPLORER.base)}address/${value}`}
           title="View on explorer"
           isExternal
         >

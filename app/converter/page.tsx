@@ -9,7 +9,7 @@ const Converter = () => {
   const router = useRouter();
 
   useEffect(() => {
-    router.push(`${getPath(subdomains.CONVERTER)}eth`);
+    router.push(`${getPath(subdomains.CONVERTER.base)}eth`);
   }, []);
 
   return <></>;

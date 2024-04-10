@@ -9,7 +9,7 @@ const Calldata = () => {
   const router = useRouter();
 
   useEffect(() => {
-    router.push(`${getPath(subdomains.CALLDATA)}decoder`);
+    router.push(`${getPath(subdomains.CALLDATA.base)}decoder`);
   }, []);
 
   return <></>;

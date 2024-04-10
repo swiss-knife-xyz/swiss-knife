@@ -18,7 +18,7 @@ export const CalldataLayout = ({ children }: { children: React.ReactNode }) => {
         <Sidebar
           heading="Calldata"
           items={SidebarItems}
-          subdomain={subdomains.CALLDATA}
+          subdomain={subdomains.CALLDATA.base}
         />
         <Center flexDir={"column"} w="full">
           {children}

@@ -144,8 +144,6 @@ export const slicedText = (txt: string) => {
     : txt;
 };
 import { NextRequest } from "next/server";
-import { array, string } from "zod";
-import { metadata } from "@/app/layout";
 
 export default function getIP(request: Request | NextRequest) {
   const xff = request.headers.get("x-forwarded-for");
