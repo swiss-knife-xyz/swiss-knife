@@ -149,6 +149,8 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
       getEnsAvatar(resolvedEnsName).then((res) => {
         if (res) {
           setResolvedEnsAvatar(res);
+        } else {
+          setResolvedEnsAvatar(null);
         }
       });
     }
