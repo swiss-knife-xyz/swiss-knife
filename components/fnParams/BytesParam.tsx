@@ -18,7 +18,7 @@ import {
   ParamType,
   TransactionDescription,
 } from "ethers";
-import { hexToBigInt } from "viem";
+import { hexToBigInt, hexToString } from "viem";
 import { guessAbiEncodedData } from "@openchainxyz/abi-guesser";
 import bigInt from "big-integer";
 import axios from "axios";
@@ -28,7 +28,12 @@ import { renderParams } from "../renderParams";
 import { UintParam } from "./UintParam";
 import TabsSelector from "../Tabs/TabsSelector";
 
-const BytesFormatOptions = ["Decode calldata", "to Decimal", "to Binary"];
+const BytesFormatOptions = [
+  "Decode calldata",
+  "to Decimal",
+  "to Binary",
+  "to Text",
+];
 
 interface Params {
   value: string;
@@ -49,6 +54,7 @@ export const BytesParam = ({ value }: Params) => {
 
   const [decimal, setDecimal] = useState<string>("0");
   const [binary, setBinary] = useState<string>("0");
+  const [text, setText] = useState<string>("");
 
   useEffect(() => {
     if (selectedTabIndex === 0) {
@@ -58,6 +64,7 @@ export const BytesParam = ({ value }: Params) => {
       setBinary(
         bigInt(value.startsWith("0x") ? value.slice(2) : value, 16).toString(2)
       );
+      setText(hexToString(startHexWith0x(value)));
     }
   }, [selectedTabIndex]);
 
@@ -251,6 +258,12 @@ export const BytesParam = ({ value }: Params) => {
         return (
           <Box mt={4}>
             <StringParam value={binary} />
+          </Box>
+        );
+      case 3:
+        return (
+          <Box mt={4}>
+            <StringParam value={text} />
           </Box>
         );
       default:
