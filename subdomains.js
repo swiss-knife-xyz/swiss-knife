@@ -31,8 +31,8 @@ const subdomains = {
     base: "uniswap",
     paths: ["tick-to-price"],
   },
-  CHARACTER_COUNT: {
-    base: "character-count",
+  CHARACTER_COUNTER: {
+    base: "character-counter",
     paths: [],
   },
   CONTRACT_ADDRESS: {

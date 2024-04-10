@@ -16,7 +16,7 @@ const subdomainToLabel = {
   [subdomains.CALLDATA.base]: "Calldata",
   [subdomains.STORAGE_SLOTS.base]: "Storage Slots",
   [subdomains.UNISWAP.base]: "Uniswap V3",
-  [subdomains.CHARACTER_COUNT.base]: "Character Counter",
+  [subdomains.CHARACTER_COUNTER.base]: "Character Counter",
   [subdomains.CONTRACT_ADDRESS.base]: "Contract Address",
 };
 
