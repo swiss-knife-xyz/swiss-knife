@@ -1,29 +1,15 @@
-"use client";
+import { UniswapLayout as UniswapLayoutC } from "@/components/layouts/UniswapLayout";
+import { getMetadata } from "@/utils";
 
-import { HStack, Center } from "@chakra-ui/react";
-import { Layout } from "@/components/Layout";
-import { Sidebar, SidebarItem } from "@/components/Sidebar";
-import subdomains from "@/subdomains";
-
-const SidebarItems: SidebarItem[] = [
-  { name: "Tick to Price", path: "tick-to-price" },
-];
+export const metadata = getMetadata({
+  title: "UniswapV3 | Swiss-Knife.xyz",
+  description:
+    "Calculator to convert UniswapV3 tick to price for any token pair addresses.",
+  images: "https://swiss-knife.xyz/og/uniswap.png",
+});
 
 const UniswapLayout = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <Layout>
-      <HStack alignItems={"stretch"} h="full">
-        <Sidebar
-          heading="UniswapV3"
-          items={SidebarItems}
-          subdomain={subdomains.UNISWAP}
-        />
-        <Center flexDir={"column"} w="full">
-          {children}
-        </Center>
-      </HStack>
-    </Layout>
-  );
+  return <UniswapLayoutC>{children}</UniswapLayoutC>;
 };
 
 export default UniswapLayout;

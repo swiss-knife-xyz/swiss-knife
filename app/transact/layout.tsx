@@ -1,32 +1,15 @@
-"use client";
+import { TransactLayout as TransactLayoutC } from "@/components/layouts/TransactLayout";
+import { getMetadata } from "@/utils";
 
-import { HStack, Center, Flex, Spacer } from "@chakra-ui/react";
-import { Layout } from "@/components/Layout";
-import { Sidebar, SidebarItem } from "@/components/Sidebar";
-import { ConnectButton } from "@/components/ConnectButton";
-import subdomains from "@/subdomains";
-
-const SidebarItems: SidebarItem[] = [{ name: "Send Tx", path: "send-tx" }];
+export const metadata = getMetadata({
+  title: "Transact | Swiss-Knife.xyz",
+  description:
+    "Send custom bytes calldata to transact with any contract, or leave the address blank to deploy a new contract.",
+  images: "https://swiss-knife.xyz/og/transact.png",
+});
 
 const TransactLayout = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <Layout>
-      <HStack alignItems={"stretch"}>
-        <Sidebar
-          heading="Transact"
-          items={SidebarItems}
-          subdomain={subdomains.TRANSACT}
-        />
-        <Center flexDir={"column"} w="full">
-          <Flex w="100%" mb="3rem">
-            <Spacer />
-            <ConnectButton />
-          </Flex>
-          {children}
-        </Center>
-      </HStack>
-    </Layout>
-  );
+  return <TransactLayoutC>{children}</TransactLayoutC>;
 };
 
 export default TransactLayout;

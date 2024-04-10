@@ -1,33 +1,15 @@
-"use client";
+import { ConverterLayout as ConverterLayoutC } from "@/components/layouts/ConverterLayout";
+import { getMetadata } from "@/utils";
 
-import { HStack, Center } from "@chakra-ui/react";
-import { Layout } from "@/components/Layout";
-import { Sidebar, SidebarItem } from "@/components/Sidebar";
-import subdomains from "@/subdomains";
-
-const SidebarItems: SidebarItem[] = [
-  { name: "ETH", path: "eth" },
-  { name: "Hexadecimal", path: "hexadecimal" },
-  { name: "Keccak256", path: "keccak256" },
-  { name: "Padding", path: "padding" },
-  { name: "Address checksum", path: "address-checksum" },
-];
+export const metadata = getMetadata({
+  title: "Converter | Swiss-Knife.xyz",
+  description:
+    "All your essential unit converters on one-page. Convert between wei, gwei, ether, hexadecimal, decimal, keccak256, 4 bytes selector and more.",
+  images: "https://swiss-knife.xyz/og/converter.png",
+});
 
 const ConverterLayout = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <Layout>
-      <HStack alignItems={"stretch"} h="full">
-        <Sidebar
-          heading="Converters"
-          items={SidebarItems}
-          subdomain={subdomains.CONVERTER}
-        />
-        <Center flexDir={"column"} w="full">
-          {children}
-        </Center>
-      </HStack>
-    </Layout>
-  );
+  return <ConverterLayoutC>{children}</ConverterLayoutC>;
 };
 
 export default ConverterLayout;

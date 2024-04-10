@@ -11,7 +11,10 @@ import {
   Text,
   Container,
   VStack,
+  Center,
 } from "@chakra-ui/react";
+import { Layout } from "@/components/Layout";
+
 const CharacterCounter = () => {
   const [input, setInput] = useState<string>();
   const [count, setCount] = useState<number>();
@@ -28,48 +31,52 @@ const CharacterCounter = () => {
   }, [input]);
 
   return (
-    <>
-      <Heading color={"custom.pale"}>Character Counter</Heading>
-      <Container maxWidth="inherit">
-        <VStack spacing={5}>
-          <FormControl mt="1rem">
-            <FormLabel>
-              <HStack>
-                <Text>Text</Text>
-                <Spacer />
-              </HStack>
-            </FormLabel>
-            <Textarea
-              autoFocus
-              placeholder=""
-              id="input"
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                setCount(e.target.value.length);
-              }}
-              rows={6}
-              onMouseUpCapture={(e) =>
-                setCount(
-                  window.getSelection()?.toString().length !== 0
-                    ? window.getSelection()?.toString().length
-                    : input?.length
-                )
-              }
-            ></Textarea>
-            <FormLabel mt="1rem">
-              <HStack>
-                <Text fontWeight="bold">Characters : {count}</Text>
-              </HStack>
-            </FormLabel>
-          </FormControl>
-        </VStack>
-        <Text mt="2rem" fontSize={"sm"}>
-          (Note: select on the input text to only get the character count for
-          the selection)
-        </Text>
-      </Container>
-    </>
+    <Layout>
+      <HStack alignItems={"stretch"} h="full">
+        <Center flexDir={"column"} w="full">
+          <Heading color={"custom.pale"}>Character Counter</Heading>
+          <Container maxWidth="inherit">
+            <VStack spacing={5}>
+              <FormControl mt="1rem">
+                <FormLabel>
+                  <HStack>
+                    <Text>Text</Text>
+                    <Spacer />
+                  </HStack>
+                </FormLabel>
+                <Textarea
+                  autoFocus
+                  placeholder=""
+                  id="input"
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    setCount(e.target.value.length);
+                  }}
+                  rows={6}
+                  onMouseUpCapture={(e) =>
+                    setCount(
+                      window.getSelection()?.toString().length !== 0
+                        ? window.getSelection()?.toString().length
+                        : input?.length
+                    )
+                  }
+                ></Textarea>
+                <FormLabel mt="1rem">
+                  <HStack>
+                    <Text fontWeight="bold">Characters : {count}</Text>
+                  </HStack>
+                </FormLabel>
+              </FormControl>
+            </VStack>
+            <Text mt="2rem" fontSize={"sm"}>
+              (Note: select on the input text to only get the character count
+              for the selection)
+            </Text>
+          </Container>
+        </Center>
+      </HStack>
+    </Layout>
   );
 };
 

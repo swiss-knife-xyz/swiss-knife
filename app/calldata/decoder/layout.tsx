@@ -1,4 +1,3 @@
-import { CalldataLayout as CalldataLayoutC } from "@/components/layouts/CalldataLayout";
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
@@ -8,8 +7,8 @@ export const metadata = getMetadata({
   images: "https://swiss-knife.xyz/og/calldata-decoder.png",
 });
 
-const CalldataLayout = ({ children }: { children: React.ReactNode }) => {
-  return <CalldataLayoutC>{children}</CalldataLayoutC>;
+const CalldataDecoderLayout = ({ children }: { children: React.ReactNode }) => {
+  return <>{children}</>;
 };
 
-export default CalldataLayout;
+export default CalldataDecoderLayout;

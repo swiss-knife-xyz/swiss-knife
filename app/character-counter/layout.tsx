@@ -1,22 +1,18 @@
-"use client";
+import { getMetadata } from "@/utils";
 
-import { HStack, Center } from "@chakra-ui/react";
-import { Layout } from "@/components/Layout";
+export const metadata = getMetadata({
+  title: "Character Counter | Swiss-Knife.xyz",
+  description:
+    "Get the length of any arbitrary input string or its subsection.",
+  images: "https://swiss-knife.xyz/og/character-counter.png",
+});
 
 const CharacterCounterLayout = ({
   children,
 }: {
   children: React.ReactNode;
 }) => {
-  return (
-    <Layout>
-      <HStack alignItems={"stretch"} h="full">
-        <Center flexDir={"column"} w="full">
-          {children}
-        </Center>
-      </HStack>
-    </Layout>
-  );
+  return <>{children}</>;
 };
 
 export default CharacterCounterLayout;
