@@ -24,7 +24,7 @@ const nextConfig = {
               value: `${subdomain.base}.swiss-knife.xyz`,
             },
           ],
-          destination: `/${subdomain}/:path*`,
+          destination: `/${subdomain.base}/:path*`,
         })),
       ],
     };
