@@ -53,10 +53,7 @@ export const renderParams = (key: number, input: ParamType, value: any) => {
         </Box>
       ) : (
         <HStack>
-          <Text fontSize={"sm"}>
-            {type}
-            {input.baseType === "array" ? "[]" : ""}
-          </Text>
+          <Text fontSize={"sm"}>{type}</Text>
           {input.baseType === "array" ? (
             <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
               (length: {value.length})
