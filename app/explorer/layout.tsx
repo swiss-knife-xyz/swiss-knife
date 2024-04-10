@@ -16,13 +16,19 @@ import {
   Spacer,
   Text,
   useDisclosure,
+  Avatar,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { isAddress } from "viem";
-import { normalize } from "viem/ens";
-import { publicClient, getPath, slicedText } from "@/utils";
+import {
+  getPath,
+  slicedText,
+  getEnsAddress,
+  getEnsAvatar,
+  getEnsName,
+} from "@/utils";
 import subdomains from "@/subdomains";
 import { Layout } from "@/components/Layout";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
@@ -42,6 +48,10 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
 
   const [userInput, setUserInput] = useState<string>(userInputFromUrl);
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
+  const [resolvedEnsName, setResolvedEnsName] = useState<string | null>(null);
+  const [resolvedEnsAvatar, setResolvedEnsAvatar] = useState<string | null>(
+    null
+  );
   const [isInputInvalid, setIsInputInvalid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -77,11 +87,15 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
             setIsLoading(false);
           }, 300);
         }
+
+        getEnsName(__userInput).then((res) => {
+          if (res) {
+            setResolvedEnsName(res);
+          }
+        });
       } else {
         try {
-          const ensResolvedAddress = await publicClient.getEnsAddress({
-            name: normalize(__userInput),
-          });
+          const ensResolvedAddress = await getEnsAddress(__userInput);
           if (ensResolvedAddress) {
             setResolvedAddress(ensResolvedAddress);
             const newUrl = `${getPath(
@@ -92,6 +106,8 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
             } else {
               setIsLoading(false);
             }
+
+            setResolvedEnsName(__userInput);
           } else {
             setIsInputInvalid(true);
             setIsLoading(false);
@@ -127,6 +143,16 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
       setResolvedAddress("");
     }
   }, [userInput]);
+
+  useEffect(() => {
+    if (resolvedEnsName) {
+      getEnsAvatar(resolvedEnsName).then((res) => {
+        if (res) {
+          setResolvedEnsAvatar(res);
+        }
+      });
+    }
+  }, [resolvedEnsName]);
 
   return (
     <Layout>
@@ -192,7 +218,7 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
             </>
           )}
         </HStack>
-        {resolvedAddress && (
+        {resolvedAddress || resolvedEnsName ? (
           <Box
             mt="2"
             p="2"
@@ -201,11 +227,20 @@ const ExplorerLayout = ({ children }: { children: ReactNode }) => {
             rounded="lg"
           >
             <HStack fontSize={"sm"}>
-              <Text>{slicedText(resolvedAddress)}</Text>
-              <CopyToClipboard textToCopy={resolvedAddress} />
+              {resolvedEnsAvatar ? (
+                <Avatar src={resolvedEnsAvatar} w={"2rem"} h={"2rem"} />
+              ) : null}
+              <Text>
+                {resolvedAddress
+                  ? slicedText(resolvedAddress)
+                  : resolvedEnsName}
+              </Text>
+              <CopyToClipboard
+                textToCopy={resolvedAddress ?? resolvedEnsName!}
+              />
             </HStack>
           </Box>
-        )}
+        ) : null}
         <Box mt="5">{children}</Box>
       </Center>
     </Layout>

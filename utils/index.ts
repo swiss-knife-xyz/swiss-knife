@@ -1,5 +1,6 @@
 import { createPublicClient, http, Hex } from "viem";
 import { mainnet } from "viem/chains";
+import { normalize } from "viem/ens";
 import { ADDRESS_KEY, CHAINLABEL_KEY, TX_KEY } from "@/data/common";
 import { ExplorerData, ExplorerType } from "@/types";
 import axios from "axios";
@@ -14,6 +15,24 @@ export const publicClient = createPublicClient({
   chain: mainnet,
   transport: http(),
 });
+
+export const getEnsAddress = async (name: string) => {
+  return await publicClient.getEnsAddress({
+    name: normalize(name),
+  });
+};
+
+export const getEnsName = async (address: string) => {
+  return await publicClient.getEnsName({
+    address: address as Hex,
+  });
+};
+
+export const getEnsAvatar = async (ensName: string) => {
+  return await publicClient.getEnsAvatar({
+    name: normalize(ensName),
+  });
+};
 
 export const generateUrl = (
   urlLayout: string,

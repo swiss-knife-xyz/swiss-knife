@@ -13,9 +13,7 @@ import {
   InputLeftElement,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { Hex } from "viem";
-import { normalize } from "viem/ens";
-import { getPath, publicClient } from "@/utils";
+import { getPath, getEnsName, getEnsAvatar } from "@/utils";
 import subdomains from "@/subdomains";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 
@@ -30,20 +28,8 @@ export const AddressParam = ({ value: address }: Params) => {
 
   const [value, setValue] = useState<string>(address);
 
-  const getEnsName = async () => {
-    return await publicClient.getEnsName({
-      address: address as Hex,
-    });
-  };
-
-  const getEnsAvatar = async () => {
-    return await publicClient.getEnsAvatar({
-      name: normalize(ensName),
-    });
-  };
-
   useEffect(() => {
-    getEnsName().then((res) => {
+    getEnsName(address).then((res) => {
       if (res) {
         setEnsName(res);
         setShowEns(true);
@@ -53,7 +39,7 @@ export const AddressParam = ({ value: address }: Params) => {
 
   useEffect(() => {
     if (ensName) {
-      getEnsAvatar().then((res) => {
+      getEnsAvatar(ensName).then((res) => {
         console.log({
           ensName,
           avatar: res,
@@ -95,17 +81,17 @@ export const AddressParam = ({ value: address }: Params) => {
             <CopyToClipboard textToCopy={value ?? ""} />
           </InputRightElement>
         </InputGroup>
-        <Button size={"sm"}>
-          <Link
-            href={`${getPath(subdomains.EXPLORER)}address/${value}`}
-            title="View on explorer"
-            isExternal
-          >
+        <Link
+          href={`${getPath(subdomains.EXPLORER)}address/${value}`}
+          title="View on explorer"
+          isExternal
+        >
+          <Button size={"sm"}>
             <HStack>
               <ExternalLinkIcon />
             </HStack>
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       </HStack>
     </Box>
   );
