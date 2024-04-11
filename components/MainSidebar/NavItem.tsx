@@ -53,11 +53,17 @@ export const NavItem = ({ subdomain }: { subdomain: Subdomain }) => {
   const pathname = usePathname();
 
   const { isOpen, onToggle } = useDisclosure();
+  const [isBaseActive, setIsBaseActive] = React.useState(false);
 
   const displayCollapse =
     subdomain.paths.length > 0 && subdomain.base !== "explorer";
 
-  const isBaseActive = pathname.includes(subdomain.base);
+  React.useEffect(() => {
+    setIsBaseActive(
+      pathname.includes(subdomain.base) ||
+        window.location.href.includes(subdomain.base)
+    );
+  }, [pathname]);
 
   return (
     <Flex mt={3} flexDir={"column"} alignItems={"flex-start"} w="100%">
@@ -85,7 +91,7 @@ export const NavItem = ({ subdomain }: { subdomain: Subdomain }) => {
           />
         </Link>
       )}
-      <Collapse in={isOpen} animateOpacity>
+      <Collapse in={isOpen} animateOpacity style={{ width: "100%" }}>
         {displayCollapse ? (
           <Box
             ml={5}
@@ -106,7 +112,9 @@ export const NavItem = ({ subdomain }: { subdomain: Subdomain }) => {
                   p={2}
                   w="100%"
                   bg={
-                    isBaseActive && pathname.includes(path)
+                    isBaseActive &&
+                    (pathname.includes(path) ||
+                      window.location.href.includes(path))
                       ? "whiteAlpha.100"
                       : ""
                   }
