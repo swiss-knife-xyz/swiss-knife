@@ -5,7 +5,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const allPaths: string[] = [];
 
   Object.keys(subdomains).map((key) => {
-    // @ts-ignore
     const subdomain = subdomains[key];
 
     allPaths.push(`https://${subdomain.base}.swiss-knife.xyz/`);

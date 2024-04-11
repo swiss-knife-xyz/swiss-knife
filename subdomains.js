@@ -1,4 +1,16 @@
 const subdomains = {
+  CALLDATA: {
+    base: "calldata",
+    paths: ["decoder"],
+  },
+  EXPLORER: {
+    base: "explorer",
+    paths: ["address", "tx"],
+  },
+  CONVERTER: {
+    base: "converter",
+    paths: ["eth", "hexadecimal", "keccak256", "padding", "address-checksum"],
+  },
   CONSTANTS: {
     base: "constants",
     paths: [],
@@ -7,33 +19,21 @@ const subdomains = {
     base: "epoch-converter",
     paths: [],
   },
-  EXPLORER: {
-    base: "explorer",
-    paths: ["address", "tx"],
-  },
-  CONVERTER: {
-    base: "converter",
-    paths: ["address-checksum", "eth", "hexadecimal", "keccak256", "padding"],
-  },
   TRANSACT: {
     base: "transact",
     paths: ["send-tx"],
-  },
-  CALLDATA: {
-    base: "calldata",
-    paths: ["decoder"],
   },
   STORAGE_SLOTS: {
     base: "storage-slots",
     paths: [],
   },
-  UNISWAP: {
-    base: "uniswap",
-    paths: ["tick-to-price"],
-  },
   CHARACTER_COUNTER: {
     base: "character-counter",
     paths: [],
+  },
+  UNISWAP: {
+    base: "uniswap",
+    paths: ["tick-to-price"],
   },
   CONTRACT_ADDRESS: {
     base: "contract-address",
