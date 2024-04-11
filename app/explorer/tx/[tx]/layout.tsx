@@ -9,7 +9,7 @@ export async function generateMetadata({
     title: `Transaction ${tx} | Swiss-Knife.xyz`,
     description:
       "Quickly view any address/ens or transaction across ALL EVM explorers, in just a click!",
-    images: "https://swiss-knife.xyz/og/explorer.png",
+    images: `https://swiss-knife.xyz/api/og?explorerType=${"tx"}&value=${tx}`,
   });
 }
 
