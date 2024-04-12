@@ -10,8 +10,10 @@ import {
   FunctionFragment,
   Interface,
   InterfaceAbi,
+  ParamType,
   TransactionDescription,
 } from "ethers";
+import { string } from "zod";
 
 export async function decodeWithAddress({
   calldata,
@@ -21,7 +23,7 @@ export async function decodeWithAddress({
   calldata: string;
   address: string;
   chainId: number;
-}) {
+}): Promise<TransactionDescription | null> {
   console.log(`Decoding calldata with address ${address} on chain ${chainId}`);
   try {
     const fetchedAbi = await fetchContractAbi({ address, chainId });
@@ -30,7 +32,7 @@ export async function decodeWithAddress({
       calldata,
     });
     if (decodedFromAbi) {
-      return [decodedFromAbi];
+      return decodedFromAbi;
     }
     console.log(
       `Failed to decode calldata with ABI for contract ${address} on chain ${chainId}, decoding with selector`
@@ -45,7 +47,11 @@ export async function decodeWithAddress({
   }
 }
 
-export async function decodeWithSelector({ calldata }: { calldata: string }) {
+export async function decodeWithSelector({
+  calldata,
+}: {
+  calldata: string;
+}): Promise<TransactionDescription | null> {
   // extracts selector from calldata
   const selector = calldata.slice(0, 10);
   console.log(`Decoding calldata with selector ${selector}`);
@@ -60,7 +66,7 @@ export async function decodeWithSelector({ calldata }: { calldata: string }) {
       functionSignatures: result,
       calldata,
     });
-    return decodedTransactions;
+    return decodedTransactions[0];
   } catch (error) {
     console.error(`Failed to find function interface for selector ${selector}`);
   }
@@ -73,6 +79,10 @@ export async function decodeWithSelector({ calldata }: { calldata: string }) {
     }
     const abiCoder = AbiCoder.defaultAbiCoder();
     const decoded = abiCoder.decode(paramTypes, calldata);
+    if (decoded.length === 1 && decoded[0] === calldata) {
+      // handling edge case where abiCoder.decode returns the same calldata
+      throw new Error("Failed to decode ABI encoded data");
+    }
     const result = {
       name: "",
       args: decoded,
@@ -87,7 +97,7 @@ export async function decodeWithSelector({ calldata }: { calldata: string }) {
         stateMutability: "nonpayable",
       }),
     } satisfies TransactionDescription;
-    return [result];
+    return result;
   } catch (error) {
     console.error(`Failed to guess ABI encoded data for calldata ${calldata}`);
     return null;
@@ -209,9 +219,162 @@ export function decodeWithABI({
 }: {
   abi: InterfaceAbi;
   calldata: string;
-}) {
+}): TransactionDescription | null {
   const functionSignature = [`function ${abi}`];
   const abiInterface = new Interface(functionSignature);
   const parsedTransaction = abiInterface.parseTransaction({ data: calldata });
   return parsedTransaction;
 }
+
+export async function decodeRecursive({
+  calldata,
+  address,
+  chainId,
+}: {
+  calldata: string;
+  address?: string;
+  chainId?: number;
+}) {
+  let parsedTransaction: TransactionDescription | null;
+  if (address && chainId) {
+    parsedTransaction = await decodeWithAddress({ calldata, address, chainId });
+  } else {
+    parsedTransaction = await decodeWithSelector({ calldata });
+  }
+
+  if (parsedTransaction) {
+    return {
+      functionName: parsedTransaction.fragment.name,
+      args: await Promise.all(
+        parsedTransaction.fragment.inputs.map(async (input, i) => {
+          const value = parsedTransaction.args[i];
+
+          return {
+            name: input.name,
+            baseType: input.baseType,
+            type: input.type,
+            value: await decodeParamTypes({
+              input,
+              value,
+              address,
+              chainId,
+            }),
+          };
+        })
+      ),
+    };
+  } else {
+    return null;
+  }
+}
+
+const decodeParamTypes = async ({
+  input,
+  value,
+  address,
+  chainId,
+}: {
+  input: ParamType;
+  value: any;
+  address?: string;
+  chainId?: number;
+}): Promise<any> => {
+  if (input.baseType.includes("int")) {
+    // covers uint
+    return BigInt(value).toString();
+  } else if (input.baseType === "address") {
+    return value;
+  } else if (input.baseType.includes("bytes")) {
+    return await decodeBytesParam({ value, address, chainId });
+  } else if (input.baseType === "tuple") {
+    return await decodeTupleParam({ input, value, address, chainId });
+  } else if (input.baseType === "array") {
+    return await decodeArrayParam({ value, input, address, chainId });
+  } else {
+    return value;
+  }
+};
+
+const decodeBytesParam = async ({
+  value,
+  address,
+  chainId,
+}: {
+  value: any;
+  address?: string;
+  chainId?: number;
+}) => {
+  if (value.length < 10) {
+    return value;
+  }
+  return {
+    value,
+    decoded: await decodeRecursive({ calldata: value, address, chainId }),
+  };
+};
+
+const decodeTupleParam = async ({
+  input,
+  value,
+  address,
+  chainId,
+}: {
+  input: ParamType;
+  value: any;
+  address?: string;
+  chainId?: number;
+}): Promise<any> => {
+  if (!input.components) {
+    return null;
+  }
+  if (input.components.length === 0) {
+    return null;
+  }
+
+  return await Promise.all(
+    input.components.map(async (component, i) => {
+      return {
+        name: component.name,
+        baseType: component.baseType,
+        type: component.type,
+        value: await decodeParamTypes({
+          input: component,
+          value: value[i],
+          address,
+          chainId,
+        }),
+      };
+    })
+  );
+};
+
+const decodeArrayParam = async ({
+  value,
+  input,
+  address,
+  chainId,
+}: {
+  value: any;
+  input: ParamType;
+  address?: string;
+  chainId?: number;
+}) => {
+  if (!Array.isArray(value) || value.length === 0) {
+    return [];
+  }
+  return await Promise.all(
+    value.map(async (v: any) => {
+      return {
+        name: input.arrayChildren!.name,
+        baseType: input.arrayChildren!.baseType,
+        type: input.arrayChildren!.type,
+        value: await decodeParamTypes({
+          input: input.arrayChildren!,
+          value: v,
+          address,
+          chainId,
+        }),
+      };
+    })
+  );
+};
