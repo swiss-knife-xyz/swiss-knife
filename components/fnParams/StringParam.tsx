@@ -2,7 +2,7 @@ import React from "react";
 import { InputField } from "../InputField";
 
 interface Params {
-  value: string;
+  value: any;
 }
 
 export const StringParam = ({ value }: Params) => {

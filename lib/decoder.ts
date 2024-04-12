@@ -245,6 +245,8 @@ export async function decodeRecursive({
   if (parsedTransaction) {
     return {
       functionName: parsedTransaction.fragment.name,
+      signature: parsedTransaction.signature,
+      rawArgs: parsedTransaction.args,
       args: await Promise.all(
         parsedTransaction.fragment.inputs.map(async (input, i) => {
           const value = parsedTransaction.args[i];
@@ -253,6 +255,7 @@ export async function decodeRecursive({
             name: input.name,
             baseType: input.baseType,
             type: input.type,
+            rawValue: value,
             value: await decodeParamTypes({
               input,
               value,
@@ -308,7 +311,7 @@ const decodeBytesParam = async ({
     return value;
   }
   return {
-    value,
+    rawValue: value,
     decoded: await decodeRecursive({ calldata: value, address, chainId }),
   };
 };
@@ -337,6 +340,7 @@ const decodeTupleParam = async ({
         name: component.name,
         baseType: component.baseType,
         type: component.type,
+        rawValue: value[i],
         value: await decodeParamTypes({
           input: component,
           value: value[i],
@@ -368,6 +372,7 @@ const decodeArrayParam = async ({
         name: input.arrayChildren!.name,
         baseType: input.arrayChildren!.baseType,
         type: input.arrayChildren!.type,
+        rawValue: v,
         value: await decodeParamTypes({
           input: input.arrayChildren!,
           value: v,

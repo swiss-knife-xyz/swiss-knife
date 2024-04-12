@@ -36,21 +36,13 @@ const BytesFormatOptions = [
 ];
 
 interface Params {
-  value: string;
+  arg: any;
 }
 
-export const BytesParam = ({ value }: Params) => {
+export const BytesParam = ({ arg }: Params) => {
   const { isOpen, onToggle } = useDisclosure();
-  const searchParams = useSearchParams();
-
-  const addressFromURL = searchParams.get("address");
-  const chainIdFromURL = searchParams.get("chainId");
 
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [fnDescription, setFnDescription] = useState<TransactionDescription>();
-  const [decodedStatus, setDecodedStatus] = useState(true);
 
   const [decimal, setDecimal] = useState<string>("0");
   const [binary, setBinary] = useState<string>("0");
@@ -58,170 +50,32 @@ export const BytesParam = ({ value }: Params) => {
 
   useEffect(() => {
     if (selectedTabIndex === 0) {
-      decodeCalldata();
     } else {
-      setDecimal(hexToBigInt(startHexWith0x(value)).toString());
+      setDecimal(hexToBigInt(startHexWith0x(arg.value.rawValue)).toString());
       setBinary(
-        bigInt(value.startsWith("0x") ? value.slice(2) : value, 16).toString(2)
+        bigInt(
+          arg.value.rawValue.startsWith("0x")
+            ? arg.value.rawValue.slice(2)
+            : arg.value.rawValue,
+          16
+        ).toString(2)
       );
-      setText(hexToString(startHexWith0x(value)));
+      setText(hexToString(startHexWith0x(arg.value.rawValue)));
     }
   }, [selectedTabIndex]);
-
-  // TODO: the following functions are duplicated from app/calldata/decoder/page.tsx and can be put into separate hooks
-  const _decodeWithABI = (_abi: any, _calldata?: string) => {
-    let decodedStatus = false;
-
-    const iface = new Interface(_abi);
-    if (!_calldata) return decodedStatus;
-
-    let res = iface.parseTransaction({ data: _calldata });
-    if (res === null) {
-      return decodedStatus;
-    }
-
-    console.log(res);
-    setFnDescription(res);
-
-    decodedStatus = true;
-    return decodedStatus;
-  };
-
-  const _getAllPossibleDecoded = (functionsArr: string[]) => {
-    let _decodedStatus = false;
-    for (var i = 0; i < functionsArr.length; i++) {
-      const fn = functionsArr[i];
-      const _abi = [`function ${fn}`];
-
-      try {
-        _decodedStatus = _decodeWithABI(_abi, value);
-      } catch {
-        continue;
-      }
-    }
-
-    setDecodedStatus(_decodedStatus);
-  };
-
-  const decodeWithSelector = async () => {
-    if (!(value.length >= 10)) {
-      setDecodedStatus(false);
-      return;
-    }
-    setIsLoading(true);
-
-    const selector = value.slice(0, 10);
-    try {
-      const results = await fetchFunctionInterface(selector);
-
-      if (results.length > 0) {
-        // can have multiple entries with the same selector
-        _getAllPossibleDecoded(results);
-      } else {
-        setDecodedStatus(false);
-      }
-
-      setIsLoading(false);
-    } catch {
-      try {
-        // try decoding the `abi.encode` custom bytes
-        const paramTypes: ParamType[] = guessAbiEncodedData(value)!;
-        console.log({ paramTypes });
-
-        const abiCoder = AbiCoder.defaultAbiCoder();
-        const decoded = abiCoder.decode(paramTypes, value);
-
-        console.log({ decoded });
-
-        const _fnDescription: TransactionDescription = {
-          name: "",
-          args: decoded,
-          signature: "abi.encode",
-          selector: "",
-          value: BigInt(0),
-          fragment: FunctionFragment.from({
-            inputs: paramTypes,
-            name: "test",
-            outputs: [],
-            type: "function",
-            stateMutability: "nonpayable",
-          }),
-        };
-
-        // handle edge-case to prevent infinite recursion of decoding
-        // for bytesN values, the decoded type also comes out to be bytesN and the decoding is not needed further
-        let stopDecode = false;
-        if (decoded.length === 1 && decoded[0] === value) {
-          stopDecode = true;
-        } else {
-          setFnDescription(_fnDescription);
-        }
-
-        if (!decoded || decoded.length === 0 || stopDecode) {
-          setDecodedStatus(false);
-        }
-      } catch (e) {
-        console.error(e);
-
-        setDecodedStatus(false);
-      }
-
-      setIsLoading(false);
-    }
-  };
-
-  const fetchContractABI = async (): Promise<any> => {
-    if (!addressFromURL && !chainIdFromURL) return {};
-
-    try {
-      const response = await axios.get(
-        `https://anyabi.xyz/api/get-abi/${chainIdFromURL}/${addressFromURL}`
-      );
-      return JSON.stringify(response.data.abi);
-    } catch {
-      return {};
-    }
-  };
-
-  const decodeCalldata = async () => {
-    setIsLoading(true);
-
-    console.log({
-      value,
-      addressFromURL,
-      chainIdFromURL,
-    });
-
-    if (addressFromURL && chainIdFromURL) {
-      try {
-        const fetchedABI = await fetchContractABI();
-        const status = _decodeWithABI(fetchedABI, value);
-
-        if (status === false) {
-          decodeWithSelector();
-        }
-      } catch {
-        decodeWithSelector();
-      }
-    } else {
-      decodeWithSelector();
-    }
-
-    setIsLoading(false);
-  };
 
   const renderConverted = () => {
     switch (selectedTabIndex) {
       case 0:
-        return fnDescription ? (
+        return arg.value.decoded ? (
           <Box minW={"80%"}>
-            {fnDescription.name ? (
+            {arg.value.decoded.functionName ? (
               <>
                 <Box>
                   <Box fontSize={"xs"} color={"whiteAlpha.600"}>
                     function
                   </Box>
-                  <Box>{fnDescription.name}</Box>
+                  <Box>{arg.value.decoded.functionName}</Box>
                 </Box>
                 <Stack
                   mt={2}
@@ -230,22 +84,20 @@ export const BytesParam = ({ value }: Params) => {
                   bg={"whiteAlpha.50"}
                   rounded={"lg"}
                 >
-                  {fnDescription.fragment.inputs.map((input, i) => {
-                    const value = fnDescription.args[i];
-                    return renderParams(i, input, value);
+                  {arg.value.decoded.args.map((ar: any, i: number) => {
+                    return renderParams(i, ar);
                   })}
                 </Stack>
               </>
             ) : (
               <Stack spacing={2}>
-                {fnDescription.fragment.inputs.map((input, i) => {
-                  const value = fnDescription.args[i];
-                  return renderParams(i, input, value);
+                {arg.value.decoded.args.map((ar: any, i: number) => {
+                  return renderParams(i, ar);
                 })}
               </Stack>
             )}
           </Box>
-        ) : decodedStatus === false ? (
+        ) : arg.value.decoded === null ? (
           <Center color="red.300">Unable to decode calldata</Center>
         ) : null;
       case 1:
@@ -282,7 +134,7 @@ export const BytesParam = ({ value }: Params) => {
         >
           {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </Text>
-        <StringParam value={value} />
+        <StringParam value={arg.value.rawValue} />
       </HStack>
       <Collapse in={isOpen} animateOpacity>
         <Stack
@@ -303,13 +155,7 @@ export const BytesParam = ({ value }: Params) => {
               setSelectedTabIndex={setSelectedTabIndex}
             />
           </Box>
-          {isLoading ? (
-            <Center mt={4}>
-              <Spinner />
-            </Center>
-          ) : (
-            renderConverted()
-          )}
+          {renderConverted()}
         </Stack>
       </Collapse>
     </Stack>

@@ -13,14 +13,13 @@ import { StringParam } from "./StringParam";
 import { renderParamTypes } from "../renderParams";
 
 interface Params {
-  input: ParamType;
-  value: any;
+  arg: any;
 }
 
-export const ArrayParam = ({ input, value }: Params) => {
+export const ArrayParam = ({ arg }: Params) => {
   const { isOpen, onToggle } = useDisclosure();
 
-  if (value.length === 0) {
+  if (arg.value.length === 0) {
     return <StringParam value={"[ ]"} />;
   } else {
     return (
@@ -34,7 +33,7 @@ export const ArrayParam = ({ input, value }: Params) => {
           >
             {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
           </Text>
-          {!isOpen && <StringParam value={value} />}
+          {!isOpen && <StringParam value={arg.rawValue} />}
         </HStack>
         <Collapse in={isOpen} animateOpacity>
           <Stack
@@ -48,11 +47,11 @@ export const ArrayParam = ({ input, value }: Params) => {
             borderColor={"whiteAlpha.300"}
             roundedBottom={"lg"}
           >
-            {value.map((v: any, i: number) => {
+            {arg.value.map((ar: any, i: number) => {
               return (
                 <Box key={i} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
                   <HStack mt={-2}>
-                    <Text fontSize={"sm"}>{input.arrayChildren!.baseType}</Text>
+                    <Text fontSize={"sm"}>{ar.baseType}</Text>
                     <Text
                       fontSize={"xs"}
                       fontWeight={"thin"}
@@ -61,7 +60,7 @@ export const ArrayParam = ({ input, value }: Params) => {
                       (index: {i})
                     </Text>
                   </HStack>
-                  <Box mt={2}>{renderParamTypes(input.arrayChildren!, v)}</Box>
+                  <Box mt={2}>{renderParamTypes(ar)}</Box>
                 </Box>
               );
             })}

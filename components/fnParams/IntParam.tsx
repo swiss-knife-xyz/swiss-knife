@@ -7,12 +7,10 @@ import { InputField } from "../InputField";
 import { DarkSelect } from "../DarkSelect";
 
 interface Params {
-  value: string | number | bigint;
+  value: any;
 }
 
 export const IntParam = ({ value }: Params) => {
-  value = BigInt(value).toString();
-
   const [selectedEthFormatOption, setSelectedEthFormatOption] =
     useState<SelectedOptionState>({
       label: ethFormatOptions[1],

@@ -18,10 +18,10 @@ import subdomains from "@/subdomains";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 
 interface Params {
-  value: string;
+  address: any;
 }
 
-export const AddressParam = ({ value: address }: Params) => {
+export const AddressParam = ({ address }: Params) => {
   const [ensName, setEnsName] = useState("");
   const [ensAvatar, setEnsAvatar] = useState("");
   const [showEns, setShowEns] = useState(false);

@@ -52,6 +52,7 @@ import TabsSelector from "@/components/Tabs/TabsSelector";
 import JsonTextArea from "@/components/JsonTextArea";
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { decodeRecursive } from "@/lib/decoder";
 
 const networkOptions: { label: string; value: number }[] = networkInfo.map(
   (n, i) => ({
@@ -85,7 +86,7 @@ const CalldataDecoder = () => {
     parseAsString.withDefault("")
   );
   // can be function calldata or abi.encode bytes
-  const [fnDescription, setFnDescription] = useState<TransactionDescription>();
+  const [result, setResult] = useState<any>();
   const [isLoading, setIsLoading] = useState(false);
   const [pasted, setPasted] = useState(false);
 
@@ -113,9 +114,9 @@ const CalldataDecoder = () => {
   useEffect(() => {
     if (calldataFromURL && addressFromURL) {
       setSelectedTabIndex(2);
-      decodeWithAddress();
+      decode({});
     } else if (calldataFromURL) {
-      decodeWithSelector();
+      decode({});
     } else if (txFromURL) {
       setSelectedTabIndex(3);
       decodeFromTx(
@@ -153,7 +154,7 @@ const CalldataDecoder = () => {
   // not using useEffect because else it loads the page with selectedTabIndex = 0 as default, and removes the address & chainId
   useUpdateEffect(() => {
     if (pasted && selectedTabIndex === 0) {
-      decodeWithSelector();
+      decode({});
       setPasted(false);
     }
 
@@ -164,237 +165,47 @@ const CalldataDecoder = () => {
     }
   }, [calldata]);
 
-  const _getAllPossibleDecoded = (
-    functionsArr: string[],
-    _calldata?: string
-  ) => {
+  useEffect(() => {
+    document.title = `${
+      result ? result.functionName : ""
+    } - Calldata Decoder | Swiss-Knife.xyz`;
+  }, [result]);
+
+  const decode = async ({
+    _calldata,
+    _address,
+    _chainId,
+  }: {
+    _calldata?: string;
+    _address?: string;
+    _chainId?: number;
+  }) => {
     const __calldata = _calldata || calldata;
 
-    let decodedSuccess = false;
-    for (var i = 0; i < functionsArr.length; i++) {
-      const fn = functionsArr[i];
-      const _abi = [`function ${fn}`];
-
-      try {
-        decodedSuccess = _decodeWithABI(_abi, __calldata);
-      } catch {
-        continue;
-      }
-    }
-
-    if (decodedSuccess) {
+    setIsLoading(true);
+    try {
+      const result = await decodeRecursive({
+        calldata: __calldata,
+        address: _address,
+        chainId: _chainId,
+      });
+      setResult(result);
       toast({
         title: "Successfully Decoded",
         status: "success",
         isClosable: true,
         duration: 1000,
       });
-    } else {
+    } catch (e: any) {
       toast({
-        title: "Can't Decode Calldata",
+        title: "Error",
+        description: e,
         status: "error",
         isClosable: true,
         duration: 4000,
       });
-    }
-  };
-
-  const fetchContractABI = async (
-    _contractAddress?: string,
-    _chainId?: number
-  ): Promise<any> => {
-    const __contractAddress = _contractAddress || contractAddress;
-    if (!__contractAddress) return {};
-
-    const __chainId =
-      _chainId ||
-      networkInfo[
-        selectedNetworkOption?.value
-          ? parseInt(selectedNetworkOption?.value.toString())
-          : 0
-      ].chainID;
-    try {
-      const response = await axios.get(
-        `https://anyabi.xyz/api/get-abi/${__chainId}/${__contractAddress}`
-      );
-      return JSON.stringify(response.data.abi);
-    } catch {
-      toast({
-        title: "Can't fetch ABI from Address",
-        status: "error",
-        isClosable: true,
-        duration: 1000,
-      });
-      return {};
-    }
-  };
-
-  const decodeWithSelector = async (_calldata?: string) => {
-    const __calldata = _calldata || calldata;
-
-    if (!__calldata) return;
-    setIsLoading(true);
-
-    const selector = __calldata.slice(0, 10);
-    try {
-      const results = await fetchFunctionInterface(selector);
-
-      if (results.length > 0) {
-        // can have multiple entries with the same selector
-        _getAllPossibleDecoded(results, _calldata);
-      } else {
-        toast({
-          title: "Can't fetch function interface",
-          status: "error",
-          isClosable: true,
-          duration: 1000,
-        });
-      }
-
+    } finally {
       setIsLoading(false);
-    } catch {
-      try {
-        // try decoding the `abi.encode` custom bytes
-        const paramTypes: ParamType[] = guessAbiEncodedData(__calldata)!;
-        console.log({ paramTypes });
-
-        const abiCoder = AbiCoder.defaultAbiCoder();
-        const decoded = abiCoder.decode(paramTypes, __calldata);
-
-        console.log({ decoded });
-
-        const _fnDescription: TransactionDescription = {
-          name: "",
-          args: decoded,
-          signature: "abi.encode",
-          selector: "",
-          value: BigInt(0),
-          fragment: FunctionFragment.from({
-            inputs: paramTypes,
-            name: "test",
-            outputs: [],
-            type: "function",
-            stateMutability: "nonpayable",
-          }),
-        };
-
-        setFnDescription(_fnDescription);
-
-        if (!decoded || decoded.length === 0) {
-          toast({
-            title: "Can't Decode Calldata",
-            status: "error",
-            isClosable: true,
-            duration: 1000,
-          });
-        }
-      } catch (e) {
-        try {
-          // try decoding just the params of the calldata
-          const encodedParams = "0x" + __calldata.slice(10);
-          const paramTypes: ParamType[] = guessAbiEncodedData(encodedParams)!;
-          console.log({ paramTypes });
-
-          const abiCoder = AbiCoder.defaultAbiCoder();
-          const decoded = abiCoder.decode(paramTypes, encodedParams);
-
-          console.log({ decoded });
-
-          const _fnDescription: TransactionDescription = {
-            name: "",
-            args: decoded,
-            signature: "abi.encode",
-            selector: "",
-            value: BigInt(0),
-            fragment: FunctionFragment.from({
-              inputs: paramTypes,
-              name: "test",
-              outputs: [],
-              type: "function",
-              stateMutability: "nonpayable",
-            }),
-          };
-
-          setFnDescription(_fnDescription);
-
-          if (!decoded || decoded.length === 0) {
-            toast({
-              title: "Can't Decode Calldata",
-              status: "error",
-              isClosable: true,
-              duration: 1000,
-            });
-          }
-        } catch (ee) {
-          console.error(e);
-          console.error(ee);
-
-          toast({
-            title: "Can't Decode Calldata",
-            status: "error",
-            isClosable: true,
-            duration: 1000,
-          });
-        }
-      }
-
-      setIsLoading(false);
-    }
-  };
-
-  const _decodeWithABI = (_abi: any, _calldata?: string) => {
-    let decodedSuccess = false;
-
-    const iface = new Interface(_abi);
-    if (!_calldata) return decodedSuccess;
-
-    let res = iface.parseTransaction({ data: _calldata });
-    if (res === null) {
-      return decodedSuccess;
-    }
-
-    console.log({ fnDescription: res });
-    setFnDescription(res);
-
-    decodedSuccess = true;
-    return decodedSuccess;
-  };
-
-  const decodeWithABI = async () => {
-    setIsLoading(true);
-    _decodeWithABI(abi, calldata);
-    setIsLoading(false);
-  };
-
-  const decodeWithAddress = async (
-    _address?: string,
-    _calldata?: string,
-    _chainId?: number
-  ) => {
-    const __calldata = _calldata || calldata;
-    if (!__calldata) return;
-
-    setIsLoading(true);
-
-    try {
-      const fetchedABI = await fetchContractABI(_address, _chainId);
-      setAbi(JSON.stringify(JSON.parse(fetchedABI), undefined, 2));
-
-      toast({
-        title: "ABI Fetched from Address",
-        status: "success",
-        isClosable: true,
-        duration: 1000,
-      });
-
-      const decodeSuccess = _decodeWithABI(fetchedABI, __calldata);
-      if (!decodeSuccess) {
-        decodeWithSelector(__calldata);
-      }
-
-      setIsLoading(false);
-    } catch {
-      decodeWithSelector(__calldata);
     }
   };
 
@@ -466,7 +277,11 @@ const CalldataDecoder = () => {
       const transaction = await publicClient.getTransaction({
         hash: txHash as Hex,
       });
-      decodeWithAddress(transaction.to!, transaction.input, chain.id);
+      decode({
+        _calldata: transaction.input,
+        _address: transaction.to!,
+        _chainId: chain.id,
+      });
     } catch {
       setIsLoading(false);
       toast({
@@ -668,11 +483,11 @@ const CalldataDecoder = () => {
                     onClick={() => {
                       switch (selectedTabIndex) {
                         case 0:
-                          return decodeWithSelector();
+                          return decode({});
                         case 1:
-                          return decodeWithABI();
+                          return decode({});
                         case 2:
-                          return decodeWithAddress();
+                          return decode({});
                         case 3:
                           return decodeFromTx();
                       }
@@ -687,22 +502,22 @@ const CalldataDecoder = () => {
           </Tr>
         </Tbody>
       </Table>
-      {fnDescription && (
+      {result && (
         <Box minW={"80%"}>
-          {fnDescription.name ? (
+          {result.functionName ? (
             <HStack>
               <Box>
                 <Box fontSize={"xs"} color={"whiteAlpha.600"}>
                   function
                 </Box>
-                <Box>{fnDescription.name}</Box>
+                <Box>{result.functionName}</Box>
               </Box>
               <Spacer />
               <CopyToClipboard
                 textToCopy={JSON.stringify(
                   {
-                    function: fnDescription.signature,
-                    params: JSON.parse(stringify(fnDescription.args)),
+                    function: result.signature,
+                    params: JSON.parse(stringify(result.rawArgs)),
                   },
                   undefined,
                   2
@@ -712,9 +527,8 @@ const CalldataDecoder = () => {
             </HStack>
           ) : null}
           <Stack mt={2} p={4} spacing={4} bg={"whiteAlpha.50"} rounded={"lg"}>
-            {fnDescription.fragment.inputs.map((input, i) => {
-              const value = fnDescription.args[i];
-              return renderParams(i, input, value);
+            {result.args.map((arg: any, i: number) => {
+              return renderParams(i, arg);
             })}
           </Stack>
         </Box>
