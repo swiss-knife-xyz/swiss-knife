@@ -249,7 +249,7 @@ export async function decodeRecursive({
       rawArgs: parsedTransaction.args,
       args: await Promise.all(
         parsedTransaction.fragment.inputs.map(async (input, i) => {
-          const value = parsedTransaction.args[i];
+          const value = parsedTransaction!.args[i];
 
           return {
             name: input.name,
