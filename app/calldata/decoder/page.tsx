@@ -21,8 +21,14 @@ import {
   Spacer,
   Text,
   useUpdateEffect,
+  Link,
+  Button,
 } from "@chakra-ui/react";
-import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ExternalLinkIcon,
+} from "@chakra-ui/icons";
 import {
   parseAsInteger,
   parseAsString,
@@ -386,18 +392,33 @@ const CalldataDecoder = () => {
           <Td colSpan={2}>
             <Center>
               <Box w="100%" maxW="30rem">
-                <InputField
-                  placeholder="etherscan link / tx hash"
-                  value={fromTxInput}
-                  onChange={(e) => setFromTxInput(e.target.value)}
-                  onPaste={(e) => {
-                    e.preventDefault();
-                    setPasted(true);
-                    const _fromTxInput = e.clipboardData.getData("text");
-                    setFromTxInput(_fromTxInput);
-                    decodeFromTx(_fromTxInput);
-                  }}
-                />
+                <HStack>
+                  <InputField
+                    placeholder="etherscan link / tx hash"
+                    value={fromTxInput}
+                    onChange={(e) => setFromTxInput(e.target.value)}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      setPasted(true);
+                      const _fromTxInput = e.clipboardData.getData("text");
+                      setFromTxInput(_fromTxInput);
+                      decodeFromTx(_fromTxInput);
+                    }}
+                  />
+                  {fromTxInput ? (
+                    <Link
+                      href={fromTxInput}
+                      title="View on explorer"
+                      isExternal
+                    >
+                      <Button size={"sm"}>
+                        <HStack>
+                          <ExternalLinkIcon />
+                        </HStack>
+                      </Button>
+                    </Link>
+                  ) : null}
+                </HStack>
               </Box>
             </Center>
           </Td>
