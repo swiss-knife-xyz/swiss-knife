@@ -69,7 +69,8 @@ export const BytesParam = ({ arg }: Params) => {
       case 0:
         return arg.value.decoded ? (
           <Box minW={"80%"}>
-            {arg.value.decoded.functionName ? (
+            {arg.value.decoded.functionName &&
+            arg.value.decoded.functionName !== "__abi_decoded__" ? (
               <>
                 <Box>
                   <Box fontSize={"xs"} color={"whiteAlpha.600"}>

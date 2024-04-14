@@ -13,7 +13,6 @@ import {
   ParamType,
   TransactionDescription,
 } from "ethers";
-import { string } from "zod";
 
 export async function decodeWithAddress({
   calldata,
@@ -58,14 +57,19 @@ export async function decodeWithSelector({
   try {
     // tries to find function signature from openchain and 4bytes
     const result = await fetchFunctionInterface({ selector });
-    if (!result || result.length === 0) {
+    if (!result) {
       return null;
     }
     // decodes calldata with all possible function signatures
     const decodedTransactions = decodeAllPossibilities({
-      functionSignatures: result,
+      functionSignatures: [result],
       calldata,
     });
+
+    if (decodedTransactions.length === 0) {
+      throw new Error("Failed to decode calldata with function signature");
+    }
+
     return decodedTransactions[0];
   } catch (error) {
     console.error(`Failed to find function interface for selector ${selector}`);
@@ -91,7 +95,7 @@ export async function decodeWithSelector({
       value: BigInt(0),
       fragment: FunctionFragment.from({
         inputs: paramTypes,
-        name: "Unknown",
+        name: "__abi_decoded__", // can't set name = "" here
         outputs: [],
         type: "function",
         stateMutability: "nonpayable",
@@ -100,6 +104,7 @@ export async function decodeWithSelector({
     return result;
   } catch (error) {
     console.error(`Failed to guess ABI encoded data for calldata ${calldata}`);
+    console.error(error);
     return null;
   }
 }
@@ -126,21 +131,21 @@ export async function fetchFunctionInterface({
   selector,
 }: {
   selector: string;
-}) {
-  const openChainDataPromise = fetchFunctionFromOpenchain({ selector });
-  const fourByteDataPromise = fetchFunctionFrom4Bytes({ selector });
-  const [openChainData, fourByteData] = await Promise.allSettled([
-    openChainDataPromise,
-    fourByteDataPromise,
-  ]);
-  const results: string[] = [];
-  if (openChainData.status === "fulfilled") {
-    openChainData.value?.forEach((v) => results.push(v.name));
+}): Promise<string | null> {
+  const openChainData = await fetchFunctionFromOpenchain({ selector });
+
+  let result: string | null = null;
+  // giving priority to openchain data because it filters spam like: `mintEfficientN2M_001Z5BWH` for 0x00000000
+  if (openChainData) {
+    result = openChainData[0].name;
+  } else {
+    const fourByteData = await fetchFunctionFrom4Bytes({ selector });
+    if (fourByteData) {
+      result = fourByteData[0].text_signature;
+    }
   }
-  if (fourByteData.status === "fulfilled") {
-    fourByteData.value?.forEach((v) => results.push(v.text_signature));
-  }
-  return results;
+
+  return result;
 }
 
 async function fetchFunctionFromOpenchain({ selector }: { selector: string }) {

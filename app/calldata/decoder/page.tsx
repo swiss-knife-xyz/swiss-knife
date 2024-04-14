@@ -28,21 +28,11 @@ import {
   parseAsString,
   useQueryState,
 } from "next-usequerystate";
-import {
-  Interface,
-  ParamType,
-  TransactionDescription,
-  AbiCoder,
-  Result,
-  FunctionFragment,
-} from "ethers";
 import { createPublicClient, http, Hex, Chain, stringify } from "viem";
-import { guessAbiEncodedData } from "@openchainxyz/abi-guesser";
-import axios from "axios";
 import { SelectedOptionState } from "@/types";
-import { fetchFunctionInterface } from "@/utils";
 import networkInfo from "@/data/networkInfo";
 import { c, chainIdToChain } from "@/data/common";
+import { startHexWith0x } from "@/utils";
 
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
@@ -167,8 +157,8 @@ const CalldataDecoder = () => {
 
   useEffect(() => {
     document.title = `${
-      result ? result.functionName : ""
-    } - Calldata Decoder | Swiss-Knife.xyz`;
+      result ? `${result.functionName} - ` : ""
+    }Calldata Decoder | Swiss-Knife.xyz`;
   }, [result]);
 
   const decode = async ({
@@ -185,7 +175,7 @@ const CalldataDecoder = () => {
     setIsLoading(true);
     try {
       const result = await decodeRecursive({
-        calldata: __calldata,
+        calldata: startHexWith0x(__calldata),
         address: _address,
         chainId: _chainId,
       });
@@ -504,7 +494,7 @@ const CalldataDecoder = () => {
       </Table>
       {result && (
         <Box minW={"80%"}>
-          {result.functionName ? (
+          {result.functionName && result.functionName !== "__abi_decoded__" ? (
             <HStack>
               <Box>
                 <Box fontSize={"xs"} color={"whiteAlpha.600"}>
