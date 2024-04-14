@@ -2,7 +2,7 @@
 
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import NLink from "next/link";
 import { ReactNode, useState, useEffect } from "react";
 import {
   Center,
@@ -17,8 +17,9 @@ import {
   Text,
   useDisclosure,
   Avatar,
+  Link,
 } from "@chakra-ui/react";
-import { SearchIcon } from "@chakra-ui/icons";
+import { ExternalLinkIcon, SearchIcon } from "@chakra-ui/icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { isAddress } from "viem";
@@ -162,7 +163,7 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
     <Layout>
       <Center flexDir={"column"} mt="5">
         <Heading fontSize={"4xl"}>
-          <Link href={getPath(subdomains.EXPLORER.base)}>Explorer</Link>
+          <NLink href={getPath(subdomains.EXPLORER.base)}>Explorer</NLink>
         </Heading>
         <HStack mt="1rem" w="60%">
           <Heading fontSize={"xl"}>Search Address or Transaction</Heading>{" "}
@@ -207,6 +208,19 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
               </Button>
             </InputRightElement>
           </InputGroup>
+          <Link
+            href={`https://etherscan.io/${
+              pathname.includes("/address/") ? "address" : "tx"
+            }/${userInput}`}
+            title="View on Etherscan"
+            isExternal
+          >
+            <Button size={"sm"}>
+              <HStack>
+                <ExternalLinkIcon />
+              </HStack>
+            </Button>
+          </Link>
           {pathname.includes("/address/") && (
             <>
               <Button onClick={openAddressBook}>
