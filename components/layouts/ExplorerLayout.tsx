@@ -259,9 +259,13 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
                   ? slicedText(resolvedAddress)
                   : resolvedEnsName}
               </Text>
-              <CopyToClipboard
-                textToCopy={resolvedAddress ?? resolvedEnsName!}
-              />
+              {resolvedAddress ? (
+                <CopyToClipboard textToCopy={resolvedAddress} />
+              ) : (
+                resolvedEnsName && (
+                  <CopyToClipboard textToCopy={resolvedEnsName} />
+                )
+              )}
             </HStack>
           </Box>
         ) : null}
