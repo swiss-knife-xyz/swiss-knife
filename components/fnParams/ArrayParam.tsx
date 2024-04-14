@@ -33,7 +33,7 @@ export const ArrayParam = ({ arg }: Params) => {
           >
             {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
           </Text>
-          {!isOpen && <StringParam value={arg.rawValue} />}
+          {!isOpen && <StringParam value={arg.rawValue.join(",")} />}
         </HStack>
         <Collapse in={isOpen} animateOpacity>
           <Stack

@@ -51,16 +51,14 @@ export const BytesParam = ({ arg }: Params) => {
   useEffect(() => {
     if (selectedTabIndex === 0) {
     } else {
-      setDecimal(hexToBigInt(startHexWith0x(arg.value.rawValue)).toString());
+      setDecimal(hexToBigInt(startHexWith0x(arg.rawValue)).toString());
       setBinary(
         bigInt(
-          arg.value.rawValue.startsWith("0x")
-            ? arg.value.rawValue.slice(2)
-            : arg.value.rawValue,
+          arg.rawValue.startsWith("0x") ? arg.rawValue.slice(2) : arg.rawValue,
           16
         ).toString(2)
       );
-      setText(hexToString(startHexWith0x(arg.value.rawValue)));
+      setText(hexToString(startHexWith0x(arg.rawValue)));
     }
   }, [selectedTabIndex]);
 
@@ -98,7 +96,7 @@ export const BytesParam = ({ arg }: Params) => {
               </Stack>
             )}
           </Box>
-        ) : arg.value.decoded === null ? (
+        ) : arg.value.decoded === undefined ? (
           <Center color="red.300">Unable to decode calldata</Center>
         ) : null;
       case 1:
@@ -135,7 +133,7 @@ export const BytesParam = ({ arg }: Params) => {
         >
           {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </Text>
-        <StringParam value={arg.value.rawValue} />
+        <StringParam value={arg.rawValue} />
       </HStack>
       <Collapse in={isOpen} animateOpacity>
         <Stack

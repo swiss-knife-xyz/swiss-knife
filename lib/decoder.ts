@@ -202,7 +202,7 @@ function decodeAllPossibilities({
     console.log(`Decoding calldata with signature ${signature}`);
     try {
       const parsedTransaction = decodeWithABI({
-        abi: signature,
+        abi: [`function ${signature}`],
         calldata,
       });
       if (parsedTransaction) {
@@ -225,8 +225,7 @@ export function decodeWithABI({
   abi: InterfaceAbi;
   calldata: string;
 }): TransactionDescription | null {
-  const functionSignature = [`function ${abi}`];
-  const abiInterface = new Interface(functionSignature);
+  const abiInterface = new Interface(abi);
   const parsedTransaction = abiInterface.parseTransaction({ data: calldata });
   return parsedTransaction;
 }
@@ -316,7 +315,6 @@ const decodeBytesParam = async ({
     return value;
   }
   return {
-    rawValue: value,
     decoded: await decodeRecursive({ calldata: value, address, chainId }),
   };
 };
