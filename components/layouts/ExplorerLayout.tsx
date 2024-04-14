@@ -64,6 +64,8 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
 
   const handleSearch = async (_userInput?: string) => {
     setIsLoading(true);
+    setResolvedEnsName(null);
+    setResolvedEnsAvatar(null);
 
     const __userInput = _userInput ?? userInput;
 
@@ -94,6 +96,8 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
         getEnsName(__userInput).then((res) => {
           if (res) {
             setResolvedEnsName(res);
+          } else {
+            setResolvedEnsName(null);
           }
         });
       } else {
@@ -186,6 +190,8 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
                 setIsLoading(true);
                 const pastedData = e.clipboardData.getData("Text");
                 setUserInput(pastedData);
+                setResolvedEnsName(null);
+                setResolvedEnsAvatar(null);
                 handleSearch(pastedData);
               }}
               onKeyDown={(e) => {
