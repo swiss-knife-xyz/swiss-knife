@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Box, Button, HStack, Link, Stack, Text } from "@chakra-ui/react";
-import { ParamType } from "ethers";
+import { isAddress } from "viem";
 import {
   UintParam,
   StringParam,
@@ -22,7 +22,12 @@ export const renderParamTypes = (arg: any) => {
   } else if (arg.baseType === "address") {
     return <AddressParam address={arg.value} />;
   } else if (arg.baseType.includes("bytes")) {
-    return <BytesParam arg={arg} />;
+    // account for cases where the bytes value is just an address
+    if (isAddress(arg.rawValue)) {
+      return <AddressParam address={arg.rawValue} />;
+    } else {
+      return <BytesParam arg={arg} />;
+    }
   } else if (arg.baseType === "tuple") {
     return <TupleParam arg={arg} />;
   } else if (arg.baseType === "array") {
@@ -43,10 +48,11 @@ export const renderParams = (key: number, arg: any) => {
             <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
               {type}
             </Box>
-            {arg.baseType === "address" ? (
+            {arg.baseType === "address" ||
+            (arg.baseType === "bytes" && isAddress(arg.rawValue)) ? (
               <Link
                 href={`${getPath(subdomains.EXPLORER.base)}address/${
-                  arg.value
+                  arg.baseType === "address" ? arg.value : arg.rawValue
                 }`}
                 title="View on explorer"
                 isExternal
@@ -82,9 +88,12 @@ export const renderParams = (key: number, arg: any) => {
               (length: {arg.value.length})
             </Box>
           ) : null}
-          {arg.baseType === "address" ? (
+          {arg.baseType === "address" ||
+          (arg.baseType === "bytes" && isAddress(arg.rawValue)) ? (
             <Link
-              href={`${getPath(subdomains.EXPLORER.base)}address/${arg.value}`}
+              href={`${getPath(subdomains.EXPLORER.base)}address/${
+                arg.baseType === "address" ? arg.value : arg.rawValue
+              }`}
               title="View on explorer"
               isExternal
             >

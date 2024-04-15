@@ -185,6 +185,7 @@ const CalldataDecoder = () => {
         address: _address,
         chainId: _chainId,
       });
+      console.log({ RESULT: res });
       setResult(res);
 
       if (res !== null) {
