@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, HStack, Stack, Text } from "@chakra-ui/react";
+import { Box, Button, HStack, Link, Stack, Text } from "@chakra-ui/react";
 import { ParamType } from "ethers";
 import {
   UintParam,
@@ -10,6 +10,9 @@ import {
   IntParam,
 } from "@/components/fnParams";
 import { BytesParam } from "./fnParams/BytesParam";
+import { getPath } from "@/utils";
+import subdomains from "@/subdomains";
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 
 export const renderParamTypes = (arg: any) => {
   if (arg.baseType.includes("uint")) {
@@ -36,9 +39,26 @@ export const renderParams = (key: number, arg: any) => {
     <Stack key={key} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
       {arg.name ? (
         <Box>
-          <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
-            {type}
-          </Box>
+          <HStack>
+            <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
+              {type}
+            </Box>
+            {arg.baseType === "address" ? (
+              <Link
+                href={`${getPath(subdomains.EXPLORER.base)}address/${
+                  arg.value
+                }`}
+                title="View on explorer"
+                isExternal
+              >
+                <Button size={"xs"}>
+                  <HStack>
+                    <ExternalLinkIcon />
+                  </HStack>
+                </Button>
+              </Link>
+            ) : null}
+          </HStack>
           <HStack>
             <Box>
               {arg.name}
@@ -58,6 +78,19 @@ export const renderParams = (key: number, arg: any) => {
             <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
               (length: {arg.value.length})
             </Box>
+          ) : null}
+          {arg.baseType === "address" ? (
+            <Link
+              href={`${getPath(subdomains.EXPLORER.base)}address/${arg.value}`}
+              title="View on explorer"
+              isExternal
+            >
+              <Button size={"xs"}>
+                <HStack>
+                  <ExternalLinkIcon />
+                </HStack>
+              </Button>
+            </Link>
           ) : null}
         </HStack>
       )}

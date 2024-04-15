@@ -81,17 +81,6 @@ export const AddressParam = ({ address }: Params) => {
             <CopyToClipboard textToCopy={value ?? ""} />
           </InputRightElement>
         </InputGroup>
-        <Link
-          href={`${getPath(subdomains.EXPLORER.base)}address/${value}`}
-          title="View on explorer"
-          isExternal
-        >
-          <Button size={"sm"}>
-            <HStack>
-              <ExternalLinkIcon />
-            </HStack>
-          </Button>
-        </Link>
       </HStack>
     </Box>
   );
