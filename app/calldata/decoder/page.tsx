@@ -180,22 +180,27 @@ const CalldataDecoder = () => {
 
     setIsLoading(true);
     try {
-      const result = await decodeRecursive({
+      const res = await decodeRecursive({
         calldata: startHexWith0x(__calldata),
         address: _address,
         chainId: _chainId,
       });
-      setResult(result);
-      toast({
-        title: "Successfully Decoded",
-        status: "success",
-        isClosable: true,
-        duration: 1000,
-      });
+      setResult(res);
+
+      if (res !== null) {
+        toast({
+          title: "Successfully Decoded",
+          status: "success",
+          isClosable: true,
+          duration: 1000,
+        });
+      } else {
+        throw new Error("Unable to decode this calldata");
+      }
     } catch (e: any) {
       toast({
         title: "Error",
-        description: e,
+        description: e.message,
         status: "error",
         isClosable: true,
         duration: 4000,

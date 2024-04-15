@@ -11,6 +11,7 @@ import {
   Interface,
   InterfaceAbi,
   ParamType,
+  Result,
   TransactionDescription,
 } from "ethers";
 
@@ -50,7 +51,7 @@ export async function decodeWithSelector({
   calldata,
 }: {
   calldata: string;
-}): Promise<TransactionDescription | null> {
+}): Promise<TransactionDescription | any | null> {
   // extracts selector from calldata
   const selector = calldata.slice(0, 10);
   console.log(`Decoding calldata with selector ${selector}`);
@@ -58,7 +59,7 @@ export async function decodeWithSelector({
     // tries to find function signature from openchain and 4bytes
     const result = await fetchFunctionInterface({ selector });
     if (!result) {
-      return null;
+      throw new Error("");
     }
     // decodes calldata with all possible function signatures
     const decodedTransactions = decodeAllPossibilities({
@@ -105,9 +106,124 @@ export async function decodeWithSelector({
   } catch (error) {
     console.error(`Failed to guess ABI encoded data for calldata ${calldata}`);
     console.error(error);
+
+    // if all fails, try to decode as SafeMultiSend
+    try {
+      console.log("Attempting to decode as SafeMultiSend transactions param");
+      return decodeSafeMultiSendTransactionsParam(calldata);
+    } catch (error) {
+      console.error(
+        `Failed to decode calldata as SafeMultiSend transactions param`
+      );
+      console.error(error);
+    }
     return null;
   }
 }
+
+// multiSend function: https://etherscan.io/address/0x40a2accbd92bca938b02010e17a5b8929b49130d#code#F1#L21
+const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
+  // remove initial "0x"
+  const transactionsParam = bytes.slice(2);
+
+  const txs: any[] = [];
+
+  for (let i = 0; i < transactionsParam.length; ) {
+    const operationEnd = i + 1 * 2; // uint8
+    const operation = transactionsParam.slice(i, operationEnd);
+
+    const toEnd = operationEnd + 20 * 2; // address
+    const to = "0x" + transactionsParam.slice(operationEnd, toEnd);
+
+    const valueEnd = toEnd + 32 * 2; // uint256
+    const value = transactionsParam.slice(toEnd, valueEnd);
+
+    const dataLengthEnd = valueEnd + 32 * 2; // uint256
+    const dataLength = transactionsParam.slice(valueEnd, dataLengthEnd);
+
+    const dataEnd = dataLengthEnd + parseInt(dataLength, 16) * 2;
+    const data = "0x" + transactionsParam.slice(dataLengthEnd, dataEnd);
+
+    txs.push([operation, to, value, dataLength, data]);
+
+    i = dataEnd;
+  }
+
+  const result = {
+    name: "",
+    args: new Result(txs),
+    signature: "transactions",
+    selector: "",
+    value: BigInt(0),
+    fragment: {
+      name: "transactions",
+      type: "function",
+      stateMutability: "nonpayable",
+      inputs: [
+        {
+          name: "",
+          type: "tuple(uint256,address,uint256,uint256,bytes)[]",
+          baseType: "array",
+          arrayLength: -1,
+          arrayChildren: {
+            name: "",
+            type: "tuple(uint256,address,uint256,uint256,bytes)",
+            baseType: "tuple",
+            components: [
+              {
+                name: "operation",
+                type: "uint256",
+                baseType: "uint256",
+                indexed: null,
+                components: null,
+                arrayLength: null,
+                arrayChildren: null,
+              },
+              {
+                name: "to",
+                type: "address",
+                indexed: null,
+                components: null,
+                arrayLength: null,
+                arrayChildren: null,
+                baseType: "address",
+              },
+              {
+                name: "value",
+                type: "uint256",
+                indexed: null,
+                components: null,
+                arrayLength: null,
+                arrayChildren: null,
+                baseType: "uint256",
+              },
+              {
+                name: "dataLength",
+                type: "uint256",
+                indexed: null,
+                components: null,
+                arrayLength: null,
+                arrayChildren: null,
+                baseType: "uint256",
+              },
+              {
+                name: "data",
+                type: "bytes",
+                indexed: null,
+                components: null,
+                arrayLength: null,
+                arrayChildren: null,
+                baseType: "bytes",
+              },
+            ],
+          },
+        },
+      ],
+      outputs: [],
+    },
+  };
+  return result;
+};
 
 export async function fetchContractAbi({
   address,
