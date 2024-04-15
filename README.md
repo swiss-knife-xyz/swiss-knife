@@ -16,6 +16,8 @@ All your EVM tools in one place: https://swiss-knife.xyz/
 6. [Epoch-Converter](https://epoch-converter.swiss-knife.xyz/): Grab unix timestamp, get timestamp `x` minutes/hours/days in the future, or convert timestamp to human-readable format.
 7. [Storage-Slots](https://storage-slots.swiss-knife.xyz/): Query EIP-1967 slots or custom storage slot value of any contract.
 8. [Uniswap](https://uniswap.swiss-knife.xyz/tick-to-price): Calculator to convert UniswapV3 tick to price for any token pair addresses.
+9. [Character Counter](https://character-counter.swiss-knife.xyz/): Count the length of the input string. Also allows to select on the input text to only get the character count for the selection.
+10. [Contract Address](https://contract-address.swiss-knife.xyz/): Determine the contract address which will get deployed by an address at a particular nonce
 
 ## Setup
 
