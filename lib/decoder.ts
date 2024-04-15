@@ -128,7 +128,8 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
 
   const txs: any[] = [];
 
-  for (let i = 0; i < transactionsParam.length; ) {
+  let i = 0;
+  for (; i < transactionsParam.length; ) {
     const operationEnd = i + 1 * 2; // uint8
     const operation = transactionsParam.slice(i, operationEnd);
 
@@ -147,6 +148,10 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
     txs.push([operation, to, value, dataLength, data]);
 
     i = dataEnd;
+  }
+  if (i !== transactionsParam.length) {
+    // for cases where the calldata is not encoded safe multisend
+    return null;
   }
 
   const result = {
