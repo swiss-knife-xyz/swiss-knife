@@ -4,6 +4,7 @@ import {
   fetchFunctionInterface4ByteSchema,
   fetchFunctionInterfaceOpenApiSchema,
 } from "@/data/schemas";
+import { startHexWith0x } from "@/utils";
 import { guessAbiEncodedData, guessFragment } from "@openchainxyz/abi-guesser";
 import {
   AbiCoder,
@@ -14,6 +15,7 @@ import {
   Result,
   TransactionDescription,
 } from "ethers";
+import { hexToBigInt } from "viem";
 
 export async function decodeWithAddress({
   calldata,
@@ -166,7 +168,9 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
     const to = "0x" + transactionsParam.slice(operationEnd, toEnd);
 
     const valueEnd = toEnd + 32 * 2; // uint256
-    const value = transactionsParam.slice(toEnd, valueEnd);
+    const value = hexToBigInt(
+      startHexWith0x(transactionsParam.slice(toEnd, valueEnd))
+    ).toString();
 
     const dataLengthEnd = valueEnd + 32 * 2; // uint256
     const dataLength = transactionsParam.slice(valueEnd, dataLengthEnd);
@@ -178,6 +182,7 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
 
     i = dataEnd;
   }
+  console.log({ txs });
   if (i !== transactionsParam.length) {
     // for cases where the calldata is not encoded safe multisend
     return null;
