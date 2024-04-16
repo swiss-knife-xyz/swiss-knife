@@ -4,7 +4,7 @@ import {
   fetchFunctionInterface4ByteSchema,
   fetchFunctionInterfaceOpenApiSchema,
 } from "@/data/schemas";
-import { guessAbiEncodedData } from "@openchainxyz/abi-guesser";
+import { guessAbiEncodedData, guessFragment } from "@openchainxyz/abi-guesser";
 import {
   AbiCoder,
   FunctionFragment,
@@ -74,6 +74,35 @@ export async function decodeWithSelector({
     return decodedTransactions[0];
   } catch (error) {
     console.error(`Failed to find function interface for selector ${selector}`);
+  }
+
+  try {
+    console.log("Attempting to guess function fragment");
+    const frag = guessFragment(calldata);
+    if (!frag) {
+      throw new Error("Failed to guess function fragment");
+    }
+    const paramTypes = frag.format();
+    const fragment = FunctionFragment.from(paramTypes);
+    const abiCoder = AbiCoder.defaultAbiCoder();
+    const decoded = abiCoder.decode(
+      fragment.inputs,
+      "0x" + calldata.substring(10)
+    );
+    const result = {
+      name: "",
+      args: decoded,
+      signature: "abi.encode",
+      selector: selector,
+      value: BigInt(0),
+      fragment,
+    } satisfies TransactionDescription;
+    return result;
+  } catch (error) {
+    console.error(
+      `Failed to decode using guessed function fragment for calldata ${calldata}`
+    );
+    console.error(error);
   }
 
   try {
