@@ -79,6 +79,16 @@ export async function decodeWithSelector({
   }
 
   try {
+    console.log("Attempting to decode as SafeMultiSend transactions param");
+    return decodeSafeMultiSendTransactionsParam(calldata);
+  } catch (error) {
+    console.error(
+      `Failed to decode calldata as SafeMultiSend transactions param`
+    );
+    console.error(error);
+  }
+
+  try {
     console.log("Attempting to guess function fragment");
     const frag = guessFragment(calldata);
     if (!frag) {
@@ -138,16 +148,6 @@ export async function decodeWithSelector({
     console.error(`Failed to guess ABI encoded data for calldata ${calldata}`);
     console.error(error);
 
-    // if all fails, try to decode as SafeMultiSend
-    try {
-      console.log("Attempting to decode as SafeMultiSend transactions param");
-      return decodeSafeMultiSendTransactionsParam(calldata);
-    } catch (error) {
-      console.error(
-        `Failed to decode calldata as SafeMultiSend transactions param`
-      );
-      console.error(error);
-    }
     return null;
   }
 }
@@ -174,18 +174,23 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
 
     const dataLengthEnd = valueEnd + 32 * 2; // uint256
     const dataLength = transactionsParam.slice(valueEnd, dataLengthEnd);
+    const dataLengthFormatted = hexToBigInt(
+      startHexWith0x(dataLength)
+    ).toString();
 
     const dataEnd = dataLengthEnd + parseInt(dataLength, 16) * 2;
     const data = "0x" + transactionsParam.slice(dataLengthEnd, dataEnd);
 
-    txs.push([operation, to, value, dataLength, data]);
+    txs.push([operation, to, value, dataLengthFormatted, data]);
 
     i = dataEnd;
   }
   console.log({ txs });
   if (i !== transactionsParam.length) {
     // for cases where the calldata is not encoded safe multisend
-    return null;
+    throw new Error(
+      `Failed to decode calldata as SafeMultiSend transactions param`
+    );
   }
 
   const result = {
