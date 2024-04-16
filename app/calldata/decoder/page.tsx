@@ -164,7 +164,7 @@ const CalldataDecoder = () => {
   useEffect(() => {
     document.title = `${
       result ? `${result.functionName} - ` : ""
-    }Calldata Decoder | Swiss-Knife.xyz`;
+    }Universal Calldata Decoder | Swiss-Knife.xyz`;
   }, [result]);
 
   const decode = async ({
@@ -465,7 +465,9 @@ const CalldataDecoder = () => {
 
   return (
     <>
-      <Heading color={"custom.pale"}>Calldata Decoder</Heading>
+      <Heading color={"custom.pale"} fontSize={"4xl"}>
+        Universal Calldata Decoder
+      </Heading>
       <TabsSelector
         tabs={["No ABI", "from ABI", "from Address", "from Tx"]}
         selectedTabIndex={selectedTabIndex}
