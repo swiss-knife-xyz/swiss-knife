@@ -179,13 +179,14 @@ const CalldataDecoder = () => {
     const __calldata = _calldata || calldata;
 
     setIsLoading(true);
+    console.log("DECODING...");
     try {
       const res = await decodeRecursive({
         calldata: startHexWith0x(__calldata),
         address: _address,
         chainId: _chainId,
       });
-      console.log({ RESULT: res });
+      console.log({ DECODED_RESULT: res });
       setResult(res);
 
       if (res !== null) {
@@ -199,6 +200,7 @@ const CalldataDecoder = () => {
         throw new Error("Unable to decode this calldata");
       }
     } catch (e: any) {
+      console.log("Error Decoding");
       toast({
         title: "Error",
         description: e.message,

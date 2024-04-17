@@ -54,18 +54,45 @@ export async function decodeWithSelector({
 }: {
   calldata: string;
 }): Promise<TransactionDescription | any | null> {
-  // extracts selector from calldata
+  try {
+    return await _decodeWithSelector(calldata);
+  } catch {
+    try {
+      return decodeSafeMultiSendTransactionsParam(calldata);
+    } catch {
+      try {
+        return decodeUniversalRouterPath(calldata);
+      } catch {
+        try {
+          return decodeABIEncodedData(calldata);
+        } catch {
+          try {
+            return decodeUniversalRouterCommands(calldata);
+          } catch {
+            try {
+              return decodeByGuessingFunctionFragment(calldata);
+            } catch {
+              return null;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+const _decodeWithSelector = async (calldata: string) => {
   const selector = calldata.slice(0, 10);
   console.log(`Decoding calldata with selector ${selector}`);
   try {
     // tries to find function signature from openchain and 4bytes
-    const result = await fetchFunctionInterface({ selector });
-    if (!result) {
+    const fnInterface = await fetchFunctionInterface({ selector });
+    if (!fnInterface) {
       throw new Error("");
     }
     // decodes calldata with all possible function signatures
     const decodedTransactions = decodeAllPossibilities({
-      functionSignatures: [result],
+      functionSignatures: [fnInterface],
       calldata,
     });
 
@@ -73,21 +100,164 @@ export async function decodeWithSelector({
       throw new Error("Failed to decode calldata with function signature");
     }
 
-    return decodedTransactions[0];
+    const result = decodedTransactions[0];
+    console.log({ _decodeWithSelector: result });
+    return result;
   } catch (error) {
-    console.error(`Failed to find function interface for selector ${selector}`);
+    throw new Error(
+      `Failed to find function interface for selector ${selector}`
+    );
   }
+};
+
+// multiSend function: https://etherscan.io/address/0x40a2accbd92bca938b02010e17a5b8929b49130d#code#F1#L21
+const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
+  console.log("Attempting to decode as SafeMultiSend transactions param");
 
   try {
-    console.log("Attempting to decode as SafeMultiSend transactions param");
-    return decodeSafeMultiSendTransactionsParam(calldata);
+    // remove initial "0x"
+    const transactionsParam = bytes.slice(2);
+
+    const txs: any[] = [];
+
+    let i = 0;
+    for (; i < transactionsParam.length; ) {
+      const operationEnd = i + 1 * 2; // uint8
+      const operation = transactionsParam.slice(i, operationEnd);
+      if (operation === "")
+        throw new Error(
+          "Failed to decode operation in SafeMultiSend transactions param"
+        );
+
+      const toEnd = operationEnd + 20 * 2; // address
+      const _to = transactionsParam.slice(operationEnd, toEnd);
+      if (_to === "")
+        throw new Error(
+          "Failed to decode to in SafeMultiSend transactions param"
+        );
+      const to = "0x" + _to;
+
+      const valueEnd = toEnd + 32 * 2; // uint256
+      const _value = transactionsParam.slice(toEnd, valueEnd);
+      if (_value === "")
+        throw new Error(
+          "Failed to decode value in SafeMultiSend transactions param"
+        );
+      const value = hexToBigInt(startHexWith0x(_value)).toString();
+
+      const dataLengthEnd = valueEnd + 32 * 2; // uint256
+      const _dataLength = transactionsParam.slice(valueEnd, dataLengthEnd);
+      if (_dataLength === "")
+        throw new Error(
+          "Failed to decode dataLength in SafeMultiSend transactions param"
+        );
+      const dataLength = hexToBigInt(startHexWith0x(_dataLength)).toString();
+
+      const dataEnd = dataLengthEnd + parseInt(dataLength) * 2;
+      const _data = transactionsParam.slice(dataLengthEnd, dataEnd);
+      if (parseInt(dataLength) !== 0 && _data === "")
+        throw new Error(
+          "Failed to decode data in SafeMultiSend transactions param"
+        );
+      const data = "0x" + _data;
+
+      txs.push([operation, to, value, dataLength, data]);
+
+      i = dataEnd;
+    }
+    console.log({ txs, i, transactionsParamLength: transactionsParam.length });
+    if (i == 0 || i !== transactionsParam.length) {
+      // for cases where the calldata is not encoded safe multisend
+      throw new Error(
+        `Failed to decode calldata as SafeMultiSend transactions param`
+      );
+    }
+
+    const result = {
+      name: "",
+      args: new Result(txs),
+      signature: "transactions(tuple(uint256,address,uint256,uint256,bytes)[])",
+      selector: "",
+      value: BigInt(0),
+      fragment: {
+        name: "transactions",
+        type: "function",
+        stateMutability: "nonpayable",
+        inputs: [
+          {
+            name: "",
+            type: "tuple(uint256,address,uint256,uint256,bytes)[]",
+            baseType: "array",
+            arrayLength: -1,
+            arrayChildren: {
+              name: "",
+              type: "tuple(uint256,address,uint256,uint256,bytes)",
+              baseType: "tuple",
+              components: [
+                {
+                  name: "operation",
+                  type: "uint256",
+                  baseType: "uint256",
+                  indexed: null,
+                  components: null,
+                  arrayLength: null,
+                  arrayChildren: null,
+                },
+                {
+                  name: "to",
+                  type: "address",
+                  indexed: null,
+                  components: null,
+                  arrayLength: null,
+                  arrayChildren: null,
+                  baseType: "address",
+                },
+                {
+                  name: "value",
+                  type: "uint256",
+                  indexed: null,
+                  components: null,
+                  arrayLength: null,
+                  arrayChildren: null,
+                  baseType: "uint256",
+                },
+                {
+                  name: "dataLength",
+                  type: "uint256",
+                  indexed: null,
+                  components: null,
+                  arrayLength: null,
+                  arrayChildren: null,
+                  baseType: "uint256",
+                },
+                {
+                  name: "data",
+                  type: "bytes",
+                  indexed: null,
+                  components: null,
+                  arrayLength: null,
+                  arrayChildren: null,
+                  baseType: "bytes",
+                },
+              ],
+            },
+          },
+        ],
+        outputs: [],
+      },
+    };
+    console.log({ decodeSafeMultiSendTransactionsParam: result });
+    return result;
   } catch (error) {
-    console.error(
+    console.error(error);
+    throw new Error(
       `Failed to decode calldata as SafeMultiSend transactions param`
     );
-    console.error(error);
   }
+};
 
+const decodeByGuessingFunctionFragment = (calldata: string) => {
+  const selector = calldata.slice(0, 10);
   try {
     console.log("Attempting to guess function fragment");
     const frag = guessFragment(calldata);
@@ -104,18 +274,25 @@ export async function decodeWithSelector({
     const result = {
       name: "",
       args: decoded,
-      signature: "abi.encode",
+      signature: `abi.encode${fragment.inputs
+        .map((input) => input.type)
+        .join(",")}`,
       selector: selector,
       value: BigInt(0),
       fragment,
     } satisfies TransactionDescription;
+    console.log({ decodeByGuessingFunctionFragment: result });
     return result;
   } catch (error) {
-    console.error(
+    console.error(error);
+    throw new Error(
       `Failed to decode using guessed function fragment for calldata ${calldata}`
     );
-    console.error(error);
   }
+};
+
+const decodeABIEncodedData = (calldata: string) => {
+  const selector = calldata.slice(0, 10);
 
   try {
     console.log("Attempting to guess ABI encoded data");
@@ -143,130 +320,178 @@ export async function decodeWithSelector({
         stateMutability: "nonpayable",
       }),
     } satisfies TransactionDescription;
+    console.log({ decodeABIEncodedData: result });
     return result;
   } catch (error) {
-    console.error(`Failed to guess ABI encoded data for calldata ${calldata}`);
     console.error(error);
-
-    return null;
-  }
-}
-
-// multiSend function: https://etherscan.io/address/0x40a2accbd92bca938b02010e17a5b8929b49130d#code#F1#L21
-const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
-  // remove initial "0x"
-  const transactionsParam = bytes.slice(2);
-
-  const txs: any[] = [];
-
-  let i = 0;
-  for (; i < transactionsParam.length; ) {
-    const operationEnd = i + 1 * 2; // uint8
-    const operation = transactionsParam.slice(i, operationEnd);
-
-    const toEnd = operationEnd + 20 * 2; // address
-    const to = "0x" + transactionsParam.slice(operationEnd, toEnd);
-
-    const valueEnd = toEnd + 32 * 2; // uint256
-    const value = hexToBigInt(
-      startHexWith0x(transactionsParam.slice(toEnd, valueEnd))
-    ).toString();
-
-    const dataLengthEnd = valueEnd + 32 * 2; // uint256
-    const dataLength = transactionsParam.slice(valueEnd, dataLengthEnd);
-    const dataLengthFormatted = hexToBigInt(
-      startHexWith0x(dataLength)
-    ).toString();
-
-    const dataEnd = dataLengthEnd + parseInt(dataLength, 16) * 2;
-    const data = "0x" + transactionsParam.slice(dataLengthEnd, dataEnd);
-
-    txs.push([operation, to, value, dataLengthFormatted, data]);
-
-    i = dataEnd;
-  }
-  console.log({ txs });
-  if (i !== transactionsParam.length) {
-    // for cases where the calldata is not encoded safe multisend
     throw new Error(
-      `Failed to decode calldata as SafeMultiSend transactions param`
+      `Failed to guess ABI encoded data for calldata ${calldata}`
     );
   }
+};
 
-  const result = {
-    name: "",
-    args: new Result(txs),
-    signature: "transactions",
-    selector: "",
-    value: BigInt(0),
-    fragment: {
-      name: "transactions",
-      type: "function",
-      stateMutability: "nonpayable",
-      inputs: [
-        {
-          name: "",
-          type: "tuple(uint256,address,uint256,uint256,bytes)[]",
-          baseType: "array",
-          arrayLength: -1,
-          arrayChildren: {
-            name: "",
-            type: "tuple(uint256,address,uint256,uint256,bytes)",
-            baseType: "tuple",
-            components: [
-              {
-                name: "operation",
-                type: "uint256",
-                baseType: "uint256",
-                indexed: null,
-                components: null,
-                arrayLength: null,
-                arrayChildren: null,
-              },
-              {
-                name: "to",
-                type: "address",
-                indexed: null,
-                components: null,
-                arrayLength: null,
-                arrayChildren: null,
-                baseType: "address",
-              },
-              {
-                name: "value",
-                type: "uint256",
-                indexed: null,
-                components: null,
-                arrayLength: null,
-                arrayChildren: null,
-                baseType: "uint256",
-              },
-              {
-                name: "dataLength",
-                type: "uint256",
-                indexed: null,
-                components: null,
-                arrayLength: null,
-                arrayChildren: null,
-                baseType: "uint256",
-              },
-              {
-                name: "data",
-                type: "bytes",
-                indexed: null,
-                components: null,
-                arrayLength: null,
-                arrayChildren: null,
-                baseType: "bytes",
-              },
-            ],
+const decodeUniversalRouterPath = (calldata: string) => {
+  try {
+    // remove initial "0x"
+    const path = calldata.slice(2);
+
+    const tokenAEnd = 20 * 2; // address
+    const tokenA = "0x" + path.slice(2, tokenAEnd);
+
+    const feeEnd = tokenAEnd + 3 * 2; // uint24
+    const fee = hexToBigInt(
+      startHexWith0x(path.slice(tokenAEnd, feeEnd))
+    ).toString();
+
+    const tokenBEnd = feeEnd + 20 * 2; // address
+    const tokenB = "0x" + path.slice(feeEnd, tokenBEnd);
+
+    if (tokenBEnd !== path.length) {
+      throw new Error("Failed to decode calldata as UniversalRouter path");
+    }
+
+    const result = {
+      name: "",
+      args: new Result(tokenA, fee, tokenB),
+      signature: "path(address,uint24,address)",
+      selector: "",
+      fragment: {
+        name: "path",
+        type: "function",
+        stateMutability: "nonpayable",
+        inputs: [
+          {
+            name: "tokenA",
+            type: "address",
+            indexed: null,
+            components: null,
+            arrayLength: null,
+            arrayChildren: null,
+            baseType: "address",
+            _isParamType: true,
           },
-        },
-      ],
-      outputs: [],
-    },
+          {
+            name: "fee",
+            type: "uint24",
+            indexed: null,
+            components: null,
+            arrayLength: null,
+            arrayChildren: null,
+            baseType: "uint24",
+            _isParamType: true,
+          },
+          {
+            name: "tokenB",
+            type: "address",
+            indexed: null,
+            components: null,
+            arrayLength: null,
+            arrayChildren: null,
+            baseType: "address",
+            _isParamType: true,
+          },
+        ],
+        outputs: [],
+      },
+    };
+    console.log({ decodeUniversalRouterPath: result });
+    return result;
+  } catch (error) {
+    console.error(error);
+    throw new Error(`Failed to decode calldata as UniversalRouter path`);
+  }
+};
+
+const decodeUniversalRouterCommands = (calldata: string) => {
+  const commandByteToString: { [command: string]: string } = {
+    "00": "V3_SWAP_EXACT_IN",
+    "01": "V3_SWAP_EXACT_OUT",
+    "02": "PERMIT2_TRANSFER_FROM",
+    "03": "PERMIT2_PERMIT_BATCH",
+    "04": "SWEEP",
+    "05": "TRANSFER",
+    "06": "PAY_PORTION",
+    "08": "V2_SWAP_EXACT_IN",
+    "09": "V2_SWAP_EXACT_OUT",
+    "0a": "PERMIT2_PERMIT",
+    "0b": "WRAP_ETH",
+    "0c": "UNWRAP_WETH",
+    "0d": "PERMIT2_TRANSFER_FROM_BATCH",
+    "0e": "BALANCE_CHECK_ERC20",
+    "10": "SEAPORT_V1_5",
+    "11": "LOOKS_RARE_V2",
+    "12": "NFTX",
+    "13": "CRYPTOPUNKS",
+    "15": "OWNER_CHECK_721",
+    "16": "OWNER_CHECK_1155",
+    "17": "SWEEP_ERC721",
+    "18": "X2Y2_721",
+    "19": "SUDOSWAP",
+    "1a": "NFT20",
+    "1b": "X2Y2_1155",
+    "1c": "FOUNDATION",
+    "1d": "SWEEP_ERC1155",
+    "1e": "ELEMENT_MARKET",
+    "20": "SEAPORT_V1_4",
+    "21": "EXECUTE_SUB_PLAN",
+    "22": "APPROVE_ERC20",
   };
-  return result;
+
+  try {
+    // remove initial "0x"
+    const commandsBytes = calldata.slice(2);
+
+    let commands: string[] = [];
+    for (let i = 0; i < commandsBytes.length; i += 2) {
+      const command = commandByteToString[commandsBytes.slice(i, i + 2)];
+      if (command === undefined) {
+        throw new Error(
+          "Failed to decode calldata as UniversalRouter commands"
+        );
+      }
+      commands.push(command);
+    }
+
+    const result = {
+      name: "",
+      args: new Result(commands),
+      signature: "commands(string[])",
+      selector: "",
+      value: BigInt(0),
+      fragment: {
+        name: "",
+        type: "function",
+        stateMutability: "nonpayable",
+        inputs: [
+          {
+            name: "commands",
+            type: "string[]",
+            indexed: null,
+            components: null,
+            arrayLength: -1,
+            arrayChildren: {
+              name: null,
+              type: "string",
+              indexed: null,
+              components: null,
+              arrayLength: null,
+              arrayChildren: null,
+              baseType: "string",
+              _isParamType: true,
+            },
+            baseType: "array",
+            _isParamType: true,
+          },
+        ],
+        outputs: [],
+      },
+    };
+    console.log({ decodeUniversalRouterCommands: result });
+    return result;
+  } catch (error) {
+    console.error(error);
+    throw new Error(`Failed to decode calldata as UniversalRouter path`);
+  }
 };
 
 export async function fetchContractAbi({
@@ -406,6 +631,8 @@ export async function decodeRecursive({
     parsedTransaction = await decodeWithSelector({ calldata });
   }
 
+  console.log({ parsedTransaction });
+
   if (parsedTransaction) {
     return {
       functionName: parsedTransaction.fragment.name,
@@ -471,9 +698,6 @@ const decodeBytesParam = async ({
   address?: string;
   chainId?: number;
 }) => {
-  if (value.length < 10) {
-    return value;
-  }
   return {
     decoded: await decodeRecursive({ calldata: value, address, chainId }),
   };
