@@ -67,7 +67,7 @@ export const POST = async (request: Request) => {
           }
 
           return (
-            tx
+            tx!
               .split("/")
               .filter(
                 (urlPart) =>
