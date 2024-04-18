@@ -619,13 +619,17 @@ export async function decodeRecursive({
   calldata,
   address,
   chainId,
+  abi,
 }: {
   calldata: string;
   address?: string;
   chainId?: number;
+  abi?: any;
 }) {
   let parsedTransaction: TransactionDescription | null;
-  if (address && chainId) {
+  if (abi) {
+    parsedTransaction = decodeWithABI({ abi, calldata });
+  } else if (address && chainId) {
     parsedTransaction = await decodeWithAddress({ calldata, address, chainId });
   } else {
     parsedTransaction = await decodeWithSelector({ calldata });

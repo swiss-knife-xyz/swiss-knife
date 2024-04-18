@@ -171,10 +171,12 @@ const CalldataDecoder = () => {
     _calldata,
     _address,
     _chainId,
+    _abi,
   }: {
     _calldata?: string;
     _address?: string;
     _chainId?: number;
+    _abi?: any;
   }) => {
     const __calldata = _calldata || calldata;
 
@@ -185,6 +187,7 @@ const CalldataDecoder = () => {
         calldata: startHexWith0x(__calldata),
         address: _address,
         chainId: _chainId,
+        abi: _abi,
       });
       console.log({ DECODED_RESULT: res });
       setResult(res);
@@ -506,7 +509,7 @@ const CalldataDecoder = () => {
                         case 0:
                           return decode({});
                         case 1:
-                          return decode({});
+                          return decode({ _abi: abi });
                         case 2:
                           return decode({});
                         case 3:
