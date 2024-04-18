@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const calldataDecoderRequestSchema = z.object({
-  calldata: z.string().min(10, "Calldata must be at least 10 character long"),
+  calldata: z.string(),
   address: z
     .string()
     .length(42, "Address must be 42 characters long")
@@ -9,8 +9,22 @@ export const calldataDecoderRequestSchema = z.object({
   chainId: z.number().int().positive().optional(),
 });
 
+export const calldataDecoderRecursiveRequestSchema = z.object({
+  calldata: z.string().optional(),
+  address: z
+    .string()
+    .length(42, "Address must be 42 characters long")
+    .optional(),
+  chainId: z.number().int().positive().optional(),
+  tx: z.string().optional(),
+});
+
 export type CalldataDecoderRequest = z.infer<
   typeof calldataDecoderRequestSchema
+>;
+
+export type CalldataDecoderRecursiveRequest = z.infer<
+  typeof calldataDecoderRecursiveRequestSchema
 >;
 
 export const calldataDecoderResponseSchema = z.object({
@@ -43,20 +57,24 @@ export const fetchFunctionInterfaceOpenApiSchema = z.object({
   ok: z.boolean(),
   result: z.object({
     function: z.record(
-      z.array(
-        z.object({
-          name: z.string(),
-          filtered: z.boolean(),
-        })
-      ).optional()
+      z
+        .array(
+          z.object({
+            name: z.string(),
+            filtered: z.boolean(),
+          })
+        )
+        .optional()
     ),
     event: z.record(
-      z.array(
-        z.object({
-          name: z.string(),
-          filtered: z.boolean(),
-        })
-      ).optional()
+      z
+        .array(
+          z.object({
+            name: z.string(),
+            filtered: z.boolean(),
+          })
+        )
+        .optional()
     ),
   }),
 });

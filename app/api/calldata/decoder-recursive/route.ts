@@ -1,16 +1,17 @@
+import { c, chainIdToChain } from "@/data/common";
 import {
-  CalldataDecoderRequest,
-  calldataDecoderRequestSchema,
+  CalldataDecoderRecursiveRequest,
+  calldataDecoderRecursiveRequestSchema,
 } from "@/data/schemas";
 import { decodeRecursive } from "@/lib/decoder";
-import { stringify } from "viem";
+import { Chain, Hex, createPublicClient, http, stringify } from "viem";
 
 export const POST = async (request: Request) => {
   // validate request body
-  let body: CalldataDecoderRequest;
+  let body: CalldataDecoderRecursiveRequest;
   try {
     const requestBody = await request.json();
-    body = calldataDecoderRequestSchema.parse(requestBody);
+    body = calldataDecoderRecursiveRequestSchema.parse(requestBody);
   } catch (error) {
     return new Response(
       JSON.stringify({
@@ -25,10 +26,93 @@ export const POST = async (request: Request) => {
     );
   }
 
+  let calldata = body.calldata;
+  let address = body.address;
+  let chainId = body.chainId;
+  let tx = body.tx;
+
+  let chain: Chain | undefined;
+
+  try {
+    if (tx) {
+      let txHash: string;
+      if (/^0x([A-Fa-f0-9]{64})$/.test(tx)) {
+        txHash = tx;
+
+        if (!chainId) {
+          // if tx hash is provided, but chainId is not, then show select network
+          throw new Error(
+            "chainId is required when transaction hash is provided"
+          );
+        }
+      } else {
+        txHash = tx.split("/").pop()!;
+
+        const chainKey = Object.keys(c).filter((chainKey) => {
+          const chain = c[chainKey as keyof typeof c] as Chain;
+
+          // using "null" instead of "" because __fromTxInput.split("/") contains ""
+          let explorerDomainDefault = "null";
+          let explorerDomainEtherscan = "null";
+          if (chain.blockExplorers) {
+            explorerDomainDefault = chain.blockExplorers.default.url
+              .split("//")
+              .pop()!;
+
+            if (chain.blockExplorers.etherscan) {
+              explorerDomainEtherscan = chain.blockExplorers.etherscan.url
+                .split("//")
+                .pop()!;
+            }
+          }
+
+          return (
+            tx
+              .split("/")
+              .filter(
+                (urlPart) =>
+                  urlPart.toLowerCase() ===
+                    explorerDomainDefault.toLowerCase() ||
+                  urlPart.toLowerCase() ===
+                    explorerDomainEtherscan.toLowerCase()
+              ).length > 0
+          );
+        })[0];
+        chain = c[chainKey as keyof typeof c];
+      }
+
+      const publicClient = createPublicClient({
+        chain,
+        transport: http(),
+      });
+      const transaction = await publicClient.getTransaction({
+        hash: txHash as Hex,
+      });
+
+      calldata = transaction.input;
+      address = transaction.to!;
+      chainId = chain ? chain.id : undefined;
+    } else if (!calldata) {
+      throw new Error("calldata or tx is required");
+    }
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  }
+
   const decoded = await decodeRecursive({
-    calldata: body.calldata,
-    address: body.address,
-    chainId: body.chainId,
+    calldata,
+    address,
+    chainId,
   });
 
   if (!decoded) {
