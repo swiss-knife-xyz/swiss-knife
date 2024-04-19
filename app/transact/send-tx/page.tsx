@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Container,
   FormControl,
@@ -17,6 +17,14 @@ import {
   useToast,
   ToastId,
   Link,
+  Button,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  Stack,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
@@ -24,7 +32,7 @@ import {
   parseAsString,
   useQueryState,
 } from "next-usequerystate";
-import { Hex, parseEther, formatEther, isAddress } from "viem";
+import { parseEther, formatEther, isAddress, stringify } from "viem";
 import { normalize } from "viem/ens";
 import { useNetwork, useWalletClient, useSwitchNetwork } from "wagmi";
 import { waitForTransaction } from "wagmi/actions";
@@ -34,8 +42,9 @@ import { SelectedOptionState } from "@/types";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { ethFormatOptions, publicClient, startHexWith0x } from "@/utils";
 import { DarkButton } from "@/components/DarkButton";
-import { parse } from "path";
 import { chainIdToChain } from "@/data/common";
+import { decodeRecursive } from "@/lib/decoder";
+import { renderParams } from "@/components/renderParams";
 
 const SendTx = () => {
   const { data: walletClient } = useWalletClient();
@@ -77,6 +86,10 @@ const SendTx = () => {
 
   const [chainIdMismatch, setChainIdMismatch] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [isDecodeModalOpen, setIsDecodeModalOpen] = useState(false);
+  const [isDecoding, setIsDecoding] = useState(false);
+  const [decoded, setDecoded] = useState<any>();
 
   useEffect(() => {
     if (
@@ -276,6 +289,37 @@ const SendTx = () => {
     }
   };
 
+  const decode = useCallback(async () => {
+    setIsDecoding(true);
+    console.log("DECODING...");
+    try {
+      const res = await decodeRecursive({
+        calldata: startHexWith0x(calldata),
+        address: to,
+        chainId: chainId,
+      });
+      console.log({ DECODED_RESULT: res });
+      setDecoded(res);
+
+      if (res !== null) {
+        setIsDecodeModalOpen(true);
+      } else {
+        throw new Error("Unable to decode this calldata");
+      }
+    } catch (e: any) {
+      console.log("Error Decoding");
+      toast({
+        title: "Error",
+        description: e.message,
+        status: "error",
+        isClosable: true,
+        duration: 4000,
+      });
+    } finally {
+      setIsDecoding(false);
+    }
+  }, [calldata, to, chainId]);
+
   return (
     <>
       <Heading mb="2rem" color={"custom.pale"}>
@@ -298,7 +342,81 @@ const SendTx = () => {
               <HStack>
                 <Text>Data</Text>
                 <Spacer />
-                <CopyToClipboard textToCopy={calldata ?? ""} size={"xs"} />
+                <HStack>
+                  <Button
+                    size={"sm"}
+                    onClick={() => decode()}
+                    isLoading={isDecoding}
+                  >
+                    Decode
+                  </Button>
+                  <CopyToClipboard textToCopy={calldata ?? ""} size={"xs"} />
+                </HStack>
+                <Modal
+                  isOpen={isDecodeModalOpen}
+                  onClose={() => setIsDecodeModalOpen(false)}
+                  isCentered
+                >
+                  <ModalOverlay
+                    bg="none"
+                    backdropFilter="auto"
+                    backdropBlur="5px"
+                  />
+                  <ModalContent
+                    minW={{
+                      base: 0,
+                      sm: "30rem",
+                      md: "40rem",
+                    }}
+                    pb="6"
+                    bg="bg.900"
+                  >
+                    <ModalHeader>Decoded</ModalHeader>
+                    <ModalCloseButton />
+                    <ModalBody>
+                      {decoded && (
+                        <Box minW={"80%"}>
+                          {decoded.functionName &&
+                          decoded.functionName !== "__abi_decoded__" ? (
+                            <HStack>
+                              <Box>
+                                <Box fontSize={"xs"} color={"whiteAlpha.600"}>
+                                  function
+                                </Box>
+                                <Box>{decoded.functionName}</Box>
+                              </Box>
+                              <Spacer />
+                              <CopyToClipboard
+                                textToCopy={JSON.stringify(
+                                  {
+                                    function: decoded.signature,
+                                    params: JSON.parse(
+                                      stringify(decoded.rawArgs)
+                                    ),
+                                  },
+                                  undefined,
+                                  2
+                                )}
+                                labelText={"Copy params"}
+                              />
+                            </HStack>
+                          ) : null}
+                          <Stack
+                            mt={2}
+                            p={4}
+                            spacing={4}
+                            bg={"whiteAlpha.50"}
+                            rounded={"lg"}
+                          >
+                            {decoded.args.map((arg: any, i: number) => {
+                              return renderParams(i, arg);
+                            })}
+                          </Stack>
+                        </Box>
+                      )}
+                    </ModalBody>
+                  </ModalContent>
+                </Modal>
               </HStack>
             </FormLabel>
             <Textarea
