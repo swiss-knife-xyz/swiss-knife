@@ -168,7 +168,7 @@ export const swap = <T>(arr: T[], i: number, j: number): T[] => {
   return arr;
 };
 
-export function getConvertion(
+export function getConversion(
   selectedEthFormatOption: SelectedOptionState,
   value: any
 ) {
