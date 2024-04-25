@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { HStack } from "@chakra-ui/react";
-import { formatEther } from "viem";
-import { ethFormatOptions } from "@/utils";
+import { ethFormatOptions, getConvertion } from "@/utils";
 import { SelectedOptionState } from "@/types";
 import { InputField } from "../InputField";
 import { DarkSelect } from "../DarkSelect";
@@ -20,11 +19,7 @@ export const IntParam = ({ value }: Params) => {
   return (
     <HStack>
       <InputField
-        value={
-          selectedEthFormatOption?.value === "Wei"
-            ? value
-            : formatEther(BigInt(value))
-        }
+        value={getConvertion(selectedEthFormatOption, value)}
         placeholder=""
         isReadOnly
         onChange={() => {}}

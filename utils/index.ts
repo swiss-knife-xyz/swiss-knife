@@ -3,7 +3,9 @@ import { createPublicClient, http, Hex } from "viem";
 import { mainnet } from "viem/chains";
 import { normalize } from "viem/ens";
 import { ADDRESS_KEY, CHAINLABEL_KEY, TX_KEY } from "@/data/common";
-import { ExplorerData, ExplorerType } from "@/types";
+import { ExplorerData, ExplorerType, SelectedOptionState } from "@/types";
+import { formatUnits } from "ethers";
+import { formatEther } from "viem";
 import axios from "axios";
 
 export const getPath = (subdomain: string) => {
@@ -100,7 +102,15 @@ export const startHexWith0x = (hexValue?: string): Hex => {
     : "0x";
 };
 
-export const ethFormatOptions = ["ETH", "Wei"];
+export const ethFormatOptions = [
+  "ETH",
+  "Wei",
+  "10^6",
+  "Unix",
+  "Minutes",
+  "Hours",
+  "Days",
+];
 
 export const fetchFunctionInterface = async (
   selector: string
@@ -157,3 +167,31 @@ export const swap = <T>(arr: T[], i: number, j: number): T[] => {
   arr[j] = temp;
   return arr;
 };
+
+export function getConvertion(
+  selectedEthFormatOption: SelectedOptionState,
+  value: any
+) {
+  if (!selectedEthFormatOption?.value) {
+    return "";
+  }
+
+  switch (selectedEthFormatOption?.value) {
+    case "Wei":
+      return value;
+    case "ETH":
+      return formatEther(BigInt(value));
+    case "10^6":
+      return formatUnits(BigInt(value), 6);
+    case "Unix":
+      return new Date(value * 1000).toUTCString();
+    case "Days":
+      return value / 86400;
+    case "Hours":
+      return value / 3600;
+    case "Minutes":
+      return value / 60;
+    default:
+      return "";
+  }
+}
