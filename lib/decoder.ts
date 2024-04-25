@@ -336,7 +336,7 @@ const decodeUniversalRouterPath = (calldata: string) => {
     const path = calldata.slice(2);
 
     const tokenAEnd = 20 * 2; // address
-    const tokenA = "0x" + path.slice(2, tokenAEnd);
+    const tokenA = "0x" + path.slice(0, tokenAEnd);
 
     const feeEnd = tokenAEnd + 3 * 2; // uint24
     const fee = hexToBigInt(
