@@ -21,8 +21,10 @@ import { configureChains, createConfig, WagmiConfig } from "wagmi";
 import {
   mainnet,
   arbitrum,
+  arbitrumSepolia,
   avalanche,
   base,
+  baseSepolia,
   bsc,
   canto,
   evmos,
@@ -43,8 +45,10 @@ const { chains, publicClient } = configureChains(
   [
     mainnet,
     arbitrum,
+    arbitrumSepolia,
     avalanche,
     base,
+    baseSepolia,
     bsc,
     fantom,
     gnosis,
