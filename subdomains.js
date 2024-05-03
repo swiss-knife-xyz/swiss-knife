@@ -39,10 +39,6 @@ const subdomains = {
     base: "contract-address",
     paths: [],
   },
-  EXTENSION: {
-    base: "extension",
-    paths: [],
-  },
 };
 
 module.exports = subdomains;

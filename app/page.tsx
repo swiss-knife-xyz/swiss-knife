@@ -35,11 +35,9 @@ const Home = () => {
     <Layout>
       <Box minH="50vh">
         <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
-          {Object.values(subdomains)
-            .filter((s) => s.base !== "extension")
-            .map((subdomain, i) => (
-              <Btn key={i} subdomain={subdomain.base} />
-            ))}
+          {Object.values(subdomains).map((subdomain, i) => (
+            <Btn key={i} subdomain={subdomain.base} />
+          ))}
         </SimpleGrid>
       </Box>
     </Layout>
