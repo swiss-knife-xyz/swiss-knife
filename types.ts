@@ -25,3 +25,11 @@ export enum ExplorerType {
   ADDRESS,
   TX,
 }
+
+export interface ILeaderboard {
+  _id: string;
+  lastBlockNumber: number;
+  totalUSDAmount: number;
+  donorsCount: number;
+  topDonorsWithEns: { address: string; ens: string; usdAmount: number }[];
+}

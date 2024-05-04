@@ -1,12 +1,8 @@
-import {
-  createPublicClient,
-  formatUnits,
-  http,
-  parseAbiItem,
-  stringify,
-} from "viem";
+import { createPublicClient, formatUnits, http, parseAbiItem } from "viem";
 import { arbitrum } from "viem/chains";
 import { getEnsName } from "@/utils";
+import mongoose from "mongoose";
+import { Leaderboard } from "@/models/leaderboard";
 
 const publicClient = createPublicClient({
   chain: arbitrum,
@@ -18,6 +14,7 @@ const getAllLogs = async (
   TO_BLOCK: bigint,
   MAX_BLOCKS_RANGE: bigint
 ) => {
+  console.log({ FROM_BLOCK, TO_BLOCK, MAX_BLOCKS_RANGE });
   let fromBlock = FROM_BLOCK;
   let toBlock = getToBlock(fromBlock, TO_BLOCK, MAX_BLOCKS_RANGE);
 
@@ -46,6 +43,8 @@ const contractAddress = "0x1b48bb09930676d99dda36c1ad27ff0a5a5f3911";
 const poolId = 27;
 const round = 33;
 const recipientId = "0x38022b6ca31E345f19570D8c99454B9E42c45074";
+// when the recipientId was created
+const startBlockNumber = 201684537n;
 
 const getLogs = async (fromBlock: bigint, toBlock: bigint) => {
   const logs = await publicClient.getLogs({
@@ -107,9 +106,38 @@ const tokenAddressToDecimals: {
 };
 
 const GET = async (request: Request) => {
-  // get logs from when the recipientId was created to the current block
+  await mongoose.connect(process.env.MONGODB_URL!);
+  const cachedDonorsData = await Leaderboard.find();
+
+  // get logs to the current block
   const currBlockNumber = await publicClient.getBlockNumber();
-  const logs = await getAllLogs(201684537n, currBlockNumber, 5000n);
+
+  const fromBlock =
+    cachedDonorsData.length > 0 && cachedDonorsData[0]
+      ? cachedDonorsData[0].lastBlockNumber
+      : startBlockNumber;
+  let logs: any[] = [];
+
+  // return cached data if the last update was less than 15 mins (60 blocks) ago
+  if (currBlockNumber - BigInt(fromBlock) < 60n) {
+    const response = new Response(
+      JSON.stringify({
+        totalUSDAmount: cachedDonorsData[0].totalUSDAmount,
+        donorsCount: cachedDonorsData[0].donorsCount,
+        topDonorsWithEns: cachedDonorsData[0].topDonorsWithEns,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    // early return
+    return response;
+  }
+
+  logs = await getAllLogs(BigInt(fromBlock), currBlockNumber, 5000n);
 
   // get current token prices
   const { ethPrice, arbPrice } = await getPrices();
@@ -120,7 +148,7 @@ const GET = async (request: Request) => {
     [ETHAddress]: ethPrice,
     [ARBAddress]: arbPrice,
   };
-  const donations = logs.map((log) => ({
+  const newDonations = logs.map((log) => ({
     donor: log.args.origin,
     token: log.args.token,
     amount: formatUnits(
@@ -137,7 +165,15 @@ const GET = async (request: Request) => {
   const donorsToTotalUSDAmount: {
     [donor: string]: number;
   } = {};
-  donations.map((donation) => {
+
+  // populate from cache
+  if (cachedDonorsData.length) {
+    cachedDonorsData[0].topDonorsWithEns.map((donor) => {
+      donorsToTotalUSDAmount[donor.address] = donor.usdAmount;
+    });
+  }
+
+  newDonations.map((donation) => {
     if (donorsToTotalUSDAmount[donation.donor]) {
       donorsToTotalUSDAmount[donation.donor] += donation.usdAmount;
     } else {
@@ -146,35 +182,53 @@ const GET = async (request: Request) => {
   });
   const donorsCount = Object.keys(donorsToTotalUSDAmount).length;
 
-  // total usd amount donated
-  const totalUSDAmount = parseFloat(
-    donations.reduce((acc, donation) => acc + donation.usdAmount, 0).toFixed(2)
-  );
-
   // sort data by top donors
   const topDonors = Object.entries(donorsToTotalUSDAmount)
     .sort((a, b) => b[1] - a[1])
     .map(([address, usdAmount]) => ({ address, usdAmount }));
   // resolve ENS names
   const topDonorsPromise = topDonors.map(async (donor) => ({
-    address: (await getEnsName(donor.address)) ?? donor.address,
+    address: donor.address,
+    ens: (await getEnsName(donor.address)) ?? "",
     usdAmount: parseFloat(donor.usdAmount.toFixed(2)),
   }));
   const topDonorsWithEns = await Promise.all(topDonorsPromise);
 
-  const response = new Response(
-    stringify({
-      totalUSDAmount,
-      donorsCount,
-      topDonorsWithEns,
-    }),
-    {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
+  // total usd amount donated
+  const totalUSDAmount = parseFloat(
+    topDonorsWithEns.reduce((acc, donor) => acc + donor.usdAmount, 0).toFixed(2)
   );
+
+  const resData = {
+    totalUSDAmount,
+    donorsCount,
+    topDonorsWithEns,
+  };
+  // cache the new data
+  if (cachedDonorsData.length) {
+    cachedDonorsData[0].lastBlockNumber = parseInt(currBlockNumber.toString());
+    cachedDonorsData[0].totalUSDAmount = resData.totalUSDAmount;
+    cachedDonorsData[0].donorsCount = resData.donorsCount;
+    cachedDonorsData[0].topDonorsWithEns = resData.topDonorsWithEns;
+
+    await cachedDonorsData[0].save();
+  } else {
+    const newLeaderboard = new Leaderboard({
+      lastBlockNumber: parseInt(currBlockNumber.toString()),
+      totalUSDAmount: resData.totalUSDAmount,
+      donorsCount: resData.donorsCount,
+      topDonorsWithEns: resData.topDonorsWithEns,
+    });
+
+    await newLeaderboard.save();
+  }
+
+  const response = new Response(JSON.stringify(resData), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
   return response;
 };
 
