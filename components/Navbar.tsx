@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -40,7 +42,13 @@ export const Navbar = () => {
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
-      const response = await fetch("/api/leaderboard");
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+            ? ""
+            : "https://swiss-knife.xyz"
+        }/api/leaderboard`
+      );
       const data = await response.json();
       console.log({ data });
       setLeaderboard(data);

@@ -105,7 +105,7 @@ const tokenAddressToDecimals: {
   [ARBAddress]: 18,
 };
 
-const GET = async (request: Request) => {
+export const GET = async (request: Request) => {
   await mongoose.connect(process.env.MONGODB_URL!);
   const cachedDonorsData = await Leaderboard.find();
 
@@ -238,5 +238,3 @@ const GET = async (request: Request) => {
   });
   return response;
 };
-
-export { GET };
