@@ -118,6 +118,13 @@ const GET = async (request: Request) => {
       : startBlockNumber;
   let logs: any[] = [];
 
+  console.log({
+    cachedBlockNumber:
+      cachedDonorsData.length > 0 ? cachedDonorsData[0].lastBlockNumber : null,
+    currBlockNumber,
+    startBlockNumber,
+  });
+
   // return cached data if the last update was less than 15 mins (60 blocks) ago
   if (currBlockNumber - BigInt(fromBlock) < 60n) {
     const response = new Response(
