@@ -43,7 +43,7 @@ export const getMetadata = (_metadata: {
 
 export const publicClient = createPublicClient({
   chain: mainnet,
-  transport: http(),
+  transport: http(process.env.MAINNET_RPC_URL),
 });
 
 export const getEnsAddress = async (name: string) => {

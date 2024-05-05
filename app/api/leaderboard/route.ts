@@ -1,3 +1,6 @@
+// add this to prevent the build command from static generating this page
+export const dynamic = "force-dynamic";
+
 import { createPublicClient, formatUnits, http, parseAbiItem } from "viem";
 import { arbitrum } from "viem/chains";
 import { getEnsName } from "@/utils";
@@ -123,6 +126,7 @@ export const GET = async (request: Request) => {
       cachedDonorsData.length > 0 ? cachedDonorsData[0].lastBlockNumber : null,
     currBlockNumber,
     startBlockNumber,
+    blockDiff: currBlockNumber - BigInt(fromBlock),
   });
 
   // return cached data if the last update was less than 15 mins (60 blocks) ago
@@ -144,7 +148,7 @@ export const GET = async (request: Request) => {
     return response;
   }
 
-  logs = await getAllLogs(BigInt(fromBlock), currBlockNumber, 5000n);
+  logs = await getAllLogs(BigInt(fromBlock), currBlockNumber, 50_000n);
 
   // get current token prices
   const { ethPrice, arbPrice } = await getPrices();
@@ -196,6 +200,7 @@ export const GET = async (request: Request) => {
   // resolve ENS names
   const topDonorsPromise = topDonors.map(async (donor) => ({
     address: donor.address,
+    // TODO: have cache table for address to ens mapping
     ens: (await getEnsName(donor.address)) ?? "",
     usdAmount: parseFloat(donor.usdAmount.toFixed(2)),
   }));

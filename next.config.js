@@ -3,17 +3,6 @@ const subdomains = require("./subdomains.js");
 
 const nextConfig = {
   reactStrictMode: true,
-  headers() {
-    return [
-      {
-        // disable static page generation for api routes
-        source: "/api/:path*",
-        headers: [
-          { key: "Cache-Control", value: "s-maxage=0, stale-while-revalidate" },
-        ],
-      },
-    ];
-  },
   rewrites() {
     return {
       beforeFiles: [
