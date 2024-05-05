@@ -45,7 +45,7 @@ export const Navbar = () => {
           process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
             ? ""
             : "https://swiss-knife.xyz"
-        }/api/leaderboard`
+        }/api/leaderboard-db`
       );
       const data = await response.json();
       console.log({ data });

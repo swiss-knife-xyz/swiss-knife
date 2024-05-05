@@ -112,6 +112,8 @@ export const GET = async (request: Request) => {
   await mongoose.connect(process.env.MONGODB_URL!);
   const cachedDonorsData = await Leaderboard.find();
 
+  let logs: any[] = [];
+
   // get logs to the current block
   const currBlockNumber = await publicClient.getBlockNumber();
 
@@ -119,7 +121,6 @@ export const GET = async (request: Request) => {
     cachedDonorsData.length > 0 && cachedDonorsData[0]
       ? cachedDonorsData[0].lastBlockNumber
       : startBlockNumber;
-  let logs: any[] = [];
 
   console.log({
     cachedBlockNumber:
