@@ -18,6 +18,9 @@ export const GET = async (request: Request) => {
     status: 200,
     headers: {
       "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*", // Allows all domains, adjust as necessary
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Adjust based on the methods your server supports
+      "Access-Control-Allow-Headers": "Content-Type, Authorization", // Optional, specify the headers allowed in requests
     },
   });
   return response;

@@ -29,6 +29,7 @@
     "big-integer": "^1.6.51",
     "blo": "^1.1.1",
     "chakra-react-select": "^4.6.0",
+    "cors": "^2.8.5",
     "eslint": "8.41.0",
     "eslint-config-next": "14.0.3",
     "ethereum-block-by-date": "^1.4.9",
@@ -50,6 +51,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/ethereum-block-by-date": "^1.4.1",
     "pino-pretty": "^10.2.3"
   }
