@@ -6,6 +6,16 @@ import {
 import { decodeRecursive } from "@/lib/decoder";
 import { Chain, Hex, createPublicClient, http, stringify } from "viem";
 
+export const OPTIONS = async (request: Request) => {
+  return new Response(null, {
+    headers: {
+      "Access-Control-Allow-Origin": "*", // Allows all domains, adjust as necessary
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Adjust based on the methods your server supports
+      "Access-Control-Allow-Headers": "Content-Type, Authorization", // Optional, specify the headers allowed in requests
+    },
+  });
+};
+
 export const POST = async (request: Request) => {
   // validate request body
   let body: CalldataDecoderRecursiveRequest;
@@ -21,6 +31,9 @@ export const POST = async (request: Request) => {
         status: 400,
         headers: {
           "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*", // Allows all domains, adjust as necessary
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Adjust based on the methods your server supports
+          "Access-Control-Allow-Headers": "Content-Type, Authorization", // Optional, specify the headers allowed in requests
         },
       }
     );
@@ -104,6 +117,9 @@ export const POST = async (request: Request) => {
         status: 500,
         headers: {
           "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*", // Allows all domains, adjust as necessary
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Adjust based on the methods your server supports
+          "Access-Control-Allow-Headers": "Content-Type, Authorization", // Optional, specify the headers allowed in requests
         },
       }
     );
@@ -124,6 +140,9 @@ export const POST = async (request: Request) => {
         status: 500,
         headers: {
           "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*", // Allows all domains, adjust as necessary
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Adjust based on the methods your server supports
+          "Access-Control-Allow-Headers": "Content-Type, Authorization", // Optional, specify the headers allowed in requests
         },
       }
     );
@@ -133,6 +152,9 @@ export const POST = async (request: Request) => {
   return new Response(stringify(decoded), {
     headers: {
       "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*", // Allows all domains, adjust as necessary
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Adjust based on the methods your server supports
+      "Access-Control-Allow-Headers": "Content-Type, Authorization", // Optional, specify the headers allowed in requests
     },
   });
 };
