@@ -20,16 +20,15 @@ import { Layout } from "@/components/Layout";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
-import networkInfo from "@/data/networkInfo";
 import { DarkButton } from "@/components/DarkButton";
-import { chainIdToChain } from "@/data/common";
+import { c, chainIdToChain } from "@/data/common";
 
 const timeOptions = ["minutes", "hours", "days"];
 
-const networkOptions: { label: string; value: number }[] = networkInfo.map(
-  (n, i) => ({
-    label: n.name,
-    value: i, // index in the networkInfo array
+const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
+  (k, i) => ({
+    label: c[k].name,
+    value: c[k].id,
   })
 );
 
@@ -196,9 +195,7 @@ const Epoch = () => {
                 try {
                   const provider = new ethers.JsonRpcProvider(
                     chainIdToChain[
-                      networkInfo[
-                        parseInt(selectedNetworkOption!.value.toString())
-                      ].chainID
+                      parseInt(selectedNetworkOption!.value.toString())
                     ]?.rpcUrls.default.http[0]
                   );
 

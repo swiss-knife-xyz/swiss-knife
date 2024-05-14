@@ -63,7 +63,7 @@ export const CHAINLABEL_KEY = "$SK_CHAINLABEL";
 export const ADDRESS_KEY = "$SK_ADDRESS";
 export const TX_KEY = "$SK_TX";
 
-export const c = {
+export const c:{[name: string]: Chain} = {
   mainnet,
   arbitrum,
   arbitrumGoerli,
