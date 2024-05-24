@@ -450,6 +450,12 @@ export const addressExplorers: ExplorersData = {
       [c.zkSync.id]: "",
     },
   },
+  Poap: {
+    urlLayout: `https://collectors.poap.xyz/scan/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+  },
   PolygonScan: {
     urlLayout: `https://${CHAINLABEL_KEY}polygonscan.com/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
