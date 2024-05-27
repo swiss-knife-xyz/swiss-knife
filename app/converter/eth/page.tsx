@@ -1,15 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
-import { Heading, Table, Tbody, Tr, Td } from "@chakra-ui/react";
+import React, { useEffect, useState } from "react";
+import { Heading, Table, Tbody, Tr, Td, Text } from "@chakra-ui/react";
 import { parseEther, parseGwei, formatEther, formatGwei } from "viem";
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
+import { useLocalStorage } from "usehooks-ts";
 
 const ETHUnitConverter = () => {
   const [wei, setWei] = useState<string>();
   const [gwei, setGwei] = useState<string>();
   const [eth, setEth] = useState<string>();
+
+  const [ethPrice, setEthPrice] = useLocalStorage("ethPrice", 0);
 
   const handleOnChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -46,6 +49,22 @@ const ETHUnitConverter = () => {
       setEth("");
     }
   };
+
+  const setPrices = async () => {
+    const token = "ethereum";
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`;
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+
+      setEthPrice(data[token].usd);
+    } catch (error) {}
+  };
+
+  useEffect(() => {
+    setPrices();
+  }, []);
 
   return (
     <>
@@ -91,6 +110,28 @@ const ETHUnitConverter = () => {
                     parseEther(value).toString()
                   )
                 }
+              />
+            </Td>
+          </Tr>
+          <Tr>
+            <Label>
+              <Text>USD</Text>
+              <Text opacity={0.6}>
+                (1 ETH ={" "}
+                {ethPrice.toLocaleString("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                })}
+                )
+              </Text>
+            </Label>
+            <Td>
+              <InputField
+                type="number"
+                placeholder="USD"
+                value={eth ? (parseFloat(eth) * ethPrice).toString() : ""}
+                onChange={() => {}}
+                isReadOnly
               />
             </Td>
           </Tr>
