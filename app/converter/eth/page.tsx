@@ -11,12 +11,13 @@ const ETHUnitConverter = () => {
   const [wei, setWei] = useState<string>();
   const [gwei, setGwei] = useState<string>();
   const [eth, setEth] = useState<string>();
+  const [usd, setUsd] = useState<string>();
 
   const [ethPrice, setEthPrice] = useLocalStorage("ethPrice", 0);
 
   const handleOnChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    unit: "wei" | "gwei" | "eth",
+    unit: "wei" | "gwei" | "eth" | "usd",
     valueToWei: (value: string) => string
   ) => {
     const value = e.target.value;
@@ -27,6 +28,7 @@ const ETHUnitConverter = () => {
     if (unit === "wei") setWei(value);
     else if (unit === "gwei") setGwei(value);
     else if (unit === "eth") setEth(value);
+    else if (unit === "usd") setUsd(value);
 
     if (value.length > 0) {
       const wei = valueToWei(value);
@@ -35,18 +37,27 @@ const ETHUnitConverter = () => {
       setWei("");
       setGwei("");
       setEth("");
+      setUsd("");
     }
   };
 
-  const setValues = (inWei: string, exceptUnit: "wei" | "gwei" | "eth") => {
+  const setValues = (
+    inWei: string,
+    exceptUnit: "wei" | "gwei" | "eth" | "usd"
+  ) => {
     setWei(inWei);
 
     if (inWei.length > 0) {
       if (exceptUnit !== "gwei") setGwei(formatGwei(BigInt(inWei)));
       if (exceptUnit !== "eth") setEth(formatEther(BigInt(inWei)));
+      if (exceptUnit !== "usd") {
+        const eth = formatEther(BigInt(inWei));
+        setUsd((parseFloat(eth) * ethPrice).toString());
+      }
     } else {
       setGwei("");
       setEth("");
+      setUsd("");
     }
   };
 
@@ -129,9 +140,13 @@ const ETHUnitConverter = () => {
               <InputField
                 type="number"
                 placeholder="USD"
-                value={eth ? (parseFloat(eth) * ethPrice).toString() : ""}
-                onChange={() => {}}
-                isReadOnly
+                value={usd}
+                onChange={(e) =>
+                  handleOnChange(e, "usd", (value) => {
+                    const eth = parseFloat(value) / ethPrice;
+                    return parseEther(eth.toString()).toString();
+                  })
+                }
               />
             </Td>
           </Tr>
