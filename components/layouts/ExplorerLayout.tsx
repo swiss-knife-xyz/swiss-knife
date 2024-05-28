@@ -57,7 +57,7 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
   );
   const [isInputInvalid, setIsInputInvalid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [addressLabel, setAddressLabel] = useState<string[]>([]);
+  const [addressLabels, setAddressLabels] = useState<string[]>([]);
 
   const {
     isOpen: isAddressBookOpen,
@@ -131,18 +131,22 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchSetAddressLabel = async () => {
-    const res = await axios.get(
-      `${
-        process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-          ? ""
-          : "https://swiss-knife.xyz"
-      }/api/labels/${userInput}`
-    );
-    const data = res.data.data;
-    if (data.length > 0) {
-      setAddressLabel(data.map((d: any) => d.address_name ?? d.label));
-    } else {
-      setAddressLabel([]);
+    try {
+      const res = await axios.get(
+        `${
+          process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+            ? ""
+            : "https://swiss-knife.xyz"
+        }/api/labels/${userInput}`
+      );
+      const data = res.data.data;
+      if (data.length > 0) {
+        setAddressLabels(data.map((d: any) => d.address_name ?? d.label));
+      } else {
+        setAddressLabels([]);
+      }
+    } catch {
+      setAddressLabels([]);
     }
   };
 
@@ -292,7 +296,7 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
             </HStack>
           </Box>
         ) : null}
-        {addressLabel.length > 0 && (
+        {addressLabels.length > 0 && (
           <HStack
             mt="2"
             p="2"
@@ -301,7 +305,7 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
             rounded="lg"
           >
             <Text fontSize={"sm"}>Tags: </Text>
-            {addressLabel.map((label, index) => (
+            {addressLabels.map((label, index) => (
               <Tag key={index} size="sm" variant="solid" colorScheme="blue">
                 {label}
               </Tag>
