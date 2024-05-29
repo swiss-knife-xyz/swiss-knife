@@ -5,7 +5,6 @@ import { Layout } from "@/components/Layout";
 import { constants } from "@/data/constants";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 
-// TODO: custom metadata title based on current page
 const Constants = () => {
   return (
     <Layout>
