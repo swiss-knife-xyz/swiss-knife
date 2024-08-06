@@ -2,7 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import { Heading, Table, Tbody, Tr, Td, Text } from "@chakra-ui/react";
-import { parseEther, parseGwei, formatEther, formatGwei } from "viem";
+import {
+  parseEther,
+  parseGwei,
+  formatEther,
+  formatGwei,
+  formatUnits,
+} from "viem";
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
 import { useLocalStorage } from "usehooks-ts";
@@ -11,13 +17,14 @@ const ETHUnitConverter = () => {
   const [wei, setWei] = useState<string>();
   const [gwei, setGwei] = useState<string>();
   const [eth, setEth] = useState<string>();
+  const [unit, setUnit] = useState<string>();
   const [usd, setUsd] = useState<string>();
 
   const [ethPrice, setEthPrice] = useLocalStorage("ethPrice", 0);
 
   const handleOnChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    unit: "wei" | "gwei" | "eth" | "usd",
+    unit: "wei" | "gwei" | "eth" | "unit" | "usd",
     valueToWei: (value: string) => string
   ) => {
     const value = e.target.value;
@@ -28,6 +35,7 @@ const ETHUnitConverter = () => {
     if (unit === "wei") setWei(value);
     else if (unit === "gwei") setGwei(value);
     else if (unit === "eth") setEth(value);
+    else if (unit === "unit") setUnit(value);
     else if (unit === "usd") setUsd(value);
 
     if (value.length > 0) {
@@ -37,19 +45,24 @@ const ETHUnitConverter = () => {
       setWei("");
       setGwei("");
       setEth("");
+      setUnit("");
       setUsd("");
     }
   };
 
   const setValues = (
     inWei: string,
-    exceptUnit: "wei" | "gwei" | "eth" | "usd"
+    exceptUnit: "wei" | "gwei" | "eth" | "unit" | "usd"
   ) => {
     setWei(inWei);
 
     if (inWei.length > 0) {
       if (exceptUnit !== "gwei") setGwei(formatGwei(BigInt(inWei)));
       if (exceptUnit !== "eth") setEth(formatEther(BigInt(inWei)));
+      if (exceptUnit !== "unit") {
+        const unitValue = formatUnits(BigInt(inWei), 12);
+        setUnit(unitValue);
+      }
       if (exceptUnit !== "usd") {
         const eth = formatEther(BigInt(inWei));
         setUsd((parseFloat(eth) * ethPrice).toString());
@@ -57,6 +70,7 @@ const ETHUnitConverter = () => {
     } else {
       setGwei("");
       setEth("");
+      setUnit("");
       setUsd("");
     }
   };
@@ -109,6 +123,22 @@ const ETHUnitConverter = () => {
               />
             </Td>
           </Tr>
+          <Tr>
+            <Label>10^6</Label>
+            <Td>
+              <InputField
+                type="number"
+                placeholder="10^6"
+                value={unit}
+                onChange={(e) =>
+                  handleOnChange(e, "unit", (value) =>
+                    parseEther((parseFloat(value) / 1e6).toString()).toString()
+                  )
+                }
+              />
+            </Td>
+          </Tr>
+
           <Tr>
             <Label>Ether</Label>
             <Td>
