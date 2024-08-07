@@ -1,7 +1,16 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Heading, Table, Tbody, Tr, Td, Text } from "@chakra-ui/react";
+import {
+  Heading,
+  Table,
+  Tbody,
+  Tr,
+  Td,
+  Text,
+  Input,
+  Box,
+} from "@chakra-ui/react";
 import {
   parseEther,
   parseGwei,
@@ -14,11 +23,12 @@ import { Label } from "@/components/Label";
 import { useLocalStorage } from "usehooks-ts";
 
 const ETHUnitConverter = () => {
-  const [wei, setWei] = useState<string>();
-  const [gwei, setGwei] = useState<string>();
-  const [eth, setEth] = useState<string>();
-  const [unit, setUnit] = useState<string>();
-  const [usd, setUsd] = useState<string>();
+  const [wei, setWei] = useState<string>("");
+  const [gwei, setGwei] = useState<string>("");
+  const [eth, setEth] = useState<string>("");
+  const [unit, setUnit] = useState<string>("");
+  const [usd, setUsd] = useState<string>("");
+  const [exponent, setExponent] = useState<number>(6);
 
   const [ethPrice, setEthPrice] = useLocalStorage("ethPrice", 0);
 
@@ -39,8 +49,8 @@ const ETHUnitConverter = () => {
     else if (unit === "usd") setUsd(value);
 
     if (value.length > 0) {
-      const wei = valueToWei(value);
-      setValues(wei, unit);
+      const weiValue = valueToWei(value);
+      setValues(weiValue, unit);
     } else {
       setWei("");
       setGwei("");
@@ -60,7 +70,7 @@ const ETHUnitConverter = () => {
       if (exceptUnit !== "gwei") setGwei(formatGwei(BigInt(inWei)));
       if (exceptUnit !== "eth") setEth(formatEther(BigInt(inWei)));
       if (exceptUnit !== "unit") {
-        const unitValue = formatUnits(BigInt(inWei), 12);
+        const unitValue = formatUnits(BigInt(inWei), 18 - exponent);
         setUnit(unitValue);
       }
       if (exceptUnit !== "usd") {
@@ -87,9 +97,20 @@ const ETHUnitConverter = () => {
     } catch (error) {}
   };
 
+  const recalculateUnit = () => {
+    if (wei) {
+      const unitValue = formatUnits(BigInt(wei), 18 - exponent);
+      setUnit(unitValue);
+    }
+  };
+
   useEffect(() => {
     setPrices();
   }, []);
+
+  useEffect(() => {
+    recalculateUnit();
+  }, [exponent]);
 
   return (
     <>
@@ -97,7 +118,10 @@ const ETHUnitConverter = () => {
       <Table mt={"3rem"} variant={"unstyled"}>
         <Tbody>
           <Tr>
-            <Label>Wei</Label>
+            <Label>
+              <Text>Wei</Text>
+              <Text opacity={0.6}>(10^18)</Text>
+            </Label>
             <Td>
               <InputField
                 autoFocus
@@ -109,7 +133,10 @@ const ETHUnitConverter = () => {
             </Td>
           </Tr>
           <Tr>
-            <Label>Gwei</Label>
+            <Label>
+              <Text>Gwei</Text>
+              <Text opacity={0.6}>(10^9)</Text>
+            </Label>
             <Td>
               <InputField
                 type="number"
@@ -124,15 +151,33 @@ const ETHUnitConverter = () => {
             </Td>
           </Tr>
           <Tr>
-            <Label>10^6</Label>
+            <Label>
+              <Box display="inline-flex" alignItems="center">
+                <Text>10^</Text>
+                <Input
+                  type="number"
+                  placeholder="Enter custom exponent"
+                  value={exponent.toString()}
+                  onChange={(e) => {
+                    const newExponent = Number(e.target.value);
+                    if (!isNaN(newExponent) && newExponent >= 0) {
+                      setExponent(newExponent);
+                    }
+                  }}
+                  width="55px"
+                />
+              </Box>
+            </Label>
             <Td>
               <InputField
                 type="number"
-                placeholder="10^6"
+                placeholder={`10^${exponent}`}
                 value={unit}
                 onChange={(e) =>
                   handleOnChange(e, "unit", (value) =>
-                    parseEther((parseFloat(value) / 1e6).toString()).toString()
+                    parseEther(
+                      (parseFloat(value) / 10 ** exponent).toString()
+                    ).toString()
                   )
                 }
               />
@@ -140,7 +185,10 @@ const ETHUnitConverter = () => {
           </Tr>
 
           <Tr>
-            <Label>Ether</Label>
+            <Label>
+              <Text>Ether</Text>
+              <Text opacity={0.6}>(1)</Text>
+            </Label>
             <Td>
               <InputField
                 type="number"
