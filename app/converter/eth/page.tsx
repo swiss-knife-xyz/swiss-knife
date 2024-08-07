@@ -23,11 +23,11 @@ import { Label } from "@/components/Label";
 import { useLocalStorage } from "usehooks-ts";
 
 const ETHUnitConverter = () => {
-  const [wei, setWei] = useState<string>("");
-  const [gwei, setGwei] = useState<string>("");
-  const [eth, setEth] = useState<string>("");
-  const [unit, setUnit] = useState<string>("");
-  const [usd, setUsd] = useState<string>("");
+  const [wei, setWei] = useState<string>();
+  const [gwei, setGwei] = useState<string>();
+  const [eth, setEth] = useState<string>();
+  const [unit, setUnit] = useState<string>();
+  const [usd, setUsd] = useState<string>();
   const [exponent, setExponent] = useState<number>(6);
 
   const [ethPrice, setEthPrice] = useLocalStorage("ethPrice", 0);
@@ -49,8 +49,8 @@ const ETHUnitConverter = () => {
     else if (unit === "usd") setUsd(value);
 
     if (value.length > 0) {
-      const weiValue = valueToWei(value);
-      setValues(weiValue, unit);
+      const wei = valueToWei(value);
+      setValues(wei, unit);
     } else {
       setWei("");
       setGwei("");
