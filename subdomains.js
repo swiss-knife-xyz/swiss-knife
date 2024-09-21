@@ -39,6 +39,10 @@ const subdomains = {
     base: "contract-address",
     paths: [],
   },
+  FOUNDRY: {
+    base: "foundry",
+    paths: ["forge-stack-tracer-ui"],
+  },
 };
 
 module.exports = subdomains;

@@ -18,6 +18,7 @@ const subdomainToLabel = {
   [subdomains.UNISWAP.base]: "Uniswap V3",
   [subdomains.CHARACTER_COUNTER.base]: "Character Counter",
   [subdomains.CONTRACT_ADDRESS.base]: "Contract Address",
+  [subdomains.FOUNDRY.base]: "Foundry",
 };
 
 const Btn = ({ subdomain }: { subdomain: string }) => (
