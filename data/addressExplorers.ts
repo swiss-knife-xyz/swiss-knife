@@ -488,6 +488,12 @@ export const addressExplorers: ExplorersData = {
       [c.polygon.id]: "polygon",
     },
   },
+  SIMExplorer: {
+    urlLayout: `https://explorer.sim.io/eth/latest/account/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+  },
   Snowtrace: {
     urlLayout: `https://${CHAINLABEL_KEY}snowtrace.io/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
