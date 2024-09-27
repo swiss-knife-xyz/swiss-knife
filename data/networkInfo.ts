@@ -46,6 +46,12 @@ const networkInfo = [
     api: `https://api.etherscan.io/api?module=contract&action=getabi&apikey=${process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY}`,
     apikey: process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY,
   },
+  {
+    chainID: 8453,
+    name: "Base",
+    api: `https://api.basescan.org/api?module=contract&action=getabi&apikey=${process.env.NEXT_PUBLIC_BASESCAN_API_KEY}`,
+    apikey: process.env.NEXT_PUBLIC_BASESCAN_API_KEY,
+  },
 ];
 
 // TODO: add missing major chains
