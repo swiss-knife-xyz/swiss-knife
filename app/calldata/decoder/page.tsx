@@ -36,7 +36,6 @@ import {
 } from "next-usequerystate";
 import { createPublicClient, http, Hex, Chain, stringify } from "viem";
 import { SelectedOptionState } from "@/types";
-import networkInfo from "@/data/networkInfo";
 import { c, chainIdToChain } from "@/data/common";
 import { startHexWith0x } from "@/utils";
 
@@ -50,10 +49,10 @@ import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { decodeRecursive } from "@/lib/decoder";
 
-const networkOptions: { label: string; value: number }[] = networkInfo.map(
-  (n, i) => ({
-    label: n.name,
-    value: i, // index in the networkInfo array
+const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
+  (k, i) => ({
+    label: c[k].name,
+    value: c[k].id,
   })
 );
 
@@ -66,16 +65,6 @@ const CalldataDecoder = () => {
   const addressFromURL = searchParams.get("address");
   const chainIdFromURL = searchParams.get("chainId");
   const txFromURL = searchParams.get("tx");
-
-  let networkIndexFromURL;
-  if (chainIdFromURL) {
-    for (var i = 0; i < networkInfo.length; i++) {
-      if (networkInfo[i].chainID === parseInt(chainIdFromURL)) {
-        networkIndexFromURL = i;
-        break;
-      }
-    }
-  }
 
   const [calldata, setCalldata] = useQueryState<string>(
     "calldata",
@@ -99,7 +88,9 @@ const CalldataDecoder = () => {
     parseAsInteger.withDefault(1)
   );
   const [selectedNetworkOption, setSelectedNetworkOption] =
-    useState<SelectedOptionState>(networkOptions[networkIndexFromURL ?? 0]);
+    useState<SelectedOptionState>(
+      networkOptions[chainIdFromURL ? parseInt(chainIdFromURL) : 0]
+    );
 
   const [fromTxInput, setFromTxInput] = useQueryState<string>(
     "tx",
@@ -131,14 +122,10 @@ const CalldataDecoder = () => {
 
   useEffect(() => {
     if (selectedTabIndex === 2) {
-      setChainId(
-        networkInfo[parseInt(selectedNetworkOption!.value.toString())].chainID
-      );
+      setChainId(parseInt(selectedNetworkOption!.value.toString()));
     } else if (selectedTabIndex === 3) {
       if (txShowSelectNetwork) {
-        setChainId(
-          networkInfo[parseInt(selectedNetworkOption!.value.toString())].chainID
-        );
+        setChainId(parseInt(selectedNetworkOption!.value.toString()));
       } else {
         setChainId(null);
       }
@@ -223,8 +210,7 @@ const CalldataDecoder = () => {
 
     let chain: Chain =
       chainIdToChain[
-        _chainId ??
-          networkInfo[parseInt(selectedNetworkOption!.value.toString())].chainID
+        _chainId ?? parseInt(selectedNetworkOption!.value.toString())
       ];
     try {
       let txHash: string;

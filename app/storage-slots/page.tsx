@@ -17,14 +17,13 @@ import { ethers } from "ethers";
 import { Layout } from "@/components/Layout";
 import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
-import networkInfo from "@/data/networkInfo";
 import TabsSelector from "@/components/Tabs/TabsSelector";
-import { chainIdToChain } from "@/data/common";
+import { c, chainIdToChain } from "@/data/common";
 
-const networkOptions: { label: string; value: number }[] = networkInfo.map(
-  (n, i) => ({
-    label: n.name,
-    value: i, // index in the networkInfo array
+const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
+  (k, i) => ({
+    label: c[k].name,
+    value: c[k].id,
   })
 );
 
@@ -231,7 +230,7 @@ const StorageSlots = () => {
 
     const provider = new ethers.JsonRpcProvider(
       chainIdToChain[
-        networkInfo[parseInt(selectedNetworkOption!.value.toString())].chainID
+        parseInt(selectedNetworkOption!.value.toString())
       ]?.rpcUrls.default.http[0]
     );
     let _storageSlot =
