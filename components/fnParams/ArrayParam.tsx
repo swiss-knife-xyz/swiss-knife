@@ -1,16 +1,25 @@
 import React from "react";
 import {
   Box,
+  Button,
   Collapse,
   HStack,
+  Link,
   Stack,
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
-import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ExternalLinkIcon,
+} from "@chakra-ui/icons";
 import { ParamType } from "ethers";
 import { StringParam } from "./StringParam";
 import { renderParamTypes } from "../renderParams";
+import { isAddress } from "viem";
+import { getPath } from "@/utils";
+import subdomains from "@/subdomains";
 
 interface Params {
   arg: any;
@@ -59,6 +68,22 @@ export const ArrayParam = ({ arg }: Params) => {
                     >
                       (index: {i})
                     </Text>
+                    {ar.baseType === "address" ||
+                    (ar.baseType === "bytes" && isAddress(ar.rawValue)) ? (
+                      <Link
+                        href={`${getPath(subdomains.EXPLORER.base)}address/${
+                          ar.baseType === "address" ? ar.value : ar.rawValue
+                        }`}
+                        title="View on explorer"
+                        isExternal
+                      >
+                        <Button size={"xs"}>
+                          <HStack>
+                            <ExternalLinkIcon />
+                          </HStack>
+                        </Button>
+                      </Link>
+                    ) : null}
                   </HStack>
                   <Box mt={2}>{renderParamTypes(ar)}</Box>
                 </Box>

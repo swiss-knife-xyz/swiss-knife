@@ -1,5 +1,4 @@
 import React from "react";
-import { ParamType } from "ethers";
 import { renderParams } from "@/components/renderParams";
 import { Stack } from "@chakra-ui/react";
 
