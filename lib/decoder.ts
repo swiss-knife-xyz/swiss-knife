@@ -16,7 +16,6 @@ import {
   TransactionDescription,
 } from "ethers";
 import { hexToBigInt } from "viem";
-import { call } from "viem/_types/actions/public/call";
 
 export async function decodeWithAddress({
   calldata,

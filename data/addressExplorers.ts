@@ -307,6 +307,12 @@ export const addressExplorers: ExplorersData = {
       [c.mainnet.id]: "",
     },
   },
+  EVMCodes: {
+    urlLayout: `https://www.evm.codes/contract?address=${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+  },
   EVMStorage: {
     urlLayout: `https://evm.storage/eth/latest/${ADDRESS_KEY}`,
     chainIdToLabel: {
