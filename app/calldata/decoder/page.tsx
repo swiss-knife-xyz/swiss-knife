@@ -52,7 +52,7 @@ export async function generateMetadata({
           }
 
           return (
-            tx
+            tx!
               .split("/")
               .filter(
                 (urlPart) =>
