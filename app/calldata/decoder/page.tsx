@@ -82,7 +82,7 @@ export async function generateMetadata({
     const functionInterface = await fetchFunctionInterface({ selector });
     if (functionInterface) {
       const functionName = functionInterface.split("(")[0];
-      title = `${functionName} - Universal Calldata Decoder | Swiss-Knife.xyz`;
+      title = `${functionName}() - Universal Calldata Decoder | Swiss-Knife.xyz`;
     }
   }
 
