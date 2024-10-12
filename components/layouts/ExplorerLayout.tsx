@@ -241,19 +241,22 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
               </Button>
             </InputRightElement>
           </InputGroup>
-          <Link
-            href={`https://etherscan.io/${
-              pathname.includes("/address/") ? "address" : "tx"
-            }/${userInput}`}
-            title="View on Etherscan"
-            isExternal
-          >
-            <Button size={"sm"}>
-              <HStack>
-                <ExternalLinkIcon />
-              </HStack>
-            </Button>
-          </Link>
+          {userInput &&
+            (pathname.includes("/address/") || pathname.includes("/tx/")) && (
+              <Link
+                href={`https://etherscan.io/${
+                  pathname.includes("/address/") ? "address" : "tx"
+                }/${userInput}`}
+                title="View on Etherscan"
+                isExternal
+              >
+                <Button size={"sm"}>
+                  <HStack>
+                    <ExternalLinkIcon />
+                  </HStack>
+                </Button>
+              </Link>
+            )}
           {pathname.includes("/address/") && (
             <>
               <Button onClick={openAddressBook}>
