@@ -14,7 +14,7 @@ const SidebarItems: SidebarItem[] = [
 export const CalldataLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <Layout>
-      <HStack alignItems={"stretch"} h="full">
+      <HStack alignItems={"stretch"} h="full" w="full">
         <Sidebar
           heading="Calldata"
           items={SidebarItems}
