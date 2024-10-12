@@ -115,7 +115,11 @@ const ETHUnitConverter = () => {
   return (
     <>
       <Heading color={"custom.pale"}>ETH Unit Converter</Heading>
-      <Table mt={"3rem"} variant={"unstyled"}>
+      <Table
+        mt={"3rem"}
+        variant="unstyled"
+        style={{ borderCollapse: "separate", borderSpacing: "0 0.75em" }}
+      >
         <Tbody>
           <Tr>
             <Label>
@@ -184,12 +188,12 @@ const ETHUnitConverter = () => {
             </Td>
           </Tr>
 
-          <Tr>
-            <Label>
+          <Tr bg="whiteAlpha.100">
+            <Label roundedTopLeft={"md"} roundedBottomLeft={"md"}>
               <Text>Ether</Text>
               <Text opacity={0.6}>(1)</Text>
             </Label>
-            <Td>
+            <Td roundedTopRight={"md"} roundedBottomRight={"md"}>
               <InputField
                 type="number"
                 placeholder="Ether"

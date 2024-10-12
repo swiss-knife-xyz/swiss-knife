@@ -1,5 +1,11 @@
-import { Td } from "@chakra-ui/react";
+import { Td, TableCellProps } from "@chakra-ui/react";
 
-export const Label = ({ children }: { children: React.ReactNode }) => (
-  <Td textAlign={"center"}>{children}</Td>
+interface LabelProps extends TableCellProps {
+  children: React.ReactNode;
+}
+
+export const Label = ({ children, ...props }: LabelProps) => (
+  <Td textAlign="center" {...props}>
+    {children}
+  </Td>
 );
