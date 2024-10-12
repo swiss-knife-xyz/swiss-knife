@@ -1,4 +1,4 @@
-import { c, chainIdToChain } from "@/data/common";
+import { c } from "@/data/common";
 import {
   CalldataDecoderRecursiveRequest,
   calldataDecoderRecursiveRequestSchema,

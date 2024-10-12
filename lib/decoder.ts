@@ -4,6 +4,13 @@ import {
   fetchFunctionInterface4ByteSchema,
   fetchFunctionInterfaceOpenApiSchema,
 } from "@/data/schemas";
+import {
+  DecodeArrayParamResult,
+  DecodeBytesParamResult,
+  DecodeParamTypesResult,
+  DecodeRecursiveResult,
+  DecodeTupleParamResult,
+} from "@/types";
 import { startHexWith0x } from "@/utils";
 import { guessAbiEncodedData, guessFragment } from "@openchainxyz/abi-guesser";
 import {
@@ -623,7 +630,7 @@ export async function decodeRecursive({
   address?: string;
   chainId?: number;
   abi?: any;
-}) {
+}): Promise<DecodeRecursiveResult> {
   let parsedTransaction: TransactionDescription | null;
   if (abi) {
     parsedTransaction = decodeWithABI({ abi, calldata });
@@ -677,7 +684,7 @@ const decodeParamTypes = async ({
   address?: string;
   chainId?: number;
   abi?: any;
-}): Promise<any> => {
+}): Promise<DecodeParamTypesResult> => {
   if (input.baseType.includes("int")) {
     // covers uint
     return BigInt(value).toString();
@@ -704,7 +711,7 @@ const decodeBytesParam = async ({
   address?: string;
   chainId?: number;
   abi?: any;
-}) => {
+}): Promise<DecodeBytesParamResult> => {
   console.log("decoding bytes param", {
     callData: value,
     address,
@@ -728,7 +735,7 @@ const decodeTupleParam = async ({
   address?: string;
   chainId?: number;
   abi?: any;
-}): Promise<any> => {
+}): Promise<DecodeTupleParamResult> => {
   if (!input.components) {
     return null;
   }
@@ -767,7 +774,7 @@ const decodeArrayParam = async ({
   address?: string;
   chainId?: number;
   abi?: any;
-}) => {
+}): Promise<DecodeArrayParamResult> => {
   if (!Array.isArray(value) || value.length === 0) {
     return [];
   }
