@@ -42,10 +42,8 @@ export async function decodeWithAddress({
     const decodedWithSelector = await decodeWithSelector({ calldata });
     return decodedWithSelector;
   } catch (error) {
-    console.error(
-      `Failed to fetch decode calldata ${calldata} for contract ${address} on chain ${chainId}`
-    );
-    return null;
+    // fallback to decoding with selector
+    return decodeWithSelector({ calldata });
   }
 }
 

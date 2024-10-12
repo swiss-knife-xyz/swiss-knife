@@ -208,6 +208,8 @@ const CalldataDecoder = () => {
 
     const __fromTxInput = _fromTxInput || fromTxInput;
 
+    console.log({ __fromTxInput, _chainId, selectedNetworkOption });
+
     let chain: Chain =
       chainIdToChain[
         _chainId ?? parseInt(selectedNetworkOption!.value.toString())
