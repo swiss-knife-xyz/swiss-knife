@@ -16,6 +16,7 @@ import {
   TransactionDescription,
 } from "ethers";
 import { hexToBigInt } from "viem";
+import { call } from "viem/_types/actions/public/call";
 
 export async function decodeWithAddress({
   calldata,
@@ -654,6 +655,7 @@ export async function decodeRecursive({
               value,
               address,
               chainId,
+              abi,
             }),
           };
         })
@@ -669,11 +671,13 @@ const decodeParamTypes = async ({
   value,
   address,
   chainId,
+  abi,
 }: {
   input: ParamType;
   value: any;
   address?: string;
   chainId?: number;
+  abi?: any;
 }): Promise<any> => {
   if (input.baseType.includes("int")) {
     // covers uint
@@ -681,11 +685,11 @@ const decodeParamTypes = async ({
   } else if (input.baseType === "address") {
     return value;
   } else if (input.baseType.includes("bytes")) {
-    return await decodeBytesParam({ value, address, chainId });
+    return await decodeBytesParam({ value, address, chainId, abi });
   } else if (input.baseType === "tuple") {
-    return await decodeTupleParam({ input, value, address, chainId });
+    return await decodeTupleParam({ input, value, address, chainId, abi });
   } else if (input.baseType === "array") {
-    return await decodeArrayParam({ value, input, address, chainId });
+    return await decodeArrayParam({ value, input, address, chainId, abi });
   } else {
     return value;
   }
@@ -695,13 +699,21 @@ const decodeBytesParam = async ({
   value,
   address,
   chainId,
+  abi,
 }: {
   value: any;
   address?: string;
   chainId?: number;
+  abi?: any;
 }) => {
+  console.log("decoding bytes param", {
+    callData: value,
+    address,
+    chainId,
+    abi,
+  });
   return {
-    decoded: await decodeRecursive({ calldata: value, address, chainId }),
+    decoded: await decodeRecursive({ calldata: value, address, chainId, abi }),
   };
 };
 
@@ -710,11 +722,13 @@ const decodeTupleParam = async ({
   value,
   address,
   chainId,
+  abi,
 }: {
   input: ParamType;
   value: any;
   address?: string;
   chainId?: number;
+  abi?: any;
 }): Promise<any> => {
   if (!input.components) {
     return null;
@@ -735,6 +749,7 @@ const decodeTupleParam = async ({
           value: value[i],
           address,
           chainId,
+          abi,
         }),
       };
     })
@@ -746,11 +761,13 @@ const decodeArrayParam = async ({
   input,
   address,
   chainId,
+  abi,
 }: {
   value: any;
   input: ParamType;
   address?: string;
   chainId?: number;
+  abi?: any;
 }) => {
   if (!Array.isArray(value) || value.length === 0) {
     return [];
@@ -767,6 +784,7 @@ const decodeArrayParam = async ({
           value: v,
           address,
           chainId,
+          abi,
         }),
       };
     })
