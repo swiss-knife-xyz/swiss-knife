@@ -43,11 +43,7 @@ export const Footer = () => {
             </Heading>
           </Center>
           <Center>
-            <Link
-              href={"https://discord.gg/w9uDexf9vR"}
-              color="twitter.200"
-              isExternal
-            >
+            <Link href={"/discord"} color="twitter.200" isExternal>
               <FontAwesomeIcon icon={faDiscord} size="2x" />
             </Link>
           </Center>

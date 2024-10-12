@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const subdomains = require("./subdomains.js");
+require("dotenv/config");
 
 const nextConfig = {
   reactStrictMode: true,
@@ -28,6 +29,15 @@ const nextConfig = {
         })),
       ],
     };
+  },
+  redirects() {
+    return [
+      {
+        source: "/discord",
+        destination: process.env.DISCORD_URL,
+        permanent: true,
+      },
+    ];
   },
   webpack: (config) => {
     config.resolve.fallback = { fs: false, net: false, tls: false };
