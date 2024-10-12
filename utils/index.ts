@@ -105,6 +105,7 @@ export const startHexWith0x = (hexValue?: string): Hex => {
 export const ethFormatOptions = [
   "ETH",
   "Wei",
+  "Gwei",
   "10^6",
   "Unix",
   "Minutes",
@@ -181,8 +182,10 @@ export function getConversion(
       return value;
     case "ETH":
       return formatEther(BigInt(value));
+    case "Gwei":
+      return value === "0" ? "0" : formatUnits(BigInt(value), "gwei");
     case "10^6":
-      return formatUnits(BigInt(value), 6);
+      return value === "0" ? "0" : formatUnits(BigInt(value), 6);
     case "Unix":
       return new Date(value * 1000).toUTCString();
     case "Days":
