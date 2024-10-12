@@ -1,46 +1,45 @@
 import { useSearchParams } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Center,
   Collapse,
   HStack,
-  Spinner,
   Stack,
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
 import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
-import {
-  AbiCoder,
-  FunctionFragment,
-  Interface,
-  ParamType,
-  TransactionDescription,
-} from "ethers";
 import { hexToBigInt, hexToString } from "viem";
-import { guessAbiEncodedData } from "@openchainxyz/abi-guesser";
 import bigInt from "big-integer";
-import axios from "axios";
-import { fetchFunctionInterface, startHexWith0x } from "@/utils";
+import { startHexWith0x } from "@/utils";
 import { StringParam } from "./StringParam";
 import { renderParams } from "../renderParams";
 import { UintParam } from "./UintParam";
 import TabsSelector from "../Tabs/TabsSelector";
 
-const BytesFormatOptions = [
-  "Decode calldata",
-  "to Decimal",
-  "to Binary",
-  "to Text",
-];
-
 interface Params {
-  arg: any;
+  arg: {
+    rawValue: string;
+    value: {
+      decoded: {
+        functionName?: string;
+        args: any[];
+      } | null;
+    };
+  };
 }
 
 export const BytesParam = ({ arg }: Params) => {
   const { isOpen, onToggle } = useDisclosure();
+
+  const BytesFormatOptions = useMemo(() => {
+    const options = ["to Decimal", "to Binary", "to Text"];
+    if (arg.value.decoded !== null) {
+      options.unshift("Decode calldata");
+    }
+    return options;
+  }, [arg.value.decoded]);
 
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
 
@@ -49,7 +48,8 @@ export const BytesParam = ({ arg }: Params) => {
   const [text, setText] = useState<string>("");
 
   useEffect(() => {
-    if (selectedTabIndex === 0) {
+    if (selectedTabIndex === 0 && arg.value.decoded !== null) {
+      // Do nothing for "Decode calldata"
     } else {
       setDecimal(hexToBigInt(startHexWith0x(arg.rawValue)).toString());
       setBinary(
@@ -60,10 +60,12 @@ export const BytesParam = ({ arg }: Params) => {
       );
       setText(hexToString(startHexWith0x(arg.rawValue)));
     }
-  }, [selectedTabIndex]);
+  }, [selectedTabIndex, arg.rawValue]);
 
   const renderConverted = () => {
-    switch (selectedTabIndex) {
+    const index =
+      arg.value.decoded !== null ? selectedTabIndex : selectedTabIndex + 1;
+    switch (index) {
       case 0:
         return arg.value.decoded ? (
           <Box minW={"80%"}>
@@ -96,8 +98,6 @@ export const BytesParam = ({ arg }: Params) => {
               </Stack>
             )}
           </Box>
-        ) : arg.value.decoded === undefined ? (
-          <Center color="red.300">Unable to decode calldata</Center>
         ) : null;
       case 1:
         return (

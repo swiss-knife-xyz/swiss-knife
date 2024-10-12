@@ -17,7 +17,13 @@ export const StringParam = ({ value }: Params) => {
   try {
     const parsedValue = JSON.parse(value);
     displayValue = JSON.stringify(parsedValue, null, 4);
-    if (displayValue === "null") throw new Error("Invalid JSON");
+    if (
+      displayValue === "null" ||
+      !value.trim().startsWith("{") ||
+      !value.trim().endsWith("}")
+    ) {
+      throw new Error("Invalid JSON");
+    }
     isJson = true;
   } catch (e) {
     // If parsing fails, keep the original value
