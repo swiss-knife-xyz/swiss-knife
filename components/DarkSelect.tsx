@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useId } from "react";
+import { useEffect, useState, useRef, useId, useCallback } from "react";
 import { Box, ColorProps, BoxProps } from "@chakra-ui/react";
 import {
   Select as RSelect,
@@ -16,6 +16,7 @@ interface Props {
   setSelectedOption: (value: SelectedOptionState) => void;
   boxProps?: BoxProps;
   isCreatable?: boolean;
+  disableMouseNavigation?: boolean;
 }
 
 const selectBg: ColorProps["color"] = "whiteAlpha.200";
@@ -28,6 +29,7 @@ export const DarkSelect = ({
   setSelectedOption,
   boxProps,
   isCreatable,
+  disableMouseNavigation,
 }: Props) => {
   const [menuPortalTarget, setMenuPortalTarget] = useState<HTMLElement | null>(
     null
@@ -49,6 +51,21 @@ export const DarkSelect = ({
   const handleMenuClose = () => {
     setMenuIsOpen(false);
   };
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (disableMouseNavigation) {
+        if (
+          event.key === "ArrowUp" ||
+          event.key === "ArrowDown" ||
+          event.key === "Enter"
+        ) {
+          event.preventDefault();
+        }
+      }
+    },
+    [disableMouseNavigation]
+  );
 
   const commonChakraStyles = {
     container: (provided: any) => ({
@@ -77,8 +94,9 @@ export const DarkSelect = ({
       color: "white",
       bg: state.isFocused ? selectHover : selectBg,
       _hover: {
-        bg: selectHover,
+        bg: disableMouseNavigation ? "transparent" : selectHover,
       },
+      pointerEvents: disableMouseNavigation ? "none" : "auto",
     }),
   };
 
@@ -113,6 +131,8 @@ export const DarkSelect = ({
         menuPortalTarget={menuPortalTarget}
         isSearchable
         menuPosition="fixed"
+        onKeyDown={handleKeyDown}
+        isDisabled={disableMouseNavigation}
       />
     </Box>
   );

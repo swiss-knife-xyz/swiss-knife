@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import { HStack } from "@chakra-ui/react";
-import { ethFormatOptions, getConversion } from "@/utils";
-import { SelectedOptionState } from "@/types";
+import { HStack, Skeleton } from "@chakra-ui/react";
+import { ethFormatOptions, ETHSelectedOptionState, convertTo } from "@/utils";
 import { InputField } from "../InputField";
 import { DarkSelect } from "../DarkSelect";
 
@@ -9,17 +8,38 @@ interface Params {
   value: any;
 }
 
-export const IntParam = ({ value }: Params) => {
+export const IntParam = ({ value: _value }: Params) => {
+  // for skeleton loading
+  const showSkeleton = _value === undefined || _value === null;
+  const value = !showSkeleton ? (_value as BigInt).toString() : "1234";
+
   const [selectedEthFormatOption, setSelectedEthFormatOption] =
-    useState<SelectedOptionState>({
-      label: ethFormatOptions[1],
-      value: ethFormatOptions[1],
+    useState<ETHSelectedOptionState>({
+      label: ethFormatOptions[0],
+      value: ethFormatOptions[0],
     });
 
-  return (
+  return showSkeleton ? (
+    <HStack w="full">
+      <Skeleton
+        height="2rem"
+        width="20rem"
+        rounded="md"
+        startColor="whiteAlpha.50"
+        endColor="whiteAlpha.400"
+      />
+      <Skeleton
+        flexGrow={1}
+        height="2rem"
+        rounded="md"
+        startColor="whiteAlpha.50"
+        endColor="whiteAlpha.400"
+      />
+    </HStack>
+  ) : (
     <HStack>
       <InputField
-        value={getConversion(selectedEthFormatOption, value)}
+        value={convertTo(selectedEthFormatOption, value)}
         placeholder=""
         isReadOnly
         onChange={() => {}}
@@ -30,7 +50,9 @@ export const IntParam = ({ value }: Params) => {
           fontSize: "small",
         }}
         selectedOption={selectedEthFormatOption}
-        setSelectedOption={setSelectedEthFormatOption}
+        setSelectedOption={(option) =>
+          setSelectedEthFormatOption(option as ETHSelectedOptionState)
+        }
         options={ethFormatOptions.map((str) => ({
           label: str,
           value: str,

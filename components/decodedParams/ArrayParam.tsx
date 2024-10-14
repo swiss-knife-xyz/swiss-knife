@@ -5,6 +5,7 @@ import {
   Collapse,
   HStack,
   Link,
+  Skeleton,
   Stack,
   Text,
   useDisclosure,
@@ -25,10 +26,25 @@ interface Params {
   arg: any;
 }
 
-export const ArrayParam = ({ arg }: Params) => {
+export const ArrayParam = ({ arg: _arg }: Params) => {
+  const showSkeleton = _arg === undefined || _arg === null;
+  const arg = !showSkeleton ? _arg : "abcdef1234";
+
   const { isOpen, onToggle } = useDisclosure();
 
-  if (arg.value.length === 0) {
+  if (showSkeleton) {
+    return (
+      <HStack w="full">
+        <Skeleton
+          flexGrow={1}
+          height="4rem"
+          rounded="md"
+          startColor="whiteAlpha.50"
+          endColor="whiteAlpha.400"
+        />
+      </HStack>
+    );
+  } else if (arg.value.length === 0) {
     return <StringParam value={"[ ]"} />;
   } else {
     return (

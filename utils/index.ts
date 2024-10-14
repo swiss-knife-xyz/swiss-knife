@@ -1,11 +1,10 @@
 import { Metadata } from "next";
-import { createPublicClient, http, Hex } from "viem";
+import { createPublicClient, http, Hex, parseEther, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { normalize } from "viem/ens";
 import { ADDRESS_KEY, CHAINLABEL_KEY, TX_KEY } from "@/data/common";
 import { ExplorerData, ExplorerType, SelectedOptionState } from "@/types";
-import { formatUnits } from "ethers";
-import { formatEther } from "viem";
+import { formatEther, formatUnits } from "viem";
 
 export const getPath = (subdomain: string) => {
   return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
@@ -101,17 +100,6 @@ export const startHexWith0x = (hexValue?: string): Hex => {
     : "0x";
 };
 
-export const ethFormatOptions = [
-  "ETH",
-  "Wei",
-  "Gwei",
-  "10^6",
-  "Unix",
-  "Minutes",
-  "Hours",
-  "Days",
-];
-
 export const slicedText = (txt: string) => {
   return txt.length > 10
     ? `${txt.slice(0, 6)}...${txt.slice(txt.length - 4, txt.length)}`
@@ -132,8 +120,27 @@ export const swap = <T>(arr: T[], i: number, j: number): T[] => {
   return arr;
 };
 
-export function getConversion(
-  selectedEthFormatOption: SelectedOptionState,
+export const ethFormatOptions = [
+  "Wei",
+  "ETH",
+  "Gwei",
+  "10^6",
+  "Unix Time",
+  "Bps ↔️ %",
+  "Minutes",
+  "Hours",
+  "Days",
+] as const;
+
+export type EthFormatOption = (typeof ethFormatOptions)[number];
+
+export interface ETHSelectedOptionState {
+  label: EthFormatOption;
+  value: EthFormatOption;
+}
+
+export function convertTo(
+  selectedEthFormatOption: ETHSelectedOptionState,
   value: any
 ) {
   if (!selectedEthFormatOption?.value) {
@@ -146,11 +153,13 @@ export function getConversion(
     case "ETH":
       return formatEther(BigInt(value));
     case "Gwei":
-      return value === "0" ? "0" : formatUnits(BigInt(value), "gwei");
+      return value === "0" ? "0" : formatUnits(value, 9);
     case "10^6":
       return value === "0" ? "0" : formatUnits(BigInt(value), 6);
-    case "Unix":
-      return new Date(value * 1000).toUTCString();
+    case "Unix Time":
+      return convertUnixSecondsToGMT(Number(value));
+    case "Bps ↔️ %":
+      return `${((parseFloat(value) * 1_00) / 10_000).toFixed(2).toString()}%`;
     case "Days":
       return value / 86400;
     case "Hours":
@@ -161,6 +170,51 @@ export function getConversion(
       return "";
   }
 }
+
+export function convertFrom(
+  selectedEthFormatOption: ETHSelectedOptionState,
+  value: any
+): string {
+  console.log({ selectedEthFormatOption, value });
+  if (!selectedEthFormatOption || !selectedEthFormatOption.value) {
+    return "";
+  }
+
+  switch (selectedEthFormatOption.value) {
+    case "Wei":
+      return value.toString();
+    case "ETH":
+      return BigInt(parseEther(value)).toString();
+    case "Gwei":
+      return BigInt(parseUnits(value, 9)).toString();
+    case "10^6":
+      return BigInt(parseUnits(value, 6)).toString();
+    case "Unix Time": {
+      // value in unix seconds
+      return BigInt(Math.floor(Number(value))).toString();
+    }
+    case "Bps ↔️ %":
+      return BigInt(Math.floor((parseFloat(value) * 10_000) / 1_00)).toString();
+    case "Days":
+      return BigInt(Math.floor(Number(value) * 86400)).toString();
+    case "Hours":
+      return BigInt(Math.floor(Number(value) * 3600)).toString();
+    case "Minutes":
+      return BigInt(Math.floor(Number(value) * 60)).toString();
+    default:
+      return "";
+  }
+}
+
+// input format = Thu, 01 Jan 1970 00:55:00 GMT
+export const convertGMTToUnixSeconds = (gmtTime: string): number => {
+  const date = new Date(gmtTime);
+  return Math.floor(date.getTime() / 1000);
+};
+
+export const convertUnixSecondsToGMT = (unixSeconds: number): string => {
+  return new Date(unixSeconds * 1000).toUTCString();
+};
 
 export const decodeBase64 = (
   value: string

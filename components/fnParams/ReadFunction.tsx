@@ -5,18 +5,17 @@ import {
   Center,
   HStack,
   Spinner,
+  Text,
   useToast,
 } from "@chakra-ui/react";
 import { ChevronDownIcon, ChevronUpIcon, RepeatIcon } from "@chakra-ui/icons";
 import { JsonFragment, JsonFragmentType } from "ethers";
 import {
   ContractFunctionExecutionError,
-  createPublicClient,
+  PublicClient,
   Hex,
-  http,
   isAddress,
 } from "viem";
-import { chainIdToChain } from "@/data/common";
 import {
   UintParam,
   StringParam,
@@ -29,9 +28,22 @@ import {
 import {
   AddressInput,
   InputInfo,
+  IntInput,
   StringInput,
 } from "@/components/fnParams/inputs";
 import { ExtendedJsonFragmentType, HighlightedContent } from "@/types";
+
+interface ReadFunctionProps {
+  client: PublicClient;
+  index: number;
+  func: Omit<JsonFragment, "name" | "outputs"> & {
+    name: HighlightedContent;
+    outputs?: ExtendedJsonFragmentType[];
+  };
+  address: string;
+  chainId: number;
+  readAllCollapsed?: boolean;
+}
 
 const extractConciseError = (errorMessage: string): string => {
   const functionMatch = errorMessage.match(/"([^"]+)"/);
@@ -55,18 +67,83 @@ const extractStringFromReactNode = (node: HighlightedContent): string => {
   return "";
 };
 
-interface ReadFunctionProps {
-  index: number;
-  func: Omit<JsonFragment, "name" | "outputs"> & {
-    name: HighlightedContent;
-    outputs?: ExtendedJsonFragmentType[];
+//nonly break the word after a ","
+//nuseful for displaying the outputs of a function
+const EnhancedFunctionOutput: React.FC<{
+  outputs?: ExtendedJsonFragmentType[];
+}> = ({ outputs }) => {
+  const renderHighlightedText = (
+    content: HighlightedContent
+  ): React.ReactNode => {
+    if (typeof content === "string") {
+      return content;
+    }
+
+    return content.map((part, index) => (
+      <span
+        key={index}
+        style={{
+          backgroundColor: part.isHighlighted
+            ? part.isCurrentResult
+              ? "orange"
+              : "yellow"
+            : "transparent",
+          color: part.isHighlighted ? "black" : "white",
+        }}
+      >
+        {part.text}
+      </span>
+    ));
   };
-  address: string;
-  chainId: number;
-  readAllCollapsed?: boolean;
-}
+
+  const processString = (str: string | React.ReactNode) => {
+    if (typeof str !== "string") {
+      return str;
+    }
+
+    return str.split(", ").map((part, index, array) => (
+      <React.Fragment key={index}>
+        {part}
+        {index < array.length - 1 && (
+          <span style={{ whiteSpace: "nowrap" }}>,&#8203;</span>
+        )}
+      </React.Fragment>
+    ));
+  };
+
+  return (
+    <Box
+      ml={4}
+      maxW="30rem"
+      sx={{
+        wordBreak: "break-word",
+        whiteSpace: "pre-wrap",
+      }}
+    >
+      {outputs && outputs.length > 1 && (
+        <Box fontSize="sm" color="whiteAlpha.600">
+          →&nbsp;(
+          {outputs.map((output, index) => (
+            <React.Fragment key={index}>
+              {index > 0 && <span>,&nbsp;</span>}
+              {processString(output.type !== undefined ? output.type : "")}
+              {output.name && (
+                <>
+                  &nbsp;
+                  {processString(renderHighlightedText(output.name))}
+                </>
+              )}
+            </React.Fragment>
+          ))}
+          )
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 export const ReadFunction = ({
+  client,
   index,
   func: __func,
   address,
@@ -79,11 +156,6 @@ export const ReadFunction = ({
   const functionName = extractStringFromReactNode(__name);
   const _func = { ...__func, name: functionName } as JsonFragment;
 
-  const client = createPublicClient({
-    chain: chainIdToChain[chainId],
-    transport: http(),
-  });
-
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
     readAllCollapsed !== undefined ? readAllCollapsed : false
   );
@@ -92,6 +164,7 @@ export const ReadFunction = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [enterPressed, setEnterPressed] = useState<boolean>(false);
 
   const fetchValue = async () => {
     if (isError) {
@@ -100,6 +173,7 @@ export const ReadFunction = ({
 
     if (functionName) {
       setLoading(true);
+      setRes(null);
       try {
         const result = await client.readContract({
           address: address as Hex,
@@ -133,22 +207,66 @@ export const ReadFunction = ({
     }
   };
 
+  useEffect(() => {
+    if (enterPressed) {
+      fetchValue();
+      setEnterPressed(false);
+    }
+  }, [inputsState, enterPressed]);
+
   const renderInputFields = (input: JsonFragmentType, i: number) => {
     const value = inputsState[i] || ""; // Ensure value is always defined
+
+    const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setInputsState({
+        ...inputsState,
+        [i]: e.target.value,
+      });
+    };
+
+    const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        setEnterPressed(true);
+      }
+    };
+
+    const isInvalid =
+      isError &&
+      (value === undefined ||
+        value === null ||
+        value.toString().trim().length === 0);
 
     if (input.type === "address") {
       return (
         <AddressInput
           input={input}
           value={value}
-          onChange={(e) =>
-            setInputsState({
-              ...inputsState,
-              [i]: e.target.value,
-            })
-          }
           chainId={chainId}
-          isInvalid={isError && (!value || value.trim().length === 0)}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          isInvalid={isInvalid}
+        />
+      );
+    } else if (input.type?.includes("int")) {
+      return (
+        <IntInput
+          input={input}
+          value={value}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          isInvalid={isInvalid}
+          readFunctionIsError={isError}
+        />
+      );
+    } else if (input.type === "bool") {
+      // FIXME: add DarkSelect for true of false
+      return (
+        <StringInput
+          input={input}
+          value={value}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          isInvalid={isInvalid}
         />
       );
     } else {
@@ -156,13 +274,9 @@ export const ReadFunction = ({
         <StringInput
           input={input}
           value={value}
-          onChange={(e) =>
-            setInputsState({
-              ...inputsState,
-              [i]: e.target.value,
-            })
-          }
-          isInvalid={isError && (!value || value.trim().length === 0)}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          isInvalid={isInvalid}
         />
       );
     }
@@ -170,9 +284,9 @@ export const ReadFunction = ({
 
   const renderParamTypes = (type: string, value: any) => {
     if (type.includes("uint")) {
-      return <UintParam value={(value as BigInt).toString()} />;
+      return <UintParam value={value} />;
     } else if (type.includes("int")) {
-      return <IntParam value={(value as BigInt).toString()} />;
+      return <IntParam value={value} />;
     } else if (type === "address") {
       return <AddressParam address={value} showLink chainId={chainId} />;
     } else if (type.includes("bytes")) {
@@ -181,7 +295,13 @@ export const ReadFunction = ({
         return <AddressParam address={value} />;
       } else {
         return (
-          <BytesParam arg={{ rawValue: value, value: { decoded: null } }} />
+          <BytesParam
+            arg={
+              value === null || value === undefined
+                ? value
+                : { rawValue: value, value: { decoded: null } }
+            }
+          />
         );
       }
     } else if (type === "tuple") {
@@ -189,7 +309,17 @@ export const ReadFunction = ({
     } else if (type === "array") {
       return <ArrayParam arg={{ rawValue: value, value }} />;
     } else if (type === "bool") {
-      return <StringParam value={value ? "true" : "false"} />;
+      return (
+        <StringParam
+          value={
+            value === null || value === undefined
+              ? value
+              : value
+              ? "true"
+              : "false"
+          }
+        />
+      );
     } else {
       return <StringParam value={value} />;
     }
@@ -220,7 +350,11 @@ export const ReadFunction = ({
               {output.type &&
                 renderParamTypes(
                   output.type,
-                  outputs.length > 1 ? res[i] : res
+                  outputs.length > 1
+                    ? res !== null && res !== undefined
+                      ? res[i]
+                      : null
+                    : res
                 )}
             </Box>
           ))}
@@ -316,20 +450,9 @@ export const ReadFunction = ({
           </Button>
         )}
       </HStack>
-      <Box ml={4} maxW="30rem">
-        {__func.outputs && __func.outputs.length > 1 && (
-          <Box fontSize={"sm"} color="whiteAlpha.600">
-            (
-            {__func.outputs.map((output, index) => (
-              <React.Fragment key={index}>
-                {index > 0 && ", "}
-                {output.type}
-                {output.name && <> {renderHighlightedText(output.name)}</>}
-              </React.Fragment>
-            ))}
-            )
-          </Box>
-        )}
+
+      <Box ml={4} maxW="30rem" mb={4}>
+        <EnhancedFunctionOutput outputs={outputs} />
       </Box>
       <Box display={isCollapsed ? "none" : undefined}>
         {/* Input fields */}
@@ -342,24 +465,18 @@ export const ReadFunction = ({
             ))}
           </Box>
         )}
-        {loading ? (
-          <Center>
-            <Spinner mt={2} mb={4} />
-          </Center>
-        ) : (
-          res !== null && (
-            <Box mt={2} ml={4} mb={inputs && inputs.length > 0 ? 0 : 4}>
-              {inputs && inputs.length > 0 ? (
+        {/* Output fields */}
+        <Box mt={2} ml={4} mb={inputs && inputs.length > 0 ? 0 : 4}>
+          {inputs && inputs.length > 0
+            ? // Show skeleton (res = null) if loading
+              (loading || (!loading && res !== null && res !== undefined)) && (
                 <Box p={4} bg="whiteAlpha.100" rounded={"md"}>
                   <Box fontWeight={"bold"}>Result:</Box>
                   {renderRes()}
                 </Box>
-              ) : (
-                renderRes()
-              )}
-            </Box>
-          )
-        )}
+              )
+            : !isError && renderRes()}
+        </Box>
         {isError && errorMsg && (
           <Center mt={2} p={4} color="red.300" maxW="30rem">
             {errorMsg}

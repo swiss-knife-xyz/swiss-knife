@@ -1,9 +1,16 @@
 import { Box, HStack } from "@chakra-ui/react";
 import { JsonFragment } from "ethers";
 
-export const InputInfo = ({ input }: { input: JsonFragment }) => {
+export const InputInfo = ({
+  input,
+  prefix,
+}: {
+  input: JsonFragment;
+  prefix?: string;
+}) => {
   return (
     <HStack>
+      {prefix && <Box color="whiteAlpha.600">{prefix}</Box>}
       {input.name ? (
         <>
           <Box>{input.name}</Box>{" "}

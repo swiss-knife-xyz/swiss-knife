@@ -24,9 +24,8 @@ import {
 } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
 import { parseAsInteger, useQueryState } from "next-usequerystate";
-import { debounce } from "lodash";
 import { JsonFragment } from "ethers";
-import { createPublicClient, http } from "viem";
+import { PublicClient, createPublicClient, http } from "viem";
 import { whatsabi } from "@shazow/whatsabi";
 import { fetchContractAbi } from "@/lib/decoder";
 import { ReadFunction } from "@/components/fnParams/ReadFunction";
@@ -55,6 +54,7 @@ export const ContractPage = ({
   };
 }) => {
   // url params
+  // FIXME: use segment to get chainId (currently reverts to mainnet when new address is pasted, even though different networks was selected)
   const searchParams = useSearchParams();
   const chainIdFromURL = searchParams.get("chainId");
   const networkOptionsIndex = chainIdFromURL
@@ -72,12 +72,14 @@ export const ContractPage = ({
   // state
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>(networkOptions[networkOptionsIndex]);
+  const [client, setClient] = useState<PublicClient | null>(null);
 
   const [abi, setAbi] = useState<{
     abi: JsonFragment[];
     name: string;
   } | null>(null);
   const [isFetchingAbi, setIsFetchingAbi] = useState<boolean>(false);
+  const [unableToFetchAbi, setUnableToFetchAbi] = useState<boolean>(false);
 
   const [readFunctions, setReadFunctions] = useState<JsonFragment[]>([]);
   const [writeFunctions, setWriteFunctions] = useState<JsonFragment[]>([]);
@@ -222,6 +224,7 @@ export const ContractPage = ({
   const fetchSetAbi = async () => {
     try {
       setIsFetchingAbi(true);
+      setUnableToFetchAbi(false);
       // try fetching if contract is verified
       const fetchedAbi = await fetchContractAbi({ address, chainId });
       console.log(fetchedAbi);
@@ -243,7 +246,7 @@ export const ContractPage = ({
         // have the UI render differently, by listing all the functions, without read & write divide
         // the write functions would be displayed with a button that allows to call as view function
       } catch {
-        // TODO: add toast
+        setUnableToFetchAbi(true);
         console.log("Failed to fetch abi");
       }
     } finally {
@@ -254,6 +257,12 @@ export const ContractPage = ({
   useEffect(() => {
     if (selectedNetworkOption) {
       setChainId(parseInt(selectedNetworkOption.value.toString()));
+      setClient(
+        createPublicClient({
+          chain: chainIdToChain[chainId],
+          transport: http(),
+        })
+      );
     }
   }, [selectedNetworkOption]);
 
@@ -328,7 +337,17 @@ export const ContractPage = ({
           setSelectedOption={setSelectedNetworkOption}
           options={networkOptions}
         />
-        {isFetchingAbi && <Spinner mt={5} />}
+        {isFetchingAbi && (
+          <HStack mt={5}>
+            <Box>Fetching ABI...</Box>
+            <Spinner />
+          </HStack>
+        )}
+        {unableToFetchAbi && (
+          <HStack mt={5} color="red.300">
+            <Box>Unable to Fetch ABI for this address</Box>
+          </HStack>
+        )}
       </Center>
       {abi && (
         <>
@@ -424,40 +443,57 @@ export const ContractPage = ({
               <Box
                 ref={scrollContainerRef}
                 overflowY="auto"
-                maxHeight="calc(100vh - 200px)"
+                maxHeight="calc(100vh - 1px)"
+                rounded="lg"
+                p={2}
+                boxSizing="border-box"
+                sx={{
+                  "&::-webkit-scrollbar": {
+                    width: "8px",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    background: "#888",
+                    borderRadius: "10px",
+                  },
+                  "&::-webkit-scrollbar-thumb:hover": {
+                    background: "#555",
+                  },
+                }}
               >
-                {readFunctions?.map((func, index) => (
-                  <Box
-                    key={index}
-                    ref={(el) => (readFunctionRefs.current[index] = el)}
-                  >
-                    <ReadFunction
+                {client &&
+                  readFunctions?.map((func, index) => (
+                    <Box
                       key={index}
-                      index={index}
-                      func={{
-                        ...func,
-                        name: ensureHighlightedContent(
-                          func.name,
-                          searchQuery,
-                          searchResults[currentResultIndex] === index
-                        ),
-                        outputs: func.outputs?.map(
-                          (output): ExtendedJsonFragmentType => ({
-                            ...output,
-                            name: ensureHighlightedContent(
-                              output.name,
-                              searchQuery,
-                              searchResults[currentResultIndex] === index
-                            ),
-                          })
-                        ),
-                      }}
-                      address={address}
-                      chainId={chainId}
-                      readAllCollapsed={readAllCollapsed}
-                    />
-                  </Box>
-                ))}
+                      ref={(el) => (readFunctionRefs.current[index] = el)}
+                    >
+                      <ReadFunction
+                        key={index}
+                        client={client}
+                        index={index}
+                        func={{
+                          ...func,
+                          name: ensureHighlightedContent(
+                            func.name,
+                            searchQuery,
+                            searchResults[currentResultIndex] === index
+                          ),
+                          outputs: func.outputs?.map(
+                            (output): ExtendedJsonFragmentType => ({
+                              ...output,
+                              name: ensureHighlightedContent(
+                                output.name,
+                                searchQuery,
+                                searchResults[currentResultIndex] === index
+                              ),
+                            })
+                          ),
+                        }}
+                        address={address}
+                        chainId={chainId}
+                        readAllCollapsed={readAllCollapsed}
+                      />
+                    </Box>
+                  ))}
               </Box>
             </Box>
             <Box>

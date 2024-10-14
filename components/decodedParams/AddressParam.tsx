@@ -11,6 +11,7 @@ import {
   InputLeftElement,
   Tag,
   Link,
+  Skeleton,
 } from "@chakra-ui/react";
 import { getEnsName, getEnsAvatar, getPath } from "@/utils";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
@@ -24,7 +25,16 @@ interface Params {
   chainId?: number;
 }
 
-export const AddressParam = ({ address, showLink, chainId }: Params) => {
+const skeletonAddress = "0x1111222233334444000000000000000000000000";
+
+export const AddressParam = ({
+  address: _address,
+  showLink,
+  chainId,
+}: Params) => {
+  const showSkeleton = _address === null || _address === undefined;
+  const address = !showSkeleton ? _address : skeletonAddress;
+
   const [ensName, setEnsName] = useState("");
   const [ensAvatar, setEnsAvatar] = useState("");
   const [showEns, setShowEns] = useState(false);
@@ -54,14 +64,16 @@ export const AddressParam = ({ address, showLink, chainId }: Params) => {
   };
 
   useEffect(() => {
-    getEnsName(address).then((res) => {
-      if (res) {
-        setEnsName(res);
-        setShowEns(true);
-      }
-    });
+    if (address !== skeletonAddress) {
+      getEnsName(address).then((res) => {
+        if (res) {
+          setEnsName(res);
+          setShowEns(true);
+        }
+      });
 
-    fetchSetAddressLabel();
+      fetchSetAddressLabel();
+    }
   }, [address]);
 
   useEffect(() => {
@@ -82,7 +94,35 @@ export const AddressParam = ({ address, showLink, chainId }: Params) => {
     setValue(showEns ? ensName : address);
   }, [showEns, ensName, address]);
 
-  return (
+  return showSkeleton ? (
+    <Box>
+      <Skeleton
+        height="1.5rem"
+        mb={"0.5rem"}
+        width="8rem"
+        rounded="md"
+        startColor="whiteAlpha.50"
+        endColor="whiteAlpha.400"
+      />
+      <HStack w="full">
+        <Skeleton
+          flexGrow={1}
+          height="2rem"
+          width="26rem"
+          rounded="md"
+          startColor="whiteAlpha.50"
+          endColor="whiteAlpha.400"
+        />
+        <Skeleton
+          w="2rem"
+          height="1.6rem"
+          rounded="md"
+          startColor="whiteAlpha.50"
+          endColor="whiteAlpha.400"
+        />
+      </HStack>
+    </Box>
+  ) : (
     <Box>
       {addressLabels.length > 0 && (
         <HStack py="2">

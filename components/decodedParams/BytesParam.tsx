@@ -1,16 +1,15 @@
-import { useSearchParams } from "next/navigation";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
-  Center,
   Collapse,
   HStack,
+  Skeleton,
   Stack,
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
 import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
-import { hexToBigInt, hexToString } from "viem";
+import { hexToBigInt, hexToString, zeroHash } from "viem";
 import bigInt from "big-integer";
 import { startHexWith0x } from "@/utils";
 import { StringParam } from "./StringParam";
@@ -27,10 +26,20 @@ interface Params {
         args: any[];
       } | null;
     };
-  };
+  } | null;
 }
 
-export const BytesParam = ({ arg }: Params) => {
+export const BytesParam = ({ arg: _arg }: Params) => {
+  const showSkeleton = _arg === undefined || _arg === null;
+  const arg = !showSkeleton
+    ? _arg
+    : {
+        rawValue: zeroHash,
+        value: {
+          decoded: null,
+        },
+      };
+
   const { isOpen, onToggle } = useDisclosure();
 
   const BytesFormatOptions = useMemo(() => {
@@ -48,19 +57,23 @@ export const BytesParam = ({ arg }: Params) => {
   const [text, setText] = useState<string>("");
 
   useEffect(() => {
-    if (selectedTabIndex === 0 && arg.value.decoded !== null) {
-      // Do nothing for "Decode calldata"
-    } else {
-      setDecimal(hexToBigInt(startHexWith0x(arg.rawValue)).toString());
-      setBinary(
-        bigInt(
-          arg.rawValue.startsWith("0x") ? arg.rawValue.slice(2) : arg.rawValue,
-          16
-        ).toString(2)
-      );
-      setText(hexToString(startHexWith0x(arg.rawValue)));
+    if (!showSkeleton) {
+      if (selectedTabIndex === 0 && arg.value.decoded !== null) {
+        // Do nothing for "Decode calldata"
+      } else {
+        setDecimal(hexToBigInt(startHexWith0x(arg.rawValue)).toString());
+        setBinary(
+          bigInt(
+            arg.rawValue.startsWith("0x")
+              ? arg.rawValue.slice(2)
+              : arg.rawValue,
+            16
+          ).toString(2)
+        );
+        setText(hexToString(startHexWith0x(arg.rawValue)));
+      }
     }
-  }, [selectedTabIndex, arg.rawValue]);
+  }, [selectedTabIndex, arg]);
 
   const renderConverted = () => {
     const index =
@@ -122,7 +135,17 @@ export const BytesParam = ({ arg }: Params) => {
     }
   };
 
-  return (
+  return showSkeleton ? (
+    <HStack w="full">
+      <Skeleton
+        flexGrow={1}
+        height="4rem"
+        rounded="md"
+        startColor="whiteAlpha.50"
+        endColor="whiteAlpha.400"
+      />
+    </HStack>
+  ) : (
     <Stack mt={2} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
       <HStack w="full">
         <Text

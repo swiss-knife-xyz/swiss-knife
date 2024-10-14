@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { InputField } from "../InputField";
 import {
   Textarea,
@@ -12,8 +12,8 @@ import {
   Td,
   HStack,
   Spacer,
-  Image,
   Link,
+  Skeleton,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import axios from "axios";
@@ -24,10 +24,13 @@ import { CopyToClipboard } from "../CopyToClipboard";
 import { ResizableImage } from "../ResizableImage";
 
 interface Params {
-  value: string;
+  value: string | null;
 }
 
-export const StringParam = ({ value }: Params) => {
+export const StringParam = ({ value: _value }: Params) => {
+  const showSkeleton = _value === undefined || _value === null;
+  const value = !showSkeleton ? _value : "abcdef1234";
+
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   const [richSelectedTabIndex, setRichSelectedTabIndex] = useState(0);
   const [urlContent, setUrlContent] = useState<string | null>(null);
@@ -247,7 +250,24 @@ export const StringParam = ({ value }: Params) => {
     }
   }, [isUrl]);
 
-  return (
+  return showSkeleton ? (
+    <HStack w="full">
+      <Skeleton
+        height="2rem"
+        width="20rem"
+        rounded="md"
+        startColor="whiteAlpha.50"
+        endColor="whiteAlpha.400"
+      />
+      <Skeleton
+        flexGrow={1}
+        height="2rem"
+        rounded="md"
+        startColor="whiteAlpha.50"
+        endColor="whiteAlpha.400"
+      />
+    </HStack>
+  ) : (
     <Box w="full">
       {isJson || isImage || (isUrl && isUrlImageOrJson) ? (
         <Stack mt={2} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
