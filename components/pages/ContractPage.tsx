@@ -370,7 +370,7 @@ export const ContractPage = ({
                 position="sticky"
                 top={abi.name.length > 0 ? "40px" : "0"}
                 zIndex={100}
-                p={200}
+                p={2}
                 boxShadow="md"
                 bg="bg.900"
               >

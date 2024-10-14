@@ -160,6 +160,7 @@ export const ReadFunction = ({
     readAllCollapsed !== undefined ? readAllCollapsed : false
   );
   const [inputsState, setInputsState] = useState<any>({});
+  const [readIsDisabled, setReadIsDisabled] = useState<boolean>(false);
   const [res, setRes] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
@@ -225,7 +226,7 @@ export const ReadFunction = ({
     };
 
     const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
+      if (e.key === "Enter" && !readIsDisabled) {
         setEnterPressed(true);
       }
     };
@@ -245,6 +246,7 @@ export const ReadFunction = ({
           onChange={onChange}
           onKeyDown={onKeyDown}
           isInvalid={isInvalid}
+          setReadIsDisabled={setReadIsDisabled}
         />
       );
     } else if (input.type?.includes("int")) {
@@ -442,6 +444,7 @@ export const ReadFunction = ({
           <Button
             ml={4}
             onClick={fetchValue}
+            isDisabled={readIsDisabled}
             size={"sm"}
             title={res !== null ? "refetch" : "fetch"}
             colorScheme={!isError ? "blue" : "red"}

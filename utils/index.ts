@@ -175,7 +175,6 @@ export function convertFrom(
   selectedEthFormatOption: ETHSelectedOptionState,
   value: any
 ): string {
-  console.log({ selectedEthFormatOption, value });
   if (!selectedEthFormatOption || !selectedEthFormatOption.value) {
     return "";
   }

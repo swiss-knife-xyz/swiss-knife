@@ -1,9 +1,9 @@
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Input,
   InputGroup,
   InputRightElement,
   InputProps,
-  InputLeftElement,
   Avatar,
   Box,
   HStack,
@@ -13,114 +13,189 @@ import {
 } from "@chakra-ui/react";
 import { ExternalLinkIcon, WarningIcon } from "@chakra-ui/icons";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-import { useEffect, useState } from "react";
-import { getEnsAvatar, getEnsName, getPath } from "@/utils";
+import { getEnsAddress, getEnsAvatar, getEnsName, getPath } from "@/utils";
 import { JsonFragment } from "ethers";
 import { InputInfo } from "@/components/fnParams/inputs";
 import subdomains from "@/subdomains";
+import debounce from "lodash/debounce";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface InputFieldProps extends InputProps {
   input: JsonFragment;
-  value?: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  value: string;
   chainId: number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  setReadIsDisabled?: (isDisabled: boolean) => void;
 }
 
 export const AddressInput = ({
   input,
   value,
-  onChange,
   chainId,
+  onChange,
   isInvalid,
+  setReadIsDisabled,
   ...rest
 }: InputFieldProps) => {
   const [ensName, setEnsName] = useState("");
   const [ensAvatar, setEnsAvatar] = useState("");
+  const [resolvedAddress, setResolvedAddress] = useState("");
+  const [isResolving, setIsResolving] = useState(false);
+  const [lastResolvedValue, setLastResolvedValue] = useState("");
 
-  // fetch ens name after 100ms of user input
-  useEffect(() => {
-    if (value) {
-      if (value.length === 42) {
-        const timeoutId = setTimeout(() => {
-          getEnsName(value).then((res) => {
-            if (res) {
-              setEnsName(res);
-            }
-          });
-        }, 100);
-
-        // Cleanup function to clear the timeout if value changes before 100ms
-        return () => clearTimeout(timeoutId);
-      } else {
-        setEnsName("");
-      }
-    } else {
-      setEnsName("");
-    }
-  }, [value]);
-
-  // fetch ens avatar
-  useEffect(() => {
-    if (ensName && ensName.length > 0) {
-      setEnsAvatar("");
-      getEnsAvatar(ensName).then((res) => {
-        console.log({
-          ensName,
-          avatar: res,
-        });
-        if (res) {
-          setEnsAvatar(res);
+  const resolveEns = useCallback(
+    debounce(async (val: string) => {
+      if (val === lastResolvedValue) return; // Prevent re-resolution of already resolved values
+      setIsResolving(true);
+      try {
+        if (val.includes(".eth")) {
+          const address = await getEnsAddress(val);
+          if (address) {
+            setResolvedAddress(address);
+            setEnsName(val);
+            onChange({
+              target: { value: address },
+            } as any);
+            setLastResolvedValue(address);
+          }
+        } else if (val.length === 42) {
+          const name = await getEnsName(val);
+          if (name) {
+            setEnsName(name);
+            setResolvedAddress(val);
+            setLastResolvedValue(val);
+          } else {
+            setEnsName("");
+            setResolvedAddress(val);
+            setLastResolvedValue(val);
+          }
         } else {
-          setEnsAvatar("");
+          setEnsName("");
+          setResolvedAddress("");
+          setLastResolvedValue("");
         }
+      } finally {
+        setIsResolving(false);
+      }
+    }, 500),
+    [onChange]
+  );
+
+  useEffect(() => {
+    if (value && value !== lastResolvedValue) {
+      resolveEns(value);
+    }
+  }, [value, resolveEns, lastResolvedValue]);
+
+  useEffect(() => {
+    if (ensName) {
+      getEnsAvatar(ensName).then((avatar) => {
+        setEnsAvatar(avatar || "");
       });
+    } else {
+      setEnsAvatar("");
     }
   }, [ensName]);
 
+  useEffect(() => {
+    if (setReadIsDisabled) {
+      setReadIsDisabled(isResolving);
+    }
+  }, [isResolving, setReadIsDisabled]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    onChange({
+      target: { value: newValue },
+    } as any);
+  };
+
   return (
-    <Box>
-      <HStack>
+    <Box p={4} borderRadius="md">
+      <HStack mb={2}>
         <InputInfo input={input} />
         <Spacer />
-        <HStack>
-          {ensName && ensName.length > 0 && (
-            <HStack mb={1} px={2} bg="whiteAlpha.100" rounded="md">
-              {ensAvatar && ensAvatar.length > 0 && (
-                <Avatar src={ensAvatar} w={"1.2rem"} h={"1.2rem"} />
-              )}
-              <Box>{ensName}</Box>
-            </HStack>
-          )}
-          {value && value.trim().length > 0 && (
-            <Link
-              href={`${getPath(
-                subdomains.EXPLORER.base
-              )}address/${value}/contract?chainId=${chainId}`}
-              title="View on explorer"
-              isExternal
+        <AnimatePresence>
+          {ensName && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
             >
-              <Button size={"xs"}>
-                <HStack>
-                  <ExternalLinkIcon />
-                </HStack>
-              </Button>
-            </Link>
+              <HStack px={2} bg="whiteAlpha.200" rounded="md">
+                {ensAvatar && <Avatar src={ensAvatar} w="1.2rem" h="1.2rem" />}
+                <Box>{ensName}</Box>
+              </HStack>
+            </motion.div>
           )}
-        </HStack>
+        </AnimatePresence>
+        {resolvedAddress && (
+          <Link
+            href={`${getPath(
+              subdomains.EXPLORER.base
+            )}address/${resolvedAddress}/contract?chainId=${chainId}`}
+            title="View on explorer"
+            isExternal
+          >
+            <Button size="xs">
+              <ExternalLinkIcon />
+            </Button>
+          </Link>
+        )}
       </HStack>
       <InputGroup>
-        <Input
-          type={"text"}
-          value={value}
-          onChange={onChange}
-          isInvalid={isInvalid}
-          {...rest}
-        />
+        <motion.div
+          initial={false}
+          animate={{
+            background: isResolving
+              ? [
+                  "linear-gradient(90deg, #3498db, #8e44ad, #3498db)",
+                  "linear-gradient(180deg, #3498db, #8e44ad, #3498db)",
+                  "linear-gradient(270deg, #3498db, #8e44ad, #3498db)",
+                  "linear-gradient(360deg, #3498db, #8e44ad, #3498db)",
+                ]
+              : "none",
+            backgroundSize: "200% 200%",
+            boxShadow: isResolving
+              ? [
+                  "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
+                  "0 0 5px #8e44ad, 0 0 10px #8e44ad, 0 0 15px #8e44ad",
+                  "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
+                ]
+              : "none",
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+          style={{
+            width: "100%",
+            borderRadius: "md",
+            padding: "2px",
+          }}
+        >
+          <Input
+            type="text"
+            value={value}
+            onChange={handleInputChange}
+            isInvalid={isInvalid}
+            bg="bg.900"
+            color="white"
+            rounded="md"
+            _focus={{
+              outline: "none",
+              boxShadow: "none",
+            }}
+            {...rest}
+          />
+        </motion.div>
         <InputRightElement pr={1}>
           {!isInvalid ? (
-            <CopyToClipboard textToCopy={value ?? ""} />
+            <CopyToClipboard textToCopy={resolvedAddress || value} />
           ) : (
-            <WarningIcon color={"red.300"} />
+            <WarningIcon color="red.300" />
           )}
         </InputRightElement>
       </InputGroup>
