@@ -106,7 +106,7 @@ export const DarkSelect = ({
     <Box
       cursor="pointer"
       pos="relative"
-      zIndex={1}
+      zIndex={100}
       overflow="visible"
       {...boxProps}
     >

@@ -355,7 +355,7 @@ export const ContractPage = ({
             <Box
               position="sticky"
               top="0"
-              zIndex={2}
+              zIndex={200}
               p={2}
               boxShadow="md"
               bg="bg.900"
@@ -369,8 +369,8 @@ export const ContractPage = ({
                 ref={stickyHeaderRef}
                 position="sticky"
                 top={abi.name.length > 0 ? "40px" : "0"}
-                zIndex={1}
-                p={2}
+                zIndex={100}
+                p={200}
                 boxShadow="md"
                 bg="bg.900"
               >
@@ -500,7 +500,7 @@ export const ContractPage = ({
               <Box
                 position="sticky"
                 top="2rem"
-                zIndex={1}
+                zIndex={100}
                 p={2}
                 boxShadow="md"
                 bg="bg.900"
