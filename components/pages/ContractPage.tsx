@@ -1,0 +1,464 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { DarkSelect } from "@/components/DarkSelect";
+import {
+  ExtendedJsonFragmentType,
+  HighlightedContent,
+  SelectedOptionState,
+} from "@/types";
+import { chainIdToChain, networkOptions } from "@/data/common";
+import {
+  Box,
+  Button,
+  Center,
+  Grid,
+  HStack,
+  Input,
+  InputGroup,
+  InputRightElement,
+  Spacer,
+  Spinner,
+  Text,
+} from "@chakra-ui/react";
+import { parseAsInteger, useQueryState } from "next-usequerystate";
+import { JsonFragment } from "ethers";
+import { createPublicClient, http } from "viem";
+import { whatsabi } from "@shazow/whatsabi";
+import { fetchContractAbi } from "@/lib/decoder";
+import { ReadFunction } from "@/components/fnParams/ReadFunction";
+import { CloseIcon } from "@chakra-ui/icons";
+
+export const ContractPage = ({
+  params: { address },
+}: {
+  params: {
+    address: string;
+  };
+}) => {
+  // url params
+  const searchParams = useSearchParams();
+  const chainIdFromURL = searchParams.get("chainId");
+  const networkOptionsIndex = chainIdFromURL
+    ? networkOptions.findIndex(
+        (option) => option.value === parseInt(chainIdFromURL)
+      )
+    : 0;
+
+  // url state
+  const [chainId, setChainId] = useQueryState<number>(
+    "chainId",
+    parseAsInteger.withDefault(1)
+  );
+
+  // state
+  const [selectedNetworkOption, setSelectedNetworkOption] =
+    useState<SelectedOptionState>(networkOptions[networkOptionsIndex]);
+
+  const [abi, setAbi] = useState<{
+    abi: JsonFragment[];
+    name: string;
+  } | null>(null);
+  const [isFetchingAbi, setIsFetchingAbi] = useState<boolean>(false);
+
+  const [readFunctions, setReadFunctions] = useState<JsonFragment[]>([]);
+  const [writeFunctions, setWriteFunctions] = useState<JsonFragment[]>([]);
+
+  const [readAllCollapsed, setReadAllCollapsed] = useState<boolean>(false);
+
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchResults, setSearchResults] = useState<number[]>([]);
+  const [currentResultIndex, setCurrentResultIndex] = useState<number>(0);
+
+  const readFunctionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const highlightText = (
+    text: string,
+    highlight: string,
+    isCurrent: boolean
+  ): HighlightedContent => {
+    if (!highlight.trim()) {
+      return [{ text, isHighlighted: false, isCurrentResult: false }];
+    }
+
+    const regex = new RegExp(`(${highlight})`, "gi");
+    const parts = text.split(regex);
+
+    return parts.map((part) => {
+      const isHighlighted = regex.test(part);
+      const isCurrentResult = isHighlighted && isCurrent;
+
+      return {
+        text: part,
+        isHighlighted: isHighlighted,
+        isCurrentResult: isCurrentResult,
+      };
+    });
+  };
+
+  const ensureHighlightedContent = (
+    content: string | undefined,
+    highlight: string,
+    isCurrent: boolean
+  ): HighlightedContent => {
+    if (content === undefined) {
+      return [{ text: "", isHighlighted: false, isCurrentResult: false }];
+    }
+    return highlightText(content, highlight, isCurrent);
+  };
+
+  const scrollStickyHeaderToTop = useCallback(() => {
+    if (stickyHeaderRef.current) {
+      const headerRect = stickyHeaderRef.current.getBoundingClientRect();
+      const scrollTop = window.pageYOffset + headerRect.top - 10; // Subtract 10px to ensure it's fully visible
+
+      window.scrollTo({
+        top: scrollTop,
+        behavior: "smooth",
+      });
+    }
+  }, []);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    if (e.target.value.length === 1) {
+      scrollStickyHeaderToTop();
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setSearchResults([]);
+    setCurrentResultIndex(0);
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
+
+  const handleSearchFocus = () => {
+    scrollStickyHeaderToTop();
+  };
+
+  const scrollToFunction = useCallback((index: number) => {
+    if (
+      readFunctionRefs.current[index] &&
+      stickyHeaderRef.current &&
+      scrollContainerRef.current
+    ) {
+      const containerRect = scrollContainerRef.current.getBoundingClientRect();
+      const headerRect = stickyHeaderRef.current.getBoundingClientRect();
+      const functionRect =
+        readFunctionRefs.current[index]!.getBoundingClientRect();
+
+      const yOffset = headerRect.height - 90; // Add extra 20px for padding
+      const scrollTop =
+        functionRect.top -
+        containerRect.top -
+        yOffset +
+        scrollContainerRef.current.scrollTop;
+
+      scrollContainerRef.current.scrollTo({
+        top: scrollTop,
+        behavior: "smooth",
+      });
+    }
+  }, []);
+
+  const cycleSearchResults = useCallback(
+    (reverse: boolean = false) => {
+      if (searchResults.length > 0) {
+        setCurrentResultIndex((prevIndex) => {
+          if (reverse) {
+            return (
+              (prevIndex - 1 + searchResults.length) % searchResults.length
+            );
+          } else {
+            return (prevIndex + 1) % searchResults.length;
+          }
+        });
+      }
+    },
+    [searchResults]
+  );
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (searchResults.length === 0) return;
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      cycleSearchResults(true);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      cycleSearchResults(false);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      cycleSearchResults(e.shiftKey);
+    }
+  };
+
+  const fetchSetAbi = async () => {
+    try {
+      setIsFetchingAbi(true);
+      // try fetching if contract is verified
+      const fetchedAbi = await fetchContractAbi({ address, chainId });
+      console.log(fetchedAbi);
+      setAbi({
+        abi: fetchedAbi.abi as JsonFragment[],
+        name: fetchedAbi.name,
+      });
+    } catch (e) {
+      try {
+        // try to determine abi using whatsabi
+        const client = createPublicClient({
+          chain: chainIdToChain[chainId],
+          transport: http(),
+        });
+        const result = await whatsabi.autoload(address, { provider: client });
+        console.log({ whatsabi: result });
+        // FIXME: handle whatsabi result (stateMutability doesn't exist)
+        // we can surely filter write functions if they are payable
+        // have the UI render differently, by listing all the functions, without read & write divide
+        // the write functions would be displayed with a button that allows to call as view function
+      } catch {
+        // TODO: add toast
+        console.log("Failed to fetch abi");
+      }
+    } finally {
+      setIsFetchingAbi(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedNetworkOption) {
+      setChainId(parseInt(selectedNetworkOption.value.toString()));
+    }
+  }, [selectedNetworkOption]);
+
+  useEffect(() => {
+    fetchSetAbi();
+  }, [address, chainId]);
+
+  useEffect(() => {
+    if (abi) {
+      if (abi.name && abi.name.length > 0) {
+        document.title = `${abi.name} - ${address} | Swiss-Knife.xyz`;
+      }
+
+      const readFunctions = abi.abi.filter(
+        (item: JsonFragment) =>
+          item.stateMutability === "view" || item.stateMutability === "pure"
+      );
+      setReadFunctions(readFunctions);
+
+      const writeFunctions = abi.abi.filter(
+        (item: JsonFragment) =>
+          item.stateMutability !== "view" &&
+          item.stateMutability !== "pure" &&
+          item.type === "function"
+      );
+      setWriteFunctions(writeFunctions);
+    }
+  }, [abi]);
+
+  useEffect(() => {
+    if (searchQuery) {
+      const results = readFunctions
+        .map((func, index) => {
+          const functionNameMatch = func.name
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase());
+          const outputNamesMatch =
+            func.outputs &&
+            func.outputs.length > 1 &&
+            func.outputs.some((output) =>
+              output.name?.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+          return functionNameMatch || outputNamesMatch ? index : -1;
+        })
+        .filter((index) => index !== -1);
+      setSearchResults(results);
+      setCurrentResultIndex(0);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, readFunctions]);
+
+  useEffect(() => {
+    if (searchResults.length > 0) {
+      scrollToFunction(searchResults[currentResultIndex]);
+    }
+  }, [currentResultIndex, searchResults, scrollToFunction]);
+
+  return (
+    <Box flexDir={"column"} minW={abi ? "60rem" : "40rem"}>
+      <Center flexDir={"column"}>
+        <DarkSelect
+          boxProps={{
+            w: "20rem",
+          }}
+          selectedOption={selectedNetworkOption}
+          setSelectedOption={setSelectedNetworkOption}
+          options={networkOptions}
+        />
+        {isFetchingAbi && <Spinner mt={5} />}
+      </Center>
+      {abi && (
+        <>
+          {abi.name.length > 0 && (
+            <Box
+              position="sticky"
+              top="0"
+              zIndex={2}
+              p={2}
+              boxShadow="md"
+              bg="bg.900"
+            >
+              Contract Name: <b>{abi.name}</b>
+            </Box>
+          )}
+          <Grid templateColumns="repeat(2, 1fr)" gap={6} mt={5}>
+            <Box>
+              <Box
+                ref={stickyHeaderRef}
+                position="sticky"
+                top={abi.name.length > 0 ? "40px" : "0"}
+                zIndex={1}
+                p={2}
+                boxShadow="md"
+                bg="bg.900"
+              >
+                <HStack mb={2}>
+                  <Spacer />
+                  <Box fontWeight="bold">Read Contract</Box>
+                  <Spacer />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setReadAllCollapsed(!readAllCollapsed);
+                    }}
+                  >
+                    {readAllCollapsed ? "Uncollapse" : "Collapse"} All
+                  </Button>
+                </HStack>
+                <Center w="full">
+                  <HStack w="70%">
+                    <InputGroup>
+                      <Input
+                        placeholder="Search functions"
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                        onFocus={handleSearchFocus}
+                        onKeyDown={handleSearchKeyDown}
+                        ref={searchInputRef}
+                      />
+                      <InputRightElement>
+                        <Button
+                          size="sm"
+                          onClick={handleClearSearch}
+                          variant="ghost"
+                          visibility={searchQuery ? "visible" : "hidden"}
+                        >
+                          <CloseIcon />
+                        </Button>
+                      </InputRightElement>
+                    </InputGroup>
+
+                    {searchResults.length > 1 && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            setCurrentResultIndex(
+                              (prevIndex) =>
+                                (prevIndex - 1 + searchResults.length) %
+                                searchResults.length
+                            )
+                          }
+                        >
+                          &uarr;
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            setCurrentResultIndex(
+                              (prevIndex) =>
+                                (prevIndex + 1) % searchResults.length
+                            )
+                          }
+                        >
+                          &darr;
+                        </Button>
+                      </>
+                    )}
+                  </HStack>
+                </Center>
+              </Box>
+              <Box
+                ref={scrollContainerRef}
+                overflowY="auto"
+                maxHeight="calc(100vh - 200px)"
+              >
+                {readFunctions?.map((func, index) => (
+                  <Box
+                    key={index}
+                    ref={(el) => (readFunctionRefs.current[index] = el)}
+                  >
+                    <ReadFunction
+                      key={index}
+                      index={index}
+                      func={{
+                        ...func,
+                        name: ensureHighlightedContent(
+                          func.name,
+                          searchQuery,
+                          searchResults[currentResultIndex] === index
+                        ),
+                        outputs: func.outputs?.map(
+                          (output): ExtendedJsonFragmentType => ({
+                            ...output,
+                            name: ensureHighlightedContent(
+                              output.name,
+                              searchQuery,
+                              searchResults[currentResultIndex] === index
+                            ),
+                          })
+                        ),
+                      }}
+                      address={address}
+                      chainId={chainId}
+                      readAllCollapsed={readAllCollapsed}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+            <Box>
+              <Box
+                position="sticky"
+                top="2rem"
+                zIndex={1}
+                p={2}
+                boxShadow="md"
+                bg="bg.900"
+              >
+                <Center fontWeight="bold" mb={2}>
+                  Write Contract
+                </Center>
+              </Box>
+              {writeFunctions.map((func, index) => (
+                <Box key={index} mb={2}>
+                  <b>{index}.</b> {func.name}
+                  {/* Add input fields and buttons to call the write function */}
+                </Box>
+              ))}
+            </Box>
+          </Grid>
+        </>
+      )}
+    </Box>
+  );
+};

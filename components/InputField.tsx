@@ -27,6 +27,7 @@ export const InputField = ({
       placeholder={placeholder}
       value={value}
       onChange={onChange}
+      isInvalid={isInvalid}
       {...rest}
     />
     <InputRightElement pr={1}>

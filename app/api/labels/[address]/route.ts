@@ -45,6 +45,7 @@ export const GET = async (
     return new Response(
       JSON.stringify({
         error: "Error fetching data",
+        walletLabelsError: error,
       }),
       {
         status: 400,

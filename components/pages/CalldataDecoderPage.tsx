@@ -36,7 +36,7 @@ import {
 } from "next-usequerystate";
 import { createPublicClient, http, Hex, Chain, stringify } from "viem";
 import { SelectedOptionState } from "@/types";
-import { c, chainIdToChain } from "@/data/common";
+import { c, chainIdToChain, networkOptions } from "@/data/common";
 import { startHexWith0x } from "@/utils";
 
 import { InputField } from "@/components/InputField";
@@ -49,13 +49,6 @@ import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { decodeRecursive } from "@/lib/decoder";
 
-const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
-  (k, i) => ({
-    label: c[k].name,
-    value: c[k].id,
-  })
-);
-
 export const CalldataDecoderPage = () => {
   const toast = useToast();
   const searchParams = useSearchParams();
@@ -65,6 +58,12 @@ export const CalldataDecoderPage = () => {
   const addressFromURL = searchParams.get("address");
   const chainIdFromURL = searchParams.get("chainId");
   const txFromURL = searchParams.get("tx");
+
+  const networkOptionsIndex = chainIdFromURL
+    ? networkOptions.findIndex(
+        (option) => option.value === parseInt(chainIdFromURL)
+      )
+    : 0;
 
   const [calldata, setCalldata] = useQueryState<string>(
     "calldata",
@@ -88,9 +87,7 @@ export const CalldataDecoderPage = () => {
     parseAsInteger.withDefault(1)
   );
   const [selectedNetworkOption, setSelectedNetworkOption] =
-    useState<SelectedOptionState>(
-      networkOptions[chainIdFromURL ? parseInt(chainIdFromURL) : 0]
-    );
+    useState<SelectedOptionState>(networkOptions[networkOptionsIndex]);
 
   const [fromTxInput, setFromTxInput] = useQueryState<string>(
     "tx",
@@ -404,7 +401,7 @@ export const CalldataDecoderPage = () => {
                       decodeFromTx(_fromTxInput);
                     }}
                   />
-                  {fromTxInput ? (
+                  {fromTxInput.includes("http") ? (
                     <Link
                       href={fromTxInput}
                       title="View on explorer"

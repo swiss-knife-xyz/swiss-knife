@@ -40,16 +40,23 @@ export const Navbar = () => {
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
-      const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-            ? ""
-            : "https://swiss-knife.xyz"
-        }/api/leaderboard-db`
-      );
-      const data = await response.json();
-      console.log({ data });
-      setLeaderboard(data);
+      try {
+        const response = await fetch(
+          `${
+            process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+              ? ""
+              : "https://swiss-knife.xyz"
+          }/api/leaderboard-db`
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log({ data });
+        setLeaderboard(data);
+      } catch (error) {
+        console.error("Failed to fetch leaderboard:", error);
+      }
     };
     fetchLeaderboard();
   }, []);

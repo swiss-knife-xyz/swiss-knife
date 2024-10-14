@@ -3,6 +3,7 @@ import { getMetadata, startHexWith0x } from "@/utils";
 import type { Metadata } from "next";
 // Putting the page into separate component as it uses "use client" which doesn't work with `generateMetadata`
 import { CalldataDecoderPage as CalldataDecoderP } from "@/components/pages/CalldataDecoderPage";
+import { metadata } from "../layout";
 import { Chain, createPublicClient, Hex, http } from "viem";
 import { c, chainIdToChain } from "@/data/common";
 
@@ -88,9 +89,8 @@ export async function generateMetadata({
 
   return getMetadata({
     title,
-    description:
-      "Decode any calldata, and view the parameters in a human-readable format, even without having the contract ABI with this Universal ETH Calldata Decoder.",
-    images: "https://swiss-knife.xyz/og/calldata-decoder.png",
+    description: metadata.description as string,
+    images: metadata.openGraph?.images as string,
   });
 }
 

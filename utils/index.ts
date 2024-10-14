@@ -6,7 +6,6 @@ import { ADDRESS_KEY, CHAINLABEL_KEY, TX_KEY } from "@/data/common";
 import { ExplorerData, ExplorerType, SelectedOptionState } from "@/types";
 import { formatUnits } from "ethers";
 import { formatEther } from "viem";
-import axios from "axios";
 
 export const getPath = (subdomain: string) => {
   return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
@@ -162,3 +161,81 @@ export function getConversion(
       return "";
   }
 }
+
+export const decodeBase64 = (
+  value: string
+): { content: string; isJson: boolean; isSvg: boolean } | null => {
+  // Regular expression to match base64 content with optional MIME type prefix
+  // Now allows for potentially truncated base64 content
+  const base64Regex = /^(?:data:[^;]+;base64,)?([A-Za-z0-9+/=]*)$/;
+
+  // Check if the input matches the base64 pattern
+  let match;
+  try {
+    match = value.trim().match(base64Regex);
+  } catch {
+    return null;
+  }
+  if (!match) {
+    return null; // Not a valid base64 string
+  }
+
+  // Extract the base64 content (without the MIME type prefix, if present)
+  const base64Content = match[1];
+
+  // If the base64 content is empty, return null
+  if (!base64Content) {
+    return null;
+  }
+
+  try {
+    // Attempt to decode the base64 content
+    const decodedContent = atob(base64Content);
+
+    let isJson = false;
+    let isSvg = false;
+
+    // Check if the decoded content is valid JSON
+    try {
+      JSON.parse(decodedContent);
+      isJson = true;
+    } catch {
+      // Not JSON, continue with other checks
+    }
+
+    // Check if the decoded content starts with "<svg" (case-insensitive)
+    if (decodedContent.trim().toLowerCase().startsWith("<svg")) {
+      isSvg = true;
+    }
+
+    // Return an object with the decoded content and flags
+    return {
+      content: decodedContent,
+      isJson,
+      isSvg,
+    };
+  } catch (error) {
+    // If decoding fails, return null
+    return null;
+  }
+};
+
+export const resolveIPFS = (value: string) => {
+  if (value.startsWith("ipfs://")) {
+    return `https://gateway.pinata.cloud/ipfs/${value.slice(7)}`;
+  }
+  return value;
+};
+
+export const isValidJSON = (str: string): boolean => {
+  try {
+    JSON.parse(str);
+    return (
+      true &&
+      ((str.startsWith("{") && str.endsWith("}")) ||
+        (str.startsWith("[") && str.endsWith("]")))
+    );
+  } catch (e) {
+    return false;
+  }
+};

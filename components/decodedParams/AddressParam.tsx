@@ -2,9 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   Button,
   HStack,
-  Link,
   Box,
-  Center,
   Text,
   Avatar,
   InputGroup,
@@ -12,18 +10,21 @@ import {
   InputRightElement,
   InputLeftElement,
   Tag,
+  Link,
 } from "@chakra-ui/react";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { getPath, getEnsName, getEnsAvatar } from "@/utils";
-import subdomains from "@/subdomains";
+import { getEnsName, getEnsAvatar, getPath } from "@/utils";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
+import subdomains from "@/subdomains";
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 
 interface Params {
   address: any;
+  showLink?: boolean;
+  chainId?: number;
 }
 
-export const AddressParam = ({ address }: Params) => {
+export const AddressParam = ({ address, showLink, chainId }: Params) => {
   const [ensName, setEnsName] = useState("");
   const [ensAvatar, setEnsAvatar] = useState("");
   const [showEns, setShowEns] = useState(false);
@@ -119,6 +120,21 @@ export const AddressParam = ({ address }: Params) => {
             <CopyToClipboard textToCopy={value ?? ""} />
           </InputRightElement>
         </InputGroup>
+        {showLink && (
+          <Link
+            href={`${getPath(subdomains.EXPLORER.base)}address/${value}${
+              chainId ? `/contract?chainId=${chainId}` : ""
+            }`}
+            title="View on explorer"
+            isExternal
+          >
+            <Button size={"xs"}>
+              <HStack>
+                <ExternalLinkIcon />
+              </HStack>
+            </Button>
+          </Link>
+        )}
       </HStack>
     </Box>
   );

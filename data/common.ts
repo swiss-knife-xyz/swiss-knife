@@ -63,7 +63,7 @@ export const CHAINLABEL_KEY = "$SK_CHAINLABEL";
 export const ADDRESS_KEY = "$SK_ADDRESS";
 export const TX_KEY = "$SK_TX";
 
-export const c:{[name: string]: Chain} = {
+export const c: { [name: string]: Chain } = {
   mainnet,
   arbitrum,
   arbitrumGoerli,
@@ -168,3 +168,10 @@ export const chainIdToImage = (() => {
 
   return res;
 })();
+
+export const networkOptions: { label: string; value: number }[] = Object.keys(
+  c
+).map((k, i) => ({
+  label: c[k].name,
+  value: c[k].id,
+}));

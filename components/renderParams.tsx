@@ -8,8 +8,8 @@ import {
   TupleParam,
   ArrayParam,
   IntParam,
-} from "@/components/fnParams";
-import { BytesParam } from "./fnParams/BytesParam";
+  BytesParam,
+} from "@/components/decodedParams";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { ExternalLinkIcon } from "@chakra-ui/icons";

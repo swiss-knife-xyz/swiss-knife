@@ -124,7 +124,7 @@ export const BytesParam = ({ arg }: Params) => {
 
   return (
     <Stack mt={2} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
-      <HStack>
+      <HStack w="full">
         <Text
           fontSize={"xl"}
           fontWeight={"bold"}

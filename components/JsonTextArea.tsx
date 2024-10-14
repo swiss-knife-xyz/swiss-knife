@@ -7,6 +7,7 @@ import "highlight.js/styles/obsidian.css";
 // only import the required language support
 import hljs from "highlight.js/lib/core";
 hljs.registerLanguage("json", require("highlight.js/lib/languages/json"));
+hljs.registerLanguage("xml", require("highlight.js/lib/languages/xml"));
 
 const ChakraSimpleEditor = chakra(SimpleEditor);
 
@@ -20,6 +21,7 @@ interface Props extends BoxProps {
   readOnly?: boolean;
   canResize?: boolean;
   autoMaxWidth?: boolean;
+  language?: string;
 }
 
 function JsonTextArea({
@@ -30,6 +32,7 @@ function JsonTextArea({
   readOnly,
   canResize,
   autoMaxWidth,
+  language,
   ...props
 }: Props) {
   const boxRef = useRef<HTMLDivElement>(null);
@@ -82,7 +85,7 @@ function JsonTextArea({
         onValueChange={setValue}
         readOnly={readOnly}
         highlight={(contents) =>
-          hljs.highlight(contents, { language: "json" }).value
+          hljs.highlight(contents, { language: language ?? "json" }).value
         }
         style={{
           fontFamily: "SFMono-Regular,Menlo,Monaco,Consolas,monospace",
