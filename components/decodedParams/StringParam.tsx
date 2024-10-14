@@ -22,6 +22,7 @@ import JsonTextArea from "../JsonTextArea";
 import TabsSelector from "../Tabs/TabsSelector";
 import { CopyToClipboard } from "../CopyToClipboard";
 import { ResizableImage } from "../ResizableImage";
+import { motion } from "framer-motion";
 
 interface Params {
   value: string | null;
@@ -38,6 +39,7 @@ export const StringParam = ({ value: _value }: Params) => {
     isImage?: boolean;
     isJson?: boolean;
   } | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   let displayValue = value;
   let isJson = false;
@@ -89,7 +91,7 @@ export const StringParam = ({ value: _value }: Params) => {
           value={value}
           isReadOnly
           resize={"both"}
-          rows={10}
+          rows={5}
           placeholder=""
         />
       </Box>
@@ -250,6 +252,12 @@ export const StringParam = ({ value: _value }: Params) => {
     }
   }, [isUrl]);
 
+  useEffect(() => {
+    if (!showSkeleton) {
+      setIsLoaded(true);
+    }
+  }, [showSkeleton]);
+
   return showSkeleton ? (
     <HStack w="full">
       <Skeleton
@@ -268,36 +276,48 @@ export const StringParam = ({ value: _value }: Params) => {
       />
     </HStack>
   ) : (
-    <Box w="full">
-      {isJson || isImage || (isUrl && isUrlImageOrJson) ? (
-        <Stack mt={2} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
-          {/* Decoded / Original button */}
-          <Flex justifyContent="flex-end" mb={2}>
-            <Button
-              size="sm"
-              onClick={() =>
-                setSelectedTabIndex((prev) => (prev === 0 ? 1 : 0))
-              }
-            >
-              {StringFormatOptions[selectedTabIndex]}
-            </Button>
-          </Flex>
-          {/* Rich tabs selector */}
-          {selectedTabIndex === 0 ? (
-            <Box fontSize={"sm"}>
-              <TabsSelector
-                mt={0}
-                tabs={richTabs}
-                selectedTabIndex={richSelectedTabIndex}
-                setSelectedTabIndex={setRichSelectedTabIndex}
-              />
-            </Box>
-          ) : null}
-          {renderContent()}
-        </Stack>
-      ) : (
-        <SimpleString />
-      )}
-    </Box>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={isLoaded ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5 }}
+    >
+      <Box w="full">
+        {isJson || isImage || (isUrl && isUrlImageOrJson) ? (
+          <Stack
+            mt={2}
+            p={4}
+            bg={"whiteAlpha.50"}
+            rounded={"lg"}
+            boxShadow="lg"
+          >
+            {/* Decoded / Original button */}
+            <Flex justifyContent="flex-end" mb={2}>
+              <Button
+                size="sm"
+                onClick={() =>
+                  setSelectedTabIndex((prev) => (prev === 0 ? 1 : 0))
+                }
+              >
+                {StringFormatOptions[selectedTabIndex]}
+              </Button>
+            </Flex>
+            {/* Rich tabs selector */}
+            {selectedTabIndex === 0 ? (
+              <Box fontSize={"sm"}>
+                <TabsSelector
+                  mt={0}
+                  tabs={richTabs}
+                  selectedTabIndex={richSelectedTabIndex}
+                  setSelectedTabIndex={setRichSelectedTabIndex}
+                />
+              </Box>
+            ) : null}
+            {renderContent()}
+          </Stack>
+        ) : (
+          <SimpleString />
+        )}
+      </Box>
+    </motion.div>
   );
 };

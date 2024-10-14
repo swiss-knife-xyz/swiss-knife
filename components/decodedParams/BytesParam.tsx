@@ -156,7 +156,9 @@ export const BytesParam = ({ arg: _arg }: Params) => {
         >
           {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </Text>
-        <StringParam value={arg.rawValue} />
+        <Box flex="1">
+          <StringParam value={arg.rawValue} />
+        </Box>
       </HStack>
       <Collapse in={isOpen} animateOpacity>
         <Stack

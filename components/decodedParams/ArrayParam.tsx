@@ -15,12 +15,12 @@ import {
   ChevronUpIcon,
   ExternalLinkIcon,
 } from "@chakra-ui/icons";
-import { ParamType } from "ethers";
 import { StringParam } from "./StringParam";
 import { renderParamTypes } from "../renderParams";
 import { isAddress } from "viem";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
+import { motion } from "framer-motion";
 
 interface Params {
   arg: any;
@@ -48,7 +48,11 @@ export const ArrayParam = ({ arg: _arg }: Params) => {
     return <StringParam value={"[ ]"} />;
   } else {
     return (
-      <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <HStack my={isOpen ? -3 : 0}>
           <Text
             fontSize={"xl"}
@@ -107,7 +111,7 @@ export const ArrayParam = ({ arg: _arg }: Params) => {
             })}
           </Stack>
         </Collapse>
-      </>
+      </motion.div>
     );
   }
 };

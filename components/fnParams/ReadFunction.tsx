@@ -27,6 +27,8 @@ import {
 } from "@/components/decodedParams";
 import {
   AddressInput,
+  BoolInput,
+  BytesInput,
   InputInfo,
   IntInput,
   StringInput,
@@ -218,6 +220,8 @@ export const ReadFunction = ({
   const renderInputFields = (input: JsonFragmentType, i: number) => {
     const value = inputsState[i] || ""; // Ensure value is always defined
 
+    const isArray = input.type?.endsWith("[]");
+
     const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setInputsState({
         ...inputsState,
@@ -237,7 +241,18 @@ export const ReadFunction = ({
         value === null ||
         value.toString().trim().length === 0);
 
-    if (input.type === "address") {
+    if (input.type?.includes("int")) {
+      return (
+        <IntInput
+          input={input}
+          value={value}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          isInvalid={isInvalid}
+          readFunctionIsError={isError}
+        />
+      );
+    } else if (input.type === "address") {
       return (
         <AddressInput
           input={input}
@@ -249,21 +264,19 @@ export const ReadFunction = ({
           setReadIsDisabled={setReadIsDisabled}
         />
       );
-    } else if (input.type?.includes("int")) {
+    } else if (input.type?.includes("bytes")) {
       return (
-        <IntInput
+        <BytesInput
           input={input}
           value={value}
           onChange={onChange}
           onKeyDown={onKeyDown}
           isInvalid={isInvalid}
-          readFunctionIsError={isError}
         />
       );
     } else if (input.type === "bool") {
-      // FIXME: add DarkSelect for true of false
       return (
-        <StringInput
+        <BoolInput
           input={input}
           value={value}
           onChange={onChange}

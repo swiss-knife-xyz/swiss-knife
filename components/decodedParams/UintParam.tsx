@@ -1,8 +1,15 @@
 import React, { useState } from "react";
-import { Button, HStack, InputLeftElement, Skeleton } from "@chakra-ui/react";
+import {
+  Button,
+  HStack,
+  InputLeftElement,
+  Skeleton,
+  Box,
+} from "@chakra-ui/react";
 import { ethFormatOptions, convertTo, ETHSelectedOptionState } from "@/utils";
 import { InputField } from "../InputField";
 import { DarkSelect } from "../DarkSelect";
+import { motion } from "framer-motion";
 
 interface Params {
   value: any;
@@ -43,49 +50,55 @@ export const UintParam = ({ value: _value }: Params) => {
       />
     </HStack>
   ) : (
-    <HStack>
-      <InputField
-        InputLeftElement={
-          unixSelected && (
-            <InputLeftElement>
-              <Button
-                px="2rem"
-                ml="2rem"
-                size="sm"
-                onClick={() => setShowLocalTime((prev) => !prev)}
-              >
-                {showLocalTime ? "Local" : "UTC"}
-              </Button>
-            </InputLeftElement>
-          )
-        }
-        value={
-          unixSelected
-            ? showLocalTime
-              ? new Date(Number(value) * 1_000).toString()
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <HStack>
+        <InputField
+          InputLeftElement={
+            unixSelected && (
+              <InputLeftElement>
+                <Button
+                  px="2rem"
+                  ml="2rem"
+                  size="sm"
+                  onClick={() => setShowLocalTime((prev) => !prev)}
+                >
+                  {showLocalTime ? "Local" : "UTC"}
+                </Button>
+              </InputLeftElement>
+            )
+          }
+          value={
+            unixSelected
+              ? showLocalTime
+                ? new Date(Number(value) * 1_000).toString()
+                : conversionValue
               : conversionValue
-            : conversionValue
-        }
-        pl={unixSelected ? "5rem" : undefined}
-        w={unixSelected ? "25rem" : undefined}
-        placeholder=""
-        isReadOnly
-        onChange={() => {}}
-      />
-      <DarkSelect
-        boxProps={{
-          minW: "9rem",
-          fontSize: "small",
-        }}
-        selectedOption={selectedEthFormatOption}
-        setSelectedOption={(value) =>
-          setSelectedEthFormatOption(value as ETHSelectedOptionState)
-        }
-        options={ethFormatOptions.map((str) => ({
-          label: str,
-          value: str,
-        }))}
-      />
-    </HStack>
+          }
+          pl={unixSelected ? "5rem" : undefined}
+          w={unixSelected ? "25rem" : undefined}
+          placeholder=""
+          isReadOnly
+          onChange={() => {}}
+        />
+        <DarkSelect
+          boxProps={{
+            minW: "9rem",
+            fontSize: "small",
+          }}
+          selectedOption={selectedEthFormatOption}
+          setSelectedOption={(value) =>
+            setSelectedEthFormatOption(value as ETHSelectedOptionState)
+          }
+          options={ethFormatOptions.map((str) => ({
+            label: str,
+            value: str,
+          }))}
+        />
+      </HStack>
+    </motion.div>
   );
 };

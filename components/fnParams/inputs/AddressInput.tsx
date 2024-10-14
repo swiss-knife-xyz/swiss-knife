@@ -46,9 +46,9 @@ export const AddressInput = ({
   const resolveEns = useCallback(
     debounce(async (val: string) => {
       if (val === lastResolvedValue) return; // Prevent re-resolution of already resolved values
-      setIsResolving(true);
       try {
         if (val.includes(".eth")) {
+          setIsResolving(true);
           const address = await getEnsAddress(val);
           if (address) {
             setResolvedAddress(address);
@@ -111,7 +111,7 @@ export const AddressInput = ({
   };
 
   return (
-    <Box p={4} borderRadius="md">
+    <Box>
       <HStack mb={2}>
         <InputInfo input={input} />
         <Spacer />

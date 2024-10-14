@@ -18,6 +18,7 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
 import subdomains from "@/subdomains";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
+import { motion } from "framer-motion";
 
 interface Params {
   address: any;
@@ -40,8 +41,8 @@ export const AddressParam = ({
   const [showEns, setShowEns] = useState(false);
 
   const [addressLabels, setAddressLabels] = useState<string[]>([]);
-
   const [value, setValue] = useState<string>(address);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const fetchSetAddressLabel = async () => {
     try {
@@ -79,10 +80,6 @@ export const AddressParam = ({
   useEffect(() => {
     if (ensName) {
       getEnsAvatar(ensName).then((res) => {
-        console.log({
-          ensName,
-          avatar: res,
-        });
         if (res) {
           setEnsAvatar(res);
         }
@@ -93,6 +90,12 @@ export const AddressParam = ({
   useEffect(() => {
     setValue(showEns ? ensName : address);
   }, [showEns, ensName, address]);
+
+  useEffect(() => {
+    if (!showSkeleton) {
+      setIsLoaded(true);
+    }
+  }, [showSkeleton]);
 
   return showSkeleton ? (
     <Box>
@@ -123,59 +126,65 @@ export const AddressParam = ({
       </HStack>
     </Box>
   ) : (
-    <Box>
-      {addressLabels.length > 0 && (
-        <HStack py="2">
-          <Text fontSize={"xs"} opacity={0.6}>
-            Tags:{" "}
-          </Text>
-          {addressLabels.map((label, index) => (
-            <Tag key={index} size="sm" variant="solid" colorScheme="blue">
-              {label}
-            </Tag>
-          ))}
-        </HStack>
-      )}
-      <HStack>
-        {ensName ? (
-          <Button
-            onClick={() => {
-              setShowEns(!showEns);
-            }}
-            size={"xs"}
-            px={4}
-            py={5}
-          >
-            {showEns ? "Address" : "ENS"}
-          </Button>
-        ) : null}
-        <InputGroup>
-          {ensAvatar ? (
-            <InputLeftElement>
-              <Avatar src={ensAvatar} w={"1.2rem"} h={"1.2rem"} />
-            </InputLeftElement>
-          ) : null}
-          <Input value={value} isReadOnly />
-          <InputRightElement pr={1}>
-            <CopyToClipboard textToCopy={value ?? ""} />
-          </InputRightElement>
-        </InputGroup>
-        {showLink && (
-          <Link
-            href={`${getPath(subdomains.EXPLORER.base)}address/${value}${
-              chainId ? `/contract?chainId=${chainId}` : ""
-            }`}
-            title="View on explorer"
-            isExternal
-          >
-            <Button size={"xs"}>
-              <HStack>
-                <ExternalLinkIcon />
-              </HStack>
-            </Button>
-          </Link>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={isLoaded ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5 }}
+    >
+      <Box>
+        {addressLabels.length > 0 && (
+          <HStack py="2">
+            <Text fontSize={"xs"} opacity={0.6}>
+              Tags:{" "}
+            </Text>
+            {addressLabels.map((label, index) => (
+              <Tag key={index} size="sm" variant="solid" colorScheme="blue">
+                {label}
+              </Tag>
+            ))}
+          </HStack>
         )}
-      </HStack>
-    </Box>
+        <HStack>
+          {ensName ? (
+            <Button
+              onClick={() => {
+                setShowEns(!showEns);
+              }}
+              size={"xs"}
+              px={4}
+              py={5}
+            >
+              {showEns ? "Address" : "ENS"}
+            </Button>
+          ) : null}
+          <InputGroup>
+            {ensAvatar ? (
+              <InputLeftElement>
+                <Avatar src={ensAvatar} w={"1.2rem"} h={"1.2rem"} />
+              </InputLeftElement>
+            ) : null}
+            <Input value={value} isReadOnly />
+            <InputRightElement pr={1}>
+              <CopyToClipboard textToCopy={value ?? ""} />
+            </InputRightElement>
+          </InputGroup>
+          {showLink && (
+            <Link
+              href={`${getPath(subdomains.EXPLORER.base)}address/${value}${
+                chainId ? `/contract?chainId=${chainId}` : ""
+              }`}
+              title="View on explorer"
+              isExternal
+            >
+              <Button size={"xs"}>
+                <HStack>
+                  <ExternalLinkIcon />
+                </HStack>
+              </Button>
+            </Link>
+          )}
+        </HStack>
+      </Box>
+    </motion.div>
   );
 };

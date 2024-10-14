@@ -1,6 +1,7 @@
 import React from "react";
 import { renderParams } from "@/components/renderParams";
 import { HStack, Skeleton, Stack } from "@chakra-ui/react";
+import { motion } from "framer-motion";
 
 interface Params {
   arg: any;
@@ -21,11 +22,17 @@ export const TupleParam = ({ arg: _arg }: Params) => {
       />
     </HStack>
   ) : arg.value.length > 0 ? (
-    <Stack spacing={2}>
-      {arg.value.map((ar: any, i: number) => {
-        return renderParams(i, ar);
-      })}
-    </Stack>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Stack spacing={2}>
+        {arg.value.map((ar: any, i: number) => {
+          return renderParams(i, ar);
+        })}
+      </Stack>
+    </motion.div>
   ) : (
     <></>
   );

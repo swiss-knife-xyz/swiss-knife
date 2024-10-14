@@ -23,6 +23,7 @@ import {
 } from "@/utils";
 import { stringify } from "viem";
 import TabsSelector from "@/components/Tabs/TabsSelector";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Types and Interfaces
 interface IntInputProps extends InputProps {
@@ -33,8 +34,8 @@ interface IntInputProps extends InputProps {
 }
 
 const futureTimeOptions = ["minutes", "hours", "days"] as const;
-export type FutureTimeOption = (typeof futureTimeOptions)[number];
-export interface SelectedFutureTimeOptionState {
+type FutureTimeOption = (typeof futureTimeOptions)[number];
+interface SelectedFutureTimeOptionState {
   label: FutureTimeOption;
   value: FutureTimeOption;
 }
@@ -57,6 +58,14 @@ export const IntInput = ({
       label: ethFormatOptions[0],
       value: ethFormatOptions[0],
     });
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [delayedAnimating, setDelayedAnimating] = useState(isAnimating);
+  const animationDuration = 300;
+  const delayedAnimationDuration = 10;
+  const [isError, setIsError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // time state
   const [showLocalTime, setShowLocalTime] = useState(false);
   const [timeSelectedTabIndex, setTimeSelectedTabIndex] = useState(0);
   const [currentTimestamp, setCurrentTimestamp] = useState<number>(
@@ -69,8 +78,6 @@ export const IntInput = ({
     });
   const [futureTimeInput, setFutureTimeInput] = useState<number>();
   const [futureTimeInputError, setFutureTimeInputError] = useState(false);
-  const [isError, setIsError] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
 
   // Effects
   useEffect(() => {
@@ -90,6 +97,7 @@ export const IntInput = ({
     }
 
     if (selectedEthFormatOption) {
+      setIsAnimating(true);
       let convertedValue = value;
       try {
         const weiAmount = convertFrom(
@@ -111,6 +119,7 @@ export const IntInput = ({
       } catch {}
 
       onChange({ target: { value: convertedValue } } as any);
+      setTimeout(() => setIsAnimating(false), animationDuration);
     }
     prevValueRef.current = selectedEthFormatOption?.value?.toString() ?? "0";
   };
@@ -126,6 +135,7 @@ export const IntInput = ({
 
   const handleConvertToWei = () => {
     buttonClickedRef.current = true;
+    setIsAnimating(true);
     try {
       const conversion = convertFrom(selectedEthFormatOption, value);
       onChange({ target: { value: conversion } } as any);
@@ -137,6 +147,7 @@ export const IntInput = ({
       setIsError(true);
       setErrorMsg(getErrorMessage(e));
     }
+    setTimeout(() => setIsAnimating(false), animationDuration);
   };
 
   const getErrorMessage = (e: any) => {
@@ -183,27 +194,115 @@ export const IntInput = ({
     } as any);
   };
 
+  useEffect(() => {
+    if (!isAnimating) {
+      const timer = setTimeout(() => {
+        setDelayedAnimating(false);
+      }, delayedAnimationDuration);
+      return () => clearTimeout(timer);
+    } else {
+      setDelayedAnimating(true);
+    }
+  }, [isAnimating]);
+
   // Render helpers
   const renderInputField = () => (
-    <InputField
-      InputLeftElement={
-        selectedEthFormatOption?.value === "Bps ↔️ %" ? (
-          <InputLeftElement bg="whiteAlpha.100">%</InputLeftElement>
-        ) : undefined
-      }
-      pl={selectedEthFormatOption?.value === "Bps ↔️ %" ? "14" : undefined}
-      value={value}
-      type={
-        selectedEthFormatOption?.value === "Unix Time" ? "date-time" : "number"
-      }
-      placeholder=""
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        setIsError(false);
-        onChange(e);
-      }}
-      {...props}
-      isInvalid={isError || readFunctionIsError}
-    />
+    <Box position="relative" width="100%">
+      <motion.div
+        initial={false}
+        animate={{
+          opacity: isAnimating ? 1 : 0,
+        }}
+        transition={{
+          opacity: { duration: 0.3 },
+        }}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderRadius: "md",
+          overflow: "hidden",
+          pointerEvents: "none",
+        }}
+      >
+        <motion.div
+          initial={false}
+          animate={{
+            x: isAnimating ? ["-100%", "0%"] : "0%",
+          }}
+          transition={{
+            x: {
+              duration: 0.3,
+              repeat: isAnimating ? Infinity : 0,
+              repeatType: "loop",
+              ease: "linear",
+            },
+          }}
+          style={{
+            width: "200%",
+            height: "100%",
+            backgroundImage:
+              "linear-gradient(90deg, #3498db, #8e44ad, #3498db)",
+            backgroundSize: "50% 100%",
+          }}
+        />
+      </motion.div>
+      <InputField
+        InputLeftElement={
+          selectedEthFormatOption?.value === "Bps ↔️ %" ? (
+            <InputLeftElement bg="whiteAlpha.100">%</InputLeftElement>
+          ) : undefined
+        }
+        pl={selectedEthFormatOption?.value === "Bps ↔️ %" ? "14" : undefined}
+        bg="bg.900"
+        value={value}
+        type={
+          selectedEthFormatOption?.value === "Unix Time"
+            ? "date-time"
+            : "number"
+        }
+        placeholder=""
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          setIsError(false);
+          onChange(e);
+        }}
+        {...props}
+        isInvalid={isError || readFunctionIsError}
+        sx={{
+          position: "relative",
+          zIndex: 1,
+        }}
+        borderColor="whiteAlpha.300"
+        border={delayedAnimating ? "none" : undefined}
+      />
+      <motion.div
+        initial={false}
+        animate={{
+          boxShadow: isAnimating
+            ? "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db"
+            : "none",
+        }}
+        transition={{
+          boxShadow: {
+            duration: 0.2,
+            repeat: isAnimating ? Infinity : 0,
+            repeatType: "reverse",
+            ease: "linear",
+          },
+        }}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderRadius: "md",
+          pointerEvents: "none",
+        }}
+      />
+    </Box>
   );
 
   const renderUnixTimeControls = () => (
@@ -248,24 +347,35 @@ export const IntInput = ({
 
   const renderCurrentTimeTab = () => (
     <HStack mt="8">
-      <Box>Current timestamp:</Box>
-      <Box color="blue.100">{currentTimestamp}</Box>
       <Button
         size="sm"
         onClick={() => {
+          setIsAnimating(true);
+
           onChange({
             target: { value: currentTimestamp.toString() },
           } as any);
+
+          setTimeout(() => setIsAnimating(false), animationDuration);
         }}
       >
-        Set Value
+        Set Timestamp
       </Button>
+      <Box>Current timestamp:</Box>
+      <Box color="blue.100">{currentTimestamp}</Box>
     </HStack>
   );
 
   const renderFutureTimeTab = () => (
     <HStack mt="3">
-      <Button size="sm" onClick={handleSetFutureTimestamp}>
+      <Button
+        size="sm"
+        onClick={() => {
+          setIsAnimating(true);
+          handleSetFutureTimestamp();
+          setTimeout(() => setIsAnimating(false), animationDuration);
+        }}
+      >
         Set timestamp
       </Button>
       <Input
@@ -348,6 +458,7 @@ export const IntInput = ({
       </HStack>
       {selectedEthFormatOption.value === "Unix Time" &&
         renderUnixTimeControls()}
+
       {isError && (
         <Box w="full" pt={4} my={2} color="red.300" fontSize="sm">
           <Center fontWeight="bold">Error converting:</Center>

@@ -3,6 +3,7 @@ import { HStack, Skeleton } from "@chakra-ui/react";
 import { ethFormatOptions, ETHSelectedOptionState, convertTo } from "@/utils";
 import { InputField } from "../InputField";
 import { DarkSelect } from "../DarkSelect";
+import { motion } from "framer-motion";
 
 interface Params {
   value: any;
@@ -37,27 +38,33 @@ export const IntParam = ({ value: _value }: Params) => {
       />
     </HStack>
   ) : (
-    <HStack>
-      <InputField
-        value={convertTo(selectedEthFormatOption, value)}
-        placeholder=""
-        isReadOnly
-        onChange={() => {}}
-      />
-      <DarkSelect
-        boxProps={{
-          w: "9rem",
-          fontSize: "small",
-        }}
-        selectedOption={selectedEthFormatOption}
-        setSelectedOption={(option) =>
-          setSelectedEthFormatOption(option as ETHSelectedOptionState)
-        }
-        options={ethFormatOptions.map((str) => ({
-          label: str,
-          value: str,
-        }))}
-      />
-    </HStack>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <HStack>
+        <InputField
+          value={convertTo(selectedEthFormatOption, value)}
+          placeholder=""
+          isReadOnly
+          onChange={() => {}}
+        />
+        <DarkSelect
+          boxProps={{
+            w: "9rem",
+            fontSize: "small",
+          }}
+          selectedOption={selectedEthFormatOption}
+          setSelectedOption={(option) =>
+            setSelectedEthFormatOption(option as ETHSelectedOptionState)
+          }
+          options={ethFormatOptions.map((str) => ({
+            label: str,
+            value: str,
+          }))}
+        />
+      </HStack>
+    </motion.div>
   );
 };

@@ -103,13 +103,7 @@ export const DarkSelect = ({
   const SelectComponent = isCreatable ? CreatableSelect : RSelect;
 
   return (
-    <Box
-      cursor="pointer"
-      pos="relative"
-      zIndex={100}
-      overflow="visible"
-      {...boxProps}
-    >
+    <Box cursor="pointer" pos="relative" overflow="visible" {...boxProps}>
       <SelectComponent
         instanceId={uniqueId}
         ref={selectRef}
