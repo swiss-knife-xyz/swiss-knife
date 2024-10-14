@@ -107,6 +107,7 @@ export const ReadFunction = ({
           functionName: functionName,
           args: inputs?.map((input, i) => inputsState[i]),
         });
+        console.log("YOOOOO", { result, outputs, __name });
         setRes(result);
       } catch (e: any) {
         console.error(e);
@@ -208,7 +209,14 @@ export const ReadFunction = ({
               rounded={"md"}
             >
               {outputs.length > 1 && (
-                <InputInfo input={output as JsonFragmentType} />
+                <InputInfo
+                  input={{
+                    name: output.name
+                      ? extractStringFromReactNode(output.name)
+                      : undefined,
+                    type: output.type,
+                  }}
+                />
               )}
               {output.type &&
                 renderParamTypes(

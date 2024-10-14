@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { DarkSelect } from "@/components/DarkSelect";
 import {
   ExtendedJsonFragmentType,
@@ -22,13 +22,30 @@ import {
   Spinner,
   Text,
 } from "@chakra-ui/react";
+import { CloseIcon } from "@chakra-ui/icons";
 import { parseAsInteger, useQueryState } from "next-usequerystate";
+import { debounce } from "lodash";
 import { JsonFragment } from "ethers";
 import { createPublicClient, http } from "viem";
 import { whatsabi } from "@shazow/whatsabi";
 import { fetchContractAbi } from "@/lib/decoder";
 import { ReadFunction } from "@/components/fnParams/ReadFunction";
-import { CloseIcon } from "@chakra-ui/icons";
+
+const useDebouncedValue = (value: any, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
 
 export const ContractPage = ({
   params: { address },
@@ -68,8 +85,10 @@ export const ContractPage = ({
   const [readAllCollapsed, setReadAllCollapsed] = useState<boolean>(false);
 
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [searchResults, setSearchResults] = useState<number[]>([]);
   const [currentResultIndex, setCurrentResultIndex] = useState<number>(0);
+  const [searchResults, setSearchResults] = useState<number[]>([]);
+
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
 
   const readFunctionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -264,28 +283,33 @@ export const ContractPage = ({
     }
   }, [abi]);
 
-  useEffect(() => {
-    if (searchQuery) {
-      const results = readFunctions
+  const computedSearchResults = useMemo(() => {
+    if (debouncedSearchQuery) {
+      return readFunctions
         .map((func, index) => {
           const functionNameMatch = func.name
             ?.toLowerCase()
-            .includes(searchQuery.toLowerCase());
+            .includes(debouncedSearchQuery.toLowerCase());
           const outputNamesMatch =
             func.outputs &&
             func.outputs.length > 1 &&
             func.outputs.some((output) =>
-              output.name?.toLowerCase().includes(searchQuery.toLowerCase())
+              output.name
+                ?.toLowerCase()
+                .includes(debouncedSearchQuery.toLowerCase())
             );
           return functionNameMatch || outputNamesMatch ? index : -1;
         })
         .filter((index) => index !== -1);
-      setSearchResults(results);
-      setCurrentResultIndex(0);
     } else {
-      setSearchResults([]);
+      return [];
     }
-  }, [searchQuery, readFunctions]);
+  }, [debouncedSearchQuery, readFunctions]);
+
+  useEffect(() => {
+    setSearchResults(computedSearchResults);
+    setCurrentResultIndex(0);
+  }, [computedSearchResults]);
 
   useEffect(() => {
     if (searchResults.length > 0) {
