@@ -77,11 +77,11 @@ const Explorer = () => {
           justifyContent="space-between"
         >
           <Card
-            title="USDC"
+            title="UniV3 Position Manager"
             description="contract"
             url={`${getPath(
               subdomains.EXPLORER.base
-            )}address/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48`}
+            )}address/0xC36442b4a4522E871399CD717aBDD847Ab11FE88`}
           />
           <Card
             title="Seaport MatchOrders"

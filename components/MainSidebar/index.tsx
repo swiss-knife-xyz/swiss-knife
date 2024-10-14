@@ -1,12 +1,22 @@
-import { useState } from "react";
-import { Center, Divider, Flex, Text } from "@chakra-ui/react";
-import { HamburgerIcon, Search2Icon } from "@chakra-ui/icons";
+import {
+  Center,
+  Divider,
+  Flex,
+  HStack,
+  IconButton,
+  Spacer,
+  Text,
+} from "@chakra-ui/react";
+import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
 import { NavItem } from "./NavItem";
 import subdomains from "@/subdomains";
 
-export const MainSidebar = () => {
-  const [isNavExpanded, _] = useState(true);
+interface MainSidebarProps {
+  isNavExpanded: boolean;
+  toggleNav: () => void;
+}
 
+export const MainSidebar = ({ isNavExpanded, toggleNav }: MainSidebarProps) => {
   return (
     <Flex
       pos={"sticky"}
@@ -24,13 +34,26 @@ export const MainSidebar = () => {
         alignItems={isNavExpanded ? "flex-start" : "center"}
         as="nav"
       >
-        <Center mt="5" w="100%" fontWeight={"bold"}>
-          🔨 All Tools
-        </Center>
-        <Divider mt="4" />
-        {Object.keys(subdomains).map((key, i) => (
-          <NavItem key={i} subdomain={subdomains[key]} />
-        ))}
+        <HStack w="full" onClick={toggleNav} cursor={"pointer"}>
+          <Center w="100%" fontWeight={"bold"}>
+            🔨 All Tools
+          </Center>
+          <Spacer />
+          {isNavExpanded && (
+            <IconButton
+              aria-label="Toggle Navigation"
+              icon={isNavExpanded ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+              alignSelf={isNavExpanded ? "flex-end" : "center"}
+              mb={4}
+              variant={"outline"}
+            />
+          )}
+        </HStack>
+        {isNavExpanded && <Divider mt="4" />}
+        {isNavExpanded &&
+          Object.keys(subdomains).map((key, i) => (
+            <NavItem key={i} subdomain={subdomains[key]} />
+          ))}
       </Flex>
     </Flex>
   );

@@ -107,7 +107,6 @@ export const ReadFunction = ({
           functionName: functionName,
           args: inputs?.map((input, i) => inputsState[i]),
         });
-        console.log("YOOOOO", { result, outputs, __name });
         setRes(result);
       } catch (e: any) {
         console.error(e);
