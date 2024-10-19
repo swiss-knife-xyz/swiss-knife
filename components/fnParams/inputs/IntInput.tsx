@@ -268,14 +268,13 @@ export const IntInput = ({
           setIsError(false);
           onChange(e);
         }}
+        onWheel={() => {}}
         {...props}
         isInvalid={isError || readFunctionIsError}
         sx={{
           position: "relative",
           zIndex: 1,
         }}
-        borderColor="whiteAlpha.300"
-        border={delayedAnimating ? "none" : undefined}
       />
       <motion.div
         initial={false}
@@ -392,6 +391,7 @@ export const IntInput = ({
           setFutureTimeInput(parseFloat(e.target.value));
         }}
         isInvalid={futureTimeInputError}
+        onWheel={(e) => e.preventDefault()}
       />
       <DarkSelect
         boxProps={{

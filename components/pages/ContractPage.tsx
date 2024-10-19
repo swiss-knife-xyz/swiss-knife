@@ -29,6 +29,7 @@ import { PublicClient, createPublicClient, http } from "viem";
 import { whatsabi } from "@shazow/whatsabi";
 import { fetchContractAbi } from "@/lib/decoder";
 import { ReadFunction } from "@/components/fnParams/ReadFunction";
+// import { WriteFunction } from "@/components/fnParams/WriteFunction";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -499,8 +500,8 @@ export const ContractPage = ({
       };
       console.log(_fetchedAbi);
       setAbi({
-        abi: _fetchedAbi.abi as JsonFragment[],
-        name: _fetchedAbi.name,
+        abi: fetchedAbi.abi as JsonFragment[],
+        name: fetchedAbi.name,
       });
     } catch (e) {
       try {
@@ -634,6 +635,7 @@ export const ContractPage = ({
             </Box>
           )}
           <Grid templateColumns="repeat(2, 1fr)" gap={6} mt={5}>
+            {/* Read Contract Section */}
             <Box>
               <Box
                 ref={stickyHeaderRef}
@@ -766,26 +768,139 @@ export const ContractPage = ({
                   ))}
               </Box>
             </Box>
-            <Box>
+            {/* Write Contract Section */}
+            {/* <Box>
               <Box
+                ref={stickyHeaderRef}
                 position="sticky"
-                top="2rem"
+                top={abi.name.length > 0 ? "40px" : "0"}
                 zIndex={1}
                 p={2}
                 boxShadow="md"
                 bg="bg.900"
               >
-                <Center fontWeight="bold" mb={2}>
-                  Write Contract
+                <HStack mb={2}>
+                  <Spacer />
+                  <Box fontWeight="bold">Write Contract</Box>
+                  <Spacer />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setReadAllCollapsed(!readAllCollapsed);
+                    }}
+                  >
+                    {readAllCollapsed ? "Uncollapse" : "Collapse"} All
+                  </Button>
+                </HStack>
+                <Center w="full">
+                  <HStack w="70%">
+                    <InputGroup>
+                      <Input
+                        placeholder="Search functions"
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                        onFocus={handleSearchFocus}
+                        onKeyDown={handleSearchKeyDown}
+                        ref={searchInputRef}
+                      />
+                      <InputRightElement>
+                        <Button
+                          size="sm"
+                          onClick={handleClearSearch}
+                          variant="ghost"
+                          visibility={searchQuery ? "visible" : "hidden"}
+                        >
+                          <CloseIcon />
+                        </Button>
+                      </InputRightElement>
+                    </InputGroup>
+
+                    {searchResults.length > 1 && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            setCurrentResultIndex(
+                              (prevIndex) =>
+                                (prevIndex - 1 + searchResults.length) %
+                                searchResults.length
+                            )
+                          }
+                        >
+                          &uarr;
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            setCurrentResultIndex(
+                              (prevIndex) =>
+                                (prevIndex + 1) % searchResults.length
+                            )
+                          }
+                        >
+                          &darr;
+                        </Button>
+                      </>
+                    )}
+                  </HStack>
                 </Center>
               </Box>
-              {writeFunctions.map((func, index) => (
-                <Box key={index} mb={2}>
-                  <b>{index}.</b> {func.name}
-                  {/* Add input fields and buttons to call the write function */}
-                </Box>
-              ))}
-            </Box>
+              <Box
+                ref={scrollContainerRef}
+                overflowY="auto"
+                maxHeight="calc(100vh - 1px)"
+                rounded="lg"
+                p={2}
+                boxSizing="border-box"
+                sx={{
+                  "&::-webkit-scrollbar": {
+                    width: "8px",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    background: "#888",
+                    borderRadius: "10px",
+                  },
+                  "&::-webkit-scrollbar-thumb:hover": {
+                    background: "#555",
+                  },
+                }}
+              >
+                {client &&
+                  writeFunctions?.map((func, index) => (
+                    <Box
+                      key={index}
+                      ref={(el) => (readFunctionRefs.current[index] = el)}
+                    >
+                      <WriteFunction
+                        key={index}
+                        client={client}
+                        index={index}
+                        func={{
+                          ...func,
+                          name: ensureHighlightedContent(
+                            func.name,
+                            searchQuery,
+                            searchResults[currentResultIndex] === index
+                          ),
+                          outputs: func.outputs?.map(
+                            (output): ExtendedJsonFragmentType => ({
+                              ...output,
+                              name: ensureHighlightedContent(
+                                output.name,
+                                searchQuery,
+                                searchResults[currentResultIndex] === index
+                              ),
+                            })
+                          ),
+                        }}
+                        address={address}
+                        chainId={chainId}
+                        readAllCollapsed={readAllCollapsed}
+                      />
+                    </Box>
+                  ))}
+              </Box>
+            </Box> */}
           </Grid>
         </>
       )}

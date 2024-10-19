@@ -1,39 +1,11 @@
 import React, { useEffect, useState, ReactNode } from "react";
-import {
-  Box,
-  Button,
-  Center,
-  HStack,
-  Spinner,
-  Text,
-  useToast,
-} from "@chakra-ui/react";
+import { Box, Button, Center, HStack } from "@chakra-ui/react";
 import { ChevronDownIcon, ChevronUpIcon, RepeatIcon } from "@chakra-ui/icons";
-import { JsonFragment, JsonFragmentType } from "ethers";
-import {
-  ContractFunctionExecutionError,
-  PublicClient,
-  Hex,
-  isAddress,
-} from "viem";
-import {
-  UintParam,
-  StringParam,
-  AddressParam,
-  TupleParam,
-  ArrayParam,
-  IntParam,
-  BytesParam,
-} from "@/components/decodedParams";
-import {
-  AddressInput,
-  BoolInput,
-  BytesInput,
-  InputInfo,
-  IntInput,
-  StringInput,
-} from "@/components/fnParams/inputs";
+import { JsonFragment } from "ethers";
+import { ContractFunctionExecutionError, PublicClient, Hex } from "viem";
+import { InputInfo } from "@/components/fnParams/inputs";
 import { ExtendedJsonFragmentType, HighlightedContent } from "@/types";
+import { renderInputFields, renderParamTypes } from "./Renderer";
 
 interface ReadFunctionProps {
   client: PublicClient;
@@ -69,8 +41,8 @@ const extractStringFromReactNode = (node: HighlightedContent): string => {
   return "";
 };
 
-//nonly break the word after a ","
-//nuseful for displaying the outputs of a function
+//only break the word after a ","
+//useful for displaying the outputs of a function
 const EnhancedFunctionOutput: React.FC<{
   outputs?: ExtendedJsonFragmentType[];
 }> = ({ outputs }) => {
@@ -152,8 +124,6 @@ export const ReadFunction = ({
   chainId,
   readAllCollapsed,
 }: ReadFunctionProps) => {
-  const toast = useToast();
-
   const { name: __name, inputs, outputs } = __func;
   const functionName = extractStringFromReactNode(__name);
   const _func = { ...__func, name: functionName } as JsonFragment;
@@ -162,7 +132,7 @@ export const ReadFunction = ({
     readAllCollapsed !== undefined ? readAllCollapsed : false
   );
   const [inputsState, setInputsState] = useState<any>({});
-  const [readIsDisabled, setReadIsDisabled] = useState<boolean>(false);
+  const [readIsDisabled, setReadIsDisabled] = useState<any>({});
   const [res, setRes] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
@@ -178,6 +148,7 @@ export const ReadFunction = ({
       setLoading(true);
       setRes(null);
       try {
+        console.log({ inputsState });
         const result = await client.readContract({
           address: address as Hex,
           abi: [_func] as const,
@@ -187,12 +158,6 @@ export const ReadFunction = ({
         setRes(result);
       } catch (e: any) {
         console.error(e);
-        toast({
-          title: `Error calling ${functionName}()`,
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
         setIsError(true);
 
         setRes(null);
@@ -217,129 +182,6 @@ export const ReadFunction = ({
     }
   }, [inputsState, enterPressed]);
 
-  const renderInputFields = (input: JsonFragmentType, i: number) => {
-    const value = inputsState[i] || ""; // Ensure value is always defined
-
-    const isArray = input.type?.endsWith("[]");
-
-    const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setInputsState({
-        ...inputsState,
-        [i]: e.target.value,
-      });
-    };
-
-    const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter" && !readIsDisabled) {
-        setEnterPressed(true);
-      }
-    };
-
-    const isInvalid =
-      isError &&
-      (value === undefined ||
-        value === null ||
-        value.toString().trim().length === 0);
-
-    if (input.type?.includes("int")) {
-      return (
-        <IntInput
-          input={input}
-          value={value}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          isInvalid={isInvalid}
-          readFunctionIsError={isError}
-        />
-      );
-    } else if (input.type === "address") {
-      return (
-        <AddressInput
-          input={input}
-          value={value}
-          chainId={chainId}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          isInvalid={isInvalid}
-          setReadIsDisabled={setReadIsDisabled}
-        />
-      );
-    } else if (input.type?.includes("bytes")) {
-      return (
-        <BytesInput
-          input={input}
-          value={value}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          isInvalid={isInvalid}
-        />
-      );
-    } else if (input.type === "bool") {
-      return (
-        <BoolInput
-          input={input}
-          value={value}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          isInvalid={isInvalid}
-        />
-      );
-    } else {
-      return (
-        <StringInput
-          input={input}
-          value={value}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          isInvalid={isInvalid}
-        />
-      );
-    }
-  };
-
-  const renderParamTypes = (type: string, value: any) => {
-    if (type.includes("uint")) {
-      return <UintParam value={value} />;
-    } else if (type.includes("int")) {
-      return <IntParam value={value} />;
-    } else if (type === "address") {
-      return <AddressParam address={value} showLink chainId={chainId} />;
-    } else if (type.includes("bytes")) {
-      // account for cases where the bytes value is just an address
-      if (isAddress(value)) {
-        return <AddressParam address={value} />;
-      } else {
-        return (
-          <BytesParam
-            arg={
-              value === null || value === undefined
-                ? value
-                : { rawValue: value, value: { decoded: null } }
-            }
-          />
-        );
-      }
-    } else if (type === "tuple") {
-      return <TupleParam arg={{ value }} />;
-    } else if (type === "array") {
-      return <ArrayParam arg={{ rawValue: value, value }} />;
-    } else if (type === "bool") {
-      return (
-        <StringParam
-          value={
-            value === null || value === undefined
-              ? value
-              : value
-              ? "true"
-              : "false"
-          }
-        />
-      );
-    } else {
-      return <StringParam value={value} />;
-    }
-  };
-
   const renderRes = () => {
     if (outputs) {
       return (
@@ -363,14 +205,16 @@ export const ReadFunction = ({
                 />
               )}
               {output.type &&
-                renderParamTypes(
-                  output.type,
-                  outputs.length > 1
-                    ? res !== null && res !== undefined
-                      ? res[i]
-                      : null
-                    : res
-                )}
+                renderParamTypes({
+                  chainId,
+                  type: output.type,
+                  value:
+                    outputs.length > 1
+                      ? res !== null && res !== undefined
+                        ? res[i]
+                        : null
+                      : res,
+                })}
             </Box>
           ))}
         </Box>
@@ -457,7 +301,9 @@ export const ReadFunction = ({
           <Button
             ml={4}
             onClick={fetchValue}
-            isDisabled={readIsDisabled}
+            isDisabled={
+              inputs && inputs.some((_, i) => readIsDisabled[i] === true)
+            }
             size={"sm"}
             title={res !== null ? "refetch" : "fetch"}
             colorScheme={!isError ? "blue" : "red"}
@@ -476,7 +322,30 @@ export const ReadFunction = ({
           <Box ml={4}>
             {inputs.map((input, i) => (
               <Box key={i} mt={2}>
-                {renderInputFields(input, i)}
+                {renderInputFields({
+                  chainId,
+                  input,
+                  value: inputsState[i] || "",
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    setInputsState({
+                      ...inputsState,
+                      [i]: e.target.value,
+                    });
+                  },
+                  readIsDisabled,
+                  setReadIsDisabled: (value: boolean) => {
+                    setReadIsDisabled({
+                      ...readIsDisabled,
+                      [i]: value,
+                    });
+                  },
+                  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === "Enter" && !readIsDisabled) {
+                      setEnterPressed(true);
+                    }
+                  },
+                  isError,
+                })}
               </Box>
             ))}
           </Box>

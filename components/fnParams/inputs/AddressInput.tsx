@@ -21,11 +21,11 @@ import debounce from "lodash/debounce";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface InputFieldProps extends InputProps {
+  chainId: number;
   input: JsonFragment;
   value: string;
-  chainId: number;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  setReadIsDisabled?: (isDisabled: boolean) => void;
+  setReadIsDisabled?: (value: boolean) => void;
 }
 
 export const AddressInput = ({
