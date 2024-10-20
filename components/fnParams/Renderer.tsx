@@ -24,7 +24,6 @@ export interface RenderInputFieldsProps {
   input: JsonFragmentType;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  readIsDisabled: boolean;
   setReadIsDisabled: (value: boolean) => void;
   isError: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -35,7 +34,6 @@ export const renderInputFields = ({
   input,
   value,
   onChange,
-  readIsDisabled,
   setReadIsDisabled,
   isError,
   onKeyDown,

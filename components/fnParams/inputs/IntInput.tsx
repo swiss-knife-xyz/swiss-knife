@@ -46,6 +46,7 @@ export const IntInput = ({
   value,
   onChange,
   readFunctionIsError,
+  isInvalid,
   ...props
 }: IntInputProps) => {
   // Refs
@@ -211,7 +212,7 @@ export const IntInput = ({
       <motion.div
         initial={false}
         animate={{
-          opacity: isAnimating ? 1 : 0,
+          opacity: delayedAnimating ? 1 : 0,
         }}
         transition={{
           opacity: { duration: 0.3 },
@@ -230,12 +231,12 @@ export const IntInput = ({
         <motion.div
           initial={false}
           animate={{
-            x: isAnimating ? ["-100%", "0%"] : "0%",
+            x: delayedAnimating ? ["-100%", "0%"] : "0%",
           }}
           transition={{
             x: {
               duration: 0.3,
-              repeat: isAnimating ? Infinity : 0,
+              repeat: delayedAnimating ? Infinity : 0,
               repeatType: "loop",
               ease: "linear",
             },
@@ -270,7 +271,7 @@ export const IntInput = ({
         }}
         onWheel={() => {}}
         {...props}
-        isInvalid={isError || readFunctionIsError}
+        isInvalid={isInvalid || isError}
         sx={{
           position: "relative",
           zIndex: 1,
@@ -279,14 +280,14 @@ export const IntInput = ({
       <motion.div
         initial={false}
         animate={{
-          boxShadow: isAnimating
+          boxShadow: delayedAnimating
             ? "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db"
             : "none",
         }}
         transition={{
           boxShadow: {
             duration: 0.2,
-            repeat: isAnimating ? Infinity : 0,
+            repeat: delayedAnimating ? Infinity : 0,
             repeatType: "reverse",
             ease: "linear",
           },

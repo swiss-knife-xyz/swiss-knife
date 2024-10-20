@@ -1,5 +1,5 @@
 import React, { useEffect, useState, ReactNode } from "react";
-import { Box, Button, Center, HStack } from "@chakra-ui/react";
+import { Box, Button, Center, HStack, Skeleton } from "@chakra-ui/react";
 import { ChevronDownIcon, ChevronUpIcon, RepeatIcon } from "@chakra-ui/icons";
 import { JsonFragment } from "ethers";
 import { ContractFunctionExecutionError, PublicClient, Hex } from "viem";
@@ -126,7 +126,11 @@ export const ReadFunction = ({
 }: ReadFunctionProps) => {
   const { name: __name, inputs, outputs } = __func;
   const functionName = extractStringFromReactNode(__name);
-  const _func = { ...__func, name: functionName } as JsonFragment;
+
+  const _func = React.useMemo(
+    () => ({ ...__func, name: functionName } as JsonFragment),
+    [__func, functionName]
+  );
 
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
     readAllCollapsed !== undefined ? readAllCollapsed : false
@@ -139,7 +143,7 @@ export const ReadFunction = ({
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [enterPressed, setEnterPressed] = useState<boolean>(false);
 
-  const fetchValue = async () => {
+  const fetchValue = React.useCallback(async () => {
     if (isError) {
       setIsError(false);
     }
@@ -173,14 +177,14 @@ export const ReadFunction = ({
         setLoading(false);
       }
     }
-  };
+  }, [isError, functionName, client, address, _func, inputs, inputsState]);
 
   useEffect(() => {
     if (enterPressed) {
       fetchValue();
       setEnterPressed(false);
     }
-  }, [inputsState, enterPressed]);
+  }, [inputsState, enterPressed, fetchValue]);
 
   const renderRes = () => {
     if (outputs) {
@@ -332,7 +336,6 @@ export const ReadFunction = ({
                       [i]: e.target.value,
                     });
                   },
-                  readIsDisabled,
                   setReadIsDisabled: (value: boolean) => {
                     setReadIsDisabled({
                       ...readIsDisabled,
@@ -355,10 +358,10 @@ export const ReadFunction = ({
           {inputs && inputs.length > 0
             ? // Show skeleton (res = null) if loading
               (loading || (!loading && res !== null && res !== undefined)) && (
-                <Box p={4} bg="whiteAlpha.100" rounded={"md"}>
+                <Skeleton p={4} bg="whiteAlpha.100" rounded={"md"}>
                   <Box fontWeight={"bold"}>Result:</Box>
                   {renderRes()}
-                </Box>
+                </Skeleton>
               )
             : !isError && renderRes()}
         </Box>
