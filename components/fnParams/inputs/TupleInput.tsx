@@ -13,6 +13,7 @@ interface InputFieldProps extends InputProps {
   setReadIsDisabled: (value: boolean) => void;
   isError: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  isArrayChild?: boolean;
 }
 
 interface TupleInputState {
@@ -26,6 +27,8 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   setReadIsDisabled,
   isError,
   onKeyDown,
+  isArrayChild,
+  value,
 }) => {
   const [tupleInputsState, setTupleInputsState] = useState<TupleInputState>({});
   const [tupleReadIsDisabled, setTupleReadIsDisabled] = useState<
@@ -53,6 +56,14 @@ export const TupleInput: React.FC<InputFieldProps> = ({
     []
   );
 
+  // map through inputs and check if any state is undefined or 0 in length
+  const isAnyChildInvalid = Object.values(input.components!).some(
+    (_, i) =>
+      tupleInputsState[i] === undefined ||
+      tupleInputsState[i] === null ||
+      tupleInputsState[i].toString().trim().length === 0
+  );
+
   useEffect(() => {
     if (!isEqual(tupleInputsState, prevTupleInputStateRef.current)) {
       onChange({
@@ -77,18 +88,27 @@ export const TupleInput: React.FC<InputFieldProps> = ({
       mb={!isCollapsed ? 4 : undefined}
       pb={!isCollapsed ? 4 : undefined}
       border="2px solid"
-      borderColor="whiteAlpha.200"
+      borderColor={
+        !isArrayChild
+          ? "whiteAlpha.200"
+          : isError && isAnyChildInvalid
+          ? "red.300"
+          : "transparent"
+      }
       rounded="md"
       bg={"whiteAlpha.50"}
+      borderTopLeftRadius={isArrayChild ? 0 : "md"}
     >
       <HStack
         flexGrow={1}
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={() => setIsCollapsed((prev) => !prev)}
         cursor={"pointer"}
       >
-        <Box fontSize={"2xl"}>
-          {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
-        </Box>
+        {!isArrayChild && (
+          <Box fontSize={"2xl"}>
+            {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
+          </Box>
+        )}
         <InputInfo input={input} />
       </HStack>
       <Box

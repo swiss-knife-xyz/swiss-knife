@@ -31,6 +31,7 @@ interface IntInputProps extends InputProps {
   value?: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   readFunctionIsError?: boolean;
+  isArrayChild?: boolean;
 }
 
 const futureTimeOptions = ["minutes", "hours", "days"] as const;
@@ -47,6 +48,7 @@ export const IntInput = ({
   onChange,
   readFunctionIsError,
   isInvalid,
+  isArrayChild,
   ...props
 }: IntInputProps) => {
   // Refs
@@ -60,7 +62,7 @@ export const IntInput = ({
       value: ethFormatOptions[0],
     });
   const [isAnimating, setIsAnimating] = useState(false);
-  const [delayedAnimating, setDelayedAnimating] = useState(isAnimating);
+  const [isDelayedAnimating, setIsDelayedAnimating] = useState(isAnimating);
   const animationDuration = 300;
   const delayedAnimationDuration = 10;
   const [isError, setIsError] = useState(false);
@@ -97,7 +99,11 @@ export const IntInput = ({
       return;
     }
 
-    if (selectedEthFormatOption) {
+    if (
+      selectedEthFormatOption &&
+      prevValueRef.current !== selectedEthFormatOption.value &&
+      prevValueRef.current !== "0"
+    ) {
       setIsAnimating(true);
       let convertedValue = value;
       try {
@@ -198,11 +204,11 @@ export const IntInput = ({
   useEffect(() => {
     if (!isAnimating) {
       const timer = setTimeout(() => {
-        setDelayedAnimating(false);
+        setIsDelayedAnimating(false);
       }, delayedAnimationDuration);
       return () => clearTimeout(timer);
     } else {
-      setDelayedAnimating(true);
+      setIsDelayedAnimating(true);
     }
   }, [isAnimating]);
 
@@ -212,7 +218,7 @@ export const IntInput = ({
       <motion.div
         initial={false}
         animate={{
-          opacity: delayedAnimating ? 1 : 0,
+          opacity: isDelayedAnimating ? 1 : 0,
         }}
         transition={{
           opacity: { duration: 0.3 },
@@ -231,12 +237,12 @@ export const IntInput = ({
         <motion.div
           initial={false}
           animate={{
-            x: delayedAnimating ? ["-100%", "0%"] : "0%",
+            x: isDelayedAnimating ? ["-100%", "0%"] : "0%",
           }}
           transition={{
             x: {
               duration: 0.3,
-              repeat: delayedAnimating ? Infinity : 0,
+              repeat: isDelayedAnimating ? Infinity : 0,
               repeatType: "loop",
               ease: "linear",
             },
@@ -257,7 +263,7 @@ export const IntInput = ({
           ) : undefined
         }
         pl={selectedEthFormatOption?.value === "Bps ↔️ %" ? "14" : undefined}
-        bg="bg.900"
+        bg={isDelayedAnimating ? "bg.900" : undefined}
         value={value}
         type={
           selectedEthFormatOption?.value === "Unix Time"
@@ -280,14 +286,14 @@ export const IntInput = ({
       <motion.div
         initial={false}
         animate={{
-          boxShadow: delayedAnimating
+          boxShadow: isDelayedAnimating
             ? "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db"
             : "none",
         }}
         transition={{
           boxShadow: {
             duration: 0.2,
-            repeat: delayedAnimating ? Infinity : 0,
+            repeat: isDelayedAnimating ? Infinity : 0,
             repeatType: "reverse",
             ease: "linear",
           },

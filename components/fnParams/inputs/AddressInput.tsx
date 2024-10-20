@@ -19,6 +19,7 @@ import { InputInfo } from "@/components/fnParams/inputs";
 import subdomains from "@/subdomains";
 import debounce from "lodash/debounce";
 import { motion, AnimatePresence } from "framer-motion";
+import { InputField } from "@/components/InputField";
 
 interface InputFieldProps extends InputProps {
   chainId: number;
@@ -42,12 +43,17 @@ export const AddressInput = ({
   const [resolvedAddress, setResolvedAddress] = useState("");
   const [isResolving, setIsResolving] = useState(false);
   const [lastResolvedValue, setLastResolvedValue] = useState("");
+  const [errorResolving, setErrorResolving] = useState(false);
+
+  const [isDelayedAnimating, setIsDelayedAnimating] = useState(isResolving);
+  const delayedAnimationDuration = 100;
 
   const prevIsResolvingRef = useRef(isResolving);
 
   const resolveEns = useCallback(
     debounce(async (val: string) => {
       if (val === lastResolvedValue) return; // Prevent re-resolution of already resolved values
+      setErrorResolving(false);
       try {
         if (val.includes(".eth")) {
           setIsResolving(true);
@@ -59,6 +65,8 @@ export const AddressInput = ({
               target: { value: address },
             } as any);
             setLastResolvedValue(address);
+          } else {
+            throw new Error("ENS resolution failed");
           }
         } else if (val.length === 42) {
           const name = await getEnsName(val);
@@ -76,6 +84,12 @@ export const AddressInput = ({
           setResolvedAddress("");
           setLastResolvedValue("");
         }
+      } catch (error) {
+        console.error("Error resolving ENS:", error);
+        setErrorResolving(true);
+        setEnsName("");
+        setResolvedAddress("");
+        setLastResolvedValue(val);
       } finally {
         setIsResolving(false);
       }
@@ -105,6 +119,17 @@ export const AddressInput = ({
       prevIsResolvingRef.current = isResolving;
     }
   }, [isResolving, setReadIsDisabled]);
+
+  useEffect(() => {
+    if (!isResolving) {
+      const timer = setTimeout(() => {
+        setIsDelayedAnimating(false);
+      }, delayedAnimationDuration);
+      return () => clearTimeout(timer);
+    } else {
+      setIsDelayedAnimating(true);
+    }
+  }, [isResolving]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -147,61 +172,53 @@ export const AddressInput = ({
           </Link>
         )}
       </HStack>
-      <InputGroup>
-        <motion.div
-          initial={false}
-          animate={{
-            background: isResolving
-              ? [
-                  "linear-gradient(90deg, #3498db, #8e44ad, #3498db)",
-                  "linear-gradient(180deg, #3498db, #8e44ad, #3498db)",
-                  "linear-gradient(270deg, #3498db, #8e44ad, #3498db)",
-                  "linear-gradient(360deg, #3498db, #8e44ad, #3498db)",
-                ]
-              : "none",
-            backgroundSize: "200% 200%",
-            boxShadow: isResolving
-              ? [
-                  "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
-                  "0 0 5px #8e44ad, 0 0 10px #8e44ad, 0 0 15px #8e44ad",
-                  "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
-                ]
-              : "none",
+      <motion.div
+        initial={false}
+        animate={{
+          background: isDelayedAnimating
+            ? [
+                "linear-gradient(90deg, #3498db, #8e44ad, #3498db)",
+                "linear-gradient(180deg, #3498db, #8e44ad, #3498db)",
+                "linear-gradient(270deg, #3498db, #8e44ad, #3498db)",
+                "linear-gradient(360deg, #3498db, #8e44ad, #3498db)",
+              ]
+            : "none",
+          backgroundSize: "200% 200%",
+          boxShadow: isResolving
+            ? [
+                "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
+                "0 0 5px #8e44ad, 0 0 10px #8e44ad, 0 0 15px #8e44ad",
+                "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
+              ]
+            : "none",
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+        style={{
+          width: "100%",
+          borderRadius: "md",
+          padding: "2px",
+        }}
+      >
+        <InputField
+          type="text"
+          value={value}
+          onChange={handleInputChange}
+          isInvalid={isInvalid || errorResolving}
+          bg={isDelayedAnimating ? "#222" : undefined}
+          color="white"
+          rounded="md"
+          _focus={{
+            outline: "none",
+            boxShadow: "none",
           }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-          style={{
-            width: "100%",
-            borderRadius: "md",
-            padding: "2px",
-          }}
-        >
-          <Input
-            type="text"
-            value={value}
-            onChange={handleInputChange}
-            isInvalid={isInvalid}
-            bg="bg.900"
-            color="white"
-            rounded="md"
-            _focus={{
-              outline: "none",
-              boxShadow: "none",
-            }}
-            {...rest}
-          />
-        </motion.div>
-        <InputRightElement pr={1}>
-          {!isInvalid ? (
-            <CopyToClipboard textToCopy={resolvedAddress || value} />
-          ) : (
-            <WarningIcon color="red.300" />
-          )}
-        </InputRightElement>
-      </InputGroup>
+          placeholder={rest.placeholder ?? ""}
+          {...rest}
+        />
+      </motion.div>
     </Box>
   );
 };

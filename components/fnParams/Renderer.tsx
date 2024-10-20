@@ -27,6 +27,7 @@ export interface RenderInputFieldsProps {
   setReadIsDisabled: (value: boolean) => void;
   isError: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  isArrayChild?: boolean;
 }
 
 export const renderInputFields = ({
@@ -37,6 +38,7 @@ export const renderInputFields = ({
   setReadIsDisabled,
   isError,
   onKeyDown,
+  isArrayChild,
 }: RenderInputFieldsProps) => {
   const isInvalid =
     isError &&
@@ -98,16 +100,20 @@ export const renderInputFields = ({
         onKeyDown={onKeyDown}
         isInvalid={isInvalid}
         isError={isError}
+        isArrayChild={isArrayChild}
       />
     );
   } else if (input.type?.endsWith("[]")) {
     return (
       <ArrayInput
+        chainId={chainId}
         input={input}
         value={value}
         onChange={onChange}
+        setReadIsDisabled={setReadIsDisabled}
         onKeyDown={onKeyDown}
         isInvalid={isInvalid}
+        isError={isError}
       />
     );
   } else {

@@ -373,7 +373,7 @@ export const ReadFunction = ({
             : !isError && renderRes()}
         </Box>
         {isError && errorMsg && (
-          <Center mt={2} p={4} color="red.300" maxW="30rem">
+          <Center mt={2} p={4} color="red.300" maxW="40rem">
             {errorMsg}
           </Center>
         )}
