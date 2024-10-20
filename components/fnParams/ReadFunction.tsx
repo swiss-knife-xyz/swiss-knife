@@ -1,4 +1,4 @@
-import React, { useEffect, useState, ReactNode } from "react";
+import React, { useEffect, useState, ReactNode, useCallback } from "react";
 import { Box, Button, Center, HStack, Skeleton } from "@chakra-ui/react";
 import { ChevronDownIcon, ChevronUpIcon, RepeatIcon } from "@chakra-ui/icons";
 import { JsonFragment } from "ethers";
@@ -143,7 +143,21 @@ export const ReadFunction = ({
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [enterPressed, setEnterPressed] = useState<boolean>(false);
 
-  const fetchValue = React.useCallback(async () => {
+  const updateInputState = useCallback((index: number, value: string) => {
+    setInputsState((prev: any) => ({
+      ...prev,
+      [index]: value,
+    }));
+  }, []);
+
+  const updateReadIsDisabled = useCallback((index: number, value: boolean) => {
+    setReadIsDisabled((prev: any) => ({
+      ...prev,
+      [index]: value,
+    }));
+  }, []);
+
+  const fetchValue = useCallback(async () => {
     if (isError) {
       setIsError(false);
     }
@@ -159,6 +173,7 @@ export const ReadFunction = ({
           functionName: functionName,
           args: inputs?.map((input, i) => inputsState[i]),
         });
+        console.log({ inputsState, outputs, result });
         setRes(result);
       } catch (e: any) {
         console.error(e);
@@ -185,6 +200,43 @@ export const ReadFunction = ({
       setEnterPressed(false);
     }
   }, [inputsState, enterPressed, fetchValue]);
+
+  useEffect(() => {
+    // if there are no inputs, then auto fetch the value
+    if (!inputs || (inputs && inputs.length === 0)) {
+      fetchValue();
+    }
+  }, []);
+
+  useEffect(() => {
+    setIsError(false);
+  }, [inputsState]);
+
+  useEffect(() => {
+    setIsCollapsed(readAllCollapsed !== undefined ? readAllCollapsed : false);
+  }, [readAllCollapsed]);
+
+  const renderHighlightedText = (content: HighlightedContent): ReactNode => {
+    if (typeof content === "string") {
+      return content;
+    }
+
+    return content.map((part, index) => (
+      <span
+        key={index}
+        style={{
+          backgroundColor: part.isHighlighted
+            ? part.isCurrentResult
+              ? "orange"
+              : "yellow"
+            : "transparent",
+          color: part.isHighlighted ? "black" : "inherit",
+        }}
+      >
+        {part.text}
+      </span>
+    ));
+  };
 
   const renderRes = () => {
     if (outputs) {
@@ -226,43 +278,6 @@ export const ReadFunction = ({
     } else {
       return <></>;
     }
-  };
-
-  useEffect(() => {
-    // if there are no inputs, then auto fetch the value
-    if (!inputs || (inputs && inputs.length === 0)) {
-      fetchValue();
-    }
-  }, []);
-
-  useEffect(() => {
-    setIsError(false);
-  }, [inputsState]);
-
-  useEffect(() => {
-    setIsCollapsed(readAllCollapsed !== undefined ? readAllCollapsed : false);
-  }, [readAllCollapsed]);
-
-  const renderHighlightedText = (content: HighlightedContent): ReactNode => {
-    if (typeof content === "string") {
-      return content;
-    }
-
-    return content.map((part, index) => (
-      <span
-        key={index}
-        style={{
-          backgroundColor: part.isHighlighted
-            ? part.isCurrentResult
-              ? "orange"
-              : "yellow"
-            : "transparent",
-          color: part.isHighlighted ? "black" : "inherit",
-        }}
-      >
-        {part.text}
-      </span>
-    ));
   };
 
   return (
@@ -330,18 +345,10 @@ export const ReadFunction = ({
                   chainId,
                   input,
                   value: inputsState[i] || "",
-                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                    setInputsState({
-                      ...inputsState,
-                      [i]: e.target.value,
-                    });
-                  },
-                  setReadIsDisabled: (value: boolean) => {
-                    setReadIsDisabled({
-                      ...readIsDisabled,
-                      [i]: value,
-                    });
-                  },
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+                    updateInputState(i, e.target.value),
+                  setReadIsDisabled: (value: boolean) =>
+                    updateReadIsDisabled(i, value),
                   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
                     if (e.key === "Enter" && !readIsDisabled) {
                       setEnterPressed(true);
@@ -358,10 +365,10 @@ export const ReadFunction = ({
           {inputs && inputs.length > 0
             ? // Show skeleton (res = null) if loading
               (loading || (!loading && res !== null && res !== undefined)) && (
-                <Skeleton p={4} bg="whiteAlpha.100" rounded={"md"}>
+                <Box p={4} bg="whiteAlpha.100" rounded={"md"}>
                   <Box fontWeight={"bold"}>Result:</Box>
                   {renderRes()}
-                </Skeleton>
+                </Box>
               )
             : !isError && renderRes()}
         </Box>

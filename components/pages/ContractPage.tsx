@@ -426,7 +426,7 @@ export const ContractPage = ({
       setIsFetchingAbi(true);
       setUnableToFetchAbi(false);
       // try fetching if contract is verified
-      // const _fetchedAbi = await fetchContractAbi({ address, chainId });
+      // const fetchedAbi = await fetchContractAbi({ address, chainId });
       // console.log(_fetchedAbi);
       const fetchedAbi = {
         abi: [

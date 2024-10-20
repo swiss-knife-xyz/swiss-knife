@@ -89,18 +89,16 @@ export const renderInputFields = ({
     );
   } else if (input.type === "tuple") {
     return (
-      // <TupleInput
-      //   chainId={chainId}
-      //   input={input}
-      //   value={value}
-      //   onChange={onChange}
-      //   readIsDisabled={readIsDisabled}
-      //   setReadIsDisabled={setReadIsDisabled}
-      //   onKeyDown={onKeyDown}
-      //   isInvalid={isInvalid}
-      //   isError={isError}
-      // />
-      <></>
+      <TupleInput
+        chainId={chainId}
+        input={input}
+        value={value}
+        onChange={onChange}
+        setReadIsDisabled={setReadIsDisabled}
+        onKeyDown={onKeyDown}
+        isInvalid={isInvalid}
+        isError={isError}
+      />
     );
   } else if (input.type?.endsWith("[]")) {
     return (

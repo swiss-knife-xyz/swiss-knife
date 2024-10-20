@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   Input,
   InputGroup,
@@ -43,6 +43,8 @@ export const AddressInput = ({
   const [isResolving, setIsResolving] = useState(false);
   const [lastResolvedValue, setLastResolvedValue] = useState("");
 
+  const prevIsResolvingRef = useRef(isResolving);
+
   const resolveEns = useCallback(
     debounce(async (val: string) => {
       if (val === lastResolvedValue) return; // Prevent re-resolution of already resolved values
@@ -78,7 +80,7 @@ export const AddressInput = ({
         setIsResolving(false);
       }
     }, 500),
-    [onChange]
+    [lastResolvedValue, onChange]
   );
 
   useEffect(() => {
@@ -98,8 +100,9 @@ export const AddressInput = ({
   }, [ensName]);
 
   useEffect(() => {
-    if (setReadIsDisabled) {
+    if (setReadIsDisabled && isResolving !== prevIsResolvingRef.current) {
       setReadIsDisabled(isResolving);
+      prevIsResolvingRef.current = isResolving;
     }
   }, [isResolving, setReadIsDisabled]);
 

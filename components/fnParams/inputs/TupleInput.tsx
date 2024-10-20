@@ -1,15 +1,15 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Box, HStack, InputProps } from "@chakra-ui/react";
 import { JsonFragmentType } from "ethers";
 import { InputInfo } from "./InputInfo";
 import { renderInputFields } from "../Renderer";
 import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
+import isEqual from "lodash/isEqual";
 
 interface InputFieldProps extends InputProps {
   chainId: number;
   input: JsonFragmentType;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  readIsDisabled: boolean;
   setReadIsDisabled: (value: boolean) => void;
   isError: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -33,41 +33,43 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   >({});
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  useEffect(() => {
-    const newValue = input.components?.map((_, i) => tupleInputsState[i]);
-    onChange({
-      target: {
-        value: newValue,
-      },
-    } as any);
-  }, [input.components, tupleInputsState, onChange]);
+  const prevTupleInputStateRef = useRef(tupleInputsState);
+  const prevTupleReadIsDisabledRef = useRef(tupleReadIsDisabled);
 
-  const updateParentReadIsDisabled = useCallback(() => {
-    if (Object.keys(tupleReadIsDisabled).length > 0 && input.components) {
-      const isDisabled = input.components.some(
-        (_, i) => tupleReadIsDisabled[i] === true
-      );
-      setReadIsDisabled(isDisabled);
+  const updateTupleInputState = useCallback((index: number, value: string) => {
+    setTupleInputsState((prev: any) => ({
+      ...prev,
+      [index]: value,
+    }));
+  }, []);
+
+  const updateTupleReadIsDisabled = useCallback(
+    (index: number, value: boolean) => {
+      setTupleReadIsDisabled((prev: any) => ({
+        ...prev,
+        [index]: value,
+      }));
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!isEqual(tupleInputsState, prevTupleInputStateRef.current)) {
+      onChange({
+        target: {
+          value: Object.values(tupleInputsState),
+        },
+      } as any);
+      prevTupleInputStateRef.current = tupleInputsState;
     }
-  }, [input.components, tupleReadIsDisabled, setReadIsDisabled]);
+  }, [tupleInputsState, onChange]);
 
   useEffect(() => {
-    updateParentReadIsDisabled();
-  }, [updateParentReadIsDisabled]);
-
-  const handleTupleInputChange = (index: number, value: any) => {
-    setTupleInputsState((prevState: TupleInputState) => ({
-      ...prevState,
-      [index]: value,
-    }));
-  };
-
-  const handleTupleReadIsDisabledChange = (index: number, value: boolean) => {
-    setTupleReadIsDisabled((prevState: Record<number, boolean>) => ({
-      ...prevState,
-      [index]: value,
-    }));
-  };
+    if (!isEqual(tupleReadIsDisabled, prevTupleReadIsDisabledRef.current)) {
+      setReadIsDisabled(Object.values(tupleReadIsDisabled).some(Boolean));
+      prevTupleReadIsDisabledRef.current = tupleReadIsDisabled;
+    }
+  }, [tupleReadIsDisabled, setReadIsDisabled]);
 
   return (
     <Box
@@ -103,10 +105,9 @@ export const TupleInput: React.FC<InputFieldProps> = ({
               input: component,
               value: tupleInputsState[i],
               onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                handleTupleInputChange(i, e.target.value),
-              readIsDisabled: tupleReadIsDisabled[i],
+                updateTupleInputState(i, e.target.value),
               setReadIsDisabled: (value: boolean) =>
-                handleTupleReadIsDisabledChange(i, value),
+                updateTupleReadIsDisabled(i, value),
               onKeyDown,
               isError,
             })}
