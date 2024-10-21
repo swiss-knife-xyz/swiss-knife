@@ -41,8 +41,8 @@ const extractStringFromReactNode = (node: HighlightedContent): string => {
   return "";
 };
 
-//only break the word after a ","
-//useful for displaying the outputs of a function
+// only break the word after a ","
+// useful for displaying the outputs of a function
 const EnhancedFunctionOutput: React.FC<{
   outputs?: ExtendedJsonFragmentType[];
 }> = ({ outputs }) => {
@@ -166,7 +166,7 @@ export const ReadFunction = ({
       setLoading(true);
       setRes(null);
       try {
-        console.log({ inputsState });
+        console.log({ inputsState, outputs });
         const result = await client.readContract({
           address: address as Hex,
           abi: [_func] as const,
@@ -312,7 +312,7 @@ export const ReadFunction = ({
           </HStack>{" "}
           {__func.outputs && __func.outputs.length === 1 && (
             <Box fontSize={"sm"} color="whiteAlpha.600">
-              ({__func.outputs[0].type})
+              (→&nbsp;{__func.outputs[0].type})
             </Box>
           )}
         </HStack>
