@@ -33,7 +33,7 @@ const subdomains = {
   },
   UNISWAP: {
     base: "uniswap",
-    paths: ["tick-to-price"],
+    paths: ["tick-to-price", "pool-price-to-target"],
   },
   CONTRACT_ADDRESS: {
     base: "contract-address",
