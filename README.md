@@ -25,7 +25,7 @@ All your EVM tools in one place: https://swiss-knife.xyz/
    ```bash
    pnpm i
    ```
-2. Copy `.env.example` to `.env.local` and fill in the required values.
+2. Copy `.example.env.local` to `.env.local` and fill in the required values.
 3. Run the dev server:
    ```bash
    pnpm dev
