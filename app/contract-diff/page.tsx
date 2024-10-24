@@ -94,14 +94,14 @@ const DetermineContractDiff = () => {
   const network2 = network2Url ? c[network2Url] : base
   const [networks, setNetworks] = useState<Chain[]>([network1, network2]);
   const [sourceCodes, setSourceCodes] = useState<Record<string, string>[]>([]);
-  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [isOpen, setIsOpen] = useState<Record<string, boolean>>({});
 
   const diffContracts = async () => {
     const sourceCodes = await Promise.all(networks.map((network, i) => getSourceCode(network, contracts[i])))
     setSourceCodes(sourceCodes)
   }
 
-  const sourceCodesDiff = getColoredOutput(sourceCodes)
+  const contractsDiff = getColoredOutput(sourceCodes)
 
   useEffect(() => {
     diffContracts()
@@ -180,13 +180,15 @@ const DetermineContractDiff = () => {
           <Tr>
             <Td colSpan={2} maxWidth={1}>
               {
-                Object.keys(sourceCodesDiff).map((contract, i) => {
-                  const isOpen = open[contract] || sourceCodesDiff[contract].length > 1
+                Object.keys(contractsDiff).map((contract, i) => {
+                  const isOpenCollapse = isOpen[contract] === undefined ? contractsDiff[contract].length > 1 : isOpen[contract]
+                  const changes = contractsDiff[contract].length - 1
                   return (
                     <div key={i}>
-                      <label onClick={() => setOpen({ ...open, [contract]: !!!open[contract] })}>{isOpen ? '▾' : '▸'} {contract}</label>
-                      <Collapse in={isOpen} animateOpacity>
-                        <div>{sourceCodesDiff[contract]}</div>
+                      <button onClick={() => setIsOpen({ ...isOpen, [contract]: !isOpenCollapse })}>
+                        <span>{isOpen ? '▾' : '▸'} {contract} <b>({changes} changes)</b></span></button>
+                      <Collapse in={isOpenCollapse} animateOpacity>
+                        <div>{contractsDiff[contract]}</div>
                       </Collapse>
                     </div>
                   )
