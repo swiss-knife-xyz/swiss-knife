@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { parseAsString, useQueryState } from "next-usequerystate";
 import { Heading, Table, Tbody, Tr, Td, Select, Button, Collapse } from "@chakra-ui/react";
 import { Layout } from "@/components/Layout";
 import { InputField } from "@/components/InputField";
@@ -10,6 +9,7 @@ import { c } from "@/data/common";
 import { Chain, mainnet, base } from "viem/chains";
 import { diffLines } from 'diff';
 import { useSearchParams } from "next/navigation";
+import { parseAsString, useQueryState } from "next-usequerystate";
 
 const WETH_MAINNET = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
 const WETH_BASE_MAINNET = '0x4200000000000000000000000000000000000006'
@@ -86,15 +86,35 @@ const DetermineContractDiff = () => {
   const contract2Url = searchParams.get("contract2");
   const network1Url = searchParams.get("network1");
   const network2Url = searchParams.get("network2");
-  const [contracts, setContracts] = useState<string[]>([
-    contract1Url || WETH_MAINNET,
-    contract2Url || WETH_BASE_MAINNET
-  ]);
-  const network1 = network1Url ? c[network1Url] : mainnet
-  const network2 = network2Url ? c[network2Url] : base
-  const [networks, setNetworks] = useState<Chain[]>([network1, network2]);
+  const [contract1, setContract1] = useQueryState<string>(
+    "contract1",
+    parseAsString.withDefault(
+      contract1Url || WETH_MAINNET
+    )
+  );
+  const [contract2, setContract2] = useQueryState<string>(
+    "contract2",
+    parseAsString.withDefault(
+      contract2Url || WETH_BASE_MAINNET
+    )
+  );
+  const [network1, setNetwork1] = useQueryState<string>(
+    "network1",
+    parseAsString.withDefault(
+      network1Url || 'mainnet'
+    )
+  );
+  const [network2, setNetwork2] = useQueryState<string>(
+    "network2",
+    parseAsString.withDefault(
+      network2Url || 'base'
+    )
+  );
   const [sourceCodes, setSourceCodes] = useState<Record<string, string>[]>([]);
   const [isOpen, setIsOpen] = useState<Record<string, boolean>>({});
+
+  const contracts = [contract1, contract2]
+  const networks = [c[network1], c[network2]]
 
   const diffContracts = async () => {
     const sourceCodes = await Promise.all(networks.map((network, i) => getSourceCode(network, contracts[i])))
@@ -123,7 +143,7 @@ const DetermineContractDiff = () => {
                 placeholder="address"
                 value={contracts[0]}
                 onChange={(e) => {
-                  setContracts([e.target.value, contracts[1]]);
+                  setContract1(e.target.value);
                 }}
               />
             </Td>
@@ -133,7 +153,7 @@ const DetermineContractDiff = () => {
                 placeholder="address"
                 value={contracts[1]}
                 onChange={(e) => {
-                  setContracts([contracts[0], e.target.value]);
+                  setContract2(e.target.value);
                 }}
               />
             </Td>
@@ -144,7 +164,7 @@ const DetermineContractDiff = () => {
                 placeholder={networks[0].name}
                 value={networks[0].name}
                 onChange={(e) => {
-                  setNetworks([c[e.target.value], networks[1]]);
+                  setNetwork1(e.target.value);
                 }}
               >
                 {
@@ -159,7 +179,7 @@ const DetermineContractDiff = () => {
                 placeholder={networks[1].name}
                 value={networks[1].name}
                 onChange={(e) => {
-                  setNetworks([networks[0], c[e.target.value]]);
+                  setNetwork2(e.target.value);
                 }}
               >
                 {
