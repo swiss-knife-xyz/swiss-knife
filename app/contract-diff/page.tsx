@@ -14,6 +14,11 @@ import { useSearchParams } from "next/navigation";
 const WETH_MAINNET = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
 const WETH_BASE_MAINNET = '0x4200000000000000000000000000000000000006'
 
+const SUPPORTED_NETWORKS = [
+  'mainnet',
+  'base'
+]
+
 function getEtherscanApiUrl(chain: Chain): string | undefined {
   switch (chain) {
     case mainnet:
@@ -143,8 +148,8 @@ const DetermineContractDiff = () => {
                 }}
               >
                 {
-                  Object.keys(c).map((k, i) => {
-                    return <option key={i} value={k}>{c[k].name}</option>
+                  SUPPORTED_NETWORKS.map((supportedNetwork) => {
+                    return <option key={supportedNetwork} value={supportedNetwork}>{c[supportedNetwork].name}</option>
                   })
                 }
               </Select>
@@ -158,8 +163,8 @@ const DetermineContractDiff = () => {
                 }}
               >
                 {
-                  Object.keys(c).map((k, i) => {
-                    return <option key={i} value={k}>{c[k].name}</option>
+                  SUPPORTED_NETWORKS.map((supportedNetwork) => {
+                    return <option key={supportedNetwork} value={supportedNetwork}>{c[supportedNetwork].name}</option>
                   })
                 }
               </Select>
