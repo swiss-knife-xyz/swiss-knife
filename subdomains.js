@@ -39,6 +39,10 @@ const subdomains = {
     base: "contract-address",
     paths: [],
   },
+  CONTRACT_DIFF: {
+    base: "contract-diff",
+    paths: [],
+  },
   FOUNDRY: {
     base: "foundry",
     paths: ["forge-stack-tracer-ui"],
