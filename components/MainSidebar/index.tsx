@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Center, Divider, Flex, Text } from "@chakra-ui/react";
-import { HamburgerIcon, Search2Icon } from "@chakra-ui/icons";
+import { Center, Divider, Flex } from "@chakra-ui/react";
 import { NavItem } from "./NavItem";
 import subdomains from "@/subdomains";
 

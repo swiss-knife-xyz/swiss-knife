@@ -29,7 +29,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGithub } from "@fortawesome/free-brands-svg-icons";
 import { baseURL } from "@/config";
 import { ILeaderboard } from "@/types";
-import { slicedText } from "@/utils";
+import { apiBasePath, slicedText } from "@/utils";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { DarkButton } from "./DarkButton";
 
@@ -40,18 +40,12 @@ export const Navbar = () => {
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
-      const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-            ? ""
-            : "https://swiss-knife.xyz"
-        }/api/leaderboard-db`
-      );
+      const response = await fetch(`${apiBasePath}/api/leaderboard-db`);
       const data = await response.json();
       console.log({ data });
       setLeaderboard(data);
     };
-    fetchLeaderboard();
+    // fetchLeaderboard();
   }, []);
 
   return (

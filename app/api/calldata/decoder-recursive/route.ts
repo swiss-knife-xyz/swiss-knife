@@ -39,10 +39,7 @@ export const POST = async (request: Request) => {
     );
   }
 
-  let calldata = body.calldata;
-  let address = body.address;
-  let chainId = body.chainId;
-  let tx = body.tx;
+  let { calldata, address, chainId, tx } = body;
 
   let chain: Chain | undefined;
 
