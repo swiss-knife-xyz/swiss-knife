@@ -7,6 +7,7 @@ import subdomains from "@/subdomains";
 
 const SidebarItems: SidebarItem[] = [
   { name: "Tick to Price", path: "tick-to-price" },
+  { name: "Pool Price to Target", path: "pool-price-to-target" },
 ];
 
 export const UniswapLayout = ({ children }: { children: React.ReactNode }) => {
@@ -14,7 +15,7 @@ export const UniswapLayout = ({ children }: { children: React.ReactNode }) => {
     <Layout>
       <HStack alignItems={"stretch"} h="full">
         <Sidebar
-          heading="UniswapV3"
+          heading="Uniswap"
           items={SidebarItems}
           subdomain={subdomains.UNISWAP.base}
         />
