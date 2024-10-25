@@ -68,7 +68,7 @@ export const txExplorers: ExplorersData = {
       [c.optimismSepolia.id]: "optimism-sepolia",
       [c.polygonZkEvm.id]: "zkevm",
       [c.zkSync.id]: "zksync",
-      [c.zkSyncTestnet.id]: "zksync-sepolia",
+      [c.zkSyncSepoliaTestnet.id]: "zksync-sepolia",
     },
   },
   Bloxy: {
