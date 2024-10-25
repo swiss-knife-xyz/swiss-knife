@@ -1,6 +1,5 @@
 "use client";
 
-import { CacheProvider } from "@chakra-ui/next-js";
 import { ChakraProvider } from "@chakra-ui/react";
 import theme from "@/style/theme";
 import "@rainbow-me/rainbowkit/styles.css";
@@ -83,19 +82,17 @@ export const wagmiConfig = createConfig({
 
 export const Providers = ({ children }: { children: React.ReactNode }) => {
   return (
-    <CacheProvider>
-      <ChakraProvider theme={theme}>
-        <WagmiConfig config={wagmiConfig}>
-          <RainbowKitProvider
-            chains={chains}
-            theme={darkTheme()}
-            modalSize={"compact"}
-            coolMode={true}
-          >
-            {children}
-          </RainbowKitProvider>
-        </WagmiConfig>
-      </ChakraProvider>
-    </CacheProvider>
+    <ChakraProvider theme={theme}>
+      <WagmiConfig config={wagmiConfig}>
+        <RainbowKitProvider
+          chains={chains}
+          theme={darkTheme()}
+          modalSize={"compact"}
+          coolMode={true}
+        >
+          {children}
+        </RainbowKitProvider>
+      </WagmiConfig>
+    </ChakraProvider>
   );
 };

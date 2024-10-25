@@ -98,3 +98,10 @@ export const fetchFunctionInterface4ByteSchema = z.object({
 export type FetchFunctionInterface4Byte = z.infer<
   typeof fetchFunctionInterface4ByteSchema
 >;
+
+// ==== source-code ====
+
+export const sourceCodeRequestSchema = z.object({
+  address: z.string().length(42, "Address must be 42 characters long"),
+  chainId: z.number().int().positive(),
+});

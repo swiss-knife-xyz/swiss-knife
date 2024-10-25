@@ -14,6 +14,11 @@ export const getPath = (subdomain: string) => {
     : `https://${subdomain}.swiss-knife.xyz/`;
 };
 
+export const apiBasePath =
+  process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+    ? ""
+    : "https://swiss-knife.xyz";
+
 export const getMetadata = (_metadata: {
   title: string;
   description: string;
