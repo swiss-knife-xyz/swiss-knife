@@ -36,51 +36,77 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   >({});
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Use refs to store previous values for comparison
   const prevTupleInputStateRef = useRef(tupleInputsState);
   const prevTupleReadIsDisabledRef = useRef(tupleReadIsDisabled);
 
+  // Memoize the update functions with useCallback
   const updateTupleInputState = useCallback((index: number, value: string) => {
-    // setTupleInputsState((prev: any) => ({
-    //   ...prev,
-    //   [index]: value,
-    // }));
-  }, []);
+    setTupleInputsState((prev) => {
+      const newState = {
+        ...prev,
+        [index]: value,
+      };
+      // Only update if the value actually changed
+      return isEqual(prev, newState) ? prev : newState;
+    });
+  }, []); // Empty dependency array since we're using the function form of setState
 
   const updateTupleReadIsDisabled = useCallback(
     (index: number, value: boolean) => {
-      setTupleReadIsDisabled((prev: any) => ({
-        ...prev,
-        [index]: value,
-      }));
+      setTupleReadIsDisabled((prev) => {
+        const newState = {
+          ...prev,
+          [index]: value,
+        };
+        // Only update if the value actually changed
+        return isEqual(prev, newState) ? prev : newState;
+      });
     },
     []
-  );
+  ); // Empty dependency array since we're using the function form of setState
 
-  // map through inputs and check if any state is undefined or 0 in length
-  const isAnyChildInvalid = Object.values(input.components!).some(
-    (_, i) =>
-      tupleInputsState[i] === undefined ||
-      tupleInputsState[i] === null ||
-      tupleInputsState[i].toString().trim().length === 0
-  );
+  // Memoize isAnyChildInvalid calculation
+  const isAnyChildInvalid = React.useMemo(() => {
+    return Object.values(input.components || []).some(
+      (_, i) =>
+        tupleInputsState[i] === undefined ||
+        tupleInputsState[i] === null ||
+        tupleInputsState[i].toString().trim().length === 0
+    );
+  }, [tupleInputsState, input.components]);
 
+  // Handle parent state updates with debouncing
   useEffect(() => {
     if (!isEqual(tupleInputsState, prevTupleInputStateRef.current)) {
-      onChange({
-        target: {
-          value: Object.values(tupleInputsState),
-        },
-      } as any);
-      prevTupleInputStateRef.current = tupleInputsState;
+      const timeoutId = setTimeout(() => {
+        onChange({
+          target: {
+            value: Object.values(tupleInputsState),
+          },
+        } as any);
+        prevTupleInputStateRef.current = tupleInputsState;
+      }, 100); // Add small debounce
+
+      return () => clearTimeout(timeoutId);
     }
   }, [tupleInputsState, onChange]);
 
+  // Handle disabled state updates with debouncing
   useEffect(() => {
     if (!isEqual(tupleReadIsDisabled, prevTupleReadIsDisabledRef.current)) {
-      setFunctionIsDisabled(Object.values(tupleReadIsDisabled).some(Boolean));
-      prevTupleReadIsDisabledRef.current = tupleReadIsDisabled;
+      const timeoutId = setTimeout(() => {
+        setFunctionIsDisabled(Object.values(tupleReadIsDisabled).some(Boolean));
+        prevTupleReadIsDisabledRef.current = tupleReadIsDisabled;
+      }, 100); // Add small debounce
+
+      return () => clearTimeout(timeoutId);
     }
   }, [tupleReadIsDisabled, setFunctionIsDisabled]);
+
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed((prev) => !prev);
+  }, []);
 
   return (
     <Box
@@ -99,11 +125,7 @@ export const TupleInput: React.FC<InputFieldProps> = ({
       bg={"whiteAlpha.50"}
       borderTopLeftRadius={isArrayChild ? 0 : "md"}
     >
-      <HStack
-        flexGrow={1}
-        onClick={() => setIsCollapsed((prev) => !prev)}
-        cursor={"pointer"}
-      >
+      <HStack flexGrow={1} onClick={toggleCollapse} cursor={"pointer"}>
         {!isArrayChild && (
           <Box fontSize={"2xl"}>
             {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
