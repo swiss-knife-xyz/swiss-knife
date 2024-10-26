@@ -100,9 +100,9 @@ export const startHexWith0x = (hexValue?: string): Hex => {
     : "0x";
 };
 
-export const slicedText = (txt: string) => {
-  return txt.length > 10
-    ? `${txt.slice(0, 6)}...${txt.slice(txt.length - 4, txt.length)}`
+export const slicedText = (txt: string, charCount: number = 6) => {
+  return txt.length > charCount * 2 + 3 // check if text is long enough to need truncation
+    ? `${txt.slice(0, charCount)}...${txt.slice(-charCount)}`
     : txt;
 };
 import { NextRequest } from "next/server";

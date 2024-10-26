@@ -11,11 +11,16 @@ interface InputFieldProps extends InputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const boolOptions = ["false", "true"] as const;
+const boolOptions = [
+  { label: "false", value: false },
+  { label: "true", value: true },
+] as const;
+
 type BoolOption = (typeof boolOptions)[number];
+
 interface SelectedBoolOptionState {
-  label: BoolOption;
-  value: BoolOption;
+  label: string;
+  value: boolean;
 }
 
 export const BoolInput = ({
@@ -25,18 +30,16 @@ export const BoolInput = ({
   ...props
 }: InputFieldProps) => {
   const [selectedBoolOption, setSelectedBoolOption] =
-    useState<SelectedBoolOptionState>({
-      label: boolOptions[0],
-      value: boolOptions[0],
-    });
+    useState<SelectedBoolOptionState>(boolOptions[0]);
 
   useEffect(() => {
+    // Convert the string value to a proper numeric boolean representation
     onChange({
       target: {
-        value: selectedBoolOption.value,
+        value: selectedBoolOption.value, // Will be "0" or "1"
       },
     } as any);
-  }, [selectedBoolOption]);
+  }, [selectedBoolOption, onChange]);
 
   return (
     <Box>
@@ -49,10 +52,7 @@ export const BoolInput = ({
         setSelectedOption={(value) =>
           setSelectedBoolOption(value as SelectedBoolOptionState)
         }
-        options={boolOptions.map((str) => ({
-          label: str,
-          value: str,
-        }))}
+        options={boolOptions}
       />
     </Box>
   );

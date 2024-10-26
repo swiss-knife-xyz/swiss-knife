@@ -3,7 +3,7 @@ import { JsonFragmentType } from "ethers";
 
 export interface SelectedOption {
   label: string;
-  value: number | string;
+  value: number | string | boolean;
 }
 
 export type SelectedOptionState = SingleValue<SelectedOption>;

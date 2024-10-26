@@ -4,13 +4,13 @@ import { JsonFragmentType } from "ethers";
 import { InputInfo } from "./InputInfo";
 import { renderInputFields } from "../Renderer";
 import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
-import isEqual from "lodash/isEqual";
+import { isEqual } from "lodash";
 
 interface InputFieldProps extends InputProps {
   chainId: number;
   input: JsonFragmentType;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  setReadIsDisabled: (value: boolean) => void;
+  setFunctionIsDisabled: (value: boolean) => void;
   isError: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   isArrayChild?: boolean;
@@ -24,7 +24,7 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   chainId,
   input,
   onChange,
-  setReadIsDisabled,
+  setFunctionIsDisabled,
   isError,
   onKeyDown,
   isArrayChild,
@@ -40,10 +40,10 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   const prevTupleReadIsDisabledRef = useRef(tupleReadIsDisabled);
 
   const updateTupleInputState = useCallback((index: number, value: string) => {
-    setTupleInputsState((prev: any) => ({
-      ...prev,
-      [index]: value,
-    }));
+    // setTupleInputsState((prev: any) => ({
+    //   ...prev,
+    //   [index]: value,
+    // }));
   }, []);
 
   const updateTupleReadIsDisabled = useCallback(
@@ -77,10 +77,10 @@ export const TupleInput: React.FC<InputFieldProps> = ({
 
   useEffect(() => {
     if (!isEqual(tupleReadIsDisabled, prevTupleReadIsDisabledRef.current)) {
-      setReadIsDisabled(Object.values(tupleReadIsDisabled).some(Boolean));
+      setFunctionIsDisabled(Object.values(tupleReadIsDisabled).some(Boolean));
       prevTupleReadIsDisabledRef.current = tupleReadIsDisabled;
     }
-  }, [tupleReadIsDisabled, setReadIsDisabled]);
+  }, [tupleReadIsDisabled, setFunctionIsDisabled]);
 
   return (
     <Box
@@ -126,7 +126,7 @@ export const TupleInput: React.FC<InputFieldProps> = ({
               value: tupleInputsState[i],
               onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                 updateTupleInputState(i, e.target.value),
-              setReadIsDisabled: (value: boolean) =>
+              setFunctionIsDisabled: (value: boolean) =>
                 updateTupleReadIsDisabled(i, value),
               onKeyDown,
               isError,

@@ -23,15 +23,16 @@ import {
 } from "@/utils";
 import { stringify } from "viem";
 import TabsSelector from "@/components/Tabs/TabsSelector";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 // Types and Interfaces
 interface IntInputProps extends InputProps {
   input: JsonFragment;
   value?: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  readFunctionIsError?: boolean;
+  functionIsError?: boolean;
   isArrayChild?: boolean;
+  setFunctionIsDisabled: (value: boolean) => void;
 }
 
 const futureTimeOptions = ["minutes", "hours", "days"] as const;
@@ -46,9 +47,10 @@ export const IntInput = ({
   input,
   value,
   onChange,
-  readFunctionIsError,
+  functionIsError,
   isInvalid,
   isArrayChild,
+  setFunctionIsDisabled,
   ...props
 }: IntInputProps) => {
   // Refs
@@ -89,6 +91,14 @@ export const IntInput = ({
 
   useEffect(() => {
     handleUnixTimeUpdate();
+  }, [selectedEthFormatOption]);
+
+  useEffect(() => {
+    if (selectedEthFormatOption.value !== ethFormatOptions[0]) {
+      setFunctionIsDisabled(true);
+    } else {
+      setFunctionIsDisabled(false);
+    }
   }, [selectedEthFormatOption]);
 
   // Handlers
@@ -450,10 +460,10 @@ export const IntInput = ({
             p={5}
             size="sm"
             onClick={handleConvertToWei}
-            colorScheme={readFunctionIsError ? "yellow" : undefined}
+            colorScheme={"yellow"}
           >
             <Box fontSize="xs">
-              {readFunctionIsError && "⚠️"} To{" "}
+              {"⚠️"} To{" "}
               {selectedEthFormatOption.value === "Days" ||
               selectedEthFormatOption.value === "Hours" ||
               selectedEthFormatOption.value === "Minutes"

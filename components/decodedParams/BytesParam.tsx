@@ -61,7 +61,12 @@ export const BytesParam = ({ arg: _arg }: Params) => {
       if (selectedTabIndex === 0 && arg.value.decoded !== null) {
         // Do nothing for "Decode calldata"
       } else {
-        setDecimal(hexToBigInt(startHexWith0x(arg.rawValue)).toString());
+        const hexStartWith0x = startHexWith0x(arg.rawValue);
+        setDecimal(
+          hexToBigInt(
+            hexStartWith0x === "0x" ? "0x0" : hexStartWith0x
+          ).toString()
+        );
         setBinary(
           bigInt(
             arg.rawValue.startsWith("0x")

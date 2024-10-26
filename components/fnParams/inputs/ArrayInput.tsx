@@ -18,7 +18,7 @@ interface InputFieldProps extends InputProps {
   chainId: number;
   input: JsonFragmentType;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  setReadIsDisabled: (value: boolean) => void;
+  setFunctionIsDisabled: (value: boolean) => void;
   isError: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
@@ -97,7 +97,7 @@ const ArrayElement = ({
             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
               updateArrayInputState(id, e.target.value);
             },
-            setReadIsDisabled: (value: boolean) => {
+            setFunctionIsDisabled: (value: boolean) => {
               updateArrayReadIsDisabled(id, value);
             },
             onKeyDown,
@@ -114,7 +114,7 @@ export const ArrayInput = ({
   chainId,
   input,
   onChange,
-  setReadIsDisabled,
+  setFunctionIsDisabled,
   isError,
   onKeyDown,
 }: InputFieldProps) => {
@@ -175,10 +175,10 @@ export const ArrayInput = ({
 
   useEffect(() => {
     if (!isEqual(arrayReadIsDisabled, prevArrayReadIsDisabledRef.current)) {
-      setReadIsDisabled(Object.values(arrayReadIsDisabled).some(Boolean));
+      setFunctionIsDisabled(Object.values(arrayReadIsDisabled).some(Boolean));
       prevArrayReadIsDisabledRef.current = arrayReadIsDisabled;
     }
-  }, [arrayReadIsDisabled, setReadIsDisabled]);
+  }, [arrayReadIsDisabled, setFunctionIsDisabled]);
 
   const length = Object.keys(arrayInputState).length;
 

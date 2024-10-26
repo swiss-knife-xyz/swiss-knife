@@ -13,7 +13,14 @@ import {
 } from "@chakra-ui/react";
 import { ExternalLinkIcon, WarningIcon } from "@chakra-ui/icons";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-import { getEnsAddress, getEnsAvatar, getEnsName, getPath } from "@/utils";
+import {
+  getEnsAddress,
+  getEnsAvatar,
+  getEnsName,
+  getPath,
+  slicedText,
+} from "@/utils";
+import { useAccount } from "wagmi";
 import { JsonFragment } from "ethers";
 import { InputInfo } from "@/components/fnParams/inputs";
 import subdomains from "@/subdomains";
@@ -26,7 +33,7 @@ interface InputFieldProps extends InputProps {
   input: JsonFragment;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  setReadIsDisabled?: (value: boolean) => void;
+  setFunctionIsDisabled?: (value: boolean) => void;
 }
 
 export const AddressInput = ({
@@ -35,9 +42,11 @@ export const AddressInput = ({
   chainId,
   onChange,
   isInvalid,
-  setReadIsDisabled,
+  setFunctionIsDisabled,
   ...rest
 }: InputFieldProps) => {
+  const { address: userAddress } = useAccount();
+
   const [ensName, setEnsName] = useState("");
   const [ensAvatar, setEnsAvatar] = useState("");
   const [resolvedAddress, setResolvedAddress] = useState("");
@@ -114,11 +123,11 @@ export const AddressInput = ({
   }, [ensName]);
 
   useEffect(() => {
-    if (setReadIsDisabled && isResolving !== prevIsResolvingRef.current) {
-      setReadIsDisabled(isResolving);
+    if (setFunctionIsDisabled && isResolving !== prevIsResolvingRef.current) {
+      setFunctionIsDisabled(isResolving);
       prevIsResolvingRef.current = isResolving;
     }
-  }, [isResolving, setReadIsDisabled]);
+  }, [isResolving, setFunctionIsDisabled]);
 
   useEffect(() => {
     if (!isResolving) {
@@ -172,53 +181,73 @@ export const AddressInput = ({
           </Link>
         )}
       </HStack>
-      <motion.div
-        initial={false}
-        animate={{
-          background: isDelayedAnimating
-            ? [
-                "linear-gradient(90deg, #3498db, #8e44ad, #3498db)",
-                "linear-gradient(180deg, #3498db, #8e44ad, #3498db)",
-                "linear-gradient(270deg, #3498db, #8e44ad, #3498db)",
-                "linear-gradient(360deg, #3498db, #8e44ad, #3498db)",
-              ]
-            : "none",
-          backgroundSize: "200% 200%",
-          boxShadow: isResolving
-            ? [
-                "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
-                "0 0 5px #8e44ad, 0 0 10px #8e44ad, 0 0 15px #8e44ad",
-                "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
-              ]
-            : "none",
-        }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: "linear",
-        }}
-        style={{
-          width: "100%",
-          borderRadius: "md",
-          padding: "2px",
-        }}
-      >
-        <InputField
-          type="text"
-          value={value}
-          onChange={handleInputChange}
-          isInvalid={isInvalid || errorResolving}
-          bg={isDelayedAnimating ? "#222" : undefined}
-          color="white"
-          rounded="md"
-          _focus={{
-            outline: "none",
-            boxShadow: "none",
+      <Box>
+        <motion.div
+          initial={false}
+          animate={{
+            background: isDelayedAnimating
+              ? [
+                  "linear-gradient(90deg, #3498db, #8e44ad, #3498db)",
+                  "linear-gradient(180deg, #3498db, #8e44ad, #3498db)",
+                  "linear-gradient(270deg, #3498db, #8e44ad, #3498db)",
+                  "linear-gradient(360deg, #3498db, #8e44ad, #3498db)",
+                ]
+              : "none",
+            backgroundSize: "200% 200%",
+            boxShadow: isResolving
+              ? [
+                  "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
+                  "0 0 5px #8e44ad, 0 0 10px #8e44ad, 0 0 15px #8e44ad",
+                  "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
+                ]
+              : "none",
           }}
-          placeholder={rest.placeholder ?? ""}
-          {...rest}
-        />
-      </motion.div>
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+          style={{
+            width: "100%",
+            borderRadius: "md",
+            padding: "2px",
+          }}
+        >
+          <InputField
+            type="text"
+            value={value}
+            onChange={handleInputChange}
+            isInvalid={isInvalid || errorResolving}
+            bg={isDelayedAnimating ? "#222" : undefined}
+            color="white"
+            rounded="md"
+            _focus={{
+              outline: "none",
+              boxShadow: "none",
+            }}
+            placeholder={rest.placeholder ?? ""}
+            {...rest}
+          />
+        </motion.div>
+        {userAddress && (
+          <HStack my={2}>
+            <Spacer />
+            <Button
+              onClick={() => {
+                onChange({
+                  target: { value: userAddress },
+                } as any);
+              }}
+              size={"sx"}
+              fontWeight={"thin"}
+              variant={"ghost"}
+              color="whiteAlpha.300"
+            >
+              [use: {slicedText(userAddress)}]
+            </Button>
+          </HStack>
+        )}
+      </Box>
     </Box>
   );
 };

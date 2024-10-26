@@ -95,6 +95,9 @@ importers:
       highlight.js:
         specifier: ^11.2.0
         version: 11.9.0
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       mongoose:
         specifier: ^8.3.3
         version: 8.3.3
@@ -141,6 +144,12 @@ importers:
       '@types/ethereum-block-by-date':
         specifier: ^1.4.1
         version: 1.4.1(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      '@types/lodash':
+        specifier: ^4.17.12
+        version: 4.17.12
+      isEqual:
+        specifier: link:@types/lodash/isEqual
+        version: link:@types/lodash/isEqual
       pino-pretty:
         specifier: ^10.2.3
         version: 10.2.3
@@ -1089,6 +1098,9 @@ packages:
 
   '@types/lodash@4.17.10':
     resolution: {integrity: sha512-YpS0zzoduEhuOWjAotS6A5AVCva7X4lVlYLF0FYHAY9sdraBfnatttHItlWeZdGhuEkf+OzMNg2ZYAx8t+52uQ==}
+
+  '@types/lodash@4.17.12':
+    resolution: {integrity: sha512-sviUmCE8AYdaF/KIHLDJBQgeYzPBI0vf/17NaYehBJfYD1j6/L95Slh07NlyK2iNyBNaEkb3En2jRt+a8y3xZQ==}
 
   '@types/ms@0.7.34':
     resolution: {integrity: sha512-nG96G3Wp6acyAgJqGasjODb+acrI7KltPiRxzHPXnP3NgI28bpQDRv53olbqGXbfcgF5aiiHmO3xpwEpS5Ld9g==}
@@ -5875,9 +5887,11 @@ snapshots:
 
   '@types/lodash.mergewith@4.6.9':
     dependencies:
-      '@types/lodash': 4.17.10
+      '@types/lodash': 4.17.12
 
   '@types/lodash@4.17.10': {}
+
+  '@types/lodash@4.17.12': {}
 
   '@types/ms@0.7.34': {}
 

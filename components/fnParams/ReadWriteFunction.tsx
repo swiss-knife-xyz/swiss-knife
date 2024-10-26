@@ -1,15 +1,38 @@
-import React, { useEffect, useState, ReactNode, useCallback } from "react";
-import { Box, Button, Center, HStack, Skeleton } from "@chakra-ui/react";
-import { ChevronDownIcon, ChevronUpIcon, RepeatIcon } from "@chakra-ui/icons";
+import React, {
+  useEffect,
+  useState,
+  ReactNode,
+  useCallback,
+  useRef,
+} from "react";
+import { Box, Button, Center, HStack, Link, Spinner } from "@chakra-ui/react";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ExternalLinkIcon,
+  RepeatIcon,
+} from "@chakra-ui/icons";
+import { useWalletClient, useAccount, useNetwork } from "wagmi";
+import { waitForTransaction } from "wagmi/actions";
 import { JsonFragment } from "ethers";
-import { ContractFunctionExecutionError, PublicClient, Hex } from "viem";
+import {
+  ContractFunctionExecutionError,
+  PublicClient,
+  Hex,
+  encodeFunctionData,
+  Abi,
+} from "viem";
 import { InputInfo } from "@/components/fnParams/inputs";
 import { ExtendedJsonFragmentType, HighlightedContent } from "@/types";
 import { renderInputFields, renderParamTypes } from "./Renderer";
+import { ConnectButton } from "@/components/ConnectButton";
+import { slicedText } from "@/utils";
+import { getTransactionError, getContractError } from "viem/utils";
 
-interface ReadFunctionProps {
+interface ReadWriteFunctionProps {
   client: PublicClient;
   index: number;
+  type: "read" | "write";
   func: Omit<JsonFragment, "name" | "outputs"> & {
     name: HighlightedContent;
     outputs?: ExtendedJsonFragmentType[];
@@ -20,6 +43,16 @@ interface ReadFunctionProps {
 }
 
 const extractConciseError = (errorMessage: string): string => {
+  console.log({ errorMessage });
+  // Handle TransactionExecutionError format
+  const transactionMatch = errorMessage.match(
+    /TransactionExecutionError:\s*(.+?)(?:$|\.)/
+  );
+  if (transactionMatch) {
+    return transactionMatch[1].trim();
+  }
+
+  // Handle existing error format
   const functionMatch = errorMessage.match(/"([^"]+)"/);
   const reasonMatch = errorMessage.match(/reason:\s*([^V]+)/);
 
@@ -116,19 +149,27 @@ const EnhancedFunctionOutput: React.FC<{
   );
 };
 
-export const ReadFunction = ({
+export const ReadWriteFunction = ({
   client,
   index,
+  type,
   func: __func,
   address,
   chainId,
   readAllCollapsed,
-}: ReadFunctionProps) => {
+}: ReadWriteFunctionProps) => {
+  const { data: walletClient } = useWalletClient();
+  const { address: userAddress } = useAccount();
+  const { chain } = useNetwork();
+
   const { name: __name, inputs, outputs } = __func;
   const functionName = extractStringFromReactNode(__name);
 
   const _func = React.useMemo(
-    () => ({ ...__func, name: functionName } as JsonFragment),
+    () =>
+      ({ ...__func, name: functionName, type: "function" } as JsonFragment & {
+        type: "function";
+      }),
     [__func, functionName]
   );
 
@@ -136,8 +177,12 @@ export const ReadFunction = ({
     readAllCollapsed !== undefined ? readAllCollapsed : false
   );
   const [inputsState, setInputsState] = useState<any>({});
-  const [readIsDisabled, setReadIsDisabled] = useState<any>({});
+  const [functionIsDisabled, setFunctionIsDisabled] = useState<any>({});
+
   const [res, setRes] = useState<any>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [confirmedTxHash, setConfirmedTxHash] = useState<string | null>(null);
+
   const [loading, setLoading] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
@@ -150,12 +195,15 @@ export const ReadFunction = ({
     }));
   }, []);
 
-  const updateReadIsDisabled = useCallback((index: number, value: boolean) => {
-    setReadIsDisabled((prev: any) => ({
-      ...prev,
-      [index]: value,
-    }));
-  }, []);
+  const updateFunctionIsDisabled = useCallback(
+    (index: number, value: boolean) => {
+      setFunctionIsDisabled((prev: any) => ({
+        ...prev,
+        [index]: value,
+      }));
+    },
+    []
+  );
 
   const fetchValue = useCallback(async () => {
     if (isError) {
@@ -165,13 +213,17 @@ export const ReadFunction = ({
     if (functionName) {
       setLoading(true);
       setRes(null);
+
+      const abi = [_func] as unknown as Abi;
+      const args = inputs?.map((input, i) => inputsState[i]);
+
       try {
         console.log({ inputsState, outputs });
         const result = await client.readContract({
           address: address as Hex,
-          abi: [_func] as const,
-          functionName: functionName,
-          args: inputs?.map((input, i) => inputsState[i]),
+          abi,
+          functionName,
+          args,
         });
         console.log({ inputsState, outputs, result });
         setRes(result);
@@ -184,7 +236,15 @@ export const ReadFunction = ({
         if (e instanceof ContractFunctionExecutionError) {
           // extract the error message
           const errorMessage = e.cause?.message || e.message;
-          setErrorMsg(extractConciseError(errorMessage));
+          setErrorMsg(
+            getContractError(e, {
+              docsPath: "",
+              address: address as Hex,
+              abi,
+              functionName,
+              args,
+            }).shortMessage
+          );
         } else {
           setErrorMsg("An unknown error occurred");
         }
@@ -193,6 +253,75 @@ export const ReadFunction = ({
       }
     }
   }, [isError, functionName, client, address, _func, inputs, inputsState]);
+
+  const callFunction = useCallback(async () => {
+    if (isError) {
+      setIsError(false);
+    }
+
+    if (functionName && walletClient) {
+      setLoading(true);
+      setTxHash(null);
+      setConfirmedTxHash(null);
+
+      console.log({ inputsState });
+
+      try {
+        // encode calldata
+        const calldata = await encodeFunctionData({
+          abi: [_func] as const,
+          functionName: functionName,
+          args: inputs?.map((input, i) => inputsState[i]),
+        });
+
+        console.log({
+          calldata,
+          abi: [_func],
+          functionName,
+          inputs,
+          args: inputs?.map((input, i) => inputsState[i]),
+        });
+
+        // send transaction to wallet
+        const hash = await walletClient.sendTransaction({
+          to: address as Hex,
+          data: calldata,
+        });
+
+        setLoading(false);
+
+        setTxHash(hash);
+
+        await waitForTransaction({
+          hash,
+        });
+
+        setConfirmedTxHash(hash);
+      } catch (e: any) {
+        console.error(e);
+        setIsError(true);
+
+        setRes(null);
+
+        setErrorMsg(
+          getTransactionError(e, {
+            account: walletClient.account,
+            docsPath: "",
+          }).shortMessage
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [
+    isError,
+    functionName,
+    walletClient,
+    address,
+    _func,
+    inputs,
+    inputsState,
+  ]);
 
   useEffect(() => {
     if (enterPressed) {
@@ -316,12 +445,12 @@ export const ReadFunction = ({
             </Box>
           )}
         </HStack>
-        {!loading && (
+        {!loading && type === "read" && (
           <Button
             ml={4}
             onClick={fetchValue}
             isDisabled={
-              inputs && inputs.some((_, i) => readIsDisabled[i] === true)
+              inputs && inputs.some((_, i) => functionIsDisabled[i] === true)
             }
             size={"sm"}
             title={res !== null ? "refetch" : "fetch"}
@@ -330,6 +459,25 @@ export const ReadFunction = ({
             {res !== null ? <RepeatIcon /> : "Read"}
           </Button>
         )}
+        {type === "write" ? (
+          userAddress ? (
+            <Button
+              ml={4}
+              onClick={callFunction}
+              isDisabled={
+                inputs && inputs.some((_, i) => functionIsDisabled[i] === true)
+              }
+              isLoading={loading}
+              size={"sm"}
+              title={"write"}
+              colorScheme={!isError ? "blue" : "red"}
+            >
+              Write
+            </Button>
+          ) : (
+            <ConnectButton />
+          )
+        ) : null}
       </HStack>
 
       <Box ml={4} maxW="30rem" mb={4}>
@@ -347,10 +495,10 @@ export const ReadFunction = ({
                   value: inputsState[i] || "",
                   onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                     updateInputState(i, e.target.value),
-                  setReadIsDisabled: (value: boolean) =>
-                    updateReadIsDisabled(i, value),
+                  setFunctionIsDisabled: (value: boolean) =>
+                    updateFunctionIsDisabled(i, value),
                   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-                    if (e.key === "Enter" && !readIsDisabled) {
+                    if (e.key === "Enter" && !functionIsDisabled) {
                       setEnterPressed(true);
                     }
                   },
@@ -360,10 +508,11 @@ export const ReadFunction = ({
             ))}
           </Box>
         )}
-        {/* Output fields */}
+        {/* Output fields for Read */}
         <Box mt={2} ml={4} mb={inputs && inputs.length > 0 ? 0 : 4}>
           {inputs && inputs.length > 0
             ? // Show skeleton (res = null) if loading
+              type === "read" &&
               (loading || (!loading && res !== null && res !== undefined)) && (
                 <Box p={4} bg="whiteAlpha.100" rounded={"md"}>
                   <Box fontWeight={"bold"}>Result:</Box>
@@ -372,6 +521,47 @@ export const ReadFunction = ({
               )
             : !isError && renderRes()}
         </Box>
+        {/* Transaction status for Write */}
+        {txHash && !confirmedTxHash && (
+          <Box mt={4} ml={4}>
+            <HStack p={4} bg="blue.500" rounded={"md"}>
+              <HStack>
+                <Spinner />
+                <Box fontWeight={"bold"}>Transaction initiated:</Box>
+              </HStack>
+              <Box>
+                <Link
+                  href={`${chain?.blockExplorers?.default.url}/tx/${txHash}`}
+                  isExternal
+                >
+                  <HStack>
+                    <Box>{slicedText(txHash, 10)}</Box>
+                    <ExternalLinkIcon />
+                  </HStack>
+                </Link>
+              </Box>
+            </HStack>
+          </Box>
+        )}
+
+        {confirmedTxHash && (
+          <Box mt={4} ml={4}>
+            <HStack p={4} bg="green.500" rounded={"md"}>
+              <Box fontWeight={"bold"}>✅ Transaction confirmed:</Box>
+              <Box>
+                <Link
+                  href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash}`}
+                  isExternal
+                >
+                  <HStack>
+                    <Box>{slicedText(confirmedTxHash, 10)}</Box>
+                    <ExternalLinkIcon />
+                  </HStack>
+                </Link>
+              </Box>
+            </HStack>
+          </Box>
+        )}
         {isError && errorMsg && (
           <Center mt={2} p={4} color="red.300" maxW="40rem">
             {errorMsg}

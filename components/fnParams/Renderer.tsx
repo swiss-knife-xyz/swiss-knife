@@ -24,7 +24,7 @@ export interface RenderInputFieldsProps {
   input: JsonFragmentType;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  setReadIsDisabled: (value: boolean) => void;
+  setFunctionIsDisabled: (value: boolean) => void;
   isError: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   isArrayChild?: boolean;
@@ -35,7 +35,7 @@ export const renderInputFields = ({
   input,
   value,
   onChange,
-  setReadIsDisabled,
+  setFunctionIsDisabled,
   isError,
   onKeyDown,
   isArrayChild,
@@ -54,7 +54,8 @@ export const renderInputFields = ({
         onChange={onChange}
         onKeyDown={onKeyDown}
         isInvalid={isInvalid}
-        readFunctionIsError={isError}
+        functionIsError={isError}
+        setFunctionIsDisabled={setFunctionIsDisabled}
       />
     );
   } else if (input.type === "address") {
@@ -66,7 +67,7 @@ export const renderInputFields = ({
         onChange={onChange}
         onKeyDown={onKeyDown}
         isInvalid={isInvalid}
-        setReadIsDisabled={setReadIsDisabled}
+        setFunctionIsDisabled={setFunctionIsDisabled}
       />
     );
   } else if (input.type?.includes("bytes")) {
@@ -96,7 +97,7 @@ export const renderInputFields = ({
         input={input}
         value={value}
         onChange={onChange}
-        setReadIsDisabled={setReadIsDisabled}
+        setFunctionIsDisabled={setFunctionIsDisabled}
         onKeyDown={onKeyDown}
         isInvalid={isInvalid}
         isError={isError}
@@ -110,7 +111,7 @@ export const renderInputFields = ({
         input={input}
         value={value}
         onChange={onChange}
-        setReadIsDisabled={setReadIsDisabled}
+        setFunctionIsDisabled={setFunctionIsDisabled}
         onKeyDown={onKeyDown}
         isInvalid={isInvalid}
         isError={isError}

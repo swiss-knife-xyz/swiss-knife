@@ -38,6 +38,7 @@
     "ethers": "^6.9.0",
     "framer-motion": "^10.12.17",
     "highlight.js": "^11.2.0",
+    "lodash": "^4.17.21",
     "mongoose": "^8.3.3",
     "next": "14.0.3",
     "next-usequerystate": "^1.13.0",
@@ -55,6 +56,8 @@
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/ethereum-block-by-date": "^1.4.1",
+    "@types/lodash": "^4.17.12",
+    "isEqual": "link:@types/lodash/isEqual",
     "pino-pretty": "^10.2.3"
   }
 }
