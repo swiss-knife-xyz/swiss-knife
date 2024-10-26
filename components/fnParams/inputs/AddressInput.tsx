@@ -27,6 +27,7 @@ import subdomains from "@/subdomains";
 import debounce from "lodash/debounce";
 import { motion, AnimatePresence } from "framer-motion";
 import { InputField } from "@/components/InputField";
+import { zeroAddress } from "viem";
 
 interface InputFieldProps extends InputProps {
   chainId: number;
@@ -229,9 +230,23 @@ export const AddressInput = ({
             {...rest}
           />
         </motion.div>
-        {userAddress && (
-          <HStack my={2}>
-            <Spacer />
+
+        <HStack my={2}>
+          <Spacer />
+          <Button
+            onClick={() => {
+              onChange({
+                target: { value: zeroAddress },
+              } as any);
+            }}
+            size={"sx"}
+            fontWeight={"thin"}
+            variant={"ghost"}
+            color="whiteAlpha.300"
+          >
+            [zeroAddr]
+          </Button>
+          {userAddress && (
             <Button
               onClick={() => {
                 onChange({
@@ -243,10 +258,10 @@ export const AddressInput = ({
               variant={"ghost"}
               color="whiteAlpha.300"
             >
-              [use: {slicedText(userAddress)}]
+              [{slicedText(userAddress)}]
             </Button>
-          </HStack>
-        )}
+          )}
+        </HStack>
       </Box>
     </Box>
   );

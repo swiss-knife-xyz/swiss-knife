@@ -5,7 +5,19 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { Box, Button, Center, HStack, Link, Spinner } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Center,
+  HStack,
+  IconButton,
+  Link,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Spinner,
+} from "@chakra-ui/react";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -43,7 +55,6 @@ interface ReadWriteFunctionProps {
 }
 
 const extractConciseError = (errorMessage: string): string => {
-  console.log({ errorMessage });
   // Handle TransactionExecutionError format
   const transactionMatch = errorMessage.match(
     /TransactionExecutionError:\s*(.+?)(?:$|\.)/
@@ -149,6 +160,12 @@ const EnhancedFunctionOutput: React.FC<{
   );
 };
 
+enum WriteButtonType {
+  Write = "Write",
+  CallAsViewFn = "Call as View Fn",
+  SimulateOnTenderly = "Simulate on Tenderly",
+}
+
 export const ReadWriteFunction = ({
   client,
   index,
@@ -178,6 +195,9 @@ export const ReadWriteFunction = ({
   );
   const [inputsState, setInputsState] = useState<any>({});
   const [functionIsDisabled, setFunctionIsDisabled] = useState<any>({});
+  const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
+    WriteButtonType.Write
+  );
 
   const [res, setRes] = useState<any>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -205,7 +225,7 @@ export const ReadWriteFunction = ({
     []
   );
 
-  const fetchValue = useCallback(async () => {
+  const readFunction = useCallback(async () => {
     if (isError) {
       setIsError(false);
     }
@@ -218,14 +238,12 @@ export const ReadWriteFunction = ({
       const args = inputs?.map((input, i) => inputsState[i]);
 
       try {
-        console.log({ inputsState, outputs });
         const result = await client.readContract({
           address: address as Hex,
           abi,
           functionName,
           args,
         });
-        console.log({ inputsState, outputs, result });
         setRes(result);
       } catch (e: any) {
         console.error(e);
@@ -254,7 +272,7 @@ export const ReadWriteFunction = ({
     }
   }, [isError, functionName, client, address, _func, inputs, inputsState]);
 
-  const callFunction = useCallback(async () => {
+  const writeFunction = useCallback(async () => {
     if (isError) {
       setIsError(false);
     }
@@ -264,8 +282,6 @@ export const ReadWriteFunction = ({
       setTxHash(null);
       setConfirmedTxHash(null);
 
-      console.log({ inputsState });
-
       try {
         // encode calldata
         const calldata = await encodeFunctionData({
@@ -274,11 +290,110 @@ export const ReadWriteFunction = ({
           args: inputs?.map((input, i) => inputsState[i]),
         });
 
-        console.log({
-          calldata,
-          abi: [_func],
+        // send transaction to wallet
+        const hash = await walletClient.sendTransaction({
+          to: address as Hex,
+          data: calldata,
+        });
+
+        setLoading(false);
+
+        setTxHash(hash);
+
+        await waitForTransaction({
+          hash,
+        });
+
+        setConfirmedTxHash(hash);
+      } catch (e: any) {
+        console.error(e);
+        setIsError(true);
+
+        setRes(null);
+
+        setErrorMsg(
+          getTransactionError(e, {
+            account: walletClient.account,
+            docsPath: "",
+          }).shortMessage
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [
+    isError,
+    functionName,
+    walletClient,
+    address,
+    _func,
+    inputs,
+    inputsState,
+  ]);
+
+  const callAsReadFunction = useCallback(async () => {
+    if (isError) {
+      setIsError(false);
+    }
+
+    if (functionName) {
+      setLoading(true);
+      setRes(null);
+
+      const abi = [_func] as unknown as Abi;
+      const args = inputs?.map((input, i) => inputsState[i]);
+
+      try {
+        // TODO: add caller address in the settings modal
+        const result = await client.simulateContract({
+          address: address as Hex,
+          abi,
           functionName,
-          inputs,
+          args,
+        });
+        setRes(result.result);
+      } catch (e: any) {
+        console.error(e);
+        setIsError(true);
+
+        setRes(null);
+
+        if (e instanceof ContractFunctionExecutionError) {
+          // extract the error message
+          const errorMessage = e.cause?.message || e.message;
+          setErrorMsg(
+            getContractError(e, {
+              docsPath: "",
+              address: address as Hex,
+              abi,
+              functionName,
+              args,
+            }).shortMessage
+          );
+        } else {
+          setErrorMsg("An unknown error occurred");
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [isError, functionName, client, address, _func, inputs, inputsState]);
+
+  const simulateOnTenderly = useCallback(async () => {
+    if (isError) {
+      setIsError(false);
+    }
+
+    if (functionName && walletClient) {
+      setLoading(true);
+      setTxHash(null);
+      setConfirmedTxHash(null);
+
+      try {
+        // encode calldata
+        const calldata = await encodeFunctionData({
+          abi: [_func] as const,
+          functionName: functionName,
           args: inputs?.map((input, i) => inputsState[i]),
         });
 
@@ -325,15 +440,15 @@ export const ReadWriteFunction = ({
 
   useEffect(() => {
     if (enterPressed) {
-      fetchValue();
+      readFunction();
       setEnterPressed(false);
     }
-  }, [inputsState, enterPressed, fetchValue]);
+  }, [inputsState, enterPressed, readFunction]);
 
   useEffect(() => {
     // if there are no inputs, then auto fetch the value
     if (!inputs || (inputs && inputs.length === 0)) {
-      fetchValue();
+      readFunction();
     }
   }, []);
 
@@ -448,7 +563,7 @@ export const ReadWriteFunction = ({
         {!loading && type === "read" && (
           <Button
             ml={4}
-            onClick={fetchValue}
+            onClick={readFunction}
             isDisabled={
               inputs && inputs.some((_, i) => functionIsDisabled[i] === true)
             }
@@ -461,19 +576,79 @@ export const ReadWriteFunction = ({
         )}
         {type === "write" ? (
           userAddress ? (
-            <Button
-              ml={4}
-              onClick={callFunction}
-              isDisabled={
-                inputs && inputs.some((_, i) => functionIsDisabled[i] === true)
-              }
-              isLoading={loading}
-              size={"sm"}
-              title={"write"}
-              colorScheme={!isError ? "blue" : "red"}
+            <HStack
+              bg={!isError ? "blue.200" : "red.200"}
+              rounded="lg"
+              spacing={0}
             >
-              Write
-            </Button>
+              <Button
+                px={4}
+                onClick={
+                  writeButtonType === WriteButtonType.Write
+                    ? writeFunction
+                    : writeButtonType === WriteButtonType.CallAsViewFn
+                    ? callAsReadFunction
+                    : simulateOnTenderly
+                }
+                isDisabled={
+                  inputs &&
+                  inputs.some((_, i) => functionIsDisabled[i] === true)
+                }
+                isLoading={loading}
+                size={"sm"}
+                title={"write"}
+                colorScheme={!isError ? "blue" : "red"}
+              >
+                {writeButtonType}
+              </Button>
+              <Menu>
+                <MenuButton
+                  as={IconButton}
+                  aria-label="Options"
+                  icon={<ChevronDownIcon />}
+                  variant="outline"
+                  size={"xs"}
+                  color="blue.800"
+                  borderLeftColor="blue.800"
+                  borderLeftRadius={0}
+                />
+                <MenuList bg="gray.800">
+                  <MenuItem
+                    color="white"
+                    bg="gray.800"
+                    _hover={{ bg: "gray.700" }}
+                    onClick={() => {
+                      setWriteButtonType(WriteButtonType.Write);
+                      setIsError(false);
+                    }}
+                  >
+                    Write
+                  </MenuItem>
+                  <MenuItem
+                    color="white"
+                    bg="gray.800"
+                    _hover={{ bg: "gray.700" }}
+                    onClick={() => {
+                      setWriteButtonType(WriteButtonType.CallAsViewFn);
+                      setIsError(false);
+                    }}
+                  >
+                    Call as View Fn
+                  </MenuItem>
+                  <MenuItem
+                    color="white"
+                    bg="gray.800"
+                    _hover={{ bg: "gray.700" }}
+                    onClick={() => {
+                      setWriteButtonType(WriteButtonType.SimulateOnTenderly);
+                      setIsError(false);
+                    }}
+                  >
+                    Simulate on Tenderly
+                  </MenuItem>
+                </MenuList>
+              </Menu>
+            </HStack>
           ) : (
             <ConnectButton />
           )
@@ -508,11 +683,12 @@ export const ReadWriteFunction = ({
             ))}
           </Box>
         )}
-        {/* Output fields for Read */}
+        {/* Output fields for Read or Call as View Fn */}
         <Box mt={2} ml={4} mb={inputs && inputs.length > 0 ? 0 : 4}>
           {inputs && inputs.length > 0
             ? // Show skeleton (res = null) if loading
-              type === "read" &&
+              (type === "read" ||
+                writeButtonType === WriteButtonType.CallAsViewFn) &&
               (loading || (!loading && res !== null && res !== undefined)) && (
                 <Box p={4} bg="whiteAlpha.100" rounded={"md"}>
                   <Box fontWeight={"bold"}>Result:</Box>
