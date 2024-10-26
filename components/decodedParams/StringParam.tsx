@@ -115,7 +115,7 @@ export const StringParam = ({ value: _value }: Params) => {
   };
 
   const RichJsonTable = ({ _value }: { _value: string }) => {
-    let jsonValue;
+    let jsonValue: { [key: string]: any };
 
     try {
       jsonValue = isValidJSON(_value)
@@ -129,7 +129,7 @@ export const StringParam = ({ value: _value }: Params) => {
       <Table variant={"unstyled"}>
         <Tbody>
           {Object.keys(jsonValue).map((key) => {
-            const __value = jsonValue[key];
+            const __value: any = jsonValue[key];
             // avoids the quotes from the string
             const isString = typeof __value === "string";
 
