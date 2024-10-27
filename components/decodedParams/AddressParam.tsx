@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
   HStack,
@@ -19,6 +19,10 @@ import axios from "axios";
 import subdomains from "@/subdomains";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { motion } from "framer-motion";
+import { Address, createPublicClient, http } from "viem";
+import { chainIdToChain } from "@/data/common";
+import { erc20ABI } from "wagmi";
+import { fetchContractAbi } from "@/lib/decoder";
 
 interface Params {
   address: any;
@@ -44,25 +48,61 @@ export const AddressParam = ({
   const [value, setValue] = useState<string>(address);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const fetchSetAddressLabel = async () => {
+  const fetchSetAddressLabels = useCallback(async () => {
+    setAddressLabels([]);
+
     try {
-      const res = await axios.get(
-        `${
-          process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-            ? ""
-            : "https://swiss-knife.xyz"
-        }/api/labels/${address}`
-      );
-      const data = res.data.data;
-      if (data.length > 0) {
-        setAddressLabels(data.map((d: any) => d.address_name ?? d.label));
-      } else {
-        setAddressLabels([]);
+      console.log("ADDRESS PARAM");
+      console.log({
+        chainId,
+        address,
+      });
+
+      if (!chainId) throw new Error("Chain ID not provided");
+
+      const client = createPublicClient({
+        chain: chainIdToChain[chainId],
+        transport: http(),
+      });
+
+      // check if the address is a contract
+      const res = await client.getBytecode({
+        address: address as Address,
+      });
+
+      // try fetching the contract symbol() if it's a token
+      try {
+        const symbol = await client.readContract({
+          address: address as Address,
+          abi: erc20ABI,
+          functionName: "symbol",
+        });
+        setAddressLabels([symbol]);
+      } catch {
+        // else try fetching the contract name if it's verified
+        const fetchedAbi = await fetchContractAbi({ address, chainId });
+        if (fetchedAbi) {
+          setAddressLabels([fetchedAbi.name]);
+        }
       }
     } catch {
-      setAddressLabels([]);
+      try {
+        const res = await axios.get(
+          `${
+            process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+              ? ""
+              : "https://swiss-knife.xyz"
+          }/api/labels/${address}`
+        );
+        const data = res.data.data;
+        if (data.length > 0) {
+          setAddressLabels(data.map((d: any) => d.address_name ?? d.label));
+        }
+      } catch {
+        setAddressLabels([]);
+      }
     }
-  };
+  }, [address, chainId]);
 
   useEffect(() => {
     if (address !== skeletonAddress) {
@@ -72,10 +112,12 @@ export const AddressParam = ({
           setShowEns(true);
         }
       });
-
-      fetchSetAddressLabel();
     }
   }, [address]);
+
+  useEffect(() => {
+    fetchSetAddressLabels();
+  }, [address, chainId]);
 
   useEffect(() => {
     if (ensName) {

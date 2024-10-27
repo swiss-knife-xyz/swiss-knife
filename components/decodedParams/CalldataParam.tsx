@@ -5,7 +5,13 @@ import { startHexWith0x } from "@/utils";
 import { renderParams } from "../renderParams";
 import { BytesParam } from "./BytesParam";
 
-export const CalldataParam = ({ value }: { value: any }) => {
+export const CalldataParam = ({
+  value,
+  chainId,
+}: {
+  value: any;
+  chainId?: number;
+}) => {
   // abi.encode bytes
   const [result, setResult] = useState<any>();
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +36,7 @@ export const CalldataParam = ({ value }: { value: any }) => {
   return result ? (
     <Stack mt={2} p={4} spacing={4} bg={"whiteAlpha.50"} rounded={"lg"}>
       {result.args.map((arg: any, i: number) => {
-        return renderParams(i, arg);
+        return renderParams(i, arg, chainId);
       })}
     </Stack>
   ) : !isLoading ? (
@@ -40,6 +46,7 @@ export const CalldataParam = ({ value }: { value: any }) => {
           ? value
           : { rawValue: value, value: { decoded: null } }
       }
+      chainId={chainId}
     />
   ) : (
     <Skeleton h={"5rem"} rounded={"lg"} />

@@ -14,30 +14,30 @@ import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 
-export const renderParamTypes = (arg: any) => {
+export const renderParamTypes = (arg: any, chainId?: number) => {
   if (arg.baseType.includes("uint")) {
     return <UintParam value={arg.value} />;
   } else if (arg.baseType.includes("int")) {
     return <IntParam value={arg.value} />;
   } else if (arg.baseType === "address") {
-    return <AddressParam address={arg.value} />;
+    return <AddressParam address={arg.value} chainId={chainId} />;
   } else if (arg.baseType.includes("bytes")) {
     // account for cases where the bytes value is just an address
     if (isAddress(arg.rawValue)) {
-      return <AddressParam address={arg.rawValue} />;
+      return <AddressParam address={arg.rawValue} chainId={chainId} />;
     } else {
-      return <BytesParam arg={arg} />;
+      return <BytesParam arg={arg} chainId={chainId} />;
     }
   } else if (arg.baseType === "tuple") {
-    return <TupleParam arg={arg} />;
+    return <TupleParam arg={arg} chainId={chainId} />;
   } else if (arg.baseType === "array") {
-    return <ArrayParam arg={arg} />;
+    return <ArrayParam arg={arg} chainId={chainId} />;
   } else {
     return <StringParam value={arg.value} />;
   }
 };
 
-export const renderParams = (key: number, arg: any) => {
+export const renderParams = (key: number, arg: any, chainId?: number) => {
   const type = arg.type.includes("tuple") ? "tuple" : arg.type;
 
   return (
@@ -106,7 +106,7 @@ export const renderParams = (key: number, arg: any) => {
           ) : null}
         </HStack>
       )}
-      <Stack spacing={2}>{renderParamTypes(arg)}</Stack>
+      <Stack spacing={2}>{renderParamTypes(arg, chainId)}</Stack>
     </Stack>
   );
 };

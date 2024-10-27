@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
-  Input,
-  InputGroup,
-  InputRightElement,
+  Text,
   InputProps,
   Avatar,
   Box,
@@ -10,9 +8,9 @@ import {
   Spacer,
   Link,
   Button,
+  Tag,
 } from "@chakra-ui/react";
-import { ExternalLinkIcon, WarningIcon } from "@chakra-ui/icons";
-import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   getEnsAddress,
   getEnsAvatar,
@@ -20,14 +18,17 @@ import {
   getPath,
   slicedText,
 } from "@/utils";
-import { useAccount } from "wagmi";
+import { erc20ABI, useAccount } from "wagmi";
 import { JsonFragment } from "ethers";
 import { InputInfo } from "@/components/fnParams/inputs";
 import subdomains from "@/subdomains";
 import debounce from "lodash/debounce";
 import { motion, AnimatePresence } from "framer-motion";
 import { InputField } from "@/components/InputField";
-import { zeroAddress } from "viem";
+import { Address, createPublicClient, http, zeroAddress } from "viem";
+import axios from "axios";
+import { chainIdToChain } from "@/data/common";
+import { fetchContractAbi } from "@/lib/decoder";
 
 interface InputFieldProps extends InputProps {
   chainId: number;
@@ -54,6 +55,8 @@ export const AddressInput = ({
   const [isResolving, setIsResolving] = useState(false);
   const [lastResolvedValue, setLastResolvedValue] = useState("");
   const [errorResolving, setErrorResolving] = useState(false);
+
+  const [addressLabels, setAddressLabels] = useState<string[]>([]);
 
   const [isDelayedAnimating, setIsDelayedAnimating] = useState(isResolving);
   const delayedAnimationDuration = 100;
@@ -107,11 +110,69 @@ export const AddressInput = ({
     [lastResolvedValue, onChange]
   );
 
+  const fetchSetAddressLabels = useCallback(
+    debounce(async (val: string) => {
+      if (val === lastResolvedValue) return; // Prevent re-resolution of already resolved values
+      setErrorResolving(false);
+      setAddressLabels([]);
+      try {
+        const client = createPublicClient({
+          chain: chainIdToChain[chainId],
+          transport: http(),
+        });
+
+        // check if the address is a contract
+        const res = await client.getBytecode({
+          address: val as Address,
+        });
+
+        // try fetching the contract symbol() if it's a token
+        try {
+          const symbol = await client.readContract({
+            address: val as Address,
+            abi: erc20ABI,
+            functionName: "symbol",
+          });
+          setAddressLabels([symbol]);
+        } catch {
+          // else try fetching the contract name if it's verified
+          const fetchedAbi = await fetchContractAbi({ address: val, chainId });
+          if (fetchedAbi) {
+            setAddressLabels([fetchedAbi.name]);
+          }
+        }
+      } catch {
+        try {
+          const res = await axios.get(
+            `${
+              process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+                ? ""
+                : "https://swiss-knife.xyz"
+            }/api/labels/${val}`
+          );
+          const data = res.data.data;
+          if (data.length > 0) {
+            setAddressLabels(data.map((d: any) => d.address_name ?? d.label));
+          }
+        } catch {
+          setAddressLabels([]);
+        }
+      }
+    }, 500),
+    [lastResolvedValue, chainId]
+  );
+
   useEffect(() => {
     if (value && value !== lastResolvedValue) {
       resolveEns(value);
     }
   }, [value, resolveEns, lastResolvedValue]);
+
+  useEffect(() => {
+    if (value && value !== lastResolvedValue) {
+      fetchSetAddressLabels(value);
+    }
+  }, [value, fetchSetAddressLabels, lastResolvedValue, chainId]);
 
   useEffect(() => {
     if (ensName) {
@@ -152,6 +213,18 @@ export const AddressInput = ({
     <Box>
       <HStack mb={2}>
         <InputInfo input={input} />
+        {addressLabels.length > 0 && (
+          <HStack py="2">
+            <Text fontSize={"xs"} opacity={0.6}>
+              Tags:{" "}
+            </Text>
+            {addressLabels.map((label, index) => (
+              <Tag key={index} size="sm" variant="solid" colorScheme="blue">
+                {label}
+              </Tag>
+            ))}
+          </HStack>
+        )}
         <Spacer />
         <AnimatePresence>
           {ensName && (

@@ -24,9 +24,10 @@ import { motion } from "framer-motion";
 
 interface Params {
   arg: any;
+  chainId?: number;
 }
 
-export const ArrayParam = ({ arg: _arg }: Params) => {
+export const ArrayParam = ({ arg: _arg, chainId }: Params) => {
   const showSkeleton = _arg === undefined || _arg === null;
   const arg = !showSkeleton ? _arg : "abcdef1234";
 
@@ -105,7 +106,7 @@ export const ArrayParam = ({ arg: _arg }: Params) => {
                       </Link>
                     ) : null}
                   </HStack>
-                  <Box mt={2}>{renderParamTypes(ar)}</Box>
+                  <Box mt={2}>{renderParamTypes(ar, chainId)}</Box>
                 </Box>
               );
             })}

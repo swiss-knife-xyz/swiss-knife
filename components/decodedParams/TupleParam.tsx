@@ -5,9 +5,10 @@ import { motion } from "framer-motion";
 
 interface Params {
   arg: any;
+  chainId?: number;
 }
 
-export const TupleParam = ({ arg: _arg }: Params) => {
+export const TupleParam = ({ arg: _arg, chainId }: Params) => {
   const showSkeleton = _arg === undefined || _arg === null;
   const arg = !showSkeleton ? _arg : "abcdef1234";
 
@@ -29,7 +30,7 @@ export const TupleParam = ({ arg: _arg }: Params) => {
     >
       <Stack spacing={2}>
         {arg.value.map((ar: any, i: number) => {
-          return renderParams(i, ar);
+          return renderParams(i, ar, chainId);
         })}
       </Stack>
     </motion.div>

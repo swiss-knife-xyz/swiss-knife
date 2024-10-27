@@ -141,7 +141,7 @@ export const renderParamTypes = ({
   value: any;
 }) => {
   if (type === "calldata") {
-    return <CalldataParam value={value} />;
+    return <CalldataParam value={value} chainId={chainId} />;
   } else if (type.includes("uint")) {
     return <UintParam value={value} />;
   } else if (type.includes("int")) {
@@ -151,7 +151,7 @@ export const renderParamTypes = ({
   } else if (type.includes("bytes")) {
     // account for cases where the bytes value is just an address
     if (isAddress(value)) {
-      return <AddressParam address={value} />;
+      return <AddressParam address={value} chainId={chainId} />;
     } else {
       return (
         <BytesParam
@@ -160,13 +160,14 @@ export const renderParamTypes = ({
               ? value
               : { rawValue: value, value: { decoded: null } }
           }
+          chainId={chainId}
         />
       );
     }
   } else if (type === "tuple") {
-    return <TupleParam arg={{ value }} />;
+    return <TupleParam arg={{ value }} chainId={chainId} />;
   } else if (type === "array") {
-    return <ArrayParam arg={{ rawValue: value, value }} />;
+    return <ArrayParam arg={{ rawValue: value, value }} chainId={chainId} />;
   } else if (type === "bool") {
     return (
       <StringParam

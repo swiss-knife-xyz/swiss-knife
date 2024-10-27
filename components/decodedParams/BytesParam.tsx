@@ -27,9 +27,10 @@ interface Params {
       } | null;
     };
   } | null;
+  chainId?: number;
 }
 
-export const BytesParam = ({ arg: _arg }: Params) => {
+export const BytesParam = ({ arg: _arg, chainId }: Params) => {
   const showSkeleton = _arg === undefined || _arg === null;
   const arg = !showSkeleton
     ? _arg
@@ -104,14 +105,14 @@ export const BytesParam = ({ arg: _arg }: Params) => {
                   rounded={"lg"}
                 >
                   {arg.value.decoded.args.map((ar: any, i: number) => {
-                    return renderParams(i, ar);
+                    return renderParams(i, ar, chainId);
                   })}
                 </Stack>
               </>
             ) : (
               <Stack spacing={2}>
                 {arg.value.decoded.args.map((ar: any, i: number) => {
-                  return renderParams(i, ar);
+                  return renderParams(i, ar, chainId);
                 })}
               </Stack>
             )}
