@@ -2,7 +2,7 @@ import { Box, InputProps } from "@chakra-ui/react";
 import { InputField } from "@/components/InputField";
 import { InputInfo } from "./InputInfo";
 import { JsonFragment } from "ethers";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { DarkSelect } from "@/components/DarkSelect";
 
 interface InputFieldProps extends InputProps {
@@ -32,14 +32,14 @@ export const BoolInput = ({
   const [selectedBoolOption, setSelectedBoolOption] =
     useState<SelectedBoolOptionState>(boolOptions[0]);
 
+  // set initial value
   useEffect(() => {
-    // Convert the string value to a proper numeric boolean representation
     onChange({
       target: {
-        value: selectedBoolOption.value, // Will be "0" or "1"
+        value: boolOptions[0].value.toString(), // Convert boolean to string
       },
-    } as any);
-  }, [selectedBoolOption, onChange]);
+    } as React.ChangeEvent<HTMLInputElement>);
+  }, []);
 
   return (
     <Box>
@@ -49,9 +49,16 @@ export const BoolInput = ({
           w: "9rem",
         }}
         selectedOption={selectedBoolOption}
-        setSelectedOption={(value) =>
-          setSelectedBoolOption(value as SelectedBoolOptionState)
-        }
+        setSelectedOption={(value) => {
+          setSelectedBoolOption(value as SelectedBoolOptionState);
+          if (value) {
+            onChange({
+              target: {
+                value: value.value.toString(), // Convert boolean to string
+              },
+            } as React.ChangeEvent<HTMLInputElement>);
+          }
+        }}
         options={boolOptions}
       />
     </Box>
