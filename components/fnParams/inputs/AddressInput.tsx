@@ -162,7 +162,14 @@ export const AddressInput = ({
               transition={{ duration: 0.3 }}
             >
               <HStack px={2} bg="whiteAlpha.200" rounded="md">
-                {ensAvatar && <Avatar src={ensAvatar} w="1.2rem" h="1.2rem" />}
+                {ensAvatar && (
+                  <Avatar
+                    src={ensAvatar}
+                    w="1.2rem"
+                    h="1.2rem"
+                    ignoreFallback
+                  />
+                )}
                 <Box>{ensName}</Box>
               </HStack>
             </motion.div>
