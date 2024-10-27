@@ -27,7 +27,7 @@ import {
 } from "@chakra-ui/icons";
 import { useWalletClient, useAccount, useNetwork } from "wagmi";
 import { waitForTransaction } from "wagmi/actions";
-import { JsonFragment } from "ethers";
+import { FunctionFragment, JsonFragment, JsonFragmentType } from "ethers";
 import {
   ContractFunctionExecutionError,
   PublicClient,
@@ -48,7 +48,8 @@ interface ReadWriteFunctionProps {
   type: "read" | "write";
   func: Omit<JsonFragment, "name" | "outputs"> & {
     name: HighlightedContent;
-    outputs?: ExtendedJsonFragmentType[];
+    outputs?: readonly JsonFragmentType[];
+    highlightedOutputs?: ExtendedJsonFragmentType[];
   };
   address: string;
   chainId: number;
@@ -68,8 +69,8 @@ const extractStringFromReactNode = (node: HighlightedContent): string => {
 // only break the word after a ","
 // useful for displaying the outputs of a function
 const EnhancedFunctionOutput: React.FC<{
-  outputs?: ExtendedJsonFragmentType[];
-}> = ({ outputs }) => {
+  highlightedOutputs?: ExtendedJsonFragmentType[];
+}> = ({ highlightedOutputs }) => {
   const renderHighlightedText = (
     content: HighlightedContent
   ): React.ReactNode => {
@@ -118,17 +119,21 @@ const EnhancedFunctionOutput: React.FC<{
         whiteSpace: "pre-wrap",
       }}
     >
-      {outputs && outputs.length > 1 && (
+      {highlightedOutputs && highlightedOutputs.length > 1 && (
         <Box fontSize="sm" color="whiteAlpha.600">
           →&nbsp;(
-          {outputs.map((output, index) => (
+          {highlightedOutputs.map((highlightedOutput, index) => (
             <React.Fragment key={index}>
               {index > 0 && <span>,&nbsp;</span>}
-              {processString(output.type !== undefined ? output.type : "")}
-              {output.name && (
+              {processString(
+                highlightedOutput.type !== undefined
+                  ? highlightedOutput.type
+                  : ""
+              )}
+              {highlightedOutput.name && (
                 <>
                   &nbsp;
-                  {processString(renderHighlightedText(output.name))}
+                  {processString(renderHighlightedText(highlightedOutput.name))}
                 </>
               )}
             </React.Fragment>
@@ -160,7 +165,13 @@ export const ReadWriteFunction = ({
   const { address: userAddress } = useAccount();
   const { chain } = useNetwork();
 
-  const { name: __name, inputs, outputs: __outputs, payable } = __func;
+  const {
+    name: __name,
+    inputs,
+    outputs: _outputs,
+    payable,
+    highlightedOutputs,
+  } = __func;
   const functionName = extractStringFromReactNode(__name);
 
   const _func = React.useMemo(
@@ -172,7 +183,7 @@ export const ReadWriteFunction = ({
   );
 
   const outputs =
-    __outputs ?? isWhatsAbiDecoded
+    _outputs ?? isWhatsAbiDecoded
       ? [
           {
             type: "calldata", // set output type as custom calldata
@@ -181,6 +192,7 @@ export const ReadWriteFunction = ({
         ]
       : [];
 
+  const [fnSelector, setFnSelector] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
     readAllCollapsed !== undefined ? readAllCollapsed : false
   );
@@ -464,6 +476,14 @@ export const ReadWriteFunction = ({
   ]);
 
   useEffect(() => {
+    try {
+      setFnSelector(FunctionFragment.from(_func).selector);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [_func]);
+
+  useEffect(() => {
     if (enterPressed) {
       readFunction();
       setEnterPressed(false);
@@ -549,7 +569,11 @@ export const ReadWriteFunction = ({
           ))}
         </Box>
       );
-    } else if (isWhatsAbiDecoded && loading) {
+    } else if (
+      isWhatsAbiDecoded &&
+      loading &&
+      writeButtonType === WriteButtonType.CallAsViewFn
+    ) {
       return <Skeleton mt={2} h={"5rem"} rounded={"lg"} />;
     } else {
       return <></>;
@@ -567,7 +591,7 @@ export const ReadWriteFunction = ({
       bg={!inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
       {/* Function name and refetch button */}
-      <HStack mb={2}>
+      <HStack mb={!fnSelector ? 2 : undefined}>
         <HStack
           flexGrow={1}
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -586,12 +610,14 @@ export const ReadWriteFunction = ({
               </Box>
             </HStack>
           </HStack>{" "}
+          {/* If single output, then show inline */}
           {__func.outputs && __func.outputs.length === 1 && (
             <Box fontSize={"sm"} color="whiteAlpha.600">
               (→&nbsp;{__func.outputs[0].type})
             </Box>
           )}
         </HStack>
+        {/* Read/Write Buttons */}
         {!loading && type === "read" && (
           <Button
             ml={4}
@@ -687,9 +713,18 @@ export const ReadWriteFunction = ({
           </HStack>
         )}
       </HStack>
-      <Box ml={4} maxW="30rem" mb={4}>
-        <EnhancedFunctionOutput outputs={outputs} />
-      </Box>
+      {/* Function Selector */}
+      {fnSelector && (
+        <Box ml={12} mb={2} fontSize={"sm"} color="whiteAlpha.600">
+          [selector: {fnSelector}]
+        </Box>
+      )}
+      {/* If multiple outputs */}
+      {highlightedOutputs && highlightedOutputs.length > 1 && (
+        <Box ml={4} maxW="30rem" mb={4}>
+          <EnhancedFunctionOutput highlightedOutputs={highlightedOutputs} />
+        </Box>
+      )}
 
       <Box display={isCollapsed ? "none" : undefined}>
         {/* Input fields */}

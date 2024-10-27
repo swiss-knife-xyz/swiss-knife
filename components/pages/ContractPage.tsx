@@ -217,7 +217,7 @@ const ReadWriteSection = ({
         searchQuery,
         searchResults[currentResultIndex] === index
       ),
-      outputs: func.outputs?.map(
+      highlightedOutputs: func.outputs?.map(
         (output): ExtendedJsonFragmentType => ({
           ...output,
           name: ensureHighlightedContent(
