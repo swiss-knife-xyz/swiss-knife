@@ -34,7 +34,7 @@ import {
   encodeFunctionData,
   Abi,
 } from "viem";
-import { InputInfo } from "@/components/fnParams/inputs";
+import { InputInfo, IntInput } from "@/components/fnParams/inputs";
 import { ExtendedJsonFragmentType, HighlightedContent } from "@/types";
 import { renderInputFields, renderParamTypes } from "./Renderer";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -179,7 +179,7 @@ export const ReadWriteFunction = ({
   const { address: userAddress } = useAccount();
   const { chain } = useNetwork();
 
-  const { name: __name, inputs, outputs } = __func;
+  const { name: __name, inputs, outputs, payable } = __func;
   const functionName = extractStringFromReactNode(__name);
 
   const _func = React.useMemo(
@@ -193,6 +193,9 @@ export const ReadWriteFunction = ({
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
     readAllCollapsed !== undefined ? readAllCollapsed : false
   );
+  const [payableETH, setPayableETH] = useState<string>("0");
+  const [payableETHIsDisabled, setPayableETHIsDisabled] =
+    useState<boolean>(false);
   const [inputsState, setInputsState] = useState<any>({});
   const [functionIsDisabled, setFunctionIsDisabled] = useState<any>({});
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
@@ -294,6 +297,7 @@ export const ReadWriteFunction = ({
         const hash = await walletClient.sendTransaction({
           to: address as Hex,
           data: calldata,
+          value: BigInt(payableETH),
         });
 
         setLoading(false);
@@ -329,6 +333,7 @@ export const ReadWriteFunction = ({
     _func,
     inputs,
     inputsState,
+    payableETH,
   ]);
 
   const callAsReadFunction = useCallback(async () => {
@@ -350,6 +355,7 @@ export const ReadWriteFunction = ({
           abi,
           functionName,
           args,
+          value: BigInt(payableETH),
         });
         setRes(result.result);
       } catch (e: any) {
@@ -377,7 +383,16 @@ export const ReadWriteFunction = ({
         setLoading(false);
       }
     }
-  }, [isError, functionName, client, address, _func, inputs, inputsState]);
+  }, [
+    isError,
+    functionName,
+    client,
+    address,
+    _func,
+    inputs,
+    inputsState,
+    payableETH,
+  ]);
 
   const simulateOnTenderly = useCallback(async () => {
     if (isError) {
@@ -401,6 +416,7 @@ export const ReadWriteFunction = ({
         const hash = await walletClient.sendTransaction({
           to: address as Hex,
           data: calldata,
+          value: BigInt(payableETH),
         });
 
         setLoading(false);
@@ -436,6 +452,7 @@ export const ReadWriteFunction = ({
     _func,
     inputs,
     inputsState,
+    payableETH,
   ]);
 
   useEffect(() => {
@@ -591,8 +608,9 @@ export const ReadWriteFunction = ({
                     : simulateOnTenderly
                 }
                 isDisabled={
-                  inputs &&
-                  inputs.some((_, i) => functionIsDisabled[i] === true)
+                  (inputs &&
+                    inputs.some((_, i) => functionIsDisabled[i] === true)) ||
+                  payableETHIsDisabled
                 }
                 isLoading={loading}
                 size={"sm"}
@@ -654,12 +672,35 @@ export const ReadWriteFunction = ({
           )
         ) : null}
       </HStack>
-
       <Box ml={4} maxW="30rem" mb={4}>
         <EnhancedFunctionOutput outputs={outputs} />
       </Box>
+
       <Box display={isCollapsed ? "none" : undefined}>
         {/* Input fields */}
+        {payable && (
+          <Box ml={4} p={4} bg="whiteAlpha.100" rounded={"lg"}>
+            <IntInput
+              input={{
+                name: "Payable ETH",
+                type: "uint256",
+              }}
+              value={payableETH}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setPayableETH(e.target.value);
+              }}
+              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {}}
+              isInvalid={
+                isError &&
+                (payableETH === undefined ||
+                  payableETH === null ||
+                  payableETH.toString().trim().length === 0)
+              }
+              functionIsError={isError}
+              setFunctionIsDisabled={setPayableETHIsDisabled}
+            />
+          </Box>
+        )}
         {inputs && inputs.length > 0 && (
           <Box ml={4}>
             {inputs.map((input, i) => (
