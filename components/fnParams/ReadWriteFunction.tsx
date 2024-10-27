@@ -447,7 +447,7 @@ export const ReadWriteFunction = ({
 
   useEffect(() => {
     // if there are no inputs, then auto fetch the value
-    if (!inputs || (inputs && inputs.length === 0)) {
+    if (type === "read" && (!inputs || (inputs && inputs.length === 0))) {
       readFunction();
     }
   }, []);
