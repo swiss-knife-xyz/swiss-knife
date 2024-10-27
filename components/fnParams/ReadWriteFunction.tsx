@@ -16,6 +16,7 @@ import {
   MenuButton,
   MenuItem,
   MenuList,
+  Skeleton,
   Spinner,
 } from "@chakra-ui/react";
 import {
@@ -51,30 +52,9 @@ interface ReadWriteFunctionProps {
   };
   address: string;
   chainId: number;
+  isWhatsAbiDecoded: boolean;
   readAllCollapsed?: boolean;
 }
-
-const extractConciseError = (errorMessage: string): string => {
-  // Handle TransactionExecutionError format
-  const transactionMatch = errorMessage.match(
-    /TransactionExecutionError:\s*(.+?)(?:$|\.)/
-  );
-  if (transactionMatch) {
-    return transactionMatch[1].trim();
-  }
-
-  // Handle existing error format
-  const functionMatch = errorMessage.match(/"([^"]+)"/);
-  const reasonMatch = errorMessage.match(/reason:\s*([^V]+)/);
-
-  if (functionMatch && reasonMatch) {
-    const functionName = functionMatch[1];
-    const reason = reasonMatch[1].trim();
-    return reason;
-  }
-
-  return "Contract call failed";
-};
 
 const extractStringFromReactNode = (node: HighlightedContent): string => {
   if (typeof node === "string") {
@@ -173,13 +153,14 @@ export const ReadWriteFunction = ({
   func: __func,
   address,
   chainId,
+  isWhatsAbiDecoded,
   readAllCollapsed,
 }: ReadWriteFunctionProps) => {
   const { data: walletClient } = useWalletClient();
   const { address: userAddress } = useAccount();
   const { chain } = useNetwork();
 
-  const { name: __name, inputs, outputs, payable } = __func;
+  const { name: __name, inputs, outputs: __outputs, payable } = __func;
   const functionName = extractStringFromReactNode(__name);
 
   const _func = React.useMemo(
@@ -190,6 +171,16 @@ export const ReadWriteFunction = ({
     [__func, functionName]
   );
 
+  const outputs =
+    __outputs ?? isWhatsAbiDecoded
+      ? [
+          {
+            type: "calldata", // set output type as custom calldata
+            name: "",
+          },
+        ]
+      : [];
+
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
     readAllCollapsed !== undefined ? readAllCollapsed : false
   );
@@ -199,7 +190,7 @@ export const ReadWriteFunction = ({
   const [inputsState, setInputsState] = useState<any>({});
   const [functionIsDisabled, setFunctionIsDisabled] = useState<any>({});
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
-    WriteButtonType.Write
+    !isWhatsAbiDecoded ? WriteButtonType.Write : WriteButtonType.CallAsViewFn
   );
 
   const [res, setRes] = useState<any>(null);
@@ -336,63 +327,80 @@ export const ReadWriteFunction = ({
     payableETH,
   ]);
 
-  const callAsReadFunction = useCallback(async () => {
-    if (isError) {
-      setIsError(false);
-    }
+  const callAsReadFunction = useCallback(
+    async (bypassSettingError: boolean = false) => {
+      if (isError) {
+        setIsError(false);
+      }
 
-    if (functionName) {
-      setLoading(true);
-      setRes(null);
-
-      const abi = [_func] as unknown as Abi;
-      const args = inputs?.map((input, i) => inputsState[i]);
-
-      try {
-        // TODO: add caller address in the settings modal
-        const result = await client.simulateContract({
-          address: address as Hex,
-          abi,
-          functionName,
-          args,
-          value: BigInt(payableETH),
-        });
-        setRes(result.result);
-      } catch (e: any) {
-        console.error(e);
-        setIsError(true);
-
+      if (functionName) {
+        setLoading(true);
         setRes(null);
 
-        if (e instanceof ContractFunctionExecutionError) {
-          // extract the error message
-          const errorMessage = e.cause?.message || e.message;
-          setErrorMsg(
-            getContractError(e, {
-              docsPath: "",
+        const abi = [_func] as unknown as Abi;
+        const args = inputs?.map((input, i) => inputsState[i]);
+
+        try {
+          // TODO: add caller address in the settings modal
+          if (!isWhatsAbiDecoded) {
+            const result = await client.simulateContract({
               address: address as Hex,
               abi,
               functionName,
               args,
-            }).shortMessage
-          );
-        } else {
-          setErrorMsg("An unknown error occurred");
+              value: BigInt(payableETH),
+            });
+            setRes(result.result);
+          } else {
+            const result = await client.call({
+              to: address as Hex,
+              data: encodeFunctionData({
+                abi,
+                functionName,
+                args,
+              }),
+              value: BigInt(payableETH),
+            });
+            setRes(result.data);
+          }
+        } catch (e: any) {
+          console.error(e);
+          setRes(null);
+          if (!bypassSettingError) {
+            setIsError(true);
+            if (e instanceof ContractFunctionExecutionError) {
+              // extract the error message
+              const errorMessage = e.cause?.message || e.message;
+              setErrorMsg(
+                getContractError(e, {
+                  docsPath: "",
+                  address: address as Hex,
+                  abi,
+                  functionName,
+                  args,
+                }).shortMessage
+              );
+            } else {
+              setErrorMsg("An unknown error occurred");
+            }
+          }
+        } finally {
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
       }
-    }
-  }, [
-    isError,
-    functionName,
-    client,
-    address,
-    _func,
-    inputs,
-    inputsState,
-    payableETH,
-  ]);
+    },
+    [
+      isError,
+      functionName,
+      client,
+      address,
+      _func,
+      inputs,
+      inputsState,
+      payableETH,
+      isWhatsAbiDecoded,
+    ]
+  );
 
   const simulateOnTenderly = useCallback(async () => {
     if (isError) {
@@ -467,6 +475,11 @@ export const ReadWriteFunction = ({
     if (type === "read" && (!inputs || (inputs && inputs.length === 0))) {
       readFunction();
     }
+
+    // try to call as read function is isWhatsAbiDecoded and there are no inputs
+    if (isWhatsAbiDecoded && (!inputs || (inputs && inputs.length === 0))) {
+      callAsReadFunction(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -500,7 +513,7 @@ export const ReadWriteFunction = ({
   };
 
   const renderRes = () => {
-    if (outputs) {
+    if (isWhatsAbiDecoded ? res !== null && res !== undefined : outputs) {
       return (
         <Box>
           {outputs.map((output, i) => (
@@ -536,6 +549,8 @@ export const ReadWriteFunction = ({
           ))}
         </Box>
       );
+    } else if (isWhatsAbiDecoded && loading) {
+      return <Skeleton mt={2} h={"5rem"} rounded={"lg"} />;
     } else {
       return <></>;
     }
@@ -591,20 +606,22 @@ export const ReadWriteFunction = ({
             {res !== null ? <RepeatIcon /> : "Read"}
           </Button>
         )}
-        {type === "write" ? (
-          userAddress ? (
-            <HStack
-              bg={!isError ? "blue.200" : "red.200"}
-              rounded="lg"
-              spacing={0}
-            >
+        {type === "write" && (
+          <HStack
+            bg={!isError ? "blue.200" : "red.200"}
+            rounded="lg"
+            spacing={0}
+          >
+            {!userAddress && writeButtonType === WriteButtonType.Write ? (
+              <ConnectButton />
+            ) : (
               <Button
                 px={4}
                 onClick={
                   writeButtonType === WriteButtonType.Write
                     ? writeFunction
                     : writeButtonType === WriteButtonType.CallAsViewFn
-                    ? callAsReadFunction
+                    ? () => callAsReadFunction()
                     : simulateOnTenderly
                 }
                 isDisabled={
@@ -619,58 +636,56 @@ export const ReadWriteFunction = ({
               >
                 {writeButtonType}
               </Button>
-              <Menu>
-                <MenuButton
-                  as={IconButton}
-                  aria-label="Options"
-                  icon={<ChevronDownIcon />}
-                  variant="outline"
-                  size={"xs"}
-                  color="blue.800"
-                  borderLeftColor="blue.800"
-                  borderLeftRadius={0}
-                />
-                <MenuList bg="gray.800">
-                  <MenuItem
-                    color="white"
-                    bg="gray.800"
-                    _hover={{ bg: "gray.700" }}
-                    onClick={() => {
-                      setWriteButtonType(WriteButtonType.Write);
-                      setIsError(false);
-                    }}
-                  >
-                    Write
-                  </MenuItem>
-                  <MenuItem
-                    color="white"
-                    bg="gray.800"
-                    _hover={{ bg: "gray.700" }}
-                    onClick={() => {
-                      setWriteButtonType(WriteButtonType.CallAsViewFn);
-                      setIsError(false);
-                    }}
-                  >
-                    Call as View Fn
-                  </MenuItem>
-                  <MenuItem
-                    color="white"
-                    bg="gray.800"
-                    _hover={{ bg: "gray.700" }}
-                    onClick={() => {
-                      setWriteButtonType(WriteButtonType.SimulateOnTenderly);
-                      setIsError(false);
-                    }}
-                  >
-                    Simulate on Tenderly
-                  </MenuItem>
-                </MenuList>
-              </Menu>
-            </HStack>
-          ) : (
-            <ConnectButton />
-          )
-        ) : null}
+            )}
+            <Menu>
+              <MenuButton
+                as={IconButton}
+                aria-label="Options"
+                icon={<ChevronDownIcon />}
+                variant="outline"
+                size={"xs"}
+                color="blue.800"
+                borderLeftColor="blue.800"
+                borderLeftRadius={0}
+              />
+              <MenuList bg="gray.800">
+                <MenuItem
+                  color="white"
+                  bg="gray.800"
+                  _hover={{ bg: "gray.700" }}
+                  onClick={() => {
+                    setWriteButtonType(WriteButtonType.Write);
+                    setIsError(false);
+                  }}
+                >
+                  Write
+                </MenuItem>
+                <MenuItem
+                  color="white"
+                  bg="gray.800"
+                  _hover={{ bg: "gray.700" }}
+                  onClick={() => {
+                    setWriteButtonType(WriteButtonType.CallAsViewFn);
+                    setIsError(false);
+                  }}
+                >
+                  Call as View Fn
+                </MenuItem>
+                <MenuItem
+                  color="white"
+                  bg="gray.800"
+                  _hover={{ bg: "gray.700" }}
+                  onClick={() => {
+                    setWriteButtonType(WriteButtonType.SimulateOnTenderly);
+                    setIsError(false);
+                  }}
+                >
+                  Simulate on Tenderly
+                </MenuItem>
+              </MenuList>
+            </Menu>
+          </HStack>
+        )}
       </HStack>
       <Box ml={4} maxW="30rem" mb={4}>
         <EnhancedFunctionOutput outputs={outputs} />

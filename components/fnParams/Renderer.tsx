@@ -18,6 +18,7 @@ import {
   UintParam,
 } from "../decodedParams";
 import { isAddress } from "viem";
+import { CalldataParam } from "../decodedParams/CalldataParam";
 
 export interface RenderInputFieldsProps {
   chainId: number;
@@ -139,7 +140,9 @@ export const renderParamTypes = ({
   type: string;
   value: any;
 }) => {
-  if (type.includes("uint")) {
+  if (type === "calldata") {
+    return <CalldataParam value={value} />;
+  } else if (type.includes("uint")) {
     return <UintParam value={value} />;
   } else if (type.includes("int")) {
     return <IntParam value={value} />;

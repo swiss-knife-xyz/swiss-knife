@@ -10,6 +10,8 @@ import {
 } from "@/types";
 import { chainIdToChain, networkOptions } from "@/data/common";
 import {
+  Alert,
+  AlertIcon,
   Box,
   Button,
   Center,
@@ -30,6 +32,7 @@ import { whatsabi } from "@shazow/whatsabi";
 import { fetchContractAbi } from "@/lib/decoder";
 import { ConnectButton } from "@/components/ConnectButton";
 import { ReadWriteFunction } from "@/components/fnParams/ReadWriteFunction";
+import { slicedText } from "@/utils";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -59,6 +62,7 @@ const ReadWriteSection = ({
   functions,
   address,
   chainId,
+  isWhatsAbiDecoded,
 }: {
   type: "read" | "write";
   abi: AbiType;
@@ -66,6 +70,7 @@ const ReadWriteSection = ({
   functions: JsonFragment[];
   address: string;
   chainId: number;
+  isWhatsAbiDecoded?: boolean;
 }) => {
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
 
@@ -329,7 +334,11 @@ const ReadWriteSection = ({
         <HStack mb={2}>
           <Spacer />
           <Box fontWeight="bold" mr={allCollapsed ? "-9rem" : "-8rem"}>
-            {type === "read" ? "Read" : "Write"} Contract
+            {!isWhatsAbiDecoded ? (
+              <>{type === "read" ? "Read" : "Write"} Contract</>
+            ) : (
+              "Functions"
+            )}
           </Box>
           <Spacer />
           <Button
@@ -375,6 +384,7 @@ const ReadWriteSection = ({
                   func={getFunc(func, index)}
                   address={address}
                   chainId={chainId}
+                  isWhatsAbiDecoded={isWhatsAbiDecoded || false}
                   readAllCollapsed={allCollapsed}
                 />
               ) : (
@@ -386,6 +396,7 @@ const ReadWriteSection = ({
                   func={getFunc(func, index)}
                   address={address}
                   chainId={chainId}
+                  isWhatsAbiDecoded={isWhatsAbiDecoded || false}
                   readAllCollapsed={allCollapsed}
                 />
               )}
@@ -425,6 +436,7 @@ export const ContractPage = ({
   const [client, setClient] = useState<PublicClient | null>(null);
 
   const [abi, setAbi] = useState<AbiType | null>(null);
+  const [isWhatsAbiDecoded, setIsWhatsAbiDecoded] = useState<boolean>(false);
   const [isFetchingAbi, setIsFetchingAbi] = useState<boolean>(false);
   const [unableToFetchAbi, setUnableToFetchAbi] = useState<boolean>(false);
 
@@ -442,6 +454,7 @@ export const ContractPage = ({
         abi: fetchedAbi.abi as JsonFragment[],
         name: fetchedAbi.name,
       });
+      setIsWhatsAbiDecoded(false);
     } catch (e) {
       try {
         // try to determine abi using whatsabi
@@ -451,10 +464,28 @@ export const ContractPage = ({
         });
         const result = await whatsabi.autoload(address, { provider: client });
         console.log({ whatsabi: result });
-        // FIXME: handle whatsabi result (stateMutability doesn't exist)
-        // we can surely filter write functions if they are payable
-        // have the UI render differently, by listing all the functions, without read & write divide
-        // the write functions would be displayed with a button that allows to call as view function
+        setIsWhatsAbiDecoded(true);
+        // sort functions names alphabetically
+        setAbi({
+          abi: result.abi
+            .filter((fragment) => fragment.type === "function")
+            .map((fragment) => ({
+              ...fragment,
+              name: fragment.name ?? `selector: ${fragment.selector}`,
+            }))
+            .sort((a, b) => {
+              const nameA = a.name.toLowerCase();
+              const nameB = b.name.toLowerCase();
+
+              const isSelectorA = nameA.startsWith("selector: ");
+              const isSelectorB = nameB.startsWith("selector: ");
+
+              if (isSelectorA && !isSelectorB) return 1;
+              if (!isSelectorA && isSelectorB) return -1;
+              return nameA.localeCompare(nameB);
+            }) as JsonFragment[],
+          name: slicedText(address),
+        });
       } catch {
         setUnableToFetchAbi(true);
         console.log("Failed to fetch abi");
@@ -509,7 +540,15 @@ export const ContractPage = ({
   const renderFunctions = () => {
     return (
       abi && (
-        <>
+        <Box mt="1rem">
+          {isWhatsAbiDecoded && (
+            <Alert status="info" mb={"1rem"} rounded={"lg"}>
+              <AlertIcon />
+              Contract not verified, used whatsabi to determine functions
+              (choose &quot;Call as View Fn&quot; or &quot;Write&quot; as
+              required)
+            </Alert>
+          )}
           {abi.name.length > 0 && (
             <HStack>
               <Box
@@ -526,25 +565,39 @@ export const ContractPage = ({
               <ConnectButton />
             </HStack>
           )}
-          <Grid templateColumns="repeat(2, 1fr)" gap={6} mt={5}>
-            <ReadWriteSection
-              type="read"
-              abi={abi}
-              client={client}
-              functions={readFunctions}
-              address={address}
-              chainId={chainId}
-            />
-            <ReadWriteSection
-              type="write"
-              abi={abi}
-              client={client}
-              functions={writeFunctions}
-              address={address}
-              chainId={chainId}
-            />
-          </Grid>
-        </>
+          {!isWhatsAbiDecoded ? (
+            <Grid templateColumns="repeat(2, 1fr)" gap={6} mt={5}>
+              <ReadWriteSection
+                type="read"
+                abi={abi}
+                client={client}
+                functions={readFunctions}
+                address={address}
+                chainId={chainId}
+              />
+              <ReadWriteSection
+                type="write"
+                abi={abi}
+                client={client}
+                functions={writeFunctions}
+                address={address}
+                chainId={chainId}
+              />
+            </Grid>
+          ) : (
+            <Box px={"10rem"}>
+              <ReadWriteSection
+                type="write"
+                abi={abi}
+                client={client}
+                functions={writeFunctions}
+                address={address}
+                chainId={chainId}
+                isWhatsAbiDecoded={isWhatsAbiDecoded}
+              />
+            </Box>
+          )}
+        </Box>
       )
     );
   };
