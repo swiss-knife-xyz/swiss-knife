@@ -182,15 +182,16 @@ export const ReadWriteFunction = ({
     [__func, functionName]
   );
 
-  const outputs =
-    _outputs ?? isWhatsAbiDecoded
-      ? [
-          {
-            type: "calldata", // set output type as custom calldata
-            name: "",
-          },
-        ]
-      : [];
+  const outputs = _outputs
+    ? _outputs
+    : isWhatsAbiDecoded
+    ? [
+        {
+          type: "calldata", // set output type as custom calldata
+          name: "",
+        },
+      ]
+    : [];
 
   const [fnSelector, setFnSelector] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
