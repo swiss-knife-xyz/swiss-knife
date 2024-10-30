@@ -413,7 +413,7 @@ const SendTx = () => {
                             rounded={"lg"}
                           >
                             {decoded.args.map((arg: any, i: number) => {
-                              return renderParams(i, arg);
+                              return renderParams(i, arg, chainId);
                             })}
                           </Stack>
                         </Box>

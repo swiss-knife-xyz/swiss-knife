@@ -537,7 +537,7 @@ export const CalldataDecoderPage = () => {
           ) : null}
           <Stack mt={2} p={4} spacing={4} bg={"whiteAlpha.50"} rounded={"lg"}>
             {result.args.map((arg: any, i: number) => {
-              return renderParams(i, arg);
+              return renderParams(i, arg, chainId);
             })}
           </Stack>
         </Box>

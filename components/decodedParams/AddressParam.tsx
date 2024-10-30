@@ -116,8 +116,10 @@ export const AddressParam = ({
   }, [address]);
 
   useEffect(() => {
-    fetchSetAddressLabels();
-  }, [address, chainId]);
+    if (address !== skeletonAddress) {
+      fetchSetAddressLabels();
+    }
+  }, [address, chainId, fetchSetAddressLabels]);
 
   useEffect(() => {
     if (ensName) {
