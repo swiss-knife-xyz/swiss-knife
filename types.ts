@@ -1,8 +1,9 @@
 import { SingleValue } from "chakra-react-select";
+import { JsonFragmentType } from "ethers";
 
 export interface SelectedOption {
   label: string;
-  value: number | string;
+  value: number | string | boolean;
 }
 
 export type SelectedOptionState = SingleValue<SelectedOption>;
@@ -75,3 +76,16 @@ export type DecodeRecursiveResult = {
     value: DecodeParamTypesResult;
   }[];
 } | null;
+
+export type HighlightedText = {
+  text: string;
+  isHighlighted: boolean;
+  isCurrentResult: boolean;
+};
+
+export type HighlightedContent = string | HighlightedText[];
+
+export interface ExtendedJsonFragmentType
+  extends Omit<JsonFragmentType, "name"> {
+  name?: HighlightedContent;
+}

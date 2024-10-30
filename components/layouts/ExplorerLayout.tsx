@@ -36,6 +36,7 @@ import { Layout } from "@/components/Layout";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { AddressBook } from "@/components/AddressBook";
 import axios from "axios";
+import { Sidebar, SidebarItem } from "../Sidebar";
 
 const isValidTransaction = (tx: string) => {
   return /^0x([A-Fa-f0-9]{64})$/.test(tx);
@@ -86,7 +87,9 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
       } else if (isAddress(__userInput)) {
         const newUrl = `${getPath(
           subdomains.EXPLORER.base
-        )}address/${__userInput}`;
+        )}address/${__userInput}${
+          pathname.includes("/contract") ? "/contract" : ""
+        }`;
         if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
           router.push(newUrl);
         } else {
@@ -110,7 +113,9 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
             setResolvedAddress(ensResolvedAddress);
             const newUrl = `${getPath(
               subdomains.EXPLORER.base
-            )}address/${ensResolvedAddress}`;
+            )}address/${ensResolvedAddress}${
+              pathname.includes("/contract") ? "/contract" : ""
+            }`;
             if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
               router.push(newUrl);
             } else {
@@ -190,133 +195,148 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
     }
   }, [resolvedEnsName]);
 
+  const SidebarItems: SidebarItem[] = [
+    { name: "Explorers", path: `address/${userInputFromUrl}` },
+    // { name: "Contract", path: `address/${userInputFromUrl}/contract` },
+  ];
+
   return (
     <Layout>
-      <Center flexDir={"column"} mt="5">
-        <Heading fontSize={"4xl"}>
-          <NLink href={getPath(subdomains.EXPLORER.base)}>Explorer</NLink>
-        </Heading>
-        <HStack mt="1rem" w="60%">
-          <Heading fontSize={"xl"}>Search Address or Transaction</Heading>{" "}
-          <Spacer />
-        </HStack>
-        <HStack mt="1rem">
-          <InputGroup w="30rem">
-            <Input
-              autoFocus
-              placeholder="address / ens / transaction"
-              value={userInput}
-              onChange={(e) => {
-                setUserInput(e.target.value);
-                if (isInputInvalid) {
-                  setIsInputInvalid(false);
-                }
-              }}
-              onPaste={(e) => {
-                e.preventDefault();
-                setIsLoading(true);
-                const pastedData = e.clipboardData.getData("Text");
-                setUserInput(pastedData);
-                setResolvedEnsName(null);
-                setResolvedEnsAvatar(null);
-                handleSearch(pastedData);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleSearch();
-                }
-              }}
-              isInvalid={isInputInvalid}
-            />
-            <InputRightElement w="4rem">
-              <Button
-                mr="0.5rem"
-                w="100%"
-                size="sm"
-                colorScheme={isInputInvalid ? "red" : "blue"}
-                onClick={() => handleSearch()}
-                isLoading={isLoading}
-              >
-                <SearchIcon />
-              </Button>
-            </InputRightElement>
-          </InputGroup>
-          {userInput &&
-            (pathname.includes("/address/") || pathname.includes("/tx/")) && (
-              <Link
-                href={`https://etherscan.io/${
-                  pathname.includes("/address/") ? "address" : "tx"
-                }/${userInput}`}
-                title="View on Etherscan"
-                isExternal
-              >
-                <Button size={"sm"}>
-                  <HStack>
-                    <ExternalLinkIcon />
-                  </HStack>
-                </Button>
-              </Link>
-            )}
-          {pathname.includes("/address/") && (
-            <>
-              <Button onClick={openAddressBook}>
-                <FontAwesomeIcon icon={faBook} />
-              </Button>
-              <AddressBook
-                isAddressBookOpen={isAddressBookOpen}
-                closeAddressBook={closeAddressBook}
-                showAddress={userInput}
-                setAddress={setUserInput}
-                handleSearch={handleSearch}
-              />
-            </>
-          )}
-        </HStack>
-        {resolvedAddress || resolvedEnsName ? (
-          <Box
-            mt="2"
-            p="2"
-            border={"1px solid"}
-            borderColor={"whiteAlpha.300"}
-            rounded="lg"
-          >
-            <HStack fontSize={"sm"}>
-              {resolvedEnsAvatar ? (
-                <Avatar src={resolvedEnsAvatar} w={"2rem"} h={"2rem"} />
-              ) : null}
-              <Text>
-                {resolvedAddress
-                  ? slicedText(resolvedAddress)
-                  : resolvedEnsName}
-              </Text>
-              {resolvedAddress ? (
-                <CopyToClipboard textToCopy={resolvedAddress} />
-              ) : (
-                resolvedEnsName && (
-                  <CopyToClipboard textToCopy={resolvedEnsName} />
-                )
-              )}
-            </HStack>
-          </Box>
-        ) : null}
-        {addressLabels.length > 0 && (
-          <HStack
-            mt="2"
-            p="2"
-            border={"1px solid"}
-            borderColor={"whiteAlpha.300"}
-            rounded="lg"
-          >
-            <Text fontSize={"sm"}>Tags: </Text>
-            {addressLabels.map((label, index) => (
-              <Tag key={index} size="sm" variant="solid" colorScheme="blue">
-                {label}
-              </Tag>
-            ))}
-          </HStack>
+      <HStack alignItems={"stretch"} h="full">
+        {pathname.includes("/address/") && (
+          <Sidebar
+            heading="Explorer"
+            items={SidebarItems}
+            subdomain={subdomains.EXPLORER.base}
+            exactPathMatch
+          />
         )}
-        <Box mt="5">{children}</Box>
-      </Center>
+        <Center flexDir={"column"} mt="5">
+          <Heading fontSize={"4xl"}>
+            <NLink href={getPath(subdomains.EXPLORER.base)}>Explorer</NLink>
+          </Heading>
+          <HStack mt="1rem" w="60%">
+            <Heading fontSize={"xl"}>Search Address or Transaction</Heading>{" "}
+            <Spacer />
+          </HStack>
+          <HStack mt="1rem">
+            <InputGroup w="30rem">
+              <Input
+                autoFocus
+                placeholder="address / ens / transaction"
+                value={userInput}
+                onChange={(e) => {
+                  setUserInput(e.target.value);
+                  if (isInputInvalid) {
+                    setIsInputInvalid(false);
+                  }
+                }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  setIsLoading(true);
+                  const pastedData = e.clipboardData.getData("Text");
+                  setUserInput(pastedData);
+                  setResolvedEnsName(null);
+                  setResolvedEnsAvatar(null);
+                  handleSearch(pastedData);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearch();
+                  }
+                }}
+                isInvalid={isInputInvalid}
+              />
+              <InputRightElement w="4rem">
+                <Button
+                  mr="0.5rem"
+                  w="100%"
+                  size="sm"
+                  colorScheme={isInputInvalid ? "red" : "blue"}
+                  onClick={() => handleSearch()}
+                  isLoading={isLoading}
+                >
+                  <SearchIcon />
+                </Button>
+              </InputRightElement>
+            </InputGroup>
+            {userInput &&
+              (pathname.includes("/address/") || pathname.includes("/tx/")) && (
+                <Link
+                  href={`https://etherscan.io/${
+                    pathname.includes("/address/") ? "address" : "tx"
+                  }/${userInput}`}
+                  title="View on Etherscan"
+                  isExternal
+                >
+                  <Button size={"sm"}>
+                    <HStack>
+                      <ExternalLinkIcon />
+                    </HStack>
+                  </Button>
+                </Link>
+              )}
+            {pathname.includes("/address/") && (
+              <>
+                <Button onClick={openAddressBook}>
+                  <FontAwesomeIcon icon={faBook} />
+                </Button>
+                <AddressBook
+                  isAddressBookOpen={isAddressBookOpen}
+                  closeAddressBook={closeAddressBook}
+                  showAddress={userInput}
+                  setAddress={setUserInput}
+                  handleSearch={handleSearch}
+                />
+              </>
+            )}
+          </HStack>
+          {resolvedAddress || resolvedEnsName ? (
+            <Box
+              mt="2"
+              p="2"
+              border={"1px solid"}
+              borderColor={"whiteAlpha.300"}
+              rounded="lg"
+            >
+              <HStack fontSize={"sm"}>
+                {resolvedEnsAvatar ? (
+                  <Avatar src={resolvedEnsAvatar} w={"2rem"} h={"2rem"} />
+                ) : null}
+                <Text>
+                  {resolvedAddress
+                    ? slicedText(resolvedAddress)
+                    : resolvedEnsName}
+                </Text>
+                {resolvedAddress ? (
+                  <CopyToClipboard textToCopy={resolvedAddress} />
+                ) : (
+                  resolvedEnsName && (
+                    <CopyToClipboard textToCopy={resolvedEnsName} />
+                  )
+                )}
+              </HStack>
+            </Box>
+          ) : null}
+          {addressLabels.length > 0 && (
+            <HStack
+              mt="2"
+              p="2"
+              border={"1px solid"}
+              borderColor={"whiteAlpha.300"}
+              rounded="lg"
+            >
+              <Text fontSize={"sm"}>Tags: </Text>
+              {addressLabels.map((label, index) => (
+                <Tag key={index} size="sm" variant="solid" colorScheme="blue">
+                  {label}
+                </Tag>
+              ))}
+            </HStack>
+          )}
+          <Box mt="5">{children}</Box>
+        </Center>
+      </HStack>
     </Layout>
   );
 };

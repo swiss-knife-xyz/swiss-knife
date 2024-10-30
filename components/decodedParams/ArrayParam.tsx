@@ -5,6 +5,7 @@ import {
   Collapse,
   HStack,
   Link,
+  Skeleton,
   Stack,
   Text,
   useDisclosure,
@@ -14,25 +15,45 @@ import {
   ChevronUpIcon,
   ExternalLinkIcon,
 } from "@chakra-ui/icons";
-import { ParamType } from "ethers";
 import { StringParam } from "./StringParam";
 import { renderParamTypes } from "../renderParams";
 import { isAddress } from "viem";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
+import { motion } from "framer-motion";
 
 interface Params {
   arg: any;
+  chainId?: number;
 }
 
-export const ArrayParam = ({ arg }: Params) => {
+export const ArrayParam = ({ arg: _arg, chainId }: Params) => {
+  const showSkeleton = _arg === undefined || _arg === null;
+  const arg = !showSkeleton ? _arg : "abcdef1234";
+
   const { isOpen, onToggle } = useDisclosure();
 
-  if (arg.value.length === 0) {
+  if (showSkeleton) {
+    return (
+      <HStack w="full">
+        <Skeleton
+          flexGrow={1}
+          height="4rem"
+          rounded="md"
+          startColor="whiteAlpha.50"
+          endColor="whiteAlpha.400"
+        />
+      </HStack>
+    );
+  } else if (arg.value.length === 0) {
     return <StringParam value={"[ ]"} />;
   } else {
     return (
-      <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <HStack my={isOpen ? -3 : 0}>
           <Text
             fontSize={"xl"}
@@ -85,13 +106,13 @@ export const ArrayParam = ({ arg }: Params) => {
                       </Link>
                     ) : null}
                   </HStack>
-                  <Box mt={2}>{renderParamTypes(ar)}</Box>
+                  <Box mt={2}>{renderParamTypes(ar, chainId)}</Box>
                 </Box>
               );
             })}
           </Stack>
         </Collapse>
-      </>
+      </motion.div>
     );
   }
 };

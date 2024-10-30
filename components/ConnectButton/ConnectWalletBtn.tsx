@@ -7,14 +7,7 @@ interface Props {
 
 export const ConnectWalletBtn = ({ onClick }: Props) => {
   return (
-    <Button
-      bg={"twitter.700"}
-      _hover={{
-        bg: "twitter.800",
-      }}
-      onClick={onClick}
-      rounded={"xl"}
-    >
+    <Button colorScheme={"blue"} onClick={onClick} rounded={"lg"}>
       Connect Wallet
     </Button>
   );

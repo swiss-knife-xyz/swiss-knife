@@ -1,5 +1,8 @@
+"use client";
+
 import { ReactNode } from "react";
 import { Box, Container, Flex, HStack } from "@chakra-ui/react";
+import { useLocalStorage } from "usehooks-ts";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { MainSidebar } from "@/components/MainSidebar";
@@ -9,15 +12,28 @@ interface LayoutParams {
 }
 
 export const Layout = ({ children }: LayoutParams) => {
+  const [isNavExpanded, setIsNavExpanded] = useLocalStorage(
+    "isNavExpanded",
+    false
+  );
+
+  const toggleNav = () => {
+    setIsNavExpanded(!isNavExpanded);
+  };
+
   return (
     <Box display="flex" flexDir="column" minHeight="100vh">
       <Box flexGrow={1} overflow="hidden">
         <HStack alignItems="flex-start" spacing={0}>
-          <MainSidebar />
+          <MainSidebar isNavExpanded={isNavExpanded} toggleNav={toggleNav} />
           <Flex flexDir="column" flexGrow={1} overflow="hidden">
             <Navbar />
             <Box overflowX="auto" flexGrow={1}>
-              <Container mt={12} minW="max-content" px={4}>
+              <Container
+                mt={12}
+                minW="max-content"
+                px={isNavExpanded ? 4 : -20}
+              >
                 <Flex
                   flexDir="column"
                   mt="0.5rem"

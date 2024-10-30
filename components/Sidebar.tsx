@@ -5,13 +5,19 @@ import { getPath } from "@/utils";
 export interface SidebarItem {
   name: string;
   path: string;
+  exactPathMatch?: boolean;
 }
 
 export interface SidebarItemProps extends SidebarItem {
   subdomain: string;
 }
 
-const SidebarItem = ({ name, subdomain, path }: SidebarItemProps) => {
+const SidebarItem = ({
+  name,
+  subdomain,
+  path,
+  exactPathMatch,
+}: SidebarItemProps) => {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -28,8 +34,24 @@ const SidebarItem = ({ name, subdomain, path }: SidebarItemProps) => {
           bg: "blue.200",
           color: "gray.700",
         }}
-        bg={pathname.includes(path) ? "blue.200" : undefined}
-        color={pathname.includes(path) ? "gray.700" : undefined}
+        bg={
+          (
+            exactPathMatch
+              ? pathname === `${getPath(subdomain)}${path}`
+              : pathname.includes(path)
+          )
+            ? "blue.200"
+            : undefined
+        }
+        color={
+          (
+            exactPathMatch
+              ? pathname === `${getPath(subdomain)}${path}`
+              : pathname.includes(path)
+          )
+            ? "gray.700"
+            : undefined
+        }
       >
         {name}
       </Flex>
@@ -41,10 +63,12 @@ export const Sidebar = ({
   heading,
   items,
   subdomain,
+  exactPathMatch,
 }: {
   heading: string;
   items: SidebarItem[];
   subdomain: string;
+  exactPathMatch?: boolean;
 }) => {
   return (
     <Flex
@@ -68,9 +92,9 @@ export const Sidebar = ({
         {items.map((item) => (
           <SidebarItem
             key={item.name}
-            name={item.name}
             subdomain={subdomain}
-            path={item.path}
+            exactPathMatch={exactPathMatch}
+            {...item}
           />
         ))}
       </Box>

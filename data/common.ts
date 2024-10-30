@@ -254,3 +254,10 @@ export const chainIdToImage = (() => {
 
   return res;
 })();
+
+export const networkOptions: { label: string; value: number }[] = Object.keys(
+  c
+).map((k, i) => ({
+  label: c[k].name,
+  value: c[k].id,
+}));

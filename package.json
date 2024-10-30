@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.0.19",
-    "@chakra-ui/next-js": "^2.1.4",
-    "@chakra-ui/react": "^2.7.1",
+    "@chakra-ui/next-js": "^2.4.2",
+    "@chakra-ui/react": "^2.10.2",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@fortawesome/fontawesome-svg-core": "^6.5.1",
@@ -20,6 +20,7 @@
     "@fortawesome/react-fontawesome": "^0.2.0",
     "@openchainxyz/abi-guesser": "^1.0.2",
     "@rainbow-me/rainbowkit": "^1.1.1",
+    "@shazow/whatsabi": "^0.15.3",
     "@types/node": "20.2.5",
     "@types/react": "18.2.7",
     "@types/react-dom": "18.2.4",
@@ -39,6 +40,7 @@
     "framer-motion": "^10.12.17",
     "highlight.js": "^11.2.0",
     "highlightjs-solidity": "^2.0.6",
+    "lodash": "^4.17.21",
     "mongoose": "^8.3.3",
     "next": "14.0.3",
     "next-usequerystate": "^1.13.0",
@@ -57,6 +59,8 @@
     "@types/cors": "^2.8.17",
     "@types/diff": "^5.2.3",
     "@types/ethereum-block-by-date": "^1.4.1",
+    "@types/lodash": "^4.17.12",
+    "isEqual": "link:@types/lodash/isEqual",
     "pino-pretty": "^10.2.3"
   }
 }

@@ -1,12 +1,10 @@
 import { Metadata } from "next";
-import { createPublicClient, http, Hex } from "viem";
+import { createPublicClient, http, Hex, parseEther, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { normalize } from "viem/ens";
 import { ADDRESS_KEY, CHAINLABEL_KEY, TX_KEY } from "@/data/common";
 import { ExplorerData, ExplorerType, SelectedOptionState } from "@/types";
-import { formatUnits } from "ethers";
-import { formatEther } from "viem";
-import axios from "axios";
+import { formatEther, formatUnits } from "viem";
 
 export const getPath = (subdomain: string) => {
   return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
@@ -107,20 +105,9 @@ export const startHexWith0x = (hexValue?: string): Hex => {
     : "0x";
 };
 
-export const ethFormatOptions = [
-  "ETH",
-  "Wei",
-  "Gwei",
-  "10^6",
-  "Unix",
-  "Minutes",
-  "Hours",
-  "Days",
-];
-
-export const slicedText = (txt: string) => {
-  return txt.length > 10
-    ? `${txt.slice(0, 6)}...${txt.slice(txt.length - 4, txt.length)}`
+export const slicedText = (txt: string, charCount: number = 6) => {
+  return txt.length > charCount * 2 + 3 // check if text is long enough to need truncation
+    ? `${txt.slice(0, charCount)}...${txt.slice(-charCount)}`
     : txt;
 };
 import { NextRequest } from "next/server";
@@ -138,8 +125,27 @@ export const swap = <T>(arr: T[], i: number, j: number): T[] => {
   return arr;
 };
 
-export function getConversion(
-  selectedEthFormatOption: SelectedOptionState,
+export const ethFormatOptions = [
+  "Wei",
+  "ETH",
+  "Gwei",
+  "10^6",
+  "Unix Time",
+  "Bps ↔️ %",
+  "Minutes",
+  "Hours",
+  "Days",
+] as const;
+
+export type EthFormatOption = (typeof ethFormatOptions)[number];
+
+export interface ETHSelectedOptionState {
+  label: EthFormatOption;
+  value: EthFormatOption;
+}
+
+export function convertTo(
+  selectedEthFormatOption: ETHSelectedOptionState,
   value: any
 ) {
   if (!selectedEthFormatOption?.value) {
@@ -152,11 +158,13 @@ export function getConversion(
     case "ETH":
       return formatEther(BigInt(value));
     case "Gwei":
-      return value === "0" ? "0" : formatUnits(BigInt(value), "gwei");
+      return value === "0" ? "0" : formatUnits(value, 9);
     case "10^6":
       return value === "0" ? "0" : formatUnits(BigInt(value), 6);
-    case "Unix":
-      return new Date(value * 1000).toUTCString();
+    case "Unix Time":
+      return convertUnixSecondsToGMT(Number(value));
+    case "Bps ↔️ %":
+      return `${((parseFloat(value) * 1_00) / 10_000).toFixed(2).toString()}%`;
     case "Days":
       return value / 86400;
     case "Hours":
@@ -167,3 +175,125 @@ export function getConversion(
       return "";
   }
 }
+
+export function convertFrom(
+  selectedEthFormatOption: ETHSelectedOptionState,
+  value: any
+): string {
+  if (!selectedEthFormatOption || !selectedEthFormatOption.value) {
+    return "";
+  }
+
+  switch (selectedEthFormatOption.value) {
+    case "Wei":
+      return value.toString();
+    case "ETH":
+      return BigInt(parseEther(value)).toString();
+    case "Gwei":
+      return BigInt(parseUnits(value, 9)).toString();
+    case "10^6":
+      return BigInt(parseUnits(value, 6)).toString();
+    case "Unix Time": {
+      // value in unix seconds
+      return BigInt(Math.floor(Number(value))).toString();
+    }
+    case "Bps ↔️ %":
+      return BigInt(Math.floor((parseFloat(value) * 10_000) / 1_00)).toString();
+    case "Days":
+      return BigInt(Math.floor(Number(value) * 86400)).toString();
+    case "Hours":
+      return BigInt(Math.floor(Number(value) * 3600)).toString();
+    case "Minutes":
+      return BigInt(Math.floor(Number(value) * 60)).toString();
+    default:
+      return "";
+  }
+}
+
+// input format = Thu, 01 Jan 1970 00:55:00 GMT
+export const convertGMTToUnixSeconds = (gmtTime: string): number => {
+  const date = new Date(gmtTime);
+  return Math.floor(date.getTime() / 1000);
+};
+
+export const convertUnixSecondsToGMT = (unixSeconds: number): string => {
+  return new Date(unixSeconds * 1000).toUTCString();
+};
+
+export const decodeBase64 = (
+  value: string
+): { content: string; isJson: boolean; isSvg: boolean } | null => {
+  // Regular expression to match base64 content with optional MIME type prefix
+  // Now allows for potentially truncated base64 content
+  const base64Regex = /^(?:data:[^;]+;base64,)?([A-Za-z0-9+/=]*)$/;
+
+  // Check if the input matches the base64 pattern
+  let match;
+  try {
+    match = value.trim().match(base64Regex);
+  } catch {
+    return null;
+  }
+  if (!match) {
+    return null; // Not a valid base64 string
+  }
+
+  // Extract the base64 content (without the MIME type prefix, if present)
+  const base64Content = match[1];
+
+  // If the base64 content is empty, return null
+  if (!base64Content) {
+    return null;
+  }
+
+  try {
+    // Attempt to decode the base64 content
+    const decodedContent = atob(base64Content);
+
+    let isJson = false;
+    let isSvg = false;
+
+    // Check if the decoded content is valid JSON
+    try {
+      JSON.parse(decodedContent);
+      isJson = true;
+    } catch {
+      // Not JSON, continue with other checks
+    }
+
+    // Check if the decoded content starts with "<svg" (case-insensitive)
+    if (decodedContent.trim().toLowerCase().startsWith("<svg")) {
+      isSvg = true;
+    }
+
+    // Return an object with the decoded content and flags
+    return {
+      content: decodedContent,
+      isJson,
+      isSvg,
+    };
+  } catch (error) {
+    // If decoding fails, return null
+    return null;
+  }
+};
+
+export const resolveIPFS = (value: string) => {
+  if (value.startsWith("ipfs://")) {
+    return `https://gateway.pinata.cloud/ipfs/${value.slice(7)}`;
+  }
+  return value;
+};
+
+export const isValidJSON = (str: string): boolean => {
+  try {
+    JSON.parse(str);
+    return (
+      true &&
+      ((str.startsWith("{") && str.endsWith("}")) ||
+        (str.startsWith("[") && str.endsWith("]")))
+    );
+  } catch (e) {
+    return false;
+  }
+};

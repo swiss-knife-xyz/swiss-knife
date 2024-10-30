@@ -38,9 +38,13 @@ import { useNetwork, useWalletClient, useSwitchNetwork } from "wagmi";
 import { waitForTransaction } from "wagmi/actions";
 import { InputField } from "@/components/InputField";
 import { DarkSelect } from "@/components/DarkSelect";
-import { SelectedOptionState } from "@/types";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-import { ethFormatOptions, publicClient, startHexWith0x } from "@/utils";
+import {
+  ethFormatOptions,
+  ETHSelectedOptionState,
+  publicClient,
+  startHexWith0x,
+} from "@/utils";
 import { DarkButton } from "@/components/DarkButton";
 import { chainIdToChain } from "@/data/common";
 import { decodeRecursive } from "@/lib/decoder";
@@ -79,9 +83,9 @@ const SendTx = () => {
     useState<number>(chainId);
 
   const [selectedEthFormatOption, setSelectedEthFormatOption] =
-    useState<SelectedOptionState>({
-      label: ethFormatOptions[0],
-      value: ethFormatOptions[0],
+    useState<ETHSelectedOptionState>({
+      label: ethFormatOptions[1],
+      value: ethFormatOptions[1],
     });
 
   const [chainIdMismatch, setChainIdMismatch] = useState(false);
@@ -409,7 +413,7 @@ const SendTx = () => {
                             rounded={"lg"}
                           >
                             {decoded.args.map((arg: any, i: number) => {
-                              return renderParams(i, arg);
+                              return renderParams(i, arg, chainId);
                             })}
                           </Stack>
                         </Box>
@@ -438,7 +442,9 @@ const SendTx = () => {
                     w: "8rem",
                   }}
                   selectedOption={selectedEthFormatOption}
-                  setSelectedOption={setSelectedEthFormatOption}
+                  setSelectedOption={(value) =>
+                    setSelectedEthFormatOption(value as ETHSelectedOptionState)
+                  }
                   options={ethFormatOptions.map((str) => ({
                     label: str,
                     value: str,
