@@ -64,17 +64,19 @@ export type DecodeParamTypesResult =
   | DecodeTupleParamResult
   | DecodeArrayParamResult;
 
+export type Arg = {
+  name: string;
+  baseType: string;
+  type: string;
+  rawValue: any;
+  value: DecodeParamTypesResult;
+};
+
 export type DecodeRecursiveResult = {
   functionName: string;
   signature: string;
   rawArgs: any;
-  args: {
-    name: string;
-    baseType: string;
-    type: string;
-    rawValue: any;
-    value: DecodeParamTypesResult;
-  }[];
+  args: Arg[];
 } | null;
 
 export type HighlightedText = {

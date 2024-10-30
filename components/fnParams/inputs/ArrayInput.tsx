@@ -119,7 +119,7 @@ export const ArrayInput = ({
   onKeyDown,
 }: InputFieldProps) => {
   // removes [] from the end of the array type
-  const childType = input.type!.substring(0, input.type!.length - 2);
+  const baseType = input.type!.substring(0, input.type!.length - 2);
 
   const [arrayInputState, setArrayInputsState] = useState<ArrayInputState>({});
   const [arrayReadIsDisabled, setArrayReadIsDisabled] = useState<
@@ -201,7 +201,7 @@ export const ArrayInput = ({
           index={index}
           chainId={chainId}
           input={input}
-          childType={childType}
+          childType={baseType}
           value={element.value}
           updateArrayInputState={updateArrayInputState}
           removeFromArrayInputState={removeFromArrayInputState}

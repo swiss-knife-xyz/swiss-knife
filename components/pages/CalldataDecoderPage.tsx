@@ -35,7 +35,7 @@ import {
   useQueryState,
 } from "next-usequerystate";
 import { createPublicClient, http, Hex, Chain, stringify } from "viem";
-import { SelectedOptionState } from "@/types";
+import { DecodeRecursiveResult, SelectedOptionState } from "@/types";
 import { c, chainIdToChain, networkOptions } from "@/data/common";
 import { startHexWith0x } from "@/utils";
 
@@ -70,7 +70,7 @@ export const CalldataDecoderPage = () => {
     parseAsString.withDefault("")
   );
   // can be function calldata or abi.encode bytes
-  const [result, setResult] = useState<any>();
+  const [result, setResult] = useState<DecodeRecursiveResult>();
   const [isLoading, setIsLoading] = useState(false);
   const [pasted, setPasted] = useState(false);
 
@@ -536,7 +536,7 @@ export const CalldataDecoderPage = () => {
             </HStack>
           ) : null}
           <Stack mt={2} p={4} spacing={4} bg={"whiteAlpha.50"} rounded={"lg"}>
-            {result.args.map((arg: any, i: number) => {
+            {result.args.map((arg, i: number) => {
               return renderParams(i, arg, chainId);
             })}
           </Stack>

@@ -52,12 +52,6 @@ export const AddressParam = ({
     setAddressLabels([]);
 
     try {
-      console.log("ADDRESS PARAM");
-      console.log({
-        chainId,
-        address,
-      });
-
       if (!chainId) throw new Error("Chain ID not provided");
 
       const client = createPublicClient({

@@ -47,7 +47,30 @@ export const renderInputFields = ({
       value === null ||
       value.toString().trim().length === 0);
 
-  if (input.type?.includes("int")) {
+  if (input.type?.endsWith("[]")) {
+    return (
+      <ArrayInput
+        chainId={chainId}
+        input={input}
+        value={value}
+        onChange={onChange}
+        setFunctionIsDisabled={setFunctionIsDisabled}
+        onKeyDown={onKeyDown}
+        isInvalid={isInvalid}
+        isError={isError}
+      />
+    );
+  } else if (input.type?.includes("bytes")) {
+    return (
+      <BytesInput
+        input={input}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+        isInvalid={isInvalid}
+      />
+    );
+  } else if (input.type?.includes("int")) {
     return (
       <IntInput
         input={input}
@@ -69,16 +92,6 @@ export const renderInputFields = ({
         onKeyDown={onKeyDown}
         isInvalid={isInvalid}
         setFunctionIsDisabled={setFunctionIsDisabled}
-      />
-    );
-  } else if (input.type?.includes("bytes")) {
-    return (
-      <BytesInput
-        input={input}
-        value={value}
-        onChange={onChange}
-        onKeyDown={onKeyDown}
-        isInvalid={isInvalid}
       />
     );
   } else if (input.type === "bool") {
@@ -105,19 +118,6 @@ export const renderInputFields = ({
         isArrayChild={isArrayChild}
       />
     );
-  } else if (input.type?.endsWith("[]")) {
-    return (
-      <ArrayInput
-        chainId={chainId}
-        input={input}
-        value={value}
-        onChange={onChange}
-        setFunctionIsDisabled={setFunctionIsDisabled}
-        onKeyDown={onKeyDown}
-        isInvalid={isInvalid}
-        isError={isError}
-      />
-    );
   } else {
     return (
       <StringInput
@@ -140,7 +140,56 @@ export const renderParamTypes = ({
   type: string;
   value: any;
 }) => {
-  if (type === "calldata") {
+  console.log({
+    chainId,
+    type,
+    value,
+  });
+
+  if (type.endsWith("[]")) {
+    return (
+      <ArrayParam
+        arg={{
+          name: "",
+          baseType: "array",
+          type,
+          rawValue: value,
+          value:
+            value && Array.isArray(value)
+              ? value.map((v: any) => ({
+                  name: "",
+                  baseType: type.slice(0, type.length - 2),
+                  type: type.slice(0, type.length - 2),
+                  rawValue: v,
+                  value: v,
+                }))
+              : [],
+        }}
+        chainId={chainId}
+      />
+    );
+  } else if (type === "tuple") {
+    return (
+      <TupleParam
+        arg={{
+          name: "",
+          baseType: "tuple",
+          type: "tuple",
+          rawValue: value,
+          value: Array.isArray(value)
+            ? value.map((v: any, i: number) => ({
+                name: "",
+                baseType: v.type,
+                type: v.type,
+                rawValue: v.value,
+                value: v.value,
+              }))
+            : [],
+        }}
+        chainId={chainId}
+      />
+    );
+  } else if (type === "calldata") {
     return <CalldataParam value={value} chainId={chainId} />;
   } else if (type.includes("uint")) {
     return <UintParam value={value} />;
@@ -164,10 +213,6 @@ export const renderParamTypes = ({
         />
       );
     }
-  } else if (type === "tuple") {
-    return <TupleParam arg={{ value }} chainId={chainId} />;
-  } else if (type === "array") {
-    return <ArrayParam arg={{ rawValue: value, value }} chainId={chainId} />;
   } else if (type === "bool") {
     return (
       <StringParam

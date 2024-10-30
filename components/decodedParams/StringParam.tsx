@@ -73,8 +73,8 @@ export const StringParam = ({ value: _value }: Params) => {
   const SimpleString = () => {
     // use Textarea if value is large
     return value.length > 200 ? (
-      <Box>
-        <HStack mb={1}>
+      <Box w="full">
+        <HStack mb={1} w="full">
           <Spacer />
           <HStack>
             <CopyToClipboard textToCopy={value ?? ""} size="xs" />
@@ -93,16 +93,20 @@ export const StringParam = ({ value: _value }: Params) => {
           resize={"both"}
           rows={5}
           placeholder=""
+          w="full"
         />
       </Box>
     ) : (
-      <HStack>
-        <InputField
-          value={value}
-          placeholder=""
-          isReadOnly
-          onChange={() => {}}
-        />
+      <HStack w="full">
+        <Box flex="1">
+          <InputField
+            w="full"
+            value={value}
+            placeholder=""
+            isReadOnly
+            onChange={() => {}}
+          />
+        </Box>
         {isUrl && (
           <Link href={resolveIPFS(value)} title="visit link" isExternal>
             <Button size={"xs"}>
@@ -280,12 +284,14 @@ export const StringParam = ({ value: _value }: Params) => {
       initial={{ opacity: 0, y: 20 }}
       animate={isLoaded ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5 }}
+      style={{ width: "100%" }}
     >
       <Box w="full">
         {isJson || isImage || (isUrl && isUrlImageOrJson) ? (
           <Stack
             mt={2}
             p={4}
+            w="full"
             bg={"whiteAlpha.50"}
             rounded={"lg"}
             boxShadow="lg"

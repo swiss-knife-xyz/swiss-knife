@@ -21,15 +21,33 @@ import { isAddress } from "viem";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { motion } from "framer-motion";
+import { Arg, DecodeArrayParamResult } from "@/types";
 
 interface Params {
-  arg: any;
+  arg: Omit<Arg, "value"> & {
+    value: DecodeArrayParamResult;
+  };
   chainId?: number;
 }
 
 export const ArrayParam = ({ arg: _arg, chainId }: Params) => {
-  const showSkeleton = _arg === undefined || _arg === null;
-  const arg = !showSkeleton ? _arg : "abcdef1234";
+  const showSkeleton =
+    _arg === undefined ||
+    _arg === null ||
+    _arg.value === undefined ||
+    _arg.rawValue === undefined ||
+    _arg.value === null ||
+    _arg.rawValue === null;
+
+  const arg = !showSkeleton
+    ? _arg
+    : {
+        name: "",
+        baseType: "",
+        type: "",
+        rawValue: [],
+        value: [],
+      };
 
   const { isOpen, onToggle } = useDisclosure();
 
@@ -45,7 +63,7 @@ export const ArrayParam = ({ arg: _arg, chainId }: Params) => {
         />
       </HStack>
     );
-  } else if (arg.value.length === 0) {
+  } else if (Array.isArray(arg.value) && arg.value.length === 0) {
     return <StringParam value={"[ ]"} />;
   } else {
     return (
@@ -77,39 +95,40 @@ export const ArrayParam = ({ arg: _arg, chainId }: Params) => {
             borderColor={"whiteAlpha.300"}
             roundedBottom={"lg"}
           >
-            {arg.value.map((ar: any, i: number) => {
-              return (
-                <Box key={i} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
-                  <HStack mt={-2}>
-                    <Text fontSize={"sm"}>{ar.baseType}</Text>
-                    <Text
-                      fontSize={"xs"}
-                      fontWeight={"thin"}
-                      color={"whiteAlpha.600"}
-                    >
-                      (index: {i})
-                    </Text>
-                    {ar.baseType === "address" ||
-                    (ar.baseType === "bytes" && isAddress(ar.rawValue)) ? (
-                      <Link
-                        href={`${getPath(subdomains.EXPLORER.base)}address/${
-                          ar.baseType === "address" ? ar.value : ar.rawValue
-                        }`}
-                        title="View on explorer"
-                        isExternal
+            {Array.isArray(arg.value) &&
+              arg.value.map((ar, i: number) => {
+                return (
+                  <Box key={i} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
+                    <HStack mt={-2}>
+                      <Text fontSize={"sm"}>{ar.baseType}</Text>
+                      <Text
+                        fontSize={"xs"}
+                        fontWeight={"thin"}
+                        color={"whiteAlpha.600"}
                       >
-                        <Button size={"xs"}>
-                          <HStack>
-                            <ExternalLinkIcon />
-                          </HStack>
-                        </Button>
-                      </Link>
-                    ) : null}
-                  </HStack>
-                  <Box mt={2}>{renderParamTypes(ar, chainId)}</Box>
-                </Box>
-              );
-            })}
+                        (index: {i})
+                      </Text>
+                      {ar.baseType === "address" ||
+                      (ar.baseType === "bytes" && isAddress(ar.rawValue)) ? (
+                        <Link
+                          href={`${getPath(subdomains.EXPLORER.base)}address/${
+                            ar.baseType === "address" ? ar.value : ar.rawValue
+                          }`}
+                          title="View on explorer"
+                          isExternal
+                        >
+                          <Button size={"xs"}>
+                            <HStack>
+                              <ExternalLinkIcon />
+                            </HStack>
+                          </Button>
+                        </Link>
+                      ) : null}
+                    </HStack>
+                    <Box mt={2}>{renderParamTypes(ar, chainId)}</Box>
+                  </Box>
+                );
+              })}
           </Stack>
         </Collapse>
       </motion.div>

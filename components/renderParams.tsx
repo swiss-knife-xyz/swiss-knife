@@ -13,8 +13,9 @@ import {
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
+import { Arg, DecodeBytesParamResult, DecodeTupleParamResult } from "@/types";
 
-export const renderParamTypes = (arg: any, chainId?: number) => {
+export const renderParamTypes = (arg: Arg, chainId?: number) => {
   if (arg.baseType.includes("uint")) {
     return <UintParam value={arg.value} />;
   } else if (arg.baseType.includes("int")) {
@@ -26,18 +27,44 @@ export const renderParamTypes = (arg: any, chainId?: number) => {
     if (isAddress(arg.rawValue)) {
       return <AddressParam address={arg.rawValue} chainId={chainId} />;
     } else {
-      return <BytesParam arg={arg} chainId={chainId} />;
+      return (
+        <BytesParam
+          arg={{
+            ...arg,
+            value: {
+              decoded: (arg.value as DecodeBytesParamResult)?.decoded ?? null,
+            },
+          }}
+          chainId={chainId}
+        />
+      );
     }
   } else if (arg.baseType === "tuple") {
-    return <TupleParam arg={arg} chainId={chainId} />;
+    return (
+      <TupleParam
+        arg={{
+          ...arg,
+          value: arg.value as DecodeTupleParamResult,
+        }}
+        chainId={chainId}
+      />
+    );
   } else if (arg.baseType === "array") {
-    return <ArrayParam arg={arg} chainId={chainId} />;
+    return (
+      <ArrayParam
+        arg={{
+          ...arg,
+          value: Array.isArray(arg.value) ? arg.value : [],
+        }}
+        chainId={chainId}
+      />
+    );
   } else {
-    return <StringParam value={arg.value} />;
+    return <StringParam value={arg.value as string | null} />;
   }
 };
 
-export const renderParams = (key: number, arg: any, chainId?: number) => {
+export const renderParams = (key: number, arg: Arg, chainId?: number) => {
   const type = arg.type.includes("tuple") ? "tuple" : arg.type;
 
   return (
@@ -72,7 +99,7 @@ export const renderParams = (key: number, arg: any, chainId?: number) => {
             </Box>
             {arg.baseType === "array" ? (
               <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
-                (length: {arg.value.length})
+                (length: {Array.isArray(arg.value) ? arg.value.length : 0})
               </Box>
             ) : null}
           </HStack>
@@ -85,7 +112,7 @@ export const renderParams = (key: number, arg: any, chainId?: number) => {
           </Text>
           {arg.baseType === "array" ? (
             <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
-              (length: {arg.value.length})
+              (length: {Array.isArray(arg.value) ? arg.value.length : 0})
             </Box>
           ) : null}
           {arg.baseType === "address" ||

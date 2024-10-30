@@ -33,6 +33,7 @@ export const InputField = ({
       value={value}
       onChange={onChange}
       isInvalid={isInvalid}
+      pr="3rem"
       {...rest}
     />
     <InputRightElement pr={1}>

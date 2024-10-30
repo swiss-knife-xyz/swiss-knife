@@ -2,15 +2,20 @@ import React from "react";
 import { renderParams } from "@/components/renderParams";
 import { HStack, Skeleton, Stack } from "@chakra-ui/react";
 import { motion } from "framer-motion";
+import { Arg, DecodeTupleParamResult } from "@/types";
 
 interface Params {
-  arg: any;
+  arg: Omit<Arg, "value"> & {
+    value: DecodeTupleParamResult;
+  };
   chainId?: number;
 }
 
 export const TupleParam = ({ arg: _arg, chainId }: Params) => {
   const showSkeleton = _arg === undefined || _arg === null;
-  const arg = !showSkeleton ? _arg : "abcdef1234";
+  const arg: Arg = !showSkeleton
+    ? _arg
+    : { value: [], name: "", baseType: "", type: "", rawValue: "" };
 
   return showSkeleton ? (
     <HStack w="full">
@@ -22,7 +27,7 @@ export const TupleParam = ({ arg: _arg, chainId }: Params) => {
         endColor="whiteAlpha.400"
       />
     </HStack>
-  ) : arg.value.length > 0 ? (
+  ) : Array.isArray(arg.value) && arg.value.length > 0 ? (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
