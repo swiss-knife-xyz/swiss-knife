@@ -33,6 +33,7 @@ import { fetchContractAbi } from "@/lib/decoder";
 import { ConnectButton } from "@/components/ConnectButton";
 import { ReadWriteFunction } from "@/components/fnParams/ReadWriteFunction";
 import { slicedText } from "@/utils";
+import { ABIFunction } from "@shazow/whatsabi/lib.types/abi";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -471,7 +472,9 @@ export const ContractPage = ({
             .filter((fragment) => fragment.type === "function")
             .map((fragment) => ({
               ...fragment,
-              name: fragment.name ?? `selector: ${fragment.selector}`,
+              name:
+                fragment.name ??
+                `selector: ${(fragment as ABIFunction).selector}`,
             }))
             .sort((a, b) => {
               const nameA = a.name.toLowerCase();

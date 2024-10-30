@@ -137,6 +137,7 @@ export function SolidityTextArea({
         preClassName="language-solidity"
         tabSize={2}
         insertSpaces={true}
+        ignoreTabKey={true}
         sx={{
           'pre [class*="hljs"]': {
             background: "transparent !important",
