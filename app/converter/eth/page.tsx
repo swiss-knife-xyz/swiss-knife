@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import {
   Heading,
@@ -11,6 +12,7 @@ import {
   Input,
   Box,
 } from "@chakra-ui/react";
+import { parseAsString, useQueryState } from "next-usequerystate";
 import {
   parseEther,
   parseGwei,
@@ -23,7 +25,13 @@ import { Label } from "@/components/Label";
 import { useLocalStorage } from "usehooks-ts";
 
 const ETHUnitConverter = () => {
-  const [wei, setWei] = useState<string>();
+  const searchParams = useSearchParams();
+  const weiFromUrl = searchParams.get("wei");
+
+  const [wei, setWei] = useQueryState<string>(
+    "wei",
+    parseAsString.withDefault(weiFromUrl ?? "")
+  );
   const [gwei, setGwei] = useState<string>();
   const [eth, setEth] = useState<string>();
   const [unit, setUnit] = useState<string>();
@@ -106,6 +114,18 @@ const ETHUnitConverter = () => {
 
   useEffect(() => {
     setPrices();
+  }, []);
+
+  useEffect(() => {
+    if (weiFromUrl) {
+      handleOnChange(
+        {
+          target: { value: weiFromUrl },
+        } as React.ChangeEvent<HTMLInputElement>,
+        "wei",
+        (value) => value
+      );
+    }
   }, []);
 
   useEffect(() => {
