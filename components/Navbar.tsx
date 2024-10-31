@@ -32,6 +32,7 @@ import { ILeaderboard } from "@/types";
 import { apiBasePath, slicedText } from "@/utils";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { DarkButton } from "./DarkButton";
+import { NotificationBar } from "./NotificationBar";
 
 export const Navbar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -84,6 +85,7 @@ export const Navbar = () => {
           </ChakraLink>
         </Flex>
       </Flex>
+      <NotificationBar />
       {leaderboard && (
         <Alert status="info" bg={"#151515"}>
           <Center w="100%">
