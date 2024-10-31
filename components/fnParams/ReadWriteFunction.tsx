@@ -170,6 +170,7 @@ export const ReadWriteFunction = ({
     inputs,
     outputs: _outputs,
     payable,
+    stateMutability,
     highlightedOutputs,
   } = __func;
   const functionName = extractStringFromReactNode(__name);
@@ -729,7 +730,7 @@ export const ReadWriteFunction = ({
 
       <Box display={isCollapsed ? "none" : undefined}>
         {/* Input fields */}
-        {payable && (
+        {(payable || stateMutability === "payable") && (
           <Box ml={4} p={4} bg="whiteAlpha.100" rounded={"lg"}>
             <IntInput
               input={{
