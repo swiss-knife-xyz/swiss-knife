@@ -552,6 +552,11 @@ export const ContractPage = ({
               required)
             </Alert>
           )}
+          <Alert status="warning" mb={"1rem"} rounded={"lg"}>
+            <AlertIcon />
+            Tool is in beta, please verify connected chain and calldata before
+            sending transactions
+          </Alert>
           {abi.name.length > 0 && (
             <HStack>
               <Box
