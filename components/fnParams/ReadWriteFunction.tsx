@@ -640,8 +640,9 @@ export const ReadWriteFunction = ({
             rounded="lg"
             spacing={0}
           >
-            {!userAddress && writeButtonType === WriteButtonType.Write ? (
-              <ConnectButton />
+            {(!userAddress && writeButtonType === WriteButtonType.Write) ||
+            (chain && chain.id !== chainId) ? (
+              <ConnectButton expectedChainId={chainId} hideAccount />
             ) : (
               <Button
                 px={4}

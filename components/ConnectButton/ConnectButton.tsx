@@ -5,9 +5,19 @@ import { ConnectWalletBtn } from "./ConnectWalletBtn";
 import { WrongNetworkBtn } from "./WrongNetworkBtn";
 import { ChainButton } from "./ChainButton";
 import { AccountButton } from "./AccountButton";
+import { useSwitchChain } from "wagmi";
+import { chainIdToChain } from "@/data/common";
 
 // TODO: make mobile responsive
-export const ConnectButton = () => {
+export const ConnectButton = ({
+  expectedChainId,
+  hideAccount,
+}: {
+  expectedChainId?: number;
+  hideAccount?: boolean;
+}) => {
+  const { switchChain } = useSwitchChain();
+
   return (
     <RConnectButton.Custom>
       {({
@@ -34,9 +44,6 @@ export const ConnectButton = () => {
               if (!connected) {
                 return <ConnectWalletBtn onClick={openConnectModal} />;
               }
-              if (chain.unsupported) {
-                return <WrongNetworkBtn onClick={openChainModal} />;
-              }
 
               return (
                 <Box
@@ -45,8 +52,33 @@ export const ConnectButton = () => {
                   alignItems="center"
                   borderRadius="xl"
                 >
-                  <ChainButton onClick={openChainModal} chain={chain} />
-                  <AccountButton onClick={openAccountModal} account={account} />
+                  {chain.unsupported ||
+                  (expectedChainId && expectedChainId !== chain.id) ? (
+                    <Box mr={!hideAccount ? "2" : undefined}>
+                      <WrongNetworkBtn
+                        txt={
+                          expectedChainId
+                            ? `Switch to ${chainIdToChain[expectedChainId]?.name}`
+                            : undefined
+                        }
+                        onClick={() => {
+                          if (!expectedChainId) {
+                            openChainModal();
+                          } else {
+                            switchChain({ chainId: expectedChainId });
+                          }
+                        }}
+                      />
+                    </Box>
+                  ) : (
+                    <ChainButton onClick={openChainModal} chain={chain} />
+                  )}
+                  {!hideAccount && (
+                    <AccountButton
+                      onClick={openAccountModal}
+                      account={account}
+                    />
+                  )}
                 </Box>
               );
             })()}

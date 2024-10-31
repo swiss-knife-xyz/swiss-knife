@@ -570,7 +570,7 @@ export const ContractPage = ({
                 Contract Name: <b>{abi.name}</b>
               </Box>
               <Spacer />
-              <ConnectButton />
+              <ConnectButton expectedChainId={chainId} />
             </HStack>
           )}
           {!isWhatsAbiDecoded ? (
