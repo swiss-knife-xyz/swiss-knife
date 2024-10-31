@@ -21,7 +21,7 @@ import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { motion } from "framer-motion";
 import { Address, createPublicClient, http } from "viem";
 import { chainIdToChain } from "@/data/common";
-import { erc20ABI } from "wagmi";
+import { erc20Abi } from "viem";
 import { fetchContractAbi } from "@/lib/decoder";
 
 interface Params {
@@ -68,7 +68,7 @@ export const AddressParam = ({
       try {
         const symbol = await client.readContract({
           address: address as Address,
-          abi: erc20ABI,
+          abi: erc20Abi,
           functionName: "symbol",
         });
         setAddressLabels([symbol]);

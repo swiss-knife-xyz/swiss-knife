@@ -18,14 +18,14 @@ import {
   getPath,
   slicedText,
 } from "@/utils";
-import { erc20ABI, useAccount } from "wagmi";
+import { useAccount } from "wagmi";
 import { JsonFragment } from "ethers";
 import { InputInfo } from "@/components/fnParams/inputs";
 import subdomains from "@/subdomains";
 import debounce from "lodash/debounce";
 import { motion, AnimatePresence } from "framer-motion";
 import { InputField } from "@/components/InputField";
-import { Address, createPublicClient, http, zeroAddress } from "viem";
+import { Address, createPublicClient, http, zeroAddress, erc20Abi } from "viem";
 import axios from "axios";
 import { chainIdToChain } from "@/data/common";
 import { fetchContractAbi } from "@/lib/decoder";
@@ -130,7 +130,7 @@ export const AddressInput = ({
         try {
           const symbol = await client.readContract({
             address: val as Address,
-            abi: erc20ABI,
+            abi: erc20Abi,
             functionName: "symbol",
           });
           setAddressLabels([symbol]);

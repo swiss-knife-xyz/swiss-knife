@@ -4,6 +4,8 @@ import { ChakraProvider } from "@chakra-ui/react";
 import theme from "@/style/theme";
 import "@rainbow-me/rainbowkit/styles.css";
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { http, WagmiProvider, createConfig } from "wagmi";
 import {
   connectorsForWallets,
   RainbowKitProvider,
@@ -15,8 +17,8 @@ import {
   walletConnectWallet,
   rainbowWallet,
   safeWallet,
+  coinbaseWallet,
 } from "@rainbow-me/rainbowkit/wallets";
-import { configureChains, createConfig, WagmiConfig } from "wagmi";
 import {
   mainnet,
   arbitrum,
@@ -36,63 +38,75 @@ import {
   polygonMumbai,
   sepolia,
   zora,
+  Chain,
 } from "wagmi/chains";
-import { publicProvider } from "wagmi/providers/public";
 
-const { chains, publicClient } = configureChains(
-  // the first chain is used by rainbowKit to determine which chain to use
+const chains: readonly [Chain, ...Chain[]] = [
+  // first chain is the default
+  mainnet,
+  arbitrum,
+  arbitrumSepolia,
+  avalanche,
+  base,
+  baseSepolia,
+  bsc,
+  fantom,
+  gnosis,
+  goerli,
+  optimism,
+  polygon,
+  polygonMumbai,
+  sepolia,
+  zora,
+];
+
+const appName = "Swiss-Knife.xyz";
+const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;
+
+const connectors = connectorsForWallets(
   [
-    mainnet,
-    arbitrum,
-    arbitrumSepolia,
-    avalanche,
-    base,
-    baseSepolia,
-    bsc,
-    fantom,
-    gnosis,
-    goerli,
-    optimism,
-    polygon,
-    polygonMumbai,
-    sepolia,
-    zora,
+    {
+      groupName: "Popular",
+      wallets: [
+        metaMaskWallet,
+        coinbaseWallet,
+        walletConnectWallet,
+        rainbowWallet,
+        safeWallet,
+      ],
+    },
   ],
-  [publicProvider()]
+  { appName, projectId }
 );
 
-const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;
-const connectors = connectorsForWallets([
-  {
-    groupName: "Recommended",
-    wallets: [
-      metaMaskWallet({ projectId, chains }),
-      walletConnectWallet({ projectId, chains }),
-      rainbowWallet({ projectId, chains }),
-      safeWallet({ chains, allowedDomains: [/./s] }),
-    ],
-  },
-]);
-
-export const wagmiConfig = createConfig({
-  autoConnect: true,
+export const config = createConfig({
   connectors,
-  publicClient,
+  chains,
+  transports: chains.reduce<Record<number, ReturnType<typeof http>>>(
+    (transport, chain) => {
+      transport[chain.id] = http();
+      return transport;
+    },
+    {}
+  ),
 });
+
+const queryClient = new QueryClient();
 
 export const Providers = ({ children }: { children: React.ReactNode }) => {
   return (
     <ChakraProvider theme={theme}>
-      <WagmiConfig config={wagmiConfig}>
-        <RainbowKitProvider
-          chains={chains}
-          theme={darkTheme()}
-          modalSize={"compact"}
-          coolMode={true}
-        >
-          {children}
-        </RainbowKitProvider>
-      </WagmiConfig>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitProvider
+            theme={darkTheme()}
+            modalSize={"compact"}
+            coolMode={true}
+          >
+            {children}
+          </RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
     </ChakraProvider>
   );
 };

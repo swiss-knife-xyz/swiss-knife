@@ -25,8 +25,8 @@ import {
   ExternalLinkIcon,
   RepeatIcon,
 } from "@chakra-ui/icons";
-import { useWalletClient, useAccount, useNetwork } from "wagmi";
-import { waitForTransaction } from "wagmi/actions";
+import { useWalletClient, useAccount } from "wagmi";
+import { waitForTransactionReceipt } from "@wagmi/core";
 import { FunctionFragment, JsonFragment, JsonFragmentType } from "ethers";
 import {
   ContractFunctionExecutionError,
@@ -41,6 +41,7 @@ import { renderInputFields, renderParamTypes } from "./Renderer";
 import { ConnectButton } from "@/components/ConnectButton";
 import { slicedText } from "@/utils";
 import { getTransactionError, getContractError } from "viem/utils";
+import { config } from "@/app/providers";
 
 interface ReadWriteFunctionProps {
   client: PublicClient;
@@ -162,8 +163,7 @@ export const ReadWriteFunction = ({
   readAllCollapsed,
 }: ReadWriteFunctionProps) => {
   const { data: walletClient } = useWalletClient();
-  const { address: userAddress } = useAccount();
-  const { chain } = useNetwork();
+  const { address: userAddress, chain } = useAccount();
 
   const {
     name: __name,
@@ -309,7 +309,7 @@ export const ReadWriteFunction = ({
 
         setTxHash(hash);
 
-        await waitForTransaction({
+        await waitForTransactionReceipt(config, {
           hash,
         });
 
@@ -445,7 +445,7 @@ export const ReadWriteFunction = ({
 
         setTxHash(hash);
 
-        await waitForTransaction({
+        await waitForTransactionReceipt(config, {
           hash,
         });
 

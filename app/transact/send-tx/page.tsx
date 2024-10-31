@@ -34,8 +34,8 @@ import {
 } from "next-usequerystate";
 import { parseEther, formatEther, isAddress, stringify } from "viem";
 import { normalize } from "viem/ens";
-import { useNetwork, useWalletClient, useSwitchNetwork } from "wagmi";
-import { waitForTransaction } from "wagmi/actions";
+import { useWalletClient, useAccount, useSwitchChain } from "wagmi";
+import { waitForTransactionReceipt } from "@wagmi/core";
 import { InputField } from "@/components/InputField";
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
@@ -49,15 +49,12 @@ import { DarkButton } from "@/components/DarkButton";
 import { chainIdToChain } from "@/data/common";
 import { decodeRecursive } from "@/lib/decoder";
 import { renderParams } from "@/components/renderParams";
+import { config } from "@/app/providers";
 
 const SendTx = () => {
   const { data: walletClient } = useWalletClient();
-  const { chain } = useNetwork();
-  const { switchNetwork } = useSwitchNetwork({
-    onSuccess: () => {
-      onChainIdMatched();
-    },
-  });
+  const { chain } = useAccount();
+  const { switchChain } = useSwitchChain();
 
   const toast = useToast();
   const toastIdRef = useRef<ToastId>();
@@ -96,12 +93,7 @@ const SendTx = () => {
   const [decoded, setDecoded] = useState<any>();
 
   useEffect(() => {
-    if (
-      switchNetwork &&
-      chain &&
-      chainIdFromURLOnLoad &&
-      chain.id !== chainIdFromURLOnLoad
-    ) {
+    if (chain && chainIdFromURLOnLoad && chain.id !== chainIdFromURLOnLoad) {
       toastIdRef.current = toast({
         title: "Wallet's Network should match the chainId passed via URL",
         description: `Switch network to ${chainIdToChain[chainIdFromURLOnLoad]?.name} to continue`,
@@ -112,9 +104,9 @@ const SendTx = () => {
       });
 
       setChainIdMismatch(true);
-      switchNetwork(chainIdFromURLOnLoad);
+      switchChain({ chainId: chainIdFromURLOnLoad });
     }
-  }, [chainIdFromURLOnLoad, switchNetwork]);
+  }, [chainIdFromURLOnLoad, switchChain]);
 
   useEffect(() => {
     if (chain) {
@@ -187,7 +179,7 @@ const SendTx = () => {
           isClosable: true,
         });
 
-        await waitForTransaction({
+        await waitForTransactionReceipt(config, {
           hash,
         });
         toast.close(toastIdRef.current);
@@ -251,7 +243,7 @@ const SendTx = () => {
           isClosable: true,
         });
 
-        await waitForTransaction({
+        await waitForTransactionReceipt(config, {
           hash,
         });
         toast.close(toastIdRef.current);
