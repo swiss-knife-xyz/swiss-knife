@@ -203,7 +203,7 @@ export const AddressInput = ({
   }, [isResolving]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
+    const newValue = e.target.value.trim();
     onChange({
       target: { value: newValue },
     } as any);

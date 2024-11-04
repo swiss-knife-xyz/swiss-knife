@@ -561,9 +561,8 @@ export const ContractPage = ({
           {isWhatsAbiDecoded && (
             <Alert status="info" mb={"1rem"} rounded={"lg"}>
               <AlertIcon />
-              Contract not verified, used whatsabi to determine functions
-              (choose &quot;Call as View Fn&quot; or &quot;Write&quot; as
-              required)
+              Contract not verified, used whatsabi & evmole to determine
+              functions
             </Alert>
           )}
           <Alert status="warning" mb={"1rem"} rounded={"lg"}>
