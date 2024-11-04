@@ -22,12 +22,11 @@ import {
   InputRightElement,
   Spacer,
   Spinner,
-  Text,
 } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
 import { parseAsInteger, useQueryState } from "next-usequerystate";
 import { JsonFragment } from "ethers";
-import { PublicClient, createPublicClient, http } from "viem";
+import { Address, PublicClient, createPublicClient, http } from "viem";
 import { whatsabi } from "@shazow/whatsabi";
 import { fetchContractAbi } from "@/lib/decoder";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -335,11 +334,7 @@ const ReadWriteSection = ({
         <HStack mb={2}>
           <Spacer />
           <Box fontWeight="bold" mr={allCollapsed ? "-9rem" : "-8rem"}>
-            {!isWhatsAbiDecoded ? (
-              <>{type === "read" ? "Read" : "Write"} Contract</>
-            ) : (
-              "Functions"
-            )}
+            <>{type === "read" ? "Read" : "Write"} Contract</>
           </Box>
           <Spacer />
           <Button
@@ -431,6 +426,15 @@ export const ContractPage = ({
     parseAsInteger.withDefault(1)
   );
 
+  // dynamic imports
+  const [evmole, setEvmole] = useState<any>(null);
+
+  useEffect(() => {
+    import("evmole").then((module) => {
+      setEvmole(module);
+    });
+  }, []);
+
   // state
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>(networkOptions[networkOptionsIndex]);
@@ -445,6 +449,8 @@ export const ContractPage = ({
   const [writeFunctions, setWriteFunctions] = useState<JsonFragment[]>([]);
 
   const fetchSetAbi = useCallback(async () => {
+    if (!evmole) return;
+
     try {
       setIsFetchingAbi(true);
       setUnableToFetchAbi(false);
@@ -466,6 +472,9 @@ export const ContractPage = ({
         const result = await whatsabi.autoload(address, { provider: client });
         console.log({ whatsabi: result });
         setIsWhatsAbiDecoded(true);
+        const contractCode = await client.getCode({
+          address: address as Address,
+        });
         // sort functions names alphabetically
         setAbi({
           abi: result.abi
@@ -475,6 +484,11 @@ export const ContractPage = ({
               name:
                 fragment.name ??
                 `selector: ${(fragment as ABIFunction).selector}`,
+              stateMutability: evmole.functionStateMutability(
+                contractCode,
+                fragment.selector,
+                0
+              ),
             }))
             .sort((a, b) => {
               const nameA = a.name.toLowerCase();
@@ -496,7 +510,7 @@ export const ContractPage = ({
     } finally {
       setIsFetchingAbi(false);
     }
-  }, [address, chainId]);
+  }, [address, chainId, evmole]);
 
   // Set chainId and client when network option changes
   useEffect(() => {
@@ -573,38 +587,26 @@ export const ContractPage = ({
               <ConnectButton expectedChainId={chainId} />
             </HStack>
           )}
-          {!isWhatsAbiDecoded ? (
-            <Grid templateColumns="repeat(2, 1fr)" gap={6} mt={5}>
-              <ReadWriteSection
-                type="read"
-                abi={abi}
-                client={client}
-                functions={readFunctions}
-                address={address}
-                chainId={chainId}
-              />
-              <ReadWriteSection
-                type="write"
-                abi={abi}
-                client={client}
-                functions={writeFunctions}
-                address={address}
-                chainId={chainId}
-              />
-            </Grid>
-          ) : (
-            <Box px={"10rem"}>
-              <ReadWriteSection
-                type="write"
-                abi={abi}
-                client={client}
-                functions={writeFunctions}
-                address={address}
-                chainId={chainId}
-                isWhatsAbiDecoded={isWhatsAbiDecoded}
-              />
-            </Box>
-          )}
+          <Grid templateColumns="repeat(2, 1fr)" gap={6} mt={5}>
+            <ReadWriteSection
+              type="read"
+              abi={abi}
+              client={client}
+              functions={readFunctions}
+              address={address}
+              chainId={chainId}
+              isWhatsAbiDecoded={isWhatsAbiDecoded}
+            />
+            <ReadWriteSection
+              type="write"
+              abi={abi}
+              client={client}
+              functions={writeFunctions}
+              address={address}
+              chainId={chainId}
+              isWhatsAbiDecoded={isWhatsAbiDecoded}
+            />
+          </Grid>
         </Box>
       )
     );

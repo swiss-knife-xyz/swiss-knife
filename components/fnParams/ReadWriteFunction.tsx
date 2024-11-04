@@ -204,7 +204,7 @@ export const ReadWriteFunction = ({
   const [inputsState, setInputsState] = useState<any>({});
   const [functionIsDisabled, setFunctionIsDisabled] = useState<any>({});
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
-    !isWhatsAbiDecoded ? WriteButtonType.Write : WriteButtonType.CallAsViewFn
+    WriteButtonType.Write
   );
 
   const [res, setRes] = useState<any>(null);
@@ -246,13 +246,26 @@ export const ReadWriteFunction = ({
       const args = inputs?.map((input, i) => inputsState[i]);
 
       try {
-        const result = await client.readContract({
-          address: address as Hex,
-          abi,
-          functionName,
-          args,
-        });
-        setRes(result);
+        if (!isWhatsAbiDecoded) {
+          const result = await client.readContract({
+            address: address as Hex,
+            abi,
+            functionName,
+            args,
+          });
+          setRes(result);
+        } else {
+          const result = await client.call({
+            to: address as Hex,
+            data: encodeFunctionData({
+              abi,
+              functionName,
+              args,
+            }),
+            value: BigInt(payableETH),
+          });
+          setRes(result.data);
+        }
       } catch (e: any) {
         console.error(e);
         setIsError(true);
@@ -496,11 +509,6 @@ export const ReadWriteFunction = ({
     // if there are no inputs, then auto fetch the value
     if (type === "read" && (!inputs || (inputs && inputs.length === 0))) {
       readFunction();
-    }
-
-    // try to call as read function is isWhatsAbiDecoded and there are no inputs
-    if (isWhatsAbiDecoded && (!inputs || (inputs && inputs.length === 0))) {
-      callAsReadFunction(true);
     }
   }, []);
 

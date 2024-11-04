@@ -98,6 +98,9 @@ importers:
       ethers:
         specifier: ^6.13.4
         version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      evmole:
+        specifier: ^0.5.1
+        version: 0.5.1
       framer-motion:
         specifier: ^10.18.0
         version: 10.18.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -3081,6 +3084,9 @@ packages:
   events@3.3.0:
     resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
     engines: {node: '>=0.8.x'}
+
+  evmole@0.5.1:
+    resolution: {integrity: sha512-6al+Ju+s5Fm5sDYhz3Udlbx88uKQUASlIQlkZeeNQCLzNtUUPyoFkj+SShoHYqUFgA80X8yv/hNK2NVEr7YNOQ==}
 
   evp_bytestokey@1.0.3:
     resolution: {integrity: sha512-/f2Go4TognH/KvCISP7OUsHn85hT9nUkxxA9BEWxFn+Oj9o8ZNLm/40hdlgSLyuOimsrTKLUMEorQexp/aPQeA==}
@@ -10131,6 +10137,8 @@ snapshots:
   eventemitter3@5.0.1: {}
 
   events@3.3.0: {}
+
+  evmole@0.5.1: {}
 
   evp_bytestokey@1.0.3:
     dependencies:
