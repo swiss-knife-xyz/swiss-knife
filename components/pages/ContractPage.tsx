@@ -33,6 +33,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { ReadWriteFunction } from "@/components/fnParams/ReadWriteFunction";
 import { slicedText } from "@/utils";
 import { ABIFunction } from "@shazow/whatsabi/lib.types/abi";
+import { StorageSlot } from "../fnParams/StorageSlot";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -368,6 +369,13 @@ const ReadWriteSection = ({
           },
         }}
       >
+        {client && type === "read" && (
+          <StorageSlot
+            address={address}
+            chainId={chainId}
+            readAllCollapsed={allCollapsed}
+          />
+        )}
         {client &&
           functions?.map((func, index) => (
             <Box key={index} ref={(el) => (functionRefs.current[index] = el)}>
@@ -375,7 +383,7 @@ const ReadWriteSection = ({
                 <ReadWriteFunction
                   key={index}
                   client={client}
-                  index={index}
+                  index={index + 1}
                   type={"read"}
                   func={getFunc(func, index)}
                   address={address}
@@ -404,26 +412,15 @@ const ReadWriteSection = ({
 };
 
 export const ContractPage = ({
-  params: { address },
+  params: { address, chainId },
 }: {
   params: {
     address: string;
+    chainId: number;
   };
 }) => {
-  // url params
-  // FIXME: use segment to get chainId (currently reverts to mainnet when new address is pasted, even though different networks was selected)
-  const searchParams = useSearchParams();
-  const chainIdFromURL = searchParams.get("chainId");
-  const networkOptionsIndex = chainIdFromURL
-    ? networkOptions.findIndex(
-        (option) => option.value === parseInt(chainIdFromURL)
-      )
-    : 0;
-
-  // url state
-  const [chainId, setChainId] = useQueryState<number>(
-    "chainId",
-    parseAsInteger.withDefault(1)
+  const networkOptionsIndex = networkOptions.findIndex(
+    (option) => option.value === chainId
   );
 
   // dynamic imports
@@ -516,7 +513,7 @@ export const ContractPage = ({
   useEffect(() => {
     if (selectedNetworkOption) {
       const newChainId = parseInt(selectedNetworkOption.value.toString());
-      setChainId(newChainId);
+      // FIXME: set chain id in the url
       setClient(
         createPublicClient({
           chain: chainIdToChain[newChainId],
@@ -524,7 +521,7 @@ export const ContractPage = ({
         })
       );
     }
-  }, [selectedNetworkOption, setChainId]);
+  }, [selectedNetworkOption]);
 
   // Fetch ABI when address or chainId changes
   useEffect(() => {

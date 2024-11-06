@@ -6,29 +6,25 @@ import { generateMetadata as layoutGenerateMetadata } from "./layout";
 import { fetchContractAbi } from "@/lib/decoder";
 
 interface PageProps {
-  params: { address: string };
+  params: { address: string; chainId: number };
   searchParams: { [key: string]: string | string[] | undefined };
 }
 
 export async function generateMetadata({
-  params: { address },
-  searchParams,
+  params: { address, chainId },
 }: PageProps): Promise<Metadata> {
   let title = `Contract ${address} | Swiss-Knife.xyz`;
 
-  let chainId = searchParams.chainId as string | undefined;
-
   // add contract name to the title if possible
   let contractName = undefined as string | undefined;
-  if (chainId) {
-    try {
-      const fetchedAbi = await fetchContractAbi({
-        address,
-        chainId: parseInt(chainId),
-      });
-      contractName = fetchedAbi?.name;
-    } catch {}
-  }
+  try {
+    const fetchedAbi = await fetchContractAbi({
+      address,
+      chainId,
+    });
+    contractName = fetchedAbi?.name;
+  } catch {}
+
   if (contractName) {
     title = `${contractName} - ${address} | Swiss-Knife.xyz`;
   }
@@ -47,8 +43,16 @@ const ContractPage = ({
 }: {
   params: {
     address: string;
+    chainId: string;
   };
 }) => {
-  return <ContractP params={params} />;
+  return (
+    <ContractP
+      params={{
+        address: params.address,
+        chainId: parseInt(params.chainId),
+      }}
+    />
+  );
 };
 export default ContractPage;

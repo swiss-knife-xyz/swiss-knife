@@ -85,11 +85,15 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
           }, 300);
         }
       } else if (isAddress(__userInput)) {
-        const newUrl = `${getPath(
-          subdomains.EXPLORER.base
-        )}address/${__userInput}${
-          pathname.includes("/contract") ? "/contract" : ""
-        }`;
+        let newUrl: string;
+
+        if (!pathname.includes("/contract")) {
+          newUrl = `${getPath(subdomains.EXPLORER.base)}address/${__userInput}`;
+        } else {
+          newUrl = `${getPath(
+            subdomains.EXPLORER.base
+          )}contract/${__userInput}/${segments[2]}`;
+        }
         if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
           router.push(newUrl);
         } else {
@@ -114,7 +118,7 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
             const newUrl = `${getPath(
               subdomains.EXPLORER.base
             )}address/${ensResolvedAddress}${
-              pathname.includes("/contract") ? "/contract" : ""
+              pathname.includes("/contract") ? `/contract/${segments[2]}` : ""
             }`;
             if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
               router.push(newUrl);
@@ -197,13 +201,14 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
 
   const SidebarItems: SidebarItem[] = [
     { name: "Explorers", path: `address/${userInputFromUrl}` },
-    // { name: "Contract", path: `address/${userInputFromUrl}/contract` },
+    { name: "Contract", path: `contract/${userInputFromUrl}/1` },
   ];
 
   return (
     <Layout>
       <HStack alignItems={"stretch"} h="full">
-        {pathname.includes("/address/") && (
+        {(pathname.includes("/address/") ||
+          pathname.includes("/contract/")) && (
           <Sidebar
             heading="Explorer"
             items={SidebarItems}
