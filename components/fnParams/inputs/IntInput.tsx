@@ -58,6 +58,8 @@ export const IntInput = ({
   const buttonClickedRef = useRef<boolean>(false);
 
   // State
+  const [displayValue, setDisplayValue] = useState<string>("");
+  const [internalValue, setInternalValue] = useState<string>(value || "");
   const [selectedEthFormatOption, setSelectedEthFormatOption] =
     useState<ETHSelectedOptionState>({
       label: ethFormatOptions[0],
@@ -85,6 +87,21 @@ export const IntInput = ({
   const [futureTimeInputError, setFutureTimeInputError] = useState(false);
 
   // Effects
+
+  // Add new effect to handle initial value
+  useEffect(() => {
+    if (value) {
+      handleValueUpdate(value, selectedEthFormatOption);
+    }
+  }, []);
+
+  // Add new effect to sync value changes from parent
+  useEffect(() => {
+    if (value !== internalValue) {
+      handleValueUpdate(value || "", selectedEthFormatOption);
+    }
+  }, [value]);
+
   useEffect(() => {
     handleEthFormatOptionChange();
   }, [selectedEthFormatOption]);
@@ -93,15 +110,45 @@ export const IntInput = ({
     handleUnixTimeUpdate();
   }, [selectedEthFormatOption]);
 
-  useEffect(() => {
-    if (selectedEthFormatOption.value !== ethFormatOptions[0]) {
-      setFunctionIsDisabled(true);
-    } else {
-      setFunctionIsDisabled(false);
-    }
-  }, [selectedEthFormatOption]);
+  // useEffect(() => {
+  //   if (selectedEthFormatOption.value !== ethFormatOptions[0]) {
+  //     setFunctionIsDisabled(true);
+  //   } else {
+  //     setFunctionIsDisabled(false);
+  //   }
+  // }, [selectedEthFormatOption]);
 
   // Handlers
+  const handleValueUpdate = (
+    newValue: string,
+    format: ETHSelectedOptionState
+  ) => {
+    try {
+      // Convert the value to the display format
+      if (format.value !== "Wei") {
+        const weiAmount = newValue;
+        const convertedValue = convertTo(format, weiAmount);
+
+        if (format.value === "Bps ↔️ %") {
+          setDisplayValue(convertedValue.slice(0, -1));
+        } else if (format.value === "Unix Time") {
+          setDisplayValue(
+            convertGMTToUnixSeconds(convertedValue.toString()).toString()
+          );
+        } else {
+          setDisplayValue(convertedValue);
+        }
+      } else {
+        setDisplayValue(newValue);
+      }
+      setInternalValue(newValue);
+    } catch (e) {
+      console.error("Error converting value:", e);
+      setDisplayValue(newValue);
+      setInternalValue(newValue);
+    }
+  };
+
   const handleEthFormatOptionChange = () => {
     if (buttonClickedRef.current) {
       buttonClickedRef.current = false;
@@ -115,30 +162,55 @@ export const IntInput = ({
       prevValueRef.current !== "0"
     ) {
       setIsAnimating(true);
-      let convertedValue = value;
       try {
+        // Convert current display value back to Wei
         const weiAmount = convertFrom(
           {
             label: prevValueRef.current as EthFormatOption,
             value: prevValueRef.current as EthFormatOption,
           },
-          value
+          displayValue
         );
-        convertedValue = convertTo(selectedEthFormatOption, weiAmount);
+
+        // Convert Wei to new format for display
+        const newDisplayValue = convertTo(selectedEthFormatOption, weiAmount);
 
         if (selectedEthFormatOption.value === "Bps ↔️ %") {
-          convertedValue = convertedValue?.slice(0, -1);
+          setDisplayValue(newDisplayValue.slice(0, -1));
         } else if (selectedEthFormatOption.value === "Unix Time") {
-          convertedValue = convertGMTToUnixSeconds(
-            convertedValue?.toString() ?? ""
-          ).toString();
+          setDisplayValue(
+            convertGMTToUnixSeconds(newDisplayValue.toString()).toString()
+          );
+        } else {
+          setDisplayValue(newDisplayValue);
         }
-      } catch {}
 
-      onChange({ target: { value: convertedValue } } as any);
+        // Update the internal value
+        onChange({ target: { value: weiAmount } } as any);
+        setInternalValue(weiAmount);
+      } catch (e) {
+        setIsError(true);
+        setErrorMsg(getErrorMessage(e));
+      }
       setTimeout(() => setIsAnimating(false), animationDuration);
     }
     prevValueRef.current = selectedEthFormatOption?.value?.toString() ?? "0";
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDisplayValue = e.target.value;
+    setDisplayValue(newDisplayValue);
+    setIsError(false);
+
+    try {
+      // Convert display value to Wei
+      const weiValue = convertFrom(selectedEthFormatOption, newDisplayValue);
+      setInternalValue(weiValue);
+      onChange({ target: { value: weiValue } } as any);
+    } catch (e) {
+      setIsError(true);
+      setErrorMsg(getErrorMessage(e));
+    }
   };
 
   const handleUnixTimeUpdate = () => {
@@ -274,17 +346,14 @@ export const IntInput = ({
         }
         pl={selectedEthFormatOption?.value === "Bps ↔️ %" ? "14" : undefined}
         bg={isDelayedAnimating ? "bg.900" : undefined}
-        value={value}
+        value={displayValue}
         type={
           selectedEthFormatOption?.value === "Unix Time"
             ? "date-time"
             : "number"
         }
         placeholder=""
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          setIsError(false);
-          onChange(e);
-        }}
+        onChange={handleInputChange}
         onWheel={() => {}}
         {...props}
         isInvalid={isInvalid || isError}
@@ -455,7 +524,7 @@ export const IntInput = ({
             value: str,
           }))}
         />
-        {selectedEthFormatOption && selectedEthFormatOption.value !== "Wei" && (
+        {/* {selectedEthFormatOption && selectedEthFormatOption.value !== "Wei" && (
           <Button
             p={5}
             size="sm"
@@ -471,7 +540,7 @@ export const IntInput = ({
                 : "Wei"}
             </Box>
           </Button>
-        )}
+        )} */}
       </HStack>
       {selectedEthFormatOption.value === "Unix Time" &&
         renderUnixTimeControls()}
