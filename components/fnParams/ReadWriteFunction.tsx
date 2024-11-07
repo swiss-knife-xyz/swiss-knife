@@ -42,6 +42,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { slicedText } from "@/utils";
 import { getTransactionError, getContractError } from "viem/utils";
 import { config } from "@/app/providers";
+import { WriteButton } from "../WriteButton";
 
 interface ReadWriteFunctionProps {
   client: PublicClient;
@@ -146,7 +147,7 @@ const EnhancedFunctionOutput: React.FC<{
   );
 };
 
-enum WriteButtonType {
+export enum WriteButtonType {
   Write = "Write",
   CallAsViewFn = "Call as View Fn",
   SimulateOnTenderly = "Simulate on Tenderly",
@@ -429,6 +430,7 @@ export const ReadWriteFunction = ({
     ]
   );
 
+  // FIXME: make functional
   const simulateOnTenderly = useCallback(async () => {
     if (isError) {
       setIsError(false);
@@ -643,85 +645,24 @@ export const ReadWriteFunction = ({
           </Button>
         )}
         {type === "write" && (
-          <HStack
-            bg={!isError ? "blue.200" : "red.200"}
-            rounded="lg"
-            spacing={0}
-          >
-            {(!userAddress && writeButtonType === WriteButtonType.Write) ||
-            (chain && chain.id !== chainId) ? (
-              <ConnectButton expectedChainId={chainId} hideAccount />
-            ) : (
-              <Button
-                px={4}
-                onClick={
-                  writeButtonType === WriteButtonType.Write
-                    ? writeFunction
-                    : writeButtonType === WriteButtonType.CallAsViewFn
-                    ? () => callAsReadFunction()
-                    : simulateOnTenderly
-                }
-                isDisabled={
-                  (inputs &&
-                    inputs.some((_, i) => functionIsDisabled[i] === true)) ||
-                  payableETHIsDisabled
-                }
-                isLoading={loading}
-                size={"sm"}
-                title={"write"}
-                colorScheme={!isError ? "blue" : "red"}
-              >
-                {writeButtonType}
-              </Button>
-            )}
-            <Menu>
-              <MenuButton
-                as={IconButton}
-                aria-label="Options"
-                icon={<ChevronDownIcon />}
-                variant="outline"
-                size={"xs"}
-                color="blue.800"
-                borderLeftColor="blue.800"
-                borderLeftRadius={0}
-              />
-              <MenuList bg="gray.800">
-                <MenuItem
-                  color="white"
-                  bg="gray.800"
-                  _hover={{ bg: "gray.700" }}
-                  onClick={() => {
-                    setWriteButtonType(WriteButtonType.Write);
-                    setIsError(false);
-                  }}
-                >
-                  Write
-                </MenuItem>
-                <MenuItem
-                  color="white"
-                  bg="gray.800"
-                  _hover={{ bg: "gray.700" }}
-                  onClick={() => {
-                    setWriteButtonType(WriteButtonType.CallAsViewFn);
-                    setIsError(false);
-                  }}
-                >
-                  Call as View Fn
-                </MenuItem>
-                <MenuItem
-                  color="white"
-                  bg="gray.800"
-                  _hover={{ bg: "gray.700" }}
-                  onClick={() => {
-                    setWriteButtonType(WriteButtonType.SimulateOnTenderly);
-                    setIsError(false);
-                  }}
-                >
-                  Simulate on Tenderly
-                </MenuItem>
-              </MenuList>
-            </Menu>
-          </HStack>
+          <WriteButton
+            isError={isError}
+            userAddress={userAddress}
+            writeButtonType={writeButtonType}
+            chain={chain}
+            chainId={chainId}
+            writeFunction={writeFunction}
+            callAsReadFunction={callAsReadFunction}
+            simulateOnTenderly={simulateOnTenderly}
+            isDisabled={
+              (inputs &&
+                inputs.some((_, i) => functionIsDisabled[i] === true)) ||
+              payableETHIsDisabled
+            }
+            loading={loading}
+            setWriteButtonType={setWriteButtonType}
+            setIsError={setIsError}
+          />
         )}
       </HStack>
       {/* Function Selector */}

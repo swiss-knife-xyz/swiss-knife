@@ -34,6 +34,7 @@ import { ReadWriteFunction } from "@/components/fnParams/ReadWriteFunction";
 import { slicedText } from "@/utils";
 import { ABIFunction } from "@shazow/whatsabi/lib.types/abi";
 import { StorageSlot } from "../fnParams/StorageSlot";
+import { RawCalldata } from "../fnParams/RawCalldata";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -376,6 +377,14 @@ const ReadWriteSection = ({
             readAllCollapsed={allCollapsed}
           />
         )}
+        {client && type === "write" && (
+          <RawCalldata
+            readAllCollapsed={allCollapsed}
+            chainId={chainId}
+            address={address}
+            client={client}
+          />
+        )}
         {client &&
           functions?.map((func, index) => (
             <Box key={index} ref={(el) => (functionRefs.current[index] = el)}>
@@ -395,7 +404,7 @@ const ReadWriteSection = ({
                 <ReadWriteFunction
                   key={index}
                   client={client}
-                  index={index}
+                  index={index + 1}
                   type={"write"}
                   func={getFunc(func, index)}
                   address={address}
@@ -483,7 +492,7 @@ export const ContractPage = ({
                 `selector: ${(fragment as ABIFunction).selector}`,
               stateMutability: evmole.functionStateMutability(
                 contractCode,
-                fragment.selector,
+                (fragment as ABIFunction).selector,
                 0
               ),
             }))
