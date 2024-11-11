@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { DarkSelect } from "@/components/DarkSelect";
 import {
@@ -31,10 +31,11 @@ import { whatsabi } from "@shazow/whatsabi";
 import { fetchContractAbi } from "@/lib/decoder";
 import { ConnectButton } from "@/components/ConnectButton";
 import { ReadWriteFunction } from "@/components/fnParams/ReadWriteFunction";
-import { slicedText } from "@/utils";
+import { getPath, slicedText } from "@/utils";
 import { ABIFunction } from "@shazow/whatsabi/lib.types/abi";
 import { StorageSlot } from "../fnParams/StorageSlot";
 import { RawCalldata } from "../fnParams/RawCalldata";
+import subdomains from "@/subdomains";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -428,6 +429,8 @@ export const ContractPage = ({
     chainId: number;
   };
 }) => {
+  const router = useRouter();
+
   const networkOptionsIndex = networkOptions.findIndex(
     (option) => option.value === chainId
   );
@@ -522,7 +525,11 @@ export const ContractPage = ({
   useEffect(() => {
     if (selectedNetworkOption) {
       const newChainId = parseInt(selectedNetworkOption.value.toString());
-      // FIXME: set chain id in the url
+
+      router.push(
+        `${getPath(subdomains.EXPLORER.base)}contract/${address}/${newChainId}`
+      );
+
       setClient(
         createPublicClient({
           chain: chainIdToChain[newChainId],

@@ -220,7 +220,7 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
           <Heading fontSize={"4xl"}>
             <NLink href={getPath(subdomains.EXPLORER.base)}>Explorer</NLink>
           </Heading>
-          <HStack mt="1rem" w="60%">
+          <HStack mt="1rem" w="45%">
             <Heading fontSize={"xl"}>Search Address or Transaction</Heading>{" "}
             <Spacer />
           </HStack>
