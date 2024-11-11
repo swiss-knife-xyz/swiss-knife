@@ -43,7 +43,9 @@ export const WriteButton = ({
   return (
     <HStack bg={!isError ? "blue.200" : "red.200"} rounded="lg" spacing={0}>
       {(!userAddress && writeButtonType === WriteButtonType.Write) ||
-      (chain && chain.id !== chainId) ? (
+      (writeButtonType !== WriteButtonType.SimulateOnTenderly &&
+        chain &&
+        chain.id !== chainId) ? (
         <ConnectButton expectedChainId={chainId} hideAccount />
       ) : (
         <Button

@@ -9,21 +9,28 @@ import {
   Box,
   Button,
   Center,
+  chakra,
   HStack,
   IconButton,
   Link,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuList,
+  List,
+  ListItem,
+  Text,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Skeleton,
   Spinner,
+  Tooltip,
+  Input,
 } from "@chakra-ui/react";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
   ExternalLinkIcon,
+  InfoIcon,
   RepeatIcon,
+  SettingsIcon,
 } from "@chakra-ui/icons";
 import { useWalletClient, useAccount } from "wagmi";
 import { waitForTransactionReceipt } from "@wagmi/core";
@@ -34,15 +41,20 @@ import {
   Hex,
   encodeFunctionData,
   Abi,
+  toHex,
 } from "viem";
-import { InputInfo, IntInput } from "@/components/fnParams/inputs";
+import {
+  AddressInput,
+  InputInfo,
+  IntInput,
+} from "@/components/fnParams/inputs";
 import { ExtendedJsonFragmentType, HighlightedContent } from "@/types";
 import { renderInputFields, renderParamTypes } from "./Renderer";
-import { ConnectButton } from "@/components/ConnectButton";
 import { slicedText } from "@/utils";
 import { getTransactionError, getContractError } from "viem/utils";
 import { config } from "@/app/providers";
 import { WriteButton } from "../WriteButton";
+import axios from "axios";
 
 interface ReadWriteFunctionProps {
   client: PublicClient;
@@ -195,6 +207,11 @@ export const ReadWriteFunction = ({
       ]
     : [];
 
+  let tenderlyForkIdCache: string | null = null;
+  if (localStorage !== undefined) {
+    tenderlyForkIdCache = localStorage.getItem("tenderlyForkId");
+  }
+
   const [fnSelector, setFnSelector] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
     readAllCollapsed !== undefined ? readAllCollapsed : false
@@ -207,8 +224,15 @@ export const ReadWriteFunction = ({
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
     WriteButtonType.Write
   );
+  const [settingsIsOpen, setSettingsIsOpen] = useState<boolean>(false);
+  const [tenderlyForkId, setTenderlyForkId] = useState<string>(
+    tenderlyForkIdCache ?? ""
+  );
+  const [settingsSenderAddr, setSettingsSenderAddr] = useState<string>("");
 
   const [res, setRes] = useState<any>(null);
+  const [txIsTenderlySimulation, setTxIsTenderlySimulation] =
+    useState<boolean>(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [confirmedTxHash, setConfirmedTxHash] = useState<string | null>(null);
 
@@ -321,6 +345,7 @@ export const ReadWriteFunction = ({
 
         setLoading(false);
 
+        setTxIsTenderlySimulation(false);
         setTxHash(hash);
 
         await waitForTransactionReceipt(config, {
@@ -430,53 +455,69 @@ export const ReadWriteFunction = ({
     ]
   );
 
-  // FIXME: make functional
   const simulateOnTenderly = useCallback(async () => {
     if (isError) {
       setIsError(false);
     }
 
-    if (functionName && walletClient) {
+    if (tenderlyForkId.trim().length === 0) {
+      // open the settings
+      setSettingsIsOpen(true);
+    } else {
       setLoading(true);
       setTxHash(null);
       setConfirmedTxHash(null);
 
-      try {
-        // encode calldata
-        const calldata = await encodeFunctionData({
-          abi: [_func] as const,
-          functionName: functionName,
-          args: inputs?.map((input, i) => inputsState[i]),
-        });
+      const abi = [_func] as unknown as Abi;
+      const args = inputs?.map((input, i) => inputsState[i]);
 
-        // send transaction to wallet
-        const hash = await walletClient.sendTransaction({
-          to: address as Hex,
-          data: calldata,
-          value: BigInt(payableETH),
-        });
+      // send transaction to tenderly fork
+      try {
+        const { data: res } = await axios.post(
+          "https://rpc.tenderly.co/fork/" + tenderlyForkId.trim(),
+          {
+            jsonrpc: "2.0",
+            // current unix timestamp as id
+            id: Math.floor(Date.now() / 1000),
+            method: "eth_sendTransaction",
+            params: [
+              {
+                from:
+                  settingsSenderAddr.length > 0
+                    ? settingsSenderAddr
+                    : userAddress,
+                to: address,
+                value: toHex(payableETH),
+                data: encodeFunctionData({
+                  abi,
+                  functionName,
+                  args,
+                }),
+              },
+            ],
+          }
+        );
+        console.log({ res });
+
+        if (res.error) {
+          throw new Error(res.error);
+        }
 
         setLoading(false);
 
-        setTxHash(hash);
-
-        await waitForTransactionReceipt(config, {
-          hash,
-        });
-
-        setConfirmedTxHash(hash);
+        setTxIsTenderlySimulation(true);
+        setTxHash(res.result);
+        setConfirmedTxHash(res.result);
       } catch (e: any) {
         console.error(e);
         setIsError(true);
-
         setRes(null);
 
-        setErrorMsg(
-          getTransactionError(e, {
-            account: walletClient.account,
-            docsPath: "",
-          }).shortMessage
-        );
+        if (e.message) {
+          setErrorMsg(e.message);
+        } else {
+          setErrorMsg("Error simulating on Tenderly");
+        }
       } finally {
         setLoading(false);
       }
@@ -490,6 +531,7 @@ export const ReadWriteFunction = ({
     inputs,
     inputsState,
     payableETH,
+    tenderlyForkId,
   ]);
 
   useEffect(() => {
@@ -521,6 +563,21 @@ export const ReadWriteFunction = ({
   useEffect(() => {
     setIsCollapsed(readAllCollapsed !== undefined ? readAllCollapsed : false);
   }, [readAllCollapsed]);
+
+  // keep local storage in sync for tenderly fork id
+  useEffect(() => {
+    localStorage.setItem("tenderlyForkId", tenderlyForkId);
+  }, [tenderlyForkId]);
+
+  // open settings modal if tenderly fork id is not set
+  useEffect(() => {
+    if (
+      writeButtonType === WriteButtonType.SimulateOnTenderly &&
+      tenderlyForkId.length === 0
+    ) {
+      setSettingsIsOpen(true);
+    }
+  }, [writeButtonType]);
 
   const renderHighlightedText = (content: HighlightedContent): ReactNode => {
     if (typeof content === "string") {
@@ -664,6 +721,91 @@ export const ReadWriteFunction = ({
             setIsError={setIsError}
           />
         )}
+        {type === "write" &&
+          writeButtonType === WriteButtonType.SimulateOnTenderly && (
+            <Popover
+              placement="bottom-start"
+              isOpen={settingsIsOpen}
+              onOpen={() => setSettingsIsOpen(true)}
+              onClose={() => setSettingsIsOpen(false)}
+            >
+              <PopoverTrigger>
+                <Box>
+                  <Button size="sm">
+                    <SettingsIcon
+                      transition="900ms rotate ease-in-out"
+                      transform={
+                        settingsIsOpen ? "rotate(33deg)" : "rotate(0deg)"
+                      }
+                    />
+                  </Button>
+                </Box>
+              </PopoverTrigger>
+              <PopoverContent
+                border={"1px solid"}
+                borderColor={"whiteAlpha.400"}
+                bg="bg.900"
+                boxShadow="xl"
+                rounded="xl"
+                overflowY="auto"
+              >
+                <Box px="1rem" py="1rem">
+                  <HStack>
+                    <Text>Tenderly Fork Id:</Text>
+                    <Tooltip
+                      label={
+                        <>
+                          <Text>
+                            Simulate sending transactions on forked node.
+                          </Text>
+                          <chakra.hr bg="gray.400" />
+                          <List>
+                            <ListItem>
+                              Create a fork on Tenderly and grab it&apos;s id
+                              from the URL.
+                            </ListItem>
+                          </List>
+                        </>
+                      }
+                      hasArrow
+                      placement="top"
+                    >
+                      <InfoIcon />
+                    </Tooltip>
+                  </HStack>
+                  <Input
+                    mt="0.5rem"
+                    aria-label="fork-rpc"
+                    placeholder="xxxx-xxxx-xxxx-xxxx"
+                    autoComplete="off"
+                    value={tenderlyForkId}
+                    onChange={(e) => {
+                      setTenderlyForkId(e.target.value);
+                    }}
+                  />
+                  <Box mt={4}>
+                    <AddressInput
+                      input={{
+                        name: "(optional) Sender",
+                        type: "address",
+                      }}
+                      value={settingsSenderAddr}
+                      chainId={chainId}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setSettingsSenderAddr(e.target.value);
+                      }}
+                      onKeyDown={(
+                        e: React.KeyboardEvent<HTMLInputElement>
+                      ) => {}}
+                      isInvalid={false}
+                      setFunctionIsDisabled={() => {}}
+                      hideTags
+                    />
+                  </Box>
+                </Box>
+              </PopoverContent>
+            </Popover>
+          )}
       </HStack>
       {/* Function Selector */}
       {fnSelector && (
@@ -765,20 +907,31 @@ export const ReadWriteFunction = ({
 
         {confirmedTxHash && (
           <Box mt={4} ml={4}>
-            <HStack p={4} bg="green.500" rounded={"md"}>
-              <Box fontWeight={"bold"}>✅ Transaction confirmed:</Box>
-              <Box>
-                <Link
-                  href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash}`}
-                  isExternal
-                >
-                  <HStack>
+            <Box p={4} bg="green.500" rounded={"md"}>
+              <HStack>
+                <Box fontWeight={"bold"}>✅ Transaction confirmed:</Box>
+                <Box>
+                  {txIsTenderlySimulation ? (
                     <Box>{slicedText(confirmedTxHash, 10)}</Box>
-                    <ExternalLinkIcon />
-                  </HStack>
-                </Link>
-              </Box>
-            </HStack>
+                  ) : (
+                    <Link
+                      href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash}`}
+                      isExternal
+                    >
+                      <HStack>
+                        <Box>{slicedText(confirmedTxHash, 10)}</Box>
+                        <ExternalLinkIcon />
+                      </HStack>
+                    </Link>
+                  )}
+                </Box>
+              </HStack>
+              {txIsTenderlySimulation && (
+                <Center fontSize={"sm"}>
+                  (view on your tenderly dashboard)
+                </Center>
+              )}
+            </Box>
           </Box>
         )}
         {isError && errorMsg && (

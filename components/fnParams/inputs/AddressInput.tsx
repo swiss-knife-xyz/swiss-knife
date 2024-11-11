@@ -36,6 +36,7 @@ interface InputFieldProps extends InputProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFunctionIsDisabled?: (value: boolean) => void;
+  hideTags?: boolean;
 }
 
 export const AddressInput = ({
@@ -45,6 +46,7 @@ export const AddressInput = ({
   onChange,
   isInvalid,
   setFunctionIsDisabled,
+  hideTags,
   ...rest
 }: InputFieldProps) => {
   const { address: userAddress } = useAccount();
@@ -67,6 +69,7 @@ export const AddressInput = ({
     debounce(async (val: string) => {
       if (val === lastResolvedValue) return; // Prevent re-resolution of already resolved values
       setErrorResolving(false);
+      console.log({ val });
       try {
         if (val.includes(".eth")) {
           setIsResolving(true);
@@ -82,12 +85,18 @@ export const AddressInput = ({
             throw new Error("ENS resolution failed");
           }
         } else if (val.length === 42) {
-          const name = await getEnsName(val);
-          if (name) {
-            setEnsName(name);
-            setResolvedAddress(val);
-            setLastResolvedValue(val);
-          } else {
+          try {
+            const name = await getEnsName(val);
+            if (name) {
+              setEnsName(name);
+              setResolvedAddress(val);
+              setLastResolvedValue(val);
+            } else {
+              setEnsName("");
+              setResolvedAddress(val);
+              setLastResolvedValue(val);
+            }
+          } catch {
             setEnsName("");
             setResolvedAddress(val);
             setLastResolvedValue(val);
@@ -169,10 +178,10 @@ export const AddressInput = ({
   }, [value, resolveEns, lastResolvedValue]);
 
   useEffect(() => {
-    if (value && value !== lastResolvedValue) {
+    if (value && value !== lastResolvedValue && !hideTags) {
       fetchSetAddressLabels(value);
     }
-  }, [value, fetchSetAddressLabels, lastResolvedValue, chainId]);
+  }, [value, hideTags, fetchSetAddressLabels, lastResolvedValue, chainId]);
 
   useEffect(() => {
     if (ensName) {
