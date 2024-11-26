@@ -36,8 +36,13 @@ import {
 } from "next-usequerystate";
 import { createPublicClient, http, Hex, Chain, stringify } from "viem";
 import { DecodeRecursiveResult, SelectedOptionState } from "@/types";
-import { c, chainIdToChain, networkOptions } from "@/data/common";
-import { startHexWith0x } from "@/utils";
+import {
+  c,
+  chainIdToChain,
+  erc3770ShortNameToChain,
+  networkOptions,
+} from "@/data/common";
+import { resolveERC3770Address, startHexWith0x } from "@/utils";
 
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
@@ -98,7 +103,11 @@ export const CalldataDecoderPage = () => {
   useEffect(() => {
     if (calldataFromURL && addressFromURL) {
       setSelectedTabIndex(2);
-      decode({});
+      decode({
+        _address: addressFromURL,
+        _chainId:
+          chainIdFromURL === null ? undefined : parseInt(chainIdFromURL),
+      });
     } else if (calldataFromURL) {
       decode({});
     } else if (txFromURL) {
@@ -110,8 +119,18 @@ export const CalldataDecoderPage = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (selectedTabIndex === 3) {
+  useUpdateEffect(() => {
+    if (selectedTabIndex === 0) {
+      setContractAddress(null);
+      setChainId(null);
+      setFromTxInput(null);
+    } else if (selectedTabIndex === 1) {
+      setContractAddress(null);
+      setChainId(null);
+      setFromTxInput(null);
+    } else if (selectedTabIndex === 2) {
+      setFromTxInput(null);
+    } else if (selectedTabIndex === 3) {
       setCalldata(null);
       setContractAddress(null);
     }
@@ -313,12 +332,27 @@ export const CalldataDecoderPage = () => {
     return (
       <>
         <Tr>
-          <Label>Contract Address</Label>
+          <Label>
+            <Box>Contract Address</Box>
+            <Box fontSize={"xs"} opacity={"0.6"}>
+              (accepts <b>eth:0xabc123...</b>)
+            </Box>
+          </Label>
           <Td>
             <InputField
               placeholder="Address"
               value={contractAddress}
-              onChange={(e) => setContractAddress(e.target.value)}
+              onChange={(e) => {
+                const input = e.target.value;
+                const res = resolveERC3770Address(input);
+                setContractAddress(res.address);
+                if (res.chainId) {
+                  const _networkIndex = networkOptions.findIndex(
+                    (option) => option.value === res.chainId
+                  );
+                  setSelectedNetworkOption(networkOptions[_networkIndex]);
+                }
+              }}
             />
           </Td>
         </Tr>
@@ -535,7 +569,14 @@ export const CalldataDecoderPage = () => {
               />
             </HStack>
           ) : null}
-          <Stack mt={2} p={4} spacing={4} bg={"whiteAlpha.50"} rounded={"lg"}>
+          <Stack
+            mt={2}
+            p={4}
+            spacing={4}
+            minW="40rem"
+            bg={"whiteAlpha.50"}
+            rounded={"lg"}
+          >
             {result.args.map((arg, i: number) => {
               return renderParams(i, arg, chainId);
             })}

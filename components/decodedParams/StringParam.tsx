@@ -91,7 +91,7 @@ export const StringParam = ({ value: _value }: Params) => {
           value={value}
           isReadOnly
           resize={"both"}
-          rows={5}
+          rows={2}
           placeholder=""
           w="full"
         />

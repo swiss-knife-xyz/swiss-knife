@@ -1,5 +1,5 @@
 import { SingleValue } from "chakra-react-select";
-import { JsonFragmentType } from "ethers";
+import { JsonFragmentType, TransactionDescription } from "ethers";
 
 export interface SelectedOption {
   label: string;
@@ -58,6 +58,10 @@ export type DecodeArrayParamResult =
       value: DecodeParamTypesResult;
     }[];
 
+export interface ParsedTransaction extends TransactionDescription {
+  txType?: "safeMultiSend";
+}
+
 export type DecodeParamTypesResult =
   | string
   | DecodeBytesParamResult
@@ -90,4 +94,21 @@ export type HighlightedContent = string | HighlightedText[];
 export interface ExtendedJsonFragmentType
   extends Omit<JsonFragmentType, "name"> {
   name?: HighlightedContent;
+}
+
+export interface SourceCode {
+  sources: Record<string, { content: string }>;
+}
+
+export interface ContractResult {
+  SourceCode: string;
+  ContractName: string;
+  ABI: string;
+  Implementation: string;
+}
+
+export interface ContractResponse {
+  status: string;
+  message: string;
+  result: ContractResult[];
 }

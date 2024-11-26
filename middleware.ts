@@ -16,9 +16,10 @@ export default async function middleware(
   );
 
   // if the request isn't rate limited, continue
-  const res = success
-    ? NextResponse.next()
-    : NextResponse.redirect(new URL("/api/blocked", request.url));
+  const res =
+    success || process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+      ? NextResponse.next()
+      : NextResponse.redirect(new URL("/api/blocked", request.url));
 
   res.headers.set("X-RateLimit-Limit", limit.toString());
   res.headers.set("X-RateLimit-Remaining", remaining.toString());
@@ -27,5 +28,5 @@ export default async function middleware(
 }
 
 export const config = {
-  matcher: "\/api\/(.*)",
+  matcher: "/api/(.*)",
 };

@@ -12,6 +12,7 @@ import {
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
+  fetchContractAbi,
   getEnsAddress,
   getEnsAvatar,
   getEnsName,
@@ -28,7 +29,6 @@ import { InputField } from "@/components/InputField";
 import { Address, createPublicClient, http, zeroAddress, erc20Abi } from "viem";
 import axios from "axios";
 import { chainIdToChain } from "@/data/common";
-import { fetchContractAbi } from "@/lib/decoder";
 
 interface InputFieldProps extends InputProps {
   chainId: number;

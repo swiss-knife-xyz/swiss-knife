@@ -10,8 +10,9 @@ import {
   DecodeParamTypesResult,
   DecodeRecursiveResult,
   DecodeTupleParamResult,
+  ParsedTransaction,
 } from "@/types";
-import { startHexWith0x } from "@/utils";
+import { fetchContractAbi, startHexWith0x } from "@/utils";
 import { guessAbiEncodedData, guessFragment } from "@openchainxyz/abi-guesser";
 import {
   AbiCoder,
@@ -22,7 +23,7 @@ import {
   Result,
   TransactionDescription,
 } from "ethers";
-import { hexToBigInt } from "viem";
+import { encodeFunctionData, Hex, hexToBigInt } from "viem";
 
 export async function decodeWithAddress({
   calldata,
@@ -35,7 +36,10 @@ export async function decodeWithAddress({
 }): Promise<TransactionDescription | null> {
   console.log(`Decoding calldata with address ${address} on chain ${chainId}`);
   try {
-    const fetchedAbi = await fetchContractAbi({ address, chainId });
+    const fetchedAbi = await fetchContractAbi({
+      address,
+      chainId,
+    });
     const decodedFromAbi = decodeWithABI({
       abi: fetchedAbi.abi,
       calldata,
@@ -179,13 +183,14 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
     }
 
     const result = {
+      txType: "safeMultiSend",
       name: "",
       args: new Result(txs),
       signature: "transactions(tuple(uint256,address,uint256,uint256,bytes)[])",
       selector: "",
       value: BigInt(0),
       fragment: {
-        name: "transactions",
+        name: "SafeMultiSend transactions",
         type: "function",
         stateMutability: "nonpayable",
         inputs: [
@@ -499,24 +504,6 @@ const decodeUniversalRouterCommands = (calldata: string) => {
   }
 };
 
-export async function fetchContractAbi({
-  address,
-  chainId,
-}: {
-  address: string;
-  chainId: number;
-}) {
-  const response = await fetch(
-    `https://anyabi.xyz/api/get-abi/${chainId}/${address}`
-  );
-  const data = await response.json();
-  const parsedData = fetchContractAbiResponseSchema.parse(data);
-  return {
-    abi: parsedData.abi as InterfaceAbi,
-    name: parsedData.name,
-  };
-}
-
 export async function fetchFunctionInterface({
   selector,
 }: {
@@ -625,14 +612,18 @@ export async function decodeRecursive({
   address,
   chainId,
   abi,
+  encodedAbi,
 }: {
   calldata: string;
   address?: string;
   chainId?: number;
   abi?: any;
+  encodedAbi?: any;
 }): Promise<DecodeRecursiveResult> {
-  let parsedTransaction: TransactionDescription | null;
-  if (abi) {
+  let parsedTransaction: ParsedTransaction | null;
+  if (encodedAbi) {
+    parsedTransaction = decodeWithABI({ abi: encodedAbi, calldata });
+  } else if (abi) {
     parsedTransaction = decodeWithABI({ abi, calldata });
   } else if (address && chainId) {
     parsedTransaction = await decodeWithAddress({ calldata, address, chainId });
@@ -642,31 +633,103 @@ export async function decodeRecursive({
 
   console.log({ parsedTransaction });
 
+  // separate decoding for SafeMultiSend, using the `to` address to decode individual the calldatas
   if (parsedTransaction) {
-    return {
-      functionName: parsedTransaction.fragment.name,
-      signature: parsedTransaction.signature,
-      rawArgs: parsedTransaction.args,
-      args: await Promise.all(
-        parsedTransaction.fragment.inputs.map(async (input, i) => {
-          const value = parsedTransaction!.args[i];
+    if (parsedTransaction.txType === "safeMultiSend") {
+      return {
+        functionName: parsedTransaction.fragment.name,
+        signature: parsedTransaction.signature,
+        rawArgs: parsedTransaction.args,
+        args: await Promise.all(
+          parsedTransaction.args[0].map(async (tx: string[], i: number) => {
+            const to = tx[1];
+            const value = tx[2];
+            const calldata = tx[4];
 
-          return {
-            name: input.name,
-            baseType: input.baseType,
-            type: input.type,
-            rawValue: value,
-            value: await decodeParamTypes({
-              input,
-              value,
-              address,
-              chainId,
-              abi,
-            }),
-          };
-        })
-      ),
-    };
+            // encode to and calldata into new calldata
+            const encodedAbi = [
+              {
+                name: "tx",
+                type: "function",
+                stateMutability: "nonpayable",
+                inputs: [
+                  {
+                    name: "to",
+                    type: "address",
+                  },
+                  {
+                    name: "value",
+                    type: "uint256",
+                  },
+                  {
+                    name: "calldata",
+                    type: "bytes",
+                  },
+                ],
+                outputs: [],
+              },
+            ] as const;
+            const encodedCalldata = await encodeFunctionData({
+              abi: encodedAbi,
+              functionName: "tx",
+              args: [to as Hex, BigInt(value), calldata as Hex],
+            });
+
+            const fragment = FunctionFragment.from({
+              name: "tx",
+              type: "function",
+              stateMutability: "nonpayable",
+              inputs: [
+                {
+                  name: "encodedCalldata",
+                  type: "bytes",
+                },
+              ],
+              outputs: [],
+            });
+
+            return {
+              name: `tx #${i}`,
+              baseType: "bytes",
+              type: "bytes",
+              rawValue: `${to}, ${value}, ${calldata}`,
+              value: await decodeParamTypes({
+                input: fragment.inputs[0],
+                value: encodedCalldata,
+                address: to,
+                chainId,
+                encodedAbi,
+              }),
+            };
+          })
+        ),
+      };
+    } else {
+      return {
+        functionName: parsedTransaction.fragment.name,
+        signature: parsedTransaction.signature,
+        rawArgs: parsedTransaction.args,
+        args: await Promise.all(
+          parsedTransaction.fragment.inputs.map(async (input, i) => {
+            const value = parsedTransaction!.args[i];
+
+            return {
+              name: input.name,
+              baseType: input.baseType,
+              type: input.type,
+              rawValue: value,
+              value: await decodeParamTypes({
+                input,
+                value,
+                address,
+                chainId,
+                abi,
+              }),
+            };
+          })
+        ),
+      };
+    }
   } else {
     return null;
   }
@@ -678,12 +741,14 @@ const decodeParamTypes = async ({
   address,
   chainId,
   abi,
+  encodedAbi,
 }: {
   input: ParamType;
   value: any;
   address?: string;
   chainId?: number;
   abi?: any;
+  encodedAbi?: any;
 }): Promise<DecodeParamTypesResult> => {
   if (input.baseType.includes("int")) {
     // covers uint
@@ -691,7 +756,7 @@ const decodeParamTypes = async ({
   } else if (input.baseType === "address") {
     return value;
   } else if (input.baseType.includes("bytes")) {
-    return await decodeBytesParam({ value, address, chainId, abi });
+    return await decodeBytesParam({ value, address, chainId, abi, encodedAbi });
   } else if (input.baseType === "tuple") {
     return await decodeTupleParam({ input, value, address, chainId, abi });
   } else if (input.baseType === "array") {
@@ -706,11 +771,13 @@ const decodeBytesParam = async ({
   address,
   chainId,
   abi,
+  encodedAbi,
 }: {
   value: any;
   address?: string;
   chainId?: number;
   abi?: any;
+  encodedAbi?: any;
 }): Promise<DecodeBytesParamResult> => {
   console.log("decoding bytes param", {
     callData: value,
@@ -719,7 +786,13 @@ const decodeBytesParam = async ({
     abi,
   });
   return {
-    decoded: await decodeRecursive({ calldata: value, address, chainId, abi }),
+    decoded: await decodeRecursive({
+      calldata: value,
+      address,
+      chainId,
+      abi,
+      encodedAbi,
+    }),
   };
 };
 

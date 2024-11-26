@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { getMetadata } from "@/utils";
+import { fetchContractAbi, getMetadata } from "@/utils";
 // Putting the page into separate component as it uses "use client" which doesn't work with `generateMetadata`
 import { ContractPage as ContractP } from "@/components/pages/ContractPage";
 import { generateMetadata as layoutGenerateMetadata } from "./layout";
-import { fetchContractAbi } from "@/lib/decoder";
 
 interface PageProps {
   params: { address: string; chainId: number };

@@ -45,8 +45,9 @@ export type CalldataDecoderResponse = z.infer<
 >;
 
 export const fetchContractAbiResponseSchema = z.object({
-  abi: z.array(z.unknown()),
-  name: z.string(),
+  status: z.string(),
+  message: z.string(),
+  result: z.string().optional(),
 });
 
 export type FetchContractAbiResponse = z.infer<

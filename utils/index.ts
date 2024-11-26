@@ -2,8 +2,18 @@ import { Metadata } from "next";
 import { createPublicClient, http, Hex, parseEther, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { normalize } from "viem/ens";
-import { ADDRESS_KEY, CHAINLABEL_KEY, TX_KEY } from "@/data/common";
-import { ExplorerData, ExplorerType, SelectedOptionState } from "@/types";
+import {
+  ADDRESS_KEY,
+  CHAINLABEL_KEY,
+  erc3770ShortNameToChain,
+  TX_KEY,
+} from "@/data/common";
+import {
+  ContractResponse,
+  ExplorerData,
+  ExplorerType,
+  SourceCode,
+} from "@/types";
 import { formatEther, formatUnits } from "viem";
 
 export const getPath = (subdomain: string) => {
@@ -111,6 +121,7 @@ export const slicedText = (txt: string, charCount: number = 6) => {
     : txt;
 };
 import { NextRequest } from "next/server";
+import { InterfaceAbi } from "ethers";
 
 export default function getIP(request: Request | NextRequest) {
   const xff = request.headers.get("x-forwarded-for");
@@ -296,4 +307,123 @@ export const isValidJSON = (str: string): boolean => {
   } catch (e) {
     return false;
   }
+};
+
+export const getSourceCode = async (
+  chainId: number,
+  address: string
+): Promise<Record<string, string> | undefined> => {
+  const res = await fetch(
+    `${apiBasePath}/api/source-code?address=${address}&chainId=${chainId}`
+  );
+
+  try {
+    const data: ContractResponse = await res.json();
+    const { SourceCode, ContractName } = data.result[0];
+    const isMultiple = SourceCode.startsWith("{");
+    if (isMultiple) {
+      const { sources } = JSON.parse(
+        SourceCode.substring(1, SourceCode.length - 1)
+      ) as SourceCode;
+      return Object.keys(sources).reduce(
+        (acc, key) => ({ ...acc, [key]: sources[key].content }),
+        {}
+      );
+    } else {
+      return { [ContractName]: SourceCode };
+    }
+  } catch {}
+};
+
+export const fetchContractAbiRaw = async ({
+  address,
+  chainId,
+}: {
+  address: string;
+  chainId: number;
+}): Promise<{
+  abi: InterfaceAbi;
+  name: string;
+  implementation?: {
+    address: string;
+    abi: InterfaceAbi;
+    name: string;
+  };
+}> => {
+  const res = await fetch(
+    `${apiBasePath}/api/source-code?address=${address}&chainId=${chainId}`
+  );
+
+  const data: ContractResponse = await res.json();
+  const { ABI, ContractName, Implementation } = data.result[0];
+
+  if (Implementation.length > 0) {
+    const res = await fetch(
+      `${apiBasePath}/api/source-code?address=${Implementation}&chainId=${chainId}`
+    );
+
+    const implData: ContractResponse = await res.json();
+    const { ABI: implAbi, ContractName: implName } = implData.result[0];
+
+    return {
+      abi: JSON.parse(ABI),
+      name: ContractName,
+      implementation: {
+        address: Implementation,
+        abi: JSON.parse(implAbi),
+        name: implName,
+      },
+    };
+  } else {
+    return { abi: JSON.parse(ABI), name: ContractName };
+  }
+};
+
+export const fetchContractAbi = async ({
+  address,
+  chainId,
+}: {
+  address: string;
+  chainId: number;
+}): Promise<{
+  abi: InterfaceAbi;
+  name: string;
+}> => {
+  const { abi, name, implementation } = await fetchContractAbiRaw({
+    address,
+    chainId,
+  });
+
+  if (implementation) {
+    return { abi: implementation.abi, name: implementation.name };
+  } else {
+    return { abi, name };
+  }
+};
+
+export const resolveERC3770Address = (
+  input: string
+): {
+  chainId?: number;
+  address: string;
+} => {
+  // trim spaces
+  input = input.trim();
+  // trim quotes if the input starts or ends with quotes
+  input = input.replace(/^"|"$/g, "");
+
+  // split input like eth:0xabc123...
+  const parts = input.split(":");
+  if (parts.length !== 2) {
+    return { address: input };
+  }
+
+  const [shortName, address] = parts;
+
+  const chain = erc3770ShortNameToChain[shortName];
+  if (!chain) {
+    return { address: input };
+  }
+
+  return { chainId: chain.id, address };
 };

@@ -74,13 +74,17 @@ import {
   zoraTestnet,
   Chain,
 } from "viem/chains";
+import { _chains } from "./_chains";
 
 export const CHAINLABEL_KEY = "$SK_CHAINLABEL";
 export const ADDRESS_KEY = "$SK_ADDRESS";
 export const TX_KEY = "$SK_TX";
 
 export const c: { [name: string]: Chain } = {
-  mainnet,
+  mainnet: {
+    ...mainnet,
+    rpcUrls: { default: { http: ["https://rpc.ankr.com/eth"] } }, // add custom rpcs. cloudflare doesn't support publicClient.getTransaction
+  },
   arbitrum,
   arbitrumGoerli,
   arbitrumNova,
@@ -217,6 +221,25 @@ export const chainIdToChain = (() => {
 
   Object.values(c).map((chain) => {
     res[chain.id] = chain;
+  });
+
+  return res;
+})();
+
+// TODO: these should be placed in provider and memoized
+export const erc3770ShortNameToChain = (() => {
+  let res: {
+    [shortName: string]: Chain;
+  } = {};
+
+  Object.entries(c).forEach(([key, chain]) => {
+    const chainInfo = _chains.find(
+      (c: { chainId: number; shortName: string }) => c.chainId === chain.id
+    );
+
+    if (chainInfo) {
+      res[chainInfo.shortName] = chain;
+    }
   });
 
   return res;

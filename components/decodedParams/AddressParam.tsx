@@ -13,7 +13,7 @@ import {
   Link,
   Skeleton,
 } from "@chakra-ui/react";
-import { getEnsName, getEnsAvatar, getPath } from "@/utils";
+import { getEnsName, getEnsAvatar, getPath, fetchContractAbi } from "@/utils";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
 import subdomains from "@/subdomains";
@@ -22,7 +22,6 @@ import { motion } from "framer-motion";
 import { Address, createPublicClient, http } from "viem";
 import { chainIdToChain } from "@/data/common";
 import { erc20Abi } from "viem";
-import { fetchContractAbi } from "@/lib/decoder";
 
 interface Params {
   address: any;

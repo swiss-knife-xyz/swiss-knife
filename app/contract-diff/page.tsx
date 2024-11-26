@@ -25,7 +25,7 @@ import {
 } from "next-usequerystate";
 import { diffLines } from "diff";
 import { etherscanChains, chainIdToChain } from "@/data/common";
-import { apiBasePath } from "@/utils";
+import { getSourceCode } from "@/utils";
 import { Layout } from "@/components/Layout";
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
@@ -46,47 +46,6 @@ const networkOptions: { label: string; value: number }[] = Object.keys(
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_BASE_MAINNET = "0x4200000000000000000000000000000000000006";
-
-interface SourceCode {
-  sources: Record<string, { content: string }>;
-}
-
-interface ContractResult {
-  SourceCode: string;
-  ContractName: string;
-}
-
-interface ContractResponse {
-  status: string;
-  message: string;
-  result: ContractResult[];
-}
-
-const getSourceCode = async (
-  chainId: number,
-  address: string
-): Promise<Record<string, string> | undefined> => {
-  const res = await fetch(
-    `${apiBasePath}/api/source-code?address=${address}&chainId=${chainId}`
-  );
-
-  try {
-    const data: ContractResponse = await res.json();
-    const { SourceCode, ContractName } = data.result[0];
-    const isMultiple = SourceCode.startsWith("{");
-    if (isMultiple) {
-      const { sources } = JSON.parse(
-        SourceCode.substring(1, SourceCode.length - 1)
-      ) as SourceCode;
-      return Object.keys(sources).reduce(
-        (acc, key) => ({ ...acc, [key]: sources[key].content }),
-        {}
-      );
-    } else {
-      return { [ContractName]: SourceCode };
-    }
-  } catch {}
-};
 
 const getColoredOutput = (
   sourceCodes: Record<string, string>[]
