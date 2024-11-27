@@ -132,6 +132,7 @@ Raw Call Arguments:
   data:   0x860f81c4000...
 `}
           resize="none"
+          data-gramm="false"
         />
       </Box>
       <DarkButton mt="1rem" onClick={handleSimulate}>
