@@ -1,5 +1,12 @@
 import { Metadata } from "next";
-import { createPublicClient, http, Hex, parseEther, parseUnits } from "viem";
+import {
+  createPublicClient,
+  http,
+  Hex,
+  parseEther,
+  parseUnits,
+  PublicClient,
+} from "viem";
 import { mainnet } from "viem/chains";
 import { normalize } from "viem/ens";
 import {
@@ -13,6 +20,7 @@ import {
   ExplorerData,
   ExplorerType,
   SourceCode,
+  EVMParameter,
 } from "@/types";
 import { formatEther, formatUnits } from "viem";
 
@@ -122,6 +130,8 @@ export const slicedText = (txt: string, charCount: number = 6) => {
 };
 import { NextRequest } from "next/server";
 import { InterfaceAbi } from "ethers";
+import { fetchFunctionInterface } from "@/lib/decoder";
+import { whatsabi } from "@shazow/whatsabi";
 
 export default function getIP(request: Request | NextRequest) {
   const xff = request.headers.get("x-forwarded-for");
@@ -426,4 +436,152 @@ export const resolveERC3770Address = (
   }
 
   return { chainId: chain.id, address };
+};
+
+export const parseEVMoleInputTypes = (argsString: string): EVMParameter[] => {
+  // Parse individual types recursively
+  const parseType = (input: string, index?: number): EVMParameter => {
+    input = input.trim();
+    if (!input) throw new Error("Empty input type");
+
+    // Extract array suffix if present
+    const arrayMatch = input.match(/(\[\d*\])+$/);
+    const arraySuffix = arrayMatch ? arrayMatch[0] : "";
+    const baseType = arrayMatch ? input.slice(0, -arraySuffix.length) : input;
+
+    // For tuples, recursively parse components
+    if (baseType.startsWith("(") && baseType.endsWith(")")) {
+      const inner = baseType.slice(1, -1);
+      const components = splitComponents(inner).map((comp, idx) =>
+        parseType(comp, arrayMatch ? undefined : idx)
+      );
+
+      return {
+        type: `tuple${arraySuffix}`,
+        ...(index !== undefined && { name: `arg${index}` }),
+        components,
+      };
+    }
+
+    // For basic types
+    return {
+      type: input,
+      ...(index !== undefined && { name: `arg${index}` }),
+    };
+  };
+
+  // Split tuple components while respecting nesting
+  const splitComponents = (input: string): string[] => {
+    const components: string[] = [];
+    let current = "";
+    let parenDepth = 0;
+    let bracketDepth = 0;
+
+    for (const char of input) {
+      if (char === "(") parenDepth++;
+      else if (char === ")") parenDepth--;
+      else if (char === "[") bracketDepth++;
+      else if (char === "]") bracketDepth--;
+      else if (char === "," && parenDepth === 0 && bracketDepth === 0) {
+        components.push(current.trim());
+        current = "";
+        continue;
+      }
+      current += char;
+    }
+
+    if (current.trim()) {
+      components.push(current.trim());
+    }
+
+    return components;
+  };
+
+  // Start parsing from the top
+  const trimmed = argsString.trim();
+  if (trimmed === "" || trimmed === "()") return [];
+
+  return [parseType(trimmed)];
+};
+
+export const processContractBytecode = async ({
+  contractCode,
+  evmole,
+}: {
+  contractCode: string;
+  evmole: any;
+}) => {
+  // Get function selectors using evmole
+  console.log("Attempting evmole decode...");
+  const selectors = evmole.functionSelectors(contractCode);
+  console.log("Function selectors:", selectors);
+
+  if (!selectors || !Array.isArray(selectors)) {
+    throw new Error("Invalid selectors format");
+  }
+
+  // Process and sort functions
+  const processedAbi = await Promise.all(
+    selectors.map(async (selector) => {
+      const args = evmole.functionArguments(contractCode, selector);
+      const stateMutability = evmole.functionStateMutability(
+        contractCode,
+        selector,
+        0
+      );
+
+      // Try to fetch function interface
+      const functionInterface = await fetchFunctionInterface({
+        selector: startHexWith0x(selector),
+      });
+
+      let name: string | undefined;
+      if (functionInterface) {
+        name = functionInterface.split("(")[0].trim();
+      }
+
+      return {
+        type: "function",
+        name: name || `selector: ${startHexWith0x(selector)}`,
+        inputs: args ? parseEVMoleInputTypes(args) : [],
+        stateMutability,
+        selector: startHexWith0x(selector),
+      };
+    })
+  );
+
+  return processedAbi.sort((a, b) => {
+    const nameA = a.name?.toLowerCase();
+    const nameB = b.name?.toLowerCase();
+    const isSelectorA = nameA?.startsWith("selector: ");
+    const isSelectorB = nameB?.startsWith("selector: ");
+    if (isSelectorA && !isSelectorB) return 1;
+    if (!isSelectorA && isSelectorB) return -1;
+    return nameA && nameB ? nameA.localeCompare(nameB) : 0;
+  });
+};
+
+export const getImplementationFromBytecodeIfProxy = async ({
+  client,
+  address,
+}: {
+  client: PublicClient;
+  address: string;
+}): Promise<
+  | {
+      implementationAddress: string;
+      proxyName: string;
+    }
+  | undefined
+> => {
+  const result = await whatsabi.autoload(address, { provider: client });
+  const followProxies = await result.followProxies;
+  if (followProxies) {
+    const proxies = await followProxies();
+    const implementationAddress = proxies.address;
+    return {
+      implementationAddress,
+      proxyName: result.proxies[0].name,
+    };
+  }
 };

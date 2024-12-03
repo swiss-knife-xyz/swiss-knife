@@ -35,6 +35,7 @@ import { ReadWriteFunction } from "@/components/fnParams/ReadWriteFunction";
 import {
   fetchContractAbi,
   fetchContractAbiRaw,
+  getImplementationFromBytecodeIfProxy,
   getPath,
   slicedText,
   startHexWith0x,
@@ -45,6 +46,7 @@ import { RawCalldata } from "../fnParams/RawCalldata";
 import subdomains from "@/subdomains";
 import { fetchFunctionInterface } from "@/lib/decoder";
 import { DarkButton } from "../DarkButton";
+import { processContractBytecode } from "@/utils/index";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -436,72 +438,6 @@ interface EVMParameter {
   components?: EVMParameter[];
 }
 
-const parseEVMoleInputTypes = (argsString: string): EVMParameter[] => {
-  // Parse individual types recursively
-  const parseType = (input: string, index?: number): EVMParameter => {
-    input = input.trim();
-    if (!input) throw new Error("Empty input type");
-
-    // Extract array suffix if present
-    const arrayMatch = input.match(/(\[\d*\])+$/);
-    const arraySuffix = arrayMatch ? arrayMatch[0] : "";
-    const baseType = arrayMatch ? input.slice(0, -arraySuffix.length) : input;
-
-    // For tuples, recursively parse components
-    if (baseType.startsWith("(") && baseType.endsWith(")")) {
-      const inner = baseType.slice(1, -1);
-      const components = splitComponents(inner).map((comp, idx) =>
-        parseType(comp, arrayMatch ? undefined : idx)
-      );
-
-      return {
-        type: `tuple${arraySuffix}`,
-        ...(index !== undefined && { name: `arg${index}` }),
-        components,
-      };
-    }
-
-    // For basic types
-    return {
-      type: input,
-      ...(index !== undefined && { name: `arg${index}` }),
-    };
-  };
-
-  // Split tuple components while respecting nesting
-  const splitComponents = (input: string): string[] => {
-    const components: string[] = [];
-    let current = "";
-    let parenDepth = 0;
-    let bracketDepth = 0;
-
-    for (const char of input) {
-      if (char === "(") parenDepth++;
-      else if (char === ")") parenDepth--;
-      else if (char === "[") bracketDepth++;
-      else if (char === "]") bracketDepth--;
-      else if (char === "," && parenDepth === 0 && bracketDepth === 0) {
-        components.push(current.trim());
-        current = "";
-        continue;
-      }
-      current += char;
-    }
-
-    if (current.trim()) {
-      components.push(current.trim());
-    }
-
-    return components;
-  };
-
-  // Start parsing from the top
-  const trimmed = argsString.trim();
-  if (trimmed === "" || trimmed === "()") return [];
-
-  return [parseType(trimmed)];
-};
-
 const proxyOptions = [
   { label: "Proxy", value: "proxy" },
   { label: "Contract", value: "contract" },
@@ -563,11 +499,6 @@ export const ContractPage = ({
       const fetchedAbi = await fetchContractAbiRaw({ address, chainId });
       console.log("Verified contract ABI:", fetchedAbi);
       if (fetchedAbi.implementation) {
-        setAbi({
-          abi: fetchedAbi.implementation.abi as JsonFragment[],
-          name: fetchedAbi.implementation.name,
-        });
-
         setImplementationAddress(fetchedAbi.implementation.address);
         setImplementationAbi({
           abi: fetchedAbi.implementation.abi as JsonFragment[],
@@ -577,7 +508,12 @@ export const ContractPage = ({
           abi: fetchedAbi.abi as JsonFragment[],
           name: fetchedAbi.name,
         });
+
         setIsInteractingAsProxy(true);
+        setAbi({
+          abi: fetchedAbi.implementation.abi as JsonFragment[],
+          name: fetchedAbi.implementation.name,
+        });
       } else {
         setAbi({
           abi: fetchedAbi.abi as JsonFragment[],
@@ -605,69 +541,88 @@ export const ContractPage = ({
           throw new Error("No contract code found at address");
         }
 
-        // Get function selectors using evmole
-        console.log("Attempting evmole decode...");
-        const selectors = evmole.functionSelectors(contractCode);
-        console.log("Function selectors:", selectors);
-
-        if (!selectors || !Array.isArray(selectors)) {
-          throw new Error("Invalid selectors format");
-        }
-
         setIsAbiDecoded(true);
 
-        // Process and sort functions
-        const processedAbi = await Promise.all(
-          selectors.map(async (selector) => {
-            const args = evmole.functionArguments(contractCode, selector);
-            const stateMutability = evmole.functionStateMutability(
-              contractCode,
-              selector,
-              0
-            );
-
-            console.log({
-              selector,
-              args,
-              stateMutability,
-            });
-
-            // Try to fetch function interface
-            const functionInterface = await fetchFunctionInterface({
-              selector: startHexWith0x(selector),
-            });
-
-            let name: string | undefined;
-            if (functionInterface) {
-              name = functionInterface.split("(")[0].trim();
-            }
-
-            return {
-              type: "function",
-              name: name || `selector: ${startHexWith0x(selector)}`,
-              inputs: args ? parseEVMoleInputTypes(args) : [],
-              stateMutability,
-              selector: startHexWith0x(selector),
-            };
-          })
+        // check if contract is a proxy
+        const resGetImplementation = await getImplementationFromBytecodeIfProxy(
+          {
+            client,
+            address,
+          }
         );
 
-        const sortedAbi = processedAbi.sort((a, b) => {
-          const nameA = a.name?.toLowerCase();
-          const nameB = b.name?.toLowerCase();
-          const isSelectorA = nameA?.startsWith("selector: ");
-          const isSelectorB = nameB?.startsWith("selector: ");
-          if (isSelectorA && !isSelectorB) return 1;
-          if (!isSelectorA && isSelectorB) return -1;
-          return nameA && nameB ? nameA.localeCompare(nameB) : 0;
-        });
+        if (resGetImplementation) {
+          const { implementationAddress, proxyName } = resGetImplementation;
 
-        console.log("Processed ABI:", sortedAbi);
+          let implementation: {
+            abi: JsonFragment[];
+            name: string;
+          } = {
+            abi: [],
+            name: slicedText(implementationAddress),
+          };
 
-        setAbi({
-          abi: sortedAbi as JsonFragment[],
-          name: slicedText(address),
-        });
+          try {
+            // fetch implementation abi if verified
+            const fetchedImplementation = await fetchContractAbiRaw({
+              address: implementationAddress,
+              chainId,
+            });
+            implementation = {
+              abi: fetchedImplementation.abi as JsonFragment[],
+              name: fetchedImplementation.name,
+            };
+            console.log("Fetched implementation ABI:", implementation);
+          } catch (e) {
+            // if not verified, use evmole
+            // fetch implementation bytecode
+            const implementationCode = await client.getCode({
+              address: implementationAddress as Address,
+            });
+
+            // get implementation abi
+            const processedImplementation = await processContractBytecode({
+              contractCode: implementationCode as string,
+              evmole,
+            });
+            console.log(
+              "Processed implementation ABI:",
+              processedImplementation
+            );
+            implementation = {
+              abi: processedImplementation as JsonFragment[],
+              name: slicedText(implementationAddress),
+            };
+          }
+          // get proxy abi
+          const proxyAbi = await processContractBytecode({
+            contractCode: contractCode as string,
+            evmole,
+          });
+          console.log("Proxy ABI:", proxyAbi);
+
+          setImplementationAddress(implementationAddress);
+          setImplementationAbi(implementation);
+          setProxyAbi({
+            abi: proxyAbi as JsonFragment[],
+            name: proxyName,
+          });
+
+          setIsInteractingAsProxy(true);
+          setAbi(implementation);
+        } else {
+          const sortedAbi = await processContractBytecode({
+            contractCode: contractCode as string,
+            evmole,
+          });
+
+          console.log("Processed ABI:", sortedAbi);
+
+          setAbi({
+            abi: sortedAbi as JsonFragment[],
+            name: slicedText(address),
+          });
+        }
       } catch (evmoleError) {
         console.error("Error using evmole:", evmoleError);
         setUnableToFetchAbi(true);

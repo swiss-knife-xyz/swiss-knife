@@ -112,3 +112,9 @@ export interface ContractResponse {
   message: string;
   result: ContractResult[];
 }
+
+export interface EVMParameter {
+  type: string;
+  name?: string;
+  components?: EVMParameter[];
+}
