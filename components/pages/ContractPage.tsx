@@ -88,7 +88,7 @@ const ReadWriteSection = ({
 }) => {
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
 
-  const [allCollapsed, setAllCollapsed] = useState<boolean>(false);
+  const [allCollapsed, setAllCollapsed] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentResultIndex, setCurrentResultIndex] = useState<number>(0);
   const [searchResults, setSearchResults] = useState<number[]>([]);

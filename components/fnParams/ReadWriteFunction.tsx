@@ -616,6 +616,13 @@ export const ReadWriteFunction = ({
     setIsCollapsed(readAllCollapsed !== undefined ? readAllCollapsed : false);
   }, [readAllCollapsed]);
 
+  useEffect(() => {
+    // uncollapse if result fetched
+    if (res) {
+      setIsCollapsed(false);
+    }
+  }, [res]);
+
   // keep local storage in sync for tenderly fork id
   useEffect(() => {
     localStorage.setItem("tenderlyForkId", tenderlyForkId);
