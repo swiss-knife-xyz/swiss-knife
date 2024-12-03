@@ -348,15 +348,13 @@ export const IntInput = ({
         bg={isDelayedAnimating ? "bg.900" : undefined}
         value={displayValue}
         type={
-          selectedEthFormatOption?.value === "Unix Time"
-            ? "date-time"
-            : "number"
+          selectedEthFormatOption?.value === "Unix Time" ? "date-time" : "text"
         }
         placeholder=""
         onChange={handleInputChange}
         onWheel={() => {}}
         {...props}
-        isInvalid={isInvalid || isError}
+        isInvalid={isInvalid || isError || isNaN(Number(displayValue))}
         sx={{
           position: "relative",
           zIndex: 1,
