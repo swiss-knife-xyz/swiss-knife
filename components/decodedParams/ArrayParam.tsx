@@ -17,7 +17,7 @@ import {
 } from "@chakra-ui/icons";
 import { StringParam } from "./StringParam";
 import { renderParamTypes } from "../renderParams";
-import { isAddress } from "viem";
+import { isAddress, stringify } from "viem";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { motion } from "framer-motion";
@@ -48,6 +48,8 @@ export const ArrayParam = ({ arg: _arg, chainId }: Params) => {
         rawValue: [],
         value: [],
       };
+
+  console.log("ARRAY_ARG", arg);
 
   const { isOpen, onToggle } = useDisclosure();
 
@@ -81,7 +83,9 @@ export const ArrayParam = ({ arg: _arg, chainId }: Params) => {
           >
             {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
           </Text>
-          {!isOpen && <StringParam value={arg.rawValue.join(",")} />}
+          {!isOpen && (
+            <StringParam value={stringify(arg.rawValue)} disableRich />
+          )}
         </HStack>
         <Collapse in={isOpen} animateOpacity>
           <Stack

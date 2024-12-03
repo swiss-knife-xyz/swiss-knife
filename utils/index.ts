@@ -606,3 +606,12 @@ export const generateTenderlyUrl = (
 
   return `${baseUrl}?${encodedParams}`;
 };
+
+export const isBigInt = (value: string): boolean => {
+  try {
+    BigInt(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
