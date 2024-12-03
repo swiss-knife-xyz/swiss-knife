@@ -66,7 +66,10 @@ export const StringParam = ({ value: _value }: Params) => {
     // If parsing fails, keep the original value
   }
 
-  if (value.startsWith("http") || value.startsWith("ipfs://")) {
+  if (
+    typeof value === "string" &&
+    (value.startsWith("http") || value.startsWith("ipfs://"))
+  ) {
     isUrl = true;
   }
 
