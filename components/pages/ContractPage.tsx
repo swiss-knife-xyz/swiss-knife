@@ -20,6 +20,8 @@ import {
   Input,
   InputGroup,
   InputRightElement,
+  Link,
+  Select,
   Spacer,
   Spinner,
 } from "@chakra-ui/react";
@@ -30,12 +32,19 @@ import { Address, PublicClient, createPublicClient, http } from "viem";
 import { whatsabi } from "@shazow/whatsabi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { ReadWriteFunction } from "@/components/fnParams/ReadWriteFunction";
-import { fetchContractAbi, getPath, slicedText, startHexWith0x } from "@/utils";
+import {
+  fetchContractAbi,
+  fetchContractAbiRaw,
+  getPath,
+  slicedText,
+  startHexWith0x,
+} from "@/utils";
 import { ABIFunction } from "@shazow/whatsabi/lib.types/abi";
 import { StorageSlot } from "../fnParams/StorageSlot";
 import { RawCalldata } from "../fnParams/RawCalldata";
 import subdomains from "@/subdomains";
 import { fetchFunctionInterface } from "@/lib/decoder";
+import { DarkButton } from "../DarkButton";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -493,6 +502,11 @@ const parseEVMoleInputTypes = (argsString: string): EVMParameter[] => {
   return [parseType(trimmed)];
 };
 
+const proxyOptions = [
+  { label: "Proxy", value: "proxy" },
+  { label: "Contract", value: "contract" },
+] as const;
+
 export const ContractPage = ({
   params: { address, chainId },
 }: {
@@ -525,6 +539,15 @@ export const ContractPage = ({
   const [isAbiDecoded, setIsAbiDecoded] = useState<boolean>(false);
   const [isFetchingAbi, setIsFetchingAbi] = useState<boolean>(false);
   const [unableToFetchAbi, setUnableToFetchAbi] = useState<boolean>(false);
+  const [implementationAddress, setImplementationAddress] = useState<
+    string | null
+  >(null);
+  const [implementationAbi, setImplementationAbi] = useState<AbiType | null>(
+    null
+  );
+  const [proxyAbi, setProxyAbi] = useState<AbiType | null>(null);
+  const [isInteractingAsProxy, setIsInteractingAsProxy] =
+    useState<boolean>(false);
 
   const [readFunctions, setReadFunctions] = useState<JsonFragment[]>([]);
   const [writeFunctions, setWriteFunctions] = useState<JsonFragment[]>([]);
@@ -537,12 +560,31 @@ export const ContractPage = ({
       setUnableToFetchAbi(false);
 
       // try fetching if contract is verified
-      const fetchedAbi = await fetchContractAbi({ address, chainId });
+      const fetchedAbi = await fetchContractAbiRaw({ address, chainId });
       console.log("Verified contract ABI:", fetchedAbi);
-      setAbi({
-        abi: fetchedAbi.abi as JsonFragment[],
-        name: fetchedAbi.name,
-      });
+      if (fetchedAbi.implementation) {
+        setAbi({
+          abi: fetchedAbi.implementation.abi as JsonFragment[],
+          name: fetchedAbi.implementation.name,
+        });
+
+        setImplementationAddress(fetchedAbi.implementation.address);
+        setImplementationAbi({
+          abi: fetchedAbi.implementation.abi as JsonFragment[],
+          name: fetchedAbi.implementation.name,
+        });
+        setProxyAbi({
+          abi: fetchedAbi.abi as JsonFragment[],
+          name: fetchedAbi.name,
+        });
+        setIsInteractingAsProxy(true);
+      } else {
+        setAbi({
+          abi: fetchedAbi.abi as JsonFragment[],
+          name: fetchedAbi.name,
+        });
+      }
+
       setIsAbiDecoded(false);
     } catch (e) {
       console.log("Error fetching verified ABI:", e);
@@ -697,6 +739,22 @@ export const ContractPage = ({
             Tool is in beta, please verify connected chain and calldata before
             sending transactions
           </Alert>
+          {implementationAddress && (
+            <Alert status="info" mb={"1rem"} rounded={"lg"}>
+              <AlertIcon />
+              This is a Proxy Contract for implementation:
+              <Link
+                ml="0.2rem"
+                href={`${getPath(
+                  subdomains.EXPLORER.base
+                )}contract/${implementationAddress}/${chainId}`}
+                fontWeight="bold"
+                isExternal
+              >
+                {implementationAddress}
+              </Link>
+            </Alert>
+          )}
           {abi.name.length > 0 && (
             <HStack>
               <Box
@@ -711,6 +769,28 @@ export const ContractPage = ({
               </Box>
               <Spacer />
               <ConnectButton expectedChainId={chainId} />
+            </HStack>
+          )}
+          {implementationAddress && (
+            <HStack p={2}>
+              <Box fontStyle="italic">Interacting as</Box>
+              <DarkSelect
+                boxProps={{
+                  w: "15rem",
+                }}
+                selectedOption={{
+                  label: isInteractingAsProxy ? "Proxy" : "Contract",
+                  value: isInteractingAsProxy ? "proxy" : "Contract",
+                }}
+                setSelectedOption={(option) => {
+                  if (option) {
+                    const isProxy = option.value === "proxy";
+                    setAbi(isProxy ? implementationAbi : proxyAbi);
+                    setIsInteractingAsProxy(isProxy);
+                  }
+                }}
+                options={proxyOptions}
+              />
             </HStack>
           )}
           <Grid templateColumns="repeat(2, 1fr)" gap={6} mt={5}>
