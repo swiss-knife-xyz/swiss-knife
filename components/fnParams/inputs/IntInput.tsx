@@ -33,6 +33,7 @@ interface IntInputProps extends InputProps {
   functionIsError?: boolean;
   isArrayChild?: boolean;
   setFunctionIsDisabled: (value: boolean) => void;
+  defaultEthFormatIndex?: number;
 }
 
 const futureTimeOptions = ["minutes", "hours", "days"] as const;
@@ -51,6 +52,7 @@ export const IntInput = ({
   isInvalid,
   isArrayChild,
   setFunctionIsDisabled,
+  defaultEthFormatIndex,
   ...props
 }: IntInputProps) => {
   // Refs
@@ -62,8 +64,8 @@ export const IntInput = ({
   const [internalValue, setInternalValue] = useState<string>(value || "");
   const [selectedEthFormatOption, setSelectedEthFormatOption] =
     useState<ETHSelectedOptionState>({
-      label: ethFormatOptions[0],
-      value: ethFormatOptions[0],
+      label: ethFormatOptions[defaultEthFormatIndex || 0],
+      value: ethFormatOptions[defaultEthFormatIndex || 0],
     });
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDelayedAnimating, setIsDelayedAnimating] = useState(isAnimating);

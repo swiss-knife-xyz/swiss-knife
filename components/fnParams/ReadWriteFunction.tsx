@@ -892,6 +892,7 @@ export const ReadWriteFunction = ({
                 name: "Payable ETH",
                 type: "uint256",
               }}
+              defaultEthFormatIndex={1}
               value={payableETH}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 setPayableETH(e.target.value);
