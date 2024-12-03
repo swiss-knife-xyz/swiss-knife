@@ -3,6 +3,8 @@ import { renderParams } from "@/components/renderParams";
 import { HStack, Skeleton, Stack } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import { Arg, DecodeTupleParamResult } from "@/types";
+import { stringify } from "viem";
+import { StringParam } from "./StringParam";
 
 interface Params {
   arg: Omit<Arg, "value"> & {
@@ -39,6 +41,11 @@ export const TupleParam = ({ arg: _arg, chainId }: Params) => {
         })}
       </Stack>
     </motion.div>
+  ) : // FIXME: this is a hack to render tuples with objects (for now, to be removed it future)
+  // need to fix it by utilizing the components and constructing the tuple values
+  // Eg: getOffRamps() that returns an array of tuples (0x141fa059441E0ca23ce184B6A78bafD2A517DdE8, chainId: 42161 Arb One)
+  typeof arg.value === "object" && Object.keys(arg.value as any).length > 0 ? (
+    <StringParam value={stringify(arg.value)} />
   ) : (
     <></>
   );

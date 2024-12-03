@@ -14,21 +14,31 @@ import {
   Spacer,
   Link,
   Skeleton,
+  Text,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import axios from "axios";
-import { decodeBase64, isValidJSON, resolveIPFS } from "@/utils";
+import { decodeBase64, isBigInt, isValidJSON, resolveIPFS } from "@/utils";
 import JsonTextArea from "../JsonTextArea";
 import TabsSelector from "../Tabs/TabsSelector";
 import { CopyToClipboard } from "../CopyToClipboard";
 import { ResizableImage } from "../ResizableImage";
 import { motion } from "framer-motion";
+import { isAddress } from "viem";
+import { renderParamTypes } from "../renderParams";
 
 interface Params {
   value: string | null;
+  chainId?: number;
+  disableRich?: boolean;
 }
 
-export const StringParam = ({ value: _value }: Params) => {
+// FIXME: passing chainId leads to infinite calls to fetch labels and ENS
+export const StringParam = ({
+  value: _value,
+  chainId,
+  disableRich,
+}: Params) => {
   const showSkeleton = _value === undefined || _value === null;
   const value = !showSkeleton ? _value : "abcdef1234";
 
@@ -121,7 +131,13 @@ export const StringParam = ({ value: _value }: Params) => {
     );
   };
 
-  const RichJsonTable = ({ _value }: { _value: string }) => {
+  const RichJsonTable = ({
+    _value,
+    chainId,
+  }: {
+    _value: string;
+    chainId?: number;
+  }) => {
     let jsonValue: { [key: string]: any };
 
     try {
@@ -140,6 +156,42 @@ export const StringParam = ({ value: _value }: Params) => {
             // avoids the quotes from the string
             const isString = typeof __value === "string";
 
+            let type: "uint" | "address" | "bytes" | null = null;
+            if (isString) {
+              if (isAddress(__value)) {
+                type = "address";
+              } else if (
+                __value.startsWith("0x") &&
+                /^0x[0-9a-fA-F]*$/.test(__value)
+              ) {
+                type = "bytes";
+              } else if (isBigInt(__value)) {
+                type = "uint";
+              }
+            }
+
+            if (type) {
+              return (
+                <Tr key={key}>
+                  <Td colSpan={2}>
+                    <Box>
+                      <Text fontWeight={"bold"}>{key}</Text>
+                      {renderParamTypes(
+                        {
+                          name: key,
+                          type: type,
+                          baseType: type,
+                          value: __value,
+                          rawValue: __value,
+                        },
+                        chainId
+                      )}
+                    </Box>
+                  </Td>
+                </Tr>
+              );
+            }
+
             return (
               <Tr key={key}>
                 <Td fontWeight={"bold"}>{key}</Td>
@@ -156,19 +208,19 @@ export const StringParam = ({ value: _value }: Params) => {
     );
   };
 
-  const renderContent = () => {
+  const renderContent = (chainId?: number) => {
     // Decoded Base64 / JSON / SVG / URL
     if (selectedTabIndex === 0) {
       // Rich Output
       if (richSelectedTabIndex === 0) {
         // Return key-value table
         if (isJson) {
-          return <RichJsonTable _value={displayValue} />;
+          return <RichJsonTable _value={displayValue} chainId={chainId} />;
         } else if (isImage) {
           return <ResizableImage src={value} />;
         } else {
           if (isUrlImageOrJson?.isJson && urlContent) {
-            return <RichJsonTable _value={urlContent} />;
+            return <RichJsonTable _value={urlContent} chainId={chainId} />;
           } else if (isUrlImageOrJson?.isImage) {
             return <ResizableImage src={resolveIPFS(value)} />;
           } else {
@@ -290,7 +342,7 @@ export const StringParam = ({ value: _value }: Params) => {
       style={{ width: "100%" }}
     >
       <Box w="full">
-        {isJson || isImage || (isUrl && isUrlImageOrJson) ? (
+        {!disableRich && (isJson || isImage || (isUrl && isUrlImageOrJson)) ? (
           <Stack
             mt={2}
             p={4}
@@ -321,7 +373,7 @@ export const StringParam = ({ value: _value }: Params) => {
                 />
               </Box>
             ) : null}
-            {renderContent()}
+            {renderContent(chainId)}
           </Stack>
         ) : (
           <SimpleString />
