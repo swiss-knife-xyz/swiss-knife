@@ -211,6 +211,52 @@ export const RawCalldata = ({
       </HStack>
       <Box mt={4} ml={4} px={4} display={isCollapsed ? "none" : undefined}>
         {/* Inputs */}
+        {/* Transaction status for Write */}
+        {txHash && !confirmedTxHash && (
+          <Box mt={4} ml={4}>
+            <HStack p={4} bg="blue.500" rounded={"md"}>
+              <HStack>
+                <Spinner />
+                <Box fontWeight={"bold"}>Transaction initiated:</Box>
+              </HStack>
+              <Box>
+                <Link
+                  href={`${chain?.blockExplorers?.default.url}/tx/${txHash}`}
+                  isExternal
+                >
+                  <HStack>
+                    <Box>{slicedText(txHash, 10)}</Box>
+                    <ExternalLinkIcon />
+                  </HStack>
+                </Link>
+              </Box>
+            </HStack>
+          </Box>
+        )}
+
+        {confirmedTxHash && (
+          <Box mb={4}>
+            <HStack p={4} bg="green.500" rounded={"md"}>
+              <Box fontWeight={"bold"}>✅ Transaction confirmed:</Box>
+              <Box>
+                <Link
+                  href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash}`}
+                  isExternal
+                >
+                  <HStack>
+                    <Box>{slicedText(confirmedTxHash, 10)}</Box>
+                    <ExternalLinkIcon />
+                  </HStack>
+                </Link>
+              </Box>
+            </HStack>
+          </Box>
+        )}
+        {isError && errorMsg && (
+          <Center mt={2} p={4} color="red.300" maxW="40rem">
+            {errorMsg}
+          </Center>
+        )}
         <>
           <Box mb={4} p={4} bg="whiteAlpha.100" rounded={"lg"}>
             <IntInput
@@ -244,52 +290,6 @@ export const RawCalldata = ({
         <Box mt={2} ml={4} mb={4}>
           {!isError && renderRes()}
         </Box>
-        {/* Transaction status for Write */}
-        {txHash && !confirmedTxHash && (
-          <Box mt={4} ml={4}>
-            <HStack p={4} bg="blue.500" rounded={"md"}>
-              <HStack>
-                <Spinner />
-                <Box fontWeight={"bold"}>Transaction initiated:</Box>
-              </HStack>
-              <Box>
-                <Link
-                  href={`${chain?.blockExplorers?.default.url}/tx/${txHash}`}
-                  isExternal
-                >
-                  <HStack>
-                    <Box>{slicedText(txHash, 10)}</Box>
-                    <ExternalLinkIcon />
-                  </HStack>
-                </Link>
-              </Box>
-            </HStack>
-          </Box>
-        )}
-
-        {confirmedTxHash && (
-          <Box mt={4} ml={4}>
-            <HStack p={4} bg="green.500" rounded={"md"}>
-              <Box fontWeight={"bold"}>✅ Transaction confirmed:</Box>
-              <Box>
-                <Link
-                  href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash}`}
-                  isExternal
-                >
-                  <HStack>
-                    <Box>{slicedText(confirmedTxHash, 10)}</Box>
-                    <ExternalLinkIcon />
-                  </HStack>
-                </Link>
-              </Box>
-            </HStack>
-          </Box>
-        )}
-        {isError && errorMsg && (
-          <Center mt={2} p={4} color="red.300" maxW="40rem">
-            {errorMsg}
-          </Center>
-        )}
       </Box>
     </Box>
   );

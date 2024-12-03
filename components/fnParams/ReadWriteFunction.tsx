@@ -820,6 +820,61 @@ export const ReadWriteFunction = ({
         </Box>
       )}
 
+      {/* Transaction status for Write */}
+      {txHash && !confirmedTxHash && (
+        <Box mb={4} ml={4}>
+          <HStack p={4} bg="blue.500" rounded={"md"}>
+            <HStack>
+              <Spinner />
+              <Box fontWeight={"bold"}>Transaction initiated:</Box>
+            </HStack>
+            <Box>
+              <Link
+                href={`${chain?.blockExplorers?.default.url}/tx/${txHash}`}
+                isExternal
+              >
+                <HStack>
+                  <Box>{slicedText(txHash, 10)}</Box>
+                  <ExternalLinkIcon />
+                </HStack>
+              </Link>
+            </Box>
+          </HStack>
+        </Box>
+      )}
+      {confirmedTxHash && (
+        <Box mt={4} ml={4}>
+          <Box p={4} bg="green.500" rounded={"md"}>
+            <HStack>
+              <Box fontWeight={"bold"}>✅ Transaction confirmed:</Box>
+              <Box>
+                {txIsTenderlySimulation ? (
+                  <Box>{slicedText(confirmedTxHash, 10)}</Box>
+                ) : (
+                  <Link
+                    href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash}`}
+                    isExternal
+                  >
+                    <HStack>
+                      <Box>{slicedText(confirmedTxHash, 10)}</Box>
+                      <ExternalLinkIcon />
+                    </HStack>
+                  </Link>
+                )}
+              </Box>
+            </HStack>
+            {txIsTenderlySimulation && (
+              <Center fontSize={"sm"}>(view on your tenderly dashboard)</Center>
+            )}
+          </Box>
+        </Box>
+      )}
+      {isError && errorMsg && type === "write" && (
+        <Center mt={2} p={4} color="red.300" maxW="40rem">
+          {errorMsg}
+        </Center>
+      )}
+
       <Box display={isCollapsed ? "none" : undefined}>
         {/* Input fields */}
         {(payable || stateMutability === "payable") && (
@@ -882,59 +937,8 @@ export const ReadWriteFunction = ({
               )
             : !isError && renderRes()}
         </Box>
-        {/* Transaction status for Write */}
-        {txHash && !confirmedTxHash && (
-          <Box mt={4} ml={4}>
-            <HStack p={4} bg="blue.500" rounded={"md"}>
-              <HStack>
-                <Spinner />
-                <Box fontWeight={"bold"}>Transaction initiated:</Box>
-              </HStack>
-              <Box>
-                <Link
-                  href={`${chain?.blockExplorers?.default.url}/tx/${txHash}`}
-                  isExternal
-                >
-                  <HStack>
-                    <Box>{slicedText(txHash, 10)}</Box>
-                    <ExternalLinkIcon />
-                  </HStack>
-                </Link>
-              </Box>
-            </HStack>
-          </Box>
-        )}
 
-        {confirmedTxHash && (
-          <Box mt={4} ml={4}>
-            <Box p={4} bg="green.500" rounded={"md"}>
-              <HStack>
-                <Box fontWeight={"bold"}>✅ Transaction confirmed:</Box>
-                <Box>
-                  {txIsTenderlySimulation ? (
-                    <Box>{slicedText(confirmedTxHash, 10)}</Box>
-                  ) : (
-                    <Link
-                      href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash}`}
-                      isExternal
-                    >
-                      <HStack>
-                        <Box>{slicedText(confirmedTxHash, 10)}</Box>
-                        <ExternalLinkIcon />
-                      </HStack>
-                    </Link>
-                  )}
-                </Box>
-              </HStack>
-              {txIsTenderlySimulation && (
-                <Center fontSize={"sm"}>
-                  (view on your tenderly dashboard)
-                </Center>
-              )}
-            </Box>
-          </Box>
-        )}
-        {isError && errorMsg && (
+        {isError && errorMsg && type === "read" && (
           <Center mt={2} p={4} color="red.300" maxW="40rem">
             {errorMsg}
           </Center>
