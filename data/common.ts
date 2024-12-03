@@ -85,6 +85,10 @@ export const c: { [name: string]: Chain } = {
     ...mainnet,
     rpcUrls: { default: { http: ["https://rpc.ankr.com/eth"] } }, // add custom rpcs. cloudflare doesn't support publicClient.getTransaction
   },
+  sepolia: {
+    ...sepolia,
+    rpcUrls: { default: { http: ["https://sepolia.gateway.tenderly.co"] } }, // add custom rpcs. cloudflare doesn't support publicClient.getTransaction
+  },
   arbitrum,
   arbitrumGoerli,
   arbitrumNova,
@@ -143,7 +147,6 @@ export const c: { [name: string]: Chain } = {
   ronin,
   scroll,
   scrollSepolia,
-  sepolia,
   taikoJolnir,
   taikoTestnetSepolia,
   telos,
