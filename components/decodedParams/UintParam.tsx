@@ -88,50 +88,52 @@ export const UintParam = ({ value: _value }: Params) => {
     >
       <Box>
         <HStack>
-          <InputField
-            InputLeftElement={
-              <>
-                {unixSelected && (
-                  <InputLeftElement>
-                    <Button
-                      px="2rem"
-                      ml="2rem"
-                      size="sm"
-                      onClick={() => setShowLocalTime((prev) => !prev)}
-                    >
-                      {showLocalTime ? "Local" : "UTC"}
-                    </Button>
-                  </InputLeftElement>
-                )}
-                {isNumericFormat && (
-                  <InputLeftElement>
-                    <Button
-                      px="2rem"
-                      ml="2rem"
-                      size="sm"
-                      onClick={() => setShowFormatted((prev) => !prev)}
-                    >
-                      {showFormatted ? "Raw" : "Format"}
-                    </Button>
-                  </InputLeftElement>
-                )}
-              </>
-            }
-            value={
-              unixSelected
-                ? showLocalTime
-                  ? new Date(Number(value) * 1_000).toString()
+          <Box maxW="25rem">
+            <InputField
+              InputLeftElement={
+                <>
+                  {unixSelected && (
+                    <InputLeftElement>
+                      <Button
+                        px="2rem"
+                        ml="2rem"
+                        size="sm"
+                        onClick={() => setShowLocalTime((prev) => !prev)}
+                      >
+                        {showLocalTime ? "Local" : "UTC"}
+                      </Button>
+                    </InputLeftElement>
+                  )}
+                  {isNumericFormat && (
+                    <InputLeftElement>
+                      <Button
+                        px="2rem"
+                        ml="2rem"
+                        size="sm"
+                        onClick={() => setShowFormatted((prev) => !prev)}
+                      >
+                        {showFormatted ? "Raw" : "Format"}
+                      </Button>
+                    </InputLeftElement>
+                  )}
+                </>
+              }
+              value={
+                unixSelected
+                  ? showLocalTime
+                    ? new Date(Number(value) * 1_000).toString()
+                    : conversionValue
+                  : isNumericFormat && showFormatted
+                  ? formatWithCommas(conversionValue)
                   : conversionValue
-                : isNumericFormat && showFormatted
-                ? formatWithCommas(conversionValue)
-                : conversionValue
-            }
-            pl={unixSelected || isNumericFormat ? "5rem" : undefined}
-            w={unixSelected || isNumericFormat ? "25rem" : undefined}
-            placeholder=""
-            isReadOnly
-            onChange={() => {}}
-          />
+              }
+              pl={unixSelected || isNumericFormat ? "5rem" : undefined}
+              w={unixSelected || isNumericFormat ? "25rem" : undefined}
+              placeholder=""
+              isReadOnly
+              onChange={() => {}}
+            />
+          </Box>
           <DarkSelect
             boxProps={{
               minW: "9rem",
