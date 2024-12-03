@@ -42,6 +42,7 @@ import {
   encodeFunctionData,
   Abi,
   toHex,
+  zeroAddress,
 } from "viem";
 import {
   AddressInput,
@@ -50,7 +51,7 @@ import {
 } from "@/components/fnParams/inputs";
 import { ExtendedJsonFragmentType, HighlightedContent } from "@/types";
 import { renderInputFields, renderParamTypes } from "./Renderer";
-import { slicedText } from "@/utils";
+import { generateTenderlyUrl, slicedText } from "@/utils";
 import { getTransactionError, getContractError } from "viem/utils";
 import { config } from "@/app/providers";
 import { WriteButton } from "../WriteButton";
@@ -468,6 +469,49 @@ export const ReadWriteFunction = ({
       setIsError(false);
     }
 
+    setLoading(true);
+
+    const abi = [_func] as unknown as Abi;
+    const args = inputs?.map((input, i) => inputsState[i]);
+
+    const tenderlyUrl = generateTenderlyUrl(
+      {
+        from:
+          settingsSenderAddr.length > 0
+            ? settingsSenderAddr
+            : userAddress ?? zeroAddress,
+        to: address,
+        value: payableETH,
+        data: encodeFunctionData({
+          abi,
+          functionName,
+          args,
+        }),
+      },
+      chainId
+    );
+    window.open(tenderlyUrl, "_blank");
+
+    setLoading(false);
+  }, [
+    isError,
+    setLoading,
+    _func,
+    inputs,
+    inputsState,
+    settingsSenderAddr,
+    userAddress,
+    address,
+    payableETH,
+    functionName,
+    chainId,
+  ]);
+
+  const simulateOnTenderlyFork = useCallback(async () => {
+    if (isError) {
+      setIsError(false);
+    }
+
     if (tenderlyForkId.trim().length === 0) {
       // open the settings
       setSettingsIsOpen(true);
@@ -577,15 +621,15 @@ export const ReadWriteFunction = ({
     localStorage.setItem("tenderlyForkId", tenderlyForkId);
   }, [tenderlyForkId]);
 
-  // open settings modal if tenderly fork id is not set
-  useEffect(() => {
-    if (
-      writeButtonType === WriteButtonType.SimulateOnTenderly &&
-      tenderlyForkId.length === 0
-    ) {
-      setSettingsIsOpen(true);
-    }
-  }, [writeButtonType]);
+  // // open settings modal if tenderly fork id is not set
+  // useEffect(() => {
+  //   if (
+  //     writeButtonType === WriteButtonType.SimulateOnTenderly &&
+  //     tenderlyForkId.length === 0
+  //   ) {
+  //     setSettingsIsOpen(true);
+  //   }
+  // }, [writeButtonType]);
 
   const renderHighlightedText = (content: HighlightedContent): ReactNode => {
     if (typeof content === "string") {
@@ -750,6 +794,7 @@ export const ReadWriteFunction = ({
                 </Box>
               </PopoverTrigger>
               <PopoverContent
+                minW="30rem"
                 border={"1px solid"}
                 borderColor={"whiteAlpha.400"}
                 bg="bg.900"
@@ -758,7 +803,7 @@ export const ReadWriteFunction = ({
                 overflowY="auto"
               >
                 <Box px="1rem" py="1rem">
-                  <HStack>
+                  {/* <HStack>
                     <Text>Tenderly Fork Id:</Text>
                     <Tooltip
                       label={
@@ -790,7 +835,7 @@ export const ReadWriteFunction = ({
                     onChange={(e) => {
                       setTenderlyForkId(e.target.value);
                     }}
-                  />
+                  /> */}
                   <Box mt={4}>
                     <AddressInput
                       input={{

@@ -17,6 +17,7 @@ import { mainnet } from "viem/chains";
 import { c } from "@/data/common";
 import { DarkButton } from "@/components/DarkButton";
 import { ExternalLinkIcon } from "@chakra-ui/icons"; // Import the correct icon
+import { generateTenderlyUrl } from "@/utils";
 
 const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
   (k, i) => ({
@@ -72,25 +73,15 @@ const CalldataEncoder = () => {
     }
   };
 
-  const generateTenderlyUrl = (txData: any) => {
-    const baseUrl = "https://dashboard.tenderly.co/simulator/new";
-    const encodedParams = [
-      `from=${encodeURIComponent(txData.from)}`,
-      `contractAddress=${encodeURIComponent(txData.to)}`,
-      `value=${encodeURIComponent(txData.value)}`,
-      `rawFunctionInput=${encodeURIComponent(txData.data)}`,
-      `network=${encodeURIComponent(selectedNetworkOption?.value!)}`,
-    ].join("&");
-
-    return `${baseUrl}?${encodedParams}`;
-  };
-
   const handleSimulate = () => {
     setError("");
     setTenderlyUrl("");
     try {
       const txData = parseTransactionData(input);
-      const url = generateTenderlyUrl(txData);
+      const url = generateTenderlyUrl(
+        txData,
+        selectedNetworkOption!.value as number
+      );
       setTenderlyUrl(url);
       window.open(url, "_blank");
     } catch (err: any) {
