@@ -67,7 +67,7 @@ interface ReadWriteFunctionProps {
   };
   address: string;
   chainId: number;
-  isWhatsAbiDecoded: boolean;
+  isAbiDecoded?: boolean;
   readAllCollapsed?: boolean;
 }
 
@@ -172,7 +172,7 @@ export const ReadWriteFunction = ({
   func: __func,
   address,
   chainId,
-  isWhatsAbiDecoded,
+  isAbiDecoded,
   readAllCollapsed,
 }: ReadWriteFunctionProps) => {
   const { data: walletClient } = useWalletClient();
@@ -198,7 +198,7 @@ export const ReadWriteFunction = ({
 
   const outputs = _outputs
     ? _outputs
-    : isWhatsAbiDecoded
+    : isAbiDecoded
     ? [
         {
           type: "calldata", // set output type as custom calldata
@@ -271,7 +271,7 @@ export const ReadWriteFunction = ({
       const args = inputs?.map((input, i) => inputsState[i]);
 
       try {
-        if (!isWhatsAbiDecoded) {
+        if (!isAbiDecoded) {
           const result = await client.readContract({
             address: address as Hex,
             abi,
@@ -288,6 +288,14 @@ export const ReadWriteFunction = ({
               args,
             }),
             value: BigInt(payableETH),
+          });
+          console.log({
+            result,
+            abi,
+            functionName,
+            args,
+            outputs,
+            isAbiDecoded,
           });
           setRes(result.data);
         }
@@ -395,7 +403,7 @@ export const ReadWriteFunction = ({
 
         try {
           // TODO: add caller address in the settings modal
-          if (!isWhatsAbiDecoded) {
+          if (!isAbiDecoded) {
             const result = await client.simulateContract({
               address: address as Hex,
               abi,
@@ -451,7 +459,7 @@ export const ReadWriteFunction = ({
       inputs,
       inputsState,
       payableETH,
-      isWhatsAbiDecoded,
+      isAbiDecoded,
     ]
   );
 
@@ -602,7 +610,7 @@ export const ReadWriteFunction = ({
   };
 
   const renderRes = () => {
-    if (isWhatsAbiDecoded ? res !== null && res !== undefined : outputs) {
+    if (isAbiDecoded ? res !== null && res !== undefined : outputs) {
       return (
         <Box>
           {outputs.map((output, i) => (
@@ -639,7 +647,7 @@ export const ReadWriteFunction = ({
         </Box>
       );
     } else if (
-      isWhatsAbiDecoded &&
+      isAbiDecoded &&
       loading &&
       writeButtonType === WriteButtonType.CallAsViewFn
     ) {

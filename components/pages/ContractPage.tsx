@@ -30,11 +30,12 @@ import { Address, PublicClient, createPublicClient, http } from "viem";
 import { whatsabi } from "@shazow/whatsabi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { ReadWriteFunction } from "@/components/fnParams/ReadWriteFunction";
-import { fetchContractAbi, getPath, slicedText } from "@/utils";
+import { fetchContractAbi, getPath, slicedText, startHexWith0x } from "@/utils";
 import { ABIFunction } from "@shazow/whatsabi/lib.types/abi";
 import { StorageSlot } from "../fnParams/StorageSlot";
 import { RawCalldata } from "../fnParams/RawCalldata";
 import subdomains from "@/subdomains";
+import { fetchFunctionInterface } from "@/lib/decoder";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -64,7 +65,7 @@ const ReadWriteSection = ({
   functions,
   address,
   chainId,
-  isWhatsAbiDecoded,
+  isAbiDecoded,
 }: {
   type: "read" | "write";
   abi: AbiType;
@@ -72,7 +73,7 @@ const ReadWriteSection = ({
   functions: JsonFragment[];
   address: string;
   chainId: number;
-  isWhatsAbiDecoded?: boolean;
+  isAbiDecoded?: boolean;
 }) => {
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
 
@@ -397,7 +398,7 @@ const ReadWriteSection = ({
                   func={getFunc(func, index)}
                   address={address}
                   chainId={chainId}
-                  isWhatsAbiDecoded={isWhatsAbiDecoded || false}
+                  isAbiDecoded={isAbiDecoded || false}
                   readAllCollapsed={allCollapsed}
                 />
               ) : (
@@ -409,7 +410,7 @@ const ReadWriteSection = ({
                   func={getFunc(func, index)}
                   address={address}
                   chainId={chainId}
-                  isWhatsAbiDecoded={isWhatsAbiDecoded || false}
+                  isAbiDecoded={isAbiDecoded || false}
                   readAllCollapsed={allCollapsed}
                 />
               )}
@@ -418,6 +419,78 @@ const ReadWriteSection = ({
       </Box>
     </Box>
   );
+};
+
+interface EVMParameter {
+  type: string;
+  name?: string;
+  components?: EVMParameter[];
+}
+
+const parseEVMoleInputTypes = (argsString: string): EVMParameter[] => {
+  // Parse individual types recursively
+  const parseType = (input: string, index?: number): EVMParameter => {
+    input = input.trim();
+    if (!input) throw new Error("Empty input type");
+
+    // Extract array suffix if present
+    const arrayMatch = input.match(/(\[\d*\])+$/);
+    const arraySuffix = arrayMatch ? arrayMatch[0] : "";
+    const baseType = arrayMatch ? input.slice(0, -arraySuffix.length) : input;
+
+    // For tuples, recursively parse components
+    if (baseType.startsWith("(") && baseType.endsWith(")")) {
+      const inner = baseType.slice(1, -1);
+      const components = splitComponents(inner).map((comp, idx) =>
+        parseType(comp, arrayMatch ? undefined : idx)
+      );
+
+      return {
+        type: `tuple${arraySuffix}`,
+        ...(index !== undefined && { name: `arg${index}` }),
+        components,
+      };
+    }
+
+    // For basic types
+    return {
+      type: input,
+      ...(index !== undefined && { name: `arg${index}` }),
+    };
+  };
+
+  // Split tuple components while respecting nesting
+  const splitComponents = (input: string): string[] => {
+    const components: string[] = [];
+    let current = "";
+    let parenDepth = 0;
+    let bracketDepth = 0;
+
+    for (const char of input) {
+      if (char === "(") parenDepth++;
+      else if (char === ")") parenDepth--;
+      else if (char === "[") bracketDepth++;
+      else if (char === "]") bracketDepth--;
+      else if (char === "," && parenDepth === 0 && bracketDepth === 0) {
+        components.push(current.trim());
+        current = "";
+        continue;
+      }
+      current += char;
+    }
+
+    if (current.trim()) {
+      components.push(current.trim());
+    }
+
+    return components;
+  };
+
+  // Start parsing from the top
+  const trimmed = argsString.trim();
+  if (trimmed === "" || trimmed === "()") return [];
+
+  return [parseType(trimmed)];
 };
 
 export const ContractPage = ({
@@ -449,7 +522,7 @@ export const ContractPage = ({
   const [client, setClient] = useState<PublicClient | null>(null);
 
   const [abi, setAbi] = useState<AbiType | null>(null);
-  const [isWhatsAbiDecoded, setIsWhatsAbiDecoded] = useState<boolean>(false);
+  const [isAbiDecoded, setIsAbiDecoded] = useState<boolean>(false);
   const [isFetchingAbi, setIsFetchingAbi] = useState<boolean>(false);
   const [unableToFetchAbi, setUnableToFetchAbi] = useState<boolean>(false);
 
@@ -462,58 +535,100 @@ export const ContractPage = ({
     try {
       setIsFetchingAbi(true);
       setUnableToFetchAbi(false);
+
       // try fetching if contract is verified
       const fetchedAbi = await fetchContractAbi({ address, chainId });
-      console.log(fetchedAbi);
+      console.log("Verified contract ABI:", fetchedAbi);
       setAbi({
         abi: fetchedAbi.abi as JsonFragment[],
         name: fetchedAbi.name,
       });
-      setIsWhatsAbiDecoded(false);
+      setIsAbiDecoded(false);
     } catch (e) {
+      console.log("Error fetching verified ABI:", e);
+
       try {
-        // try to determine abi using whatsabi
+        // Create client for bytecode fetch
         const client = createPublicClient({
           chain: chainIdToChain[chainId],
           transport: http(),
         });
-        const result = await whatsabi.autoload(address, { provider: client });
-        console.log({ whatsabi: result });
-        setIsWhatsAbiDecoded(true);
+
+        // Fetch contract bytecode
         const contractCode = await client.getCode({
           address: address as Address,
         });
-        // sort functions names alphabetically
+
+        if (contractCode === "0x") {
+          throw new Error("No contract code found at address");
+        }
+
+        // Get function selectors using evmole
+        console.log("Attempting evmole decode...");
+        const selectors = evmole.functionSelectors(contractCode);
+        console.log("Function selectors:", selectors);
+
+        if (!selectors || !Array.isArray(selectors)) {
+          throw new Error("Invalid selectors format");
+        }
+
+        setIsAbiDecoded(true);
+
+        // Process and sort functions
+        const processedAbi = await Promise.all(
+          selectors.map(async (selector) => {
+            const args = evmole.functionArguments(contractCode, selector);
+            const stateMutability = evmole.functionStateMutability(
+              contractCode,
+              selector,
+              0
+            );
+
+            console.log({
+              selector,
+              args,
+              stateMutability,
+            });
+
+            // Try to fetch function interface
+            const functionInterface = await fetchFunctionInterface({
+              selector: startHexWith0x(selector),
+            });
+
+            let name: string | undefined;
+            if (functionInterface) {
+              name = functionInterface.split("(")[0].trim();
+            }
+
+            return {
+              type: "function",
+              name: name || `selector: ${startHexWith0x(selector)}`,
+              inputs: args ? parseEVMoleInputTypes(args) : [],
+              stateMutability,
+              selector: startHexWith0x(selector),
+            };
+          })
+        );
+
+        const sortedAbi = processedAbi.sort((a, b) => {
+          const nameA = a.name?.toLowerCase();
+          const nameB = b.name?.toLowerCase();
+          const isSelectorA = nameA?.startsWith("selector: ");
+          const isSelectorB = nameB?.startsWith("selector: ");
+          if (isSelectorA && !isSelectorB) return 1;
+          if (!isSelectorA && isSelectorB) return -1;
+          return nameA && nameB ? nameA.localeCompare(nameB) : 0;
+        });
+
+        console.log("Processed ABI:", sortedAbi);
+
         setAbi({
-          abi: result.abi
-            .filter((fragment) => fragment.type === "function")
-            .map((fragment) => ({
-              ...fragment,
-              name:
-                fragment.name ??
-                `selector: ${(fragment as ABIFunction).selector}`,
-              stateMutability: evmole.functionStateMutability(
-                contractCode,
-                (fragment as ABIFunction).selector,
-                0
-              ),
-            }))
-            .sort((a, b) => {
-              const nameA = a.name.toLowerCase();
-              const nameB = b.name.toLowerCase();
-
-              const isSelectorA = nameA.startsWith("selector: ");
-              const isSelectorB = nameB.startsWith("selector: ");
-
-              if (isSelectorA && !isSelectorB) return 1;
-              if (!isSelectorA && isSelectorB) return -1;
-              return nameA.localeCompare(nameB);
-            }) as JsonFragment[],
+          abi: sortedAbi as JsonFragment[],
           name: slicedText(address),
         });
-      } catch {
+      } catch (evmoleError) {
+        console.error("Error using evmole:", evmoleError);
         setUnableToFetchAbi(true);
-        console.log("Failed to fetch abi");
       }
     } finally {
       setIsFetchingAbi(false);
@@ -570,7 +685,7 @@ export const ContractPage = ({
     return (
       abi && (
         <Box mt="1rem">
-          {isWhatsAbiDecoded && (
+          {isAbiDecoded && (
             <Alert status="info" mb={"1rem"} rounded={"lg"}>
               <AlertIcon />
               Contract not verified, used whatsabi & evmole to determine
@@ -606,7 +721,7 @@ export const ContractPage = ({
               functions={readFunctions}
               address={address}
               chainId={chainId}
-              isWhatsAbiDecoded={isWhatsAbiDecoded}
+              isAbiDecoded={isAbiDecoded}
             />
             <ReadWriteSection
               type="write"
@@ -615,7 +730,7 @@ export const ContractPage = ({
               functions={writeFunctions}
               address={address}
               chainId={chainId}
-              isWhatsAbiDecoded={isWhatsAbiDecoded}
+              isAbiDecoded={isAbiDecoded}
             />
           </Grid>
         </Box>
