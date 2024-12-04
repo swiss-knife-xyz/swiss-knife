@@ -8,11 +8,15 @@ import {
   Spinner,
   Link,
   Center,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
 } from "@chakra-ui/react";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
   ExternalLinkIcon,
+  SettingsIcon,
 } from "@chakra-ui/icons";
 import { WriteButtonType } from "./ReadWriteFunction";
 import { WriteButton } from "../WriteButton";
@@ -24,16 +28,17 @@ import {
   Hex,
   parseEther,
   PublicClient,
+  zeroAddress,
 } from "viem";
 import { JsonFragmentType } from "ethers";
 import { useAccount, useWalletClient } from "wagmi";
 import { InputField } from "../InputField";
-import { IntInput } from "./inputs";
+import { AddressInput, IntInput } from "./inputs";
 import { waitForTransactionReceipt } from "@wagmi/core";
 import { config } from "@/app/providers";
 import { getTransactionError } from "viem/utils";
 import { renderParamTypes } from "./Renderer";
-import { slicedText } from "@/utils";
+import { generateTenderlyUrl, slicedText } from "@/utils";
 
 export const RawCalldata = ({
   readAllCollapsed,
@@ -66,6 +71,8 @@ export const RawCalldata = ({
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
     WriteButtonType.Write
   );
+  const [settingsSenderAddr, setSettingsSenderAddr] = useState<string>("");
+  const [settingsIsOpen, setSettingsIsOpen] = useState<boolean>(false);
 
   useUpdateEffect(() => {
     setIsCollapsed(readAllCollapsed !== undefined ? readAllCollapsed : false);
@@ -140,8 +147,37 @@ export const RawCalldata = ({
     }
   }, [address, calldata, client, isError, payableETH]);
 
-  // FIXME: make functional
-  const simulateOnTenderly = () => {};
+  const simulateOnTenderly = useCallback(async () => {
+    if (isError) {
+      setIsError(false);
+    }
+
+    setLoading(true);
+
+    const tenderlyUrl = generateTenderlyUrl(
+      {
+        from:
+          settingsSenderAddr.length > 0
+            ? settingsSenderAddr
+            : userAddress ?? zeroAddress,
+        to: address,
+        value: payableETH,
+        data: calldata ?? "0x",
+      },
+      chainId
+    );
+    window.open(tenderlyUrl, "_blank");
+
+    setLoading(false);
+  }, [
+    address,
+    calldata,
+    chainId,
+    isError,
+    payableETH,
+    settingsSenderAddr,
+    userAddress,
+  ]);
 
   const renderRes = () => {
     if (res !== null) {
@@ -208,6 +244,56 @@ export const RawCalldata = ({
           setWriteButtonType={setWriteButtonType}
           setIsError={setIsError}
         />
+        {writeButtonType === WriteButtonType.SimulateOnTenderly && (
+          <Popover
+            placement="bottom-start"
+            isOpen={settingsIsOpen}
+            onOpen={() => setSettingsIsOpen(true)}
+            onClose={() => setSettingsIsOpen(false)}
+          >
+            <PopoverTrigger>
+              <Box>
+                <Button size="sm">
+                  <SettingsIcon
+                    transition="900ms rotate ease-in-out"
+                    transform={
+                      settingsIsOpen ? "rotate(33deg)" : "rotate(0deg)"
+                    }
+                  />
+                </Button>
+              </Box>
+            </PopoverTrigger>
+            <PopoverContent
+              minW="30rem"
+              border={"1px solid"}
+              borderColor={"whiteAlpha.400"}
+              bg="bg.900"
+              boxShadow="xl"
+              rounded="xl"
+              overflowY="auto"
+            >
+              <Box px="1rem" py="1rem">
+                <Box mt={4}>
+                  <AddressInput
+                    input={{
+                      name: "(optional) Sender",
+                      type: "address",
+                    }}
+                    value={settingsSenderAddr}
+                    chainId={chainId}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setSettingsSenderAddr(e.target.value);
+                    }}
+                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {}}
+                    isInvalid={false}
+                    setFunctionIsDisabled={() => {}}
+                    hideTags
+                  />
+                </Box>
+              </Box>
+            </PopoverContent>
+          </Popover>
+        )}
       </HStack>
       <Box mt={4} ml={4} px={4} display={isCollapsed ? "none" : undefined}>
         {/* Inputs */}
