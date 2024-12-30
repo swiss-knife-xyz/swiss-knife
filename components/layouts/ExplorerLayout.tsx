@@ -201,7 +201,6 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
 
   const SidebarItems: SidebarItem[] = [
     { name: "Explorers", path: `address/${userInputFromUrl}` },
-    { name: "Contract", path: `contract/${userInputFromUrl}/1` },
   ];
 
   return (
