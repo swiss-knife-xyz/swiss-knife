@@ -1,17 +1,17 @@
 "use client";
 
 import { ReactNode } from "react";
-import { Box, Container, Flex, HStack } from "@chakra-ui/react";
+import { Box, Container, Flex, HStack, FlexProps } from "@chakra-ui/react";
 import { useLocalStorage } from "usehooks-ts";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { MainSidebar } from "@/components/MainSidebar";
 
-interface LayoutParams {
+interface LayoutParams extends FlexProps {
   children: ReactNode;
 }
 
-export const Layout = ({ children }: LayoutParams) => {
+export const Layout = ({ children, ...props }: LayoutParams) => {
   const [isNavExpanded, setIsNavExpanded] = useLocalStorage(
     "isNavExpanded",
     false
@@ -42,6 +42,7 @@ export const Layout = ({ children }: LayoutParams) => {
                   borderColor="whiteAlpha.700"
                   borderStyle="dotted"
                   rounded="lg"
+                  {...props}
                 >
                   {children}
                 </Flex>

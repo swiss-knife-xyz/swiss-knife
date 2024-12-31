@@ -637,9 +637,14 @@ export const ContractPage = ({
     if (selectedNetworkOption) {
       const newChainId = parseInt(selectedNetworkOption.value.toString());
 
-      router.push(
-        `${getPath(subdomains.EXPLORER.base)}contract/${address}/${newChainId}`
-      );
+      // Only push new route if chainId actually changed
+      if (newChainId !== chainId) {
+        router.push(
+          `${getPath(
+            subdomains.EXPLORER.base
+          )}contract/${address}/${newChainId}`
+        );
+      }
 
       setClient(
         createPublicClient({
@@ -648,7 +653,7 @@ export const ContractPage = ({
         })
       );
     }
-  }, [selectedNetworkOption]);
+  }, [selectedNetworkOption, chainId, router, address]);
 
   // Fetch ABI when address or chainId changes
   useEffect(() => {
