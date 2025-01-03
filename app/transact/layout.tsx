@@ -1,5 +1,5 @@
-import { TransactLayout as TransactLayoutC } from "@/components/layouts/TransactLayout";
 import { getMetadata } from "@/utils";
+import { TransactLayout as TransactLayoutC } from "./TransactLayout";
 
 export const metadata = getMetadata({
   title: "Transact | Swiss-Knife.xyz",

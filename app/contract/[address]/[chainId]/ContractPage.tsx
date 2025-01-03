@@ -41,11 +41,11 @@ import {
   startHexWith0x,
 } from "@/utils";
 import { ABIFunction } from "@shazow/whatsabi/lib.types/abi";
-import { StorageSlot } from "../fnParams/StorageSlot";
-import { RawCalldata } from "../fnParams/RawCalldata";
+import { StorageSlot } from "@/components/fnParams/StorageSlot";
+import { RawCalldata } from "@/components/fnParams/RawCalldata";
 import subdomains from "@/subdomains";
 import { fetchFunctionInterface } from "@/lib/decoder";
-import { DarkButton } from "../DarkButton";
+import { DarkButton } from "@/components/DarkButton";
 import { processContractBytecode } from "@/utils/index";
 
 const useDebouncedValue = (value: any, delay: number) => {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { fetchContractAbi, getMetadata } from "@/utils";
 import { Layout } from "@/components/Layout";
 // Putting the page into separate component as it uses "use client" which doesn't work with `generateMetadata`
-import { ContractPage as ContractP } from "@/components/pages/ContractPage";
+import { ContractPage as ContractP } from "./ContractPage";
 import { generateMetadata as layoutGenerateMetadata } from "./layout";
 import { Box, Heading } from "@chakra-ui/react";
 

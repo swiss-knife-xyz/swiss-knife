@@ -36,7 +36,7 @@ import { Layout } from "@/components/Layout";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { AddressBook } from "@/components/AddressBook";
 import axios from "axios";
-import { Sidebar, SidebarItem } from "../Sidebar";
+import { Sidebar, SidebarItem } from "@/components/Sidebar";
 
 const isValidTransaction = (tx: string) => {
   return /^0x([A-Fa-f0-9]{64})$/.test(tx);

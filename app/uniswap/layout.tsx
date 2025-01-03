@@ -1,5 +1,5 @@
-import { UniswapLayout as UniswapLayoutC } from "@/components/layouts/UniswapLayout";
 import { getMetadata } from "@/utils";
+import { UniswapLayout as UniswapLayoutC } from "./UniswapLayout";
 
 export const metadata = getMetadata({
   title: "UniswapV3 | Swiss-Knife.xyz",

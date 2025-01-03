@@ -1,5 +1,5 @@
-import { ConverterLayout as ConverterLayoutC } from "@/components/layouts/ConverterLayout";
 import { getMetadata } from "@/utils";
+import { ConverterLayout as ConverterLayoutC } from "./ConverterLayout";
 
 export const metadata = getMetadata({
   title: "Converter | Swiss-Knife.xyz",

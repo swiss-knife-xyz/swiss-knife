@@ -1,5 +1,5 @@
-import { CalldataLayout as CalldataLayoutC } from "@/components/layouts/CalldataLayout";
 import { getMetadata } from "@/utils";
+import { CalldataLayout as CalldataLayoutC } from "./CalldataLayout";
 
 export const metadata = getMetadata({
   title: "ETH Calldata Decoder | Swiss-Knife.xyz",

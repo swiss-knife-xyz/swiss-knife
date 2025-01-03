@@ -1,5 +1,5 @@
-import { IndexLayout as IndexLayoutC } from "@/components/layouts/IndexLayout";
 import { getMetadata } from "@/utils";
+import { IndexLayout as IndexLayoutC } from "./IndexLayout";
 
 export const metadata = getMetadata({
   title: "Swiss-Knife.xyz | All your Ethereum dev tools at one place!",
