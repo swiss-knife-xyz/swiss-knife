@@ -1,4 +1,4 @@
-import { ExplorersData } from "@/types";
+import { ExplorerData, ExplorersData } from "@/types";
 import { CHAINLABEL_KEY, TX_KEY, c } from "./common";
 
 export const txExplorers: ExplorersData = {
@@ -203,6 +203,18 @@ export const txExplorers: ExplorersData = {
       [c.polygonZkEvmTestnet.id]: "testnet-zkevm.",
     },
     faviconUrl: "https://polygonscan.com/assets/generic/html/favicon-light.ico",
+  },
+  "0xPPL": {
+    urlLayout: `https://0xppl.com/tx/${TX_KEY}`,
+    // Supports all EVM chains
+    chainIdToLabel: (() => {
+      let res: ExplorerData["chainIdToLabel"] = {};
+
+      Object.values(c).map((val) => {
+        res[val.id] = "";
+      });
+      return res;
+    })(),
   },
   Sentio: {
     urlLayout: `https://app.sentio.xyz/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
