@@ -168,7 +168,7 @@ export interface ETHSelectedOptionState {
 export function convertTo(
   selectedEthFormatOption: ETHSelectedOptionState,
   value: any
-) {
+): string {
   if (!selectedEthFormatOption?.value) {
     return "";
   }
@@ -185,13 +185,13 @@ export function convertTo(
     case "Unix Time":
       return convertUnixSecondsToGMT(Number(value));
     case "Bps ↔️ %":
-      return `${((parseFloat(value) * 1_00) / 10_000).toFixed(2).toString()}%`;
+      return `${((parseFloat(value) * 1_00) / 10_000).toFixed(2)}%`;
     case "Days":
-      return value / 86400;
+      return (value / 86400).toString();
     case "Hours":
-      return value / 3600;
+      return (value / 3600).toString();
     case "Minutes":
-      return value / 60;
+      return (value / 60).toString();
     default:
       return "";
   }
