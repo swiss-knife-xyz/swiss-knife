@@ -33,7 +33,7 @@ import {
   SettingsIcon,
 } from "@chakra-ui/icons";
 import { useWalletClient, useAccount } from "wagmi";
-import { waitForTransactionReceipt } from "@wagmi/core";
+import { waitForTransactionReceipt } from "wagmi/actions";
 import { FunctionFragment, JsonFragment, JsonFragmentType } from "ethers";
 import {
   ContractFunctionExecutionError,
