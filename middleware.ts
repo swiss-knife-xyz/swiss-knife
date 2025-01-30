@@ -10,21 +10,23 @@ export default async function middleware(
   request: NextRequest,
   event: NextFetchEvent
 ): Promise<Response | undefined> {
-  // limit the request based on the IP
-  const { success, limit, reset, remaining } = await ratelimit.limit(
-    `ratelimit_middleware_${getIP(request)}`
-  );
+  // // limit the request based on the IP
+  // const { success, limit, reset, remaining } = await ratelimit.limit(
+  //   `ratelimit_middleware_${getIP(request)}`
+  // );
 
-  // if the request isn't rate limited, continue
-  const res =
-    success || process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-      ? NextResponse.next()
-      : NextResponse.redirect(new URL("/api/blocked", request.url));
+  // // if the request isn't rate limited, continue
+  // const res =
+  //   success || process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+  //     ? NextResponse.next()
+  //     : NextResponse.redirect(new URL("/api/blocked", request.url));
 
-  res.headers.set("X-RateLimit-Limit", limit.toString());
-  res.headers.set("X-RateLimit-Remaining", remaining.toString());
-  res.headers.set("X-RateLimit-Reset", reset.toString());
-  return res;
+  // res.headers.set("X-RateLimit-Limit", limit.toString());
+  // res.headers.set("X-RateLimit-Remaining", remaining.toString());
+  // res.headers.set("X-RateLimit-Reset", reset.toString());
+  // return res;
+
+  return NextResponse.next();
 }
 
 export const config = {
