@@ -25,6 +25,12 @@ import {
 import { formatEther, formatUnits } from "viem";
 
 export const getPath = (subdomain: string) => {
+  if (subdomain.length === 0) {
+    return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+      ? "/"
+      : "https://swiss-knife.xyz/";
+  }
+
   return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
     ? `/${subdomain}/`
     : `https://${subdomain}.swiss-knife.xyz/`;
