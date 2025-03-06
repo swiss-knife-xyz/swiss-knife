@@ -47,6 +47,10 @@ const subdomains = {
     base: "foundry",
     paths: ["forge-stack-tracer-ui"],
   },
+  ENS: {
+    base: "ens",
+    paths: ["content-changes"],
+  },
 };
 
 module.exports = subdomains;
