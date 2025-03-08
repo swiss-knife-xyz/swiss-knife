@@ -54,8 +54,6 @@ export const WalletConnect = () => {
      * 1. Open session proposal modal for confirmation / rejection
      *****************************************************************************/
     if (!isEventsInitialized) {
-      SettingsStore.setIsEventsInitialized(true);
-
       web3wallet.on(
         "session_proposal",
         (proposal: WalletKitTypes.SessionProposal) => {
@@ -139,6 +137,8 @@ export const WalletConnect = () => {
           Object.values(web3wallet.getActiveSessions())
         );
       });
+
+      SettingsStore.setIsEventsInitialized(true);
     }
 
     try {
