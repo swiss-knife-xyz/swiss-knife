@@ -55,13 +55,6 @@ export default function WalletKitInitializer({
         setActiveSessions(Object.values(sessions));
 
         setIsInitializing(false);
-
-        toast({
-          title: "WalletKit initialized",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
       } catch (error) {
         console.error("Failed to initialize WalletKit:", error);
         toast({

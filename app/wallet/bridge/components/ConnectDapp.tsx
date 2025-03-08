@@ -1,4 +1,12 @@
-import { Box, Button, Heading, Input, VStack } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Heading,
+  Input,
+  VStack,
+  InputGroup,
+} from "@chakra-ui/react";
+import QrScanner from "./QRScanner";
 
 interface ConnectDappProps {
   uri: string;
@@ -15,6 +23,16 @@ export default function ConnectDapp({
   isConnected,
   connectToDapp,
 }: ConnectDappProps) {
+  // Function to handle QR scan
+  const handleQrScan = async (scannedUri: string) => {
+    setUri(scannedUri);
+    setPasted(true);
+    // Auto connect if URI is valid
+    if (scannedUri && scannedUri.startsWith("wc:") && isConnected) {
+      await connectToDapp();
+    }
+  };
+
   return (
     <Box
       p={{ base: 4, md: 6 }}
@@ -38,6 +56,9 @@ export default function ConnectDapp({
           isDisabled={!isConnected}
           size={{ base: "md", md: "md" }}
         />
+
+        <QrScanner onScan={handleQrScan} isDisabled={!isConnected} />
+
         <Button
           colorScheme="blue"
           width="100%"

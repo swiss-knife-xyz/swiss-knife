@@ -561,7 +561,7 @@ export default function WalletBridgePage() {
           gap={{ base: 4, sm: 0 }}
         >
           <Heading size={{ base: "md", md: "lg" }}>Wallet Bridge</Heading>
-          <ConnectButton />
+          {isConnected && <ConnectButton />}
         </Flex>
 
         {isInitializing ? (
