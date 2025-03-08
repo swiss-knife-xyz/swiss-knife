@@ -19,6 +19,7 @@ import {
   safeWallet,
   coinbaseWallet,
 } from "@rainbow-me/rainbowkit/wallets";
+import { frameConnector } from "@/utils/frameConnector";
 import {
   mainnet,
   arbitrum,
@@ -78,7 +79,7 @@ const connectors = connectorsForWallets(
 );
 
 export const config = createConfig({
-  connectors,
+  connectors: [frameConnector(), ...connectors],
   chains: walletChains,
   transports: walletChains.reduce<Record<number, ReturnType<typeof http>>>(
     (transport, chain) => {

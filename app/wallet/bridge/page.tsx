@@ -15,9 +15,10 @@ import {
   Stack,
 } from "@chakra-ui/react";
 import { Global } from "@emotion/react";
-import { ConnectButton } from "@/components/ConnectButton/ConnectButton";
-import { buildApprovedNamespaces } from "@walletconnect/utils";
+import frameSdk, { Context } from "@farcaster/frame-sdk";
 import { useAccount, useWalletClient, useChainId, useSwitchChain } from "wagmi";
+import { buildApprovedNamespaces } from "@walletconnect/utils";
+import { ConnectButton } from "@/components/ConnectButton/ConnectButton";
 import { walletChains } from "@/app/providers";
 import { chainIdToChain } from "@/data/common";
 
@@ -41,6 +42,10 @@ export default function WalletBridgePage() {
   const { data: walletClient } = useWalletClient();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
+
+  // State for Frame
+  const [isFrameSDKLoaded, setIsFrameSDKLoaded] = useState(false);
+  const [frameContext, setFrameContext] = useState<typeof Context | null>(null);
 
   // State for WalletConnect
   const [uri, setUri] = useState<string>("");
@@ -534,6 +539,18 @@ export default function WalletBridgePage() {
     },
     [walletKit, toast]
   );
+
+  // Initialize Frame SDK
+  useEffect(() => {
+    const load = async () => {
+      setFrameContext(await frameSdk.context);
+      frameSdk.actions.ready();
+    };
+    if (frameSdk && !isFrameSDKLoaded) {
+      setIsFrameSDKLoaded(true);
+      load();
+    }
+  }, [isFrameSDKLoaded]);
 
   // Check if chain switch is needed when session request changes
   useEffect(() => {
