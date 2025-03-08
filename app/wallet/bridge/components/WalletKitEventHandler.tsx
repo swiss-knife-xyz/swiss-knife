@@ -204,6 +204,19 @@ export default function WalletKitEventHandler({
       }
     };
 
+    // Handle session ping
+    const onSessionPing = (data: any) => {
+      console.log("ping", data);
+    };
+
+    // Handle session delete
+    const onSessionDelete = (data: any) => {
+      console.log("session_delete event received", data);
+      // Update active sessions
+      const sessions = walletKit.getActiveSessions();
+      setActiveSessions(Object.values(sessions));
+    };
+
     // Function to handle title notification
     const startTitleNotification = () => {
       const originalTitle = document.title;
@@ -232,11 +245,15 @@ export default function WalletKitEventHandler({
     // Subscribe to events
     walletKit.on("session_proposal", onSessionProposal);
     walletKit.on("session_request", onSessionRequest);
+    walletKit.on("session_delete", onSessionDelete);
+    walletKit.engine.signClient.events.on("session_ping", onSessionPing);
 
     // Cleanup
     return () => {
       walletKit.off("session_proposal", onSessionProposal);
       walletKit.off("session_request", onSessionRequest);
+      walletKit.off("session_delete", onSessionDelete);
+      walletKit.engine.signClient.events.off("session_ping", onSessionPing);
     };
   }, [
     walletKit,
