@@ -63,6 +63,7 @@ export default function WalletKitInitializer({
           status: "error",
           duration: 5000,
           isClosable: true,
+          position: "bottom-right",
         });
         setIsInitializing(false);
       }

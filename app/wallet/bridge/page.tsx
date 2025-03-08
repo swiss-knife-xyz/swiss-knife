@@ -158,6 +158,7 @@ export default function WalletBridgePage() {
               status: "info",
               duration: 5000,
               isClosable: true,
+              position: "bottom-right",
             });
 
             // Return success
@@ -187,6 +188,7 @@ export default function WalletBridgePage() {
             status: "success",
             duration: 3000,
             isClosable: true,
+            position: "bottom-right",
           });
         } else {
           // Reject the request
@@ -207,6 +209,7 @@ export default function WalletBridgePage() {
             status: "info",
             duration: 3000,
             isClosable: true,
+            position: "bottom-right",
           });
         }
 
@@ -227,6 +230,7 @@ export default function WalletBridgePage() {
           status: "error",
           duration: 5000,
           isClosable: true,
+          position: "bottom-right",
         });
       }
     },
@@ -278,6 +282,7 @@ export default function WalletBridgePage() {
         status: "info",
         duration: 3000,
         isClosable: true,
+        position: "bottom-right",
       });
     } catch (error) {
       console.error("Failed to connect to dApp:", error);
@@ -287,6 +292,7 @@ export default function WalletBridgePage() {
         status: "error",
         duration: 5000,
         isClosable: true,
+        position: "bottom-right",
       });
     }
   }, [walletKit, uri, toast]);
@@ -339,6 +345,7 @@ export default function WalletBridgePage() {
         status: "success",
         duration: 3000,
         isClosable: true,
+        position: "bottom-right",
       });
     } catch (error) {
       console.error("Failed to approve session:", error);
@@ -348,6 +355,7 @@ export default function WalletBridgePage() {
         status: "error",
         duration: 5000,
         isClosable: true,
+        position: "bottom-right",
       });
     }
   }, [
@@ -379,6 +387,7 @@ export default function WalletBridgePage() {
         status: "info",
         duration: 3000,
         isClosable: true,
+        position: "bottom-right",
       });
     } catch (error) {
       console.error("Failed to reject session:", error);
@@ -388,6 +397,7 @@ export default function WalletBridgePage() {
         status: "error",
         duration: 5000,
         isClosable: true,
+        position: "bottom-right",
       });
     }
   }, [walletKit, currentSessionProposal, onSessionProposalClose, toast]);
@@ -415,6 +425,7 @@ export default function WalletBridgePage() {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "bottom-right",
       });
     }
   }, [targetChainId, switchChainAsync, toast]);
@@ -442,6 +453,7 @@ export default function WalletBridgePage() {
           status: "info",
           duration: 3000,
           isClosable: true,
+          position: "bottom-right",
         });
       } catch (error) {
         console.error("Failed to disconnect session:", error);
@@ -451,6 +463,7 @@ export default function WalletBridgePage() {
           status: "error",
           duration: 5000,
           isClosable: true,
+          position: "bottom-right",
         });
       }
     },

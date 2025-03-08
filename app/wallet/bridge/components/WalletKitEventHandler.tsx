@@ -89,10 +89,11 @@ export default function WalletKitEventHandler({
             setActiveSessions(Object.values(sessions));
 
             toast({
-              title: "Session auto-approved",
+              title: "Dapp connected",
               status: "success",
               duration: 3000,
               isClosable: true,
+              position: "bottom-right",
             });
           } catch (error) {
             console.error("Failed to auto-approve session:", error);
@@ -106,6 +107,7 @@ export default function WalletKitEventHandler({
               status: "error",
               duration: 5000,
               isClosable: true,
+              position: "bottom-right",
             });
           }
         }, 100);
@@ -127,6 +129,9 @@ export default function WalletKitEventHandler({
       // Reset decoded data
       setDecodedTxData(null);
       setDecodedSignatureData(null);
+
+      // Start title notification
+      startTitleNotification();
 
       // Open the modal immediately
       onSessionRequestOpen();
@@ -197,6 +202,31 @@ export default function WalletKitEventHandler({
           console.error("Error decoding typed data:", error);
         }
       }
+    };
+
+    // Function to handle title notification
+    const startTitleNotification = () => {
+      const originalTitle = document.title;
+      const notificationTitle = "🔔 (1) Request - Swiss Knife";
+      let isOriginalTitle = false;
+
+      // Store the interval ID so we can clear it later
+      const titleInterval = setInterval(() => {
+        document.title = isOriginalTitle ? notificationTitle : originalTitle;
+        isOriginalTitle = !isOriginalTitle;
+      }, 500);
+
+      // Create a function to stop the notification
+      const stopTitleNotification = () => {
+        clearInterval(titleInterval);
+        document.title = originalTitle;
+      };
+
+      // Stop the notification when the user focuses on the window
+      window.addEventListener("focus", stopTitleNotification, { once: true });
+
+      // Also stop after 5 minutes as a fallback
+      setTimeout(stopTitleNotification, 5 * 60 * 1000);
     };
 
     // Subscribe to events
