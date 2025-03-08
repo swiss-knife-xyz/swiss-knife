@@ -1,4 +1,4 @@
-import { Box } from "@chakra-ui/react";
+import { Box, useBreakpointValue } from "@chakra-ui/react";
 import { keyframes } from "@emotion/react";
 import { useEffect, useState, useMemo } from "react";
 
@@ -32,6 +32,22 @@ export const AnimatedSubtitle = () => {
   const [displayText, setDisplayText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  // Responsive values
+  const fontSize = useBreakpointValue({ base: "lg", sm: "xl", md: "2xl" });
+  const containerHeight = useBreakpointValue({
+    base: "auto",
+    md: "60px",
+  });
+  const minWidth = useBreakpointValue({
+    base: "auto",
+    md: "400px",
+  });
+  const marginRight = useBreakpointValue({ base: 1, md: 2 });
+  const textAlign = useBreakpointValue({ base: "center", md: "left" }) as
+    | "center"
+    | "left";
+  const containerPadding = useBreakpointValue({ base: 2, md: 3 });
 
   // Typing effect
   useEffect(() => {
@@ -72,30 +88,61 @@ export const AnimatedSubtitle = () => {
 
   return (
     <Box
-      fontSize={"2xl"}
+      fontSize={fontSize}
       fontWeight={"bold"}
-      height="60px"
+      minHeight={containerHeight}
       position="relative"
       display="flex"
+      flexDirection="row"
+      alignItems="center"
+      justifyContent={textAlign === "center" ? "center" : "flex-start"}
+      width="100%"
+      py={containerPadding}
+      textAlign={textAlign}
+      flexWrap="wrap"
     >
-      <Box mr={2}>Connect</Box>
-      <Box position="relative" height="100%" minWidth="400px">
+      <Box
+        mr={marginRight}
+        display="inline-flex"
+        alignItems="center"
+        whiteSpace="nowrap"
+      >
+        Connect
+      </Box>
+      <Box
+        position="relative"
+        minHeight="2em"
+        minWidth={minWidth}
+        display="inline-flex"
+        alignItems="center"
+        height="100%"
+        flexGrow={1}
+        flexShrink={1}
+      >
         <Box
           position="absolute"
+          top="50%"
+          left={0}
+          transform="translateY(-50%)"
           animation={isAnimating ? `${fadeDown} 0.5s forwards` : "none"}
           visibility={isAnimating ? "visible" : "hidden"}
-          whiteSpace="nowrap"
+          whiteSpace={{ base: "normal", md: "nowrap" }}
           width="100%"
+          lineHeight={{ base: "1.5", md: "normal" }}
         >
           {phrases[currentPhraseIndex]}
         </Box>
 
         <Box
           position="absolute"
+          top="50%"
+          left={0}
+          transform="translateY(-50%)"
           animation={isAnimating ? `${fadeUp} 0.5s forwards` : "none"}
           visibility={!isAnimating ? "visible" : "hidden"}
-          whiteSpace="nowrap"
+          whiteSpace={{ base: "normal", md: "nowrap" }}
           width="100%"
+          lineHeight={{ base: "1.5", md: "normal" }}
         >
           {displayText}
           {isTyping && (

@@ -502,9 +502,10 @@ export default function WalletBridgePage() {
 
   return (
     <Container
-      maxW={{ base: "100%", md: "container.lg" }}
+      maxW={"80%"}
       py={{ base: 4, md: 8 }}
-      px={{ base: 4, md: 20 }}
+      px={{ base: 3, sm: 4, md: 6 }}
+      mx="auto"
     >
       <Global
         styles={{
@@ -567,14 +568,20 @@ export default function WalletBridgePage() {
         setPasted={setPasted}
       />
 
-      <VStack spacing={{ base: 4, md: 8 }} align="stretch">
+      <VStack
+        spacing={{ base: 4, md: 6 }}
+        align="stretch"
+        w="100%"
+        maxW={{ base: "100%", md: "700px", lg: "800px" }}
+        mx="auto"
+      >
         <Flex
           justifyContent="space-between"
           alignItems="center"
-          direction={{ base: "column", sm: "row" }}
-          gap={{ base: 4, sm: 0 }}
+          direction={{ base: "column", lg: "row" }}
+          gap={{ base: 4, lg: 0 }}
         >
-          <Heading size={{ base: "md", md: "lg" }}>💸 Wallet Bridge</Heading>
+          <Heading size={{ base: "2xl", md: "lg" }}>💸 Wallet Bridge</Heading>
           {isConnected && <ConnectButton />}
         </Flex>
 
@@ -603,7 +610,7 @@ export default function WalletBridgePage() {
             <>
               {!isConnected && (
                 <Box
-                  mt={{ base: -6, md: -10 }}
+                  mt={{ base: 0, md: -5 }}
                   p={{ base: 4, md: 6 }}
                   borderWidth={1}
                   borderRadius="lg"
