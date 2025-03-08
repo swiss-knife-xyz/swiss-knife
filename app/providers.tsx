@@ -96,11 +96,7 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
     <ChakraProvider theme={theme}>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider
-            theme={darkTheme()}
-            modalSize={"compact"}
-            coolMode={true}
-          >
+          <RainbowKitProvider theme={darkTheme()} modalSize={"compact"}>
             {children}
           </RainbowKitProvider>
         </QueryClientProvider>

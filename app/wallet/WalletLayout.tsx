@@ -104,6 +104,7 @@ export const NewNavbar = () => {
               aria-label="Open menu"
               icon={<HamburgerIcon />}
               variant="ghost"
+              color="white"
               colorScheme="whiteAlpha"
               onClick={onMenuOpen}
               size="md"
