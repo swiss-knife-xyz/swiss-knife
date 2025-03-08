@@ -38,7 +38,11 @@ export default function WalletKitEventHandler({
     if (!walletKit) return;
 
     // Handle session proposal
-    const onSessionProposal = (proposal: SessionProposal) => {
+    const onSessionProposal = (
+      args: { verifyContext: any } & Omit<any, "topic">
+    ) => {
+      // Convert the args to our SessionProposal type
+      const proposal = args as unknown as SessionProposal;
       console.log("Session proposal received:", proposal);
       console.log("Required namespaces:", proposal.params.requiredNamespaces);
       console.log("Optional namespaces:", proposal.params.optionalNamespaces);
@@ -112,7 +116,11 @@ export default function WalletKitEventHandler({
     };
 
     // Handle session request
-    const onSessionRequest = async (request: SessionRequest) => {
+    const onSessionRequest = async (
+      args: { verifyContext: any } & Omit<any, "topic">
+    ) => {
+      // Convert the args to our SessionRequest type
+      const request = args as unknown as SessionRequest;
       console.log("Session request received:", request);
       setCurrentSessionRequest(request);
 
