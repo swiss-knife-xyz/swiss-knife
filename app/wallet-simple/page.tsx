@@ -32,6 +32,11 @@ import {
   TabPanels,
   Tab,
   TabPanel,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
 } from "@chakra-ui/react";
 import { Global } from "@emotion/react";
 import { ConnectButton } from "@/components/ConnectButton/ConnectButton";
@@ -39,7 +44,7 @@ import { Core } from "@walletconnect/core";
 import { buildApprovedNamespaces } from "@walletconnect/utils";
 import { WalletKit } from "@reown/walletkit";
 import { useAccount, useWalletClient, useChainId, useSwitchChain } from "wagmi";
-import { formatEther, parseEther } from "viem";
+import { formatEther, parseEther, hexToString, isHex } from "viem";
 import { walletChains } from "@/app/providers";
 import { chainIdToChain } from "@/data/common";
 import { decodeRecursive } from "@/lib/decoder";
@@ -94,6 +99,62 @@ interface SessionRequest {
   };
 }
 
+// Helper function to decode personal_sign and eth_sign messages
+const decodeSignMessage = (hexMessage: string) => {
+  try {
+    // Try to decode as UTF-8 string
+    if (isHex(hexMessage)) {
+      // First try to decode as UTF-8
+      try {
+        // viem doesn't have hexToUtf8, but hexToString should work for UTF-8
+        return {
+          decoded: hexToString(hexMessage),
+          type: "utf8",
+        };
+      } catch (e) {
+        // If that fails, return the original hex
+        return {
+          decoded: hexMessage,
+          type: "hex",
+        };
+      }
+    }
+
+    // If it's not hex, it might already be a string
+    return {
+      decoded: hexMessage,
+      type: "string",
+    };
+  } catch (error) {
+    console.error("Error decoding message:", error);
+    return {
+      decoded: hexMessage,
+      type: "unknown",
+    };
+  }
+};
+
+// Helper function to format EIP-712 typed data in a human-readable way
+const formatTypedData = (typedData: any) => {
+  if (!typedData) return null;
+
+  try {
+    // If typedData is a string, try to parse it
+    const data =
+      typeof typedData === "string" ? JSON.parse(typedData) : typedData;
+
+    return {
+      domain: data.domain,
+      primaryType: data.primaryType,
+      types: data.types,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error("Error formatting typed data:", error);
+    return null;
+  }
+};
+
 export default function WalletSimplePage() {
   const toast = useToast();
   const { address, isConnected } = useAccount();
@@ -128,10 +189,18 @@ export default function WalletSimplePage() {
     useState<SessionRequest | null>(null);
   const [decodedTxData, setDecodedTxData] = useState<any>(null);
   const [isDecodingTx, setIsDecodingTx] = useState<boolean>(false);
+  const [decodedSignatureData, setDecodedSignatureData] = useState<{
+    type: "message" | "typedData";
+    decoded: any;
+  } | null>(null);
 
   // Add a new state to track if we're switching chains
   const [isSwitchingChain, setIsSwitchingChain] = useState<boolean>(false);
   const [pendingRequest, setPendingRequest] = useState<boolean>(false);
+
+  // Add a state to track if we need to switch chains
+  const [needsChainSwitch, setNeedsChainSwitch] = useState<boolean>(false);
+  const [targetChainId, setTargetChainId] = useState<number | null>(null);
 
   // Initialize WalletKit
   useEffect(() => {
@@ -274,6 +343,7 @@ export default function WalletSimplePage() {
 
       // Reset decoded data
       setDecodedTxData(null);
+      setDecodedSignatureData(null);
 
       // Open the modal immediately
       onSessionRequestOpen();
@@ -303,6 +373,47 @@ export default function WalletSimplePage() {
           setIsDecodingTx(false);
         }
       }
+      // Decode signature requests
+      else if (
+        request.params.request.method === "personal_sign" ||
+        request.params.request.method === "eth_sign"
+      ) {
+        try {
+          // For personal_sign, the message is the first parameter
+          // For eth_sign, the message is the second parameter (first is address)
+          const messageParam =
+            request.params.request.method === "personal_sign"
+              ? request.params.request.params[0]
+              : request.params.request.params[1];
+
+          const decodedMessage = decodeSignMessage(messageParam);
+          setDecodedSignatureData({
+            type: "message",
+            decoded: decodedMessage,
+          });
+        } catch (error) {
+          console.error("Error decoding signature message:", error);
+        }
+      }
+      // Decode typed data signing requests
+      else if (
+        request.params.request.method === "eth_signTypedData" ||
+        request.params.request.method === "eth_signTypedData_v3" ||
+        request.params.request.method === "eth_signTypedData_v4"
+      ) {
+        try {
+          // The typed data is usually the second parameter
+          const typedData = request.params.request.params[1];
+          const formattedTypedData = formatTypedData(typedData);
+
+          setDecodedSignatureData({
+            type: "typedData",
+            decoded: formattedTypedData,
+          });
+        } catch (error) {
+          console.error("Error decoding typed data:", error);
+        }
+      }
     };
 
     // Subscribe to events
@@ -328,36 +439,6 @@ export default function WalletSimplePage() {
         if (approve) {
           let result;
 
-          // Extract the requested chain ID from the request
-          const requestedChainIdStr = params.chainId.split(":")[1];
-          const requestedChainId = parseInt(requestedChainIdStr);
-
-          // For methods that require the correct chain, ensure we're on that chain
-          if (
-            request.method === "eth_sendTransaction" ||
-            request.method === "eth_signTransaction" ||
-            request.method === "eth_sign" ||
-            request.method === "personal_sign" ||
-            request.method === "eth_signTypedData" ||
-            request.method === "eth_signTypedData_v3" ||
-            request.method === "eth_signTypedData_v4"
-          ) {
-            // If we're not on the correct chain, don't proceed
-            if (chainId !== requestedChainId) {
-              toast({
-                title: "Chain mismatch",
-                description: `Please switch to ${
-                  chainIdToChain[requestedChainId]?.name ||
-                  `Chain ID: ${requestedChainId}`
-                } to proceed`,
-                status: "warning",
-                duration: 3000,
-                isClosable: true,
-              });
-              return;
-            }
-          }
-
           setPendingRequest(true);
 
           // Handle different request methods
@@ -366,6 +447,7 @@ export default function WalletSimplePage() {
 
             // Send transaction using wagmi wallet client
             const hash = await walletClient.sendTransaction({
+              account: address as `0x${string}`,
               to: txParams.to as `0x${string}`,
               value: txParams.value ? BigInt(txParams.value) : undefined,
               data: txParams.data as `0x${string}` | undefined,
@@ -379,6 +461,7 @@ export default function WalletSimplePage() {
           ) {
             const message = request.params[0];
             const signature = await walletClient.signMessage({
+              account: address as `0x${string}`,
               message: { raw: message as `0x${string}` },
             });
 
@@ -391,6 +474,7 @@ export default function WalletSimplePage() {
             // Handle typed data signing
             const typedData = request.params[1]; // The typed data is usually the second parameter
             const signature = await walletClient.signTypedData({
+              account: address as `0x${string}`,
               domain: typedData.domain,
               types: typedData.types,
               primaryType: typedData.primaryType,
@@ -403,7 +487,9 @@ export default function WalletSimplePage() {
             const requestedChainId = parseInt(request.params[0].chainId);
 
             // Switch chain using wagmi
+            setIsSwitchingChain(true);
             await switchChain({ chainId: requestedChainId });
+            setIsSwitchingChain(false);
 
             // Return success
             result = null;
@@ -438,6 +524,8 @@ export default function WalletSimplePage() {
           });
 
           setPendingRequest(false);
+          setNeedsChainSwitch(false);
+          setTargetChainId(null);
 
           toast({
             title: "Request approved",
@@ -462,25 +550,30 @@ export default function WalletSimplePage() {
 
           toast({
             title: "Request rejected",
-            description: `Method: ${request.method}`,
             status: "info",
             duration: 3000,
             isClosable: true,
           });
         }
 
+        // Close the modal
         onSessionRequestClose();
-        setCurrentSessionRequest(null);
       } catch (error) {
-        console.error("Failed to handle session request:", error);
+        console.error("Error handling session request:", error);
+        setPendingRequest(false);
+        setIsSwitchingChain(false);
+        setNeedsChainSwitch(false);
+        setTargetChainId(null);
+
         toast({
-          title: "Failed to handle request",
-          description: (error as Error).message,
+          title: "Error",
+          description: `Failed to ${
+            approve ? "approve" : "reject"
+          } request: ${error}`,
           status: "error",
           duration: 5000,
           isClosable: true,
         });
-        setPendingRequest(false);
       }
     },
     [
@@ -488,9 +581,10 @@ export default function WalletSimplePage() {
       currentSessionRequest,
       walletClient,
       chainId,
+      address,
+      toast,
       switchChain,
       onSessionRequestClose,
-      toast,
     ]
   );
 
@@ -688,31 +782,32 @@ export default function WalletSimplePage() {
     }
   }, [walletKit, currentSessionProposal, onSessionProposalClose, toast]);
 
-  // Handle chain switching for requests
-  const handleChainSwitch = useCallback(
-    async (requestedChainId: number) => {
-      if (chainId === requestedChainId) return true;
+  // Handle chain switch
+  const handleChainSwitch = useCallback(async () => {
+    if (!targetChainId) return;
 
-      try {
-        setIsSwitchingChain(true);
-        await switchChain({ chainId: requestedChainId });
-        setIsSwitchingChain(false);
-        return true;
-      } catch (error) {
-        console.error("Failed to switch chain:", error);
-        toast({
-          title: "Failed to switch chain",
-          description: (error as Error).message,
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        setIsSwitchingChain(false);
-        return false;
-      }
-    },
-    [chainId, switchChain, toast]
-  );
+    try {
+      setIsSwitchingChain(true);
+      await switchChain({ chainId: targetChainId });
+      setIsSwitchingChain(false);
+      setNeedsChainSwitch(false);
+
+      // No need to set targetChainId to null here as we want to keep it
+      // for reference in case the user needs to switch back
+    } catch (error) {
+      setIsSwitchingChain(false);
+      console.error("Error switching chain:", error);
+      toast({
+        title: "Chain Switch Failed",
+        description: `Failed to switch to ${
+          chainIdToChain[targetChainId]?.name || `Chain ID: ${targetChainId}`
+        }`,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }, [targetChainId, switchChain, toast]);
 
   // Disconnect session
   const disconnectSession = useCallback(
@@ -751,6 +846,35 @@ export default function WalletSimplePage() {
     },
     [walletKit, toast]
   );
+
+  // Check if chain switch is needed when session request changes
+  useEffect(() => {
+    if (currentSessionRequest && chainId) {
+      const { params } = currentSessionRequest;
+      const { request } = params;
+
+      // Extract the requested chain ID from the request
+      const requestedChainIdStr = params.chainId.split(":")[1];
+      const requestedChainId = parseInt(requestedChainIdStr);
+
+      // Check if we need to switch chains for this request
+      const requiresChainSwitch =
+        chainId !== requestedChainId &&
+        (request.method === "eth_sendTransaction" ||
+          request.method === "eth_signTransaction" ||
+          request.method === "eth_sign" ||
+          request.method === "personal_sign" ||
+          request.method === "eth_signTypedData" ||
+          request.method === "eth_signTypedData_v3" ||
+          request.method === "eth_signTypedData_v4");
+
+      setNeedsChainSwitch(requiresChainSwitch);
+      setTargetChainId(requiresChainSwitch ? requestedChainId : null);
+    } else {
+      setNeedsChainSwitch(false);
+      setTargetChainId(null);
+    }
+  }, [currentSessionRequest, chainId]);
 
   // Add useEffect to handle auto-connect on paste
   useEffect(() => {
@@ -1092,29 +1216,7 @@ export default function WalletSimplePage() {
                   </Code>
                 </Box>
 
-                {/* Only show raw params if it's not a sendTransaction request */}
-                {currentSessionRequest.params.request.method !==
-                  "eth_sendTransaction" && (
-                  <Box>
-                    <Text fontWeight="bold">Params:</Text>
-                    <Code
-                      p={2}
-                      borderRadius="md"
-                      fontSize="md"
-                      width="100%"
-                      whiteSpace="pre-wrap"
-                      bg="whiteAlpha.200"
-                      color="white"
-                    >
-                      {JSON.stringify(
-                        currentSessionRequest.params.request.params,
-                        null,
-                        2
-                      )}
-                    </Code>
-                  </Box>
-                )}
-
+                {/* Transaction Request */}
                 {currentSessionRequest.params.request.method ===
                   "eth_sendTransaction" && (
                   <Box
@@ -1351,76 +1453,260 @@ export default function WalletSimplePage() {
                   </Box>
                 )}
 
-                {currentSessionRequest.params.request.method ===
-                  "wallet_switchEthereumChain" && (
-                  <Box p={3} borderWidth={1} borderRadius="md" bg="gray.50">
-                    <Heading size="sm" mb={2} color="gray.800">
-                      Switch Chain Request
-                    </Heading>
-                    <VStack spacing={1} align="stretch">
-                      <Flex justifyContent="space-between">
-                        <Text fontWeight="bold" color="gray.800">
-                          Requested Chain:
-                        </Text>
-                        {(() => {
-                          const requestedChainId = parseInt(
-                            currentSessionRequest.params.request.params[0]
-                              .chainId
-                          );
-                          return (
-                            <Text color="gray.800">
-                              {chainIdToChain[requestedChainId]
-                                ? chainIdToChain[requestedChainId].name
-                                : `Chain ID: ${requestedChainId}`}
-                            </Text>
-                          );
-                        })()}
-                      </Flex>
-                    </VStack>
-                  </Box>
-                )}
+                {/* Message Signing Request (personal_sign or eth_sign) */}
+                {(currentSessionRequest.params.request.method ===
+                  "personal_sign" ||
+                  currentSessionRequest.params.request.method === "eth_sign") &&
+                  decodedSignatureData?.type === "message" && (
+                    <Box
+                      p={3}
+                      borderWidth={1}
+                      borderRadius="md"
+                      bg="whiteAlpha.100"
+                      borderColor="whiteAlpha.300"
+                    >
+                      <Heading size="sm" mb={2} color="white">
+                        Message to Sign
+                      </Heading>
 
-                {currentSessionRequest.params.request.method ===
-                  "wallet_addEthereumChain" && (
-                  <Box p={3} borderWidth={1} borderRadius="md" bg="gray.50">
-                    <Heading size="sm" mb={2} color="gray.800">
-                      Add Chain Request
-                    </Heading>
-                    <VStack spacing={1} align="stretch">
-                      <Flex justifyContent="space-between">
-                        <Text fontWeight="bold" color="gray.800">
-                          Chain Name:
-                        </Text>
-                        <Text color="gray.800">
-                          {
-                            currentSessionRequest.params.request.params[0]
-                              .chainName
-                          }
-                        </Text>
-                      </Flex>
-                      <Flex justifyContent="space-between">
-                        <Text fontWeight="bold" color="gray.800">
-                          Chain ID:
-                        </Text>
-                        <Text color="gray.800">
-                          {parseInt(
-                            currentSessionRequest.params.request.params[0]
-                              .chainId
-                          )}
-                        </Text>
-                      </Flex>
-                      <Flex justifyContent="space-between">
-                        <Text fontWeight="bold" color="gray.800">
-                          RPC URL:
-                        </Text>
-                        <Text color="gray.800">
-                          {
-                            currentSessionRequest.params.request.params[0]
-                              .rpcUrls[0]
-                          }
-                        </Text>
-                      </Flex>
-                    </VStack>
+                      <Tabs variant="soft-rounded" colorScheme="blue" size="sm">
+                        <TabList mb={3}>
+                          <Tab>Decoded</Tab>
+                          <Tab>Raw</Tab>
+                        </TabList>
+                        <TabPanels>
+                          <TabPanel p={0}>
+                            <Box
+                              p={3}
+                              borderRadius="md"
+                              bg="whiteAlpha.200"
+                              whiteSpace="pre-wrap"
+                              wordBreak="break-word"
+                              fontSize="sm"
+                            >
+                              {decodedSignatureData.decoded.decoded}
+                              {decodedSignatureData.decoded.type !==
+                                "unknown" && (
+                                <Badge ml={2} colorScheme="blue" fontSize="xs">
+                                  {decodedSignatureData.decoded.type}
+                                </Badge>
+                              )}
+                            </Box>
+                          </TabPanel>
+                          <TabPanel p={0}>
+                            <Code
+                              p={2}
+                              borderRadius="md"
+                              fontSize="sm"
+                              width="100%"
+                              whiteSpace="pre-wrap"
+                              wordBreak="break-word"
+                              bg="whiteAlpha.200"
+                              color="white"
+                            >
+                              {currentSessionRequest.params.request.method ===
+                              "personal_sign"
+                                ? currentSessionRequest.params.request.params[0]
+                                : currentSessionRequest.params.request
+                                    .params[1]}
+                            </Code>
+                          </TabPanel>
+                        </TabPanels>
+                      </Tabs>
+                    </Box>
+                  )}
+
+                {/* Typed Data Signing Request */}
+                {(currentSessionRequest.params.request.method ===
+                  "eth_signTypedData" ||
+                  currentSessionRequest.params.request.method ===
+                    "eth_signTypedData_v3" ||
+                  currentSessionRequest.params.request.method ===
+                    "eth_signTypedData_v4") &&
+                  decodedSignatureData?.type === "typedData" && (
+                    <Box
+                      p={3}
+                      borderWidth={1}
+                      borderRadius="md"
+                      bg="whiteAlpha.100"
+                      borderColor="whiteAlpha.300"
+                    >
+                      <Heading size="sm" mb={2} color="white">
+                        Typed Data to Sign
+                      </Heading>
+
+                      <Tabs variant="soft-rounded" colorScheme="blue" size="sm">
+                        <TabList mb={3}>
+                          <Tab>Formatted</Tab>
+                          <Tab>Raw</Tab>
+                        </TabList>
+                        <TabPanels>
+                          <TabPanel p={0}>
+                            {decodedSignatureData.decoded ? (
+                              <VStack spacing={3} align="stretch">
+                                {/* Domain Section */}
+                                <Box>
+                                  <Text fontWeight="bold" fontSize="sm">
+                                    Domain:
+                                  </Text>
+                                  <Code
+                                    p={2}
+                                    borderRadius="md"
+                                    fontSize="xs"
+                                    width="100%"
+                                    whiteSpace="pre-wrap"
+                                    wordBreak="break-word"
+                                    bg="whiteAlpha.200"
+                                    color="white"
+                                  >
+                                    {JSON.stringify(
+                                      decodedSignatureData.decoded.domain,
+                                      null,
+                                      2
+                                    )}
+                                  </Code>
+                                </Box>
+
+                                {/* Primary Type */}
+                                <Box>
+                                  <Text fontWeight="bold" fontSize="sm">
+                                    Primary Type:
+                                  </Text>
+                                  <Badge colorScheme="purple">
+                                    {decodedSignatureData.decoded.primaryType}
+                                  </Badge>
+                                </Box>
+
+                                {/* Message Data */}
+                                <Box>
+                                  <Text fontWeight="bold" fontSize="sm">
+                                    Message:
+                                  </Text>
+                                  <Code
+                                    p={2}
+                                    borderRadius="md"
+                                    fontSize="xs"
+                                    width="100%"
+                                    whiteSpace="pre-wrap"
+                                    wordBreak="break-word"
+                                    bg="whiteAlpha.200"
+                                    color="white"
+                                  >
+                                    {JSON.stringify(
+                                      decodedSignatureData.decoded.message,
+                                      null,
+                                      2
+                                    )}
+                                  </Code>
+                                </Box>
+
+                                {/* Types */}
+                                <Box>
+                                  <Text fontWeight="bold" fontSize="sm">
+                                    Types:
+                                  </Text>
+                                  <Accordion allowToggle>
+                                    {Object.entries(
+                                      decodedSignatureData.decoded.types || {}
+                                    ).map(([typeName, typeProps]) => (
+                                      <AccordionItem
+                                        key={typeName}
+                                        border="none"
+                                        mb={1}
+                                      >
+                                        <AccordionButton
+                                          bg="whiteAlpha.200"
+                                          borderRadius="md"
+                                          _hover={{ bg: "whiteAlpha.300" }}
+                                        >
+                                          <Box
+                                            flex="1"
+                                            textAlign="left"
+                                            fontWeight="medium"
+                                          >
+                                            {typeName}
+                                          </Box>
+                                          <AccordionIcon />
+                                        </AccordionButton>
+                                        <AccordionPanel
+                                          pb={4}
+                                          bg="whiteAlpha.100"
+                                          borderRadius="md"
+                                          mt={1}
+                                        >
+                                          <Code
+                                            p={2}
+                                            borderRadius="md"
+                                            fontSize="xs"
+                                            width="100%"
+                                            whiteSpace="pre-wrap"
+                                            wordBreak="break-word"
+                                            bg="transparent"
+                                            color="white"
+                                          >
+                                            {JSON.stringify(typeProps, null, 2)}
+                                          </Code>
+                                        </AccordionPanel>
+                                      </AccordionItem>
+                                    ))}
+                                  </Accordion>
+                                </Box>
+                              </VStack>
+                            ) : (
+                              <Text color="red.300">
+                                Failed to decode typed data
+                              </Text>
+                            )}
+                          </TabPanel>
+                          <TabPanel p={0}>
+                            <Code
+                              p={2}
+                              borderRadius="md"
+                              fontSize="sm"
+                              width="100%"
+                              whiteSpace="pre-wrap"
+                              wordBreak="break-word"
+                              bg="whiteAlpha.200"
+                              color="white"
+                            >
+                              {JSON.stringify(
+                                currentSessionRequest.params.request.params[1],
+                                null,
+                                2
+                              )}
+                            </Code>
+                          </TabPanel>
+                        </TabPanels>
+                      </Tabs>
+                    </Box>
+                  )}
+
+                {/* For other request types, show raw params */}
+                {![
+                  "eth_sendTransaction",
+                  "personal_sign",
+                  "eth_sign",
+                  "eth_signTypedData",
+                  "eth_signTypedData_v3",
+                  "eth_signTypedData_v4",
+                ].includes(currentSessionRequest.params.request.method) && (
+                  <Box>
+                    <Text fontWeight="bold">Params:</Text>
+                    <Code
+                      p={2}
+                      borderRadius="md"
+                      fontSize="md"
+                      width="100%"
+                      whiteSpace="pre-wrap"
+                      bg="whiteAlpha.200"
+                      color="white"
+                    >
+                      {JSON.stringify(
+                        currentSessionRequest.params.request.params,
+                        null,
+                        2
+                      )}
+                    </Code>
                   </Box>
                 )}
               </VStack>
@@ -1431,63 +1717,33 @@ export default function WalletSimplePage() {
               colorScheme="red"
               mr={3}
               onClick={() => handleSessionRequest(false)}
-              isDisabled={isSwitchingChain}
+              isDisabled={pendingRequest || isSwitchingChain}
             >
               Reject
             </Button>
 
-            {currentSessionRequest &&
-              (() => {
-                // Extract the requested chain ID from the request
-                const requestedChainIdStr =
-                  currentSessionRequest.params.chainId.split(":")[1];
-                const requestedChainId = parseInt(requestedChainIdStr);
-
-                // Check if we need to switch chains for this request
-                const needsChainSwitch =
-                  chainId !== requestedChainId &&
-                  (currentSessionRequest.params.request.method ===
-                    "eth_sendTransaction" ||
-                    currentSessionRequest.params.request.method ===
-                      "eth_signTransaction" ||
-                    currentSessionRequest.params.request.method ===
-                      "eth_sign" ||
-                    currentSessionRequest.params.request.method ===
-                      "personal_sign" ||
-                    currentSessionRequest.params.request.method ===
-                      "eth_signTypedData" ||
-                    currentSessionRequest.params.request.method ===
-                      "eth_signTypedData_v3" ||
-                    currentSessionRequest.params.request.method ===
-                      "eth_signTypedData_v4");
-
-                if (needsChainSwitch) {
-                  return (
-                    <Button
-                      colorScheme="orange"
-                      onClick={() => handleChainSwitch(requestedChainId)}
-                      isLoading={isSwitchingChain}
-                      loadingText="Switching..."
-                    >
-                      Switch to{" "}
-                      {chainIdToChain[requestedChainId]?.name ||
-                        `Chain ID: ${requestedChainId}`}
-                    </Button>
-                  );
-                } else {
-                  return (
-                    <Button
-                      colorScheme="blue"
-                      onClick={() => handleSessionRequest(true)}
-                      isLoading={pendingRequest}
-                      loadingText="Processing..."
-                      isDisabled={isSwitchingChain}
-                    >
-                      Approve
-                    </Button>
-                  );
-                }
-              })()}
+            {needsChainSwitch && targetChainId ? (
+              <Button
+                colorScheme="orange"
+                onClick={handleChainSwitch}
+                isLoading={isSwitchingChain}
+                loadingText="Switching..."
+              >
+                Switch to{" "}
+                {chainIdToChain[targetChainId]?.name ||
+                  `Chain ID: ${targetChainId}`}
+              </Button>
+            ) : (
+              <Button
+                colorScheme="blue"
+                onClick={() => handleSessionRequest(true)}
+                isLoading={pendingRequest}
+                loadingText="Processing..."
+                isDisabled={needsChainSwitch || isSwitchingChain}
+              >
+                Approve
+              </Button>
+            )}
           </ModalFooter>
         </ModalContent>
       </Modal>
