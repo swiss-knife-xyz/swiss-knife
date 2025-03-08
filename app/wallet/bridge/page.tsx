@@ -223,16 +223,57 @@ export default function WalletBridgePage() {
         setNeedsChainSwitch(false);
         setTargetChainId(null);
 
+        // Extract a more user-friendly error message using Viem's error handling
+        let errorMessage = String(error);
+
+        // Check if it's a Viem error with a walk method
+        if (
+          error &&
+          typeof error === "object" &&
+          "walk" in error &&
+          typeof error.walk === "function"
+        ) {
+          try {
+            // Try to extract ContractFunctionRevertedError or other specific error types
+            const specificError = error.walk(
+              (err: any) =>
+                err?.name === "ContractFunctionRevertedError" ||
+                err?.shortMessage ||
+                err?.message
+            );
+
+            if (specificError) {
+              // Use the most specific error information available
+              errorMessage =
+                specificError.shortMessage ||
+                specificError.message ||
+                specificError.data?.message ||
+                specificError.data?.errorName ||
+                String(specificError);
+
+              // Clean up the error message
+              errorMessage = errorMessage
+                .replace(/^(Error:|ContractFunctionRevertedError:)/, "")
+                .trim();
+            }
+          } catch (walkError) {
+            console.error("Error extracting specific error:", walkError);
+          }
+        }
+
         toast({
           title: "Error",
           description: `Failed to ${
             approve ? "approve" : "reject"
-          } request: ${error}`,
+          } request: ${errorMessage}`,
           status: "error",
           duration: 5000,
           isClosable: true,
           position: "bottom-right",
         });
+
+        // Note: We're not automatically closing the modal on error
+        // This allows users to see the error and manually close the modal if needed
       }
     },
     [
@@ -260,6 +301,28 @@ export default function WalletBridgePage() {
       // Just close the modal without rejecting if we're in the middle of processing
       onSessionRequestClose();
       setCurrentSessionRequest(null);
+
+      // Show a warning toast if closing during processing
+      if (pendingRequest || isSwitchingChain) {
+        handleSessionRequest(false);
+        toast({
+          title: "Request in progress",
+          description:
+            "The request might still be processing in the background. You can check the status in your wallet.",
+          status: "warning",
+          duration: 5000,
+          isClosable: true,
+          position: "bottom-right",
+        });
+
+        // Reset states after a delay to ensure UI is responsive
+        setTimeout(() => {
+          setPendingRequest(false);
+          setIsSwitchingChain(false);
+          setNeedsChainSwitch(false);
+          setTargetChainId(null);
+        }, 500);
+      }
     }
   }, [
     currentSessionRequest,
@@ -268,6 +331,7 @@ export default function WalletBridgePage() {
     isSwitchingChain,
     handleSessionRequest,
     onSessionRequestClose,
+    toast,
   ]);
 
   // Connect to dapp using WalletConnect URI

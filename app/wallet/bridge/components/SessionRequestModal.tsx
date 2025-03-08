@@ -10,6 +10,7 @@ import {
   Code,
   Flex,
   Heading,
+  HStack,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -25,6 +26,7 @@ import {
   TabPanel,
   TabPanels,
   Tabs,
+  Tag,
   Text,
   VStack,
 } from "@chakra-ui/react";
@@ -32,6 +34,11 @@ import { formatEther } from "viem";
 import { DecodedSignatureData, SessionRequest } from "../types";
 import { renderParams } from "@/components/renderParams";
 import { chainIdToChain } from "@/data/common";
+import { useCallback, useEffect, useState } from "react";
+import { Address, createPublicClient, http } from "viem";
+import { erc20Abi } from "viem";
+import axios from "axios";
+import { fetchContractAbi } from "@/utils";
 
 interface SessionRequestModalProps {
   isOpen: boolean;
@@ -64,14 +71,86 @@ export default function SessionRequestModal({
   onReject,
   onChainSwitch,
 }: SessionRequestModalProps) {
+  const [addressLabels, setAddressLabels] = useState<string[]>([]);
+
+  const fetchAddressLabels = useCallback(
+    async (address: string, chainId: number) => {
+      setAddressLabels([]);
+
+      try {
+        const client = createPublicClient({
+          chain: chainIdToChain[chainId],
+          transport: http(),
+        });
+
+        // check if the address is a contract
+        const res = await client.getBytecode({
+          address: address as Address,
+        });
+
+        // try fetching the contract symbol() if it's a token
+        try {
+          const symbol = await client.readContract({
+            address: address as Address,
+            abi: erc20Abi,
+            functionName: "symbol",
+          });
+          setAddressLabels([symbol]);
+        } catch {
+          // else try fetching the contract name if it's verified
+          const fetchedAbi = await fetchContractAbi({ address, chainId });
+          if (fetchedAbi) {
+            setAddressLabels([fetchedAbi.name]);
+          }
+        }
+      } catch {
+        try {
+          const res = await axios.get(
+            `${
+              process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+                ? ""
+                : "https://swiss-knife.xyz"
+            }/api/labels/${address}`
+          );
+          const data = res.data;
+          if (data.length > 0) {
+            setAddressLabels(data);
+          }
+        } catch {
+          setAddressLabels([]);
+        }
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (
+      currentSessionRequest?.params?.request?.method ===
+        "eth_sendTransaction" &&
+      currentSessionRequest?.params?.request?.params?.[0]?.to
+    ) {
+      // Extract chainId from the request
+      const chainIdStr = currentSessionRequest.params.chainId?.split(":")?.[1];
+      const chainId = chainIdStr ? parseInt(chainIdStr) : null;
+
+      if (chainId) {
+        fetchAddressLabels(
+          currentSessionRequest.params.request.params[0].to,
+          chainId
+        );
+      }
+    }
+  }, [currentSessionRequest, fetchAddressLabels]);
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       isCentered
       size={{ base: "sm", md: "lg" }}
-      closeOnOverlayClick={!pendingRequest && !isSwitchingChain}
-      closeOnEsc={!pendingRequest && !isSwitchingChain}
+      closeOnOverlayClick={false}
+      closeOnEsc={true}
       blockScrollOnMount={false}
     >
       <ModalOverlay bg="none" backdropFilter="auto" backdropBlur="5px" />
@@ -92,7 +171,7 @@ export default function SessionRequestModal({
         >
           Session Request
         </ModalHeader>
-        <ModalCloseButton isDisabled={pendingRequest || isSwitchingChain} />
+        <ModalCloseButton />
         <ModalBody>
           {currentSessionRequest && (
             <VStack spacing={{ base: 3, md: 4 }} align="stretch">
@@ -137,13 +216,31 @@ export default function SessionRequestModal({
                       >
                         To:
                       </Text>
-                      <Text
-                        color="white"
-                        fontSize={{ base: "xs", md: "sm" }}
-                        wordBreak="break-all"
-                      >
-                        {currentSessionRequest.params.request.params[0].to}
-                      </Text>
+                      <Box>
+                        {addressLabels.length > 0 && (
+                          <Flex justifyContent="flex-end" mb={1}>
+                            <HStack spacing={1}>
+                              {addressLabels.map((label, index) => (
+                                <Tag
+                                  key={index}
+                                  size="sm"
+                                  variant="solid"
+                                  colorScheme="blue"
+                                >
+                                  {label}
+                                </Tag>
+                              ))}
+                            </HStack>
+                          </Flex>
+                        )}
+                        <Text
+                          color="white"
+                          fontSize={{ base: "xs", md: "sm" }}
+                          wordBreak="break-all"
+                        >
+                          {currentSessionRequest.params.request.params[0].to}
+                        </Text>
+                      </Box>
                     </Flex>
                     {currentSessionRequest.params.request.params[0].value && (
                       <Flex
