@@ -28,9 +28,10 @@ import {
 import { ConnectButton } from "@/components/ConnectButton/ConnectButton";
 import { Core } from "@walletconnect/core";
 import { WalletKit } from "@reown/walletkit";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount, useWalletClient, useChainId, useSwitchChain } from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { walletChains } from "@/app/providers";
+import { chainIdToChain } from "@/data/common";
 
 // Types for session requests
 interface SessionProposal {
@@ -85,6 +86,8 @@ export default function WalletSimplePage() {
   const toast = useToast();
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
 
   // State for WalletConnect
   const [uri, setUri] = useState<string>("");
@@ -110,6 +113,10 @@ export default function WalletSimplePage() {
     useState<SessionProposal | null>(null);
   const [currentSessionRequest, setCurrentSessionRequest] =
     useState<SessionRequest | null>(null);
+
+  // Add a new state to track if we're switching chains
+  const [isSwitchingChain, setIsSwitchingChain] = useState<boolean>(false);
+  const [pendingRequest, setPendingRequest] = useState<boolean>(false);
 
   // Initialize WalletKit
   useEffect(() => {
@@ -197,6 +204,251 @@ export default function WalletSimplePage() {
       walletKit.off("session_request", onSessionRequest);
     };
   }, [walletKit, onSessionProposalOpen, onSessionRequestOpen]);
+
+  // Handle session request (like eth_sendTransaction)
+  const handleSessionRequest = useCallback(
+    async (approve: boolean) => {
+      if (!walletKit || !currentSessionRequest || !walletClient) return;
+
+      try {
+        const { id, topic, params } = currentSessionRequest;
+        const { request } = params;
+
+        if (approve) {
+          let result;
+
+          // Extract the requested chain ID from the request
+          const requestedChainIdStr = params.chainId.split(":")[1];
+          const requestedChainId = parseInt(requestedChainIdStr);
+
+          // For methods that require the correct chain, ensure we're on that chain
+          if (
+            request.method === "eth_sendTransaction" ||
+            request.method === "eth_signTransaction" ||
+            request.method === "eth_sign" ||
+            request.method === "personal_sign" ||
+            request.method === "eth_signTypedData" ||
+            request.method === "eth_signTypedData_v3" ||
+            request.method === "eth_signTypedData_v4"
+          ) {
+            // If we're not on the correct chain, don't proceed
+            if (chainId !== requestedChainId) {
+              toast({
+                title: "Chain mismatch",
+                description: `Please switch to ${
+                  chainIdToChain[requestedChainId]?.name ||
+                  `Chain ID: ${requestedChainId}`
+                } to proceed`,
+                status: "warning",
+                duration: 3000,
+                isClosable: true,
+              });
+              return;
+            }
+          }
+
+          setPendingRequest(true);
+
+          // Handle different request methods
+          if (request.method === "eth_sendTransaction") {
+            const txParams = request.params[0];
+
+            // Send transaction using wagmi wallet client
+            const hash = await walletClient.sendTransaction({
+              to: txParams.to as `0x${string}`,
+              value: txParams.value ? BigInt(txParams.value) : undefined,
+              data: txParams.data as `0x${string}` | undefined,
+              gas: txParams.gas ? BigInt(txParams.gas) : undefined,
+            });
+
+            result = hash;
+          } else if (
+            request.method === "personal_sign" ||
+            request.method === "eth_sign"
+          ) {
+            const message = request.params[0];
+            const signature = await walletClient.signMessage({
+              message: { raw: message as `0x${string}` },
+            });
+
+            result = signature;
+          } else if (
+            request.method === "eth_signTypedData" ||
+            request.method === "eth_signTypedData_v3" ||
+            request.method === "eth_signTypedData_v4"
+          ) {
+            // Handle typed data signing
+            const typedData = request.params[1]; // The typed data is usually the second parameter
+            const signature = await walletClient.signTypedData({
+              domain: typedData.domain,
+              types: typedData.types,
+              primaryType: typedData.primaryType,
+              message: typedData.message,
+            });
+
+            result = signature;
+          } else if (request.method === "wallet_switchEthereumChain") {
+            // Handle chain switching request
+            const requestedChainId = parseInt(request.params[0].chainId);
+
+            // Switch chain using wagmi
+            await switchChain({ chainId: requestedChainId });
+
+            // Return success
+            result = null;
+          } else if (request.method === "wallet_addEthereumChain") {
+            // For adding a new chain, we'll just show a toast for now
+            // In a real implementation, you might want to add the chain to your wallet
+            const chainParams = request.params[0];
+
+            toast({
+              title: "Add Chain Request",
+              description: `Request to add chain ${chainParams.chainName} (${chainParams.chainId})`,
+              status: "info",
+              duration: 5000,
+              isClosable: true,
+            });
+
+            // Return success
+            result = null;
+          } else {
+            // For other methods, just return success
+            result = "0x";
+          }
+
+          // Respond to the request
+          await walletKit.respondSessionRequest({
+            topic,
+            response: {
+              id,
+              jsonrpc: "2.0",
+              result,
+            },
+          });
+
+          setPendingRequest(false);
+
+          toast({
+            title: "Request approved",
+            description: `Method: ${request.method}`,
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+          });
+        } else {
+          // Reject the request
+          await walletKit.respondSessionRequest({
+            topic,
+            response: {
+              id,
+              jsonrpc: "2.0",
+              error: {
+                code: 4001,
+                message: "User rejected the request",
+              },
+            },
+          });
+
+          toast({
+            title: "Request rejected",
+            description: `Method: ${request.method}`,
+            status: "info",
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+
+        onSessionRequestClose();
+        setCurrentSessionRequest(null);
+      } catch (error) {
+        console.error("Failed to handle session request:", error);
+        toast({
+          title: "Failed to handle request",
+          description: (error as Error).message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        setPendingRequest(false);
+      }
+    },
+    [
+      walletKit,
+      currentSessionRequest,
+      walletClient,
+      chainId,
+      switchChain,
+      onSessionRequestClose,
+      toast,
+    ]
+  );
+
+  // Custom close handler for session request modal
+  const handleSessionRequestClose = useCallback(() => {
+    // If there's an active request, reject it when closing the modal
+    if (
+      currentSessionRequest &&
+      walletKit &&
+      !pendingRequest &&
+      !isSwitchingChain
+    ) {
+      handleSessionRequest(false);
+    } else {
+      // Just close the modal without rejecting if we're in the middle of processing
+      onSessionRequestClose();
+      setCurrentSessionRequest(null);
+    }
+  }, [
+    currentSessionRequest,
+    walletKit,
+    pendingRequest,
+    isSwitchingChain,
+    handleSessionRequest,
+    onSessionRequestClose,
+  ]);
+
+  // Notify dApps about chain changes
+  useEffect(() => {
+    if (!walletKit || !isConnected || !chainId || activeSessions.length === 0)
+      return;
+
+    // For each active session, emit a chainChanged event
+    activeSessions.forEach(async (session) => {
+      try {
+        // Check if the session has the eip155 namespace
+        if (session.namespaces.eip155) {
+          // Format the chain ID as eip155:chainId
+          const formattedChainId = `eip155:${chainId}`;
+
+          // Check if this chain is approved for this session
+          const isChainApproved = session.namespaces.eip155.accounts.some(
+            (account: string) => account.startsWith(formattedChainId)
+          );
+
+          if (isChainApproved) {
+            // Emit chainChanged event to the dApp
+            await walletKit.emitSessionEvent({
+              topic: session.topic,
+              event: {
+                name: "chainChanged",
+                data: chainId,
+              },
+              chainId: formattedChainId,
+            });
+
+            console.log(
+              `Notified session ${session.topic} about chain change to ${chainId}`
+            );
+          }
+        }
+      } catch (error) {
+        console.error(
+          `Failed to notify session ${session.topic} about chain change:`,
+          error
+        );
+      }
+    });
+  }, [walletKit, chainId, isConnected, activeSessions]);
 
   // Connect to dApp using WalletConnect URI
   const connectToDapp = useCallback(async () => {
@@ -364,106 +616,30 @@ export default function WalletSimplePage() {
     }
   }, [walletKit, currentSessionProposal, onSessionProposalClose, toast]);
 
-  // Handle session request (like eth_sendTransaction)
-  const handleSessionRequest = useCallback(
-    async (approve: boolean) => {
-      if (!walletKit || !currentSessionRequest || !walletClient) return;
+  // Handle chain switching for requests
+  const handleChainSwitch = useCallback(
+    async (requestedChainId: number) => {
+      if (chainId === requestedChainId) return true;
 
       try {
-        const { id, topic, params } = currentSessionRequest;
-        const { request } = params;
-
-        if (approve) {
-          let result;
-
-          // Handle different request methods
-          if (request.method === "eth_sendTransaction") {
-            const txParams = request.params[0];
-
-            // Send transaction using wagmi wallet client
-            const hash = await walletClient.sendTransaction({
-              to: txParams.to as `0x${string}`,
-              value: txParams.value ? BigInt(txParams.value) : undefined,
-              data: txParams.data as `0x${string}` | undefined,
-              gas: txParams.gas ? BigInt(txParams.gas) : undefined,
-            });
-
-            result = hash;
-          } else if (
-            request.method === "personal_sign" ||
-            request.method === "eth_sign"
-          ) {
-            const message = request.params[0];
-            const signature = await walletClient.signMessage({
-              message: { raw: message as `0x${string}` },
-            });
-
-            result = signature;
-          } else {
-            // For other methods, just return success
-            result = "0x";
-          }
-
-          // Respond to the request
-          await walletKit.respondSessionRequest({
-            topic,
-            response: {
-              id,
-              jsonrpc: "2.0",
-              result,
-            },
-          });
-
-          toast({
-            title: "Request approved",
-            description: `Method: ${request.method}`,
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-          });
-        } else {
-          // Reject the request
-          await walletKit.respondSessionRequest({
-            topic,
-            response: {
-              id,
-              jsonrpc: "2.0",
-              error: {
-                code: 4001,
-                message: "User rejected the request",
-              },
-            },
-          });
-
-          toast({
-            title: "Request rejected",
-            description: `Method: ${request.method}`,
-            status: "info",
-            duration: 3000,
-            isClosable: true,
-          });
-        }
-
-        onSessionRequestClose();
-        setCurrentSessionRequest(null);
+        setIsSwitchingChain(true);
+        await switchChain({ chainId: requestedChainId });
+        setIsSwitchingChain(false);
+        return true;
       } catch (error) {
-        console.error("Failed to handle session request:", error);
+        console.error("Failed to switch chain:", error);
         toast({
-          title: "Failed to handle request",
+          title: "Failed to switch chain",
           description: (error as Error).message,
           status: "error",
           duration: 5000,
           isClosable: true,
         });
+        setIsSwitchingChain(false);
+        return false;
       }
     },
-    [
-      walletKit,
-      currentSessionRequest,
-      walletClient,
-      onSessionRequestClose,
-      toast,
-    ]
+    [chainId, switchChain, toast]
   );
 
   // Disconnect session
@@ -592,13 +768,29 @@ export default function WalletSimplePage() {
                       <Text fontSize="sm" color="gray.600" mb={2}>
                         {session.peer.metadata.url}
                       </Text>
+
+                      <Text fontSize="sm" fontWeight="bold" mb={1}>
+                        Approved Chains:
+                      </Text>
                       <HStack wrap="wrap" spacing={2}>
-                        {Object.entries(session.namespaces).map(
-                          ([key, value]: [string, any]) => (
-                            <Badge key={key} colorScheme="blue">
-                              {key}
-                            </Badge>
-                          )
+                        {session.namespaces.eip155?.accounts.map(
+                          (account: string) => {
+                            const [namespace, chainIdStr] = account.split(":");
+                            const accountChainId = parseInt(chainIdStr);
+                            const chainName =
+                              chainIdToChain[accountChainId]?.name ||
+                              chainIdStr;
+                            return (
+                              <Badge
+                                key={account}
+                                colorScheme={
+                                  accountChainId === chainId ? "green" : "gray"
+                                }
+                              >
+                                {chainName}
+                              </Badge>
+                            );
+                          }
                         )}
                       </HStack>
                     </Box>
@@ -701,14 +893,16 @@ export default function WalletSimplePage() {
       {/* Session Request Modal */}
       <Modal
         isOpen={isSessionRequestOpen}
-        onClose={onSessionRequestClose}
+        onClose={handleSessionRequestClose}
         isCentered
         size="lg"
+        closeOnOverlayClick={!pendingRequest && !isSwitchingChain}
+        closeOnEsc={!pendingRequest && !isSwitchingChain}
       >
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Session Request</ModalHeader>
-          <ModalCloseButton />
+          <ModalCloseButton isDisabled={pendingRequest || isSwitchingChain} />
           <ModalBody>
             {currentSessionRequest && (
               <VStack spacing={4} align="stretch">
@@ -746,20 +940,24 @@ export default function WalletSimplePage() {
                 {currentSessionRequest.params.request.method ===
                   "eth_sendTransaction" && (
                   <Box p={3} borderWidth={1} borderRadius="md" bg="gray.50">
-                    <Heading size="sm" mb={2}>
+                    <Heading size="sm" mb={2} color="gray.800">
                       Transaction Details
                     </Heading>
                     <VStack spacing={1} align="stretch">
                       <Flex justifyContent="space-between">
-                        <Text fontWeight="bold">To:</Text>
-                        <Text>
+                        <Text fontWeight="bold" color="gray.800">
+                          To:
+                        </Text>
+                        <Text color="gray.800">
                           {currentSessionRequest.params.request.params[0].to}
                         </Text>
                       </Flex>
                       {currentSessionRequest.params.request.params[0].value && (
                         <Flex justifyContent="space-between">
-                          <Text fontWeight="bold">Value:</Text>
-                          <Text>
+                          <Text fontWeight="bold" color="gray.800">
+                            Value:
+                          </Text>
+                          <Text color="gray.800">
                             {formatEther(
                               BigInt(
                                 currentSessionRequest.params.request.params[0]
@@ -772,14 +970,89 @@ export default function WalletSimplePage() {
                       )}
                       {currentSessionRequest.params.request.params[0].gas && (
                         <Flex justifyContent="space-between">
-                          <Text fontWeight="bold">Gas Limit:</Text>
-                          <Text>
+                          <Text fontWeight="bold" color="gray.800">
+                            Gas Limit:
+                          </Text>
+                          <Text color="gray.800">
                             {BigInt(
                               currentSessionRequest.params.request.params[0].gas
                             ).toString()}
                           </Text>
                         </Flex>
                       )}
+                    </VStack>
+                  </Box>
+                )}
+
+                {currentSessionRequest.params.request.method ===
+                  "wallet_switchEthereumChain" && (
+                  <Box p={3} borderWidth={1} borderRadius="md" bg="gray.50">
+                    <Heading size="sm" mb={2} color="gray.800">
+                      Switch Chain Request
+                    </Heading>
+                    <VStack spacing={1} align="stretch">
+                      <Flex justifyContent="space-between">
+                        <Text fontWeight="bold" color="gray.800">
+                          Requested Chain:
+                        </Text>
+                        {(() => {
+                          const requestedChainId = parseInt(
+                            currentSessionRequest.params.request.params[0]
+                              .chainId
+                          );
+                          return (
+                            <Text color="gray.800">
+                              {chainIdToChain[requestedChainId]
+                                ? chainIdToChain[requestedChainId].name
+                                : `Chain ID: ${requestedChainId}`}
+                            </Text>
+                          );
+                        })()}
+                      </Flex>
+                    </VStack>
+                  </Box>
+                )}
+
+                {currentSessionRequest.params.request.method ===
+                  "wallet_addEthereumChain" && (
+                  <Box p={3} borderWidth={1} borderRadius="md" bg="gray.50">
+                    <Heading size="sm" mb={2} color="gray.800">
+                      Add Chain Request
+                    </Heading>
+                    <VStack spacing={1} align="stretch">
+                      <Flex justifyContent="space-between">
+                        <Text fontWeight="bold" color="gray.800">
+                          Chain Name:
+                        </Text>
+                        <Text color="gray.800">
+                          {
+                            currentSessionRequest.params.request.params[0]
+                              .chainName
+                          }
+                        </Text>
+                      </Flex>
+                      <Flex justifyContent="space-between">
+                        <Text fontWeight="bold" color="gray.800">
+                          Chain ID:
+                        </Text>
+                        <Text color="gray.800">
+                          {parseInt(
+                            currentSessionRequest.params.request.params[0]
+                              .chainId
+                          )}
+                        </Text>
+                      </Flex>
+                      <Flex justifyContent="space-between">
+                        <Text fontWeight="bold" color="gray.800">
+                          RPC URL:
+                        </Text>
+                        <Text color="gray.800">
+                          {
+                            currentSessionRequest.params.request.params[0]
+                              .rpcUrls[0]
+                          }
+                        </Text>
+                      </Flex>
                     </VStack>
                   </Box>
                 )}
@@ -791,15 +1064,63 @@ export default function WalletSimplePage() {
               colorScheme="red"
               mr={3}
               onClick={() => handleSessionRequest(false)}
+              isDisabled={pendingRequest || isSwitchingChain}
             >
               Reject
             </Button>
-            <Button
-              colorScheme="blue"
-              onClick={() => handleSessionRequest(true)}
-            >
-              Approve
-            </Button>
+
+            {currentSessionRequest &&
+              (() => {
+                // Extract the requested chain ID from the request
+                const requestedChainIdStr =
+                  currentSessionRequest.params.chainId.split(":")[1];
+                const requestedChainId = parseInt(requestedChainIdStr);
+
+                // Check if we need to switch chains for this request
+                const needsChainSwitch =
+                  chainId !== requestedChainId &&
+                  (currentSessionRequest.params.request.method ===
+                    "eth_sendTransaction" ||
+                    currentSessionRequest.params.request.method ===
+                      "eth_signTransaction" ||
+                    currentSessionRequest.params.request.method ===
+                      "eth_sign" ||
+                    currentSessionRequest.params.request.method ===
+                      "personal_sign" ||
+                    currentSessionRequest.params.request.method ===
+                      "eth_signTypedData" ||
+                    currentSessionRequest.params.request.method ===
+                      "eth_signTypedData_v3" ||
+                    currentSessionRequest.params.request.method ===
+                      "eth_signTypedData_v4");
+
+                if (needsChainSwitch) {
+                  return (
+                    <Button
+                      colorScheme="orange"
+                      onClick={() => handleChainSwitch(requestedChainId)}
+                      isLoading={isSwitchingChain}
+                      loadingText="Switching..."
+                    >
+                      Switch to{" "}
+                      {chainIdToChain[requestedChainId]?.name ||
+                        `Chain ID: ${requestedChainId}`}
+                    </Button>
+                  );
+                } else {
+                  return (
+                    <Button
+                      colorScheme="blue"
+                      onClick={() => handleSessionRequest(true)}
+                      isLoading={pendingRequest}
+                      loadingText="Processing..."
+                      isDisabled={isSwitchingChain}
+                    >
+                      Approve
+                    </Button>
+                  );
+                }
+              })()}
           </ModalFooter>
         </ModalContent>
       </Modal>
