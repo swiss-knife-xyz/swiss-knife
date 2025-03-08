@@ -10,16 +10,7 @@ const SidebarItems: SidebarItem[] = [{ name: "Wallet Bridge", path: "bridge" }];
 export const WalletLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <Layout>
-      <HStack alignItems={"stretch"} h="full">
-        <Sidebar
-          heading="Wallet"
-          items={SidebarItems}
-          subdomain={subdomains.WALLET.base}
-        />
-        <Center flexDir={"column"} w="full">
-          {children}
-        </Center>
-      </HStack>
+      <Center>{children}</Center>
     </Layout>
   );
 };
