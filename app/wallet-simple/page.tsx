@@ -885,7 +885,11 @@ export default function WalletSimplePage() {
   }, [uri, pasted, isConnected, connectToDapp]);
 
   return (
-    <Container maxW="container.lg" py={8}>
+    <Container
+      maxW={{ base: "100%", md: "container.lg" }}
+      py={{ base: 4, md: 8 }}
+      px={{ base: 4, md: 20 }}
+    >
       <Global
         styles={{
           ".chakra-react-select__menu": {
@@ -906,14 +910,19 @@ export default function WalletSimplePage() {
         }}
       />
 
-      <VStack spacing={8} align="stretch">
-        <Flex justifyContent="space-between" alignItems="center">
-          <Heading size="lg">Wallet Bridge</Heading>
+      <VStack spacing={{ base: 4, md: 8 }} align="stretch">
+        <Flex
+          justifyContent="space-between"
+          alignItems="center"
+          direction={{ base: "column", sm: "row" }}
+          gap={{ base: 4, sm: 0 }}
+        >
+          <Heading size={{ base: "md", md: "lg" }}>Wallet Bridge</Heading>
           <ConnectButton />
         </Flex>
 
         {isInitializing ? (
-          <Box p={6} borderWidth={1} borderRadius="lg">
+          <Box p={{ base: 4, md: 6 }} borderWidth={1} borderRadius="lg">
             <Stack spacing={4}>
               <Skeleton height="40px" width="60%" />
               <SkeletonText
@@ -929,29 +938,29 @@ export default function WalletSimplePage() {
           <>
             {!isConnected && (
               <Box
-                p={6}
+                p={{ base: 4, md: 6 }}
                 borderWidth={1}
                 borderRadius="lg"
                 textAlign="center"
-                mb={4}
+                mb={{ base: 3, md: 4 }}
               >
-                <Text mb={4}>
-                  Please connect your wallet to use Wallet Bridge
+                <Text mb={{ base: 3, md: 4 }}>
+                  Please connect your wallet to use WalletBridge
                 </Text>
                 <ConnectButton />
               </Box>
             )}
 
             <Box
-              p={6}
+              p={{ base: 4, md: 6 }}
               borderWidth={1}
               borderRadius="lg"
               opacity={!isConnected ? 0.7 : 1}
             >
-              <Heading size="md" mb={4}>
+              <Heading size={{ base: "sm", md: "md" }} mb={{ base: 3, md: 4 }}>
                 Connect to dApp
               </Heading>
-              <VStack spacing={4}>
+              <VStack spacing={{ base: 3, md: 4 }}>
                 <Input
                   placeholder="Enter WalletConnect URI (wc:...)"
                   value={uri}
@@ -962,12 +971,14 @@ export default function WalletSimplePage() {
                     setUri(e.clipboardData.getData("text"));
                   }}
                   isDisabled={!isConnected}
+                  size={{ base: "md", md: "md" }}
                 />
                 <Button
                   colorScheme="blue"
                   width="100%"
                   onClick={connectToDapp}
                   isDisabled={!isConnected || !uri || !uri.startsWith("wc:")}
+                  size={{ base: "md", md: "md" }}
                 >
                   Connect
                 </Button>
@@ -975,12 +986,12 @@ export default function WalletSimplePage() {
             </Box>
 
             <Box
-              p={6}
+              p={{ base: 4, md: 6 }}
               borderWidth={1}
               borderRadius="lg"
               opacity={!isConnected ? 0.7 : 1}
             >
-              <Heading size="md" mb={4}>
+              <Heading size={{ base: "sm", md: "md" }} mb={{ base: 3, md: 4 }}>
                 Active Sessions ({isConnected ? activeSessions.length : 0})
               </Heading>
               {!isConnected ? (
@@ -988,18 +999,20 @@ export default function WalletSimplePage() {
               ) : activeSessions.length === 0 ? (
                 <Text>No active sessions</Text>
               ) : (
-                <VStack spacing={4} align="stretch">
+                <VStack spacing={{ base: 3, md: 4 }} align="stretch">
                   {activeSessions.map((session) => (
                     <Box
                       key={session.topic}
-                      p={4}
+                      p={{ base: 3, md: 4 }}
                       borderWidth={1}
                       borderRadius="md"
                     >
                       <Flex
                         justifyContent="space-between"
-                        alignItems="center"
+                        alignItems={{ base: "flex-start", sm: "center" }}
                         mb={2}
+                        direction={{ base: "column", sm: "row" }}
+                        gap={{ base: 2, sm: 0 }}
                       >
                         <HStack>
                           {session.peer.metadata.icons &&
@@ -1008,12 +1021,15 @@ export default function WalletSimplePage() {
                                 as="img"
                                 src={session.peer.metadata.icons[0]}
                                 alt={session.peer.metadata.name}
-                                boxSize="32px"
+                                boxSize={{ base: "24px", md: "32px" }}
                                 borderRadius="md"
                                 mr={2}
                               />
                             )}
-                          <Text fontWeight="bold">
+                          <Text
+                            fontWeight="bold"
+                            fontSize={{ base: "sm", md: "md" }}
+                          >
                             {session.peer.metadata.name}
                           </Text>
                         </HStack>
@@ -1067,7 +1083,7 @@ export default function WalletSimplePage() {
         isOpen={isSessionProposalOpen}
         onClose={onSessionProposalClose}
         isCentered
-        size="lg"
+        size={{ base: "sm", md: "lg" }}
         blockScrollOnMount={false}
       >
         <ModalOverlay bg="none" backdropFilter="auto" backdropBlur="5px" />
@@ -1088,7 +1104,11 @@ export default function WalletSimplePage() {
           <ModalBody>
             {currentSessionProposal && (
               <VStack spacing={4} align="stretch">
-                <Flex alignItems="center">
+                <Flex
+                  alignItems={{ base: "flex-start", md: "center" }}
+                  direction={{ base: "column", md: "row" }}
+                  gap={{ base: 3, md: 0 }}
+                >
                   {currentSessionProposal.params.proposer.metadata.icons &&
                     currentSessionProposal.params.proposer.metadata
                       .icons[0] && (
@@ -1101,13 +1121,13 @@ export default function WalletSimplePage() {
                         alt={
                           currentSessionProposal.params.proposer.metadata.name
                         }
-                        boxSize="48px"
+                        boxSize={{ base: "40px", md: "48px" }}
                         borderRadius="md"
-                        mr={4}
+                        mr={{ base: 0, md: 4 }}
                       />
                     )}
                   <Box>
-                    <Heading size="md">
+                    <Heading size={{ base: "sm", md: "md" }}>
                       {currentSessionProposal.params.proposer.metadata.name}
                     </Heading>
                     <Text fontSize="sm" color="whiteAlpha.700">
@@ -1122,7 +1142,7 @@ export default function WalletSimplePage() {
                   <Text fontWeight="bold" mb={2}>
                     Description:
                   </Text>
-                  <Text>
+                  <Text fontSize={{ base: "sm", md: "md" }}>
                     {
                       currentSessionProposal.params.proposer.metadata
                         .description
@@ -1140,7 +1160,7 @@ export default function WalletSimplePage() {
                     ).map(([key, value]) => (
                       <Box
                         key={key}
-                        p={3}
+                        p={{ base: 2, md: 3 }}
                         borderWidth={1}
                         borderRadius="md"
                         borderColor="whiteAlpha.300"
@@ -1164,10 +1184,19 @@ export default function WalletSimplePage() {
             )}
           </ModalBody>
           <ModalFooter borderTopWidth="1px" borderColor="whiteAlpha.200">
-            <Button colorScheme="red" mr={3} onClick={rejectSessionProposal}>
+            <Button
+              colorScheme="red"
+              mr={3}
+              onClick={rejectSessionProposal}
+              size={{ base: "sm", md: "md" }}
+            >
               Reject
             </Button>
-            <Button colorScheme="blue" onClick={approveSessionProposal}>
+            <Button
+              colorScheme="blue"
+              onClick={approveSessionProposal}
+              size={{ base: "sm", md: "md" }}
+            >
               Approve
             </Button>
           </ModalFooter>
@@ -1179,7 +1208,7 @@ export default function WalletSimplePage() {
         isOpen={isSessionRequestOpen}
         onClose={handleSessionRequestClose}
         isCentered
-        size="lg"
+        size={{ base: "sm", md: "lg" }}
         closeOnOverlayClick={!pendingRequest && !isSwitchingChain}
         closeOnEsc={!pendingRequest && !isSwitchingChain}
         blockScrollOnMount={false}
@@ -1189,25 +1218,31 @@ export default function WalletSimplePage() {
           bg="bg.900"
           color="white"
           maxW={{
-            base: "90%",
+            base: "95%",
             sm: "30rem",
             md: "40rem",
           }}
           zIndex="1400"
         >
-          <ModalHeader borderBottomWidth="1px" borderColor="whiteAlpha.200">
+          <ModalHeader
+            borderBottomWidth="1px"
+            borderColor="whiteAlpha.200"
+            fontSize={{ base: "md", md: "lg" }}
+          >
             Session Request
           </ModalHeader>
           <ModalCloseButton isDisabled={pendingRequest || isSwitchingChain} />
           <ModalBody>
             {currentSessionRequest && (
-              <VStack spacing={4} align="stretch">
+              <VStack spacing={{ base: 3, md: 4 }} align="stretch">
                 <Box>
-                  <Text fontWeight="bold">Method:</Text>
+                  <Text fontWeight="bold" fontSize={{ base: "sm", md: "md" }}>
+                    Method:
+                  </Text>
                   <Code
                     p={2}
                     borderRadius="md"
-                    fontSize="md"
+                    fontSize={{ base: "sm", md: "md" }}
                     width="100%"
                     bg="whiteAlpha.200"
                     color="white"
@@ -1220,30 +1255,55 @@ export default function WalletSimplePage() {
                 {currentSessionRequest.params.request.method ===
                   "eth_sendTransaction" && (
                   <Box
-                    p={3}
+                    p={{ base: 2, md: 3 }}
                     borderWidth={1}
                     borderRadius="md"
                     bg="whiteAlpha.100"
                     borderColor="whiteAlpha.300"
                   >
-                    <Heading size="sm" mb={2} color="white">
+                    <Heading
+                      size={{ base: "xs", md: "sm" }}
+                      mb={2}
+                      color="white"
+                    >
                       Transaction Details
                     </Heading>
                     <VStack spacing={1} align="stretch">
-                      <Flex justifyContent="space-between">
-                        <Text fontWeight="bold" color="white">
+                      <Flex
+                        justifyContent="space-between"
+                        flexDirection={{ base: "column", sm: "row" }}
+                      >
+                        <Text
+                          fontWeight="bold"
+                          color="white"
+                          fontSize={{ base: "sm", md: "md" }}
+                        >
                           To:
                         </Text>
-                        <Text color="white">
+                        <Text
+                          color="white"
+                          fontSize={{ base: "xs", md: "sm" }}
+                          wordBreak="break-all"
+                        >
                           {currentSessionRequest.params.request.params[0].to}
                         </Text>
                       </Flex>
                       {currentSessionRequest.params.request.params[0].value && (
-                        <Flex justifyContent="space-between">
-                          <Text fontWeight="bold" color="white">
+                        <Flex
+                          justifyContent="space-between"
+                          flexDirection={{ base: "column", sm: "row" }}
+                        >
+                          <Text
+                            fontWeight="bold"
+                            color="white"
+                            fontSize={{ base: "sm", md: "md" }}
+                          >
                             Value:
                           </Text>
-                          <Text color="white">
+                          <Text
+                            color="white"
+                            fontSize={{ base: "xs", md: "sm" }}
+                          >
                             {formatEther(
                               BigInt(
                                 currentSessionRequest.params.request.params[0]
@@ -1255,11 +1315,21 @@ export default function WalletSimplePage() {
                         </Flex>
                       )}
                       {currentSessionRequest.params.request.params[0].gas && (
-                        <Flex justifyContent="space-between">
-                          <Text fontWeight="bold" color="white">
+                        <Flex
+                          justifyContent="space-between"
+                          flexDirection={{ base: "column", sm: "row" }}
+                        >
+                          <Text
+                            fontWeight="bold"
+                            color="white"
+                            fontSize={{ base: "sm", md: "md" }}
+                          >
                             Gas Limit:
                           </Text>
-                          <Text color="white">
+                          <Text
+                            color="white"
+                            fontSize={{ base: "xs", md: "sm" }}
+                          >
                             {BigInt(
                               currentSessionRequest.params.request.params[0].gas
                             ).toString()}
@@ -1275,11 +1345,18 @@ export default function WalletSimplePage() {
                           borderTopColor="whiteAlpha.300"
                         >
                           <Flex justifyContent="space-between" mb={2}>
-                            <Text fontWeight="bold" color="white">
+                            <Text
+                              fontWeight="bold"
+                              color="white"
+                              fontSize={{ base: "sm", md: "md" }}
+                            >
                               Transaction Data:
                             </Text>
                             {isDecodingTx && (
-                              <Text fontSize="sm" color="whiteAlpha.700">
+                              <Text
+                                fontSize={{ base: "xs", md: "sm" }}
+                                color="whiteAlpha.700"
+                              >
                                 Decoding...
                               </Text>
                             )}
@@ -1288,7 +1365,7 @@ export default function WalletSimplePage() {
                           <Tabs
                             variant="soft-rounded"
                             colorScheme="blue"
-                            size="sm"
+                            size={{ base: "xs", md: "sm" }}
                           >
                             <TabList mb={3}>
                               <Tab>Decoded</Tab>
@@ -1298,7 +1375,7 @@ export default function WalletSimplePage() {
                               <TabPanel p={0}>
                                 {isDecodingTx ? (
                                   <Box
-                                    p={4}
+                                    p={{ base: 2, md: 4 }}
                                     bg="whiteAlpha.100"
                                     borderRadius="md"
                                   >
@@ -1326,13 +1403,22 @@ export default function WalletSimplePage() {
                                         p={2}
                                         bg="blue.800"
                                         borderRadius="md"
+                                        flexDirection={{
+                                          base: "column",
+                                          sm: "row",
+                                        }}
                                       >
-                                        <Text fontWeight="bold" color="white">
+                                        <Text
+                                          fontWeight="bold"
+                                          color="white"
+                                          fontSize={{ base: "sm", md: "md" }}
+                                        >
                                           Function:
                                         </Text>
                                         <Text
                                           color="white"
                                           fontFamily="monospace"
+                                          fontSize={{ base: "xs", md: "sm" }}
                                         >
                                           {decodedTxData.functionName}
                                         </Text>
@@ -1341,8 +1427,8 @@ export default function WalletSimplePage() {
                                     <Box
                                       bg="whiteAlpha.100"
                                       borderRadius="md"
-                                      p={3}
-                                      maxH="300px"
+                                      p={{ base: 2, md: 3 }}
+                                      maxH={{ base: "200px", md: "300px" }}
                                       overflowY="auto"
                                       overflowX="hidden"
                                       sx={{
@@ -1374,7 +1460,10 @@ export default function WalletSimplePage() {
                                       }}
                                       position="relative"
                                     >
-                                      <Stack spacing={4} width="100%">
+                                      <Stack
+                                        spacing={{ base: 2, md: 4 }}
+                                        width="100%"
+                                      >
                                         {decodedTxData.args.map(
                                           (arg: any, i: number) => {
                                             const chainIdStr =
@@ -1398,6 +1487,7 @@ export default function WalletSimplePage() {
                                     color="whiteAlpha.700"
                                     fontStyle="italic"
                                     p={2}
+                                    fontSize={{ base: "xs", md: "sm" }}
                                   >
                                     Could not decode transaction data
                                   </Text>
@@ -1405,10 +1495,10 @@ export default function WalletSimplePage() {
                               </TabPanel>
                               <TabPanel p={0}>
                                 <Box
-                                  p={3}
+                                  p={{ base: 2, md: 3 }}
                                   bg="whiteAlpha.100"
                                   borderRadius="md"
-                                  maxH="300px"
+                                  maxH={{ base: "200px", md: "300px" }}
                                   overflowY="auto"
                                   overflowX="hidden"
                                   sx={{
@@ -1431,7 +1521,7 @@ export default function WalletSimplePage() {
                                   <Code
                                     p={2}
                                     borderRadius="md"
-                                    fontSize="sm"
+                                    fontSize={{ base: "xs", md: "sm" }}
                                     width="100%"
                                     whiteSpace="pre-wrap"
                                     bg="transparent"
@@ -1459,17 +1549,25 @@ export default function WalletSimplePage() {
                   currentSessionRequest.params.request.method === "eth_sign") &&
                   decodedSignatureData?.type === "message" && (
                     <Box
-                      p={3}
+                      p={{ base: 2, md: 3 }}
                       borderWidth={1}
                       borderRadius="md"
                       bg="whiteAlpha.100"
                       borderColor="whiteAlpha.300"
                     >
-                      <Heading size="sm" mb={2} color="white">
+                      <Heading
+                        size={{ base: "xs", md: "sm" }}
+                        mb={2}
+                        color="white"
+                      >
                         Message to Sign
                       </Heading>
 
-                      <Tabs variant="soft-rounded" colorScheme="blue" size="sm">
+                      <Tabs
+                        variant="soft-rounded"
+                        colorScheme="blue"
+                        size={{ base: "xs", md: "sm" }}
+                      >
                         <TabList mb={3}>
                           <Tab>Decoded</Tab>
                           <Tab>Raw</Tab>
@@ -1477,12 +1575,12 @@ export default function WalletSimplePage() {
                         <TabPanels>
                           <TabPanel p={0}>
                             <Box
-                              p={3}
+                              p={{ base: 2, md: 3 }}
                               borderRadius="md"
                               bg="whiteAlpha.200"
                               whiteSpace="pre-wrap"
                               wordBreak="break-word"
-                              fontSize="sm"
+                              fontSize={{ base: "xs", md: "sm" }}
                             >
                               {decodedSignatureData.decoded.decoded}
                               {decodedSignatureData.decoded.type !==
@@ -1497,7 +1595,7 @@ export default function WalletSimplePage() {
                             <Code
                               p={2}
                               borderRadius="md"
-                              fontSize="sm"
+                              fontSize={{ base: "xs", md: "sm" }}
                               width="100%"
                               whiteSpace="pre-wrap"
                               wordBreak="break-word"
@@ -1525,17 +1623,25 @@ export default function WalletSimplePage() {
                     "eth_signTypedData_v4") &&
                   decodedSignatureData?.type === "typedData" && (
                     <Box
-                      p={3}
+                      p={{ base: 2, md: 3 }}
                       borderWidth={1}
                       borderRadius="md"
                       bg="whiteAlpha.100"
                       borderColor="whiteAlpha.300"
                     >
-                      <Heading size="sm" mb={2} color="white">
+                      <Heading
+                        size={{ base: "xs", md: "sm" }}
+                        mb={2}
+                        color="white"
+                      >
                         Typed Data to Sign
                       </Heading>
 
-                      <Tabs variant="soft-rounded" colorScheme="blue" size="sm">
+                      <Tabs
+                        variant="soft-rounded"
+                        colorScheme="blue"
+                        size={{ base: "xs", md: "sm" }}
+                      >
                         <TabList mb={3}>
                           <Tab>Formatted</Tab>
                           <Tab>Raw</Tab>
@@ -1543,16 +1649,22 @@ export default function WalletSimplePage() {
                         <TabPanels>
                           <TabPanel p={0}>
                             {decodedSignatureData.decoded ? (
-                              <VStack spacing={3} align="stretch">
+                              <VStack
+                                spacing={{ base: 2, md: 3 }}
+                                align="stretch"
+                              >
                                 {/* Domain Section */}
                                 <Box>
-                                  <Text fontWeight="bold" fontSize="sm">
+                                  <Text
+                                    fontWeight="bold"
+                                    fontSize={{ base: "xs", md: "sm" }}
+                                  >
                                     Domain:
                                   </Text>
                                   <Code
                                     p={2}
                                     borderRadius="md"
-                                    fontSize="xs"
+                                    fontSize={{ base: "2xs", md: "xs" }}
                                     width="100%"
                                     whiteSpace="pre-wrap"
                                     wordBreak="break-word"
@@ -1569,7 +1681,10 @@ export default function WalletSimplePage() {
 
                                 {/* Primary Type */}
                                 <Box>
-                                  <Text fontWeight="bold" fontSize="sm">
+                                  <Text
+                                    fontWeight="bold"
+                                    fontSize={{ base: "xs", md: "sm" }}
+                                  >
                                     Primary Type:
                                   </Text>
                                   <Badge colorScheme="purple">
@@ -1579,13 +1694,16 @@ export default function WalletSimplePage() {
 
                                 {/* Message Data */}
                                 <Box>
-                                  <Text fontWeight="bold" fontSize="sm">
+                                  <Text
+                                    fontWeight="bold"
+                                    fontSize={{ base: "xs", md: "sm" }}
+                                  >
                                     Message:
                                   </Text>
                                   <Code
                                     p={2}
                                     borderRadius="md"
-                                    fontSize="xs"
+                                    fontSize={{ base: "2xs", md: "xs" }}
                                     width="100%"
                                     whiteSpace="pre-wrap"
                                     wordBreak="break-word"
@@ -1602,7 +1720,10 @@ export default function WalletSimplePage() {
 
                                 {/* Types */}
                                 <Box>
-                                  <Text fontWeight="bold" fontSize="sm">
+                                  <Text
+                                    fontWeight="bold"
+                                    fontSize={{ base: "xs", md: "sm" }}
+                                  >
                                     Types:
                                   </Text>
                                   <Accordion allowToggle>
@@ -1618,18 +1739,21 @@ export default function WalletSimplePage() {
                                           bg="whiteAlpha.200"
                                           borderRadius="md"
                                           _hover={{ bg: "whiteAlpha.300" }}
+                                          py={{ base: 1, md: 2 }}
+                                          px={{ base: 2, md: 3 }}
                                         >
                                           <Box
                                             flex="1"
                                             textAlign="left"
                                             fontWeight="medium"
+                                            fontSize={{ base: "xs", md: "sm" }}
                                           >
                                             {typeName}
                                           </Box>
                                           <AccordionIcon />
                                         </AccordionButton>
                                         <AccordionPanel
-                                          pb={4}
+                                          pb={{ base: 2, md: 4 }}
                                           bg="whiteAlpha.100"
                                           borderRadius="md"
                                           mt={1}
@@ -1637,7 +1761,7 @@ export default function WalletSimplePage() {
                                           <Code
                                             p={2}
                                             borderRadius="md"
-                                            fontSize="xs"
+                                            fontSize={{ base: "2xs", md: "xs" }}
                                             width="100%"
                                             whiteSpace="pre-wrap"
                                             wordBreak="break-word"
@@ -1653,7 +1777,10 @@ export default function WalletSimplePage() {
                                 </Box>
                               </VStack>
                             ) : (
-                              <Text color="red.300">
+                              <Text
+                                color="red.300"
+                                fontSize={{ base: "xs", md: "sm" }}
+                              >
                                 Failed to decode typed data
                               </Text>
                             )}
@@ -1662,12 +1789,14 @@ export default function WalletSimplePage() {
                             <Code
                               p={2}
                               borderRadius="md"
-                              fontSize="sm"
+                              fontSize={{ base: "xs", md: "sm" }}
                               width="100%"
                               whiteSpace="pre-wrap"
                               wordBreak="break-word"
                               bg="whiteAlpha.200"
                               color="white"
+                              maxH={{ base: "200px", md: "300px" }}
+                              overflowY="auto"
                             >
                               {JSON.stringify(
                                 currentSessionRequest.params.request.params[1],
@@ -1691,15 +1820,19 @@ export default function WalletSimplePage() {
                   "eth_signTypedData_v4",
                 ].includes(currentSessionRequest.params.request.method) && (
                   <Box>
-                    <Text fontWeight="bold">Params:</Text>
+                    <Text fontWeight="bold" fontSize={{ base: "sm", md: "md" }}>
+                      Params:
+                    </Text>
                     <Code
                       p={2}
                       borderRadius="md"
-                      fontSize="md"
+                      fontSize={{ base: "xs", md: "sm" }}
                       width="100%"
                       whiteSpace="pre-wrap"
                       bg="whiteAlpha.200"
                       color="white"
+                      maxH={{ base: "200px", md: "300px" }}
+                      overflowY="auto"
                     >
                       {JSON.stringify(
                         currentSessionRequest.params.request.params,
@@ -1718,6 +1851,7 @@ export default function WalletSimplePage() {
               mr={3}
               onClick={() => handleSessionRequest(false)}
               isDisabled={pendingRequest || isSwitchingChain}
+              size={{ base: "sm", md: "md" }}
             >
               Reject
             </Button>
@@ -1728,6 +1862,7 @@ export default function WalletSimplePage() {
                 onClick={handleChainSwitch}
                 isLoading={isSwitchingChain}
                 loadingText="Switching..."
+                size={{ base: "sm", md: "md" }}
               >
                 Switch to{" "}
                 {chainIdToChain[targetChainId]?.name ||
@@ -1740,6 +1875,7 @@ export default function WalletSimplePage() {
                 isLoading={pendingRequest}
                 loadingText="Processing..."
                 isDisabled={needsChainSwitch || isSwitchingChain}
+                size={{ base: "sm", md: "md" }}
               >
                 Approve
               </Button>
