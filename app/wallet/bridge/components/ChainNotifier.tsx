@@ -33,7 +33,7 @@ export default function ChainNotifier({
           );
 
           if (isChainApproved) {
-            // Emit chainChanged event to the dApp
+            // Emit chainChanged event to the dapp
             await walletKit.emitSessionEvent({
               topic: session.topic,
               event: {

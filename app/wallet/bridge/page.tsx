@@ -269,7 +269,7 @@ export default function WalletBridgePage() {
     onSessionRequestClose,
   ]);
 
-  // Connect to dApp using WalletConnect URI
+  // Connect to dapp using WalletConnect URI
   const connectToDapp = useCallback(async () => {
     if (!walletKit || !uri) return;
 
@@ -277,7 +277,7 @@ export default function WalletBridgePage() {
       await walletKit.core.pairing.pair({ uri });
       setUri("");
       toast({
-        title: "Connecting to dApp",
+        title: "Connecting to dapp",
         description: "Waiting for session proposal...",
         status: "info",
         duration: 3000,
@@ -285,9 +285,9 @@ export default function WalletBridgePage() {
         position: "bottom-right",
       });
     } catch (error) {
-      console.error("Failed to connect to dApp:", error);
+      console.error("Failed to connect to dapp:", error);
       toast({
-        title: "Failed to connect to dApp",
+        title: "Failed to connect to dapp",
         description: (error as Error).message,
         status: "error",
         duration: 5000,
@@ -607,7 +607,7 @@ export default function WalletBridgePage() {
               </Box>
             )}
 
-            {/* Connect to dApp section */}
+            {/* Connect to dapp section */}
             <ConnectDapp
               uri={uri}
               setUri={setUri}

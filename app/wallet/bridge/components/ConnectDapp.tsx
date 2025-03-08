@@ -41,7 +41,7 @@ export default function ConnectDapp({
       opacity={!isConnected ? 0.7 : 1}
     >
       <Heading size={{ base: "sm", md: "md" }} mb={{ base: 3, md: 4 }}>
-        Connect to dApp
+        Connect to dapp
       </Heading>
       <VStack spacing={{ base: 3, md: 4 }}>
         <Input
