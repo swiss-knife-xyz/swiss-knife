@@ -24,7 +24,16 @@ import {
   Divider,
   Badge,
   Spinner,
+  Skeleton,
+  SkeletonText,
+  Stack,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
 } from "@chakra-ui/react";
+import { Global } from "@emotion/react";
 import { ConnectButton } from "@/components/ConnectButton/ConnectButton";
 import { Core } from "@walletconnect/core";
 import { WalletKit } from "@reown/walletkit";
@@ -32,6 +41,8 @@ import { useAccount, useWalletClient, useChainId, useSwitchChain } from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { walletChains } from "@/app/providers";
 import { chainIdToChain } from "@/data/common";
+import { decodeRecursive } from "@/lib/decoder";
+import { renderParams } from "@/components/renderParams";
 
 // Types for session requests
 interface SessionProposal {
@@ -113,6 +124,8 @@ export default function WalletSimplePage() {
     useState<SessionProposal | null>(null);
   const [currentSessionRequest, setCurrentSessionRequest] =
     useState<SessionRequest | null>(null);
+  const [decodedTxData, setDecodedTxData] = useState<any>(null);
+  const [isDecodingTx, setIsDecodingTx] = useState<boolean>(false);
 
   // Add a new state to track if we're switching chains
   const [isSwitchingChain, setIsSwitchingChain] = useState<boolean>(false);
@@ -188,10 +201,41 @@ export default function WalletSimplePage() {
     };
 
     // Handle session request
-    const onSessionRequest = (request: SessionRequest) => {
+    const onSessionRequest = async (request: SessionRequest) => {
       console.log("Session request received:", request);
       setCurrentSessionRequest(request);
+
+      // Reset decoded data
+      setDecodedTxData(null);
+
+      // Open the modal immediately
       onSessionRequestOpen();
+
+      // Decode transaction data if it's a sendTransaction request
+      if (request.params.request.method === "eth_sendTransaction") {
+        try {
+          setIsDecodingTx(true);
+          const txData = request.params.request.params[0];
+
+          if (txData.data) {
+            const chainIdStr = request.params.chainId.split(":")[1];
+            const chainIdNum = parseInt(chainIdStr);
+
+            const decodedData = await decodeRecursive({
+              calldata: txData.data,
+              address: txData.to,
+              chainId: chainIdNum,
+            });
+
+            console.log("Decoded transaction data:", decodedData);
+            setDecodedTxData(decodedData);
+          }
+        } catch (error) {
+          console.error("Error decoding transaction data:", error);
+        } finally {
+          setIsDecodingTx(false);
+        }
+      }
     };
 
     // Subscribe to events
@@ -682,6 +726,26 @@ export default function WalletSimplePage() {
 
   return (
     <Container maxW="container.lg" py={8}>
+      <Global
+        styles={{
+          ".chakra-react-select__menu": {
+            zIndex: "9999 !important",
+          },
+          ".chakra-react-select__menu-portal": {
+            zIndex: "9999 !important",
+          },
+          ".chakra-react-select__menu-list": {
+            zIndex: "9999 !important",
+          },
+          ".chakra-modal__content": {
+            overflow: "visible !important",
+          },
+          ".chakra-modal__body": {
+            overflow: "visible !important",
+          },
+        }}
+      />
+
       <VStack spacing={8} align="stretch">
         <Flex justifyContent="space-between" alignItems="center">
           <Heading size="lg">WalletConnect Simple</Heading>
@@ -808,32 +872,49 @@ export default function WalletSimplePage() {
         onClose={onSessionProposalClose}
         isCentered
         size="lg"
+        blockScrollOnMount={false}
       >
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Session Proposal</ModalHeader>
+        <ModalOverlay bg="none" backdropFilter="auto" backdropBlur="5px" />
+        <ModalContent
+          bg="bg.900"
+          color="white"
+          maxW={{
+            base: "90%",
+            sm: "30rem",
+            md: "40rem",
+          }}
+          zIndex="1400"
+        >
+          <ModalHeader borderBottomWidth="1px" borderColor="whiteAlpha.200">
+            Session Proposal
+          </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             {currentSessionProposal && (
               <VStack spacing={4} align="stretch">
                 <Flex alignItems="center">
-                  {currentSessionProposal.params.proposer.metadata.icons && (
-                    <Box
-                      as="img"
-                      src={
-                        currentSessionProposal.params.proposer.metadata.icons[0]
-                      }
-                      alt={currentSessionProposal.params.proposer.metadata.name}
-                      boxSize="48px"
-                      borderRadius="md"
-                      mr={4}
-                    />
-                  )}
+                  {currentSessionProposal.params.proposer.metadata.icons &&
+                    currentSessionProposal.params.proposer.metadata
+                      .icons[0] && (
+                      <Box
+                        as="img"
+                        src={
+                          currentSessionProposal.params.proposer.metadata
+                            .icons[0]
+                        }
+                        alt={
+                          currentSessionProposal.params.proposer.metadata.name
+                        }
+                        boxSize="48px"
+                        borderRadius="md"
+                        mr={4}
+                      />
+                    )}
                   <Box>
                     <Heading size="md">
                       {currentSessionProposal.params.proposer.metadata.name}
                     </Heading>
-                    <Text fontSize="sm" color="gray.600">
+                    <Text fontSize="sm" color="whiteAlpha.700">
                       {currentSessionProposal.params.proposer.metadata.url}
                     </Text>
                   </Box>
@@ -861,7 +942,14 @@ export default function WalletSimplePage() {
                     {Object.entries(
                       currentSessionProposal.params.requiredNamespaces
                     ).map(([key, value]) => (
-                      <Box key={key} p={3} borderWidth={1} borderRadius="md">
+                      <Box
+                        key={key}
+                        p={3}
+                        borderWidth={1}
+                        borderRadius="md"
+                        borderColor="whiteAlpha.300"
+                        bg="whiteAlpha.100"
+                      >
                         <Text fontWeight="bold">{key}</Text>
                         <Text fontSize="sm">
                           Chains: {value.chains.join(", ")}
@@ -879,7 +967,7 @@ export default function WalletSimplePage() {
               </VStack>
             )}
           </ModalBody>
-          <ModalFooter>
+          <ModalFooter borderTopWidth="1px" borderColor="whiteAlpha.200">
             <Button colorScheme="red" mr={3} onClick={rejectSessionProposal}>
               Reject
             </Button>
@@ -898,66 +986,90 @@ export default function WalletSimplePage() {
         size="lg"
         closeOnOverlayClick={!pendingRequest && !isSwitchingChain}
         closeOnEsc={!pendingRequest && !isSwitchingChain}
+        blockScrollOnMount={false}
       >
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Session Request</ModalHeader>
+        <ModalOverlay bg="none" backdropFilter="auto" backdropBlur="5px" />
+        <ModalContent
+          bg="bg.900"
+          color="white"
+          maxW={{
+            base: "90%",
+            sm: "30rem",
+            md: "40rem",
+          }}
+          zIndex="1400"
+        >
+          <ModalHeader borderBottomWidth="1px" borderColor="whiteAlpha.200">
+            Session Request
+          </ModalHeader>
           <ModalCloseButton isDisabled={pendingRequest || isSwitchingChain} />
           <ModalBody>
             {currentSessionRequest && (
               <VStack spacing={4} align="stretch">
                 <Box>
                   <Text fontWeight="bold">Method:</Text>
-                  <Code p={2} borderRadius="md" fontSize="md" width="100%">
-                    {currentSessionRequest.params.request.method}
-                  </Code>
-                </Box>
-
-                <Box>
-                  <Text fontWeight="bold">Chain ID:</Text>
-                  <Code p={2} borderRadius="md" fontSize="md">
-                    {currentSessionRequest.params.chainId}
-                  </Code>
-                </Box>
-
-                <Box>
-                  <Text fontWeight="bold">Params:</Text>
                   <Code
                     p={2}
                     borderRadius="md"
                     fontSize="md"
                     width="100%"
-                    whiteSpace="pre-wrap"
+                    bg="whiteAlpha.200"
+                    color="white"
                   >
-                    {JSON.stringify(
-                      currentSessionRequest.params.request.params,
-                      null,
-                      2
-                    )}
+                    {currentSessionRequest.params.request.method}
                   </Code>
                 </Box>
 
+                {/* Only show raw params if it's not a sendTransaction request */}
+                {currentSessionRequest.params.request.method !==
+                  "eth_sendTransaction" && (
+                  <Box>
+                    <Text fontWeight="bold">Params:</Text>
+                    <Code
+                      p={2}
+                      borderRadius="md"
+                      fontSize="md"
+                      width="100%"
+                      whiteSpace="pre-wrap"
+                      bg="whiteAlpha.200"
+                      color="white"
+                    >
+                      {JSON.stringify(
+                        currentSessionRequest.params.request.params,
+                        null,
+                        2
+                      )}
+                    </Code>
+                  </Box>
+                )}
+
                 {currentSessionRequest.params.request.method ===
                   "eth_sendTransaction" && (
-                  <Box p={3} borderWidth={1} borderRadius="md" bg="gray.50">
-                    <Heading size="sm" mb={2} color="gray.800">
+                  <Box
+                    p={3}
+                    borderWidth={1}
+                    borderRadius="md"
+                    bg="whiteAlpha.100"
+                    borderColor="whiteAlpha.300"
+                  >
+                    <Heading size="sm" mb={2} color="white">
                       Transaction Details
                     </Heading>
                     <VStack spacing={1} align="stretch">
                       <Flex justifyContent="space-between">
-                        <Text fontWeight="bold" color="gray.800">
+                        <Text fontWeight="bold" color="white">
                           To:
                         </Text>
-                        <Text color="gray.800">
+                        <Text color="white">
                           {currentSessionRequest.params.request.params[0].to}
                         </Text>
                       </Flex>
                       {currentSessionRequest.params.request.params[0].value && (
                         <Flex justifyContent="space-between">
-                          <Text fontWeight="bold" color="gray.800">
+                          <Text fontWeight="bold" color="white">
                             Value:
                           </Text>
-                          <Text color="gray.800">
+                          <Text color="white">
                             {formatEther(
                               BigInt(
                                 currentSessionRequest.params.request.params[0]
@@ -970,15 +1082,198 @@ export default function WalletSimplePage() {
                       )}
                       {currentSessionRequest.params.request.params[0].gas && (
                         <Flex justifyContent="space-between">
-                          <Text fontWeight="bold" color="gray.800">
+                          <Text fontWeight="bold" color="white">
                             Gas Limit:
                           </Text>
-                          <Text color="gray.800">
+                          <Text color="white">
                             {BigInt(
                               currentSessionRequest.params.request.params[0].gas
                             ).toString()}
                           </Text>
                         </Flex>
+                      )}
+
+                      {currentSessionRequest.params.request.params[0].data && (
+                        <Box
+                          mt={4}
+                          pt={3}
+                          borderTopWidth={1}
+                          borderTopColor="whiteAlpha.300"
+                        >
+                          <Flex justifyContent="space-between" mb={2}>
+                            <Text fontWeight="bold" color="white">
+                              Transaction Data:
+                            </Text>
+                            {isDecodingTx && (
+                              <Text fontSize="sm" color="whiteAlpha.700">
+                                Decoding...
+                              </Text>
+                            )}
+                          </Flex>
+
+                          <Tabs
+                            variant="soft-rounded"
+                            colorScheme="blue"
+                            size="sm"
+                          >
+                            <TabList mb={3}>
+                              <Tab>Decoded</Tab>
+                              <Tab>Raw</Tab>
+                            </TabList>
+                            <TabPanels>
+                              <TabPanel p={0}>
+                                {isDecodingTx ? (
+                                  <Box
+                                    p={4}
+                                    bg="whiteAlpha.100"
+                                    borderRadius="md"
+                                  >
+                                    <SkeletonText
+                                      mt={2}
+                                      noOfLines={2}
+                                      spacing={4}
+                                      skeletonHeight="4"
+                                    />
+                                    <Skeleton height="20px" mt={4} />
+                                    <Skeleton height="20px" mt={2} />
+                                    <SkeletonText
+                                      mt={4}
+                                      noOfLines={3}
+                                      spacing={4}
+                                      skeletonHeight="4"
+                                    />
+                                  </Box>
+                                ) : decodedTxData ? (
+                                  <Box>
+                                    {decodedTxData.functionName && (
+                                      <Flex
+                                        justifyContent="space-between"
+                                        mb={3}
+                                        p={2}
+                                        bg="blue.800"
+                                        borderRadius="md"
+                                      >
+                                        <Text fontWeight="bold" color="white">
+                                          Function:
+                                        </Text>
+                                        <Text
+                                          color="white"
+                                          fontFamily="monospace"
+                                        >
+                                          {decodedTxData.functionName}
+                                        </Text>
+                                      </Flex>
+                                    )}
+                                    <Box
+                                      bg="whiteAlpha.100"
+                                      borderRadius="md"
+                                      p={3}
+                                      maxH="300px"
+                                      overflowY="auto"
+                                      overflowX="hidden"
+                                      sx={{
+                                        "::-webkit-scrollbar": {
+                                          w: "8px",
+                                        },
+                                        "::-webkit-scrollbar-track": {
+                                          bg: "whiteAlpha.100",
+                                          rounded: "md",
+                                        },
+                                        "::-webkit-scrollbar-thumb": {
+                                          bg: "whiteAlpha.300",
+                                          rounded: "md",
+                                        },
+                                        "& > div > div": {
+                                          maxWidth: "100%",
+                                        },
+                                        ".uint-select-container": {
+                                          position: "relative",
+                                          zIndex: 9999,
+                                        },
+                                        ".chakra-react-select": {
+                                          zIndex: 9999,
+                                        },
+                                        ".chakra-react-select__menu": {
+                                          zIndex: 9999,
+                                          position: "absolute !important",
+                                        },
+                                      }}
+                                      position="relative"
+                                    >
+                                      <Stack spacing={4} width="100%">
+                                        {decodedTxData.args.map(
+                                          (arg: any, i: number) => {
+                                            const chainIdStr =
+                                              currentSessionRequest.params.chainId.split(
+                                                ":"
+                                              )[1];
+                                            const chainIdNum =
+                                              parseInt(chainIdStr);
+                                            return renderParams(
+                                              i,
+                                              arg,
+                                              chainIdNum
+                                            );
+                                          }
+                                        )}
+                                      </Stack>
+                                    </Box>
+                                  </Box>
+                                ) : (
+                                  <Text
+                                    color="whiteAlpha.700"
+                                    fontStyle="italic"
+                                    p={2}
+                                  >
+                                    Could not decode transaction data
+                                  </Text>
+                                )}
+                              </TabPanel>
+                              <TabPanel p={0}>
+                                <Box
+                                  p={3}
+                                  bg="whiteAlpha.100"
+                                  borderRadius="md"
+                                  maxH="300px"
+                                  overflowY="auto"
+                                  overflowX="hidden"
+                                  sx={{
+                                    "::-webkit-scrollbar": {
+                                      w: "8px",
+                                    },
+                                    "::-webkit-scrollbar-track": {
+                                      bg: "whiteAlpha.100",
+                                      rounded: "md",
+                                    },
+                                    "::-webkit-scrollbar-thumb": {
+                                      bg: "whiteAlpha.300",
+                                      rounded: "md",
+                                    },
+                                    "& > div > div": {
+                                      maxWidth: "100%",
+                                    },
+                                  }}
+                                >
+                                  <Code
+                                    p={2}
+                                    borderRadius="md"
+                                    fontSize="sm"
+                                    width="100%"
+                                    whiteSpace="pre-wrap"
+                                    bg="transparent"
+                                    color="white"
+                                    fontFamily="monospace"
+                                  >
+                                    {
+                                      currentSessionRequest.params.request
+                                        .params[0].data
+                                    }
+                                  </Code>
+                                </Box>
+                              </TabPanel>
+                            </TabPanels>
+                          </Tabs>
+                        </Box>
                       )}
                     </VStack>
                   </Box>
@@ -1059,12 +1354,12 @@ export default function WalletSimplePage() {
               </VStack>
             )}
           </ModalBody>
-          <ModalFooter>
+          <ModalFooter borderTopWidth="1px" borderColor="whiteAlpha.200">
             <Button
               colorScheme="red"
               mr={3}
               onClick={() => handleSessionRequest(false)}
-              isDisabled={pendingRequest || isSwitchingChain}
+              isDisabled={isSwitchingChain}
             >
               Reject
             </Button>
