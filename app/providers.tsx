@@ -31,7 +31,6 @@ import {
   evmos,
   fantom,
   gnosis,
-  goerli,
   linea,
   optimism,
   polygon,
@@ -41,7 +40,7 @@ import {
   Chain,
 } from "wagmi/chains";
 
-const chains: readonly [Chain, ...Chain[]] = [
+export const walletChains: readonly [Chain, ...Chain[]] = [
   // first chain is the default
   mainnet,
   arbitrum,
@@ -52,7 +51,6 @@ const chains: readonly [Chain, ...Chain[]] = [
   bsc,
   fantom,
   gnosis,
-  goerli,
   optimism,
   polygon,
   polygonMumbai,
@@ -81,8 +79,8 @@ const connectors = connectorsForWallets(
 
 export const config = createConfig({
   connectors,
-  chains,
-  transports: chains.reduce<Record<number, ReturnType<typeof http>>>(
+  chains: walletChains,
+  transports: walletChains.reduce<Record<number, ReturnType<typeof http>>>(
     (transport, chain) => {
       transport[chain.id] = http();
       return transport;
