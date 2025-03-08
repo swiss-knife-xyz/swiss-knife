@@ -25,6 +25,7 @@ export default function ActiveSessions({
 }: ActiveSessionsProps) {
   return (
     <Box
+      mt={4}
       p={{ base: 4, md: 6 }}
       borderWidth={1}
       borderRadius="lg"

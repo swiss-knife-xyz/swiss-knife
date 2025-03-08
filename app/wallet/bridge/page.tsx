@@ -33,6 +33,7 @@ import WalletKitInitializer from "./components/WalletKitInitializer";
 import WalletKitEventHandler from "./components/WalletKitEventHandler";
 import ChainNotifier from "./components/ChainNotifier";
 import AutoPasteHandler from "./components/AutoPasteHandler";
+import { AnimatedSubtitle } from "./components/AnimatedSubtitle";
 
 export default function WalletBridgePage() {
   const toast = useToast();
@@ -573,58 +574,68 @@ export default function WalletBridgePage() {
           direction={{ base: "column", sm: "row" }}
           gap={{ base: 4, sm: 0 }}
         >
-          <Heading size={{ base: "md", md: "lg" }}>Wallet Bridge</Heading>
+          <Heading size={{ base: "md", md: "lg" }}>💸 Wallet Bridge</Heading>
           {isConnected && <ConnectButton />}
         </Flex>
 
-        {isInitializing ? (
-          <Box p={{ base: 4, md: 6 }} borderWidth={1} borderRadius="lg">
-            <Stack spacing={4}>
-              <Skeleton height="40px" width="60%" />
-              <SkeletonText
-                mt={2}
-                noOfLines={3}
-                spacing={4}
-                skeletonHeight={4}
+        <AnimatedSubtitle />
+
+        <Box>
+          {isInitializing ? (
+            <Box
+              mt={-10}
+              p={{ base: 4, md: 6 }}
+              borderWidth={1}
+              borderRadius="lg"
+            >
+              <Stack spacing={4}>
+                <Skeleton height="40px" width="60%" />
+                <SkeletonText
+                  mt={2}
+                  noOfLines={3}
+                  spacing={4}
+                  skeletonHeight={4}
+                />
+                <Skeleton height="60px" mt={2} />
+              </Stack>
+            </Box>
+          ) : (
+            <>
+              {!isConnected && (
+                <Box
+                  mt={{ base: -6, md: -10 }}
+                  p={{ base: 4, md: 6 }}
+                  borderWidth={1}
+                  borderRadius="lg"
+                  textAlign="center"
+                  mb={{ base: 3, md: 4 }}
+                >
+                  <Text mb={{ base: 3, md: 4 }}>
+                    Please connect your wallet to use WalletBridge
+                  </Text>
+                  <ConnectButton />
+                </Box>
+              )}
+
+              {/* Connect to dapp section */}
+              <ConnectDapp
+                uri={uri}
+                setUri={setUri}
+                setPasted={setPasted}
+                isConnected={isConnected}
+                connectToDapp={connectToDapp}
               />
-              <Skeleton height="60px" mt={2} />
-            </Stack>
-          </Box>
-        ) : (
-          <>
-            {!isConnected && (
-              <Box
-                p={{ base: 4, md: 6 }}
-                borderWidth={1}
-                borderRadius="lg"
-                textAlign="center"
-                mb={{ base: 3, md: 4 }}
-              >
-                <Text mb={{ base: 3, md: 4 }}>
-                  Please connect your wallet to use WalletBridge
-                </Text>
-                <ConnectButton />
-              </Box>
-            )}
 
-            {/* Connect to dapp section */}
-            <ConnectDapp
-              uri={uri}
-              setUri={setUri}
-              setPasted={setPasted}
-              isConnected={isConnected}
-              connectToDapp={connectToDapp}
-            />
-
-            {/* Active Sessions section */}
-            <ActiveSessions
-              isConnected={isConnected}
-              activeSessions={activeSessions}
-              chainId={chainId}
-              disconnectSession={disconnectSession}
-            />
-          </>
-        )}
+              {/* Active Sessions section */}
+              <ActiveSessions
+                isConnected={isConnected}
+                activeSessions={activeSessions}
+                chainId={chainId}
+                disconnectSession={disconnectSession}
+              />
+            </>
+          )}
+        </Box>
       </VStack>
 
       {/* Session Proposal Modal */}
