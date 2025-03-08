@@ -36,6 +36,7 @@ import {
 import { Global } from "@emotion/react";
 import { ConnectButton } from "@/components/ConnectButton/ConnectButton";
 import { Core } from "@walletconnect/core";
+import { buildApprovedNamespaces } from "@walletconnect/utils";
 import { WalletKit } from "@reown/walletkit";
 import { useAccount, useWalletClient, useChainId, useSwitchChain } from "wagmi";
 import { formatEther, parseEther } from "viem";
@@ -102,6 +103,7 @@ export default function WalletSimplePage() {
 
   // State for WalletConnect
   const [uri, setUri] = useState<string>("");
+  const [pasted, setPasted] = useState(false);
   const [walletKit, setWalletKit] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState<boolean>(false);
   const [activeSessions, setActiveSessions] = useState<any[]>([]);
@@ -197,7 +199,72 @@ export default function WalletSimplePage() {
       console.log("Required namespaces:", proposal.params.requiredNamespaces);
       console.log("Optional namespaces:", proposal.params.optionalNamespaces);
       setCurrentSessionProposal(proposal);
-      onSessionProposalOpen();
+
+      // Auto-approve the session proposal instead of opening the modal
+      if (walletKit && address) {
+        // We'll call this in a setTimeout to ensure the state is updated
+        setTimeout(async () => {
+          try {
+            // Get the supported chains from walletChains
+            const chains = walletChains.map((chain) => `eip155:${chain.id}`);
+            const accounts = chains.map((chain) => `${chain}:${address}`);
+
+            const namespaces = buildApprovedNamespaces({
+              proposal: proposal.params,
+              supportedNamespaces: {
+                eip155: {
+                  chains,
+                  accounts,
+                  methods: [
+                    "eth_sendTransaction",
+                    "eth_sign",
+                    "personal_sign",
+                    "eth_signTransaction",
+                    "eth_signTypedData",
+                    "eth_signTypedData_v3",
+                    "eth_signTypedData_v4",
+                  ],
+                  events: ["chainChanged", "accountsChanged"],
+                },
+              },
+            });
+
+            console.log("Auto-approving session with namespaces:", namespaces);
+
+            await walletKit.approveSession({
+              id: proposal.id,
+              namespaces,
+            });
+
+            // Update active sessions
+            const sessions = walletKit.getActiveSessions();
+            setActiveSessions(Object.values(sessions));
+
+            toast({
+              title: "Session auto-approved",
+              status: "success",
+              duration: 3000,
+              isClosable: true,
+            });
+          } catch (error) {
+            console.error("Failed to auto-approve session:", error);
+
+            // If auto-approval fails, fall back to manual approval via modal
+            onSessionProposalOpen();
+
+            toast({
+              title: "Auto-approval failed",
+              description: (error as Error).message,
+              status: "error",
+              duration: 5000,
+              isClosable: true,
+            });
+          }
+        }, 100);
+      } else {
+        // If wallet is not connected or address is not available, open the modal for manual approval
+        onSessionProposalOpen();
+      }
     };
 
     // Handle session request
@@ -526,69 +593,30 @@ export default function WalletSimplePage() {
 
     try {
       // Get the supported chains from walletChains
-      const supportedChainIds = walletChains.map((chain) => chain.id);
+      const chains = walletChains.map((chain) => `eip155:${chain.id}`);
+      const accounts = chains.map((chain) => `${chain}:${address}`);
 
-      // Add support for common testnet chains that might not be in walletChains
-      // These are the chains Aave is requesting in the example
-      const additionalSupportedChainIds = [
-        43113, // Avalanche Fuji Testnet
-        84532, // Base Sepolia
-        421614, // Arbitrum Sepolia
-        534351, // Scroll Sepolia
-        11155111, // Sepolia
-        11155420, // Optimism Sepolia
-      ];
-
-      const allSupportedChainIds = [
-        ...supportedChainIds,
-        ...additionalSupportedChainIds,
-      ];
-
-      // Create namespaces object
-      const namespaces: Record<string, any> = {};
-
-      // Process both required and optional namespaces
-      const allNamespaces = {
-        ...currentSessionProposal.params.requiredNamespaces,
-        ...currentSessionProposal.params.optionalNamespaces,
-      };
-
-      // For each namespace (e.g., 'eip155')
-      Object.entries(allNamespaces).forEach(([namespace, nsValue]) => {
-        if (namespace === "eip155") {
-          // Filter chains to only include supported ones
-          const supportedChains = nsValue.chains.filter((chainStr) => {
-            // Extract chain ID from the chain string (e.g., "eip155:1" -> 1)
-            const chainId = parseInt(chainStr.split(":")[1]);
-            return allSupportedChainIds.includes(chainId);
-          });
-
-          if (supportedChains.length > 0) {
-            // Format accounts as "eip155:chainId:address"
-            const accounts = supportedChains.map(
-              (chain) => `${chain}:${address}`
-            );
-
-            namespaces[namespace] = {
-              accounts,
-              methods: nsValue.methods,
-              events: nsValue.events,
-            };
-          }
-        }
+      const namespaces = buildApprovedNamespaces({
+        proposal: currentSessionProposal.params,
+        supportedNamespaces: {
+          eip155: {
+            chains,
+            accounts,
+            methods: [
+              "eth_sendTransaction",
+              "eth_sign",
+              "personal_sign",
+              "eth_signTransaction",
+              "eth_signTypedData",
+              "eth_signTypedData_v3",
+              "eth_signTypedData_v4",
+            ],
+            events: ["chainChanged", "accountsChanged"],
+          },
+        },
       });
 
       console.log("Approving session with namespaces:", namespaces);
-
-      // Check if namespaces is empty or doesn't have any accounts
-      if (
-        Object.keys(namespaces).length === 0 ||
-        !Object.values(namespaces).some(
-          (ns) => ns.accounts && ns.accounts.length > 0
-        )
-      ) {
-        throw new Error("No supported chains found in the request");
-      }
 
       await walletKit.approveSession({
         id: currentSessionProposal.id,
@@ -724,6 +752,14 @@ export default function WalletSimplePage() {
     [walletKit, toast]
   );
 
+  // Add useEffect to handle auto-connect on paste
+  useEffect(() => {
+    if (pasted && isConnected && uri && uri.startsWith("wc:")) {
+      connectToDapp();
+      setPasted(false);
+    }
+  }, [uri, pasted, isConnected, connectToDapp]);
+
   return (
     <Container maxW="container.lg" py={8}>
       <Global
@@ -748,23 +784,46 @@ export default function WalletSimplePage() {
 
       <VStack spacing={8} align="stretch">
         <Flex justifyContent="space-between" alignItems="center">
-          <Heading size="lg">WalletConnect Simple</Heading>
+          <Heading size="lg">Wallet Bridge</Heading>
           <ConnectButton />
         </Flex>
 
-        {!isConnected ? (
-          <Box p={6} borderWidth={1} borderRadius="lg" textAlign="center">
-            <Text mb={4}>Please connect your wallet to use WalletConnect</Text>
-            <ConnectButton />
-          </Box>
-        ) : isInitializing ? (
-          <Box p={6} borderWidth={1} borderRadius="lg" textAlign="center">
-            <Spinner size="xl" mb={4} />
-            <Text>Initializing WalletKit...</Text>
+        {isInitializing ? (
+          <Box p={6} borderWidth={1} borderRadius="lg">
+            <Stack spacing={4}>
+              <Skeleton height="40px" width="60%" />
+              <SkeletonText
+                mt={2}
+                noOfLines={3}
+                spacing={4}
+                skeletonHeight={4}
+              />
+              <Skeleton height="60px" mt={2} />
+            </Stack>
           </Box>
         ) : (
           <>
-            <Box p={6} borderWidth={1} borderRadius="lg">
+            {!isConnected && (
+              <Box
+                p={6}
+                borderWidth={1}
+                borderRadius="lg"
+                textAlign="center"
+                mb={4}
+              >
+                <Text mb={4}>
+                  Please connect your wallet to use Wallet Bridge
+                </Text>
+                <ConnectButton />
+              </Box>
+            )}
+
+            <Box
+              p={6}
+              borderWidth={1}
+              borderRadius="lg"
+              opacity={!isConnected ? 0.7 : 1}
+            >
               <Heading size="md" mb={4}>
                 Connect to dApp
               </Heading>
@@ -773,23 +832,36 @@ export default function WalletSimplePage() {
                   placeholder="Enter WalletConnect URI (wc:...)"
                   value={uri}
                   onChange={(e) => setUri(e.target.value)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    setPasted(true);
+                    setUri(e.clipboardData.getData("text"));
+                  }}
+                  isDisabled={!isConnected}
                 />
                 <Button
                   colorScheme="blue"
                   width="100%"
                   onClick={connectToDapp}
-                  isDisabled={!uri || !uri.startsWith("wc:")}
+                  isDisabled={!isConnected || !uri || !uri.startsWith("wc:")}
                 >
                   Connect
                 </Button>
               </VStack>
             </Box>
 
-            <Box p={6} borderWidth={1} borderRadius="lg">
+            <Box
+              p={6}
+              borderWidth={1}
+              borderRadius="lg"
+              opacity={!isConnected ? 0.7 : 1}
+            >
               <Heading size="md" mb={4}>
-                Active Sessions ({activeSessions.length})
+                Active Sessions ({isConnected ? activeSessions.length : 0})
               </Heading>
-              {activeSessions.length === 0 ? (
+              {!isConnected ? (
+                <Text>Connect your wallet to view active sessions</Text>
+              ) : activeSessions.length === 0 ? (
                 <Text>No active sessions</Text>
               ) : (
                 <VStack spacing={4} align="stretch">
