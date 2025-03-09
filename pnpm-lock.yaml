@@ -80,6 +80,12 @@ importers:
       '@walletconnect/utils':
         specifier: ^2.9.2
         version: 2.17.0(@upstash/redis@1.34.3)
+      '@zxing/browser':
+        specifier: ^0.1.5
+        version: 0.1.5(@zxing/library@0.21.3)
+      '@zxing/library':
+        specifier: ^0.21.3
+        version: 0.21.3
       axios:
         specifier: ^1.7.7
         version: 1.7.7
@@ -155,9 +161,6 @@ importers:
       react-icons:
         specifier: ^4.10.1
         version: 4.12.0(react@18.2.0)
-      react-qr-reader-es6:
-        specifier: 2.2.1-2
-        version: 2.2.1-2(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-simple-code-editor:
         specifier: ^0.11.3
         version: 0.11.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -2114,6 +2117,18 @@ packages:
   '@zag-js/focus-visible@0.31.1':
     resolution: {integrity: sha512-dbLksz7FEwyFoANbpIlNnd3bVm0clQSUsnP8yUVQucStZPsuWjCrhL2jlAbGNrTrahX96ntUMXHb/sM68TibFg==}
 
+  '@zxing/browser@0.1.5':
+    resolution: {integrity: sha512-4Lmrn/il4+UNb87Gk8h1iWnhj39TASEHpd91CwwSJtY5u+wa0iH9qS0wNLAWbNVYXR66WmT5uiMhZ7oVTrKfxw==}
+    peerDependencies:
+      '@zxing/library': ^0.21.0
+
+  '@zxing/library@0.21.3':
+    resolution: {integrity: sha512-hZHqFe2JyH/ZxviJZosZjV+2s6EDSY0O24R+FQmlWZBZXP9IqMo7S3nb3+2LBWxodJQkSurdQGnqE7KXqrYgow==}
+    engines: {node: '>= 10.4.0'}
+
+  '@zxing/text-encoding@0.9.0':
+    resolution: {integrity: sha512-U/4aVJ2mxI0aDNI8Uq0wEhMgY+u4CNtEb0om3+y3+niDAsoTCOB33UF0sxpzqzdqXLqmvc+vZyAt4O8pPdfkwA==}
+
   abitype@1.0.6:
     resolution: {integrity: sha512-MMSqYh4+C/aVqI2RQaWqbvI4Kxo5cQV40WQ4QFtDnNzCkqChm8MuENhElmynZlO0qUy/ObkEUaXtKqYnx1Kp3A==}
     peerDependencies:
@@ -4029,9 +4044,6 @@ packages:
     resolution: {integrity: sha512-P2bSOMAc/ciLz6DzgjVlGJP9+BrJWu5UDGK70C2iweC5QBIeFf0ZXRvGjEj2uYgrY2MkAAhsSWHDWlFtEroZWw==}
     engines: {node: '>=0.6.0'}
 
-  jsqr-es6@1.4.0-1:
-    resolution: {integrity: sha512-LPWZJLI+3LLOy9k3/s/MeXlkfNOs3bYBX5O+fp4N0XuxbgO8H7Uc/nYZeNwo13nSZXRW9xWFKmZdy9591+PyAg==}
-
   jsx-ast-utils@3.3.5:
     resolution: {integrity: sha512-ZZow9HBI5O6EPgSJLUb8n2NKgmVWTwCvHGwFuJlMjvLFqlGG6pjirPhtdsseaLZjSibD8eegzmYpUZwoIlj2cQ==}
     engines: {node: '>=4.0'}
@@ -4991,12 +5003,6 @@ packages:
       '@types/react':
         optional: true
 
-  react-qr-reader-es6@2.2.1-2:
-    resolution: {integrity: sha512-pDNH8FoR3fOBBCgh4ImKHlX+pv/D3P8JmE+vjjcw3+YTEUgBqUAZbIkD/WUE3HzhVhN2zx7ZLBhO9vJngnjJxw==}
-    peerDependencies:
-      react: '>=16'
-      react-dom: '>=16'
-
   react-refresh@0.14.2:
     resolution: {integrity: sha512-jCvmsr+1IUSMUyzOkRcvnVbX3ZYC6g9TDrDbFuFmRDq7PD4yaGbLKNQL6k2jnArV8hjYxh7hVhAZB6s9HDGpZA==}
     engines: {node: '>=0.10.0'}
@@ -5583,6 +5589,10 @@ packages:
     engines: {node: '>=16'}
     peerDependencies:
       typescript: '>=4.2.0'
+
+  ts-custom-error@3.3.1:
+    resolution: {integrity: sha512-5OX1tzOjxWEgsr/YEUWSuPrQ00deKLh6D7OTWcvNHm12/7QPyRh8SYpyWvA4IZv8H/+GQWQEh/kwo95Q9OVW1A==}
+    engines: {node: '>=14.0.0'}
 
   tsconfig-paths@3.15.0:
     resolution: {integrity: sha512-2Ac2RgzDe/cn48GvOe3M+o82pEFewD3UPbyoUHHdKasHwJKjds4fLXWf/Ux5kATBKN20oaFGu+jbElp1pos0mg==}
@@ -9190,6 +9200,21 @@ snapshots:
     dependencies:
       '@zag-js/dom-query': 0.31.1
 
+  '@zxing/browser@0.1.5(@zxing/library@0.21.3)':
+    dependencies:
+      '@zxing/library': 0.21.3
+    optionalDependencies:
+      '@zxing/text-encoding': 0.9.0
+
+  '@zxing/library@0.21.3':
+    dependencies:
+      ts-custom-error: 3.3.1
+    optionalDependencies:
+      '@zxing/text-encoding': 0.9.0
+
+  '@zxing/text-encoding@0.9.0':
+    optional: true
+
   abitype@1.0.6(typescript@5.0.4)(zod@3.23.8):
     optionalDependencies:
       typescript: 5.0.4
@@ -11539,8 +11564,6 @@ snapshots:
       json-schema: 0.4.0
       verror: 1.10.0
 
-  jsqr-es6@1.4.0-1: {}
-
   jsx-ast-utils@3.3.5:
     dependencies:
       array-includes: 3.1.8
@@ -12674,13 +12697,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  react-qr-reader-es6@2.2.1-2(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
-    dependencies:
-      jsqr-es6: 1.4.0-1
-      prop-types: 15.8.1
-      react: 18.2.0
-      react-dom: 18.2.0(react@18.2.0)
-
   react-refresh@0.14.2: {}
 
   react-remove-scroll-bar@2.3.6(@types/react@18.2.7)(react@18.2.0):
@@ -13366,6 +13382,8 @@ snapshots:
   ts-api-utils@1.4.0(typescript@5.0.4):
     dependencies:
       typescript: 5.0.4
+
+  ts-custom-error@3.3.1: {}
 
   tsconfig-paths@3.15.0:
     dependencies:

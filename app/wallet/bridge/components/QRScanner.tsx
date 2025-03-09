@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Box,
   Button,
@@ -15,44 +15,188 @@ import {
   Text,
   Flex,
 } from "@chakra-ui/react";
-import dynamic from "next/dynamic";
 import { FaQrcode } from "react-icons/fa";
-
-// Dynamically import the QR reader to avoid SSR issues
-const ReactQrReader = dynamic(() => import("react-qr-reader-es6"), {
-  ssr: false,
-});
+import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
 
 interface QrScannerProps {
   onScan: (uri: string) => Promise<void>;
   isDisabled: boolean;
 }
 
-export default function QrScanner({ onScan, isDisabled }: QrScannerProps) {
+export default function EnhancedQrScanner({
+  onScan,
+  isDisabled,
+}: QrScannerProps) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [loading, setLoading] = useState(false);
   const [scannerActive, setScannerActive] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  function onError() {
-    console.error("QR Scanner error");
-  }
+  useEffect(() => {
+    if (!scannerActive || !videoRef.current) return;
 
-  async function handleScan(data: string | null) {
-    if (data && data.startsWith("wc:")) {
-      await onScan(data);
-      onClose();
+    const startScanning = async () => {
+      try {
+        const reader = new BrowserQRCodeReader();
+        const devices = await BrowserQRCodeReader.listVideoInputDevices();
+        const selectedDevice =
+          devices.find((d) => d.label.toLowerCase().includes("back")) ||
+          devices[0];
+
+        if (!videoRef.current) return;
+
+        controlsRef.current = await reader.decodeFromVideoDevice(
+          selectedDevice?.deviceId,
+          videoRef.current,
+          async (result, error) => {
+            if (result?.getText()?.startsWith("wc:")) {
+              await onScan(result.getText());
+              handleClose();
+            }
+
+            if (
+              error &&
+              error.message !==
+                "No MultiFormat Readers were able to detect the code."
+            ) {
+              console.error("QR Scanner error:", error);
+            }
+          }
+        );
+
+        // Start periodic enhanced scanning
+        startEnhancedScanning();
+
+        setLoading(false);
+      } catch (error) {
+        console.error("Failed to start QR scanner:", error);
+        setLoading(false);
+      }
+    };
+
+    startScanning();
+
+    return () => {
+      if (controlsRef.current) {
+        controlsRef.current.stop();
+        controlsRef.current = null;
+      }
+    };
+  }, [scannerActive, onScan]);
+
+  const startEnhancedScanning = () => {
+    const interval = setInterval(async () => {
+      if (!videoRef.current || !canvasRef.current) return;
+
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const video = videoRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Get the image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const enhancedImageUrl = applyEnhancements(imageData);
+
+      // Try decoding the enhanced image
+      try {
+        const reader = new BrowserQRCodeReader();
+        const img = new Image();
+        img.src = enhancedImageUrl;
+
+        img.onload = async () => {
+          try {
+            const result = await reader.decodeFromImageElement(img);
+            if (result?.getText()?.startsWith("wc:")) {
+              await onScan(result.getText());
+              handleClose();
+            }
+          } catch (error) {
+            // Ignore failed attempts
+          }
+        };
+      } catch (error) {
+        console.error("Enhanced QR scan error:", error);
+      }
+    }, 500); // Capture and enhance every 500ms
+
+    return () => clearInterval(interval);
+  };
+
+  function applyEnhancements(imageData: ImageData): string {
+    const { data, width, height } = imageData;
+
+    // Apply enhancements
+    const contrast = 120;
+    const threshold = 128;
+    const invert = true;
+    const grayscale = false;
+
+    // Convert to grayscale if needed
+    if (grayscale) {
+      for (let i = 0; i < data.length; i += 4) {
+        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        data[i] = avg;
+        data[i + 1] = avg;
+        data[i + 2] = avg;
+      }
     }
+
+    // Apply contrast
+    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = factor * (data[i] - 128) + 128;
+      data[i + 1] = factor * (data[i + 1] - 128) + 128;
+      data[i + 2] = factor * (data[i + 2] - 128) + 128;
+    }
+
+    // Apply threshold
+    for (let i = 0; i < data.length; i += 4) {
+      const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      const val = avg > threshold ? 255 : 0;
+      data[i] = val;
+      data[i + 1] = val;
+      data[i + 2] = val;
+    }
+
+    // Apply inversion if needed
+    if (invert) {
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = 255 - data[i];
+        data[i + 1] = 255 - data[i + 1];
+        data[i + 2] = 255 - data[i + 2];
+      }
+    }
+
+    // Draw back to canvas
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    canvas.width = width;
+    canvas.height = height;
+    ctx.putImageData(imageData, 0, 0);
+
+    return canvas.toDataURL("image/png");
   }
 
   function handleOpen() {
     setLoading(true);
     onOpen();
-    // Delay activating the scanner to ensure the modal is fully rendered
-    setTimeout(() => setScannerActive(true), 500);
+    setTimeout(() => setScannerActive(true), 200);
   }
 
   function handleClose() {
     setScannerActive(false);
+    if (controlsRef.current) {
+      controlsRef.current.stop();
+      controlsRef.current = null;
+    }
     onClose();
   }
 
@@ -96,7 +240,6 @@ export default function QrScanner({ onScan, isDisabled }: QrScannerProps) {
             Scan WalletConnect QR Code
           </ModalHeader>
           <ModalCloseButton />
-
           <ModalBody p={4} flex="1">
             <Flex
               direction="column"
@@ -116,7 +259,6 @@ export default function QrScanner({ onScan, isDisabled }: QrScannerProps) {
                   <Spinner size="xl" color="blue.400" />
                 </Center>
               )}
-
               <Box
                 width="100%"
                 height={{ base: "25rem", md: "28rem" }}
@@ -138,49 +280,28 @@ export default function QrScanner({ onScan, isDisabled }: QrScannerProps) {
                     alignItems="center"
                     justifyContent="center"
                   >
-                    <Box
-                      width="100%"
-                      height="100%"
-                      position="relative"
-                      sx={{
-                        "& > div": {
-                          height: "100% !important",
-                          "& > video": {
-                            objectFit: "cover !important",
-                            width: "100% !important",
-                            height: "100% !important",
-                          },
-                        },
+                    <video
+                      ref={videoRef}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
                       }}
-                    >
-                      <ReactQrReader
-                        onLoad={() => setLoading(false)}
-                        delay={300}
-                        onError={onError}
-                        onScan={handleScan}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                        }}
-                        facingMode="environment"
-                        resolution={800}
-                      />
-                    </Box>
+                    />
                   </Box>
                 )}
               </Box>
-
               <Text
                 mt={2}
                 fontSize="sm"
                 color="whiteAlpha.700"
                 textAlign="center"
               >
-                Point your camera at a WalletConnect QR code
+                Point & keep your camera still at a WalletConnect QR code
               </Text>
+              <canvas ref={canvasRef} style={{ display: "none" }} />
             </Flex>
           </ModalBody>
-
           <ModalFooter borderTopWidth="1px" borderColor="whiteAlpha.200">
             <Button colorScheme="red" onClick={handleClose} variant="outline">
               Cancel
