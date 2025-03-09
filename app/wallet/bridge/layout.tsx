@@ -16,7 +16,7 @@ const frame = {
       type: "launch_frame",
       name: "Wallet Bridge",
       url: `https://wallet.swiss-knife.xyz/bridge`,
-      splashImageUrl: `https://swiss-knife.xyz/icon.png`,
+      splashImageUrl: `https://swiss-knife.xyz/splashImage.png`,
       splashBackgroundColor: "#101010", // theme.ts: colors.bg[900]
     },
   },
