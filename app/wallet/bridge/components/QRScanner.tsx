@@ -119,7 +119,7 @@ export default function QrScanner({ onScan, isDisabled }: QrScannerProps) {
 
               <Box
                 width="100%"
-                height={{ base: "250px", md: "350px" }}
+                height={{ base: "25rem", md: "28rem" }}
                 borderRadius="md"
                 overflow="hidden"
                 position="relative"
@@ -128,18 +128,45 @@ export default function QrScanner({ onScan, isDisabled }: QrScannerProps) {
                 mb={2}
               >
                 {scannerActive && (
-                  <ReactQrReader
-                    onLoad={() => setLoading(false)}
-                    delay={300}
-                    onError={onError}
-                    onScan={handleScan}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                    }}
-                    facingMode="environment"
-                    resolution={800}
-                  />
+                  <Box
+                    position="absolute"
+                    top="0"
+                    left="0"
+                    right="0"
+                    bottom="0"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    <Box
+                      width="100%"
+                      height="100%"
+                      position="relative"
+                      sx={{
+                        "& > div": {
+                          height: "100% !important",
+                          "& > video": {
+                            objectFit: "cover !important",
+                            width: "100% !important",
+                            height: "100% !important",
+                          },
+                        },
+                      }}
+                    >
+                      <ReactQrReader
+                        onLoad={() => setLoading(false)}
+                        delay={300}
+                        onError={onError}
+                        onScan={handleScan}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                        }}
+                        facingMode="environment"
+                        resolution={800}
+                      />
+                    </Box>
+                  </Box>
                 )}
               </Box>
 
