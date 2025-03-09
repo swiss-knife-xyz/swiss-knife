@@ -37,7 +37,7 @@ export default function SessionProposalModal({
       onClose={onClose}
       isCentered
       size={{ base: "sm", md: "lg" }}
-      blockScrollOnMount={false}
+      blockScrollOnMount={true}
     >
       <ModalOverlay bg="none" backdropFilter="auto" backdropBlur="5px" />
       <ModalContent

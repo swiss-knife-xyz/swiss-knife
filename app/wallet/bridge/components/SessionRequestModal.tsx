@@ -151,7 +151,7 @@ export default function SessionRequestModal({
       size={{ base: "sm", md: "lg" }}
       closeOnOverlayClick={false}
       closeOnEsc={true}
-      blockScrollOnMount={false}
+      blockScrollOnMount={true}
     >
       <ModalOverlay bg="none" backdropFilter="auto" backdropBlur="5px" />
       <ModalContent
