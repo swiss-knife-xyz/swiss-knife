@@ -316,8 +316,18 @@ export default function SessionRequestModal({
                           size={{ base: "xs", md: "sm" }}
                         >
                           <TabList mb={3}>
-                            <Tab>Decoded</Tab>
-                            <Tab>Raw</Tab>
+                            <Tab
+                              px={{ base: 4, md: 6 }}
+                              fontSize={{ base: "xs", md: "sm" }}
+                            >
+                              Decoded
+                            </Tab>
+                            <Tab
+                              px={{ base: 4, md: 6 }}
+                              fontSize={{ base: "xs", md: "sm" }}
+                            >
+                              Raw
+                            </Tab>
                           </TabList>
                           <TabPanels>
                             <TabPanel p={0}>
@@ -517,8 +527,18 @@ export default function SessionRequestModal({
                       size={{ base: "xs", md: "sm" }}
                     >
                       <TabList mb={3}>
-                        <Tab>Decoded</Tab>
-                        <Tab>Raw</Tab>
+                        <Tab
+                          px={{ base: 4, md: 6 }}
+                          fontSize={{ base: "xs", md: "sm" }}
+                        >
+                          Decoded
+                        </Tab>
+                        <Tab
+                          px={{ base: 4, md: 6 }}
+                          fontSize={{ base: "xs", md: "sm" }}
+                        >
+                          Raw
+                        </Tab>
                       </TabList>
                       <TabPanels>
                         <TabPanel p={0}>
@@ -590,8 +610,18 @@ export default function SessionRequestModal({
                       size={{ base: "xs", md: "sm" }}
                     >
                       <TabList mb={3}>
-                        <Tab>Formatted</Tab>
-                        <Tab>Raw</Tab>
+                        <Tab
+                          px={{ base: 4, md: 6 }}
+                          fontSize={{ base: "xs", md: "sm" }}
+                        >
+                          Formatted
+                        </Tab>
+                        <Tab
+                          px={{ base: 4, md: 6 }}
+                          fontSize={{ base: "xs", md: "sm" }}
+                        >
+                          Raw
+                        </Tab>
                       </TabList>
                       <TabPanels>
                         <TabPanel p={0}>
