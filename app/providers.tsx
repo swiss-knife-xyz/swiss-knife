@@ -69,7 +69,15 @@ const connectors = connectorsForWallets(
       wallets: [
         metaMaskWallet,
         coinbaseWallet,
-        walletConnectWallet,
+        // Use WalletConnect with a custom storage prefix
+        // This is to prevent clashes with our walletkit in wallet/bridge.
+        ({ projectId }) =>
+          walletConnectWallet({
+            projectId,
+            options: {
+              customStoragePrefix: "rainbowkit-client-role-",
+            },
+          }),
         rainbowWallet,
         safeWallet,
       ],
