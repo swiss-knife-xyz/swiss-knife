@@ -1,0 +1,18 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjE0MjQxLCJ0eXBlIjoiY3VzdG9keSIsImtleSI6IjB4OTRmRDU1RjlkRWJmRTNBMjgwNTM4MjMzNDEyM0ExNUZjMmVBYjI3NSJ9",
+    "payload": "eyJkb21haW4iOiJzd2lzcy1rbmlmZS54eXoifQ",
+    "signature": "MHgxNGI5MTM4MWUwZjM5YTI3YjU1MWRhMGYxNzIyNjc5YjFkY2MxZmM0MDExZjE4ZGI2NGZmZGE0YTFlZmY5NTM5MTlhYThhNmQyNTZjYjNiMDEwMjVjOTY0NmIwZGJkOGZkMWYyOWRjZDlhMDUzMTBmNzExMGYzMTdiMzY4ZWJkOTFj"
+  },
+  "frame": {
+    "version": "1",
+    "name": "Swiss-Knife",
+    "iconUrl": "https://swiss-knife.xyz/icon.png",
+    "homeUrl": "https://wallet.swiss-knife.xyz/bridge",
+    "imageUrl": "https://swiss-knife.xyz/frame/wallet-bridge.png",
+    "buttonTitle": "Wallet Bridge",
+    "splashImageUrl": "https://swiss-knife.xyz/splashImage.png",
+    "splashBackgroundColor": "#101010",
+    "webhookUrl": "https://swiss-knife.xyz/api/webhook"
+  }
+}
