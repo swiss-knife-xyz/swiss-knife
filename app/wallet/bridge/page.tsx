@@ -17,6 +17,7 @@ import {
 import { Global } from "@emotion/react";
 import frameSdk, { Context } from "@farcaster/frame-sdk";
 import { useAccount, useWalletClient, useChainId, useSwitchChain } from "wagmi";
+import { base } from "viem/chains";
 import { buildApprovedNamespaces } from "@walletconnect/utils";
 import { ConnectButton } from "@/components/ConnectButton/ConnectButton";
 import { walletChains } from "@/app/providers";
@@ -552,6 +553,13 @@ export default function WalletBridgePage() {
       load();
     }
   }, [isFrameSDKLoaded]);
+
+  // switch to base, as warpcast wallet is on base
+  useEffect(() => {
+    if (frameContext && switchChainAsync && address) {
+      switchChainAsync({ chainId: base.id });
+    }
+  }, [frameContext, switchChainAsync, address]);
 
   // Check if chain switch is needed when session request changes
   useEffect(() => {
