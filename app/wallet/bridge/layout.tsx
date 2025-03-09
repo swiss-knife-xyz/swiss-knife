@@ -9,7 +9,7 @@ const _metadataInfo = {
 // source: https://github.com/farcasterxyz/frames-v2-demo/blob/main/src/app/frames/hello/page.tsx
 const frame = {
   version: "next",
-  imageUrl: _metadataInfo.images,
+  imageUrl: "https://swiss-knife.xyz/frame/wallet-bridge.png",
   button: {
     title: "Wallet Bridge",
     action: {
