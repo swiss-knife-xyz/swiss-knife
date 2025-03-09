@@ -35,6 +35,7 @@ import WalletKitEventHandler from "./components/WalletKitEventHandler";
 import ChainNotifier from "./components/ChainNotifier";
 import AutoPasteHandler from "./components/AutoPasteHandler";
 import { AnimatedSubtitle } from "./components/AnimatedSubtitle";
+import { filterActiveSessions } from "./utils";
 
 export default function WalletBridgePage() {
   const toast = useToast();
@@ -405,7 +406,7 @@ export default function WalletBridgePage() {
 
       // Update active sessions
       const sessions = walletKit.getActiveSessions();
-      setActiveSessions(Object.values(sessions));
+      setActiveSessions(filterActiveSessions(Object.values(sessions)));
 
       onSessionProposalClose();
       setCurrentSessionProposal(null);
@@ -516,7 +517,7 @@ export default function WalletBridgePage() {
 
         // Update active sessions
         const sessions = walletKit.getActiveSessions();
-        setActiveSessions(Object.values(sessions));
+        setActiveSessions(filterActiveSessions(Object.values(sessions)));
 
         toast({
           title: "Session disconnected",
@@ -670,12 +671,7 @@ export default function WalletBridgePage() {
 
         <Box>
           {isInitializing ? (
-            <Box
-              mt={-10}
-              p={{ base: 4, md: 6 }}
-              borderWidth={1}
-              borderRadius="lg"
-            >
+            <Box p={{ base: 4, md: 6 }} borderWidth={1} borderRadius="lg">
               <Stack spacing={4}>
                 <Skeleton height="40px" width="60%" />
                 <SkeletonText

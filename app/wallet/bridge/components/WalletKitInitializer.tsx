@@ -3,6 +3,7 @@ import { Core } from "@walletconnect/core";
 import { WalletKit } from "@reown/walletkit";
 import { useToast } from "@chakra-ui/react";
 import { WalletKitInstance } from "../types";
+import { filterActiveSessions } from "../utils";
 
 interface WalletKitInitializerProps {
   isConnected: boolean;
@@ -52,7 +53,7 @@ export default function WalletKitInitializer({
 
         // Load existing sessions
         const sessions = kit.getActiveSessions();
-        setActiveSessions(Object.values(sessions));
+        setActiveSessions(filterActiveSessions(Object.values(sessions)));
 
         setIsInitializing(false);
       } catch (error) {

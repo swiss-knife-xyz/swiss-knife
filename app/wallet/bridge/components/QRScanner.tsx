@@ -77,7 +77,6 @@ export default function QrScanner({ onScan, isDisabled }: QrScannerProps) {
       <Modal
         isOpen={isOpen}
         onClose={handleClose}
-        size={{ base: "sm", md: "md" }}
         isCentered
         closeOnOverlayClick={true}
         closeOnEsc={true}
@@ -86,11 +85,6 @@ export default function QrScanner({ onScan, isDisabled }: QrScannerProps) {
         <ModalContent
           bg="bg.900"
           color="white"
-          maxW={{
-            base: "95%",
-            sm: "30rem",
-            md: "40rem",
-          }}
           display="flex"
           flexDirection="column"
         >

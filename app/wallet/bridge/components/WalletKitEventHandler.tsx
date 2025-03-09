@@ -2,7 +2,11 @@ import { useEffect } from "react";
 import { useToast } from "@chakra-ui/react";
 import { decodeRecursive } from "@/lib/decoder";
 import { SessionProposal, SessionRequest, WalletKitInstance } from "../types";
-import { decodeSignMessage, formatTypedData } from "../utils";
+import {
+  decodeSignMessage,
+  filterActiveSessions,
+  formatTypedData,
+} from "../utils";
 import { buildApprovedNamespaces } from "@walletconnect/utils";
 import { walletChains } from "@/app/providers";
 
@@ -86,7 +90,7 @@ export default function WalletKitEventHandler({
 
             // Update active sessions
             const sessions = walletKit.getActiveSessions();
-            setActiveSessions(Object.values(sessions));
+            setActiveSessions(filterActiveSessions(Object.values(sessions)));
 
             toast({
               title: "Dapp connected",
@@ -214,7 +218,7 @@ export default function WalletKitEventHandler({
       console.log("session_delete event received", data);
       // Update active sessions
       const sessions = walletKit.getActiveSessions();
-      setActiveSessions(Object.values(sessions));
+      setActiveSessions(filterActiveSessions(Object.values(sessions)));
     };
 
     // Function to handle title notification
