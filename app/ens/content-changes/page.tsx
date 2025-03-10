@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Heading,
   Table,
@@ -34,7 +34,7 @@ import {
   Center,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { publicClient } from "@/utils";
+import { publicClient, getEnsName, fetchContractAbi } from "@/utils";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 import axios from "axios";
 import { normalize } from "viem/ens";
@@ -457,6 +457,116 @@ const ContentChanges = () => {
     )}`;
   };
 
+  // AddressResolved component to display addresses with ENS resolution
+  const AddressResolved = ({
+    address,
+    isExternal = true,
+    labelDirection = "vertical",
+  }: {
+    address: string;
+    isExternal?: boolean;
+    labelDirection?: "vertical" | "horizontal";
+  }) => {
+    const [resolvedEnsName, setResolvedEnsName] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [addressLabels, setAddressLabels] = useState<string[]>([]);
+
+    useEffect(() => {
+      const resolveEns = async () => {
+        if (!address) return;
+
+        setIsLoading(true);
+        try {
+          // Try to get ENS name
+          const name = await getEnsName(address);
+          setResolvedEnsName(name);
+
+          // If no ENS name, try to fetch labels or contract name
+          if (!name) {
+            let labelsFound = false;
+
+            // First try to fetch labels from API
+            try {
+              const res = await axios.get(
+                `${
+                  process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+                    ? ""
+                    : "https://swiss-knife.xyz"
+                }/api/labels/${address}`
+              );
+              const data = res.data;
+              if (data.length > 0) {
+                setAddressLabels(data);
+                labelsFound = true;
+              }
+            } catch (error) {
+              console.error("Error fetching address labels:", error);
+              // Continue to next method if labels API fails
+            }
+
+            // If no labels found from API, try to get contract name
+            if (!labelsFound) {
+              try {
+                const contractInfo = await fetchContractAbi({
+                  address,
+                  chainId: 1, // Ethereum mainnet
+                });
+
+                if (contractInfo.name) {
+                  setAddressLabels([contractInfo.name]);
+                }
+              } catch (error) {
+                console.error("Error fetching contract ABI:", error);
+                setAddressLabels([]);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error resolving ENS name:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      resolveEns();
+    }, [address]);
+
+    const displayText = resolvedEnsName || shortenAddress(address);
+
+    return (
+      <Flex
+        direction={labelDirection === "vertical" ? "column" : "row"}
+        align="flex-start"
+        alignItems={labelDirection === "horizontal" ? "center" : "flex-start"}
+        gap={labelDirection === "horizontal" ? 2 : 0}
+      >
+        {isExternal ? (
+          <Link href={`https://etherscan.io/address/${address}`} isExternal>
+            {isLoading ? <Spinner size="xs" mr={1} /> : null}
+            {displayText} <ExternalLinkIcon mx="1px" boxSize={3} />
+          </Link>
+        ) : (
+          <Text>
+            {isLoading ? <Spinner size="xs" mr={1} /> : null}
+            {displayText}
+          </Text>
+        )}
+
+        {!resolvedEnsName && addressLabels.length > 0 && (
+          <Badge
+            mt={labelDirection === "vertical" ? 1 : 0}
+            colorScheme="green"
+            fontSize="xs"
+            rounded="lg"
+            width="fit-content"
+          >
+            {addressLabels[0]}
+          </Badge>
+        )}
+      </Flex>
+    );
+  };
+
   const getEventBadge = (type: string) => {
     switch (type) {
       case "content":
@@ -567,7 +677,7 @@ const ContentChanges = () => {
             </SimpleGrid>
 
             <Heading size="md" mb={5} mt={10}>
-              📜 Domain History
+              📜 Domain History ({ensName})
             </Heading>
 
             <Table variant="simple">
@@ -638,25 +748,19 @@ const ContentChanges = () => {
                     <Stat>
                       <StatLabel fontWeight="medium">Owner</StatLabel>
                       <StatNumber fontSize="md" mt={1}>
-                        <Link
-                          href={`https://etherscan.io/address/${domainDetails.owner}`}
-                          isExternal
-                        >
-                          {shortenAddress(domainDetails.owner)}{" "}
-                          <ExternalLinkIcon mx="1px" boxSize={3} />
-                        </Link>
+                        <AddressResolved
+                          address={domainDetails.owner}
+                          labelDirection="vertical"
+                        />
                       </StatNumber>
                     </Stat>
                     <Stat>
                       <StatLabel fontWeight="medium">Registrant</StatLabel>
                       <StatNumber fontSize="md" mt={1}>
-                        <Link
-                          href={`https://etherscan.io/address/${domainDetails.registrant}`}
-                          isExternal
-                        >
-                          {shortenAddress(domainDetails.registrant)}{" "}
-                          <ExternalLinkIcon mx="1px" boxSize={3} />
-                        </Link>
+                        <AddressResolved
+                          address={domainDetails.registrant}
+                          labelDirection="vertical"
+                        />
                       </StatNumber>
                     </Stat>
                   </SimpleGrid>
@@ -709,7 +813,7 @@ const ContentChanges = () => {
             </SimpleGrid>
 
             <Heading size="md" mb={5} mt={10}>
-              📜 Domain History
+              📜 Domain History ({ensName})
             </Heading>
 
             {!isContentLoaded && contentEvents.length === 0 ? (
@@ -792,13 +896,10 @@ const ContentChanges = () => {
                             </Flex>
                           )}
                           {event.type === "transfer" && event.details.owner && (
-                            <Link
-                              href={`https://etherscan.io/address/${event.details.owner}`}
-                              isExternal
-                            >
-                              {shortenAddress(event.details.owner)}{" "}
-                              <ExternalLinkIcon mx="2px" />
-                            </Link>
+                            <AddressResolved
+                              address={event.details.owner}
+                              labelDirection="horizontal"
+                            />
                           )}
                           {event.type === "renewal" &&
                             event.details.expiryDate && (
