@@ -4,7 +4,7 @@ import { getMetadata } from "@/utils";
 export const metadata = getMetadata({
   title: "ENS History | Swiss-Knife.xyz",
   description:
-    "View ENS history & check IPFS content changes, ownership transfers and more.",
+    "Check IPFS content changes, ownership transfers and more over time.",
   images: "https://swiss-knife.xyz/og/ens-history.png",
 });
 
