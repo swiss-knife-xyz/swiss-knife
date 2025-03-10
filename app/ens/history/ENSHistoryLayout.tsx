@@ -34,6 +34,33 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
   // Add a debounce timer ref
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Define the card data structure
+  interface CardData {
+    ensName: string;
+    description: string;
+    useEnsAvatar?: boolean;
+  }
+
+  // Array of card data
+  const cardsData: CardData[] = [
+    {
+      ensName: "eternalsafe.eth",
+      description: "A decentralized UI for Safe{Wallet}",
+      useEnsAvatar: false,
+    },
+    {
+      ensName: "2.horswap.eth",
+      description:
+        "Open source and censorship resistant interface for the Uniswap protocol",
+      useEnsAvatar: false,
+    },
+    {
+      ensName: "vitalik.eth",
+      description: "Blogposts by Vitalik Buterin",
+      useEnsAvatar: true,
+    },
+  ];
+
   // Handle input change with debounce
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -57,28 +84,32 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
     e.preventDefault(); // Prevent default paste behavior
     const pastedText = e.clipboardData.getData("text");
     setEnsName(pastedText);
-    fetchContentHash(pastedText);
+    fetchHistory(pastedText);
   };
 
   // Add a keyDown handler for the Enter key
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      fetchContentHash();
+      fetchHistory();
     }
   };
 
   const handleExampleClick = (example: string) => {
     setEnsName(example);
-    fetchContentHash(example);
+    fetchHistory(example);
   };
 
-  const fetchContentHash = (_ensName?: string) => {
+  const fetchHistory = (_ensName?: string) => {
     setLoading(true);
     if (_ensName) {
       setEnsName(_ensName);
     }
     _ensName = _ensName ?? ensName;
+
+    setTimeout(() => {
+      setLoading(false);
+    }, 1_000);
 
     router.push(`${getPath(subdomains.ENS.base)}history/${_ensName}`);
   };
@@ -112,7 +143,7 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
                 size="md"
               />
               <Button
-                onClick={() => fetchContentHash()}
+                onClick={() => fetchHistory()}
                 isLoading={loading}
                 colorScheme="blue"
                 px={6}
@@ -129,90 +160,40 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
               or try these examples:
             </Heading>
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-              <Card
-                maxW={"20rem"}
-                variant="outline"
-                shadow="sm"
-                bg="blackAlpha.300"
-                cursor="pointer"
-                _hover={{ transform: "translateY(-2px)", shadow: "md" }}
-                transition="all 0.2s"
-                onClick={() => handleExampleClick("eternalsafe.eth")}
-              >
-                <CardBody display="flex" alignItems="center" p={4}>
-                  <Image
-                    alt="eternalsafe.eth"
-                    src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=https://eternalsafe.eth.limo"
-                    boxSize="48px"
-                    borderRadius="full"
-                    mr={4}
-                    fallbackSrc="https://placehold.co/48x48/gray/white?text=ENS"
-                  />
-                  <Box>
-                    <Text fontWeight="bold">eternalsafe.eth</Text>
-                    <Text fontSize="sm" color="gray.400">
-                      A decentralized UI for Safe{`{Wallet}`}
-                    </Text>
-                  </Box>
-                </CardBody>
-              </Card>
-
-              <Card
-                maxW={"20rem"}
-                variant="outline"
-                shadow="sm"
-                bg="blackAlpha.300"
-                cursor="pointer"
-                _hover={{ transform: "translateY(-2px)", shadow: "md" }}
-                transition="all 0.2s"
-                onClick={() => handleExampleClick("2.horswap.eth")}
-              >
-                <CardBody display="flex" alignItems="center" p={4}>
-                  <Image
-                    alt="2.horswap.eth"
-                    src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=https://2.horswap.eth.limo"
-                    boxSize="48px"
-                    borderRadius="full"
-                    mr={4}
-                    fallbackSrc="https://placehold.co/48x48/gray/white?text=ENS"
-                  />
-                  <Box>
-                    <Text fontWeight="bold">2.horswap.eth</Text>
-                    <Text fontSize="sm" color="gray.400">
-                      Open source and censorship resistant interface for the
-                      Uniswap protocol
-                    </Text>
-                  </Box>
-                </CardBody>
-              </Card>
-
-              <Card
-                maxW={"20rem"}
-                variant="outline"
-                shadow="sm"
-                bg="blackAlpha.300"
-                cursor="pointer"
-                _hover={{ transform: "translateY(-2px)", shadow: "md" }}
-                transition="all 0.2s"
-                onClick={() => handleExampleClick("vitalik.eth")}
-              >
-                <CardBody display="flex" alignItems="center" p={4}>
-                  <Image
-                    alt="vitalik.eth"
-                    src="https://euc.li/vitalik.eth"
-                    boxSize="48px"
-                    borderRadius="full"
-                    mr={4}
-                    fallbackSrc="https://placehold.co/48x48/gray/white?text=ENS"
-                  />
-                  <Box>
-                    <Text fontWeight="bold">vitalik.eth</Text>
-                    <Text fontSize="sm" color="gray.400">
-                      {"Blogposts by Vitalik Buterin"}
-                    </Text>
-                  </Box>
-                </CardBody>
-              </Card>
+              {cardsData.map((card, index) => (
+                <Card
+                  key={index}
+                  maxW={"20rem"}
+                  variant="outline"
+                  shadow="sm"
+                  bg="blackAlpha.300"
+                  cursor="pointer"
+                  _hover={{ transform: "translateY(-2px)", shadow: "md" }}
+                  transition="all 0.2s"
+                  onClick={() => handleExampleClick(card.ensName)}
+                >
+                  <CardBody display="flex" alignItems="center" p={4}>
+                    <Image
+                      alt={card.ensName}
+                      src={
+                        card.useEnsAvatar
+                          ? `https://euc.li/${card.ensName}`
+                          : `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=https://${card.ensName}.limo`
+                      }
+                      boxSize="48px"
+                      borderRadius="full"
+                      mr={4}
+                      fallbackSrc="https://placehold.co/48x48/gray/white?text=ENS"
+                    />
+                    <Box>
+                      <Text fontWeight="bold">{card.ensName}</Text>
+                      <Text fontSize="sm" color="gray.400">
+                        {card.description}
+                      </Text>
+                    </Box>
+                  </CardBody>
+                </Card>
+              ))}
             </SimpleGrid>
           </Box>
         )}
