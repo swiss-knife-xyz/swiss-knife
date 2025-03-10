@@ -18,7 +18,6 @@ import {
   Box,
   Text,
   useToast,
-  Divider,
   Card,
   CardHeader,
   CardBody,
@@ -29,25 +28,18 @@ import {
   SimpleGrid,
   Badge,
   Skeleton,
-  SkeletonText,
   Tooltip,
   Flex,
   Spinner,
+  Center,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { createPublicClient, http, namehash } from "viem";
-import { mainnet } from "viem/chains";
+import { publicClient } from "@/utils";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 import axios from "axios";
 import { normalize } from "viem/ens";
-import bs58 from "bs58";
 import contentHash from "content-hash";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-
-const publicClient = createPublicClient({
-  chain: mainnet,
-  transport: http("https://rpc.ankr.com/eth"),
-});
 
 const ENS_SUBGRAPH_URL = `https://gateway.thegraph.com/api/${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH`;
 
@@ -57,20 +49,10 @@ interface Domain {
   };
 }
 
-interface QueryResult {
-  domain: Domain;
-}
-
 interface ContentEvent {
   blockNumber: number;
   transactionID: string;
   hash: string;
-}
-
-interface ContentHistory {
-  transactionID: string;
-  hash: string;
-  timestamp: number;
 }
 
 interface DomainDetails {
@@ -144,8 +126,8 @@ const ContentChanges = () => {
     }
   };
 
-  const fetchContentHash = async () => {
-    if (!ensName) {
+  const fetchContentHash = async (_ensName?: string) => {
+    if (!ensName && !_ensName) {
       toast({
         title: "Error",
         description: "Please enter an ENS name",
@@ -155,6 +137,7 @@ const ContentChanges = () => {
       });
       return;
     }
+    const ens = _ensName ?? ensName;
 
     try {
       setLoading(true);
@@ -164,7 +147,7 @@ const ContentChanges = () => {
       setIsContentLoaded(false);
 
       // Normalize the ENS name
-      const normalizedName = normalize(ensName);
+      const normalizedName = normalize(ens);
       const labelName = normalizedName.split(".")[0]; // Get the part before .eth
 
       // 1. Query for domain details
@@ -454,7 +437,7 @@ const ContentChanges = () => {
     e.preventDefault(); // Prevent default paste behavior
     const pastedText = e.clipboardData.getData("text");
     setEnsName(pastedText);
-    fetchContentHash();
+    fetchContentHash(pastedText);
   };
 
   const formatDate = (timestamp: number) => {
@@ -528,26 +511,28 @@ const ContentChanges = () => {
         ENS Domain History
       </Heading>
       <Box maxW="1200px" w="full" px={4}>
-        <FormControl>
-          <FormLabel fontWeight="medium">ENS Name</FormLabel>
-          <HStack spacing={4}>
-            <Input
-              placeholder="horswap.eth"
-              value={ensName}
-              onChange={(e) => setEnsName(e.target.value)}
-              onPaste={handlePaste}
-              size="md"
-            />
-            <Button
-              onClick={fetchContentHash}
-              isLoading={loading}
-              colorScheme="blue"
-              px={6}
-            >
-              Fetch
-            </Button>
-          </HStack>
-        </FormControl>
+        <Center>
+          <FormControl maxW="40rem">
+            <FormLabel fontWeight="medium">ENS Name</FormLabel>
+            <HStack spacing={4}>
+              <Input
+                placeholder="eternalsafe.eth"
+                value={ensName}
+                onChange={(e) => setEnsName(e.target.value)}
+                onPaste={handlePaste}
+                size="md"
+              />
+              <Button
+                onClick={() => fetchContentHash()}
+                isLoading={loading}
+                colorScheme="blue"
+                px={6}
+              >
+                Fetch
+              </Button>
+            </HStack>
+          </FormControl>
+        </Center>
 
         {loading ? (
           <Box mt={8}>
