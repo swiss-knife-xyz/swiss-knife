@@ -109,6 +109,18 @@ const ENSHistory = () => {
   const [isContentLoaded, setIsContentLoaded] = useState(false);
   const toast = useToast();
 
+  // Update page title when component loads or ensName changes
+  useEffect(() => {
+    if (ensName) {
+      document.title = `${ensName} - ENS History | Swiss-Knife.xyz`;
+    }
+
+    // Cleanup function to reset title when navigating away
+    return () => {
+      document.title = "ENS History | Swiss-Knife.xyz";
+    };
+  }, [ensName]);
+
   // Utility functions - moved to the top of the component
   const formatDate = (timestamp: number) => {
     return format(new Date(timestamp * 1000), "PPpp");

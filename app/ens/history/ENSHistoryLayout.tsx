@@ -185,6 +185,34 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
                   </Box>
                 </CardBody>
               </Card>
+
+              <Card
+                maxW={"20rem"}
+                variant="outline"
+                shadow="sm"
+                bg="blackAlpha.300"
+                cursor="pointer"
+                _hover={{ transform: "translateY(-2px)", shadow: "md" }}
+                transition="all 0.2s"
+                onClick={() => handleExampleClick("vitalik.eth")}
+              >
+                <CardBody display="flex" alignItems="center" p={4}>
+                  <Image
+                    alt="vitalik.eth"
+                    src="https://euc.li/vitalik.eth"
+                    boxSize="48px"
+                    borderRadius="full"
+                    mr={4}
+                    fallbackSrc="https://placehold.co/48x48/gray/white?text=ENS"
+                  />
+                  <Box>
+                    <Text fontWeight="bold">vitalik.eth</Text>
+                    <Text fontSize="sm" color="gray.400">
+                      {"Blogposts by Vitalik Buterin"}
+                    </Text>
+                  </Box>
+                </CardBody>
+              </Card>
             </SimpleGrid>
           </Box>
         )}
