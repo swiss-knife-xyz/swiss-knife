@@ -34,6 +34,7 @@ import {
   Center,
   IconButton,
   Image,
+  Code,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon, CopyIcon } from "@chakra-ui/icons";
 import { publicClient, getEnsName, fetchContractAbi } from "@/utils";
@@ -326,12 +327,70 @@ const ENSHistory = () => {
   const memoizedDomainDetails = useMemo(() => {
     if (!domainDetails) return null;
 
+    // Get the most recent content hash event (if any)
+    const latestContentEvent =
+      contentEvents.length > 0 ? contentEvents[0] : null;
+    const ipfsHash = latestContentEvent?.details.hash || null;
+
+    // Create the .eth.limo URL if we have an IPFS hash
+    const ethLimoUrl =
+      ipfsHash && ensName ? `https://${ensName}.eth.limo` : null;
+
     return (
       <Card variant="outline" shadow="sm" bg="blackAlpha.300">
         <CardHeader pb={0}>
           <Heading size="sm">🔍 Domain Details</Heading>
         </CardHeader>
         <CardBody>
+          {/* IPFS Content Section - Added prominently at the top */}
+          {ipfsHash && (
+            <Box mb={6}>
+              <Flex alignItems="center" mb={2}>
+                <Heading size="sm" mr={2}>
+                  IPFS Content
+                </Heading>
+                {ethLimoUrl && (
+                  <Tooltip label="Open in .eth.limo gateway">
+                    <IconButton
+                      as="a"
+                      href={ethLimoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Open in .eth.limo gateway"
+                      icon={<ExternalLinkIcon />}
+                      size="xs"
+                      variant="ghost"
+                    />
+                  </Tooltip>
+                )}
+              </Flex>
+              <Tooltip label={ipfsHash} placement="bottom" hasArrow>
+                <Code p={2} borderRadius="md" width="100%" position="relative">
+                  <Flex align="center">
+                    <Text
+                      fontFamily="mono"
+                      fontSize="sm"
+                      overflow="hidden"
+                      textOverflow="ellipsis"
+                      whiteSpace="nowrap"
+                      flex="1"
+                    >
+                      {shortenHash(ipfsHash)}
+                    </Text>
+                    <IconButton
+                      icon={<CopyIcon />}
+                      onClick={() => navigator.clipboard.writeText(ipfsHash)}
+                      size="xs"
+                      variant="ghost"
+                      aria-label="Copy full hash"
+                      ml={2}
+                    />
+                  </Flex>
+                </Code>
+              </Tooltip>
+            </Box>
+          )}
+
           <SimpleGrid columns={2} spacing={6} mb={6}>
             <Stat>
               <StatLabel fontWeight="medium">Registration Date</StatLabel>
@@ -385,7 +444,7 @@ const ENSHistory = () => {
         </CardBody>
       </Card>
     );
-  }, [domainDetails]);
+  }, [domainDetails, contentEvents, ensName]);
 
   // Memoize the initial registration section
   const memoizedInitialRegistration = useMemo(() => {
