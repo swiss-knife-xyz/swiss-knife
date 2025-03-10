@@ -47,7 +47,9 @@ export default function WalletBridgePage() {
 
   // State for Frame
   const [isFrameSDKLoaded, setIsFrameSDKLoaded] = useState(false);
-  const [frameContext, setFrameContext] = useState<typeof Context | null>(null);
+  const [frameContext, setFrameContext] = useState<Context.FrameContext | null>(
+    null
+  );
 
   // State for WalletConnect
   const [uri, setUri] = useState<string>("");
@@ -545,8 +547,14 @@ export default function WalletBridgePage() {
   // Initialize Frame SDK
   useEffect(() => {
     const load = async () => {
-      setFrameContext(await frameSdk.context);
-      frameSdk.actions.ready();
+      const _frameContext = await frameSdk.context;
+      setFrameContext(_frameContext);
+
+      frameSdk.actions.ready().then(() => {
+        if (!_frameContext.client.added) {
+          frameSdk.actions.addFrame();
+        }
+      });
     };
     if (frameSdk && !isFrameSDKLoaded) {
       setIsFrameSDKLoaded(true);
