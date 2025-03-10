@@ -33,6 +33,7 @@ import {
   Spinner,
   Center,
   IconButton,
+  Image,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon, CopyIcon } from "@chakra-ui/icons";
 import { publicClient, getEnsName, fetchContractAbi } from "@/utils";
@@ -232,13 +233,20 @@ const ContentChanges = () => {
               // If no labels found from API, try to get contract name
               if (!labelsFound) {
                 try {
-                  const contractInfo = await fetchContractAbi({
-                    address,
-                    chainId: 1, // Ethereum mainnet
+                  // first check if the address is a contract
+                  const isContract = await publicClient.getCode({
+                    address: address as `0x${string}`,
                   });
 
-                  if (contractInfo.name) {
-                    setAddressLabels([contractInfo.name]);
+                  if (isContract) {
+                    const contractInfo = await fetchContractAbi({
+                      address,
+                      chainId: 1, // Ethereum mainnet
+                    });
+
+                    if (contractInfo.name) {
+                      setAddressLabels([contractInfo.name]);
+                    }
                   }
                 } catch (error) {
                   console.error("Error fetching contract ABI:", error);
@@ -321,7 +329,7 @@ const ContentChanges = () => {
     return (
       <Card>
         <CardHeader pb={0}>
-          <Heading size="sm">Domain Details</Heading>
+          <Heading size="sm">🔍 Domain Details</Heading>
         </CardHeader>
         <CardBody>
           <SimpleGrid columns={2} spacing={6} mb={6}>
@@ -386,7 +394,7 @@ const ContentChanges = () => {
     return (
       <Card>
         <CardHeader pb={0}>
-          <Heading size="sm">Initial Registration</Heading>
+          <Heading size="sm">📅 Registration Info</Heading>
         </CardHeader>
         <CardBody>
           <SimpleGrid columns={2} spacing={6}>
@@ -900,6 +908,11 @@ const ContentChanges = () => {
     fetchContentHash(pastedText);
   };
 
+  const handleExampleClick = (example: string) => {
+    setEnsName(example);
+    fetchContentHash(example);
+  };
+
   return (
     <>
       <Heading color="custom.pale" mb={6}>
@@ -928,6 +941,69 @@ const ContentChanges = () => {
             </HStack>
           </FormControl>
         </Center>
+
+        {!loading && !isContentLoaded && (
+          <Box mt={8}>
+            <Heading size="sm" mb={4}>
+              or try these examples:
+            </Heading>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+              <Card
+                variant="outline"
+                shadow="sm"
+                bg="blackAlpha.300"
+                cursor="pointer"
+                _hover={{ transform: "translateY(-2px)", shadow: "md" }}
+                transition="all 0.2s"
+                onClick={() => handleExampleClick("eternalsafe.eth")}
+              >
+                <CardBody display="flex" alignItems="center" p={4}>
+                  <Image
+                    alt="eternalsafe.eth"
+                    src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=https://eternalsafe.eth.limo"
+                    boxSize="48px"
+                    borderRadius="full"
+                    mr={4}
+                    fallbackSrc="https://placehold.co/48x48/gray/white?text=ENS"
+                  />
+                  <Box>
+                    <Text fontWeight="bold">eternalsafe.eth</Text>
+                    <Text fontSize="sm" color="gray.400">
+                      Click to fetch data
+                    </Text>
+                  </Box>
+                </CardBody>
+              </Card>
+
+              <Card
+                variant="outline"
+                shadow="sm"
+                bg="blackAlpha.300"
+                cursor="pointer"
+                _hover={{ transform: "translateY(-2px)", shadow: "md" }}
+                transition="all 0.2s"
+                onClick={() => handleExampleClick("2.horswap.eth")}
+              >
+                <CardBody display="flex" alignItems="center" p={4}>
+                  <Image
+                    alt="2.horswap.eth"
+                    src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=https://2.horswap.eth.limo"
+                    boxSize="48px"
+                    borderRadius="full"
+                    mr={4}
+                    fallbackSrc="https://placehold.co/48x48/gray/white?text=ENS"
+                  />
+                  <Box>
+                    <Text fontWeight="bold">2.horswap.eth</Text>
+                    <Text fontSize="sm" color="gray.400">
+                      Click to fetch data
+                    </Text>
+                  </Box>
+                </CardBody>
+              </Card>
+            </SimpleGrid>
+          </Box>
+        )}
 
         {loading ? (
           <Box mt={8}>
@@ -999,7 +1075,11 @@ const ContentChanges = () => {
           </Box>
         ) : domainDetails ? (
           <Box mt={8}>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={6}>
+            <SimpleGrid
+              columns={{ base: 1, md: initialRegistration === null ? 1 : 2 }}
+              spacing={6}
+              mb={6}
+            >
               {memoizedDomainDetails}
               {initialRegistration && memoizedInitialRegistration}
             </SimpleGrid>
@@ -1011,9 +1091,7 @@ const ContentChanges = () => {
             {memoizedHistoryEvents}
           </Box>
         ) : (
-          <Box mt={8} p={6} bg="blackAlpha.300" borderRadius="md">
-            <Text>Enter an ENS name to view its history</Text>
-          </Box>
+          <Box pb={8}></Box>
         )}
       </Box>
     </>
