@@ -1045,6 +1045,4 @@ const ENSHistory = () => {
   );
 };
 
-// Export the component as default and as a named export
-export { ENSHistory };
 export default ENSHistory;
