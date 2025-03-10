@@ -423,7 +423,7 @@ const ENSHistory = () => {
           </SimpleGrid>
           <SimpleGrid columns={2} spacing={6}>
             <Stat>
-              <StatLabel fontWeight="medium">Owner</StatLabel>
+              <StatLabel fontWeight="medium">Manager</StatLabel>
               <StatNumber fontSize="md" mt={1}>
                 <AddressResolved
                   address={domainDetails.owner}
