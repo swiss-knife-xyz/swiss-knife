@@ -88,7 +88,7 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
       <Box
         mb={6}
         as={NextLink}
-        href="/ens/history/"
+        href={`${getPath(subdomains.ENS.base)}history`}
         _hover={{ textDecoration: "none" }}
       >
         <Heading mt={10} color="custom.pale">
