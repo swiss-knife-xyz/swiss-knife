@@ -524,21 +524,25 @@ const ContentChanges = () => {
 
   return (
     <>
-      <Heading color="custom.pale">ENS Domain History</Heading>
-      <Box mt="3rem" maxW="1000px" w="full">
+      <Heading color="custom.pale" mb={6}>
+        ENS Domain History
+      </Heading>
+      <Box maxW="1200px" w="full" px={4}>
         <FormControl>
-          <FormLabel>ENS Name</FormLabel>
-          <HStack>
+          <FormLabel fontWeight="medium">ENS Name</FormLabel>
+          <HStack spacing={4}>
             <Input
               placeholder="horswap.eth"
               value={ensName}
               onChange={(e) => setEnsName(e.target.value)}
               onPaste={handlePaste}
+              size="md"
             />
             <Button
               onClick={fetchContentHash}
               isLoading={loading}
               colorScheme="blue"
+              px={6}
             >
               Fetch
             </Button>
@@ -546,18 +550,18 @@ const ContentChanges = () => {
         </FormControl>
 
         {loading ? (
-          <Box mt={6}>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={6}>
+          <Box mt={8}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mb={8}>
               <Card variant="outline" shadow="sm" bg="blackAlpha.500">
-                <CardHeader pb={2}>
+                <CardHeader pb={3} pt={4} px={6}>
                   <Heading size="sm">🔍 Domain Details</Heading>
                 </CardHeader>
-                <CardBody pt={0}>
-                  <SimpleGrid columns={2} spacing={4} mb={4}>
+                <CardBody pt={2} pb={4} px={6}>
+                  <SimpleGrid columns={2} spacing={6} mb={4}>
                     <Skeleton height="80px" />
                     <Skeleton height="80px" />
                   </SimpleGrid>
-                  <SimpleGrid columns={2} spacing={4}>
+                  <SimpleGrid columns={2} spacing={6}>
                     <Skeleton height="60px" />
                     <Skeleton height="60px" />
                   </SimpleGrid>
@@ -565,11 +569,11 @@ const ContentChanges = () => {
               </Card>
 
               <Card variant="outline" shadow="sm" bg="blackAlpha.500">
-                <CardHeader pb={2}>
+                <CardHeader pb={3} pt={4} px={6}>
                   <Heading size="sm">📅 Registration Info</Heading>
                 </CardHeader>
-                <CardBody pt={0}>
-                  <SimpleGrid columns={2} spacing={4}>
+                <CardBody pt={2} pb={4} px={6}>
+                  <SimpleGrid columns={2} spacing={6}>
                     <Skeleton height="80px" />
                     <Skeleton height="80px" />
                   </SimpleGrid>
@@ -577,35 +581,35 @@ const ContentChanges = () => {
               </Card>
             </SimpleGrid>
 
-            <Heading size="md" mb={4}>
+            <Heading size="md" mb={5} mt={10}>
               📜 Domain History
             </Heading>
 
             <Table variant="simple">
               <Thead>
                 <Tr>
-                  <Th width="200px" whiteSpace="nowrap">
+                  <Th width="220px" whiteSpace="nowrap" pl={6} py={4}>
                     Time
                   </Th>
-                  <Th>Event Type</Th>
-                  <Th>Details</Th>
-                  <Th>Transaction</Th>
+                  <Th py={4}>Event Type</Th>
+                  <Th py={4}>Details</Th>
+                  <Th py={4}>Transaction</Th>
                 </Tr>
               </Thead>
               <Tbody>
                 {[...Array(5)].map((_, index) => (
                   <Tr key={index}>
-                    <Td width="200px" whiteSpace="nowrap">
+                    <Td width="220px" whiteSpace="nowrap" pl={6} py={4}>
                       <Skeleton height="20px" width="120px" mb={2} />
                       <Skeleton height="16px" width="100px" />
                     </Td>
-                    <Td>
+                    <Td py={4}>
                       <Skeleton height="24px" width="80px" />
                     </Td>
-                    <Td>
+                    <Td py={4}>
                       <Skeleton height="20px" width="180px" />
                     </Td>
-                    <Td>
+                    <Td py={4}>
                       <Skeleton height="20px" width="60px" />
                     </Td>
                   </Tr>
@@ -614,41 +618,41 @@ const ContentChanges = () => {
             </Table>
           </Box>
         ) : domainDetails ? (
-          <Box mt={6}>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={6}>
+          <Box mt={8}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mb={8}>
               <Card variant="outline" shadow="sm" bg="blackAlpha.500">
-                <CardHeader pb={2}>
+                <CardHeader pb={3} pt={4} px={6}>
                   <Heading size="sm">🔍 Domain Details</Heading>
                 </CardHeader>
-                <CardBody pt={0}>
-                  <SimpleGrid columns={2} spacing={4} mb={4}>
+                <CardBody pt={2} pb={4} px={6}>
+                  <SimpleGrid columns={2} spacing={6} mb={5}>
                     <Stat>
-                      <StatLabel>Created</StatLabel>
-                      <StatNumber fontSize="md">
+                      <StatLabel fontWeight="medium">Created</StatLabel>
+                      <StatNumber fontSize="md" mt={1}>
                         {formatDistanceToNow(domainDetails.createdAt * 1000, {
                           addSuffix: true,
                         })}
                       </StatNumber>
-                      <StatHelpText fontSize="xs">
+                      <StatHelpText fontSize="xs" mt={1}>
                         {formatDate(domainDetails.createdAt)}
                       </StatHelpText>
                     </Stat>
                     <Stat>
-                      <StatLabel>Expires</StatLabel>
-                      <StatNumber fontSize="md">
+                      <StatLabel fontWeight="medium">Expires</StatLabel>
+                      <StatNumber fontSize="md" mt={1}>
                         {formatDistanceToNow(domainDetails.expiryDate * 1000, {
                           addSuffix: true,
                         })}
                       </StatNumber>
-                      <StatHelpText fontSize="xs">
+                      <StatHelpText fontSize="xs" mt={1}>
                         {formatDate(domainDetails.expiryDate)}
                       </StatHelpText>
                     </Stat>
                   </SimpleGrid>
-                  <SimpleGrid columns={2} spacing={4}>
+                  <SimpleGrid columns={2} spacing={6}>
                     <Stat>
-                      <StatLabel>Owner</StatLabel>
-                      <StatNumber fontSize="md">
+                      <StatLabel fontWeight="medium">Owner</StatLabel>
+                      <StatNumber fontSize="md" mt={1}>
                         <Link
                           href={`https://etherscan.io/address/${domainDetails.owner}`}
                           isExternal
@@ -659,8 +663,8 @@ const ContentChanges = () => {
                       </StatNumber>
                     </Stat>
                     <Stat>
-                      <StatLabel>Registrant</StatLabel>
-                      <StatNumber fontSize="md">
+                      <StatLabel fontWeight="medium">Registrant</StatLabel>
+                      <StatNumber fontSize="md" mt={1}>
                         <Link
                           href={`https://etherscan.io/address/${domainDetails.registrant}`}
                           isExternal
@@ -676,14 +680,16 @@ const ContentChanges = () => {
 
               {initialRegistration && (
                 <Card variant="outline" shadow="sm" bg="blackAlpha.500">
-                  <CardHeader pb={2}>
+                  <CardHeader pb={3} pt={4} px={6}>
                     <Heading size="sm">📅 Registration Info</Heading>
                   </CardHeader>
-                  <CardBody pt={0}>
-                    <SimpleGrid columns={2} spacing={4}>
+                  <CardBody pt={2} pb={4} px={6}>
+                    <SimpleGrid columns={2} spacing={6}>
                       <Stat>
-                        <StatLabel>Initial Registration</StatLabel>
-                        <StatNumber fontSize="md">
+                        <StatLabel fontWeight="medium">
+                          Initial Registration
+                        </StatLabel>
+                        <StatNumber fontSize="md" mt={1}>
                           {formatDistanceToNow(
                             initialRegistration.timestamp
                               ? initialRegistration.timestamp * 1000
@@ -691,21 +697,23 @@ const ContentChanges = () => {
                             { addSuffix: true }
                           )}
                         </StatNumber>
-                        <StatHelpText fontSize="xs">
+                        <StatHelpText fontSize="xs" mt={1}>
                           {initialRegistration.timestamp
                             ? formatDate(initialRegistration.timestamp)
                             : "Unknown"}
                         </StatHelpText>
                       </Stat>
                       <Stat>
-                        <StatLabel>Initial Expiry</StatLabel>
-                        <StatNumber fontSize="md">
+                        <StatLabel fontWeight="medium">
+                          Initial Expiry
+                        </StatLabel>
+                        <StatNumber fontSize="md" mt={1}>
                           {formatDistanceToNow(
                             initialRegistration.expiryDate * 1000,
                             { addSuffix: true }
                           )}
                         </StatNumber>
-                        <StatHelpText fontSize="xs">
+                        <StatHelpText fontSize="xs" mt={1}>
                           {formatDate(initialRegistration.expiryDate)}
                         </StatHelpText>
                       </Stat>
@@ -715,7 +723,7 @@ const ContentChanges = () => {
               )}
             </SimpleGrid>
 
-            <Heading size="md" mb={4}>
+            <Heading size="md" mb={5} mt={10}>
               📜 Domain History
             </Heading>
 
@@ -723,28 +731,28 @@ const ContentChanges = () => {
               <Table variant="simple">
                 <Thead>
                   <Tr>
-                    <Th width="200px" whiteSpace="nowrap">
+                    <Th width="220px" whiteSpace="nowrap" pl={6} py={4}>
                       Time
                     </Th>
-                    <Th>Event Type</Th>
-                    <Th>Details</Th>
-                    <Th>Transaction</Th>
+                    <Th py={4}>Event Type</Th>
+                    <Th py={4}>Details</Th>
+                    <Th py={4}>Transaction</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
                   {[...Array(5)].map((_, index) => (
                     <Tr key={index}>
-                      <Td width="200px" whiteSpace="nowrap">
+                      <Td width="220px" whiteSpace="nowrap" pl={6} py={4}>
                         <Skeleton height="20px" width="120px" mb={2} />
                         <Skeleton height="16px" width="100px" />
                       </Td>
-                      <Td>
+                      <Td py={4}>
                         <Skeleton height="24px" width="80px" />
                       </Td>
-                      <Td>
+                      <Td py={4}>
                         <Skeleton height="20px" width="180px" />
                       </Td>
-                      <Td>
+                      <Td py={4}>
                         <Skeleton height="20px" width="60px" />
                       </Td>
                     </Tr>
@@ -755,31 +763,32 @@ const ContentChanges = () => {
               <Table variant="simple">
                 <Thead>
                   <Tr>
-                    <Th width="200px" whiteSpace="nowrap">
+                    <Th width="220px" whiteSpace="nowrap" pl={6} py={4}>
                       Time
                     </Th>
-                    <Th>Event Type</Th>
-                    <Th>Details</Th>
-                    <Th>Transaction</Th>
+                    <Th py={4}>Event Type</Th>
+                    <Th py={4}>Details</Th>
+                    <Th py={4}>Transaction</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
                   {(loading ? contentEvents : historyEvents).map(
                     (event, index) => (
                       <Tr key={`${event.transactionID}-${index}`}>
-                        <Td width="200px" whiteSpace="nowrap">
+                        <Td width="220px" whiteSpace="nowrap" pl={6} py={4}>
                           <Text>{formatDate(event.timestamp)}</Text>
                           <Text
                             fontSize="sm"
                             color={getContentChangeColor(event.timestamp)}
+                            mt={1}
                           >
                             {formatDistanceToNow(event.timestamp * 1000, {
                               addSuffix: true,
                             })}
                           </Text>
                         </Td>
-                        <Td>{getEventBadge(event.type)}</Td>
-                        <Td>
+                        <Td py={4}>{getEventBadge(event.type)}</Td>
+                        <Td py={4}>
                           {event.type === "content" && event.details.hash && (
                             <Flex align="center">
                               <Tooltip
@@ -790,7 +799,7 @@ const ContentChanges = () => {
                               </Tooltip>
                               <CopyToClipboard
                                 textToCopy={`ipfs://${event.details.hash}`}
-                                ml={2}
+                                ml={3}
                                 size="xs"
                                 variant="ghost"
                                 aria-label="Copy full hash"
@@ -814,7 +823,7 @@ const ContentChanges = () => {
                               </Text>
                             )}
                         </Td>
-                        <Td>
+                        <Td py={4}>
                           <Link
                             href={`https://etherscan.io/tx/${event.transactionID}`}
                             isExternal
@@ -827,9 +836,9 @@ const ContentChanges = () => {
                   )}
                   {loading && (
                     <Tr>
-                      <Td colSpan={4} textAlign="center">
+                      <Td colSpan={4} textAlign="center" py={5}>
                         <Flex justify="center" align="center" py={2}>
-                          <Spinner size="sm" mr={2} />
+                          <Spinner size="sm" mr={3} />
                           <Text>Loading additional history events...</Text>
                         </Flex>
                       </Td>
@@ -840,7 +849,7 @@ const ContentChanges = () => {
             )}
           </Box>
         ) : (
-          <Box mt={6}>
+          <Box mt={8} p={6} bg="blackAlpha.300" borderRadius="md">
             <Text>Enter an ENS name to view its history</Text>
           </Box>
         )}
