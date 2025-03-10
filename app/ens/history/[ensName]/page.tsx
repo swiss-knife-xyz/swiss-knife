@@ -37,6 +37,7 @@ import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 import axios from "axios";
 import { normalize } from "viem/ens";
 import contentHash from "content-hash";
+import { encodePacked, erc721Abi, keccak256, labelhash } from "viem";
 
 const ENS_SUBGRAPH_URL = `https://gateway.thegraph.com/api/${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH`;
 
@@ -493,17 +494,22 @@ const ENSHistory = () => {
               {[...Array(5)].map((_, index) => (
                 <Tr key={index}>
                   <Td width="220px" whiteSpace="nowrap" pl={6} py={4}>
-                    <Skeleton height="20px" width="120px" mb={2} />
-                    <Skeleton height="16px" width="100px" />
+                    <Skeleton
+                      height="20px"
+                      width="120px"
+                      mb={2}
+                      rounded={"lg"}
+                    />
+                    <Skeleton height="16px" width="100px" rounded={"lg"} />
                   </Td>
                   <Td py={4}>
-                    <Skeleton height="24px" width="80px" />
+                    <Skeleton height="24px" width="80px" rounded={"lg"} />
                   </Td>
                   <Td py={4}>
-                    <Skeleton height="20px" width="200px" />
+                    <Skeleton height="20px" width="200px" rounded={"lg"} />
                   </Td>
                   <Td py={4}>
-                    <Skeleton height="20px" width="120px" />
+                    <Skeleton height="20px" width="120px" rounded={"lg"} />
                   </Td>
                 </Tr>
               ))}
@@ -697,11 +703,32 @@ const ENSHistory = () => {
       const resolverId = domain.resolver.id;
       const domainId = domain.id;
 
+      // if the ENS name is wrapped, we need to get the owner of the token
+      const ENS_NAME_WRAPPER = "0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401";
+      let owner = domain.owner.id;
+      if (owner.toLowerCase() === ENS_NAME_WRAPPER.toLowerCase()) {
+        const labelHash = labelhash(normalizedName.split(".")[0]);
+
+        const ETH_NODE =
+          "0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae";
+        const node = keccak256(
+          encodePacked(["bytes32", "bytes32"], [ETH_NODE, labelHash])
+        );
+        const tokenId = BigInt(node);
+
+        owner = await publicClient.readContract({
+          address: ENS_NAME_WRAPPER,
+          abi: erc721Abi,
+          functionName: "ownerOf",
+          args: [tokenId],
+        });
+      }
+
       setDomainDetails({
         id: domain.id,
         createdAt: parseInt(domain.createdAt),
         expiryDate: parseInt(domain.expiryDate),
-        owner: domain.owner.id,
+        owner,
         registrant: domain.registrant?.id || null,
         resolver: {
           id: resolverId,
@@ -961,12 +988,12 @@ const ENSHistory = () => {
               </CardHeader>
               <CardBody pt={2} pb={4} px={6}>
                 <SimpleGrid columns={2} spacing={6} mb={4}>
-                  <Skeleton height="80px" />
-                  <Skeleton height="80px" />
+                  <Skeleton height="80px" rounded={"lg"} />
+                  <Skeleton height="80px" rounded={"lg"} />
                 </SimpleGrid>
                 <SimpleGrid columns={2} spacing={6}>
-                  <Skeleton height="60px" />
-                  <Skeleton height="60px" />
+                  <Skeleton height="60px" rounded={"lg"} />
+                  <Skeleton height="60px" rounded={"lg"} />
                 </SimpleGrid>
               </CardBody>
             </Card>
@@ -977,8 +1004,8 @@ const ENSHistory = () => {
               </CardHeader>
               <CardBody pt={2} pb={4} px={6}>
                 <SimpleGrid columns={2} spacing={6}>
-                  <Skeleton height="80px" />
-                  <Skeleton height="80px" />
+                  <Skeleton height="80px" rounded={"lg"} />
+                  <Skeleton height="80px" rounded={"lg"} />
                 </SimpleGrid>
               </CardBody>
             </Card>
@@ -1003,17 +1030,22 @@ const ENSHistory = () => {
               {[...Array(5)].map((_, index) => (
                 <Tr key={index}>
                   <Td width="220px" whiteSpace="nowrap" pl={6} py={4}>
-                    <Skeleton height="20px" width="120px" mb={2} />
-                    <Skeleton height="16px" width="100px" />
+                    <Skeleton
+                      height="20px"
+                      width="120px"
+                      mb={2}
+                      rounded={"lg"}
+                    />
+                    <Skeleton height="16px" width="100px" rounded={"lg"} />
                   </Td>
                   <Td py={4}>
-                    <Skeleton height="24px" width="80px" />
+                    <Skeleton height="24px" width="80px" rounded={"lg"} />
                   </Td>
                   <Td py={4}>
-                    <Skeleton height="20px" width="180px" />
+                    <Skeleton height="20px" width="180px" rounded={"lg"} />
                   </Td>
                   <Td py={4}>
-                    <Skeleton height="20px" width="60px" />
+                    <Skeleton height="20px" width="60px" rounded={"lg"} />
                   </Td>
                 </Tr>
               ))}
