@@ -20,6 +20,7 @@ const subdomainToLabel = {
   [subdomains.CONTRACT_ADDRESS.base]: "Contract Address",
   [subdomains.CONTRACT_DIFF.base]: "Contract Diff",
   [subdomains.FOUNDRY.base]: "Foundry",
+  [subdomains.WALLET.base]: "Wallet",
   [subdomains.ENS.base]: "ENS",
 };
 

@@ -159,9 +159,9 @@ export const AddressInput = ({
                 : "https://swiss-knife.xyz"
             }/api/labels/${val}`
           );
-          const data = res.data.data;
+          const data = res.data;
           if (data.length > 0) {
-            setAddressLabels(data.map((d: any) => d.address_name ?? d.label));
+            setAddressLabels(data);
           }
         } catch {
           setAddressLabels([]);

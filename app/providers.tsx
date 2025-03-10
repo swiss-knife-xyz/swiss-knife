@@ -19,6 +19,7 @@ import {
   safeWallet,
   coinbaseWallet,
 } from "@rainbow-me/rainbowkit/wallets";
+import { frameConnector } from "@/utils/frameConnector";
 import {
   mainnet,
   arbitrum,
@@ -31,7 +32,6 @@ import {
   evmos,
   fantom,
   gnosis,
-  goerli,
   linea,
   optimism,
   polygon,
@@ -41,18 +41,17 @@ import {
   Chain,
 } from "wagmi/chains";
 
-const chains: readonly [Chain, ...Chain[]] = [
+export const walletChains: readonly [Chain, ...Chain[]] = [
   // first chain is the default
+  base,
   mainnet,
   arbitrum,
   arbitrumSepolia,
   avalanche,
-  base,
   baseSepolia,
   bsc,
   fantom,
   gnosis,
-  goerli,
   optimism,
   polygon,
   polygonMumbai,
@@ -70,7 +69,15 @@ const connectors = connectorsForWallets(
       wallets: [
         metaMaskWallet,
         coinbaseWallet,
-        walletConnectWallet,
+        // Use WalletConnect with a custom storage prefix
+        // This is to prevent clashes with our walletkit in wallet/bridge.
+        ({ projectId }) =>
+          walletConnectWallet({
+            projectId,
+            options: {
+              customStoragePrefix: "rainbowkit-client-role-",
+            },
+          }),
         rainbowWallet,
         safeWallet,
       ],
@@ -80,9 +87,9 @@ const connectors = connectorsForWallets(
 );
 
 export const config = createConfig({
-  connectors,
-  chains,
-  transports: chains.reduce<Record<number, ReturnType<typeof http>>>(
+  connectors: [frameConnector(), ...connectors],
+  chains: walletChains,
+  transports: walletChains.reduce<Record<number, ReturnType<typeof http>>>(
     (transport, chain) => {
       transport[chain.id] = http();
       return transport;
@@ -98,11 +105,7 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
     <ChakraProvider theme={theme}>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider
-            theme={darkTheme()}
-            modalSize={"compact"}
-            coolMode={true}
-          >
+          <RainbowKitProvider theme={darkTheme()} modalSize={"compact"}>
             {children}
           </RainbowKitProvider>
         </QueryClientProvider>

@@ -47,6 +47,10 @@ const subdomains = {
     base: "foundry",
     paths: ["forge-stack-tracer-ui"],
   },
+  WALLET: {
+    base: "wallet",
+    paths: ["bridge"],
+  },
   ENS: {
     base: "ens",
     paths: ["history"],
