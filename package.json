@@ -35,6 +35,7 @@
     "blo": "^1.2.0",
     "bs58": "^6.0.0",
     "chakra-react-select": "^4.10.1",
+    "content-hash": "^2.5.2",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "diff": "^7.0.0",

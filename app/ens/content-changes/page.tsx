@@ -26,32 +26,18 @@ import { formatDistanceToNow, format } from "date-fns";
 import axios from "axios";
 import { normalize } from "viem/ens";
 import bs58 from "bs58";
+import contentHash from "content-hash";
 
 const publicClient = createPublicClient({
   chain: mainnet,
-  transport: http(),
+  transport: http("https://rpc.ankr.com/eth"),
 });
 
-const IPFS_GATEWAY = "https://cloudflare-ipfs.com";
-const ENS_SUBGRAPH_URL =
-  "https://api.thegraph.com/subgraphs/name/ensdomains/ens";
-
-interface ContenthashChangedEvent {
-  id: string;
-  blockNumber: string;
-  transactionID: string;
-  hash: string;
-}
+const ENS_SUBGRAPH_URL = `https://gateway.thegraph.com/api/${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH`;
 
 interface Domain {
-  id: string;
-  name: string;
-  owner: {
-    id: string;
-  };
   resolver: {
     id: string;
-    events: ContenthashChangedEvent[];
   };
 }
 
@@ -59,114 +45,139 @@ interface QueryResult {
   domain: Domain;
 }
 
+interface ContentEvent {
+  blockNumber: number;
+  transactionID: string;
+  hash: string;
+}
+
+interface ContentHistory {
+  transactionID: string;
+  hash: string;
+  timestamp: number;
+}
+
 const ContentChanges = () => {
   const [ensName, setEnsName] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [currentContentHash, setCurrentContentHash] = useState<string>();
-  const [currentIpfsHash, setCurrentIpfsHash] = useState<string>();
-  const [data, setData] = useState<QueryResult | null>(null);
+  const [contentEvents, setContentEvents] = useState<ContentHistory[]>([]);
   const toast = useToast();
 
-  const decodeContentHash = (hash: string): string | null => {
-    if (!hash || hash === "0x") return null;
-
+  const decodeContentHash = (encoded: string): string | null => {
     try {
-      // For IPFS hashes (most common use case)
-      if (hash.startsWith("0xe3010170")) {
-        // Remove IPFS hash prefix and convert to base58
-        const ipfsHashHex = hash.substring(10);
-        const bytes = Buffer.from(ipfsHashHex, "hex");
-        // Skip the first two bytes (multihash prefix) and convert to Uint8Array
-        const uint8Array = new Uint8Array(bytes.slice(2));
-        return bs58.encode(uint8Array);
+      if (!encoded.startsWith("0xe3")) {
+        // Not an IPFS link
+        return null;
       }
-      return null;
+
+      const ipfsv0 = contentHash.decode(encoded);
+      const ipfsv1 = contentHash.helpers.cidV0ToV1Base32(ipfsv0);
+      return ipfsv1;
     } catch (error) {
-      console.error("Failed to decode content hash:", error);
+      console.error("Error decoding content hash:", error);
       return null;
     }
   };
 
   const fetchContentHash = async () => {
-    if (!ensName) return;
+    if (!ensName) {
+      toast({
+        title: "Error",
+        description: "Please enter an ENS name",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
-    setLoading(true);
     try {
+      setLoading(true);
+
+      // Normalize the ENS name
       const normalizedName = normalize(ensName);
-      const node = namehash(normalizedName);
 
-      // First get the current content hash using viem
-      const resolver = await publicClient.getEnsResolver({
-        name: normalizedName,
-      });
-
-      if (!resolver) {
-        throw new Error("ENS name not found");
-      }
-
-      const currentHash = await publicClient.readContract({
-        address: resolver,
-        abi: [
-          {
-            name: "contenthash",
-            type: "function",
-            stateMutability: "view",
-            inputs: [{ name: "node", type: "bytes32" }],
-            outputs: [{ type: "bytes" }],
-          },
-        ],
-        functionName: "contenthash",
-        args: [node],
-      });
-
-      if (currentHash) {
-        const hexContentHash =
-          typeof currentHash === "string"
-            ? currentHash
-            : `0x${Buffer.from(currentHash).toString("hex")}`;
-        setCurrentContentHash(hexContentHash);
-        const decodedHash = decodeContentHash(hexContentHash);
-        if (decodedHash) {
-          setCurrentIpfsHash(decodedHash);
-        }
-      }
-
-      // Then fetch historical changes from ENS subgraph
-      const { data: graphData } = await axios.post(ENS_SUBGRAPH_URL, {
-        query: `
-          query GetContentHashHistory($nameHash: String!) {
-            domain(id: $nameHash) {
-              id
+      // Query The Graph for historical data
+      const query = `
+          query GetENSResolver($ens: String!) {
+            domains(where: {name: $ens}) {
               name
-              owner {
-                id
-              }
               resolver {
                 id
-                events(orderBy: blockNumber, orderDirection: desc, where: { eventType: "ContenthashChanged" }) {
-                  id
-                  blockNumber
-                  transactionID
-                  ... on ContenthashChanged {
-                    hash
-                  }
-                }
               }
             }
-          }
-        `,
-        variables: {
-          nameHash: node,
-        },
+        }
+      `;
+
+      const response = await axios.post(ENS_SUBGRAPH_URL, {
+        query,
+        variables: { ens: normalizedName },
       });
 
-      const result = graphData.data as QueryResult;
-      if (!result?.domain) {
-        throw new Error("No ENS data found");
+      if (response.data.errors) {
+        throw new Error(response.data.errors[0].message);
       }
 
-      setData(result);
+      const resolverId = response.data.data.domains[0].resolver.id;
+
+      if (!resolverId) {
+        throw new Error("Domain not found");
+      }
+
+      try {
+        const query = `
+          query GetENSContentHashes($resolverId: String!) {
+              contenthashChangeds(
+                orderBy: blockNumber
+                orderDirection: desc
+                where: {resolver: $resolverId}
+              ) {
+                blockNumber
+                transactionID
+                hash
+              }
+          }
+        `;
+
+        const response = await axios.post(ENS_SUBGRAPH_URL, {
+          query,
+          variables: { resolverId: resolverId },
+        });
+
+        if (response.data.errors) {
+          throw new Error(response.data.errors[0].message);
+        }
+
+        const contentEvents = response.data.data
+          .contenthashChangeds as ContentEvent[];
+        const decoded = contentEvents.map(
+          ({ hash, blockNumber, transactionID }) => ({
+            hash: decodeContentHash(hash) ?? "",
+            blockNumber,
+            transactionID,
+          })
+        );
+        const decodedWithDate = await Promise.all(
+          decoded.map(async (obj) => {
+            const block = await publicClient.getBlock({
+              blockNumber: BigInt(obj.blockNumber),
+            });
+            return { ...obj, timestamp: Number(block.timestamp) };
+          })
+        );
+        console.log({ decodedWithDate });
+        setContentEvents(decodedWithDate);
+      } catch {
+        toast({
+          title: "Error",
+          description: "Failed to fetch ENS data",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
     } catch (error) {
+      console.error("Error fetching ENS data:", error);
       toast({
         title: "Error",
         description:
@@ -175,9 +186,9 @@ const ContentChanges = () => {
         duration: 5000,
         isClosable: true,
       });
-      console.error(error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -210,96 +221,39 @@ const ContentChanges = () => {
           </HStack>
         </FormControl>
 
-        {currentContentHash && (
-          <Box mt={6} p={4} borderWidth={1} borderRadius="md">
-            <Text fontWeight="bold" mb={2}>
-              Current Content Hash:
-            </Text>
-            <Text mb={2}>{currentContentHash}</Text>
-            {currentIpfsHash && (
-              <Text mb={2} color="gray.500">
-                Decoded IPFS Hash: {currentIpfsHash}
-              </Text>
-            )}
-            <HStack spacing={4}>
-              <Link href={`https://${ensName}.eth.limo`} isExternal>
-                ETH.LIMO <ExternalLinkIcon mx="2px" />
-              </Link>
-              {currentIpfsHash && (
-                <Link
-                  href={`${IPFS_GATEWAY}/ipfs/${currentIpfsHash}`}
-                  isExternal
-                >
-                  Cloudflare IPFS <ExternalLinkIcon mx="2px" />
-                </Link>
-              )}
-            </HStack>
-          </Box>
-        )}
-
-        {data?.domain?.resolver?.events &&
-          data.domain.resolver.events.length > 0 && (
-            <Table mt={6} variant="simple">
-              <Thead>
-                <Tr>
-                  <Th>Time</Th>
-                  <Th>Content Hash</Th>
-                  <Th>Transaction</Th>
+        {contentEvents && (
+          <Table mt={6} variant="simple">
+            <Thead>
+              <Tr>
+                <Th>Time</Th>
+                <Th>Event Type</Th>
+                <Th>Details</Th>
+                <Th>Transaction</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {contentEvents.map((event) => (
+                <Tr key={event.transactionID}>
+                  <Td>
+                    {formatDistanceToNow(event.timestamp * 1000, {
+                      addSuffix: true,
+                    })}
+                  </Td>
+                  <Td>Content Hash Changed</Td>
+                  <Td>{event.hash}</Td>
+                  <Td>
+                    <Link
+                      href={`https://etherscan.io/tx/${event.transactionID}`}
+                      target="_blank"
+                    >
+                      Tx
+                    </Link>
+                  </Td>
                 </Tr>
-              </Thead>
-              <Tbody>
-                {data.domain.resolver.events.map((event) => {
-                  const ipfsHash = event.hash
-                    ? decodeContentHash(event.hash)
-                    : null;
-                  return (
-                    <Tr key={event.id}>
-                      <Td>
-                        <Text>Block #{event.blockNumber}</Text>
-                      </Td>
-                      <Td>
-                        {ipfsHash ? (
-                          <>
-                            <Link
-                              href={`${IPFS_GATEWAY}/ipfs/${ipfsHash}`}
-                              isExternal
-                            >
-                              {event.hash.slice(0, 10)}...{event.hash.slice(-8)}
-                              <ExternalLinkIcon mx="2px" />
-                            </Link>
-                            <Text fontSize="sm" color="gray.500">
-                              {ipfsHash}
-                            </Text>
-                          </>
-                        ) : (
-                          <Text>
-                            {event.hash ? (
-                              <>
-                                {event.hash.slice(0, 10)}...
-                                {event.hash.slice(-8)}
-                              </>
-                            ) : (
-                              <span className="text-gray-400">Cleared</span>
-                            )}
-                          </Text>
-                        )}
-                      </Td>
-                      <Td>
-                        <Link
-                          href={`https://etherscan.io/tx/${event.transactionID}`}
-                          isExternal
-                        >
-                          {event.transactionID.slice(0, 10)}...
-                          {event.transactionID.slice(-8)}
-                          <ExternalLinkIcon mx="2px" />
-                        </Link>
-                      </Td>
-                    </Tr>
-                  );
-                })}
-              </Tbody>
-            </Table>
-          )}
+              ))}
+            </Tbody>
+          </Table>
+        )}
       </Box>
     </>
   );
