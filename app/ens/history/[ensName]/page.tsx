@@ -213,11 +213,11 @@ const ENSHistory = () => {
                     process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
                       ? ""
                       : "https://swiss-knife.xyz"
-                  }/api/labels/${address}`
+                  }/api/labels/${address}?chainId=1`
                 );
                 const data = res.data;
                 if (data.length > 0) {
-                  setAddressLabels(data);
+                  setAddressLabels([data[0]]);
                   labelsFound = true;
                 }
               } catch (error) {
