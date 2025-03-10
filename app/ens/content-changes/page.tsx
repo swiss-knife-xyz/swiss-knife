@@ -44,12 +44,6 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 
 const ENS_SUBGRAPH_URL = `https://gateway.thegraph.com/api/${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH`;
 
-interface Domain {
-  resolver: {
-    id: string;
-  };
-}
-
 interface ContentEvent {
   blockNumber: number;
   transactionID: string;
@@ -61,7 +55,10 @@ interface DomainDetails {
   createdAt: number;
   expiryDate: number;
   owner: string;
-  registrant: string;
+  registrant: string | null;
+  resolver: {
+    id: string;
+  };
 }
 
 interface DomainTransfer {
@@ -120,7 +117,8 @@ const ContentChanges = () => {
     return format(new Date(timestamp * 1000), "PPpp");
   };
 
-  const shortenAddress = (address: string) => {
+  const shortenAddress = (address: string | null) => {
+    if (!address) return "N/A";
     return `${address.substring(0, 6)}...${address.substring(
       address.length - 4
     )}`;
@@ -188,7 +186,7 @@ const ContentChanges = () => {
       isExternal = true,
       labelDirection = "vertical",
     }: {
-      address: string;
+      address: string | null;
       isExternal?: boolean;
       labelDirection?: "vertical" | "horizontal";
     }) => {
@@ -258,7 +256,8 @@ const ContentChanges = () => {
         resolveEns();
       }, [address]);
 
-      const displayText = resolvedEnsName || shortenAddress(address);
+      const displayText =
+        resolvedEnsName || (address ? shortenAddress(address) : "N/A");
 
       return (
         <Flex
@@ -266,7 +265,7 @@ const ContentChanges = () => {
           align={labelDirection === "vertical" ? "flex-start" : "center"}
           gap={labelDirection === "vertical" ? 0 : 2}
         >
-          {isExternal ? (
+          {address && isExternal ? (
             <Link
               href={`https://etherscan.io/address/${address}`}
               isExternal
@@ -288,7 +287,7 @@ const ContentChanges = () => {
               {addressLabels.map((label, idx) => (
                 <Badge
                   key={idx}
-                  colorScheme="purple"
+                  colorScheme="green"
                   fontSize="xs"
                   px={2}
                   py={0.5}
@@ -362,10 +361,16 @@ const ContentChanges = () => {
             <Stat>
               <StatLabel fontWeight="medium">Registrant</StatLabel>
               <StatNumber fontSize="md" mt={1}>
-                <AddressResolved
-                  address={domainDetails.registrant}
-                  labelDirection="vertical"
-                />
+                {domainDetails.registrant ? (
+                  <AddressResolved
+                    address={domainDetails.registrant}
+                    labelDirection="vertical"
+                  />
+                ) : (
+                  <Text fontSize="sm" color="gray.500">
+                    Not applicable for subdomains
+                  </Text>
+                )}
               </StatNumber>
             </Stat>
           </SimpleGrid>
@@ -647,7 +652,10 @@ const ContentChanges = () => {
         createdAt: parseInt(domain.createdAt),
         expiryDate: parseInt(domain.expiryDate),
         owner: domain.owner.id,
-        registrant: domain.registrant.id,
+        registrant: domain.registrant?.id || null,
+        resolver: {
+          id: resolverId,
+        },
       });
 
       // Prioritize content hash changes
