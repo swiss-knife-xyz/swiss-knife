@@ -327,8 +327,7 @@ const ENSHistory = () => {
     const ipfsHash = latestContentEvent?.details.hash || null;
 
     // Create the .eth.limo URL if we have an IPFS hash
-    const ethLimoUrl =
-      ipfsHash && ensName ? `https://${ensName}.eth.limo` : null;
+    const ethLimoUrl = ipfsHash && ensName ? `https://${ensName}.limo` : null;
 
     return (
       <Card variant="outline" shadow="sm" bg="blackAlpha.300">
