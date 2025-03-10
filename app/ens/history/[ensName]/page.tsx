@@ -552,17 +552,19 @@ const ENSHistory = () => {
                     <Td py={4}>
                       {event.type === "content" && event.details.hash && (
                         <Flex align="center">
-                          <Text
-                            fontFamily="mono"
-                            fontSize="sm"
-                            mr={2}
-                            maxW="300px"
-                            overflow="hidden"
-                            textOverflow="ellipsis"
-                            whiteSpace="nowrap"
-                          >
-                            {shortenHash(event.details.hash)}
-                          </Text>
+                          <Tooltip label={event.details.hash}>
+                            <Text
+                              fontFamily="mono"
+                              fontSize="sm"
+                              mr={2}
+                              maxW="300px"
+                              overflow="hidden"
+                              textOverflow="ellipsis"
+                              whiteSpace="nowrap"
+                            >
+                              {shortenHash(event.details.hash)}
+                            </Text>
+                          </Tooltip>
                           <IconButton
                             icon={<CopyIcon />}
                             onClick={() =>
@@ -572,6 +574,13 @@ const ENSHistory = () => {
                             variant="ghost"
                             aria-label="Copy full hash"
                           />
+                          <Link
+                            ml={2}
+                            href={`https://${event.details.hash}.ipfs.inbrowser.link`}
+                            isExternal
+                          >
+                            <ExternalLinkIcon fontSize={"md"} />
+                          </Link>
                         </Flex>
                       )}
                       {event.type === "transfer" && event.details.owner && (

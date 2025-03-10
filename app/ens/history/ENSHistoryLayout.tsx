@@ -86,13 +86,17 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
   return (
     <Box maxW="1200px" w="full" px={4}>
       <Box
+        mb={6}
         as={NextLink}
         href="/ens/history/"
         _hover={{ textDecoration: "none" }}
       >
-        <Heading color="custom.pale" mb={6}>
+        <Heading mt={10} color="custom.pale">
           ENS Domain History
         </Heading>
+        <Text mt={2} mb={14} color="whiteAlpha.700">
+          Check IPFS content changes, ownership transfers and more over time.
+        </Text>
       </Box>
       <Box maxW="1200px" w="full" px={4}>
         <Center>
@@ -120,12 +124,13 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
         </Center>
 
         {!ensNameFromParams && (
-          <Box mt={8}>
+          <Box mt={"4rem"} pb={"4rem"}>
             <Heading size="sm" mb={4}>
               or try these examples:
             </Heading>
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
               <Card
+                maxW={"20rem"}
                 variant="outline"
                 shadow="sm"
                 bg="blackAlpha.300"
@@ -146,13 +151,14 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
                   <Box>
                     <Text fontWeight="bold">eternalsafe.eth</Text>
                     <Text fontSize="sm" color="gray.400">
-                      Click to fetch data
+                      A decentralized UI for Safe{`{Wallet}`}
                     </Text>
                   </Box>
                 </CardBody>
               </Card>
 
               <Card
+                maxW={"20rem"}
                 variant="outline"
                 shadow="sm"
                 bg="blackAlpha.300"
@@ -173,7 +179,8 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
                   <Box>
                     <Text fontWeight="bold">2.horswap.eth</Text>
                     <Text fontSize="sm" color="gray.400">
-                      Click to fetch data
+                      Open source and censorship resistant interface for the
+                      Uniswap protocol
                     </Text>
                   </Box>
                 </CardBody>
