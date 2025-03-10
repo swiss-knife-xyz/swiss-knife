@@ -32,6 +32,7 @@ import {
   SkeletonText,
   Tooltip,
   Flex,
+  Spinner,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { createPublicClient, http, namehash } from "viem";
@@ -122,6 +123,9 @@ const ContentChanges = () => {
   const [initialRegistration, setInitialRegistration] =
     useState<DomainRegistration | null>(null);
   const [historyEvents, setHistoryEvents] = useState<HistoryEvent[]>([]);
+  const [contentEvents, setContentEvents] = useState<HistoryEvent[]>([]);
+  const [otherEvents, setOtherEvents] = useState<HistoryEvent[]>([]);
+  const [isContentLoaded, setIsContentLoaded] = useState(false);
   const toast = useToast();
 
   const decodeContentHash = (encoded: string): string | null => {
@@ -155,6 +159,9 @@ const ContentChanges = () => {
     try {
       setLoading(true);
       setHistoryEvents([]);
+      setContentEvents([]);
+      setOtherEvents([]);
+      setIsContentLoaded(false);
 
       // Normalize the ENS name
       const normalizedName = normalize(ensName);
@@ -208,186 +215,225 @@ const ContentChanges = () => {
         registrant: domain.registrant.id,
       });
 
-      // Collect all events to be merged later
-      const allEvents: HistoryEvent[] = [];
-
-      // 2. Query for domain transfers
-      const transfersQuery = `
-        query GetDomainTransfers($domainId: String!) {
-          domainEvents(
-            where: {domain: $domainId}
-          ) {
-            ... on WrappedTransfer {
-              id
-              transactionID
+      // Prioritize content hash changes
+      const fetchContentHashChanges = async () => {
+        // Query for content hash changes
+        const contentHashQuery = `
+          query GetENSContentHashes($resolverId: String!) {
+            contenthashChangeds(
+              orderBy: blockNumber
+              orderDirection: desc
+              where: {resolver: $resolverId}
+            ) {
               blockNumber
-              owner {
+              transactionID
+              hash
+            }
+          }
+        `;
+
+        const contentHashResponse = await axios.post(ENS_SUBGRAPH_URL, {
+          query: contentHashQuery,
+          variables: { resolverId },
+        });
+
+        if (contentHashResponse.data.errors) {
+          throw new Error(contentHashResponse.data.errors[0].message);
+        }
+
+        const contentEvents = contentHashResponse.data.data
+          .contenthashChangeds as ContentEvent[];
+
+        // Process content events with Promise.all for parallel processing
+        const contentEventsPromises = contentEvents.map(async (event) => {
+          const block = await publicClient.getBlock({
+            blockNumber: BigInt(event.blockNumber),
+          });
+
+          return {
+            type: "content" as const,
+            timestamp: Number(block.timestamp),
+            transactionID: event.transactionID,
+            details: {
+              hash: decodeContentHash(event.hash) ?? "",
+            },
+          };
+        });
+
+        const processedContentEvents = await Promise.all(contentEventsPromises);
+
+        // Sort content events by timestamp (newest first)
+        processedContentEvents.sort((a, b) => b.timestamp - a.timestamp);
+
+        // Set content events and mark as loaded immediately
+        setContentEvents(processedContentEvents);
+        setIsContentLoaded(true);
+
+        return processedContentEvents;
+      };
+
+      // Start fetching content hash changes immediately
+      const contentHashPromise = fetchContentHashChanges();
+
+      // Fetch other data in parallel
+      const fetchOtherData = async () => {
+        const otherEvents: HistoryEvent[] = [];
+
+        // Prepare all queries
+        const transfersQuery = `
+          query GetDomainTransfers($domainId: String!) {
+            domainEvents(
+              where: {domain: $domainId}
+            ) {
+              ... on WrappedTransfer {
                 id
+                transactionID
+                blockNumber
+                owner {
+                  id
+                }
               }
             }
           }
-        }
-      `;
+        `;
 
-      const transfersResponse = await axios.post(ENS_SUBGRAPH_URL, {
-        query: transfersQuery,
-        variables: { domainId },
-      });
-
-      if (!transfersResponse.data.errors) {
-        const transfers = transfersResponse.data.data.domainEvents
-          .filter((event: any) => event.id) // Filter out empty objects
-          .map((event: any) => ({
-            blockNumber: event.blockNumber,
-            id: event.id,
-            owner: event.owner.id,
-            transactionID: event.transactionID,
-          }));
-
-        // Add timestamps to transfers and convert to unified format
-        for (const transfer of transfers) {
-          const block = await publicClient.getBlock({
-            blockNumber: BigInt(transfer.blockNumber),
-          });
-
-          allEvents.push({
-            type: "transfer",
-            timestamp: Number(block.timestamp),
-            transactionID: transfer.transactionID,
-            details: {
-              owner: transfer.owner,
-            },
-          });
-        }
-      }
-
-      // 3. Query for domain renewals
-      const renewalsQuery = `
-        query GetDomainRenewals($labelName: String!) {
-          registrationEvents(where: {registration_: {labelName: $labelName}}) {
-            ... on NameRenewed {
+        const renewalsQuery = `
+          query GetDomainRenewals($labelName: String!) {
+            nameReneweds(
+              orderBy: blockNumber
+              orderDirection: desc
+              where: {registration_: {labelName: $labelName}}
+            ) {
               blockNumber
-              transactionID
               expiryDate
+              transactionID
             }
           }
-        }
-      `;
+        `;
 
-      const renewalsResponse = await axios.post(ENS_SUBGRAPH_URL, {
-        query: renewalsQuery,
-        variables: { labelName },
-      });
-
-      if (!renewalsResponse.data.errors) {
-        const renewals = renewalsResponse.data.data.registrationEvents
-          .filter((event: any) => event.blockNumber) // Filter out empty objects
-          .map((event: any) => ({
-            blockNumber: event.blockNumber,
-            expiryDate: parseInt(event.expiryDate),
-            transactionID: event.transactionID,
-          }));
-
-        // Add timestamps to renewals and convert to unified format
-        for (const renewal of renewals) {
-          const block = await publicClient.getBlock({
-            blockNumber: BigInt(renewal.blockNumber),
-          });
-
-          allEvents.push({
-            type: "renewal",
-            timestamp: Number(block.timestamp),
-            transactionID: renewal.transactionID,
-            details: {
-              expiryDate: renewal.expiryDate,
-            },
-          });
-        }
-      }
-
-      // 4. Query for initial registration
-      const registrationQuery = `
-        query GetDomainInitialExpiry($labelName: String!) {
-          registrationEvents(where: {registration_: {labelName: $labelName}}) {
-            ... on NameRegistered {
-              expiryDate,
-              blockNumber
+        const registrationQuery = `
+          query GetDomainInitialExpiry($labelName: String!) {
+            registrationEvents(where: {registration_: {labelName: $labelName}}) {
+              ... on NameRegistered {
+                expiryDate,
+                blockNumber
+              }
             }
           }
+        `;
+
+        // Execute all queries in parallel
+        const [transfersResponse, renewalsResponse, registrationResponse] =
+          await Promise.all([
+            axios.post(ENS_SUBGRAPH_URL, {
+              query: transfersQuery,
+              variables: { domainId },
+            }),
+            axios.post(ENS_SUBGRAPH_URL, {
+              query: renewalsQuery,
+              variables: { labelName },
+            }),
+            axios.post(ENS_SUBGRAPH_URL, {
+              query: registrationQuery,
+              variables: { labelName },
+            }),
+          ]);
+
+        // Process transfers
+        if (!transfersResponse.data.errors) {
+          const transfers = transfersResponse.data.data.domainEvents
+            .filter((event: any) => event.id) // Filter out empty objects
+            .map((event: any) => ({
+              blockNumber: event.blockNumber,
+              id: event.id,
+              owner: event.owner.id,
+              transactionID: event.transactionID,
+            }));
+
+          // Process transfers with Promise.all
+          const transferPromises = transfers.map(
+            async (transfer: DomainTransfer) => {
+              const block = await publicClient.getBlock({
+                blockNumber: BigInt(transfer.blockNumber),
+              });
+
+              return {
+                type: "transfer" as const,
+                timestamp: Number(block.timestamp),
+                transactionID: transfer.transactionID,
+                details: {
+                  owner: transfer.owner,
+                },
+              };
+            }
+          );
+
+          const processedTransfers = await Promise.all(transferPromises);
+          otherEvents.push(...processedTransfers);
         }
-      `;
 
-      const registrationResponse = await axios.post(ENS_SUBGRAPH_URL, {
-        query: registrationQuery,
-        variables: { labelName },
-      });
+        // Process renewals
+        if (!renewalsResponse.data.errors) {
+          const renewals = renewalsResponse.data.data
+            .nameReneweds as DomainRenewal[];
 
-      if (!registrationResponse.data.errors) {
-        const registrations =
-          registrationResponse.data.data.registrationEvents.filter(
-            (event: any) => event.blockNumber
-          ); // Filter out empty objects
+          // Process renewals with Promise.all
+          const renewalPromises = renewals.map(async (renewal) => {
+            const block = await publicClient.getBlock({
+              blockNumber: BigInt(renewal.blockNumber),
+            });
 
-        if (registrations.length > 0) {
-          const registration = registrations[0];
-          const block = await publicClient.getBlock({
-            blockNumber: BigInt(registration.blockNumber),
+            return {
+              type: "renewal" as const,
+              timestamp: Number(block.timestamp),
+              transactionID: renewal.transactionID,
+              details: {
+                expiryDate: renewal.expiryDate,
+              },
+            };
           });
 
-          setInitialRegistration({
-            blockNumber: registration.blockNumber,
-            expiryDate: parseInt(registration.expiryDate),
-            timestamp: Number(block.timestamp),
-          });
+          const processedRenewals = await Promise.all(renewalPromises);
+          otherEvents.push(...processedRenewals);
         }
-      }
 
-      // 5. Query for content hash changes
-      const contentHashQuery = `
-        query GetENSContentHashes($resolverId: String!) {
-          contenthashChangeds(
-            orderBy: blockNumber
-            orderDirection: desc
-            where: {resolver: $resolverId}
-          ) {
-            blockNumber
-            transactionID
-            hash
+        // Process registration
+        if (!registrationResponse.data.errors) {
+          const registrations =
+            registrationResponse.data.data.registrationEvents.filter(
+              (event: any) => event.blockNumber
+            ); // Filter out empty objects
+
+          if (registrations.length > 0) {
+            const registration = registrations[0];
+            const block = await publicClient.getBlock({
+              blockNumber: BigInt(registration.blockNumber),
+            });
+
+            setInitialRegistration({
+              blockNumber: registration.blockNumber,
+              expiryDate: parseInt(registration.expiryDate),
+              timestamp: Number(block.timestamp),
+            });
           }
         }
-      `;
 
-      const contentHashResponse = await axios.post(ENS_SUBGRAPH_URL, {
-        query: contentHashQuery,
-        variables: { resolverId },
-      });
+        return otherEvents;
+      };
 
-      if (contentHashResponse.data.errors) {
-        throw new Error(contentHashResponse.data.errors[0].message);
-      }
+      // Execute other data fetching in parallel with content hash fetching
+      const [contentHashEvents, otherDataEvents] = await Promise.all([
+        contentHashPromise,
+        fetchOtherData(),
+      ]);
 
-      const contentEvents = contentHashResponse.data.data
-        .contenthashChangeds as ContentEvent[];
+      // Sort other events by timestamp (newest first)
+      otherDataEvents.sort((a, b) => b.timestamp - a.timestamp);
+      setOtherEvents(otherDataEvents);
 
-      // Add content events to unified history
-      for (const event of contentEvents) {
-        const block = await publicClient.getBlock({
-          blockNumber: BigInt(event.blockNumber),
-        });
-
-        allEvents.push({
-          type: "content",
-          timestamp: Number(block.timestamp),
-          transactionID: event.transactionID,
-          details: {
-            hash: decodeContentHash(event.hash) ?? "",
-          },
-        });
-      }
-
-      // Sort all events by timestamp (newest first)
+      // Combine all events
+      const allEvents = [...contentHashEvents, ...otherDataEvents];
       allEvents.sort((a, b) => b.timestamp - a.timestamp);
-
       setHistoryEvents(allEvents);
     } catch (error) {
       console.error("Error fetching ENS data:", error);
@@ -673,7 +719,7 @@ const ContentChanges = () => {
               📜 Domain History
             </Heading>
 
-            {historyEvents.length > 0 ? (
+            {!isContentLoaded && contentEvents.length === 0 ? (
               <Table variant="simple">
                 <Thead>
                   <Tr>
@@ -686,68 +732,111 @@ const ContentChanges = () => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {historyEvents.map((event, index) => (
-                    <Tr key={`${event.transactionID}-${index}`}>
+                  {[...Array(5)].map((_, index) => (
+                    <Tr key={index}>
                       <Td width="200px" whiteSpace="nowrap">
-                        <Text>{formatDate(event.timestamp)}</Text>
-                        <Text
-                          fontSize="sm"
-                          color={getContentChangeColor(event.timestamp)}
-                        >
-                          {formatDistanceToNow(event.timestamp * 1000, {
-                            addSuffix: true,
-                          })}
-                        </Text>
-                      </Td>
-                      <Td>{getEventBadge(event.type)}</Td>
-                      <Td>
-                        {event.type === "content" && event.details.hash && (
-                          <Flex align="center">
-                            <Tooltip
-                              label={`ipfs://${event.details.hash}`}
-                              placement="top"
-                            >
-                              <Text>{shortenHash(event.details.hash)}</Text>
-                            </Tooltip>
-                            <CopyToClipboard
-                              textToCopy={`ipfs://${event.details.hash}`}
-                              ml={2}
-                              size="xs"
-                              variant="ghost"
-                              aria-label="Copy full hash"
-                            />
-                          </Flex>
-                        )}
-                        {event.type === "transfer" && event.details.owner && (
-                          <Link
-                            href={`https://etherscan.io/address/${event.details.owner}`}
-                            isExternal
-                          >
-                            {shortenAddress(event.details.owner)}{" "}
-                            <ExternalLinkIcon mx="2px" />
-                          </Link>
-                        )}
-                        {event.type === "renewal" &&
-                          event.details.expiryDate && (
-                            <Text>
-                              New expiry: {formatDate(event.details.expiryDate)}
-                            </Text>
-                          )}
+                        <Skeleton height="20px" width="120px" mb={2} />
+                        <Skeleton height="16px" width="100px" />
                       </Td>
                       <Td>
-                        <Link
-                          href={`https://etherscan.io/tx/${event.transactionID}`}
-                          isExternal
-                        >
-                          Tx <ExternalLinkIcon mx="2px" />
-                        </Link>
+                        <Skeleton height="24px" width="80px" />
+                      </Td>
+                      <Td>
+                        <Skeleton height="20px" width="180px" />
+                      </Td>
+                      <Td>
+                        <Skeleton height="20px" width="60px" />
                       </Td>
                     </Tr>
                   ))}
                 </Tbody>
               </Table>
             ) : (
-              <Text>No history events found</Text>
+              <Table variant="simple">
+                <Thead>
+                  <Tr>
+                    <Th width="200px" whiteSpace="nowrap">
+                      Time
+                    </Th>
+                    <Th>Event Type</Th>
+                    <Th>Details</Th>
+                    <Th>Transaction</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {(loading ? contentEvents : historyEvents).map(
+                    (event, index) => (
+                      <Tr key={`${event.transactionID}-${index}`}>
+                        <Td width="200px" whiteSpace="nowrap">
+                          <Text>{formatDate(event.timestamp)}</Text>
+                          <Text
+                            fontSize="sm"
+                            color={getContentChangeColor(event.timestamp)}
+                          >
+                            {formatDistanceToNow(event.timestamp * 1000, {
+                              addSuffix: true,
+                            })}
+                          </Text>
+                        </Td>
+                        <Td>{getEventBadge(event.type)}</Td>
+                        <Td>
+                          {event.type === "content" && event.details.hash && (
+                            <Flex align="center">
+                              <Tooltip
+                                label={`ipfs://${event.details.hash}`}
+                                placement="top"
+                              >
+                                <Text>{shortenHash(event.details.hash)}</Text>
+                              </Tooltip>
+                              <CopyToClipboard
+                                textToCopy={`ipfs://${event.details.hash}`}
+                                ml={2}
+                                size="xs"
+                                variant="ghost"
+                                aria-label="Copy full hash"
+                              />
+                            </Flex>
+                          )}
+                          {event.type === "transfer" && event.details.owner && (
+                            <Link
+                              href={`https://etherscan.io/address/${event.details.owner}`}
+                              isExternal
+                            >
+                              {shortenAddress(event.details.owner)}{" "}
+                              <ExternalLinkIcon mx="2px" />
+                            </Link>
+                          )}
+                          {event.type === "renewal" &&
+                            event.details.expiryDate && (
+                              <Text>
+                                New expiry:{" "}
+                                {formatDate(event.details.expiryDate)}
+                              </Text>
+                            )}
+                        </Td>
+                        <Td>
+                          <Link
+                            href={`https://etherscan.io/tx/${event.transactionID}`}
+                            isExternal
+                          >
+                            Tx <ExternalLinkIcon mx="2px" />
+                          </Link>
+                        </Td>
+                      </Tr>
+                    )
+                  )}
+                  {loading && (
+                    <Tr>
+                      <Td colSpan={4} textAlign="center">
+                        <Flex justify="center" align="center" py={2}>
+                          <Spinner size="sm" mr={2} />
+                          <Text>Loading additional history events...</Text>
+                        </Flex>
+                      </Td>
+                    </Tr>
+                  )}
+                </Tbody>
+              </Table>
             )}
           </Box>
         ) : (
