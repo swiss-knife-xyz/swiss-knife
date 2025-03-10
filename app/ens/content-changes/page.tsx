@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useRef, useMemo } from "react";
 import {
   Heading,
   Table,
@@ -32,8 +32,9 @@ import {
   Flex,
   Spinner,
   Center,
+  IconButton,
 } from "@chakra-ui/react";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
+import { ExternalLinkIcon, CopyIcon } from "@chakra-ui/icons";
 import { publicClient, getEnsName, fetchContractAbi } from "@/utils";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 import axios from "axios";
@@ -98,6 +99,7 @@ interface HistoryEvent {
 
 const ContentChanges = () => {
   const [ensName, setEnsName] = useState<string>("");
+  const [loadedEnsName, setLoadedEnsName] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [domainDetails, setDomainDetails] = useState<DomainDetails | null>(
     null
@@ -109,6 +111,455 @@ const ContentChanges = () => {
   const [otherEvents, setOtherEvents] = useState<HistoryEvent[]>([]);
   const [isContentLoaded, setIsContentLoaded] = useState(false);
   const toast = useToast();
+
+  // Add a debounce timer ref
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Utility functions - moved to the top of the component
+  const formatDate = (timestamp: number) => {
+    return format(new Date(timestamp * 1000), "PPpp");
+  };
+
+  const shortenAddress = (address: string) => {
+    return `${address.substring(0, 6)}...${address.substring(
+      address.length - 4
+    )}`;
+  };
+
+  const shortenHash = (hash: string) => {
+    if (!hash) return "";
+    return `ipfs://${hash.substring(0, 10)}...${hash.substring(
+      hash.length - 4
+    )}`;
+  };
+
+  const getEventBadge = (type: string) => {
+    switch (type) {
+      case "content":
+        return (
+          <Badge colorScheme="blue" fontSize="sm" px={2} py={1} rounded={"lg"}>
+            ⚠️ Content Hash
+          </Badge>
+        );
+      case "transfer":
+        return (
+          <Badge colorScheme="green" fontSize="sm" px={2} py={1} rounded={"lg"}>
+            Transfer
+          </Badge>
+        );
+      case "renewal":
+        return (
+          <Badge
+            colorScheme="purple"
+            fontSize="sm"
+            px={2}
+            py={1}
+            rounded={"lg"}
+          >
+            Renewal
+          </Badge>
+        );
+      default:
+        return (
+          <Badge fontSize="sm" px={2} py={1} rounded={"lg"}>
+            Unknown
+          </Badge>
+        );
+    }
+  };
+
+  const getContentChangeColor = (timestamp: number) => {
+    const now = new Date();
+    const eventDate = new Date(timestamp * 1000);
+    const daysDiff = differenceInDays(now, eventDate);
+
+    if (daysDiff <= 10) {
+      return "red.500";
+    } else if (daysDiff <= 30) {
+      return "orange.500";
+    }
+    return undefined;
+  };
+
+  // AddressResolved component to display addresses with ENS resolution
+  const AddressResolved = memo(
+    ({
+      address,
+      isExternal = true,
+      labelDirection = "vertical",
+    }: {
+      address: string;
+      isExternal?: boolean;
+      labelDirection?: "vertical" | "horizontal";
+    }) => {
+      const [resolvedEnsName, setResolvedEnsName] = useState<string | null>(
+        null
+      );
+      const [isLoading, setIsLoading] = useState(false);
+      const [addressLabels, setAddressLabels] = useState<string[]>([]);
+
+      useEffect(() => {
+        const resolveEns = async () => {
+          if (!address) return;
+
+          setIsLoading(true);
+          try {
+            // Try to get ENS name
+            const name = await getEnsName(address);
+            setResolvedEnsName(name);
+
+            // If no ENS name, try to fetch labels or contract name
+            if (!name) {
+              let labelsFound = false;
+
+              // First try to fetch labels from API
+              try {
+                const res = await axios.get(
+                  `${
+                    process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+                      ? ""
+                      : "https://swiss-knife.xyz"
+                  }/api/labels/${address}`
+                );
+                const data = res.data;
+                if (data.length > 0) {
+                  setAddressLabels(data);
+                  labelsFound = true;
+                }
+              } catch (error) {
+                console.error("Error fetching address labels:", error);
+                // Continue to next method if labels API fails
+              }
+
+              // If no labels found from API, try to get contract name
+              if (!labelsFound) {
+                try {
+                  const contractInfo = await fetchContractAbi({
+                    address,
+                    chainId: 1, // Ethereum mainnet
+                  });
+
+                  if (contractInfo.name) {
+                    setAddressLabels([contractInfo.name]);
+                  }
+                } catch (error) {
+                  console.error("Error fetching contract ABI:", error);
+                  setAddressLabels([]);
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error resolving ENS name:", error);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+
+        resolveEns();
+      }, [address]);
+
+      const displayText = resolvedEnsName || shortenAddress(address);
+
+      return (
+        <Flex
+          direction={labelDirection === "vertical" ? "column" : "row"}
+          align={labelDirection === "vertical" ? "flex-start" : "center"}
+          gap={labelDirection === "vertical" ? 0 : 2}
+        >
+          {isExternal ? (
+            <Link
+              href={`https://etherscan.io/address/${address}`}
+              isExternal
+              color="blue.500"
+              fontWeight="medium"
+              fontSize="sm"
+              _hover={{ textDecoration: "underline" }}
+            >
+              {displayText}
+            </Link>
+          ) : (
+            <Text color="blue.500" fontWeight="medium" fontSize="sm">
+              {displayText}
+            </Text>
+          )}
+
+          {addressLabels.length > 0 && (
+            <HStack spacing={1} mt={labelDirection === "vertical" ? 1 : 0}>
+              {addressLabels.map((label, idx) => (
+                <Badge
+                  key={idx}
+                  colorScheme="purple"
+                  fontSize="xs"
+                  px={2}
+                  py={0.5}
+                  rounded="md"
+                >
+                  {label}
+                </Badge>
+              ))}
+            </HStack>
+          )}
+
+          {isLoading && (
+            <Spinner
+              size="xs"
+              ml={1}
+              mt={labelDirection === "vertical" ? 1 : 0}
+            />
+          )}
+        </Flex>
+      );
+    }
+  );
+
+  // Add display name to the memoized component
+  AddressResolved.displayName = "AddressResolved";
+
+  // Memoize the domain details section to prevent re-renders when input changes
+  const memoizedDomainDetails = useMemo(() => {
+    if (!domainDetails) return null;
+
+    return (
+      <Card>
+        <CardHeader pb={0}>
+          <Heading size="sm">Domain Details</Heading>
+        </CardHeader>
+        <CardBody>
+          <SimpleGrid columns={2} spacing={6} mb={6}>
+            <Stat>
+              <StatLabel fontWeight="medium">Registration Date</StatLabel>
+              <StatNumber fontSize="md" mt={1}>
+                {formatDistanceToNow(domainDetails.createdAt * 1000, {
+                  addSuffix: true,
+                })}
+              </StatNumber>
+              <StatHelpText fontSize="xs" mt={1}>
+                {formatDate(domainDetails.createdAt)}
+              </StatHelpText>
+            </Stat>
+            <Stat>
+              <StatLabel fontWeight="medium">Expiry Date</StatLabel>
+              <StatNumber fontSize="md" mt={1}>
+                {formatDistanceToNow(domainDetails.expiryDate * 1000, {
+                  addSuffix: true,
+                })}
+              </StatNumber>
+              <StatHelpText fontSize="xs" mt={1}>
+                {formatDate(domainDetails.expiryDate)}
+              </StatHelpText>
+            </Stat>
+          </SimpleGrid>
+          <SimpleGrid columns={2} spacing={6}>
+            <Stat>
+              <StatLabel fontWeight="medium">Owner</StatLabel>
+              <StatNumber fontSize="md" mt={1}>
+                <AddressResolved
+                  address={domainDetails.owner}
+                  labelDirection="vertical"
+                />
+              </StatNumber>
+            </Stat>
+            <Stat>
+              <StatLabel fontWeight="medium">Registrant</StatLabel>
+              <StatNumber fontSize="md" mt={1}>
+                <AddressResolved
+                  address={domainDetails.registrant}
+                  labelDirection="vertical"
+                />
+              </StatNumber>
+            </Stat>
+          </SimpleGrid>
+        </CardBody>
+      </Card>
+    );
+  }, [domainDetails]);
+
+  // Memoize the initial registration section
+  const memoizedInitialRegistration = useMemo(() => {
+    if (!initialRegistration) return null;
+
+    return (
+      <Card>
+        <CardHeader pb={0}>
+          <Heading size="sm">Initial Registration</Heading>
+        </CardHeader>
+        <CardBody>
+          <SimpleGrid columns={2} spacing={6}>
+            <Stat>
+              <StatLabel fontWeight="medium">Block Number</StatLabel>
+              <StatNumber fontSize="md" mt={1}>
+                {initialRegistration.blockNumber.toLocaleString()}
+              </StatNumber>
+            </Stat>
+            <Stat>
+              <StatLabel fontWeight="medium">Initial Expiry</StatLabel>
+              <StatNumber fontSize="md" mt={1}>
+                {formatDistanceToNow(initialRegistration.expiryDate * 1000, {
+                  addSuffix: true,
+                })}
+              </StatNumber>
+              <StatHelpText fontSize="xs" mt={1}>
+                {formatDate(initialRegistration.expiryDate)}
+              </StatHelpText>
+            </Stat>
+          </SimpleGrid>
+        </CardBody>
+      </Card>
+    );
+  }, [initialRegistration]);
+
+  // Memoize the history events table to prevent re-renders when input changes
+  const memoizedHistoryEvents = useMemo(() => {
+    return (
+      <>
+        {!isContentLoaded && contentEvents.length === 0 ? (
+          <Table variant="simple">
+            <Thead>
+              <Tr>
+                <Th width="220px" whiteSpace="nowrap" pl={6} py={4}>
+                  Time
+                </Th>
+                <Th py={4}>Event Type</Th>
+                <Th py={4}>Details</Th>
+                <Th py={4}>Transaction</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {[...Array(5)].map((_, index) => (
+                <Tr key={index}>
+                  <Td width="220px" whiteSpace="nowrap" pl={6} py={4}>
+                    <Skeleton height="20px" width="120px" mb={2} />
+                    <Skeleton height="16px" width="100px" />
+                  </Td>
+                  <Td py={4}>
+                    <Skeleton height="24px" width="80px" />
+                  </Td>
+                  <Td py={4}>
+                    <Skeleton height="20px" width="200px" />
+                  </Td>
+                  <Td py={4}>
+                    <Skeleton height="20px" width="120px" />
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        ) : (
+          <Table variant="simple">
+            <Thead>
+              <Tr>
+                <Th width="220px" whiteSpace="nowrap" pl={6} py={4}>
+                  Time
+                </Th>
+                <Th py={4}>Event Type</Th>
+                <Th py={4}>Details</Th>
+                <Th py={4}>Transaction</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {historyEvents.length === 0 ? (
+                <Tr>
+                  <Td colSpan={4} textAlign="center" py={8}>
+                    No history events found for this domain
+                  </Td>
+                </Tr>
+              ) : (
+                historyEvents.map((event, index) => (
+                  <Tr key={index}>
+                    <Td
+                      width="220px"
+                      whiteSpace="nowrap"
+                      pl={6}
+                      py={4}
+                      color={getContentChangeColor(event.timestamp)}
+                    >
+                      <Text fontWeight="medium">
+                        {formatDistanceToNow(event.timestamp * 1000, {
+                          addSuffix: true,
+                        })}
+                      </Text>
+                      <Text fontSize="xs" color="gray.500" mt={1}>
+                        {formatDate(event.timestamp)}
+                      </Text>
+                    </Td>
+                    <Td py={4}>{getEventBadge(event.type)}</Td>
+                    <Td py={4}>
+                      {event.type === "content" && event.details.hash && (
+                        <Flex align="center">
+                          <Text
+                            fontFamily="mono"
+                            fontSize="sm"
+                            mr={2}
+                            maxW="300px"
+                            overflow="hidden"
+                            textOverflow="ellipsis"
+                            whiteSpace="nowrap"
+                          >
+                            {shortenHash(event.details.hash)}
+                          </Text>
+                          <IconButton
+                            icon={<CopyIcon />}
+                            onClick={() =>
+                              navigator.clipboard.writeText(event.details.hash!)
+                            }
+                            size="xs"
+                            variant="ghost"
+                            aria-label="Copy full hash"
+                          />
+                        </Flex>
+                      )}
+                      {event.type === "transfer" && event.details.owner && (
+                        <AddressResolved
+                          address={event.details.owner}
+                          labelDirection="horizontal"
+                        />
+                      )}
+                      {event.type === "renewal" && event.details.expiryDate && (
+                        <Text>
+                          New expiry: {formatDate(event.details.expiryDate)}
+                        </Text>
+                      )}
+                    </Td>
+                    <Td py={4}>
+                      <Link
+                        href={`https://etherscan.io/tx/${event.transactionID}`}
+                        isExternal
+                        color="blue.500"
+                        fontSize="sm"
+                        fontFamily="mono"
+                      >
+                        {shortenAddress(event.transactionID)}{" "}
+                        <ExternalLinkIcon mx="1px" boxSize={3} />
+                      </Link>
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </Tbody>
+          </Table>
+        )}
+      </>
+    );
+  }, [historyEvents, contentEvents, isContentLoaded]);
+
+  // Handle input change with debounce
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    // Update the input value immediately for UI responsiveness
+    setEnsName(value);
+
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set a new timer
+    debounceTimerRef.current = setTimeout(() => {
+      // This will only run after the user stops typing for 500ms
+      // No need to do anything here as we're just preventing re-renders
+    }, 500);
+  };
 
   const decodeContentHash = (encoded: string): string | null => {
     try {
@@ -148,6 +599,7 @@ const ContentChanges = () => {
 
       // Normalize the ENS name
       const normalizedName = normalize(ens);
+      setLoadedEnsName(normalizedName);
       const labelName = normalizedName.split(".")[0]; // Get the part before .eth
 
       // 1. Query for domain details
@@ -440,181 +892,6 @@ const ContentChanges = () => {
     fetchContentHash(pastedText);
   };
 
-  const formatDate = (timestamp: number) => {
-    return format(new Date(timestamp * 1000), "PPpp");
-  };
-
-  const shortenAddress = (address: string) => {
-    return `${address.substring(0, 6)}...${address.substring(
-      address.length - 4
-    )}`;
-  };
-
-  const shortenHash = (hash: string) => {
-    if (!hash) return "";
-    return `ipfs://${hash.substring(0, 10)}...${hash.substring(
-      hash.length - 4
-    )}`;
-  };
-
-  // AddressResolved component to display addresses with ENS resolution
-  const AddressResolved = ({
-    address,
-    isExternal = true,
-    labelDirection = "vertical",
-  }: {
-    address: string;
-    isExternal?: boolean;
-    labelDirection?: "vertical" | "horizontal";
-  }) => {
-    const [resolvedEnsName, setResolvedEnsName] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [addressLabels, setAddressLabels] = useState<string[]>([]);
-
-    useEffect(() => {
-      const resolveEns = async () => {
-        if (!address) return;
-
-        setIsLoading(true);
-        try {
-          // Try to get ENS name
-          const name = await getEnsName(address);
-          setResolvedEnsName(name);
-
-          // If no ENS name, try to fetch labels or contract name
-          if (!name) {
-            let labelsFound = false;
-
-            // First try to fetch labels from API
-            try {
-              const res = await axios.get(
-                `${
-                  process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-                    ? ""
-                    : "https://swiss-knife.xyz"
-                }/api/labels/${address}`
-              );
-              const data = res.data;
-              if (data.length > 0) {
-                setAddressLabels(data);
-                labelsFound = true;
-              }
-            } catch (error) {
-              console.error("Error fetching address labels:", error);
-              // Continue to next method if labels API fails
-            }
-
-            // If no labels found from API, try to get contract name
-            if (!labelsFound) {
-              try {
-                const contractInfo = await fetchContractAbi({
-                  address,
-                  chainId: 1, // Ethereum mainnet
-                });
-
-                if (contractInfo.name) {
-                  setAddressLabels([contractInfo.name]);
-                }
-              } catch (error) {
-                console.error("Error fetching contract ABI:", error);
-                setAddressLabels([]);
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error resolving ENS name:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      resolveEns();
-    }, [address]);
-
-    const displayText = resolvedEnsName || shortenAddress(address);
-
-    return (
-      <Flex
-        direction={labelDirection === "vertical" ? "column" : "row"}
-        align="flex-start"
-        alignItems={labelDirection === "horizontal" ? "center" : "flex-start"}
-        gap={labelDirection === "horizontal" ? 2 : 0}
-      >
-        {isExternal ? (
-          <Link href={`https://etherscan.io/address/${address}`} isExternal>
-            {isLoading ? <Spinner size="xs" mr={1} /> : null}
-            {displayText} <ExternalLinkIcon mx="1px" boxSize={3} />
-          </Link>
-        ) : (
-          <Text>
-            {isLoading ? <Spinner size="xs" mr={1} /> : null}
-            {displayText}
-          </Text>
-        )}
-
-        {!resolvedEnsName && addressLabels.length > 0 && (
-          <Badge
-            mt={labelDirection === "vertical" ? 1 : 0}
-            colorScheme="green"
-            fontSize="xs"
-            rounded="lg"
-            width="fit-content"
-          >
-            {addressLabels[0]}
-          </Badge>
-        )}
-      </Flex>
-    );
-  };
-
-  const getEventBadge = (type: string) => {
-    switch (type) {
-      case "content":
-        return (
-          <Badge colorScheme="blue" fontSize="sm" px={2} py={1} rounded={"lg"}>
-            ⚠️ Content Hash
-          </Badge>
-        );
-      case "transfer":
-        return (
-          <Badge colorScheme="green" fontSize="sm" px={2} py={1} rounded={"lg"}>
-            Transfer
-          </Badge>
-        );
-      case "renewal":
-        return (
-          <Badge
-            colorScheme="purple"
-            fontSize="sm"
-            px={2}
-            py={1}
-            rounded={"lg"}
-          >
-            Renewal
-          </Badge>
-        );
-      default:
-        return (
-          <Badge fontSize="sm" px={2} py={1} rounded={"lg"}>
-            Unknown
-          </Badge>
-        );
-    }
-  };
-
-  const getContentChangeColor = (timestamp: number) => {
-    const now = new Date();
-    const eventDate = new Date(timestamp * 1000);
-    const daysDiff = differenceInDays(now, eventDate);
-
-    if (daysDiff <= 10) {
-      return "red.500";
-    } else if (daysDiff <= 30) {
-      return "orange.500";
-    }
-    return undefined;
-  };
-
   return (
     <>
       <Heading color="custom.pale" mb={6}>
@@ -628,7 +905,7 @@ const ContentChanges = () => {
               <Input
                 placeholder="eternalsafe.eth"
                 value={ensName}
-                onChange={(e) => setEnsName(e.target.value)}
+                onChange={handleInputChange}
                 onPaste={handlePaste}
                 size="md"
               />
@@ -677,7 +954,7 @@ const ContentChanges = () => {
             </SimpleGrid>
 
             <Heading size="md" mb={5} mt={10}>
-              📜 Domain History ({ensName})
+              📜 Domain History {loadedEnsName && `(${loadedEnsName})`}
             </Heading>
 
             <Table variant="simple">
@@ -714,225 +991,16 @@ const ContentChanges = () => {
           </Box>
         ) : domainDetails ? (
           <Box mt={8}>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mb={8}>
-              <Card variant="outline" shadow="sm" bg="blackAlpha.500">
-                <CardHeader pb={3} pt={4} px={6}>
-                  <Heading size="sm">🔍 Domain Details</Heading>
-                </CardHeader>
-                <CardBody pt={2} pb={4} px={6}>
-                  <SimpleGrid columns={2} spacing={6} mb={5}>
-                    <Stat>
-                      <StatLabel fontWeight="medium">Created</StatLabel>
-                      <StatNumber fontSize="md" mt={1}>
-                        {formatDistanceToNow(domainDetails.createdAt * 1000, {
-                          addSuffix: true,
-                        })}
-                      </StatNumber>
-                      <StatHelpText fontSize="xs" mt={1}>
-                        {formatDate(domainDetails.createdAt)}
-                      </StatHelpText>
-                    </Stat>
-                    <Stat>
-                      <StatLabel fontWeight="medium">Expires</StatLabel>
-                      <StatNumber fontSize="md" mt={1}>
-                        {formatDistanceToNow(domainDetails.expiryDate * 1000, {
-                          addSuffix: true,
-                        })}
-                      </StatNumber>
-                      <StatHelpText fontSize="xs" mt={1}>
-                        {formatDate(domainDetails.expiryDate)}
-                      </StatHelpText>
-                    </Stat>
-                  </SimpleGrid>
-                  <SimpleGrid columns={2} spacing={6}>
-                    <Stat>
-                      <StatLabel fontWeight="medium">Owner</StatLabel>
-                      <StatNumber fontSize="md" mt={1}>
-                        <AddressResolved
-                          address={domainDetails.owner}
-                          labelDirection="vertical"
-                        />
-                      </StatNumber>
-                    </Stat>
-                    <Stat>
-                      <StatLabel fontWeight="medium">Registrant</StatLabel>
-                      <StatNumber fontSize="md" mt={1}>
-                        <AddressResolved
-                          address={domainDetails.registrant}
-                          labelDirection="vertical"
-                        />
-                      </StatNumber>
-                    </Stat>
-                  </SimpleGrid>
-                </CardBody>
-              </Card>
-
-              {initialRegistration && (
-                <Card variant="outline" shadow="sm" bg="blackAlpha.500">
-                  <CardHeader pb={3} pt={4} px={6}>
-                    <Heading size="sm">📅 Registration Info</Heading>
-                  </CardHeader>
-                  <CardBody pt={2} pb={4} px={6}>
-                    <SimpleGrid columns={2} spacing={6}>
-                      <Stat>
-                        <StatLabel fontWeight="medium">
-                          Initial Registration
-                        </StatLabel>
-                        <StatNumber fontSize="md" mt={1}>
-                          {formatDistanceToNow(
-                            initialRegistration.timestamp
-                              ? initialRegistration.timestamp * 1000
-                              : Date.now(),
-                            { addSuffix: true }
-                          )}
-                        </StatNumber>
-                        <StatHelpText fontSize="xs" mt={1}>
-                          {initialRegistration.timestamp
-                            ? formatDate(initialRegistration.timestamp)
-                            : "Unknown"}
-                        </StatHelpText>
-                      </Stat>
-                      <Stat>
-                        <StatLabel fontWeight="medium">
-                          Initial Expiry
-                        </StatLabel>
-                        <StatNumber fontSize="md" mt={1}>
-                          {formatDistanceToNow(
-                            initialRegistration.expiryDate * 1000,
-                            { addSuffix: true }
-                          )}
-                        </StatNumber>
-                        <StatHelpText fontSize="xs" mt={1}>
-                          {formatDate(initialRegistration.expiryDate)}
-                        </StatHelpText>
-                      </Stat>
-                    </SimpleGrid>
-                  </CardBody>
-                </Card>
-              )}
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={6}>
+              {memoizedDomainDetails}
+              {initialRegistration && memoizedInitialRegistration}
             </SimpleGrid>
 
             <Heading size="md" mb={5} mt={10}>
-              📜 Domain History ({ensName})
+              📜 Domain History {loadedEnsName && `(${loadedEnsName})`}
             </Heading>
 
-            {!isContentLoaded && contentEvents.length === 0 ? (
-              <Table variant="simple">
-                <Thead>
-                  <Tr>
-                    <Th width="220px" whiteSpace="nowrap" pl={6} py={4}>
-                      Time
-                    </Th>
-                    <Th py={4}>Event Type</Th>
-                    <Th py={4}>Details</Th>
-                    <Th py={4}>Transaction</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {[...Array(5)].map((_, index) => (
-                    <Tr key={index}>
-                      <Td width="220px" whiteSpace="nowrap" pl={6} py={4}>
-                        <Skeleton height="20px" width="120px" mb={2} />
-                        <Skeleton height="16px" width="100px" />
-                      </Td>
-                      <Td py={4}>
-                        <Skeleton height="24px" width="80px" />
-                      </Td>
-                      <Td py={4}>
-                        <Skeleton height="20px" width="180px" />
-                      </Td>
-                      <Td py={4}>
-                        <Skeleton height="20px" width="60px" />
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            ) : (
-              <Table variant="simple">
-                <Thead>
-                  <Tr>
-                    <Th width="220px" whiteSpace="nowrap" pl={6} py={4}>
-                      Time
-                    </Th>
-                    <Th py={4}>Event Type</Th>
-                    <Th py={4}>Details</Th>
-                    <Th py={4}>Transaction</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {(loading ? contentEvents : historyEvents).map(
-                    (event, index) => (
-                      <Tr key={`${event.transactionID}-${index}`}>
-                        <Td width="220px" whiteSpace="nowrap" pl={6} py={4}>
-                          <Text>{formatDate(event.timestamp)}</Text>
-                          <Text
-                            fontSize="sm"
-                            color={getContentChangeColor(event.timestamp)}
-                            mt={1}
-                          >
-                            {formatDistanceToNow(event.timestamp * 1000, {
-                              addSuffix: true,
-                            })}
-                          </Text>
-                        </Td>
-                        <Td py={4}>{getEventBadge(event.type)}</Td>
-                        <Td py={4}>
-                          {event.type === "content" && event.details.hash && (
-                            <Flex align="center">
-                              <Tooltip
-                                label={`ipfs://${event.details.hash}`}
-                                placement="top"
-                              >
-                                <Text>{shortenHash(event.details.hash)}</Text>
-                              </Tooltip>
-                              <CopyToClipboard
-                                textToCopy={`ipfs://${event.details.hash}`}
-                                ml={3}
-                                size="xs"
-                                variant="ghost"
-                                aria-label="Copy full hash"
-                              />
-                            </Flex>
-                          )}
-                          {event.type === "transfer" && event.details.owner && (
-                            <AddressResolved
-                              address={event.details.owner}
-                              labelDirection="horizontal"
-                            />
-                          )}
-                          {event.type === "renewal" &&
-                            event.details.expiryDate && (
-                              <Text>
-                                New expiry:{" "}
-                                {formatDate(event.details.expiryDate)}
-                              </Text>
-                            )}
-                        </Td>
-                        <Td py={4}>
-                          <Link
-                            href={`https://etherscan.io/tx/${event.transactionID}`}
-                            isExternal
-                          >
-                            Tx <ExternalLinkIcon mx="2px" />
-                          </Link>
-                        </Td>
-                      </Tr>
-                    )
-                  )}
-                  {loading && (
-                    <Tr>
-                      <Td colSpan={4} textAlign="center" py={5}>
-                        <Flex justify="center" align="center" py={2}>
-                          <Spinner size="sm" mr={3} />
-                          <Text>Loading additional history events...</Text>
-                        </Flex>
-                      </Td>
-                    </Tr>
-                  )}
-                </Tbody>
-              </Table>
-            )}
+            {memoizedHistoryEvents}
           </Box>
         ) : (
           <Box mt={8} p={6} bg="blackAlpha.300" borderRadius="md">
