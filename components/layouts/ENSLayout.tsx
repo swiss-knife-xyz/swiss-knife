@@ -5,9 +5,7 @@ import { Layout } from "@/components/Layout";
 import { Sidebar, SidebarItem } from "@/components/Sidebar";
 import subdomains from "@/subdomains";
 
-const SidebarItems: SidebarItem[] = [
-  { name: "Content Changes", path: "content-changes" },
-];
+const SidebarItems: SidebarItem[] = [{ name: "History", path: "history" }];
 
 export const ENSLayout = ({ children }: { children: React.ReactNode }) => {
   return (

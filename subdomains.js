@@ -49,7 +49,7 @@ const subdomains = {
   },
   ENS: {
     base: "ens",
-    paths: ["content-changes"],
+    paths: ["history"],
   },
 };
 

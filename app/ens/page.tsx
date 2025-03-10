@@ -9,7 +9,7 @@ const ENS = () => {
   const router = useRouter();
 
   useEffect(() => {
-    router.push(`${getPath(subdomains.ENS.base)}content-changes`);
+    router.push(`${getPath(subdomains.ENS.base)}history`);
   }, []);
 
   return <></>;

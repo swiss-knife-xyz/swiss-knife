@@ -95,7 +95,7 @@ interface HistoryEvent {
   };
 }
 
-const ContentChanges = () => {
+const ENSHistory = () => {
   const [ensName, setEnsName] = useState<string>("");
   const [loadedEnsName, setLoadedEnsName] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -1107,4 +1107,4 @@ const ContentChanges = () => {
   );
 };
 
-export default ContentChanges;
+export default ENSHistory;
