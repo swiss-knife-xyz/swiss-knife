@@ -1,3 +1,4 @@
+import { ENSHistoryLayout as ENSHistoryLayoutC } from "./ENSHistoryLayout";
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
@@ -8,7 +9,7 @@ export const metadata = getMetadata({
 });
 
 const ENSHistoryLayout = ({ children }: { children: React.ReactNode }) => {
-  return <>{children}</>;
+  return <ENSHistoryLayoutC>{children}</ENSHistoryLayoutC>;
 };
 
 export default ENSHistoryLayout;
