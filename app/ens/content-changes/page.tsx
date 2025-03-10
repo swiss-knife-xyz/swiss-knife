@@ -327,7 +327,7 @@ const ContentChanges = () => {
     if (!domainDetails) return null;
 
     return (
-      <Card>
+      <Card variant="outline" shadow="sm" bg="blackAlpha.300">
         <CardHeader pb={0}>
           <Heading size="sm">🔍 Domain Details</Heading>
         </CardHeader>
@@ -392,7 +392,7 @@ const ContentChanges = () => {
     if (!initialRegistration) return null;
 
     return (
-      <Card>
+      <Card variant="outline" shadow="sm" bg="blackAlpha.300">
         <CardHeader pb={0}>
           <Heading size="sm">📅 Registration Info</Heading>
         </CardHeader>
@@ -913,6 +913,14 @@ const ContentChanges = () => {
     fetchContentHash(example);
   };
 
+  // Add a keyDown handler for the Enter key
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      fetchContentHash();
+    }
+  };
+
   return (
     <>
       <Heading color="custom.pale" mb={6}>
@@ -928,6 +936,7 @@ const ContentChanges = () => {
                 value={ensName}
                 onChange={handleInputChange}
                 onPaste={handlePaste}
+                onKeyDown={handleKeyDown}
                 size="md"
               />
               <Button
