@@ -562,13 +562,6 @@ export default function WalletBridgePage() {
     }
   }, [isFrameSDKLoaded]);
 
-  // switch to base, as warpcast wallet is on base
-  useEffect(() => {
-    if (frameContext && switchChainAsync && address) {
-      switchChainAsync({ chainId: base.id });
-    }
-  }, [frameContext, switchChainAsync, address]);
-
   // Check if chain switch is needed when session request changes
   useEffect(() => {
     if (currentSessionRequest && chainId) {
