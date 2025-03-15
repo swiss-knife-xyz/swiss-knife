@@ -32,9 +32,9 @@ import {
 } from "viem";
 import { JsonFragmentType } from "ethers";
 import { useAccount, useWalletClient } from "wagmi";
+import { waitForTransactionReceipt } from "wagmi/actions";
 import { InputField } from "../InputField";
 import { AddressInput, IntInput } from "./inputs";
-import { waitForTransactionReceipt } from "@wagmi/core";
 import { config } from "@/app/providers";
 import { getTransactionError } from "viem/utils";
 import { renderParamTypes } from "./Renderer";

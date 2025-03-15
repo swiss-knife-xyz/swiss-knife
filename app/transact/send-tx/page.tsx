@@ -35,7 +35,7 @@ import {
 import { parseEther, formatEther, isAddress, stringify } from "viem";
 import { normalize } from "viem/ens";
 import { useWalletClient, useAccount, useSwitchChain } from "wagmi";
-import { waitForTransactionReceipt } from "@wagmi/core";
+import { waitForTransactionReceipt } from "wagmi/actions";
 import { InputField } from "@/components/InputField";
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
