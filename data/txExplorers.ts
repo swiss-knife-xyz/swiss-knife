@@ -292,10 +292,10 @@ export const txExplorers: ExplorersData = {
     },
     faviconUrl: "https://scan.vf.at/favicon.ico",
   },
-  Viewblock: {
-    urlLayout: `https://viewblock.io/starknet/tx/${TX_KEY}`,
-    chainIdToLabel: {
-      [c.starknet.id]: "",
-    },
-  },
+  // Viewblock: {
+  //   urlLayout: `https://viewblock.io/starknet/tx/${TX_KEY}`,
+  //   chainIdToLabel: {
+  //     [c.starknet.id]: "",
+  //   },
+  // },
 };
