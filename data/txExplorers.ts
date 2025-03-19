@@ -295,7 +295,7 @@ export const txExplorers: ExplorersData = {
   Viewblock: {
     urlLayout: `https://viewblock.io/starknet/tx/${TX_KEY}`,
     chainIdToLabel: {
-      [c.mainnet.id]: "",
+      [c.starknet.id]: "",
     },
   },
 };
