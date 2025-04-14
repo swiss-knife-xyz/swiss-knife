@@ -1,11 +1,31 @@
 "use client";
 
-import { Alert, Text, Link, HStack, Center } from "@chakra-ui/react";
+import {
+  Alert,
+  Text,
+  Link,
+  HStack,
+  Center,
+  useBreakpointValue,
+} from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 
 export const NotificationBar = () => {
+  const fontSize = useBreakpointValue({ base: "xs", sm: "sm", md: "md" });
+  const padding = useBreakpointValue({ base: 2, sm: 2, md: 3 });
+
   return process.env.NEXT_PUBLIC_GITCOIN_GRANTS_ACTIVE === "true" ? (
-    <Alert status="info" bg={"blackAlpha.400"}>
+    <Alert
+      status="info"
+      bg={"blackAlpha.400"}
+      py={padding}
+      px={4}
+      borderBottom="1px solid"
+      borderColor="whiteAlpha.200"
+      w="100%"
+      borderRadius={0}
+      margin={0}
+    >
       <Center w="100%">
         <Link
           href={process.env.NEXT_PUBLIC_GITCOIN_GRANTS_LINK}
@@ -34,11 +54,11 @@ export const NotificationBar = () => {
               },
             }}
           >
-            <Text>Support on</Text>
+            <Text fontSize={fontSize}>Support on</Text>
 
             <HStack ml={-0.5} fontWeight="bold">
-              <Text>Gitcoin Grants</Text>
-              <ExternalLinkIcon />
+              <Text fontSize={fontSize}>Gitcoin Grants</Text>
+              <ExternalLinkIcon fontSize={fontSize} />
             </HStack>
           </HStack>
         </Link>

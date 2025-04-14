@@ -29,6 +29,7 @@ import { faGithub } from "@fortawesome/free-brands-svg-icons";
 import { baseURL } from "@/config";
 import subdomains from "@/subdomains";
 import { getPath } from "@/utils";
+import { NotificationBar } from "./NotificationBar";
 
 export const Navbar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -95,6 +96,9 @@ export const Navbar = () => {
           />
         </HStack>
       </Flex>
+
+      {/* Notification Bar */}
+      <NotificationBar />
 
       {/* Mobile Menu Drawer */}
       <Drawer isOpen={isMenuOpen} placement="right" onClose={onMenuClose}>
