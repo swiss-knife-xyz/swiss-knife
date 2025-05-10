@@ -32,6 +32,7 @@ import {
   evmos,
   gnosis,
   linea,
+  monadTestnet,
   optimism,
   polygon,
   polygonMumbai,
@@ -61,6 +62,7 @@ export const walletChains: readonly [Chain, ...Chain[]] = [
   sepolia,
   arbitrumSepolia,
   baseSepolia,
+  monadTestnet,
   polygonMumbai,
 ];
 
