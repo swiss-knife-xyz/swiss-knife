@@ -72,6 +72,14 @@ export default function SessionRequestModal({
   onChainSwitch,
 }: SessionRequestModalProps) {
   const [addressLabels, setAddressLabels] = useState<string[]>([]);
+  const [txDataTabIndex, setTxDataTabIndex] = useState(1); // Start with Raw tab (index 1)
+
+  useEffect(() => {
+    // Switch to Decoded tab when decodedTxData becomes available
+    if (decodedTxData) {
+      setTxDataTabIndex(0);
+    }
+  }, [decodedTxData]);
 
   const fetchAddressLabels = useCallback(
     async (address: string, chainId: number) => {
@@ -314,6 +322,8 @@ export default function SessionRequestModal({
                           variant="soft-rounded"
                           colorScheme="blue"
                           size={{ base: "xs", md: "sm" }}
+                          index={txDataTabIndex}
+                          onChange={setTxDataTabIndex}
                         >
                           <TabList mb={3}>
                             <Tab
