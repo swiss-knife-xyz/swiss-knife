@@ -674,7 +674,7 @@ export default function WalletBridgePage() {
           direction={{ base: "column", lg: "row" }}
           gap={{ base: 4, lg: 0 }}
         >
-          <Heading size={{ base: "2xl", md: "lg" }}>💸 Wallet Bridge</Heading>
+          <Heading size={{ base: "xl", md: "xl" }}>💸 Wallet Bridge</Heading>
           {isConnected && <ConnectButton />}
         </Flex>
 
