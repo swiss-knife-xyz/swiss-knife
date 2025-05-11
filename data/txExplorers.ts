@@ -230,6 +230,12 @@ export const txExplorers: ExplorersData = {
       [c.avalancheFuji.id]: "testnet.",
     },
   },
+  Sonicscan: {
+    urlLayout: `https://sonicscan.org/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.sonic.id]: "",
+    },
+  },
   Tenderly: {
     urlLayout: `https://dashboard.tenderly.co/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
     chainIdToLabel: {
