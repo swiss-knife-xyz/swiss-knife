@@ -492,7 +492,7 @@ export default function CCIPRead() {
     // Use setTimeout to ensure the pasted content is available
     setTimeout(() => {
       handleResolve();
-    }, 0);
+    }, 100);
   };
 
   // Component for the animation sequence
