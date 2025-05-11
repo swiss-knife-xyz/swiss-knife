@@ -159,6 +159,7 @@ export default function CCIPRead() {
       timerRef.current.start = performance.now();
       hasAnimatedTotalRef.current = false;
 
+      // Initialize the result state without animations
       setResult({
         progress: {
           lookup: {
@@ -188,9 +189,6 @@ export default function CCIPRead() {
         },
         timing: {},
       });
-
-      // Wait for state update to be reflected in the UI
-      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Scroll to visualization
       if (visualizationRef.current) {
@@ -230,10 +228,13 @@ export default function CCIPRead() {
         });
       } catch (error: any) {
         if (error.message.includes("OffchainLookup")) {
-          // Record lookup completion time
+          // Record lookup completion time immediately
           timerRef.current.lookup = performance.now();
+          const lookupTime = Math.round(
+            timerRef.current.lookup - timerRef.current.start
+          );
 
-          // Update progress - lookup completed, revert active
+          // Update UI state for lookup completion
           setResult((prev) => ({
             ...prev,
             progress: {
@@ -249,17 +250,9 @@ export default function CCIPRead() {
             },
             timing: {
               ...prev?.timing,
-              lookup: Math.round(
-                timerRef.current.lookup! - timerRef.current.start!
-              ),
+              lookup: lookupTime,
             },
           }));
-
-          // Wait a moment to show the revert animation
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          // Record revert completion time
-          timerRef.current.revert = performance.now();
 
           // Step 2: Get the return data from the error
           const errorDataArgs = error.cause.data.args;
@@ -269,7 +262,13 @@ export default function CCIPRead() {
           const callbackFunctionSelector = errorDataArgs[3];
           const extraData = errorDataArgs[4];
 
-          // Update progress - revert completed, gateway active
+          // Record revert completion time
+          timerRef.current.revert = performance.now();
+          const revertTime = Math.round(
+            timerRef.current.revert - timerRef.current.lookup
+          );
+
+          // Update UI state for revert completion
           setResult((prev) => ({
             ...prev,
             progress: {
@@ -299,8 +298,11 @@ export default function CCIPRead() {
 
           // Record gateway completion time
           timerRef.current.gateway = performance.now();
+          const gatewayTime = Math.round(
+            timerRef.current.gateway - timerRef.current.revert
+          );
 
-          // Update progress - gateway completed, return active
+          // Update UI state for gateway completion
           setResult((prev) => ({
             ...prev,
             progress: {
@@ -316,19 +318,17 @@ export default function CCIPRead() {
             },
             timing: {
               ...prev?.timing,
-              gateway: Math.round(
-                timerRef.current.gateway! - timerRef.current.revert!
-              ),
+              gateway: gatewayTime,
             },
           }));
 
-          // Wait a moment to show the return animation
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
           // Record return data reception time
           timerRef.current.return = performance.now();
+          const returnTime = Math.round(
+            timerRef.current.return - timerRef.current.gateway
+          );
 
-          // Update progress - return completed, verify active
+          // Update UI state for return completion
           setResult((prev) => ({
             ...prev,
             progress: {
@@ -344,9 +344,7 @@ export default function CCIPRead() {
             },
             timing: {
               ...prev?.timing,
-              return: Math.round(
-                timerRef.current.return! - timerRef.current.gateway!
-              ),
+              return: returnTime,
             },
           }));
 
@@ -373,8 +371,11 @@ export default function CCIPRead() {
 
           // Record verification completion time
           timerRef.current.verify = performance.now();
+          const verifyTime = Math.round(
+            timerRef.current.verify - timerRef.current.return
+          );
 
-          // Update progress - verify completed, final active
+          // Update UI state for verify completion
           setResult((prev) => ({
             ...prev,
             progress: {
@@ -390,14 +391,9 @@ export default function CCIPRead() {
             },
             timing: {
               ...prev?.timing,
-              verify: Math.round(
-                timerRef.current.verify! - timerRef.current.return!
-              ),
+              verify: verifyTime,
             },
           }));
-
-          // Wait a moment to show the final animation
-          await new Promise((resolve) => setTimeout(resolve, 500));
 
           // result is a bytes encoded resolved address, convert it to address
           [resolvedAddress] = decodeAbiParameters(
@@ -412,8 +408,11 @@ export default function CCIPRead() {
           // Record final completion time
           timerRef.current.final = performance.now();
           timerRef.current.end = performance.now();
+          const totalTime = Math.round(
+            timerRef.current.end - timerRef.current.start
+          );
 
-          // Update result with all timing information
+          // Update final result with all timing information
           setResult((prev) => ({
             ...prev,
             resolvedAddress,
@@ -456,9 +455,7 @@ export default function CCIPRead() {
               verify: Math.round(
                 timerRef.current.verify! - timerRef.current.return!
               ),
-              total: Math.round(
-                timerRef.current.end! - timerRef.current.start!
-              ),
+              total: totalTime,
             },
           }));
 
