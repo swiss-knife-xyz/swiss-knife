@@ -352,7 +352,11 @@ export default function CCIPRead() {
 
           // find the function to call corresponding to the `callbackFunctionSelector` in the UNIVERSAL_RESOLVER_ABI (it'll be `resolveSingleCallback()`)
           const functionToCall = UNIVERSAL_RESOLVER_ABI.filter(
-            (item) => item.type === "function"
+            (
+              item
+            ): item is (typeof UNIVERSAL_RESOLVER_ABI)[number] & {
+              type: "function";
+            } => item.type === "function"
           ).find((fn) => toFunctionSelector(fn) === callbackFunctionSelector);
 
           if (!functionToCall) {
@@ -497,10 +501,10 @@ export default function CCIPRead() {
   // Component for the animation sequence
   const ProcessDiagram = () => {
     useEffect(() => {
-      if (result?.timing?.total && !hasAnimatedTotalRef.current) {
+      if (!hasAnimatedTotalRef.current) {
         hasAnimatedTotalRef.current = true;
       }
-    }, [result?.timing?.total]);
+    }, []);
 
     return (
       <Box
