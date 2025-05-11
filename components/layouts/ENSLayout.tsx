@@ -5,7 +5,10 @@ import { Layout } from "@/components/Layout";
 import { Sidebar, SidebarItem } from "@/components/Sidebar";
 import subdomains from "@/subdomains";
 
-const SidebarItems: SidebarItem[] = [{ name: "History", path: "history" }];
+const SidebarItems: SidebarItem[] = [
+  { name: "History", path: "history" },
+  { name: "CCIP", path: "ccip" },
+];
 
 export const ENSLayout = ({ children }: { children: React.ReactNode }) => {
   return (
