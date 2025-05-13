@@ -34,6 +34,15 @@ All your EVM tools in one place: https://swiss-knife.xyz/
 
 ## Contributing
 
+We welcome contributions! Here's how you can help:
+
+### Types of Contributions
+- 🐛 Bug fixes
+- ✨ New features
+- 📚 Documentation improvements
+- 🌍 Translations
+- 🧪 Test improvements
+
 ### To add a new Explorer
 
 1. For an address explorer, modify [./data/addressExplorers.ts](./data/addressExplorers.ts)
