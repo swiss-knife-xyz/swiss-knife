@@ -19,8 +19,15 @@ import {
   Avatar,
   Link,
   Tag,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
 } from "@chakra-ui/react";
-import { ExternalLinkIcon, SearchIcon } from "@chakra-ui/icons";
+import {
+  ExternalLinkIcon,
+  SearchIcon,
+  ChevronRightIcon,
+} from "@chakra-ui/icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { isAddress } from "viem";
@@ -75,7 +82,10 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
 
     if (__userInput) {
       if (isValidTransaction(__userInput)) {
-        const newUrl = `${getPath(subdomains.EXPLORER.base)}tx/${__userInput}`;
+        const newUrl = `${getPath(
+          subdomains.EXPLORER.base,
+          subdomains.EXPLORER.isRelativePath
+        )}tx/${__userInput}`;
         if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
           router.push(newUrl);
         } else {
@@ -88,10 +98,14 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
         let newUrl: string;
 
         if (!pathname.includes("/contract")) {
-          newUrl = `${getPath(subdomains.EXPLORER.base)}address/${__userInput}`;
+          newUrl = `${getPath(
+            subdomains.EXPLORER.base,
+            subdomains.EXPLORER.isRelativePath
+          )}address/${__userInput}`;
         } else {
           newUrl = `${getPath(
-            subdomains.EXPLORER.base
+            subdomains.EXPLORER.base,
+            subdomains.EXPLORER.isRelativePath
           )}contract/${__userInput}/${segments[2]}`;
         }
         if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
@@ -116,7 +130,8 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
           if (ensResolvedAddress) {
             setResolvedAddress(ensResolvedAddress);
             const newUrl = `${getPath(
-              subdomains.EXPLORER.base
+              subdomains.EXPLORER.base,
+              subdomains.EXPLORER.isRelativePath
             )}address/${ensResolvedAddress}${
               pathname.includes("/contract") ? `/contract/${segments[2]}` : ""
             }`;
@@ -217,8 +232,32 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
           />
         )}
         <Center flexDir={"column"} mt="5">
+          <Breadcrumb
+            separator={<ChevronRightIcon color="gray.400" fontSize="sm" />}
+            fontSize="sm"
+            ml={6}
+          >
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                as={NLink}
+                href={getPath(
+                  subdomains.EXPLORER.base,
+                  subdomains.EXPLORER.isRelativePath
+                )}
+              >
+                Explorer
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+          </Breadcrumb>
           <Heading fontSize={"4xl"}>
-            <NLink href={getPath(subdomains.EXPLORER.base)}>Explorer</NLink>
+            <NLink
+              href={getPath(
+                subdomains.EXPLORER.base,
+                subdomains.EXPLORER.isRelativePath
+              )}
+            >
+              Explorer
+            </NLink>
           </Heading>
           <HStack mt="1rem" w="60%">
             <Heading fontSize={"xl"}>Search Address or Transaction</Heading>{" "}

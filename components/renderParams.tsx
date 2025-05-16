@@ -78,7 +78,10 @@ export const renderParams = (key: number, arg: Arg, chainId?: number) => {
             {arg.baseType === "address" ||
             (arg.baseType === "bytes" && isAddress(arg.rawValue)) ? (
               <Link
-                href={`${getPath(subdomains.EXPLORER.base)}address/${
+                href={`${getPath(
+                  subdomains.EXPLORER.base,
+                  subdomains.EXPLORER.isRelativePath
+                )}address/${
                   arg.baseType === "address" ? arg.value : arg.rawValue
                 }`}
                 title="View on explorer"
@@ -118,7 +121,10 @@ export const renderParams = (key: number, arg: Arg, chainId?: number) => {
           {arg.baseType === "address" ||
           (arg.baseType === "bytes" && isAddress(arg.rawValue)) ? (
             <Link
-              href={`${getPath(subdomains.EXPLORER.base)}address/${
+              href={`${getPath(
+                subdomains.EXPLORER.base,
+                subdomains.EXPLORER.isRelativePath
+              )}address/${
                 arg.baseType === "address" ? arg.value : arg.rawValue
               }`}
               title="View on explorer"

@@ -10,6 +10,7 @@ export interface SidebarItem {
 
 export interface SidebarItemProps extends SidebarItem {
   subdomain: string;
+  isRelativePath?: boolean;
 }
 
 const SidebarItem = ({
@@ -17,12 +18,18 @@ const SidebarItem = ({
   subdomain,
   path,
   exactPathMatch,
+  isRelativePath,
 }: SidebarItemProps) => {
   const router = useRouter();
   const pathname = usePathname();
 
   return (
-    <Box my={1} onClick={() => router.push(`${getPath(subdomain)}${path}`)}>
+    <Box
+      my={1}
+      onClick={() =>
+        router.push(`${getPath(subdomain, isRelativePath)}${path}`)
+      }
+    >
       <Flex
         align="center"
         p="4"
@@ -37,7 +44,7 @@ const SidebarItem = ({
         bg={
           (
             exactPathMatch
-              ? pathname === `${getPath(subdomain)}${path}`
+              ? pathname === `${getPath(subdomain, isRelativePath)}${path}`
               : pathname.includes(path)
           )
             ? "blue.200"
@@ -46,7 +53,7 @@ const SidebarItem = ({
         color={
           (
             exactPathMatch
-              ? pathname === `${getPath(subdomain)}${path}`
+              ? pathname === `${getPath(subdomain, isRelativePath)}${path}`
               : pathname.includes(path)
           )
             ? "gray.700"
@@ -64,11 +71,13 @@ export const Sidebar = ({
   items,
   subdomain,
   exactPathMatch,
+  isRelativePath,
 }: {
   heading: string;
   items: SidebarItem[];
   subdomain: string;
   exactPathMatch?: boolean;
+  isRelativePath?: boolean;
 }) => {
   return (
     <Flex
@@ -94,6 +103,7 @@ export const Sidebar = ({
             key={item.name}
             subdomain={subdomain}
             exactPathMatch={exactPathMatch}
+            isRelativePath={isRelativePath}
             {...item}
           />
         ))}

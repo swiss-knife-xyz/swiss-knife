@@ -207,11 +207,12 @@ export const AddressParam = ({
           </InputGroup>
           {showLink && (
             <Link
-              href={`${getPath(subdomains.EXPLORER.base)}address/${value}${
-                chainId ? `/contract?chainId=${chainId}` : ""
-              }`}
-              title="View on explorer"
-              isExternal
+              href={`${getPath(
+                subdomains.EXPLORER.base,
+                subdomains.EXPLORER.isRelativePath
+              )}address/${value}${!!chainId ? "?chainId=" + chainId : ""}`}
+              target="_blank"
+              _hover={{ textDecoration: "none" }}
             >
               <Button size={"xs"}>
                 <HStack>

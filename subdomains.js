@@ -55,6 +55,11 @@ const subdomains = {
     base: "ens",
     paths: ["history"],
   },
+  "7702BEAT": {
+    base: "7702beat",
+    paths: [],
+    isRelativePath: true,
+  },
 };
 
 module.exports = subdomains;

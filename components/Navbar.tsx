@@ -136,7 +136,10 @@ export const Navbar = () => {
                             {subdomain.paths.map((path, pathIndex) => (
                               <Link
                                 key={pathIndex}
-                                href={`${getPath(subdomain.base)}${path}`}
+                                href={`${getPath(
+                                  subdomain.base,
+                                  subdomain.isRelativePath
+                                )}${path}`}
                                 style={{ width: "100%" }}
                                 onClick={onMenuClose}
                               >
@@ -156,7 +159,7 @@ export const Navbar = () => {
                       </>
                     ) : (
                       <Link
-                        href={getPath(subdomain.base)}
+                        href={getPath(subdomain.base, subdomain.isRelativePath)}
                         style={{ width: "100%" }}
                         onClick={onMenuClose}
                       >

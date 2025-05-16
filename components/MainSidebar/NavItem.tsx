@@ -91,7 +91,7 @@ export const NavItem = ({ subdomain }: { subdomain: Subdomain }) => {
         />
       ) : (
         <Link
-          href={getPath(subdomain.base)}
+          href={getPath(subdomain.base, subdomain.isRelativePath)}
           style={{
             width: "100%",
           }}
@@ -106,47 +106,46 @@ export const NavItem = ({ subdomain }: { subdomain: Subdomain }) => {
           />
         </Link>
       )}
-      <Collapse in={isOpen} animateOpacity style={{ width: "100%" }}>
-        {displayCollapse ? (
-          <Box
-            ml={isMobile ? 3 : 5}
-            pl={isMobile ? 2 : 4}
-            borderLeft={"1px solid"}
-            borderColor={"whiteAlpha.300"}
-          >
-            {subdomain.paths.map((path, i) => (
-              <Link
-                key={i}
-                href={`${getPath(subdomain.base)}${path}`}
-                style={{
-                  width: "100%",
-                }}
-              >
-                <Box
-                  mt={1}
-                  p={isMobile ? 1 : 2}
-                  w="100%"
-                  bg={
-                    isBaseActive &&
-                    (pathname.includes(path) ||
-                      window.location.href.includes(path))
-                      ? "whiteAlpha.100"
-                      : ""
-                  }
-                  _hover={{
-                    textDecor: "none",
-                    bg: "whiteAlpha.100",
+      {displayCollapse && isOpen && (
+        <Collapse in={isOpen} animateOpacity style={{ width: "100%" }}>
+          <Flex flexDir={"column"} pl={5} mt={1}>
+            {subdomain.paths.map((path, i) => {
+              const isPathActive =
+                pathname.includes(`${subdomain.base}/${path}`) ||
+                window.location.href.includes(`${subdomain.base}/${path}`);
+
+              return (
+                <Link
+                  key={i}
+                  href={`${getPath(
+                    subdomain.base,
+                    subdomain.isRelativePath
+                  )}${path}`}
+                  style={{
+                    width: "100%",
+                    padding: "6px 0",
                   }}
-                  cursor={"pointer"}
-                  rounded={"lg"}
                 >
-                  <Text fontSize={isMobile ? "xs" : "sm"}>{path}</Text>
-                </Box>
-              </Link>
-            ))}
-          </Box>
-        ) : null}
-      </Collapse>
+                  <Box
+                    mt={1}
+                    p={isMobile ? 1 : 2}
+                    w="100%"
+                    bg={isBaseActive && isPathActive ? "whiteAlpha.100" : ""}
+                    _hover={{
+                      textDecor: "none",
+                      bg: "whiteAlpha.100",
+                    }}
+                    cursor={"pointer"}
+                    rounded={"lg"}
+                  >
+                    <Text fontSize={isMobile ? "xs" : "sm"}>{path}</Text>
+                  </Box>
+                </Link>
+              );
+            })}
+          </Flex>
+        </Collapse>
+      )}
     </Flex>
   );
 };
