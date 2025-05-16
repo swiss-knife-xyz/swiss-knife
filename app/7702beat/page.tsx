@@ -25,7 +25,7 @@ import {
 } from "@chakra-ui/react";
 import { CheckCircleIcon } from "@chakra-ui/icons";
 import { Layout } from "@/components/Layout";
-import { mainnet, optimism, base, bsc, gnosis } from "wagmi/chains";
+import { mainnet, optimism, base, bsc, gnosis, polygon } from "wagmi/chains";
 
 interface ChainSupport {
   ethereum: boolean;
@@ -33,6 +33,8 @@ interface ChainSupport {
   base: boolean;
   bnbChain: boolean;
   gnosisChain: boolean;
+  polygon: boolean;
+  unichain: boolean;
   allChains?: boolean;
 }
 
@@ -87,6 +89,24 @@ const chains: Chain[] = [
     abbreviation: "GNO",
     chainObj: gnosis,
   },
+  {
+    id: polygon.id,
+    name: "Polygon",
+    color: "purple.500",
+    abbreviation: "POL",
+    chainObj: polygon,
+  },
+  {
+    id: 9999, // Using a placeholder ID for UniChain
+    name: "UniChain",
+    color: "pink.400",
+    abbreviation: "UNI",
+    chainObj: {
+      id: 9999,
+      name: "UniChain",
+      iconBackground: "pink.400",
+    },
+  },
 ];
 
 const wallets: SupportedApp[] = [
@@ -100,6 +120,8 @@ const wallets: SupportedApp[] = [
       base: true,
       bnbChain: true,
       gnosisChain: true,
+      polygon: true,
+      unichain: false,
     },
   },
   {
@@ -112,6 +134,8 @@ const wallets: SupportedApp[] = [
       base: true,
       bnbChain: true,
       gnosisChain: true,
+      polygon: true,
+      unichain: false,
     },
   },
 ];
@@ -127,6 +151,8 @@ const dapps: SupportedApp[] = [
       base: true,
       bnbChain: true,
       gnosisChain: true,
+      polygon: true,
+      unichain: true,
       allChains: true,
     },
   },
@@ -140,6 +166,8 @@ const dapps: SupportedApp[] = [
       base: true,
       bnbChain: true,
       gnosisChain: false,
+      polygon: true,
+      unichain: false,
     },
   },
 ];
@@ -179,6 +207,10 @@ const ChainIcon = ({
         "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://bnbchain.org&size=128",
       "Gnosis Chain":
         "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://gnosis.io&size=128",
+      Polygon:
+        "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://polygon.technology&size=128",
+      UniChain:
+        "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://unichain.org&size=128",
     };
     return urls[chainName] || "";
   };
@@ -325,6 +357,12 @@ const AppCard = ({
             {app.chainSupport.gnosisChain && (
               <ChainTag name="Gnosis Chain" color="green.300" />
             )}
+            {app.chainSupport.polygon && (
+              <ChainTag name="Polygon" color="purple.500" />
+            )}
+            {app.chainSupport.unichain && (
+              <ChainTag name="UniChain" color="pink.400" />
+            )}
           </>
         ) : (
           <>
@@ -340,6 +378,12 @@ const AppCard = ({
             )}
             {app.chainSupport.gnosisChain && (
               <ChainTag name="Gnosis Chain" color="green.300" />
+            )}
+            {app.chainSupport.polygon && (
+              <ChainTag name="Polygon" color="purple.500" />
+            )}
+            {app.chainSupport.unichain && (
+              <ChainTag name="UniChain" color="pink.400" />
             )}
           </>
         )}
@@ -357,6 +401,8 @@ const supportsChain = (app: SupportedApp, chain: Chain): boolean => {
   if (chain.name === "Base") return app.chainSupport.base;
   if (chain.name === "BNB Chain") return app.chainSupport.bnbChain;
   if (chain.name === "Gnosis Chain") return app.chainSupport.gnosisChain;
+  if (chain.name === "Polygon") return app.chainSupport.polygon;
+  if (chain.name === "UniChain") return app.chainSupport.unichain;
 
   return false;
 };
@@ -498,6 +544,12 @@ const SevenSevenZeroTwoBeat = () => {
                             {wallet.chainSupport.gnosisChain && (
                               <ChainTag name="Gnosis Chain" color="green.300" />
                             )}
+                            {wallet.chainSupport.polygon && (
+                              <ChainTag name="Polygon" color="purple.500" />
+                            )}
+                            {wallet.chainSupport.unichain && (
+                              <ChainTag name="UniChain" color="pink.400" />
+                            )}
                           </Flex>
                         </Td>
                       </Tr>
@@ -584,6 +636,12 @@ const SevenSevenZeroTwoBeat = () => {
                                     color="green.300"
                                   />
                                 )}
+                                {dapp.chainSupport.polygon && (
+                                  <ChainTag name="Polygon" color="purple.500" />
+                                )}
+                                {dapp.chainSupport.unichain && (
+                                  <ChainTag name="UniChain" color="pink.400" />
+                                )}
                               </>
                             ) : (
                               <>
@@ -607,6 +665,12 @@ const SevenSevenZeroTwoBeat = () => {
                                     name="Gnosis Chain"
                                     color="green.300"
                                   />
+                                )}
+                                {dapp.chainSupport.polygon && (
+                                  <ChainTag name="Polygon" color="purple.500" />
+                                )}
+                                {dapp.chainSupport.unichain && (
+                                  <ChainTag name="UniChain" color="pink.400" />
                                 )}
                               </>
                             )}
