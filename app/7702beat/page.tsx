@@ -167,12 +167,20 @@ const dapps: SupportedApp[] = [
       bnbChain: true,
       gnosisChain: false,
       polygon: true,
-      unichain: false,
+      unichain: true,
     },
   },
 ];
 
-const ChainTag = ({ name, color }: { name: string; color: string }) => (
+const ChainTag = ({
+  name,
+  color,
+  abbreviation,
+}: {
+  name: string;
+  color: string;
+  abbreviation?: string;
+}) => (
   <Tag
     size="md"
     bg={color}
@@ -184,7 +192,7 @@ const ChainTag = ({ name, color }: { name: string; color: string }) => (
     opacity={0.9}
     _hover={{ opacity: 1 }}
   >
-    {name}
+    {abbreviation || name}
   </Tag>
 );
 
@@ -345,45 +353,65 @@ const AppCard = ({
         {app.name === "Revoke.cash" && app.chainSupport.allChains ? (
           <>
             {app.chainSupport.ethereum && (
-              <ChainTag name="Ethereum" color="blue.300" />
+              <ChainTag name="Ethereum" color="blue.300" abbreviation="ETH" />
             )}
             {app.chainSupport.optimism && (
-              <ChainTag name="Optimism" color="red.300" />
+              <ChainTag name="Optimism" color="red.300" abbreviation="OP" />
             )}
-            {app.chainSupport.base && <ChainTag name="Base" color="blue.400" />}
+            {app.chainSupport.base && (
+              <ChainTag name="Base" color="blue.400" abbreviation="BASE" />
+            )}
             {app.chainSupport.bnbChain && (
-              <ChainTag name="BNB Chain" color="yellow.300" />
+              <ChainTag
+                name="BNB Chain"
+                color="yellow.300"
+                abbreviation="BNB"
+              />
             )}
             {app.chainSupport.gnosisChain && (
-              <ChainTag name="Gnosis Chain" color="green.300" />
+              <ChainTag
+                name="Gnosis Chain"
+                color="green.300"
+                abbreviation="GNO"
+              />
             )}
             {app.chainSupport.polygon && (
-              <ChainTag name="Polygon" color="purple.500" />
+              <ChainTag name="Polygon" color="purple.500" abbreviation="POL" />
             )}
             {app.chainSupport.unichain && (
-              <ChainTag name="UniChain" color="pink.400" />
+              <ChainTag name="UniChain" color="pink.400" abbreviation="UNI" />
             )}
           </>
         ) : (
           <>
             {app.chainSupport.ethereum && (
-              <ChainTag name="Ethereum" color="blue.300" />
+              <ChainTag name="Ethereum" color="blue.300" abbreviation="ETH" />
             )}
             {app.chainSupport.optimism && (
-              <ChainTag name="Optimism" color="red.300" />
+              <ChainTag name="Optimism" color="red.300" abbreviation="OP" />
             )}
-            {app.chainSupport.base && <ChainTag name="Base" color="blue.400" />}
+            {app.chainSupport.base && (
+              <ChainTag name="Base" color="blue.400" abbreviation="BASE" />
+            )}
             {app.chainSupport.bnbChain && (
-              <ChainTag name="BNB Chain" color="yellow.300" />
+              <ChainTag
+                name="BNB Chain"
+                color="yellow.300"
+                abbreviation="BNB"
+              />
             )}
             {app.chainSupport.gnosisChain && (
-              <ChainTag name="Gnosis Chain" color="green.300" />
+              <ChainTag
+                name="Gnosis Chain"
+                color="green.300"
+                abbreviation="GNO"
+              />
             )}
             {app.chainSupport.polygon && (
-              <ChainTag name="Polygon" color="purple.500" />
+              <ChainTag name="Polygon" color="purple.500" abbreviation="POL" />
             )}
             {app.chainSupport.unichain && (
-              <ChainTag name="UniChain" color="pink.400" />
+              <ChainTag name="UniChain" color="pink.400" abbreviation="UNI" />
             )}
           </>
         )}
@@ -530,25 +558,53 @@ const SevenSevenZeroTwoBeat = () => {
                         <Td py={4}>
                           <Flex wrap="wrap" gap={2}>
                             {wallet.chainSupport.ethereum && (
-                              <ChainTag name="Ethereum" color="blue.300" />
+                              <ChainTag
+                                name="Ethereum"
+                                color="blue.300"
+                                abbreviation="ETH"
+                              />
                             )}
                             {wallet.chainSupport.optimism && (
-                              <ChainTag name="Optimism" color="red.300" />
+                              <ChainTag
+                                name="Optimism"
+                                color="red.300"
+                                abbreviation="OP"
+                              />
                             )}
                             {wallet.chainSupport.base && (
-                              <ChainTag name="Base" color="blue.400" />
+                              <ChainTag
+                                name="Base"
+                                color="blue.400"
+                                abbreviation="BASE"
+                              />
                             )}
                             {wallet.chainSupport.bnbChain && (
-                              <ChainTag name="BNB Chain" color="yellow.300" />
+                              <ChainTag
+                                name="BNB Chain"
+                                color="yellow.300"
+                                abbreviation="BNB"
+                              />
                             )}
                             {wallet.chainSupport.gnosisChain && (
-                              <ChainTag name="Gnosis Chain" color="green.300" />
+                              <ChainTag
+                                name="Gnosis Chain"
+                                color="green.300"
+                                abbreviation="GNO"
+                              />
                             )}
                             {wallet.chainSupport.polygon && (
-                              <ChainTag name="Polygon" color="purple.500" />
+                              <ChainTag
+                                name="Polygon"
+                                color="purple.500"
+                                abbreviation="POL"
+                              />
                             )}
                             {wallet.chainSupport.unichain && (
-                              <ChainTag name="UniChain" color="pink.400" />
+                              <ChainTag
+                                name="UniChain"
+                                color="pink.400"
+                                abbreviation="UNI"
+                              />
                             )}
                           </Flex>
                         </Td>
@@ -616,61 +672,105 @@ const SevenSevenZeroTwoBeat = () => {
                             dapp.chainSupport.allChains ? (
                               <>
                                 {dapp.chainSupport.ethereum && (
-                                  <ChainTag name="Ethereum" color="blue.300" />
+                                  <ChainTag
+                                    name="Ethereum"
+                                    color="blue.300"
+                                    abbreviation="ETH"
+                                  />
                                 )}
                                 {dapp.chainSupport.optimism && (
-                                  <ChainTag name="Optimism" color="red.300" />
+                                  <ChainTag
+                                    name="Optimism"
+                                    color="red.300"
+                                    abbreviation="OP"
+                                  />
                                 )}
                                 {dapp.chainSupport.base && (
-                                  <ChainTag name="Base" color="blue.400" />
+                                  <ChainTag
+                                    name="Base"
+                                    color="blue.400"
+                                    abbreviation="BASE"
+                                  />
                                 )}
                                 {dapp.chainSupport.bnbChain && (
                                   <ChainTag
                                     name="BNB Chain"
                                     color="yellow.300"
+                                    abbreviation="BNB"
                                   />
                                 )}
                                 {dapp.chainSupport.gnosisChain && (
                                   <ChainTag
                                     name="Gnosis Chain"
                                     color="green.300"
+                                    abbreviation="GNO"
                                   />
                                 )}
                                 {dapp.chainSupport.polygon && (
-                                  <ChainTag name="Polygon" color="purple.500" />
+                                  <ChainTag
+                                    name="Polygon"
+                                    color="purple.500"
+                                    abbreviation="POL"
+                                  />
                                 )}
                                 {dapp.chainSupport.unichain && (
-                                  <ChainTag name="UniChain" color="pink.400" />
+                                  <ChainTag
+                                    name="UniChain"
+                                    color="pink.400"
+                                    abbreviation="UNI"
+                                  />
                                 )}
                               </>
                             ) : (
                               <>
                                 {dapp.chainSupport.ethereum && (
-                                  <ChainTag name="Ethereum" color="blue.300" />
+                                  <ChainTag
+                                    name="Ethereum"
+                                    color="blue.300"
+                                    abbreviation="ETH"
+                                  />
                                 )}
                                 {dapp.chainSupport.optimism && (
-                                  <ChainTag name="Optimism" color="red.300" />
+                                  <ChainTag
+                                    name="Optimism"
+                                    color="red.300"
+                                    abbreviation="OP"
+                                  />
                                 )}
                                 {dapp.chainSupport.base && (
-                                  <ChainTag name="Base" color="blue.400" />
+                                  <ChainTag
+                                    name="Base"
+                                    color="blue.400"
+                                    abbreviation="BASE"
+                                  />
                                 )}
                                 {dapp.chainSupport.bnbChain && (
                                   <ChainTag
                                     name="BNB Chain"
                                     color="yellow.300"
+                                    abbreviation="BNB"
                                   />
                                 )}
                                 {dapp.chainSupport.gnosisChain && (
                                   <ChainTag
                                     name="Gnosis Chain"
                                     color="green.300"
+                                    abbreviation="GNO"
                                   />
                                 )}
                                 {dapp.chainSupport.polygon && (
-                                  <ChainTag name="Polygon" color="purple.500" />
+                                  <ChainTag
+                                    name="Polygon"
+                                    color="purple.500"
+                                    abbreviation="POL"
+                                  />
                                 )}
                                 {dapp.chainSupport.unichain && (
-                                  <ChainTag name="UniChain" color="pink.400" />
+                                  <ChainTag
+                                    name="UniChain"
+                                    color="pink.400"
+                                    abbreviation="UNI"
+                                  />
                                 )}
                               </>
                             )}
