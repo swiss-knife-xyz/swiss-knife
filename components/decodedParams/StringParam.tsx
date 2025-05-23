@@ -19,7 +19,7 @@ import {
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import axios from "axios";
 import { decodeBase64, isBigInt, isValidJSON, resolveIPFS } from "@/utils";
-import JsonTextArea from "../JsonTextArea";
+import { JsonTextArea } from "../JsonTextArea";
 import TabsSelector from "../Tabs/TabsSelector";
 import { CopyToClipboard } from "../CopyToClipboard";
 import { ResizableImage } from "../ResizableImage";

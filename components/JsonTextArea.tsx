@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { chakra, Box, BoxProps } from "@chakra-ui/react";
 import SimpleEditor from "react-simple-code-editor";
 import hljs from "highlight.js/lib/core";
@@ -22,6 +22,8 @@ interface JsonTextAreaProps {
   style?: React.CSSProperties;
   onPasteCallback?: (json: any) => void;
   placeholder?: string;
+  autoMaxWidth?: boolean; // add back autoMaxWidth
+  language?: string; // add language prop for syntax highlighting
 }
 
 export function JsonTextArea({
@@ -35,9 +37,37 @@ export function JsonTextArea({
   style = {},
   onPasteCallback,
   placeholder = "",
+  autoMaxWidth = false,
+  language = "json",
   ...props
 }: JsonTextAreaProps & Omit<BoxProps, keyof JsonTextAreaProps>) {
   const boxRef = useRef<HTMLDivElement>(null);
+  const [maxWidth, setMaxWidth] = useState<string>("100%");
+
+  useEffect(() => {
+    if (autoMaxWidth && boxRef.current) {
+      const calculateMaxWidth = () => {
+        const lines = value.split("\n");
+        const longestLine = lines.reduce((a, b) =>
+          a.length > b.length ? a : b
+        );
+        const tempSpan = document.createElement("span");
+        tempSpan.style.visibility = "hidden";
+        tempSpan.style.position = "absolute";
+        tempSpan.style.whiteSpace = "pre";
+        tempSpan.style.font = window.getComputedStyle(
+          boxRef.current!.querySelector("pre")!
+        ).font;
+        tempSpan.textContent = longestLine;
+        document.body.appendChild(tempSpan);
+        const width = tempSpan.getBoundingClientRect().width;
+        document.body.removeChild(tempSpan);
+        return `${Math.ceil(width + 40)}px`; // Add some padding
+      };
+
+      setMaxWidth(calculateMaxWidth());
+    }
+  }, [value, autoMaxWidth]);
 
   const handleChange = (newValue: string) => {
     onChange?.(newValue);
@@ -73,6 +103,7 @@ export function JsonTextArea({
       roundedRight="4px"
       resize={canResize ? "both" : "none"}
       position="relative"
+      width={autoMaxWidth ? maxWidth : undefined}
       {...props}
     >
       <ChakraSimpleEditor
@@ -84,7 +115,7 @@ export function JsonTextArea({
         highlight={(code) => {
           try {
             return hljs.highlight(code, {
-              language: "json",
+              language: language,
             }).value;
           } catch {
             return code; // Fallback to raw text if highlighting fails
@@ -99,7 +130,7 @@ export function JsonTextArea({
           ...style,
         }}
         textareaClassName="focus:outline-none"
-        preClassName="language-json"
+        preClassName={`language-${language}`}
         tabSize={2}
         insertSpaces={true}
         ignoreTabKey={true}
