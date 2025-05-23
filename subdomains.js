@@ -60,6 +60,10 @@ const subdomains = {
     paths: [],
     isRelativePath: true,
   },
+  "712HASH": {
+    base: "712hash",
+    paths: [],
+  },
 };
 
 module.exports = subdomains;
