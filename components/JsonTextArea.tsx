@@ -13,27 +13,36 @@ const ChakraSimpleEditor = chakra(SimpleEditor);
 
 interface JsonTextAreaProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
+  setValue?: (value: string) => void; // for backward compatibility
   ariaLabel?: string;
   readOnly?: boolean;
   canResize?: boolean;
   className?: string;
   style?: React.CSSProperties;
   onPasteCallback?: (json: any) => void;
+  placeholder?: string;
 }
 
 export function JsonTextArea({
   value,
   onChange,
+  setValue,
   ariaLabel = "JSON editor",
   readOnly = false,
   canResize = true,
   className = "",
   style = {},
   onPasteCallback,
+  placeholder = "",
   ...props
 }: JsonTextAreaProps & Omit<BoxProps, keyof JsonTextAreaProps>) {
   const boxRef = useRef<HTMLDivElement>(null);
+
+  const handleChange = (newValue: string) => {
+    onChange?.(newValue);
+    setValue?.(newValue); // call setValue if provided
+  };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
@@ -43,12 +52,12 @@ export function JsonTextArea({
       // Try to parse and prettify the JSON
       const parsedJson = JSON.parse(pastedText);
       const prettifiedJson = JSON.stringify(parsedJson, null, 2);
-      onChange(prettifiedJson);
+      handleChange(prettifiedJson);
       // Pass the parsed JSON directly to callback
       onPasteCallback?.(parsedJson);
     } catch (err) {
       // If parsing fails, just set the raw text
-      onChange(pastedText);
+      handleChange(pastedText);
     }
   };
 
@@ -68,9 +77,10 @@ export function JsonTextArea({
     >
       <ChakraSimpleEditor
         value={value}
-        onValueChange={onChange}
+        onValueChange={handleChange}
         onPaste={handlePaste}
         readOnly={readOnly}
+        placeholder={placeholder}
         highlight={(code) => {
           try {
             return hljs.highlight(code, {

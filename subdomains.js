@@ -60,9 +60,9 @@ const subdomains = {
     paths: [],
     isRelativePath: true,
   },
-  "712HASH": {
-    base: "712hash",
-    paths: [],
+  SAFE: {
+    base: "safe",
+    paths: ["calldata-decoder", "eip-712-hash"],
   },
 };
 

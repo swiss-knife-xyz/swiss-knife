@@ -49,12 +49,16 @@ import { Label } from "@/components/Label";
 import { renderParams } from "@/components/renderParams";
 import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
-import JsonTextArea from "@/components/JsonTextArea";
+import { JsonTextArea } from "@/components/JsonTextArea";
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { decodeRecursive } from "@/lib/decoder";
 
-export const CalldataDecoderPage = () => {
+export const CalldataDecoderPage = ({
+  headerText,
+}: {
+  headerText?: string;
+}) => {
   const toast = useToast();
   const searchParams = useSearchParams();
 
@@ -488,9 +492,9 @@ export const CalldataDecoderPage = () => {
   };
 
   return (
-    <>
-      <Heading color={"custom.pale"} fontSize={"4xl"}>
-        Universal Calldata Decoder
+    <Box p={10} minH={"30rem"} w="full" minW="40rem">
+      <Heading color={"custom.pale"} fontSize={"4xl"} textAlign={"center"}>
+        {headerText ?? "Universal Calldata Decoder"}
       </Heading>
       <TabsSelector
         tabs={["No ABI", "from ABI", "from Address", "from Tx"]}
@@ -583,6 +587,6 @@ export const CalldataDecoderPage = () => {
           </Stack>
         </Box>
       )}
-    </>
+    </Box>
   );
 };
