@@ -37,6 +37,7 @@ const SidebarItem = ({
         borderRadius="lg"
         role="group"
         cursor="pointer"
+        whiteSpace="nowrap"
         _hover={{
           bg: "blue.200",
           color: "gray.700",

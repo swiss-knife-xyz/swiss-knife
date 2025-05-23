@@ -115,9 +115,12 @@ export const UintParam = ({ value: _value }: Params) => {
                   {isNumericFormat && (
                     <InputLeftElement>
                       <Button
-                        px="1rem"
-                        ml="1rem"
                         size="xs"
+                        minW="14"
+                        px="2"
+                        py="4"
+                        ml="1.5rem"
+                        h="5"
                         onClick={() => setShowFormatted((prev) => !prev)}
                       >
                         {showFormatted ? "Raw" : "Format"}
