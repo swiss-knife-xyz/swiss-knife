@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Heading,
@@ -15,13 +15,16 @@ import {
   Center,
   Flex,
   Button,
-  Textarea,
   Alert,
   AlertIcon,
+  Skeleton,
 } from "@chakra-ui/react";
 import { Layout } from "@/components/Layout";
 import { hashTypedData, hashStruct } from "viem";
 import { TypedDataEncoder } from "ethers";
+import { JsonTextArea } from "@/components/JsonTextArea";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { parseAsString, useQueryState } from "next-usequerystate";
 
 type TypedDataInput = {
   domain: Record<string, any>;
@@ -60,9 +63,41 @@ function computeEip712Hash(json: TypedDataInput): HashResult {
 }
 
 export default function SevenOneTwoHash() {
-  const [input, setInput] = useState("");
+  const [jsonData, setJsonData] = useQueryState<string>(
+    "json",
+    parseAsString.withDefault("")
+  );
+  const [input, setInput] = useState(() => {
+    // Initialize with prettified JSON if available
+    if (jsonData) {
+      try {
+        const parsed = JSON.parse(jsonData);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        return "";
+      }
+    }
+    return "";
+  });
   const [result, setResult] = useState<HashResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (jsonData) {
+      try {
+        const parsed = JSON.parse(jsonData);
+        const hashes = computeEip712Hash(parsed);
+        setResult(hashes);
+        setError(null);
+      } catch (err) {
+        console.error(err);
+        setError("Invalid JSON or hashing error in URL data.");
+        setResult(null);
+      }
+    }
+    setIsLoading(false);
+  }, [jsonData]);
 
   const handleVerify = () => {
     try {
@@ -70,18 +105,36 @@ export default function SevenOneTwoHash() {
       const hashes = computeEip712Hash(parsed);
       setResult(hashes);
       setError(null);
+      // Update URL with minified JSON
+      setJsonData(JSON.stringify(parsed));
     } catch (err) {
       console.error(err);
       setError("Invalid JSON or hashing error. Please check your input.");
       setResult(null);
     }
   };
+
+  const handlePastedJson = (parsedJson: any) => {
+    try {
+      const hashes = computeEip712Hash(parsedJson);
+      setResult(hashes);
+      setError(null);
+      // Update URL with minified JSON
+      setJsonData(JSON.stringify(parsedJson));
+      setInput(JSON.stringify(parsedJson, null, 2));
+    } catch (err) {
+      console.error(err);
+      setError("Invalid JSON or hashing error. Please check your input.");
+      setResult(null);
+    }
+  };
+
   return (
     <Layout>
       <VStack
         spacing={10}
         align="stretch"
-        minW="900px"
+        maxW={{ base: "100%", md: "900px" }}
         mx="auto"
         width="100%"
         px={{ base: 2, md: 4 }}
@@ -102,17 +155,33 @@ export default function SevenOneTwoHash() {
         </Center>
 
         <Box>
-          <Flex mb={5}>
+          <Flex mb={5} justifyContent="space-between" alignItems="center">
             <Text>Paste your JSON below</Text>
+            <CopyToClipboard textToCopy={input} size="sm" />
           </Flex>
-          <Textarea
-            placeholder="Insert EIP-712 typed data struct"
-            rows={9}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            color="white"
-            fontFamily="mono"
-          />
+          <Box position="relative" width="100%" overflow="hidden">
+            <Skeleton
+              isLoaded={!isLoading}
+              startColor="whiteAlpha.100"
+              endColor="whiteAlpha.300"
+              borderRadius="md"
+            >
+              <JsonTextArea
+                value={input}
+                onChange={(value) => {
+                  setInput(value);
+                  // Clear URL if input is empty
+                  if (!value) {
+                    setJsonData("");
+                  }
+                }}
+                readOnly={false}
+                ariaLabel="EIP-712 typed data JSON"
+                h="300px"
+                onPasteCallback={handlePastedJson}
+              />
+            </Skeleton>
+          </Box>
           <Flex my={5} justifyContent="end">
             <Button onClick={handleVerify} colorScheme="blue">
               Verify
@@ -130,33 +199,59 @@ export default function SevenOneTwoHash() {
               <Heading size="md" color="white" mb={3}>
                 Resulting Hashes
               </Heading>
-              <Table
-                variant="simple"
-                color="white"
-                bg="gray.900"
-                rounded={"lg"}
+              <Box
+                border="1px"
+                borderColor="whiteAlpha.300"
+                borderRadius="lg"
+                overflow="hidden"
               >
-                <Thead>
-                  <Tr>
-                    <Th>Type</Th>
-                    <Th>Hash</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  <Tr>
-                    <Td>EIP-712 Hash</Td>
-                    <Td fontFamily="mono">{result.eip712Hash}</Td>
-                  </Tr>
-                  <Tr>
-                    <Td>Domain Hash</Td>
-                    <Td fontFamily="mono">{result.domainHash}</Td>
-                  </Tr>
-                  <Tr>
-                    <Td>Message Hash</Td>
-                    <Td fontFamily="mono">{result.messageHash}</Td>
-                  </Tr>
-                </Tbody>
-              </Table>
+                <Table variant="simple" color="white">
+                  <Thead>
+                    <Tr>
+                      <Th>Type</Th>
+                      <Th>Hash</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    <Tr>
+                      <Td>EIP-712 Hash</Td>
+                      <Td fontFamily="mono">
+                        <Flex alignItems="center" gap={2}>
+                          {result.eip712Hash}
+                          <CopyToClipboard
+                            textToCopy={result.eip712Hash}
+                            size="xs"
+                          />
+                        </Flex>
+                      </Td>
+                    </Tr>
+                    <Tr>
+                      <Td>Domain Hash</Td>
+                      <Td fontFamily="mono">
+                        <Flex alignItems="center" gap={2}>
+                          {result.domainHash}
+                          <CopyToClipboard
+                            textToCopy={result.domainHash}
+                            size="xs"
+                          />
+                        </Flex>
+                      </Td>
+                    </Tr>
+                    <Tr>
+                      <Td>Message Hash</Td>
+                      <Td fontFamily="mono">
+                        <Flex alignItems="center" gap={2}>
+                          {result.messageHash}
+                          <CopyToClipboard
+                            textToCopy={result.messageHash}
+                            size="xs"
+                          />
+                        </Flex>
+                      </Td>
+                    </Tr>
+                  </Tbody>
+                </Table>
+              </Box>
             </Box>
           )}
         </Box>
