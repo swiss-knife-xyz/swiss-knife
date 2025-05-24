@@ -29,15 +29,8 @@ export default async function middleware(
   const response = NextResponse.next();
 
   // Handle URL params for bridge apps route
-  const host = request.headers.get("host") || "";
-  const isWalletSubdomain = host.startsWith("wallet.");
-
-  if (
-    (isWalletSubdomain &&
-      request.nextUrl.pathname.startsWith("/bridge/apps")) ||
-    (!isWalletSubdomain &&
-      request.nextUrl.pathname.startsWith("/wallet/bridge/apps"))
-  ) {
+  const pathname = request.nextUrl.pathname;
+  if (pathname.includes("/bridge/apps")) {
     response.headers.set("x-url-with-params", request.url);
   }
 

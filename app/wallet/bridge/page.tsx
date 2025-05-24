@@ -616,7 +616,7 @@ export default function WalletBridgePage() {
             </Text>
             <Button
               as="a"
-              href="/wallet/bridge/apps"
+              href="https://swiss-knife.xyz/wallet/bridge/apps"
               size="sm"
               bg="whiteAlpha.200"
               color="white"
