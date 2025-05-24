@@ -64,3 +64,14 @@ export const filterActiveSessions = (sessions: any[]) => {
     return session.controller === session.self.publicKey;
   });
 };
+
+// Helper function to validate URLs
+export const isValidUrl = (urlString: string): boolean => {
+  try {
+    const url = new URL(urlString);
+    // Check if protocol is http or https
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch (e) {
+    return false;
+  }
+};

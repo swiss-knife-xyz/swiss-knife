@@ -10,7 +10,7 @@ import {
 } from "@chakra-ui/react";
 import { useLocalStorage } from "usehooks-ts";
 import { Footer } from "@/components/Footer";
-import { MainSidebar } from "@/components/MainSidebar";
+// import { MainSidebar } from "@/components/MainSidebar";
 import { Sidebar, SidebarItem } from "@/components/Sidebar";
 import { Navbar } from "@/components/Navbar";
 
@@ -41,9 +41,9 @@ export const BaseLayout = ({ children }: LayoutParams) => {
       <Box flexGrow={1} overflow="hidden">
         <Flex direction={{ base: "column", md: "row" }} alignItems="flex-start">
           {/* On mobile, sidebar is conditionally rendered based on isNavExpanded */}
-          {(!isMobile || isNavExpanded) && (
+          {/* {(!isMobile || isNavExpanded) && (
             <MainSidebar isNavExpanded={isNavExpanded} toggleNav={toggleNav} />
-          )}
+          )} */}
           <Flex flexDir="column" flexGrow={1} overflow="hidden" width="100%">
             <Box overflowX="hidden" flexGrow={1} width="100%">
               <Container

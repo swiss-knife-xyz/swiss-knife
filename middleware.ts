@@ -10,7 +10,7 @@ export default async function middleware(
   request: NextRequest,
   event: NextFetchEvent
 ): Promise<Response | undefined> {
-  // // limit the request based on the IP
+  // // API rate limiting logic
   // const { success, limit, reset, remaining } = await ratelimit.limit(
   //   `ratelimit_middleware_${getIP(request)}`
   // );
@@ -26,9 +26,19 @@ export default async function middleware(
   // res.headers.set("X-RateLimit-Reset", reset.toString());
   // return res;
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  // Handle URL params for bridge apps route
+  if (request.nextUrl.pathname.startsWith("/wallet/bridge/apps")) {
+    response.headers.set("x-url-with-params", request.url);
+  }
+
+  return response;
 }
 
 export const config = {
-  matcher: "/api/(.*)",
+  matcher: [
+    // "/api/(.*)",  // For API rate limiting (commented out)
+    "/wallet/bridge/apps/:path*", // For bridge apps URL params
+  ],
 };

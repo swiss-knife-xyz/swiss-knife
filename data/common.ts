@@ -226,6 +226,19 @@ export const chainIdToChain = (() => {
 
   Object.values(c).map((chain) => {
     res[chain.id] = chain;
+
+    // Override mainnet RPC URL with env variable if available
+    if (chain.id === mainnet.id && process.env.NEXT_PUBLIC_MAINNET_RPC_URL) {
+      res[chain.id] = {
+        ...chain,
+        rpcUrls: {
+          ...chain.rpcUrls,
+          default: {
+            http: [process.env.NEXT_PUBLIC_MAINNET_RPC_URL],
+          },
+        },
+      };
+    }
   });
 
   return res;

@@ -13,6 +13,8 @@ import {
   Skeleton,
   SkeletonText,
   Stack,
+  Button,
+  Center,
 } from "@chakra-ui/react";
 import { Global } from "@emotion/react";
 import frameSdk, { Context } from "@farcaster/frame-sdk";
@@ -594,170 +596,216 @@ export default function WalletBridgePage() {
   }, [currentSessionRequest, chainId]);
 
   return (
-    <Container
-      maxW={"80%"}
-      py={{ base: 4, md: 8 }}
-      px={{ base: 3, sm: 4, md: 6 }}
-      mx="auto"
-    >
-      <Global
-        styles={{
-          ".chakra-react-select__menu": {
-            zIndex: "9999 !important",
-          },
-          ".chakra-react-select__menu-portal": {
-            zIndex: "9999 !important",
-          },
-          ".chakra-react-select__menu-list": {
-            zIndex: "9999 !important",
-          },
-          ".chakra-modal__content": {
-            overflow: "visible !important",
-          },
-          ".chakra-modal__body": {
-            overflow: "visible !important",
-          },
-        }}
-      />
+    <Box w="full" mt="-2rem">
+      {/* Banner for Web3 App Store */}
+      <Center>
+        <Box
+          maxW={{ base: "100%", md: "80%" }}
+          bg="blue.600"
+          color="white"
+          py={3}
+          px={4}
+          textAlign="center"
+          borderBottomWidth={2}
+          borderBottomColor="blue.700"
+          rounded={"lg"}
+        >
+          <Flex justifyContent="center" alignItems="center" gap={4}>
+            <Text fontWeight="semibold" fontSize="md">
+              🎉 New! Check out the Web3 App Store
+            </Text>
+            <Button
+              as="a"
+              href="/wallet/bridge/apps"
+              size="sm"
+              bg="whiteAlpha.200"
+              color="white"
+              border="1px solid rgba(255, 255, 255, 0.3)"
+              _hover={{
+                bg: "whiteAlpha.300",
+              }}
+              display="inline-flex"
+              alignItems="center"
+              justifyContent="center"
+              whiteSpace="nowrap"
+              minW="fit-content"
+              px={4}
+              py={2}
+              borderRadius="md"
+              fontSize="sm"
+              fontWeight="medium"
+            >
+              Explore Apps →
+            </Button>
+          </Flex>
+        </Box>
+      </Center>
 
-      {/* Initialize WalletKit */}
-      <WalletKitInitializer
-        isConnected={isConnected}
-        address={address}
-        setWalletKit={setWalletKit}
-        setActiveSessions={setActiveSessions}
-        setIsInitializing={setIsInitializing}
-        isInitializing={isInitializing}
-      />
-
-      {/* Handle WalletKit events */}
-      <WalletKitEventHandler
-        walletKit={walletKit}
-        address={address}
-        setCurrentSessionProposal={setCurrentSessionProposal}
-        setCurrentSessionRequest={setCurrentSessionRequest}
-        setDecodedTxData={setDecodedTxData}
-        setIsDecodingTx={setIsDecodingTx}
-        setDecodedSignatureData={setDecodedSignatureData}
-        setActiveSessions={setActiveSessions}
-        onSessionProposalOpen={onSessionProposalOpen}
-        onSessionRequestOpen={onSessionRequestOpen}
-      />
-
-      {/* Notify dApps about chain changes */}
-      <ChainNotifier
-        walletKit={walletKit}
-        isConnected={isConnected}
-        chainId={chainId}
-        activeSessions={activeSessions}
-      />
-
-      {/* Handle auto-paste of WalletConnect URIs */}
-      <AutoPasteHandler
-        pasted={pasted}
-        isConnected={isConnected}
-        uri={uri}
-        connectToDapp={connectToDapp}
-        setPasted={setPasted}
-      />
-
-      <VStack
-        spacing={{ base: 4, md: 6 }}
-        align="stretch"
-        w="100%"
-        maxW={{ base: "100%", md: "700px", lg: "800px" }}
+      <Container
+        mt="2rem"
+        maxW={"80%"}
+        px={{ base: 3, sm: 4, md: 6 }}
         mx="auto"
       >
-        <Flex
-          justifyContent="space-between"
-          alignItems="center"
-          direction={{ base: "column", lg: "row" }}
-          gap={{ base: 4, lg: 0 }}
+        <Global
+          styles={{
+            ".chakra-react-select__menu": {
+              zIndex: "9999 !important",
+            },
+            ".chakra-react-select__menu-portal": {
+              zIndex: "9999 !important",
+            },
+            ".chakra-react-select__menu-list": {
+              zIndex: "9999 !important",
+            },
+            ".chakra-modal__content": {
+              overflow: "visible !important",
+            },
+            ".chakra-modal__body": {
+              overflow: "visible !important",
+            },
+          }}
+        />
+
+        {/* Initialize WalletKit */}
+        <WalletKitInitializer
+          isConnected={isConnected}
+          address={address}
+          setWalletKit={setWalletKit}
+          setActiveSessions={setActiveSessions}
+          setIsInitializing={setIsInitializing}
+          isInitializing={isInitializing}
+        />
+
+        {/* Handle WalletKit events */}
+        <WalletKitEventHandler
+          walletKit={walletKit}
+          address={address}
+          setCurrentSessionProposal={setCurrentSessionProposal}
+          setCurrentSessionRequest={setCurrentSessionRequest}
+          setDecodedTxData={setDecodedTxData}
+          setIsDecodingTx={setIsDecodingTx}
+          setDecodedSignatureData={setDecodedSignatureData}
+          setActiveSessions={setActiveSessions}
+          onSessionProposalOpen={onSessionProposalOpen}
+          onSessionRequestOpen={onSessionRequestOpen}
+        />
+
+        {/* Notify dApps about chain changes */}
+        <ChainNotifier
+          walletKit={walletKit}
+          isConnected={isConnected}
+          chainId={chainId}
+          activeSessions={activeSessions}
+        />
+
+        {/* Handle auto-paste of WalletConnect URIs */}
+        <AutoPasteHandler
+          pasted={pasted}
+          isConnected={isConnected}
+          uri={uri}
+          connectToDapp={connectToDapp}
+          setPasted={setPasted}
+        />
+
+        <VStack
+          spacing={{ base: 4, md: 6 }}
+          align="stretch"
+          w="100%"
+          maxW={{ base: "100%", md: "700px", lg: "800px" }}
+          mx="auto"
         >
-          <Heading size={{ base: "xl", md: "xl" }}>💸 Wallet Bridge</Heading>
-          {isConnected && <ConnectButton />}
-        </Flex>
+          <Flex
+            justifyContent="space-between"
+            alignItems="center"
+            direction={{ base: "column", lg: "row" }}
+            gap={{ base: 4, lg: 0 }}
+          >
+            <Heading size={{ base: "xl", md: "xl" }}>💸 Wallet Bridge</Heading>
+            {isConnected && <ConnectButton />}
+          </Flex>
 
-        <AnimatedSubtitle />
+          <AnimatedSubtitle />
 
-        <Box>
-          {isInitializing ? (
-            <Box p={{ base: 4, md: 6 }} borderWidth={1} borderRadius="lg">
-              <Stack spacing={4}>
-                <Skeleton height="40px" width="60%" />
-                <SkeletonText
-                  mt={2}
-                  noOfLines={3}
-                  spacing={4}
-                  skeletonHeight={4}
+          <Box>
+            {isInitializing ? (
+              <Box p={{ base: 4, md: 6 }} borderWidth={1} borderRadius="lg">
+                <Stack spacing={4}>
+                  <Skeleton height="40px" width="60%" />
+                  <SkeletonText
+                    mt={2}
+                    noOfLines={3}
+                    spacing={4}
+                    skeletonHeight={4}
+                  />
+                  <Skeleton height="60px" mt={2} />
+                </Stack>
+              </Box>
+            ) : (
+              <>
+                {!isConnected && (
+                  <Box
+                    mt={{ base: 0, md: -5 }}
+                    p={{ base: 4, md: 6 }}
+                    borderWidth={1}
+                    borderRadius="lg"
+                    textAlign="center"
+                    mb={{ base: 3, md: 4 }}
+                  >
+                    <Text mb={{ base: 3, md: 4 }}>
+                      Please connect your wallet to use WalletBridge
+                    </Text>
+                    <ConnectButton />
+                  </Box>
+                )}
+
+                {/* Connect to dapp section */}
+                <ConnectDapp
+                  uri={uri}
+                  setUri={setUri}
+                  setPasted={setPasted}
+                  isConnected={isConnected}
+                  connectToDapp={connectToDapp}
                 />
-                <Skeleton height="60px" mt={2} />
-              </Stack>
-            </Box>
-          ) : (
-            <>
-              {!isConnected && (
-                <Box
-                  mt={{ base: 0, md: -5 }}
-                  p={{ base: 4, md: 6 }}
-                  borderWidth={1}
-                  borderRadius="lg"
-                  textAlign="center"
-                  mb={{ base: 3, md: 4 }}
-                >
-                  <Text mb={{ base: 3, md: 4 }}>
-                    Please connect your wallet to use WalletBridge
-                  </Text>
-                  <ConnectButton />
-                </Box>
-              )}
 
-              {/* Connect to dapp section */}
-              <ConnectDapp
-                uri={uri}
-                setUri={setUri}
-                setPasted={setPasted}
-                isConnected={isConnected}
-                connectToDapp={connectToDapp}
-              />
+                {/* Active Sessions section */}
+                <ActiveSessions
+                  isConnected={isConnected}
+                  activeSessions={activeSessions}
+                  chainId={chainId}
+                  disconnectSession={disconnectSession}
+                />
+              </>
+            )}
+          </Box>
+        </VStack>
 
-              {/* Active Sessions section */}
-              <ActiveSessions
-                isConnected={isConnected}
-                activeSessions={activeSessions}
-                chainId={chainId}
-                disconnectSession={disconnectSession}
-              />
-            </>
-          )}
-        </Box>
-      </VStack>
+        {/* Session Proposal Modal */}
+        <SessionProposalModal
+          isOpen={isSessionProposalOpen}
+          onClose={onSessionProposalClose}
+          currentSessionProposal={currentSessionProposal}
+          onApprove={approveSessionProposal}
+          onReject={rejectSessionProposal}
+        />
 
-      {/* Session Proposal Modal */}
-      <SessionProposalModal
-        isOpen={isSessionProposalOpen}
-        onClose={onSessionProposalClose}
-        currentSessionProposal={currentSessionProposal}
-        onApprove={approveSessionProposal}
-        onReject={rejectSessionProposal}
-      />
-
-      {/* Session Request Modal */}
-      <SessionRequestModal
-        isOpen={isSessionRequestOpen}
-        onClose={handleSessionRequestClose}
-        currentSessionRequest={currentSessionRequest}
-        decodedTxData={decodedTxData}
-        isDecodingTx={isDecodingTx}
-        decodedSignatureData={decodedSignatureData}
-        pendingRequest={pendingRequest}
-        isSwitchingChain={isSwitchingChain}
-        needsChainSwitch={needsChainSwitch}
-        targetChainId={targetChainId}
-        onApprove={() => handleSessionRequest(true)}
-        onReject={() => handleSessionRequest(false)}
-        onChainSwitch={handleChainSwitch}
-      />
-    </Container>
+        {/* Session Request Modal */}
+        <SessionRequestModal
+          isOpen={isSessionRequestOpen}
+          onClose={handleSessionRequestClose}
+          currentSessionRequest={currentSessionRequest}
+          decodedTxData={decodedTxData}
+          isDecodingTx={isDecodingTx}
+          decodedSignatureData={decodedSignatureData}
+          pendingRequest={pendingRequest}
+          isSwitchingChain={isSwitchingChain}
+          needsChainSwitch={needsChainSwitch}
+          targetChainId={targetChainId}
+          onApprove={() => handleSessionRequest(true)}
+          onReject={() => handleSessionRequest(false)}
+          onChainSwitch={handleChainSwitch}
+        />
+      </Container>
+    </Box>
   );
 }

@@ -20,51 +20,8 @@ import {
   coinbaseWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { frameConnector } from "@/utils/frameConnector";
-import {
-  mainnet,
-  arbitrum,
-  arbitrumSepolia,
-  avalanche,
-  base,
-  baseSepolia,
-  bsc,
-  canto,
-  evmos,
-  gnosis,
-  linea,
-  monadTestnet,
-  optimism,
-  polygon,
-  polygonMumbai,
-  pulsechain,
-  sepolia,
-  sonic,
-  unichain,
-  zora,
-  Chain,
-} from "wagmi/chains";
-
-export const walletChains: readonly [Chain, ...Chain[]] = [
-  // first chain is the default
-  base,
-  mainnet,
-  arbitrum,
-  avalanche,
-  bsc,
-  gnosis,
-  optimism,
-  polygon,
-  pulsechain,
-  sonic,
-  unichain,
-  zora,
-  // testnets
-  sepolia,
-  arbitrumSepolia,
-  baseSepolia,
-  monadTestnet,
-  polygonMumbai,
-];
+import { walletChains } from "@/data/chains";
+export { walletChains };
 
 const appName = "Swiss-Knife.xyz";
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;

@@ -1,4 +1,5 @@
 import { getMetadata } from "@/utils";
+import { Metadata } from "next";
 
 const _metadataInfo = {
   title: "Wallet Bridge | Swiss-Knife.xyz",
@@ -22,7 +23,7 @@ const frame = {
   },
 };
 
-export const metadata = {
+export const metadata: Metadata = {
   ...getMetadata(_metadataInfo),
   other: {
     "fc:frame": JSON.stringify(frame),

@@ -48,7 +48,7 @@ export const POST = async (request: Request) => {
       );
     }
     // we need to use viem's stringify since the result includes a bigint and it is not serializable
-    return new Response(JSON.stringify(decoded), {
+    return new Response(stringify(decoded), {
       headers: {
         "Content-Type": "application/json",
       },
