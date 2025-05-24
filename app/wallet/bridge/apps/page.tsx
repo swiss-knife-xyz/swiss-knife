@@ -775,12 +775,7 @@ function AppStoreContent({
   }
 
   return (
-    <Container
-      maxW="100%"
-      pt={{ base: 0, md: 8 }}
-      pb={8}
-      px={{ base: 4, md: 8 }}
-    >
+    <Container maxW="100%" pb={8} px={{ base: 4, md: 8 }}>
       <Global
         styles={{
           ".chakra-react-select__menu": {
@@ -1331,9 +1326,14 @@ export default function WalletBridgeAppsPage() {
             <Heading size="xl" color="white">
               🏪 Web3 App Store
             </Heading>
-            <Text color="whiteAlpha.800">
-              Please connect your wallet to use the Web3 App Store
-            </Text>
+            <Box>
+              <Text color="whiteAlpha.800">
+                Please connect your wallet to use the Web3 App Store
+              </Text>
+              <Center mt={2}>
+                <ConnectButton />
+              </Center>
+            </Box>
           </VStack>
         </Center>
       </Container>
