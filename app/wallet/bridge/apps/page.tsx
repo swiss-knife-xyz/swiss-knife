@@ -47,6 +47,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { AppGridItem, FavoriteAppGridItem } from "./components/AppGridItem";
 import { swap } from "@/utils";
 import { safeDapps } from "@/data/safe/dapps";
+import frameSdk, { Context } from "@farcaster/frame-sdk";
 
 // Import the SessionRequestModal for handling transactions and signatures
 import SessionRequestModal from "../components/SessionRequestModal";
@@ -156,6 +157,30 @@ function AppStoreContent({
     },
     [setFavoriteDappNames]
   );
+
+  // State for Frame
+  const [isFrameSDKLoaded, setIsFrameSDKLoaded] = useState(false);
+  const [frameContext, setFrameContext] = useState<Context.FrameContext | null>(
+    null
+  );
+
+  // Initialize Frame SDK
+  useEffect(() => {
+    const load = async () => {
+      const _frameContext = await frameSdk.context;
+      setFrameContext(_frameContext);
+
+      frameSdk.actions.ready().then(() => {
+        if (!_frameContext.client.added) {
+          frameSdk.actions.addFrame();
+        }
+      });
+    };
+    if (frameSdk && !isFrameSDKLoaded) {
+      setIsFrameSDKLoaded(true);
+      load();
+    }
+  }, [isFrameSDKLoaded]);
 
   // Fetch dapps from local dapps.json
   useEffect(() => {
