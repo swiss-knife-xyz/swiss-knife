@@ -35,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
       action: {
         type: "launch_frame",
         name: "Launch Dapp",
-        url: `https://wallet.swiss-knife.xyz/bridge/apps?url=${encodeURIComponent(
+        url: `https://swiss-knife.xyz/wallet/bridge/apps?url=${encodeURIComponent(
           urlParam
         )}`,
         splashImageUrl: `https://swiss-knife.xyz/splashImage.png`,
