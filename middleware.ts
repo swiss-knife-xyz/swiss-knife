@@ -29,7 +29,15 @@ export default async function middleware(
   const response = NextResponse.next();
 
   // Handle URL params for bridge apps route
-  if (request.nextUrl.pathname.startsWith("/wallet/bridge/apps")) {
+  const host = request.headers.get("host") || "";
+  const isWalletSubdomain = host.startsWith("wallet.");
+
+  if (
+    (isWalletSubdomain &&
+      request.nextUrl.pathname.startsWith("/bridge/apps")) ||
+    (!isWalletSubdomain &&
+      request.nextUrl.pathname.startsWith("/wallet/bridge/apps"))
+  ) {
     response.headers.set("x-url-with-params", request.url);
   }
 
@@ -39,6 +47,7 @@ export default async function middleware(
 export const config = {
   matcher: [
     // "/api/(.*)",  // For API rate limiting (commented out)
-    "/wallet/bridge/apps/:path*", // For bridge apps URL params
+    "/wallet/bridge/apps/:path*", // For direct path
+    "/bridge/apps/:path*", // For subdomain path
   ],
 };

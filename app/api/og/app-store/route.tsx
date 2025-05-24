@@ -74,11 +74,6 @@ export async function GET(req: NextRequest) {
       return new Response("Missing url parameter", { status: 400 });
     }
 
-    // Load Poppins font
-    const fontData = await fetch(
-      new URL("../../../../assets/Poppins-Bold.ttf", import.meta.url)
-    ).then((res) => res.arrayBuffer());
-
     // Try to get the OG image URL and convert to data URL
     let imageDataUrl: string | null = null;
     const ogImageUrl = await getOgImage(url);
@@ -87,15 +82,22 @@ export async function GET(req: NextRequest) {
       imageDataUrl = await fetchAndConvertToDataUrl(ogImageUrl);
     }
 
-    // If no OG image found or failed to fetch, use default image
+    // If no OG image found or failed to fetch, return default image directly
     if (!imageDataUrl) {
-      imageDataUrl = await fetchAndConvertToDataUrl(DEFAULT_OG_IMAGE);
-
-      // If even default image fails, return error
-      if (!imageDataUrl) {
-        return new Response("Failed to generate image", { status: 500 });
-      }
+      const defaultImageResponse = await fetch(DEFAULT_OG_IMAGE);
+      return new Response(defaultImageResponse.body, {
+        headers: {
+          "content-type":
+            defaultImageResponse.headers.get("content-type") || "image/png",
+          "cache-control": "public, max-age=31536000, immutable",
+        },
+      });
     }
+
+    // Load Poppins font
+    const fontData = await fetch(
+      new URL("../../../../assets/Poppins-Bold.ttf", import.meta.url)
+    ).then((res) => res.arrayBuffer());
 
     // Try to load the Swiss-Knife logo
     let logoDataUrl: string | null = null;
@@ -181,6 +183,7 @@ export async function GET(req: NextRequest) {
               padding: "40px",
               display: "flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: "24px",
               filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.5))",
             }}
@@ -202,6 +205,7 @@ export async function GET(req: NextRequest) {
                 flexDirection: "column",
                 color: "white",
                 gap: "8px",
+                textAlign: "center",
               }}
             >
               <span
@@ -241,6 +245,13 @@ export async function GET(req: NextRequest) {
     );
   } catch (error) {
     console.error("Error generating OG image:", error);
-    return new Response("Failed to generate image", { status: 500 });
+    const defaultImageResponse = await fetch(DEFAULT_OG_IMAGE);
+    return new Response(defaultImageResponse.body, {
+      headers: {
+        "content-type":
+          defaultImageResponse.headers.get("content-type") || "image/png",
+        "cache-control": "public, max-age=31536000, immutable",
+      },
+    });
   }
 }

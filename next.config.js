@@ -18,7 +18,7 @@ const nextConfig = {
         },
         // set up subdomains
         ...Object.values(subdomains).map((subdomain) => ({
-          source: "/:path((?!_next|chainIcons|icon.png).*)", // Exclude chainIcons from subdomain rewrites
+          source: "/:path*",
           has: [
             {
               type: "host",
