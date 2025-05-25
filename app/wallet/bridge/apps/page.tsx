@@ -236,10 +236,15 @@ function AppStoreContent({
     }
   }, [searchParams]);
 
+  // reload iframe when chainId or address changes
   useEffect(() => {
     setIsIframeLoading(true);
     setIframeKey((prev) => prev + 1);
   }, [chainId]);
+  useEffect(() => {
+    setIsIframeLoading(true);
+    setIframeKey((prev) => prev + 1);
+  }, [address]);
 
   // Decode transaction data
   const decodeTransactionData = useCallback(
