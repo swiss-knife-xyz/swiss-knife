@@ -20,6 +20,8 @@ import {
   Image,
   Button,
   Tooltip,
+  HStack,
+  Link,
 } from "@chakra-ui/react";
 import { Layout } from "@/components/Layout";
 import {
@@ -435,14 +437,16 @@ const AppCard = ({
         <AppLogo app={app} size="30px" />
         <Heading size="md" color="white">
           {app.siteUrl ? (
-            <a
+            <Link
               href={app.siteUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ textDecoration: "none", color: "inherit" }}
+              color="inherit"
+              textDecoration="none"
+              _hover={{ textDecoration: "underline" }}
             >
               {app.name}
-            </a>
+            </Link>
           ) : (
             app.name
           )}
@@ -562,7 +566,7 @@ const SevenSevenZeroTwoBeat = () => {
   return (
     <Layout>
       <VStack spacing={10} align="stretch" width="100%" px={{ base: 2, md: 4 }}>
-        <Center flexDirection="column" pt={8} pb={6}>
+        <Center flexDirection="column" pt={8}>
           <Heading
             as="h1"
             size="2xl"
@@ -576,7 +580,16 @@ const SevenSevenZeroTwoBeat = () => {
             position="relative"
           >
             <Text as="span" color="red.400">
-              7702
+              <Link
+                href="https://eip.tools/eip/7702"
+                target="_blank"
+                rel="noopener noreferrer"
+                color="inherit"
+                textDecoration="none"
+                _hover={{ textDecoration: "underline" }}
+              >
+                7702
+              </Link>
             </Text>
             <Text as="span" color="white" ml={2}>
               Beat
@@ -590,14 +603,35 @@ const SevenSevenZeroTwoBeat = () => {
             maxW="700px"
             px={4}
           >
-            Stats about 7702 adoption across EVM chains, Wallets and Dapps
+            Stats about{" "}
+            <Link
+              href="https://eip.tools/eip/7702"
+              target="_blank"
+              rel="noopener noreferrer"
+              color="inherit"
+              textDecoration="none"
+              _hover={{ textDecoration: "underline" }}
+            >
+              7702
+            </Link>{" "}
+            adoption across EVM chains, Wallets and Dapps
           </Text>
         </Center>
 
         <Box>
           <Flex justify="space-between" align="center" mb={5}>
             <Heading size="lg" color="white">
-              Chains Supporting 7702
+              Chains Supporting{" "}
+              <Link
+                href="https://eip.tools/eip/7702"
+                target="_blank"
+                rel="noopener noreferrer"
+                color="inherit"
+                textDecoration="none"
+                _hover={{ textDecoration: "underline" }}
+              >
+                7702
+              </Link>
             </Heading>
             {selectedChain && (
               <Button
@@ -671,17 +705,16 @@ const SevenSevenZeroTwoBeat = () => {
                           <Flex align="center">
                             <AppLogo app={wallet} size="26px" />
                             {wallet.siteUrl ? (
-                              <a
+                              <Link
                                 href={wallet.siteUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                style={{
-                                  textDecoration: "none",
-                                  color: "inherit",
-                                }}
+                                color="inherit"
+                                textDecoration="none"
+                                _hover={{ textDecoration: "underline" }}
                               >
                                 <Text>{wallet.name}</Text>
-                              </a>
+                              </Link>
                             ) : (
                               <Text>{wallet.name}</Text>
                             )}
@@ -750,9 +783,25 @@ const SevenSevenZeroTwoBeat = () => {
         </Box>
 
         <Box>
-          <Heading size="lg" mb={5} color="white">
-            Dapps
-          </Heading>
+          <HStack mb={5} alignItems="baseline">
+            <Heading size="lg" color="white">
+              Dapps
+            </Heading>
+            <Text fontSize={"md"} color="whiteAlpha.800">
+              (Supporting{" "}
+              <Link
+                href="https://eip.tools/eip/5792"
+                target="_blank"
+                rel="noopener noreferrer"
+                color="inherit"
+                textDecoration="none"
+                _hover={{ textDecoration: "underline" }}
+              >
+                EIP-5792
+              </Link>
+              )
+            </Text>
+          </HStack>
 
           {isMobile ? (
             // Mobile view with cards
@@ -795,17 +844,16 @@ const SevenSevenZeroTwoBeat = () => {
                           <Flex align="center">
                             <AppLogo app={dapp} size="26px" />
                             {dapp.siteUrl ? (
-                              <a
+                              <Link
                                 href={dapp.siteUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                style={{
-                                  textDecoration: "none",
-                                  color: "inherit",
-                                }}
+                                color="inherit"
+                                textDecoration="none"
+                                _hover={{ textDecoration: "underline" }}
                               >
                                 <Text>{dapp.name}</Text>
-                              </a>
+                              </Link>
                             ) : (
                               <Text>{dapp.name}</Text>
                             )}
