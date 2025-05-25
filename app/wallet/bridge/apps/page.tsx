@@ -55,6 +55,8 @@ import { SessionRequest } from "../types";
 import { SafeDappInfo } from "@/types/safeDapps";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart } from "@fortawesome/free-solid-svg-icons";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { zeroAddress } from "viem";
 
 interface AppStoreContentProps {
   chainId: number;
@@ -91,7 +93,7 @@ function AppStoreContent({
   handleSignTypedData,
 }: AppStoreContentProps) {
   const isMobile = useBreakpointValue({ base: true, md: false });
-
+  const { openConnectModal } = useConnectModal();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { iframeRef, isReady } = useImpersonatorIframe();
@@ -129,6 +131,11 @@ function AppStoreContent({
   const [favoriteDappNames, setFavoriteDappNames] = useLocalStorage<string[]>(
     "favorite-dapps",
     []
+  );
+
+  const [pendingDappUrl, setPendingDappUrl] = useLocalStorage<string | null>(
+    "pendingDappUrl",
+    null
   );
 
   // Function to get current dapp info
@@ -574,10 +581,26 @@ function AppStoreContent({
 
   // Open dapp in iframe
   const openDapp = (url: string) => {
-    setIsIframeLoading(true); // Set loading state before navigation
+    if (!address) {
+      // If wallet is not connected, open connect modal first
+      openConnectModal?.();
+      // Store the URL to navigate to after connection
+      setPendingDappUrl(url);
+      return;
+    }
+
+    setIsIframeLoading(true);
     router.push(`/wallet/bridge/apps?url=${encodeURIComponent(url)}`);
     setAppUrl(url);
   };
+
+  // Effect to handle navigation after wallet connection
+  useEffect(() => {
+    if (address && pendingDappUrl) {
+      openDapp(pendingDappUrl);
+      setPendingDappUrl(null);
+    }
+  }, [address, pendingDappUrl]);
 
   // Handle iframe load
   const handleIframeLoad = useCallback(() => {
@@ -1343,31 +1366,9 @@ export default function WalletBridgeAppsPage() {
     [chainId, walletClient, address, toast, skipDecoder]
   );
 
-  if (!isConnected) {
-    return (
-      <Container maxW="100%" py={8}>
-        <Center>
-          <VStack spacing={4}>
-            <Heading size="xl" color="white">
-              🏪 Web3 App Store
-            </Heading>
-            <Box>
-              <Text color="whiteAlpha.800">
-                Please connect your wallet to use the Web3 App Store
-              </Text>
-              <Center mt={2}>
-                <ConnectButton />
-              </Center>
-            </Box>
-          </VStack>
-        </Center>
-      </Container>
-    );
-  }
-
   return (
     <ImpersonatorIframeProvider
-      address={address}
+      address={address || zeroAddress}
       rpcUrl={chainIdToChain[chainId]?.rpcUrls.default.http[0] || ""}
       sendTransaction={handleTransaction}
       signMessage={handleSignMessage}
