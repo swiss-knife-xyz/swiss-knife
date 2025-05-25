@@ -258,6 +258,15 @@ const dapps: SupportedApp[] = [
       unichain: true,
     },
   },
+  {
+    name: "ZAMM",
+    logoUrl:
+      "https://pbs.twimg.com/profile_images/1923055014492209152/YBAwv6wp_400x400.jpg",
+    siteUrl: "https://coin.nani.ooo/",
+    chainSupport: {
+      ethereum: true,
+    },
+  },
 ];
 
 const ChainTag = ({
@@ -338,27 +347,32 @@ const AppLogo = ({
 }: {
   app: SupportedApp;
   size?: string;
-}) => (
-  <Box
-    w={size}
-    h={size}
-    mr={3}
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-  >
-    {app.logoUrl ? (
-      <Image
-        alt={app.name}
-        src={app.logoUrl}
-        boxSize={size}
-        objectFit="contain"
-        rounded={"full"}
-        bg="white"
-      />
-    ) : null}
-  </Box>
-);
+}) => {
+  // List of apps that need white background for their logos
+  const needsWhiteBg = ["Vaults.fyi", "Jumper"];
+
+  return (
+    <Box
+      w={size}
+      h={size}
+      mr={3}
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+    >
+      {app.logoUrl ? (
+        <Image
+          alt={app.name}
+          src={app.logoUrl}
+          boxSize={size}
+          objectFit="contain"
+          rounded={"full"}
+          bg={needsWhiteBg.includes(app.name) ? "white" : "transparent"}
+        />
+      ) : null}
+    </Box>
+  );
+};
 
 interface ChainCardProps {
   chain: Chain;
