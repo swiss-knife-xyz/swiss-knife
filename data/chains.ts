@@ -24,8 +24,8 @@ import {
 
 export const walletChains: readonly [Chain, ...Chain[]] = [
   // first chain is the default
-  base,
   mainnet,
+  base,
   arbitrum,
   avalanche,
   bsc,
