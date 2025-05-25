@@ -18,7 +18,6 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
-  ModalOverlay,
   Skeleton,
   SkeletonText,
   Stack,
@@ -31,17 +30,24 @@ import {
   Text,
   Tooltip,
   VStack,
+  Image,
 } from "@chakra-ui/react";
 import { Global } from "@emotion/react";
-import { formatEther } from "viem";
+import { useAccount } from "wagmi";
+import {
+  formatEther,
+  Address,
+  createPublicClient,
+  http,
+  erc20Abi,
+  zeroAddress,
+} from "viem";
 import { DecodedSignatureData, SessionRequest } from "../types";
 import { renderParams } from "@/components/renderParams";
 import { chainIdToChain } from "@/data/common";
 import { useCallback, useEffect, useState } from "react";
-import { Address, createPublicClient, http } from "viem";
-import { erc20Abi } from "viem";
 import axios from "axios";
-import { fetchContractAbi } from "@/utils";
+import { fetchContractAbi, generateTenderlyUrl } from "@/utils";
 import { BsArrowsAngleExpand, BsArrowsAngleContract } from "react-icons/bs";
 
 interface SessionRequestModalProps {
@@ -77,6 +83,8 @@ export default function SessionRequestModal({
   onChainSwitch,
   portalId,
 }: SessionRequestModalProps) {
+  const { address: connectedAddress } = useAccount();
+
   const [addressLabels, setAddressLabels] = useState<string[]>([]);
   const [txDataTabIndex, setTxDataTabIndex] = useState(1); // Start with Raw tab (index 1)
   const [isExpanded, setIsExpanded] = useState(false);
@@ -938,40 +946,78 @@ export default function SessionRequestModal({
             )}
           </ModalBody>
           <ModalFooter borderTopWidth="1px" borderColor="whiteAlpha.200">
-            <Button
-              colorScheme="red"
-              mr={3}
-              onClick={onReject}
-              isDisabled={pendingRequest || isSwitchingChain}
-              size={{ base: "sm", md: "md" }}
-            >
-              Reject
-            </Button>
+            <Flex w="100%" justifyContent="space-between" alignItems="center">
+              {currentSessionRequest?.params?.request?.method ===
+                "eth_sendTransaction" && (
+                <Button
+                  colorScheme="whiteAlpha"
+                  size={{ base: "sm", md: "md" }}
+                  onClick={() => {
+                    const txData =
+                      currentSessionRequest.params.request.params[0];
+                    const chainIdStr =
+                      currentSessionRequest.params.chainId.split(":")[1];
+                    const chainId = parseInt(chainIdStr);
 
-            {needsChainSwitch && targetChainId ? (
-              <Button
-                colorScheme="orange"
-                onClick={onChainSwitch}
-                isLoading={isSwitchingChain}
-                loadingText="Switching..."
-                size={{ base: "sm", md: "md" }}
-              >
-                Switch to{" "}
-                {chainIdToChain[targetChainId]?.name ||
-                  `Chain ID: ${targetChainId}`}
-              </Button>
-            ) : (
-              <Button
-                colorScheme="blue"
-                onClick={onApprove}
-                isLoading={pendingRequest}
-                loadingText="Processing..."
-                isDisabled={needsChainSwitch || isSwitchingChain}
-                size={{ base: "sm", md: "md" }}
-              >
-                Approve
-              </Button>
-            )}
+                    const url = generateTenderlyUrl(
+                      {
+                        from: connectedAddress || zeroAddress,
+                        to: txData.to,
+                        value: txData.value || "0",
+                        data: txData.data || "0x",
+                      },
+                      chainId
+                    );
+                    window.open(url, "_blank");
+                  }}
+                >
+                  <HStack>
+                    <Image
+                      src="https://tenderly.co/tenderly-favicon.ico"
+                      alt="Tenderly"
+                      width={5}
+                      height={5}
+                    />
+                    <Text color="white">Simulate</Text>
+                  </HStack>
+                </Button>
+              )}
+              <HStack spacing={3}>
+                <Button
+                  colorScheme="red"
+                  onClick={onReject}
+                  isDisabled={pendingRequest || isSwitchingChain}
+                  size={{ base: "sm", md: "md" }}
+                >
+                  Reject
+                </Button>
+
+                {needsChainSwitch && targetChainId ? (
+                  <Button
+                    colorScheme="orange"
+                    onClick={onChainSwitch}
+                    isLoading={isSwitchingChain}
+                    loadingText="Switching..."
+                    size={{ base: "sm", md: "md" }}
+                  >
+                    Switch to{" "}
+                    {chainIdToChain[targetChainId]?.name ||
+                      `Chain ID: ${targetChainId}`}
+                  </Button>
+                ) : (
+                  <Button
+                    colorScheme="blue"
+                    onClick={onApprove}
+                    isLoading={pendingRequest}
+                    loadingText="Processing..."
+                    isDisabled={needsChainSwitch || isSwitchingChain}
+                    size={{ base: "sm", md: "md" }}
+                  >
+                    Approve
+                  </Button>
+                )}
+              </HStack>
+            </Flex>
           </ModalFooter>
         </ModalContent>
       </Box>
