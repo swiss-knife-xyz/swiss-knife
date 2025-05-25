@@ -28,6 +28,7 @@ const customDappConfig = {
     11, // WalletConnect
 
     // === not supported in iframe ===
+    129, // Bungee Exchange
     1, // dHEDGE
     186, // Fluid
     18, // Aave
@@ -143,7 +144,6 @@ const customDappConfig = {
   dappsPriority: [
     38, // Uniswap
     157, // Morpho Aave V3-ETH Optimizer
-    129, // Bungee Exchange
     44, // Yearn
     88, // Revoke.cash
     20, // Curve Finance

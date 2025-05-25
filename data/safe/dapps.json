@@ -29,23 +29,6 @@
     ]
   },
   {
-    "id": 129,
-    "name": "Bungee Exchange",
-    "description": "Bridge your assets through the best route!",
-    "url": "https://bungee.exchange/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/129/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137
-    ]
-  },
-  {
     "id": 44,
     "name": "Yearn",
     "description": "The yield protocol for digital assets",
