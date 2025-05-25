@@ -14,6 +14,12 @@ import {
   avalanche,
   zora,
   celo,
+  blast,
+  mode,
+  linea,
+  worldchain,
+  scroll,
+  mantle,
 } from "viem/chains";
 
 // Configuration for custom dapps and disabled dapps
@@ -115,6 +121,7 @@ const customDappConfig = {
     150, // Solid World
     40, // QuickSwap
     161, // Maple Finance Sepolia
+    69, // Matcha
   ],
 
   // List of custom dapps to add
@@ -139,6 +146,29 @@ const customDappConfig = {
         celo.id,
       ],
     },
+    {
+      id: 69,
+      name: "Matcha",
+      description: "Matcha | DEX aggregator by 0x | Search, trade, done.",
+      url: "https://matcha.xyz",
+      iconUrl: "https://matcha.xyz/favicon.svg",
+      chains: [
+        mainnet.id,
+        unichain.id,
+        base.id,
+        arbitrum.id,
+        polygon.id,
+        optimism.id,
+        bsc.id,
+        avalanche.id,
+        blast.id,
+        mode.id,
+        linea.id,
+        worldchain.id,
+        scroll.id,
+        mantle.id,
+      ],
+    },
   ] as SafeDappInfo[],
 
   dappsPriority: [
@@ -148,6 +178,7 @@ const customDappConfig = {
     88, // Revoke.cash
     20, // Curve Finance
     151, // Aerodrome Finance
+    69, // Matcha
     155, // Jumper Exchange
     74, // CoW Swap
     48, // Superfluid
@@ -185,7 +216,7 @@ interface SafeApiResponse {
 
 function transformDappInfo(
   dapp: SafeApiResponse,
-  chainId: number
+  chainId: number,
 ): SafeDappInfo {
   const chains = dapp.networks || [];
   // Ensure chainId is included in the chains array
@@ -206,7 +237,7 @@ function transformDappInfo(
 async function fetchDappsForChain(chainId: number): Promise<SafeDappInfo[]> {
   try {
     const response = await axios.get<SafeApiResponse[]>(
-      `https://safe-client.safe.global/v1/chains/${chainId}/safe-apps`
+      `https://safe-client.safe.global/v1/chains/${chainId}/safe-apps`,
     );
     return response.data.map((dapp) => transformDappInfo(dapp, chainId));
   } catch (error) {
@@ -235,7 +266,7 @@ async function main() {
         const existingChains = existingDapp.chains || [];
         const newChains = dapp.chains || [];
         const mergedChains = Array.from(
-          new Set([...existingChains, ...newChains])
+          new Set([...existingChains, ...newChains]),
         );
         uniqueDapps.set(dapp.id, { ...existingDapp, chains: mergedChains });
       }
@@ -249,12 +280,12 @@ async function main() {
   // Save original dapps data before filtering
   await fs.writeFile(
     path.join(outputDir, "safe-dapps-original.json"),
-    JSON.stringify(Array.from(uniqueDapps.values()), null, 2)
+    JSON.stringify(Array.from(uniqueDapps.values()), null, 2),
   );
 
   // Convert unique dapps to array and filter out disabled dapps
   const finalDapps = Array.from(uniqueDapps.values()).filter(
-    (dapp) => !customDappConfig.disabled.includes(dapp.id)
+    (dapp) => !customDappConfig.disabled.includes(dapp.id),
   );
 
   // Add custom dapps
@@ -268,20 +299,20 @@ async function main() {
       .filter((dapp): dapp is SafeDappInfo => dapp !== undefined),
     // Then add remaining dapps that weren't in the priority list
     ...finalDapps.filter(
-      (dapp) => !customDappConfig.dappsPriority.includes(dapp.id)
+      (dapp) => !customDappConfig.dappsPriority.includes(dapp.id),
     ),
   ];
 
   // Save chain-specific data
   await fs.writeFile(
     path.join(outputDir, "dapps-by-chain.json"),
-    JSON.stringify(allDapps, null, 2)
+    JSON.stringify(allDapps, null, 2),
   );
 
   // Save unique dapps data
   await fs.writeFile(
     path.join(outputDir, "dapps.json"),
-    JSON.stringify(sortedDapps, null, 2)
+    JSON.stringify(sortedDapps, null, 2),
   );
 
   console.log("✅ Safe dapps data has been fetched and saved successfully!");
