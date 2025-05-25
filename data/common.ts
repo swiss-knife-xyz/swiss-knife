@@ -74,6 +74,7 @@ import {
   zora,
   zoraTestnet,
   Chain,
+  unichain,
 } from "viem/chains";
 import { _chains } from "./_chains";
 
@@ -280,6 +281,7 @@ export const chainIdToImage = (() => {
     [optimism.id]: `${basePath}/optimism.svg`,
     [polygon.id]: `${basePath}/polygon.svg`,
     [sepolia.id]: `${basePath}/ethereum.svg`,
+    [unichain.id]: `${basePath}/unichain.svg`,
     [zora.id]: `${basePath}/zora.svg`,
   };
 

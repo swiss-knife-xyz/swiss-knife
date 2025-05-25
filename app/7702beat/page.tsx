@@ -6,11 +6,9 @@ import {
   Heading,
   Text,
   VStack,
-  HStack,
   Tag,
   Divider,
   Table,
-  Thead,
   Tbody,
   Tr,
   Th,
@@ -21,20 +19,28 @@ import {
   SimpleGrid,
   Image,
   Button,
-  useColorModeValue,
+  Tooltip,
 } from "@chakra-ui/react";
-import { CheckCircleIcon } from "@chakra-ui/icons";
 import { Layout } from "@/components/Layout";
-import { mainnet, optimism, base, bsc, gnosis, polygon } from "wagmi/chains";
+import {
+  mainnet,
+  optimism,
+  base,
+  bsc,
+  gnosis,
+  polygon,
+  unichain,
+} from "wagmi/chains";
+import { chainIdToImage } from "@/data/common";
 
 interface ChainSupport {
-  ethereum: boolean;
-  optimism: boolean;
-  base: boolean;
-  bnbChain: boolean;
-  gnosisChain: boolean;
-  polygon: boolean;
-  unichain: boolean;
+  ethereum?: boolean;
+  optimism?: boolean;
+  base?: boolean;
+  bnbChain?: boolean;
+  gnosisChain?: boolean;
+  polygon?: boolean;
+  unichain?: boolean;
   allChains?: boolean;
 }
 
@@ -49,6 +55,7 @@ interface Chain {
 interface SupportedApp {
   name: string;
   logoUrl?: string;
+  siteUrl?: string;
   chainSupport: ChainSupport;
 }
 
@@ -97,15 +104,11 @@ const chains: Chain[] = [
     chainObj: polygon,
   },
   {
-    id: 9999, // Using a placeholder ID for UniChain
+    id: unichain.id,
     name: "UniChain",
     color: "pink.400",
     abbreviation: "UNI",
-    chainObj: {
-      id: 9999,
-      name: "UniChain",
-      iconBackground: "pink.400",
-    },
+    chainObj: unichain,
   },
 ];
 
@@ -114,6 +117,7 @@ const wallets: SupportedApp[] = [
     name: "Metamask",
     logoUrl:
       "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://metamask.io&size=128",
+    siteUrl: "https://metamask.io/",
     chainSupport: {
       ethereum: true,
       optimism: true,
@@ -121,13 +125,13 @@ const wallets: SupportedApp[] = [
       bnbChain: true,
       gnosisChain: true,
       polygon: true,
-      unichain: false,
     },
   },
   {
     name: "Ambire",
     logoUrl:
       "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://ambire.com&size=128",
+    siteUrl: "https://www.ambire.com/",
     chainSupport: {
       ethereum: true,
       optimism: true,
@@ -135,7 +139,6 @@ const wallets: SupportedApp[] = [
       bnbChain: true,
       gnosisChain: true,
       polygon: true,
-      unichain: false,
     },
   },
 ];
@@ -145,6 +148,7 @@ const dapps: SupportedApp[] = [
     name: "Revoke.cash",
     logoUrl:
       "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://revoke.cash&size=128",
+    siteUrl: "https://revoke.cash/",
     chainSupport: {
       ethereum: true,
       optimism: true,
@@ -160,12 +164,96 @@ const dapps: SupportedApp[] = [
     name: "Uniswap",
     logoUrl:
       "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://app.uniswap.org&size=128",
+    siteUrl: "https://app.uniswap.org/",
     chainSupport: {
       ethereum: true,
       optimism: true,
       base: true,
       bnbChain: true,
-      gnosisChain: false,
+      polygon: true,
+      unichain: true,
+    },
+  },
+  {
+    name: "Vaults.fyi",
+    logoUrl:
+      "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://app.vaults.fyi&size=128",
+    siteUrl: "https://app.vaults.fyi/",
+    chainSupport: {
+      base: true,
+      // TODO: also supports: arbitrum, berachain, celo
+    },
+  },
+  {
+    name: "Lido",
+    logoUrl:
+      "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://stake.lido.fi/&size=128",
+    siteUrl: "https://stake.lido.fi/",
+    chainSupport: {
+      ethereum: true,
+    },
+  },
+  {
+    name: "Relay",
+    logoUrl:
+      "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://relay.link/&size=128",
+    siteUrl: "https://relay.link/bridge",
+    chainSupport: {
+      ethereum: true,
+      optimism: true,
+      base: true,
+      bnbChain: true,
+      gnosisChain: true,
+      polygon: true,
+      unichain: true,
+    },
+  },
+  {
+    name: "Ekubo",
+    logoUrl:
+      "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://evm.ekubo.org/&size=128",
+    siteUrl: "https://evm.ekubo.org/",
+    chainSupport: {
+      ethereum: true,
+    },
+  },
+  {
+    name: "Jumper",
+    logoUrl:
+      "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://jumper.exchange/&size=128",
+    siteUrl: "https://jumper.exchange/",
+    chainSupport: {
+      ethereum: true,
+      optimism: true,
+      base: true,
+      bnbChain: true,
+      gnosisChain: true,
+      polygon: true,
+      unichain: true,
+    },
+  },
+  {
+    name: "Spark",
+    logoUrl:
+      "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://spark.fi/&size=128",
+    siteUrl: "https://spark.fi/",
+    chainSupport: {
+      ethereum: true,
+      base: true,
+      gnosisChain: true,
+    },
+  },
+  {
+    name: "Matcha",
+    logoUrl:
+      "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://matcha.xyz/&size=128",
+    siteUrl: "https://matcha.xyz/",
+    chainSupport: {
+      ethereum: true,
+      optimism: true,
+      base: true,
+      bnbChain: true,
+      gnosisChain: true,
       polygon: true,
       unichain: true,
     },
@@ -180,21 +268,27 @@ const ChainTag = ({
   name: string;
   color: string;
   abbreviation?: string;
-}) => (
-  <Tag
-    size="md"
-    bg={color}
-    color="gray.800"
-    px={3}
-    py={1}
-    borderRadius="md"
-    fontWeight="medium"
-    opacity={0.9}
-    _hover={{ opacity: 1 }}
-  >
-    {abbreviation || name}
-  </Tag>
-);
+}) => {
+  // Find the matching chain object to get the chain ID and other properties
+  const chainObj = chains.find(
+    (c) => c.name === name || c.abbreviation === abbreviation
+  );
+
+  if (!chainObj) return null;
+
+  return (
+    <Tooltip
+      label={chainObj.abbreviation || chainObj.name}
+      hasArrow
+      placement="top"
+      bg="white"
+    >
+      <Box display="inline-flex" alignItems="center" mr={1} mb={1}>
+        <ChainIcon chain={chainObj} size="24px" />
+      </Box>
+    </Tooltip>
+  );
+};
 
 const ChainIcon = ({
   chain,
@@ -203,27 +297,7 @@ const ChainIcon = ({
   chain: Chain;
   size?: string;
 }) => {
-  // Create favicon URLs for each chain
-  const getFaviconUrl = (chainName: string) => {
-    const urls: Record<string, string> = {
-      Ethereum:
-        "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://ethereum.org&size=128",
-      Optimism:
-        "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://optimism.io&size=128",
-      Base: "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://base.org&size=128",
-      "BNB Chain":
-        "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://bnbchain.org&size=128",
-      "Gnosis Chain":
-        "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://gnosis.io&size=128",
-      Polygon:
-        "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://polygon.technology&size=128",
-      UniChain:
-        "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://unichain.org&size=128",
-    };
-    return urls[chainName] || "";
-  };
-
-  const faviconUrl = getFaviconUrl(chain.name);
+  const logoUrl = chainIdToImage[chain.id] || "";
 
   // Special case for BNB Chain - use a darker background and add a border for better visibility
   const bgColor =
@@ -245,8 +319,8 @@ const ChainIcon = ({
       mx="auto"
       border={chain.name === "BNB Chain" ? "1px solid white" : "none"}
     >
-      {faviconUrl ? (
-        <Image alt={chain.name} src={faviconUrl} boxSize={size} />
+      {logoUrl ? (
+        <Image alt={chain.name} src={logoUrl} boxSize={size} />
       ) : chain.chainObj.iconUrl ? (
         <Image alt={chain.name} src={chain.chainObj.iconUrl} boxSize={size} />
       ) : (
@@ -279,6 +353,8 @@ const AppLogo = ({
         src={app.logoUrl}
         boxSize={size}
         objectFit="contain"
+        rounded={"full"}
+        bg="white"
       />
     ) : null}
   </Box>
@@ -344,7 +420,18 @@ const AppCard = ({
       <Flex align="center" mb={3}>
         <AppLogo app={app} size="30px" />
         <Heading size="md" color="white">
-          {app.name}
+          {app.siteUrl ? (
+            <a
+              href={app.siteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              {app.name}
+            </a>
+          ) : (
+            app.name
+          )}
         </Heading>
       </Flex>
       <Divider borderColor="whiteAlpha.300" mb={3} />
@@ -424,13 +511,13 @@ const AppCard = ({
 const supportsChain = (app: SupportedApp, chain: Chain): boolean => {
   if (app.chainSupport.allChains) return true;
 
-  if (chain.name === "Ethereum") return app.chainSupport.ethereum;
-  if (chain.name === "Optimism") return app.chainSupport.optimism;
-  if (chain.name === "Base") return app.chainSupport.base;
-  if (chain.name === "BNB Chain") return app.chainSupport.bnbChain;
-  if (chain.name === "Gnosis Chain") return app.chainSupport.gnosisChain;
-  if (chain.name === "Polygon") return app.chainSupport.polygon;
-  if (chain.name === "UniChain") return app.chainSupport.unichain;
+  if (chain.name === "Ethereum") return !!app.chainSupport.ethereum;
+  if (chain.name === "Optimism") return !!app.chainSupport.optimism;
+  if (chain.name === "Base") return !!app.chainSupport.base;
+  if (chain.name === "BNB Chain") return !!app.chainSupport.bnbChain;
+  if (chain.name === "Gnosis Chain") return !!app.chainSupport.gnosisChain;
+  if (chain.name === "Polygon") return !!app.chainSupport.polygon;
+  if (chain.name === "UniChain") return !!app.chainSupport.unichain;
 
   return false;
 };
@@ -461,16 +548,33 @@ const SevenSevenZeroTwoBeat = () => {
   return (
     <Layout>
       <VStack spacing={10} align="stretch" width="100%" px={{ base: 2, md: 4 }}>
-        <Center flexDirection="column" pt={4}>
-          <Heading as="h1" size="xl" mb={3} textAlign="center" color="white">
-            7702 Beat
+        <Center flexDirection="column" pt={8} pb={6}>
+          <Heading
+            as="h1"
+            size="2xl"
+            mb={4}
+            textAlign="center"
+            color="white"
+            letterSpacing="tight"
+            fontWeight="black"
+            display="inline-flex"
+            alignItems="center"
+            position="relative"
+          >
+            <Text as="span" color="red.400">
+              7702
+            </Text>
+            <Text as="span" color="white" ml={2}>
+              Beat
+            </Text>
           </Heading>
 
           <Text
             fontSize="lg"
             textAlign="center"
-            color="whiteAlpha.900"
+            color="whiteAlpha.800"
             maxW="700px"
+            px={4}
           >
             Stats about 7702 adoption across EVM chains, Wallets and Dapps
           </Text>
@@ -552,7 +656,21 @@ const SevenSevenZeroTwoBeat = () => {
                         >
                           <Flex align="center">
                             <AppLogo app={wallet} size="26px" />
-                            <Text>{wallet.name}</Text>
+                            {wallet.siteUrl ? (
+                              <a
+                                href={wallet.siteUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  textDecoration: "none",
+                                  color: "inherit",
+                                }}
+                              >
+                                <Text>{wallet.name}</Text>
+                              </a>
+                            ) : (
+                              <Text>{wallet.name}</Text>
+                            )}
                           </Flex>
                         </Td>
                         <Td py={4}>
@@ -662,7 +780,21 @@ const SevenSevenZeroTwoBeat = () => {
                         >
                           <Flex align="center">
                             <AppLogo app={dapp} size="26px" />
-                            <Text>{dapp.name}</Text>
+                            {dapp.siteUrl ? (
+                              <a
+                                href={dapp.siteUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  textDecoration: "none",
+                                  color: "inherit",
+                                }}
+                              >
+                                <Text>{dapp.name}</Text>
+                              </a>
+                            ) : (
+                              <Text>{dapp.name}</Text>
+                            )}
                           </Flex>
                         </Td>
                         <Td py={4}>
