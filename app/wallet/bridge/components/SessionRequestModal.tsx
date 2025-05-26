@@ -61,6 +61,7 @@ interface SessionRequestModalProps {
   isSwitchingChain: boolean;
   needsChainSwitch: boolean;
   targetChainId: number | null;
+  approveText?: string | React.ReactNode;
   onApprove: () => void;
   onReject: () => void;
   onChainSwitch: () => void;
@@ -78,6 +79,7 @@ export default function SessionRequestModal({
   isSwitchingChain,
   needsChainSwitch,
   targetChainId,
+  approveText,
   onApprove,
   onReject,
   onChainSwitch,
@@ -973,7 +975,7 @@ export default function SessionRequestModal({
                 >
                   <HStack>
                     <Image
-                      src="https://tenderly.co/tenderly-favicon.ico"
+                      src="/external/tenderly-favicon.ico"
                       alt="Tenderly"
                       width={5}
                       height={5}
@@ -1013,7 +1015,7 @@ export default function SessionRequestModal({
                     isDisabled={needsChainSwitch || isSwitchingChain}
                     size={{ base: "sm", md: "md" }}
                   >
-                    Approve
+                    {approveText || "Approve"}
                   </Button>
                 )}
               </HStack>

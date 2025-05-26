@@ -27,6 +27,7 @@ import {
   Tooltip,
   Divider,
   useBreakpointValue,
+  Image,
 } from "@chakra-ui/react";
 import { Global } from "@emotion/react";
 import {
@@ -35,7 +36,13 @@ import {
   useImpersonatorIframe,
 } from "@impersonator/iframe";
 import { ArrowBackIcon, CloseIcon, InfoIcon } from "@chakra-ui/icons";
-import { useAccount, useWalletClient, useChainId, useSwitchChain } from "wagmi";
+import {
+  useAccount,
+  useWalletClient,
+  useChainId,
+  useSwitchChain,
+  useConnections,
+} from "wagmi";
 import { chainIdToChain } from "@/data/common";
 import { ErrorBoundary } from "react-error-boundary";
 import { ConnectButton } from "@/components/ConnectButton/ConnectButton";
@@ -57,6 +64,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart } from "@fortawesome/free-solid-svg-icons";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { zeroAddress } from "viem";
+import { impersonatorConnectorId } from "@/utils/impersonatorConnector/connector";
 
 interface AppStoreContentProps {
   chainId: number;
@@ -70,9 +78,6 @@ interface AppStoreContentProps {
   } | null;
   skipDecoder: boolean;
   setSkipDecoder: (value: boolean) => void;
-  handleTransaction: (tx: any) => Promise<string>;
-  handleSignMessage: (message: string) => Promise<string>;
-  handleSignTypedData: (typedData: any) => Promise<string>;
 }
 
 interface WalletError extends Error {
@@ -88,14 +93,12 @@ function AppStoreContent({
   iframeRequestHandlers,
   skipDecoder,
   setSkipDecoder,
-  handleTransaction,
-  handleSignMessage,
-  handleSignTypedData,
 }: AppStoreContentProps) {
   const isMobile = useBreakpointValue({ base: true, md: false });
   const { openConnectModal } = useConnectModal();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const connections = useConnections();
   const { iframeRef, isReady } = useImpersonatorIframe();
   const [iframeKey, setIframeKey] = useState(0);
 
@@ -818,6 +821,20 @@ function AppStoreContent({
           isSwitchingChain={isSwitchingChain}
           needsChainSwitch={needsChainSwitch}
           targetChainId={targetChainId}
+          approveText={
+            connections?.[0]?.connector.id === impersonatorConnectorId ? (
+              <HStack>
+                <Image
+                  color={"black"}
+                  src="/external/impersonator-logo-no-bg-dark.svg"
+                  alt="Impersonator"
+                  width={5}
+                  height={5}
+                />
+                <Text>Approve</Text>
+              </HStack>
+            ) : undefined
+          }
           onApprove={() => handleSessionRequest(true)}
           onReject={() => handleSessionRequest(false)}
           onChainSwitch={handleChainSwitch}
@@ -1042,14 +1059,16 @@ function AppStoreContent({
 }
 
 export default function WalletBridgeAppsPage() {
+  const isMobile = useBreakpointValue({ base: true, md: false });
+
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const toast = useToast();
-  const [skipDecoder, setSkipDecoder] = useLocalStorage(
+  const [skipDecoder, setSkipDecoder] = useLocalStorage<boolean>(
     "wallet-skip-decoder",
-    true
+    !!isMobile // skip by default on mobile
   );
 
   // Store for handling iframe requests
@@ -1388,9 +1407,6 @@ export default function WalletBridgeAppsPage() {
         iframeRequestHandlers={iframeRequestHandlers}
         skipDecoder={skipDecoder}
         setSkipDecoder={setSkipDecoder}
-        handleTransaction={handleTransaction}
-        handleSignMessage={handleSignMessage}
-        handleSignTypedData={handleSignTypedData}
       />
     </ImpersonatorIframeProvider>
   );
