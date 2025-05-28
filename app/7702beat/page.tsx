@@ -263,6 +263,7 @@ const dapps: SupportedApp[] = [
       base.id,
       bsc.id,
       gnosis.id,
+      ink.id,
       optimism.id,
       // polygon.id,
       unichain.id,
