@@ -75,6 +75,7 @@ import {
   zoraTestnet,
   Chain,
   unichain,
+  ink,
 } from "viem/chains";
 import { _chains } from "./_chains";
 
@@ -271,12 +272,14 @@ export const chainIdToImage = (() => {
   let res: {
     [chainId: number]: string;
   } = {
+    // source: https://github.com/rainbow-me/rainbowkit/tree/main/packages/rainbowkit/src/components/RainbowKitProvider/chainIcons
     [arbitrum.id]: `${basePath}/arbitrum.svg`,
     [avalanche.id]: `${basePath}/avalanche.svg`,
     [base.id]: `${basePath}/base.svg`,
     [bsc.id]: `${basePath}/bsc.svg`,
     [cronos.id]: `${basePath}/cronos.svg`,
     [goerli.id]: `${basePath}/ethereum.svg`,
+    [ink.id]: `${basePath}/ink.svg`,
     [mainnet.id]: `${basePath}/ethereum.svg`,
     [optimism.id]: `${basePath}/optimism.svg`,
     [polygon.id]: `${basePath}/polygon.svg`,
