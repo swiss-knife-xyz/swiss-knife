@@ -1,13 +1,24 @@
 [
   {
+    "id": 28,
+    "name": "StakeWise",
+    "description": "Stake your ETH and manage capital flexibly with the principal and yield tokens.",
+    "url": "https://app.stakewise.io/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/28/icon.png",
+    "chains": [
+      1,
+      100
+    ]
+  },
+  {
     "id": 1,
     "name": "dHEDGE",
     "description": "Decentralized asset management",
     "url": "https://dhedge.org/",
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/1/icon.png",
     "chains": [
-      8453,
       1,
+      8453,
       42161,
       10,
       137
@@ -20,768 +31,10 @@
     "url": "https://app.defisaver.com",
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/21/icon.png",
     "chains": [
-      8453,
       1,
+      8453,
       42161,
       10
-    ]
-  },
-  {
-    "id": 186,
-    "name": "Fluid",
-    "description": "Lending & Borrowing protocol with the highest Loan-to-Value ratios in the industry",
-    "url": "https://fluid.io",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/f9f808b3-e12c-4a68-a6cb-b9530887dc59/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161
-    ]
-  },
-  {
-    "id": 18,
-    "name": "Aave v3",
-    "description": "Non-custodial liquidity protocol",
-    "url": "https://app.aave.com",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/8d6c75d7-3255-48d1-882c-edecb2aea73e/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 155,
-    "name": "Jumper Exchange",
-    "description": "Multi-Chain Bridging & Swapping (powered by LI.FI)",
-    "url": "https://jumper.exchange",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/155/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 75,
-    "name": "LlamaPay",
-    "description": "Automate transactions and stream them by the second.",
-    "url": "https://gnosis-safe.llamapay.io",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/75/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 49,
-    "name": "Zodiac",
-    "description": "The expansion pack for DAOs",
-    "url": "https://zodiac.gnosisguild.org/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/49/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      146,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 61,
-    "name": "Snapshot",
-    "description": "Where decisions get made",
-    "url": "https://snapshot.org",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/61/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      56,
-      100,
-      10,
-      137,
-      146
-    ]
-  },
-  {
-    "id": 17,
-    "name": "1inch Network",
-    "description": "The most efficient defi aggregator",
-    "url": "https://app.1inch.io",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/17/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 67,
-    "name": "Ramp Network",
-    "description": "Buy BTC, ETH and more in minutes.",
-    "url": "https://apps-portal.safe.global/ramp-network",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/9588a84d-8ef6-4458-bf5b-9c3e49e74652/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 173,
-    "name": "Arcadia Finance",
-    "description": "The smartest way to earn on Base",
-    "url": "https://arcadia.finance",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/c173f32d-8f2b-4100-a063-71e1baae42dd/icon.png",
-    "chains": [
-      8453
-    ]
-  },
-  {
-    "id": 93,
-    "name": "Balancer",
-    "description": "Balancer is a battle-tested toolkit for true AMM experimentation and innovation.",
-    "url": "https://balancer.fi/pools",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/83174312-cd91-4721-80f6-7d4f7055e1b5/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 138,
-    "name": "Spark",
-    "description": "Spark is an at-scale stablecoin allocation engine capturing yield across DeFi, RWAs and exchanges. This yield is provided cross-chain to Savings USDS holders.",
-    "url": "https://app.spark.fi/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/6e1acc95-882d-4e84-8b0b-90bab460c4a9/icon.png",
-    "chains": [
-      8453,
-      1,
-      100
-    ]
-  },
-  {
-    "id": 174,
-    "name": "SubQuery Network",
-    "description": "dApp for Node Operators, consumers and delegators interact with SubQuery Network",
-    "url": "https://app.subquery.network",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/93784c24-411e-4fa9-bfe0-bdb0c9c29180/icon.png",
-    "chains": [
-      8453
-    ]
-  },
-  {
-    "id": 66,
-    "name": "OtoCo",
-    "description": "Automated Company Assembly on Blockchain",
-    "url": "https://otoco.io",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/66/icon.png",
-    "chains": [
-      8453,
-      1,
-      137,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 74,
-    "name": "CoW Swap",
-    "description": "CoW Swap finds the lowest prices from all decentralized exchanges and DEX aggregators & saves you more with p2p trading and protection from MEV",
-    "url": "https://swap.cow.fi",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/e0ecb7c3-93c1-4598-b9ee-c24d6a798b40/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      100,
-      11155111
-    ]
-  },
-  {
-    "id": 77,
-    "name": "Bitbond Token Tool",
-    "description": "Create, manage and distribute tokens effortlessly across leading EVM chains.",
-    "url": "https://tokentool.bitbond.com/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/77/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      10,
-      137,
-      11155111
-    ]
-  },
-  {
-    "id": 128,
-    "name": "Hedgey Vesting Tokens",
-    "description": "Distribute time-locked vesting tokens with custom cliffs and unlock schedules",
-    "url": "https://app.hedgey.finance/vesting",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/128/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 107,
-    "name": "Toros",
-    "description": "On-chain tokenized derivatives products",
-    "url": "https://toros.finance",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/107/icon.png",
-    "chains": [
-      8453,
-      42161,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 151,
-    "name": "Aerodrome Finance",
-    "description": "Aerodrome Finance is a next-generation AMM that combines the best of Curve, Convex and Uniswap, designed to serve as the central liquidity hub on Base network. Aerodrome NFTs vote on token emissions a",
-    "url": "https://aerodrome.finance",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/151/icon.png",
-    "chains": [
-      8453
-    ]
-  },
-  {
-    "id": 169,
-    "name": "Gelato",
-    "description": "Gelato: all your favorite Web3 tools in one application",
-    "url": "https://app.gelato.network",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/56d23a8c-8864-4515-9412-4a934465b1e5/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 109,
-    "name": "Giveth",
-    "description": "Get rewarded for giving to for-good projects with zero added fees.",
-    "url": "https://giveth.io",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/109/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 184,
-    "name": "Sygnum Web3 Recovery",
-    "description": "Ensure you never lose access to your Safe account with Sygnum, the leading regulated Swiss bank specialising in digital assets. Trusted by over 60% of the top 50 crypto projects as measured by market",
-    "url": "https://web3.sygnum.com",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/60f09921-405a-4686-9a1b-5a5a9d5dba2b/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      56,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 191,
-    "name": "UNCX Liquidity Lockers",
-    "description": "Lock Uniswap liquidity and vest ERC20 tokens with customizable schedules and hooks. Enjoy enhanced security and visibility on popular charting platforms.",
-    "url": "https://safe-lockers.uncx.network",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/c0f4233c-ecd7-4e19-8d75-35d0540c7c99/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      137,
-      11155111
-    ]
-  },
-  {
-    "id": 127,
-    "name": "Hedgey Investor Lockups",
-    "description": "Distribute linear token lockups to your investors",
-    "url": "https://app.hedgey.finance/investor-lockups",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/127/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 71,
-    "name": "0xSplits",
-    "description": "0xSplits is a decentralized protocol for trustlessly sharing onchain income",
-    "url": "https://app.0xsplits.xyz",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/71/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      56,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 123,
-    "name": "Migratooor",
-    "description": "The easiest way to migrate your tokens from one wallet to another.",
-    "url": "https://smold.app/migratooor",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/123/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 48,
-    "name": "Superfluid",
-    "description": "Superfluid is the money streaming protocol. Earn every second.",
-    "url": "https://app.superfluid.org",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/3ee85376-cff1-497a-a9d8-51c0e5234c6e/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 129,
-    "name": "Bungee Exchange",
-    "description": "Bridge your assets through the best route!",
-    "url": "https://bungee.exchange/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/129/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 187,
-    "name": "Hyperdrive One",
-    "description": "Get yield, your way. Access fixed and variable yields at your control with Hyperdrive.",
-    "url": "https://app.hyperdrive.box/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/9aa4b5f3-d5cc-442b-8fbf-40fbe125bdd7/icon.png",
-    "chains": [
-      8453,
-      1,
-      100
-    ]
-  },
-  {
-    "id": 171,
-    "name": "Zodiac Roles",
-    "description": "Manage Safe roles & permissions with Zodiac Roles Modifier v2",
-    "url": "https://roles.gnosisguild.org/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/93100018-6688-41db-a1bd-b527c480b9c4/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      100,
-      10,
-      137,
-      146,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 192,
-    "name": "KyberSwap",
-    "description": "The fastest and most efficient place to trade and earn on multi-chains",
-    "url": "https://kyberswap.com/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/40033adc-165c-4b89-bf70-b31384704ce8/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      10,
-      137,
-      146,
-      130,
-      84532
-    ]
-  },
-  {
-    "id": 145,
-    "name": "Multisight",
-    "description": "An analytics tool for evaluating the response activity of multisignature wallets",
-    "url": "https://multisight.app",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/8921ffe9-8fe0-40c0-935e-76056a22b6a8/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 141,
-    "name": "Sablier",
-    "description": "Onchain token vesting, payroll, and airdrops, supporting up to millions of recipients via CSV file uploads.",
-    "url": "https://app.sablier.com/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/141/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      11155111
-    ]
-  },
-  {
-    "id": 29,
-    "name": "Transaction Builder",
-    "description": "Compose custom contract interactions and batch them into a single transaction",
-    "url": "https://apps-portal.safe.global/tx-builder",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/29/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      146,
-      130,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 175,
-    "name": "TokenOps",
-    "description": "Create, track, and automate token vesting schedules.",
-    "url": "https://safe.tokenops.xyz/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/06b0ba7a-1ecb-46d5-97dc-7feab3f9165c/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      11155111
-    ]
-  },
-  {
-    "id": 46,
-    "name": "Origin Unified Defi",
-    "description": "The official dapp for Origin's groundbreaking multichain yield ecosystem",
-    "url": "https://app.originprotocol.com/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/a9f39583-60b8-483c-b56a-9afae54d820c/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      146
-    ]
-  },
-  {
-    "id": 200,
-    "name": "Balancer Pool Creator",
-    "description": "Create and initialize a variety of liquidity pool types with Balancer protocol",
-    "url": "https://pool-creator.balancer.fi/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/c78ecd51-196c-4470-8b85-7f3f58982b26/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      100,
-      11155111
-    ]
-  },
-  {
-    "id": 204,
-    "name": "Multisender.app",
-    "description": "Multisender facilitates airdrops and other mass transactions on a multitude of networks, including, among others, Ethereum, BSC and Base.",
-    "url": "https://classic.multisender.app/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/ede0c450-ece7-4139-9512-f6e86b5ba3e6/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      146,
-      84532
-    ]
-  },
-  {
-    "id": 202,
-    "name": "StakeKit",
-    "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
-    "url": "https://safe.stakek.it/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      10,
-      137,
-      146
-    ]
-  },
-  {
-    "id": 33,
-    "name": "CSV Airdrop",
-    "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
-    "url": "https://schmanu.infura-ipfs.io/ipfs/QmTNXEN4f4r9XnFk5QUmsMz1JjvvvGp2Eudv3Y5N5qRWEv",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/33/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      146,
-      130,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 43,
-    "name": "Drain Account",
-    "description": "Transfer all your Safe assets in a single transaction",
-    "url": "https://apps-portal.safe.global/drain-safe",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/43/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137,
-      146,
-      130,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 203,
-    "name": "Lagoon Finance",
-    "description": "Lagoon Finance brings DeFi to your fingertips with secure and risk-optimized yield from vaults managed by professional curators.",
-    "url": "https://app.lagoon.finance/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/857018a3-758e-4ad1-8d48-dd5f1aac8ab8/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161
-    ]
-  },
-  {
-    "id": 208,
-    "name": "Nuon Finance",
-    "description": "Nuon is a non-custodial, yield-bearing stablecoin backed by yield-generating assets and tokenized RWAs, powered by decentralized asset management.",
-    "url": "https://nuon.fi/?utm_source=SafeWallet",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/26d4554d-2d23-4cf5-bd2d-ef23cd0725eb/icon.png",
-    "chains": [
-      8453
-    ]
-  },
-  {
-    "id": 25,
-    "name": "Velora (formerly ParaSwap)",
-    "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
-    "url": "https://embedded.paraswap.io",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      43114,
-      56,
-      100,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 205,
-    "name": "Venus Protocol",
-    "description": "Venus is a decentralized finance (DeFi) algorithmic money market protocol on EVM networks.",
-    "url": "https://app.venus.io/?utm_source=SafeWallet",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/f586f39e-71ac-4772-b988-2bde27edfdeb/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      56,
-      10,
-      130
-    ]
-  },
-  {
-    "id": 206,
-    "name": "butterswap",
-    "description": "1st ZK light-client cross-chain aggregator swap. Minimized ZK verification time & optimized gas fees. One-click exchanges btw popular chains & BTC ecosystem.",
-    "url": "https://www.butterswap.io/?utm_source=SafeWallet&referrer=safe",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/797a6a3f-4b06-4fb3-97f3-ef044dba8100/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      56,
-      10,
-      137
-    ]
-  },
-  {
-    "id": 207,
-    "name": "Pendle Finance",
-    "description": "Pendle enables the permissionless tokenization and trading of yield, unlocking various strategies such as obtaining fixed yield, long crypto yields, or trade yields of any assets on Pendle.",
-    "url": "https://app.pendle.finance/?utm_source=SafeWallet",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/cbc8f430-40c3-4f19-9f1a-3e8200608ef6/icon.png",
-    "chains": [
-      8453,
-      1,
-      42161,
-      56,
-      10,
-      146
-    ]
-  },
-  {
-    "id": 165,
-    "name": "Morpho",
-    "description": "A dApp to manage your positions on Morpho.",
-    "url": "https://app.morpho.org/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/79369888-5343-4b1c-a06f-66f6ac73c193/icon.png",
-    "chains": [
-      8453,
-      1,
-      137
-    ]
-  },
-  {
-    "id": 28,
-    "name": "StakeWise",
-    "description": "Stake your ETH and manage capital flexibly with the principal and yield tokens.",
-    "url": "https://app.stakewise.io/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/28/icon.png",
-    "chains": [
-      1,
-      100
     ]
   },
   {
@@ -852,6 +105,18 @@
     ]
   },
   {
+    "id": 186,
+    "name": "Fluid",
+    "description": "Lending & Borrowing protocol with the highest Loan-to-Value ratios in the industry",
+    "url": "https://fluid.io",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/f9f808b3-e12c-4a68-a6cb-b9530887dc59/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161
+    ]
+  },
+  {
     "id": 26,
     "name": "Reflexer",
     "description": "Volatility dampened synthetic instruments",
@@ -882,6 +147,39 @@
     ]
   },
   {
+    "id": 18,
+    "name": "Aave v3",
+    "description": "Non-custodial liquidity protocol",
+    "url": "https://app.aave.com",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/8d6c75d7-3255-48d1-882c-edecb2aea73e/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      100,
+      10,
+      137
+    ]
+  },
+  {
+    "id": 155,
+    "name": "Jumper Exchange",
+    "description": "Multi-Chain Bridging & Swapping (powered by LI.FI)",
+    "url": "https://jumper.exchange",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/155/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137
+    ]
+  },
+  {
     "id": 166,
     "name": "Unistake Pro",
     "description": "Unistake Pro is a staking app built on Stakewise's v3 Staking Vault architecture. The UI offers a simple interface to allow users to stake ETH with Blockscape's Stakewise vault.",
@@ -909,6 +207,43 @@
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/14/icon.png",
     "chains": [
       1
+    ]
+  },
+  {
+    "id": 75,
+    "name": "LlamaPay",
+    "description": "Automate transactions and stream them by the second.",
+    "url": "https://gnosis-safe.llamapay.io",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/75/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137
+    ]
+  },
+  {
+    "id": 49,
+    "name": "Zodiac",
+    "description": "The expansion pack for DAOs",
+    "url": "https://zodiac.gnosisguild.org/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/49/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      146,
+      11155111,
+      84532
     ]
   },
   {
@@ -982,6 +317,40 @@
     ]
   },
   {
+    "id": 61,
+    "name": "Snapshot",
+    "description": "Where decisions get made",
+    "url": "https://snapshot.org",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/61/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      56,
+      100,
+      10,
+      137,
+      146
+    ]
+  },
+  {
+    "id": 17,
+    "name": "1inch Network",
+    "description": "The most efficient defi aggregator",
+    "url": "https://app.1inch.io",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/17/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137
+    ]
+  },
+  {
     "id": 54,
     "name": "Bancor Network",
     "description": "Bancor Safe Staking",
@@ -999,6 +368,23 @@
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/57/icon.png",
     "chains": [
       1
+    ]
+  },
+  {
+    "id": 67,
+    "name": "Ramp Network",
+    "description": "Buy BTC, ETH and more in minutes.",
+    "url": "https://apps-portal.safe.global/ramp-network",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/9588a84d-8ef6-4458-bf5b-9c3e49e74652/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137
     ]
   },
   {
@@ -1098,6 +484,34 @@
     ]
   },
   {
+    "id": 93,
+    "name": "Balancer",
+    "description": "Balancer is a battle-tested toolkit for true AMM experimentation and innovation.",
+    "url": "https://balancer.fi/pools",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/83174312-cd91-4721-80f6-7d4f7055e1b5/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      100,
+      10,
+      137
+    ]
+  },
+  {
+    "id": 138,
+    "name": "Spark",
+    "description": "Spark is an at-scale stablecoin allocation engine capturing yield across DeFi, RWAs and exchanges. This yield is provided cross-chain to Savings USDS holders.",
+    "url": "https://app.spark.fi/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/6e1acc95-882d-4e84-8b0b-90bab460c4a9/icon.png",
+    "chains": [
+      1,
+      8453,
+      100
+    ]
+  },
+  {
     "id": 76,
     "name": "Integral",
     "description": "Integral is the world's 1st DEX for large orders.",
@@ -1163,6 +577,20 @@
       100,
       10,
       137
+    ]
+  },
+  {
+    "id": 66,
+    "name": "OtoCo",
+    "description": "Automated Company Assembly on Blockchain",
+    "url": "https://otoco.io",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/66/icon.png",
+    "chains": [
+      1,
+      8453,
+      137,
+      11155111,
+      84532
     ]
   },
   {
@@ -1247,6 +675,20 @@
     ]
   },
   {
+    "id": 74,
+    "name": "CoW Swap",
+    "description": "CoW Swap finds the lowest prices from all decentralized exchanges and DEX aggregators & saves you more with p2p trading and protection from MEV",
+    "url": "https://swap.cow.fi",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/e0ecb7c3-93c1-4598-b9ee-c24d6a798b40/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      100,
+      11155111
+    ]
+  },
+  {
     "id": 73,
     "name": "Token Approval Manager",
     "description": "View and revoke all your token approvals",
@@ -1255,6 +697,23 @@
     "chains": [
       1,
       100
+    ]
+  },
+  {
+    "id": 77,
+    "name": "Bitbond Token Tool",
+    "description": "Create, manage and distribute tokens effortlessly across leading EVM chains.",
+    "url": "https://tokentool.bitbond.com/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/77/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      10,
+      137,
+      11155111
     ]
   },
   {
@@ -1341,6 +800,25 @@
     ]
   },
   {
+    "id": 128,
+    "name": "Hedgey Vesting Tokens",
+    "description": "Distribute time-locked vesting tokens with custom cliffs and unlock schedules",
+    "url": "https://app.hedgey.finance/vesting",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/128/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      11155111,
+      84532
+    ]
+  },
+  {
     "id": 97,
     "name": "Timeless Finance",
     "description": "Timeless is a yield market protocol that lets you boost, hedge, and trade yield",
@@ -1385,6 +863,72 @@
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/96/icon.png",
     "chains": [
       1
+    ]
+  },
+  {
+    "id": 169,
+    "name": "Gelato",
+    "description": "Gelato: all your favorite Web3 tools in one application",
+    "url": "https://app.gelato.network",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/56d23a8c-8864-4515-9412-4a934465b1e5/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      11155111,
+      84532
+    ]
+  },
+  {
+    "id": 109,
+    "name": "Giveth",
+    "description": "Get rewarded for giving to for-good projects with zero added fees.",
+    "url": "https://giveth.io",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/109/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      100,
+      10,
+      137
+    ]
+  },
+  {
+    "id": 184,
+    "name": "Sygnum Web3 Recovery",
+    "description": "Ensure you never lose access to your Safe account with Sygnum, the leading regulated Swiss bank specialising in digital assets. Trusted by over 60% of the top 50 crypto projects as measured by market",
+    "url": "https://web3.sygnum.com",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/60f09921-405a-4686-9a1b-5a5a9d5dba2b/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      56,
+      100,
+      10,
+      137
+    ]
+  },
+  {
+    "id": 191,
+    "name": "UNCX Liquidity Lockers",
+    "description": "Lock Uniswap liquidity and vest ERC20 tokens with customizable schedules and hooks. Enjoy enhanced security and visibility on popular charting platforms.",
+    "url": "https://safe-lockers.uncx.network",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/c0f4233c-ecd7-4e19-8d75-35d0540c7c99/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      137,
+      11155111
     ]
   },
   {
@@ -1452,6 +996,25 @@
     ]
   },
   {
+    "id": 127,
+    "name": "Hedgey Investor Lockups",
+    "description": "Distribute linear token lockups to your investors",
+    "url": "https://app.hedgey.finance/investor-lockups",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/127/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      11155111,
+      84532
+    ]
+  },
+  {
     "id": 121,
     "name": "Squid",
     "description": "Swap tokens across EVM and Cosmos blockchains, and access apps across chains in a single click. Powered by Axelar.",
@@ -1508,6 +1071,22 @@
     ]
   },
   {
+    "id": 71,
+    "name": "0xSplits",
+    "description": "0xSplits is a decentralized protocol for trustlessly sharing onchain income",
+    "url": "https://app.0xsplits.xyz",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/71/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      56,
+      100,
+      10,
+      137
+    ]
+  },
+  {
     "id": 119,
     "name": "LSD Deployer",
     "description": "Create your own liquid staking derivatives (LSD) network in only 60 seconds. Set your own commissions and build your business. It is completely free to use!",
@@ -1558,6 +1137,21 @@
     ]
   },
   {
+    "id": 123,
+    "name": "Migratooor",
+    "description": "The easiest way to migrate your tokens from one wallet to another.",
+    "url": "https://smold.app/migratooor",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/123/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      100,
+      10,
+      137
+    ]
+  },
+  {
     "id": 181,
     "name": "Tezoro",
     "description": "Create a Digital Will - a smart contract that can transfer your assets to beneficiaries if something goes wrong.",
@@ -1596,6 +1190,54 @@
     ]
   },
   {
+    "id": 48,
+    "name": "Superfluid",
+    "description": "Superfluid is the money streaming protocol. Earn every second.",
+    "url": "https://app.superfluid.org",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/3ee85376-cff1-497a-a9d8-51c0e5234c6e/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      11155111,
+      84532
+    ]
+  },
+  {
+    "id": 129,
+    "name": "Bungee Exchange",
+    "description": "Bridge your assets through the best route!",
+    "url": "https://bungee.exchange/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/129/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137
+    ]
+  },
+  {
+    "id": 187,
+    "name": "Hyperdrive One",
+    "description": "Get yield, your way. Access fixed and variable yields at your control with Hyperdrive.",
+    "url": "https://app.hyperdrive.box/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/9aa4b5f3-d5cc-442b-8fbf-40fbe125bdd7/icon.png",
+    "chains": [
+      1,
+      8453,
+      100
+    ]
+  },
+  {
     "id": 143,
     "name": "Hidden Hand",
     "description": "The marketplace for decentralised governance incentives.",
@@ -1605,6 +1247,25 @@
       1,
       42161,
       10
+    ]
+  },
+  {
+    "id": 171,
+    "name": "Zodiac Roles",
+    "description": "Manage Safe roles & permissions with Zodiac Roles Modifier v2",
+    "url": "https://roles.gnosisguild.org/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/93100018-6688-41db-a1bd-b527c480b9c4/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      100,
+      10,
+      137,
+      146,
+      11155111,
+      84532
     ]
   },
   {
@@ -1626,6 +1287,25 @@
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/142/icon.png",
     "chains": [
       1
+    ]
+  },
+  {
+    "id": 192,
+    "name": "KyberSwap",
+    "description": "The fastest and most efficient place to trade and earn on multi-chains",
+    "url": "https://kyberswap.com/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/40033adc-165c-4b89-bf70-b31384704ce8/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      10,
+      137,
+      146,
+      130,
+      84532
     ]
   },
   {
@@ -1660,6 +1340,25 @@
     "chains": [
       1,
       100
+    ]
+  },
+  {
+    "id": 145,
+    "name": "Multisight",
+    "description": "An analytics tool for evaluating the response activity of multisignature wallets",
+    "url": "https://multisight.app",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/8921ffe9-8fe0-40c0-935e-76056a22b6a8/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      11155111,
+      84532
     ]
   },
   {
@@ -1703,6 +1402,45 @@
     ]
   },
   {
+    "id": 141,
+    "name": "Sablier",
+    "description": "Onchain token vesting, payroll, and airdrops, supporting up to millions of recipients via CSV file uploads.",
+    "url": "https://app.sablier.com/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/141/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      11155111
+    ]
+  },
+  {
+    "id": 29,
+    "name": "Transaction Builder",
+    "description": "Compose custom contract interactions and batch them into a single transaction",
+    "url": "https://apps-portal.safe.global/tx-builder",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/29/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      146,
+      130,
+      11155111,
+      84532
+    ]
+  },
+  {
     "id": 194,
     "name": "DYAD Stablecoin",
     "description": "DYAD Stablecoin Protocol",
@@ -1710,6 +1448,24 @@
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/ccf1a1c1-3257-417b-9a16-fe52c6387e02/icon.png",
     "chains": [
       1
+    ]
+  },
+  {
+    "id": 175,
+    "name": "TokenOps",
+    "description": "Create, track, and automate token vesting schedules.",
+    "url": "https://safe.tokenops.xyz/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/06b0ba7a-1ecb-46d5-97dc-7feab3f9165c/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      11155111
     ]
   },
   {
@@ -1749,6 +1505,19 @@
     ]
   },
   {
+    "id": 46,
+    "name": "Origin Unified Defi",
+    "description": "The official dapp for Origin's groundbreaking multichain yield ecosystem",
+    "url": "https://app.originprotocol.com/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/a9f39583-60b8-483c-b56a-9afae54d820c/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      146
+    ]
+  },
+  {
     "id": 196,
     "name": "sky.money",
     "description": "Rewards, savings, upgrade, and trade",
@@ -1785,6 +1554,20 @@
     ]
   },
   {
+    "id": 200,
+    "name": "Balancer Pool Creator",
+    "description": "Create and initialize a variety of liquidity pool types with Balancer protocol",
+    "url": "https://pool-creator.balancer.fi/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/c78ecd51-196c-4470-8b85-7f3f58982b26/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      100,
+      11155111
+    ]
+  },
+  {
     "id": 34,
     "name": "Summer.fi",
     "description": "Automated Exposure to DeFi’s. Highest Quality Yield",
@@ -1793,6 +1576,158 @@
     "chains": [
       1,
       10
+    ]
+  },
+  {
+    "id": 204,
+    "name": "Multisender.app",
+    "description": "Multisender facilitates airdrops and other mass transactions on a multitude of networks, including, among others, Ethereum, BSC and Base.",
+    "url": "https://classic.multisender.app/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/ede0c450-ece7-4139-9512-f6e86b5ba3e6/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      146,
+      84532
+    ]
+  },
+  {
+    "id": 202,
+    "name": "StakeKit",
+    "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
+    "url": "https://safe.stakek.it/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      10,
+      137,
+      146
+    ]
+  },
+  {
+    "id": 33,
+    "name": "CSV Airdrop",
+    "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
+    "url": "https://schmanu.infura-ipfs.io/ipfs/QmTNXEN4f4r9XnFk5QUmsMz1JjvvvGp2Eudv3Y5N5qRWEv",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/33/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      146,
+      130,
+      11155111,
+      84532
+    ]
+  },
+  {
+    "id": 43,
+    "name": "Drain Account",
+    "description": "Transfer all your Safe assets in a single transaction",
+    "url": "https://apps-portal.safe.global/drain-safe",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/43/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      146,
+      130,
+      11155111,
+      84532
+    ]
+  },
+  {
+    "id": 203,
+    "name": "Lagoon Finance",
+    "description": "Lagoon Finance brings DeFi to your fingertips with secure and risk-optimized yield from vaults managed by professional curators.",
+    "url": "https://app.lagoon.finance/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/857018a3-758e-4ad1-8d48-dd5f1aac8ab8/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161
+    ]
+  },
+  {
+    "id": 25,
+    "name": "Velora (formerly ParaSwap)",
+    "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
+    "url": "https://embedded.paraswap.io",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137
+    ]
+  },
+  {
+    "id": 205,
+    "name": "Venus Protocol",
+    "description": "Venus is a decentralized finance (DeFi) algorithmic money market protocol on EVM networks.",
+    "url": "https://app.venus.io/?utm_source=SafeWallet",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/f586f39e-71ac-4772-b988-2bde27edfdeb/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      56,
+      10,
+      130
+    ]
+  },
+  {
+    "id": 206,
+    "name": "butterswap",
+    "description": "1st ZK light-client cross-chain aggregator swap. Minimized ZK verification time & optimized gas fees. One-click exchanges btw popular chains & BTC ecosystem.",
+    "url": "https://www.butterswap.io/?utm_source=SafeWallet&referrer=safe",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/797a6a3f-4b06-4fb3-97f3-ef044dba8100/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      56,
+      10,
+      137
+    ]
+  },
+  {
+    "id": 207,
+    "name": "Pendle Finance",
+    "description": "Pendle enables the permissionless tokenization and trading of yield, unlocking various strategies such as obtaining fixed yield, long crypto yields, or trade yields of any assets on Pendle.",
+    "url": "https://app.pendle.finance/?utm_source=SafeWallet",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/cbc8f430-40c3-4f19-9f1a-3e8200608ef6/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      56,
+      10,
+      146
     ]
   },
   {
@@ -1805,6 +1740,71 @@
       1,
       43114,
       137
+    ]
+  },
+  {
+    "id": 165,
+    "name": "Morpho",
+    "description": "A dApp to manage your positions on Morpho.",
+    "url": "https://app.morpho.org/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/79369888-5343-4b1c-a06f-66f6ac73c193/icon.png",
+    "chains": [
+      1,
+      8453,
+      137
+    ]
+  },
+  {
+    "id": 173,
+    "name": "Arcadia Finance",
+    "description": "The smartest way to earn on Base",
+    "url": "https://arcadia.finance",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/c173f32d-8f2b-4100-a063-71e1baae42dd/icon.png",
+    "chains": [
+      8453
+    ]
+  },
+  {
+    "id": 174,
+    "name": "SubQuery Network",
+    "description": "dApp for Node Operators, consumers and delegators interact with SubQuery Network",
+    "url": "https://app.subquery.network",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/93784c24-411e-4fa9-bfe0-bdb0c9c29180/icon.png",
+    "chains": [
+      8453
+    ]
+  },
+  {
+    "id": 107,
+    "name": "Toros",
+    "description": "On-chain tokenized derivatives products",
+    "url": "https://toros.finance",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/107/icon.png",
+    "chains": [
+      8453,
+      42161,
+      10,
+      137
+    ]
+  },
+  {
+    "id": 151,
+    "name": "Aerodrome Finance",
+    "description": "Aerodrome Finance is a next-generation AMM that combines the best of Curve, Convex and Uniswap, designed to serve as the central liquidity hub on Base network. Aerodrome NFTs vote on token emissions a",
+    "url": "https://aerodrome.finance",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/151/icon.png",
+    "chains": [
+      8453
+    ]
+  },
+  {
+    "id": 208,
+    "name": "Nuon Finance",
+    "description": "Nuon is a non-custodial, yield-bearing stablecoin backed by yield-generating assets and tokenized RWAs, powered by decentralized asset management.",
+    "url": "https://nuon.fi/?utm_source=SafeWallet",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/26d4554d-2d23-4cf5-bd2d-ef23cd0725eb/icon.png",
+    "chains": [
+      8453
     ]
   },
   {
