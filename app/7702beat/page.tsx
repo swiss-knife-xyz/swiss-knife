@@ -200,6 +200,12 @@ const dapps: SupportedApp[] = [
     supportedChainIds: [base.id],
   },
   {
+    name: "Flaunch",
+    logoUrl: getFaviconUrl("https://flaunch.gg/"),
+    siteUrl: "https://flaunch.gg/",
+    supportedChainIds: [base.id],
+  },
+  {
     name: "Jumper",
     logoUrl: getFaviconUrl("https://jumper.exchange/"),
     siteUrl: "https://jumper.exchange/",
