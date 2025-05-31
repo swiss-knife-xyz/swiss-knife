@@ -49,7 +49,7 @@ const subdomains = {
   },
   WALLET: {
     base: "wallet",
-    paths: ["bridge"],
+    paths: ["bridge", "signatures"],
   },
   ENS: {
     base: "ens",
