@@ -24,11 +24,7 @@ export const SignTypedData = ({
 }: SignTypedDataProps) => {
   const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
-  const {
-    signTypedDataAsync,
-    isPending,
-    error: signError,
-  } = useSignTypedData();
+  const { signTypedDataAsync, isPending } = useSignTypedData();
 
   const [parsedDataForSigning, setParsedDataForSigning] = useState<any | null>(
     null
@@ -97,11 +93,6 @@ export const SignTypedData = ({
       {jsonParseError && (
         <Text color="red.500" mt={2} fontSize="sm">
           {jsonParseError}
-        </Text>
-      )}
-      {signError && (
-        <Text color="red.500" mt={2} fontSize="sm">
-          Signing Error: {signError.message}
         </Text>
       )}
       <Flex my={4} alignItems="end" justifyContent="end">

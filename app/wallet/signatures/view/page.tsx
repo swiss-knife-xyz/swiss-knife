@@ -9,7 +9,6 @@ import {
   Text,
   Box,
   Code,
-  Badge,
   Spinner,
   Alert,
   AlertIcon,
