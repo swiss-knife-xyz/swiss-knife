@@ -35,6 +35,7 @@ export const SignMessage = ({
         value={messageText}
         onChange={(e) => handleMessageChange(e.target.value)}
         borderColor={"gray.400"}
+        bg={"whiteAlpha.50"}
       />
       <Flex my={4} alignItems="end" justifyContent="end">
         <LoadingButton
