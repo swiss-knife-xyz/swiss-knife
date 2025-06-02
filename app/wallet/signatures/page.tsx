@@ -10,6 +10,9 @@ import { SignTypedData } from "./components/SignTypedData";
 import { exampleTypedDataJSON } from "./components/types";
 import { SignatureType, SharedSignaturePayload } from "./components/types";
 
+const DEFAULT_EXAMPLE_PRETTY = JSON.stringify(exampleTypedDataJSON, null, 2);
+const DEFAULT_EXAMPLE_MINIFIED = JSON.stringify(exampleTypedDataJSON);
+
 export default function WalletSignatures() {
   const { address } = useAccount();
   const router = useRouter();
@@ -23,24 +26,68 @@ export default function WalletSignatures() {
     "typedDataToSign",
     parseAsString.withDefault("")
   );
-  const [input, setInput] = useState(() => {
-    if (rawTypedDataString) {
+  const [typedDataInput, setTypedDataInput] = useState(() => {
+    if (rawTypedDataString && rawTypedDataString.trim() !== "") {
       try {
-        const parsed = JSON.parse(rawTypedDataString);
-        return JSON.stringify(parsed, null, 2);
+        return JSON.stringify(JSON.parse(rawTypedDataString), null, 2);
       } catch {
-        return "";
+        return DEFAULT_EXAMPLE_PRETTY;
       }
     }
-    return "";
+    return DEFAULT_EXAMPLE_PRETTY;
   });
+
+  useEffect(() => {
+    if (rawTypedDataString && rawTypedDataString.trim() !== "") {
+      try {
+        const parsed = JSON.parse(rawTypedDataString);
+        const newPretty = JSON.stringify(parsed, null, 2);
+        if (newPretty !== typedDataInput) {
+          setTypedDataInput(newPretty);
+        }
+      } catch (e) {
+        console.error(
+          "Error parsing rawTypedDataString from URL for display sync:",
+          e
+        );
+        if (typedDataInput !== DEFAULT_EXAMPLE_PRETTY) {
+          setTypedDataInput(DEFAULT_EXAMPLE_PRETTY);
+        }
+      }
+    } else {
+      if (typedDataInput.trim() !== "") {
+        setTypedDataInput(DEFAULT_EXAMPLE_PRETTY);
+      }
+    }
+  }, [rawTypedDataString]);
 
   const handlePastedJson = (parsedJson: any) => {
     try {
-      setRawTypedDataString(JSON.stringify(parsedJson));
-      setInput(JSON.stringify(parsedJson, null, 2));
+      const minified = JSON.stringify(parsedJson);
+      const pretty = JSON.stringify(parsedJson, null, 2);
+      setRawTypedDataString(minified);
+      setTypedDataInput(pretty);
     } catch (err) {
-      console.error(err);
+      console.error("Error in handlePastedJson:", err);
+    }
+  };
+
+  const handleTypedDataInputChange = (newTextAreaValue: string) => {
+    setTypedDataInput(newTextAreaValue);
+    if (newTextAreaValue.trim() === "") {
+      if (rawTypedDataString !== "") {
+        setRawTypedDataString("");
+      }
+    } else {
+      try {
+        const parsedObject = JSON.parse(newTextAreaValue);
+        const newMinified = JSON.stringify(parsedObject);
+        if (newMinified !== rawTypedDataString) {
+          setRawTypedDataString(newMinified);
+        }
+      } catch (e) {
+        console.warn(" Invalid JSON typed. URL state not changed.");
+      }
     }
   };
 
@@ -55,6 +102,8 @@ export default function WalletSignatures() {
   ) => {
     try {
       let payloadForUrl: SharedSignaturePayload | undefined;
+      let finalTypedDataRaw = signedContent.typedDataRaw;
+      let finalTypedDataObject = signedContent.typedDataObject;
 
       if (type === "message") {
         if (typeof signedContent.message !== "string") {
@@ -70,10 +119,14 @@ export default function WalletSignatures() {
           timestamp: new Date().toISOString(),
         };
       } else if (type === "typed_data") {
+        if (!finalTypedDataRaw || finalTypedDataRaw.trim() === "") {
+          finalTypedDataRaw = DEFAULT_EXAMPLE_MINIFIED;
+          finalTypedDataObject = exampleTypedDataJSON;
+        }
         if (
-          !signedContent.typedDataRaw ||
-          typeof signedContent.typedDataObject !== "object" ||
-          signedContent.typedDataObject === null
+          !finalTypedDataRaw ||
+          typeof finalTypedDataObject !== "object" ||
+          finalTypedDataObject === null
         ) {
           throw new Error(
             "Typed data content (raw or parsed) is missing for 'typed_data' type signature."
@@ -81,8 +134,8 @@ export default function WalletSignatures() {
         }
         payloadForUrl = {
           type: "typed_data",
-          rawData: signedContent.typedDataRaw,
-          parsedData: signedContent.typedDataObject,
+          rawData: finalTypedDataRaw,
+          parsedData: finalTypedDataObject,
           signature: signature,
           address: address!,
           timestamp: new Date().toISOString(),
@@ -137,18 +190,19 @@ export default function WalletSignatures() {
         </Center>
         <Box position="relative" width="100%" overflow="hidden">
           <SignTypedData
-            typedData={input}
-            setTypedData={(value) => {
-              setInput(value);
-              if (!value) {
-                setRawTypedDataString("");
-              }
-            }}
+            typedData={typedDataInput}
+            setTypedData={handleTypedDataInputChange}
             placeholder={exampleTypedDataJSON}
             onSign={(signature, signedDataObject) =>
               handleSignature(signature, "typed_data", {
-                typedDataRaw: rawTypedDataString,
-                typedDataObject: signedDataObject,
+                typedDataRaw:
+                  rawTypedDataString && rawTypedDataString.trim() !== ""
+                    ? rawTypedDataString
+                    : DEFAULT_EXAMPLE_MINIFIED,
+                typedDataObject:
+                  rawTypedDataString && rawTypedDataString.trim() !== ""
+                    ? signedDataObject
+                    : exampleTypedDataJSON,
               })
             }
             onPasteCallback={handlePastedJson}
