@@ -18,12 +18,23 @@ const subdomainToLabel = {
   [subdomains.UNISWAP.base]: "Uniswap",
   [subdomains.CHARACTER_COUNTER.base]: "Character Counter",
   [subdomains.CONTRACT_ADDRESS.base]: "Contract Address",
+  [subdomains.CONTRACT_DIFF.base]: "Contract Diff",
   [subdomains.FOUNDRY.base]: "Foundry",
+  [subdomains.WALLET.base]: "Wallet",
+  [subdomains.ENS.base]: "ENS",
+  [subdomains["7702BEAT"].base]: "7702 Beat",
+  [subdomains.SAFE.base]: "Safe",
 };
 
-const Btn = ({ subdomain }: { subdomain: string }) => (
+const Btn = ({
+  subdomain,
+  isRelativePath,
+}: {
+  subdomain: string;
+  isRelativePath?: boolean;
+}) => (
   <GridItem>
-    <Link href={getPath(subdomain)}>
+    <Link href={getPath(subdomain, isRelativePath)}>
       <DarkButton w="100%">
         {subdomainToLabel[subdomain] ?? subdomain}
       </DarkButton>
@@ -37,7 +48,11 @@ const Home = () => {
       <Box minH="50vh">
         <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
           {Object.values(subdomains).map((subdomain, i) => (
-            <Btn key={i} subdomain={subdomain.base} />
+            <Btn
+              key={i}
+              subdomain={subdomain.base}
+              isRelativePath={subdomain.isRelativePath}
+            />
           ))}
         </SimpleGrid>
       </Box>

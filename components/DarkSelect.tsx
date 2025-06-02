@@ -1,9 +1,11 @@
+import { useEffect, useState, useRef, useId, useCallback } from "react";
 import { Box, ColorProps, BoxProps } from "@chakra-ui/react";
 import {
   Select as RSelect,
   CreatableSelect,
   OptionsOrGroups,
   GroupBase,
+  SingleValue,
 } from "chakra-react-select";
 import { SelectedOption, SelectedOptionState } from "@/types";
 
@@ -14,6 +16,7 @@ interface Props {
   setSelectedOption: (value: SelectedOptionState) => void;
   boxProps?: BoxProps;
   isCreatable?: boolean;
+  disableMouseNavigation?: boolean;
 }
 
 const selectBg: ColorProps["color"] = "whiteAlpha.200";
@@ -26,82 +29,118 @@ export const DarkSelect = ({
   setSelectedOption,
   boxProps,
   isCreatable,
+  disableMouseNavigation,
 }: Props) => {
+  const [menuPortalTarget, setMenuPortalTarget] = useState<HTMLElement | null>(
+    null
+  );
+  const [menuIsOpen, setMenuIsOpen] = useState(false);
+  const selectRef = useRef<any>(null);
+  const uniqueId = useId();
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      setMenuPortalTarget(document.body);
+    }
+  }, []);
+
+  const handleMenuOpen = () => {
+    setMenuIsOpen(true);
+  };
+
+  const handleMenuClose = () => {
+    setMenuIsOpen(false);
+  };
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (disableMouseNavigation) {
+        if (
+          event.key === "ArrowUp" ||
+          event.key === "ArrowDown" ||
+          event.key === "Enter"
+        ) {
+          event.preventDefault();
+        }
+      }
+    },
+    [disableMouseNavigation]
+  );
+
+  const commonChakraStyles = {
+    container: (provided: any) => ({
+      ...provided,
+      bg: "blackAlpha.100",
+      color: "white",
+    }),
+    groupHeading: (provided: any) => ({
+      ...provided,
+      h: "1px",
+      borderTop: "1px solid white",
+      bg: selectBg,
+    }),
+    menuList: (provided: any) => ({
+      ...provided,
+      bg: "black",
+      zIndex: 9999,
+    }),
+    menu: (provided: any) => ({
+      ...provided,
+      position: "absolute",
+      zIndex: 9999,
+    }),
+    option: (provided: any, state: any) => ({
+      ...provided,
+      color: "white",
+      bg: state.isFocused ? selectHover : selectBg,
+      _hover: {
+        bg: disableMouseNavigation ? "transparent" : selectHover,
+      },
+      pointerEvents: disableMouseNavigation ? "none" : "auto",
+    }),
+  };
+
+  const SelectComponent = isCreatable ? CreatableSelect : RSelect;
+
   return (
-    // TODO: fix the select getting cut off by this component parent's size
-    <Box cursor="pointer" {...boxProps}>
-      {isCreatable ? (
-        <CreatableSelect
-          options={options}
-          value={selectedOption}
-          onChange={setSelectedOption}
-          placeholder={placeholder}
-          size="md"
-          tagVariant="solid"
-          chakraStyles={{
-            container: (provided, state) => ({
-              ...provided,
-              bg: "blackAlpha.100",
-              color: "blue.200",
-            }),
-            groupHeading: (provided, state) => ({
-              ...provided,
-              h: "1px",
-              borderTop: "1px solid white",
-              bg: selectBg,
-            }),
-            menuList: (provided) => ({
-              ...provided,
-              bg: "black",
-            }),
-            option: (provided) => ({
-              ...provided,
-              color: "white",
-              bg: selectBg,
-              _hover: {
-                bg: selectHover,
-              },
-            }),
-          }}
-          closeMenuOnSelect
-          useBasicStyles
-        />
-      ) : (
-        <RSelect
-          options={options}
-          value={selectedOption}
-          onChange={setSelectedOption}
-          placeholder={placeholder}
-          size="md"
-          tagVariant="solid"
-          chakraStyles={{
-            container: (provided, state) => ({
-              ...provided,
-              bg: "blackAlpha.100",
-            }),
-            groupHeading: (provided, state) => ({
-              ...provided,
-              h: "1px",
-              borderTop: "1px solid white",
-              bg: selectBg,
-            }),
-            menuList: (provided) => ({
-              ...provided,
-              bg: "black",
-            }),
-            option: (provided) => ({
-              ...provided,
-              color: "white",
-              bg: selectBg,
-              _hover: {
-                bg: selectHover,
-              },
-            }),
-          }}
-          closeMenuOnSelect
-          useBasicStyles
-        />
-      )}
+    <Box cursor="pointer" pos="relative" overflow="visible" {...boxProps}>
+      <SelectComponent
+        instanceId={uniqueId}
+        ref={selectRef}
+        options={options}
+        value={selectedOption}
+        onChange={
+          setSelectedOption as (value: SingleValue<SelectedOption>) => void
+        }
+        onMenuOpen={handleMenuOpen}
+        onMenuClose={handleMenuClose}
+        defaultValue={selectedOption}
+        menuIsOpen={menuIsOpen}
+        placeholder={placeholder}
+        size="md"
+        tagVariant="solid"
+        chakraStyles={{
+          ...commonChakraStyles,
+          menu: (provided: any) => ({
+            ...provided,
+            position: "absolute",
+            zIndex: 9999,
+          }),
+        }}
+        styles={{
+          menuPortal: (provided: any) => ({
+            ...provided,
+            zIndex: 9999,
+          }),
+        }}
+        closeMenuOnSelect
+        useBasicStyles
+        menuPortalTarget={menuPortalTarget}
+        isSearchable
+        menuPosition="fixed"
+        onKeyDown={handleKeyDown}
+        isDisabled={disableMouseNavigation}
+      />
     </Box>
   );
 };

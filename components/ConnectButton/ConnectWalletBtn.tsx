@@ -1,19 +1,20 @@
 import React from "react";
-import { Button } from "@chakra-ui/react";
+import { Button, useBreakpointValue } from "@chakra-ui/react";
 
 interface Props {
   onClick: () => void;
 }
 
 export const ConnectWalletBtn = ({ onClick }: Props) => {
+  const isMobile = useBreakpointValue({ base: true, sm: false });
+
   return (
     <Button
-      bg={"twitter.700"}
-      _hover={{
-        bg: "twitter.800",
-      }}
+      colorScheme={"blue"}
       onClick={onClick}
-      rounded={"xl"}
+      rounded={"lg"}
+      size={isMobile ? "sm" : "md"}
+      fontSize={isMobile ? "xs" : "md"}
     >
       Connect Wallet
     </Button>

@@ -35,28 +35,30 @@ import {
   useQueryState,
 } from "next-usequerystate";
 import { createPublicClient, http, Hex, Chain, stringify } from "viem";
-import { SelectedOptionState } from "@/types";
-import { c, chainIdToChain } from "@/data/common";
-import { startHexWith0x } from "@/utils";
+import { DecodeRecursiveResult, SelectedOptionState } from "@/types";
+import {
+  c,
+  chainIdToChain,
+  erc3770ShortNameToChain,
+  networkOptions,
+} from "@/data/common";
+import { resolveERC3770Address, startHexWith0x } from "@/utils";
 
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
 import { renderParams } from "@/components/renderParams";
 import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
-import JsonTextArea from "@/components/JsonTextArea";
+import { JsonTextArea } from "@/components/JsonTextArea";
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { decodeRecursive } from "@/lib/decoder";
 
-const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
-  (k, i) => ({
-    label: c[k].name,
-    value: c[k].id,
-  })
-);
-
-export const CalldataDecoderPage = () => {
+export const CalldataDecoderPage = ({
+  headerText,
+}: {
+  headerText?: string;
+}) => {
   const toast = useToast();
   const searchParams = useSearchParams();
 
@@ -66,12 +68,18 @@ export const CalldataDecoderPage = () => {
   const chainIdFromURL = searchParams.get("chainId");
   const txFromURL = searchParams.get("tx");
 
+  const networkOptionsIndex = chainIdFromURL
+    ? networkOptions.findIndex(
+        (option) => option.value === parseInt(chainIdFromURL)
+      )
+    : 0;
+
   const [calldata, setCalldata] = useQueryState<string>(
     "calldata",
     parseAsString.withDefault("")
   );
   // can be function calldata or abi.encode bytes
-  const [result, setResult] = useState<any>();
+  const [result, setResult] = useState<DecodeRecursiveResult>();
   const [isLoading, setIsLoading] = useState(false);
   const [pasted, setPasted] = useState(false);
 
@@ -88,9 +96,7 @@ export const CalldataDecoderPage = () => {
     parseAsInteger.withDefault(1)
   );
   const [selectedNetworkOption, setSelectedNetworkOption] =
-    useState<SelectedOptionState>(
-      networkOptions[chainIdFromURL ? parseInt(chainIdFromURL) : 0]
-    );
+    useState<SelectedOptionState>(networkOptions[networkOptionsIndex]);
 
   const [fromTxInput, setFromTxInput] = useQueryState<string>(
     "tx",
@@ -101,7 +107,11 @@ export const CalldataDecoderPage = () => {
   useEffect(() => {
     if (calldataFromURL && addressFromURL) {
       setSelectedTabIndex(2);
-      decode({});
+      decode({
+        _address: addressFromURL,
+        _chainId:
+          chainIdFromURL === null ? undefined : parseInt(chainIdFromURL),
+      });
     } else if (calldataFromURL) {
       decode({});
     } else if (txFromURL) {
@@ -113,8 +123,18 @@ export const CalldataDecoderPage = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (selectedTabIndex === 3) {
+  useUpdateEffect(() => {
+    if (selectedTabIndex === 0) {
+      setContractAddress(null);
+      setChainId(null);
+      setFromTxInput(null);
+    } else if (selectedTabIndex === 1) {
+      setContractAddress(null);
+      setChainId(null);
+      setFromTxInput(null);
+    } else if (selectedTabIndex === 2) {
+      setFromTxInput(null);
+    } else if (selectedTabIndex === 3) {
       setCalldata(null);
       setContractAddress(null);
     }
@@ -316,12 +336,27 @@ export const CalldataDecoderPage = () => {
     return (
       <>
         <Tr>
-          <Label>Contract Address</Label>
+          <Label>
+            <Box>Contract Address</Box>
+            <Box fontSize={"xs"} opacity={"0.6"}>
+              (accepts <b>eth:0xabc123...</b>)
+            </Box>
+          </Label>
           <Td>
             <InputField
               placeholder="Address"
               value={contractAddress}
-              onChange={(e) => setContractAddress(e.target.value)}
+              onChange={(e) => {
+                const input = e.target.value;
+                const res = resolveERC3770Address(input);
+                setContractAddress(res.address);
+                if (res.chainId) {
+                  const _networkIndex = networkOptions.findIndex(
+                    (option) => option.value === res.chainId
+                  );
+                  setSelectedNetworkOption(networkOptions[_networkIndex]);
+                }
+              }}
             />
           </Td>
         </Tr>
@@ -404,7 +439,7 @@ export const CalldataDecoderPage = () => {
                       decodeFromTx(_fromTxInput);
                     }}
                   />
-                  {fromTxInput ? (
+                  {fromTxInput.includes("http") ? (
                     <Link
                       href={fromTxInput}
                       title="View on explorer"
@@ -457,9 +492,9 @@ export const CalldataDecoderPage = () => {
   };
 
   return (
-    <>
-      <Heading color={"custom.pale"} fontSize={"4xl"}>
-        Universal Calldata Decoder
+    <Box p={10} minH={"30rem"} w="full" minW="40rem">
+      <Heading color={"custom.pale"} fontSize={"4xl"} textAlign={"center"}>
+        {headerText ?? "Universal Calldata Decoder"}
       </Heading>
       <TabsSelector
         tabs={["No ABI", "from ABI", "from Address", "from Tx"]}
@@ -538,13 +573,20 @@ export const CalldataDecoderPage = () => {
               />
             </HStack>
           ) : null}
-          <Stack mt={2} p={4} spacing={4} bg={"whiteAlpha.50"} rounded={"lg"}>
-            {result.args.map((arg: any, i: number) => {
-              return renderParams(i, arg);
+          <Stack
+            mt={2}
+            p={4}
+            spacing={4}
+            minW="40rem"
+            bg={"whiteAlpha.50"}
+            rounded={"lg"}
+          >
+            {result.args.map((arg, i: number) => {
+              return renderParams(i, arg, chainId);
             })}
           </Stack>
         </Box>
       )}
-    </>
+    </Box>
   );
 };

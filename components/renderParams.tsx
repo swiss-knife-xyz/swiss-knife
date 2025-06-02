@@ -8,36 +8,63 @@ import {
   TupleParam,
   ArrayParam,
   IntParam,
-} from "@/components/fnParams";
-import { BytesParam } from "./fnParams/BytesParam";
+  BytesParam,
+} from "@/components/decodedParams";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
+import { Arg, DecodeBytesParamResult, DecodeTupleParamResult } from "@/types";
 
-export const renderParamTypes = (arg: any) => {
+export const renderParamTypes = (arg: Arg, chainId?: number) => {
   if (arg.baseType.includes("uint")) {
     return <UintParam value={arg.value} />;
   } else if (arg.baseType.includes("int")) {
     return <IntParam value={arg.value} />;
   } else if (arg.baseType === "address") {
-    return <AddressParam address={arg.value} />;
+    return <AddressParam address={arg.value} chainId={chainId} />;
   } else if (arg.baseType.includes("bytes")) {
     // account for cases where the bytes value is just an address
     if (isAddress(arg.rawValue)) {
-      return <AddressParam address={arg.rawValue} />;
+      return <AddressParam address={arg.rawValue} chainId={chainId} />;
     } else {
-      return <BytesParam arg={arg} />;
+      return (
+        <BytesParam
+          arg={{
+            ...arg,
+            value: {
+              decoded: (arg.value as DecodeBytesParamResult)?.decoded ?? null,
+            },
+          }}
+          chainId={chainId}
+        />
+      );
     }
   } else if (arg.baseType === "tuple") {
-    return <TupleParam arg={arg} />;
+    return (
+      <TupleParam
+        arg={{
+          ...arg,
+          value: arg.value as DecodeTupleParamResult,
+        }}
+        chainId={chainId}
+      />
+    );
   } else if (arg.baseType === "array") {
-    return <ArrayParam arg={arg} />;
+    return (
+      <ArrayParam
+        arg={{
+          ...arg,
+          value: Array.isArray(arg.value) ? arg.value : [],
+        }}
+        chainId={chainId}
+      />
+    );
   } else {
-    return <StringParam value={arg.value} />;
+    return <StringParam value={arg.value as string | null} />;
   }
 };
 
-export const renderParams = (key: number, arg: any) => {
+export const renderParams = (key: number, arg: Arg, chainId?: number) => {
   const type = arg.type.includes("tuple") ? "tuple" : arg.type;
 
   return (
@@ -51,7 +78,10 @@ export const renderParams = (key: number, arg: any) => {
             {arg.baseType === "address" ||
             (arg.baseType === "bytes" && isAddress(arg.rawValue)) ? (
               <Link
-                href={`${getPath(subdomains.EXPLORER.base)}address/${
+                href={`${getPath(
+                  subdomains.EXPLORER.base,
+                  subdomains.EXPLORER.isRelativePath
+                )}address/${
                   arg.baseType === "address" ? arg.value : arg.rawValue
                 }`}
                 title="View on explorer"
@@ -72,7 +102,7 @@ export const renderParams = (key: number, arg: any) => {
             </Box>
             {arg.baseType === "array" ? (
               <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
-                (length: {arg.value.length})
+                (length: {Array.isArray(arg.value) ? arg.value.length : 0})
               </Box>
             ) : null}
           </HStack>
@@ -85,13 +115,16 @@ export const renderParams = (key: number, arg: any) => {
           </Text>
           {arg.baseType === "array" ? (
             <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
-              (length: {arg.value.length})
+              (length: {Array.isArray(arg.value) ? arg.value.length : 0})
             </Box>
           ) : null}
           {arg.baseType === "address" ||
           (arg.baseType === "bytes" && isAddress(arg.rawValue)) ? (
             <Link
-              href={`${getPath(subdomains.EXPLORER.base)}address/${
+              href={`${getPath(
+                subdomains.EXPLORER.base,
+                subdomains.EXPLORER.isRelativePath
+              )}address/${
                 arg.baseType === "address" ? arg.value : arg.rawValue
               }`}
               title="View on explorer"
@@ -106,7 +139,7 @@ export const renderParams = (key: number, arg: any) => {
           ) : null}
         </HStack>
       )}
-      <Stack spacing={2}>{renderParamTypes(arg)}</Stack>
+      <Stack spacing={2}>{renderParamTypes(arg, chainId)}</Stack>
     </Stack>
   );
 };

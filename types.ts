@@ -1,8 +1,9 @@
 import { SingleValue } from "chakra-react-select";
+import { JsonFragmentType, TransactionDescription } from "ethers";
 
 export interface SelectedOption {
   label: string;
-  value: number | string;
+  value: number | string | boolean;
 }
 
 export type SelectedOptionState = SingleValue<SelectedOption>;
@@ -57,21 +58,63 @@ export type DecodeArrayParamResult =
       value: DecodeParamTypesResult;
     }[];
 
+export interface ParsedTransaction extends TransactionDescription {
+  txType?: "safeMultiSend";
+}
+
 export type DecodeParamTypesResult =
   | string
   | DecodeBytesParamResult
   | DecodeTupleParamResult
   | DecodeArrayParamResult;
 
+export type Arg = {
+  name: string;
+  baseType: string;
+  type: string;
+  rawValue: any;
+  value: DecodeParamTypesResult;
+};
+
 export type DecodeRecursiveResult = {
   functionName: string;
   signature: string;
   rawArgs: any;
-  args: {
-    name: string;
-    baseType: string;
-    type: string;
-    rawValue: any;
-    value: DecodeParamTypesResult;
-  }[];
+  args: Arg[];
 } | null;
+
+export type HighlightedText = {
+  text: string;
+  isHighlighted: boolean;
+  isCurrentResult: boolean;
+};
+
+export type HighlightedContent = string | HighlightedText[];
+
+export interface ExtendedJsonFragmentType
+  extends Omit<JsonFragmentType, "name"> {
+  name?: HighlightedContent;
+}
+
+export interface SourceCode {
+  sources: Record<string, { content: string }>;
+}
+
+export interface ContractResult {
+  SourceCode: string;
+  ContractName: string;
+  ABI: string;
+  Implementation: string;
+}
+
+export interface ContractResponse {
+  status: string;
+  message: string;
+  result: ContractResult[];
+}
+
+export interface EVMParameter {
+  type: string;
+  name?: string;
+  components?: EVMParameter[];
+}

@@ -19,7 +19,7 @@ export const addressExplorers: ExplorersData = {
       [c.scroll.id]: c.scroll.id.toString(),
       [c.scrollSepolia.id]: c.scrollSepolia.id.toString(),
       [c.zkSync.id]: c.zkSync.id.toString(),
-      [c.zkSyncTestnet.id]: c.zkSyncTestnet.id.toString(),
+      [c.zkSyncSepoliaTestnet.id]: c.zkSyncSepoliaTestnet.id.toString(),
     },
     forContracts: true,
   },
@@ -123,7 +123,7 @@ export const addressExplorers: ExplorersData = {
       [c.optimismSepolia.id]: "optimism-sepolia",
       [c.polygonZkEvm.id]: "zkevm",
       [c.zkSync.id]: "zksync",
-      [c.zkSyncTestnet.id]: "zksync-sepolia",
+      [c.zkSyncSepoliaTestnet.id]: "zksync-sepolia",
     },
   },
   Bloxy: {
@@ -506,6 +506,12 @@ export const addressExplorers: ExplorersData = {
     chainIdToLabel: {
       [c.avalanche.id]: "",
       [c.avalancheFuji.id]: "testnet.",
+    },
+  },
+  Sonicscan: {
+    urlLayout: `https://sonicscan.org/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.sonic.id]: "",
     },
   },
   Tenderly: {

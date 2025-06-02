@@ -8,6 +8,7 @@ import {
   Collapse,
   HStack,
   Box,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
 import { Subdomain } from "@/subdomains";
@@ -19,15 +20,17 @@ const BaseNavItem = ({
   onToggle,
   displayCollapse,
   isOpen,
+  isMobile = false,
 }: {
   subdomain: Subdomain;
   isBaseActive: boolean;
   onToggle: () => void;
   displayCollapse: boolean;
   isOpen: boolean;
+  isMobile?: boolean;
 }) => (
   <Box
-    p={3}
+    p={isMobile ? 2 : 3}
     w="100%"
     bg={isBaseActive ? "whiteAlpha.100" : ""}
     _hover={{
@@ -38,19 +41,24 @@ const BaseNavItem = ({
     onClick={onToggle}
     rounded={"lg"}
   >
-    <HStack>
+    <HStack spacing={isMobile ? 1 : 2}>
       {displayCollapse ? (
-        <Text fontSize={"xl"} fontWeight={"bold"} cursor={"pointer"}>
+        <Text
+          fontSize={isMobile ? "md" : "xl"}
+          fontWeight={"bold"}
+          cursor={"pointer"}
+        >
           {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </Text>
       ) : null}
-      <Text>{subdomain.base}</Text>
+      <Text fontSize={isMobile ? "sm" : "md"}>{subdomain.base}</Text>
     </HStack>
   </Box>
 );
 
 export const NavItem = ({ subdomain }: { subdomain: Subdomain }) => {
   const pathname = usePathname();
+  const isMobile = useBreakpointValue({ base: true, md: false }) || false;
 
   const { isOpen, onToggle } = useDisclosure();
   const [isBaseActive, setIsBaseActive] = React.useState(false);
@@ -66,7 +74,12 @@ export const NavItem = ({ subdomain }: { subdomain: Subdomain }) => {
   }, [pathname]);
 
   return (
-    <Flex mt={3} flexDir={"column"} alignItems={"flex-start"} w="100%">
+    <Flex
+      mt={isMobile ? 1 : 3}
+      flexDir={"column"}
+      alignItems={"flex-start"}
+      w="100%"
+    >
       {displayCollapse ? (
         <BaseNavItem
           subdomain={subdomain}
@@ -74,10 +87,11 @@ export const NavItem = ({ subdomain }: { subdomain: Subdomain }) => {
           onToggle={onToggle}
           displayCollapse={displayCollapse}
           isOpen={isOpen}
+          isMobile={isMobile}
         />
       ) : (
         <Link
-          href={getPath(subdomain.base)}
+          href={getPath(subdomain.base, subdomain.isRelativePath)}
           style={{
             width: "100%",
           }}
@@ -88,50 +102,50 @@ export const NavItem = ({ subdomain }: { subdomain: Subdomain }) => {
             onToggle={onToggle}
             displayCollapse={displayCollapse}
             isOpen={isOpen}
+            isMobile={isMobile}
           />
         </Link>
       )}
-      <Collapse in={isOpen} animateOpacity style={{ width: "100%" }}>
-        {displayCollapse ? (
-          <Box
-            ml={5}
-            pl={4}
-            borderLeft={"1px solid"}
-            borderColor={"whiteAlpha.300"}
-          >
-            {subdomain.paths.map((path, i) => (
-              <Link
-                key={i}
-                href={`${getPath(subdomain.base)}${path}`}
-                style={{
-                  width: "100%",
-                }}
-              >
-                <Box
-                  mt={1}
-                  p={2}
-                  w="100%"
-                  bg={
-                    isBaseActive &&
-                    (pathname.includes(path) ||
-                      window.location.href.includes(path))
-                      ? "whiteAlpha.100"
-                      : ""
-                  }
-                  _hover={{
-                    textDecor: "none",
-                    bg: "whiteAlpha.100",
+      {displayCollapse && isOpen && (
+        <Collapse in={isOpen} animateOpacity style={{ width: "100%" }}>
+          <Flex flexDir={"column"} pl={5} mt={1}>
+            {subdomain.paths.map((path, i) => {
+              const isPathActive =
+                pathname.includes(`${subdomain.base}/${path}`) ||
+                window.location.href.includes(`${subdomain.base}/${path}`);
+
+              return (
+                <Link
+                  key={i}
+                  href={`${getPath(
+                    subdomain.base,
+                    subdomain.isRelativePath
+                  )}${path}`}
+                  style={{
+                    width: "100%",
+                    padding: "6px 0",
                   }}
-                  cursor={"pointer"}
-                  rounded={"lg"}
                 >
-                  {path}
-                </Box>
-              </Link>
-            ))}
-          </Box>
-        ) : null}
-      </Collapse>
+                  <Box
+                    mt={1}
+                    p={isMobile ? 1 : 2}
+                    w="100%"
+                    bg={isBaseActive && isPathActive ? "whiteAlpha.100" : ""}
+                    _hover={{
+                      textDecor: "none",
+                      bg: "whiteAlpha.100",
+                    }}
+                    cursor={"pointer"}
+                    rounded={"lg"}
+                  >
+                    <Text fontSize={isMobile ? "xs" : "sm"}>{path}</Text>
+                  </Box>
+                </Link>
+              );
+            })}
+          </Flex>
+        </Collapse>
+      )}
     </Flex>
   );
 };

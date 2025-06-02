@@ -1,4 +1,3 @@
-import { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { Providers } from "@/app/providers";
 import { Analytics } from "@/components/Analytics";

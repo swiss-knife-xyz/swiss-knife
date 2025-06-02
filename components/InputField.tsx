@@ -3,6 +3,8 @@ import {
   InputGroup,
   InputRightElement,
   InputProps,
+  InputLeftElement,
+  Button,
 } from "@chakra-ui/react";
 import { WarningIcon } from "@chakra-ui/icons";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
@@ -11,6 +13,7 @@ interface InputFieldProps extends InputProps {
   placeholder: string;
   value?: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  InputLeftElement?: React.ReactNode;
 }
 
 export const InputField = ({
@@ -19,14 +22,18 @@ export const InputField = ({
   value,
   onChange,
   isInvalid,
+  InputLeftElement,
   ...rest
 }: InputFieldProps) => (
   <InputGroup>
+    {InputLeftElement}
     <Input
       type={type ?? "text"}
       placeholder={placeholder}
       value={value}
       onChange={onChange}
+      isInvalid={isInvalid}
+      pr="3rem"
       {...rest}
     />
     <InputRightElement pr={1}>

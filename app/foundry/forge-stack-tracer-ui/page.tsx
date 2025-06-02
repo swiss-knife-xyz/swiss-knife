@@ -10,8 +10,14 @@ import {
   Textarea,
   Heading,
   Flex,
+  HStack,
+  Link,
 } from "@chakra-ui/react";
-import { ChevronDownIcon, ChevronRightIcon } from "@chakra-ui/icons";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ExternalLinkIcon,
+} from "@chakra-ui/icons";
 
 interface TraceNode {
   content: string;
@@ -204,6 +210,19 @@ const ForgeStackTracerUI = () => {
   return (
     <Flex flexDir={"column"} alignItems={"center"} w="100%">
       <Heading size="lg">Forge Tests Stack Tracer UI</Heading>
+      <HStack mt="1rem">
+        <Text opacity={0.8}>Try the npm package!</Text>
+        <Link
+          color={"blue.300"}
+          href="https://www.npmjs.com/package/forge-stack-tracer"
+          isExternal
+        >
+          <HStack>
+            <Text>forge-stack-tracer</Text>
+            <ExternalLinkIcon />
+          </HStack>
+        </Link>
+      </HStack>
       <Textarea
         mt="1rem"
         w="30rem"

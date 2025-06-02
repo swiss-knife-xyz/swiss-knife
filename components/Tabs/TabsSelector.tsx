@@ -1,7 +1,7 @@
-import { Center, HStack } from "@chakra-ui/react";
+import { Center, HStack, StackProps } from "@chakra-ui/react";
 import Tab from "./Tab";
 
-interface Props {
+interface Props extends StackProps {
   tabs: string[];
   selectedTabIndex: number;
   setSelectedTabIndex: (value: number) => void;
@@ -13,6 +13,7 @@ export default function TabsSelector({
   selectedTabIndex,
   setSelectedTabIndex,
   mt,
+  ...props
 }: Props) {
   return (
     <Center flexDir="column">
@@ -25,6 +26,7 @@ export default function TabsSelector({
         border="1px solid"
         borderColor={"whiteAlpha.500"}
         borderRadius="xl"
+        {...props}
       >
         {tabs.map((t, i) => (
           <Tab

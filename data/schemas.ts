@@ -45,8 +45,9 @@ export type CalldataDecoderResponse = z.infer<
 >;
 
 export const fetchContractAbiResponseSchema = z.object({
-  abi: z.array(z.unknown()),
-  name: z.string(),
+  status: z.string(),
+  message: z.string(),
+  result: z.string().optional(),
 });
 
 export type FetchContractAbiResponse = z.infer<
@@ -98,3 +99,10 @@ export const fetchFunctionInterface4ByteSchema = z.object({
 export type FetchFunctionInterface4Byte = z.infer<
   typeof fetchFunctionInterface4ByteSchema
 >;
+
+// ==== source-code ====
+
+export const sourceCodeRequestSchema = z.object({
+  address: z.string().length(42, "Address must be 42 characters long"),
+  chainId: z.number().int().positive(),
+});

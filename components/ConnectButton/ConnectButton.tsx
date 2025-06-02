@@ -1,13 +1,30 @@
-import { Box } from "@chakra-ui/react";
+import { Box, useBreakpointValue, Flex } from "@chakra-ui/react";
 import { ConnectButton as RConnectButton } from "@rainbow-me/rainbowkit";
 
 import { ConnectWalletBtn } from "./ConnectWalletBtn";
 import { WrongNetworkBtn } from "./WrongNetworkBtn";
 import { ChainButton } from "./ChainButton";
 import { AccountButton } from "./AccountButton";
+import { useSwitchChain } from "wagmi";
+import { chainIdToChain } from "@/data/common";
 
 // TODO: make mobile responsive
-export const ConnectButton = () => {
+export const ConnectButton = ({
+  expectedChainId,
+  hideAccount,
+}: {
+  expectedChainId?: number;
+  hideAccount?: boolean;
+}) => {
+  const { switchChain } = useSwitchChain();
+  const isMobile = useBreakpointValue({ base: true, md: false });
+
+  // Only hide account if explicitly requested
+  const shouldHideAccount = hideAccount;
+
+  // Determine if we should show a compact version of the buttons
+  const isCompact = isMobile;
+
   return (
     <RConnectButton.Custom>
       {({
@@ -34,20 +51,55 @@ export const ConnectButton = () => {
               if (!connected) {
                 return <ConnectWalletBtn onClick={openConnectModal} />;
               }
-              if (chain.unsupported) {
-                return <WrongNetworkBtn onClick={openChainModal} />;
-              }
 
               return (
-                <Box
-                  display="flex"
+                <Flex
                   py="0"
                   alignItems="center"
                   borderRadius="xl"
+                  flexWrap="nowrap"
+                  justifyContent="flex-end"
+                  maxW="100%"
+                  width="auto"
                 >
-                  <ChainButton onClick={openChainModal} chain={chain} />
-                  <AccountButton onClick={openAccountModal} account={account} />
-                </Box>
+                  {chain.unsupported ||
+                  (expectedChainId && expectedChainId !== chain.id) ? (
+                    <Box mr={!shouldHideAccount ? "2" : undefined} w="auto">
+                      <WrongNetworkBtn
+                        txt={
+                          expectedChainId
+                            ? `Switch to ${chainIdToChain[expectedChainId]?.name}`
+                            : undefined
+                        }
+                        onClick={() => {
+                          if (!expectedChainId) {
+                            openChainModal();
+                          } else {
+                            switchChain({ chainId: expectedChainId });
+                          }
+                        }}
+                        isCompact={isCompact}
+                      />
+                    </Box>
+                  ) : (
+                    <Box mr={2} flex={isMobile ? "1" : "initial"}>
+                      <ChainButton
+                        onClick={openChainModal}
+                        chain={chain}
+                        isCompact={isCompact}
+                      />
+                    </Box>
+                  )}
+                  {!shouldHideAccount && (
+                    <Box flex={isMobile ? "1" : "initial"}>
+                      <AccountButton
+                        onClick={openAccountModal}
+                        account={account}
+                        isCompact={isCompact}
+                      />
+                    </Box>
+                  )}
+                </Flex>
               );
             })()}
           </Box>

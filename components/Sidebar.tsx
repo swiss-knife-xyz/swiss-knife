@@ -5,18 +5,31 @@ import { getPath } from "@/utils";
 export interface SidebarItem {
   name: string;
   path: string;
+  exactPathMatch?: boolean;
 }
 
 export interface SidebarItemProps extends SidebarItem {
   subdomain: string;
+  isRelativePath?: boolean;
 }
 
-const SidebarItem = ({ name, subdomain, path }: SidebarItemProps) => {
+const SidebarItem = ({
+  name,
+  subdomain,
+  path,
+  exactPathMatch,
+  isRelativePath,
+}: SidebarItemProps) => {
   const router = useRouter();
   const pathname = usePathname();
 
   return (
-    <Box my={1} onClick={() => router.push(`${getPath(subdomain)}${path}`)}>
+    <Box
+      my={1}
+      onClick={() =>
+        router.push(`${getPath(subdomain, isRelativePath)}${path}`)
+      }
+    >
       <Flex
         align="center"
         p="4"
@@ -24,12 +37,29 @@ const SidebarItem = ({ name, subdomain, path }: SidebarItemProps) => {
         borderRadius="lg"
         role="group"
         cursor="pointer"
+        whiteSpace="nowrap"
         _hover={{
           bg: "blue.200",
           color: "gray.700",
         }}
-        bg={pathname.includes(path) ? "blue.200" : undefined}
-        color={pathname.includes(path) ? "gray.700" : undefined}
+        bg={
+          (
+            exactPathMatch
+              ? pathname === `${getPath(subdomain, isRelativePath)}${path}`
+              : pathname.includes(path)
+          )
+            ? "blue.200"
+            : undefined
+        }
+        color={
+          (
+            exactPathMatch
+              ? pathname === `${getPath(subdomain, isRelativePath)}${path}`
+              : pathname.includes(path)
+          )
+            ? "gray.700"
+            : undefined
+        }
       >
         {name}
       </Flex>
@@ -41,10 +71,14 @@ export const Sidebar = ({
   heading,
   items,
   subdomain,
+  exactPathMatch,
+  isRelativePath,
 }: {
   heading: string;
   items: SidebarItem[];
   subdomain: string;
+  exactPathMatch?: boolean;
+  isRelativePath?: boolean;
 }) => {
   return (
     <Flex
@@ -68,9 +102,10 @@ export const Sidebar = ({
         {items.map((item) => (
           <SidebarItem
             key={item.name}
-            name={item.name}
             subdomain={subdomain}
-            path={item.path}
+            exactPathMatch={exactPathMatch}
+            isRelativePath={isRelativePath}
+            {...item}
           />
         ))}
       </Box>

@@ -1,6 +1,6 @@
 import { extendTheme, ThemeConfig } from "@chakra-ui/react";
 
-const colors = {
+export const colors = {
   custom: {
     base: "#e84142",
     greenLight: "#19cb01",

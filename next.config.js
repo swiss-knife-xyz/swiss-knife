@@ -13,12 +13,16 @@ const nextConfig = {
           destination: "/chainIcons/:asset*",
         },
         {
+          source: "/external/:asset*",
+          destination: "/external/:asset*",
+        },
+        {
           source: "/icon.png",
           destination: "/icon.png",
         },
         // set up subdomains
         ...Object.values(subdomains).map((subdomain) => ({
-          source: "/:path((?!_next|chainIcons|icon.png).*)", // Exclude chainIcons from subdomain rewrites
+          source: "/:path((?!_next|chainIcons|external|icon.png).*)", // Exclude chainIcons and external from subdomain rewrites
           has: [
             {
               type: "host",
@@ -42,6 +46,13 @@ const nextConfig = {
   webpack: (config) => {
     config.resolve.fallback = { fs: false, net: false, tls: false };
     config.externals.push("pino-pretty");
+
+    // Add WebAssembly support
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+    };
+
     return config;
   },
   compiler: {

@@ -39,9 +39,30 @@ const subdomains = {
     base: "contract-address",
     paths: [],
   },
+  CONTRACT_DIFF: {
+    base: "contract-diff",
+    paths: [],
+  },
   FOUNDRY: {
     base: "foundry",
     paths: ["forge-stack-tracer-ui"],
+  },
+  WALLET: {
+    base: "wallet",
+    paths: ["bridge"],
+  },
+  ENS: {
+    base: "ens",
+    paths: ["history"],
+  },
+  "7702BEAT": {
+    base: "7702beat",
+    paths: [],
+    isRelativePath: true,
+  },
+  SAFE: {
+    base: "safe",
+    paths: ["calldata-decoder", "eip-712-hash"],
   },
 };
 

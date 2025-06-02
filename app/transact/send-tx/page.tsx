@@ -34,26 +34,27 @@ import {
 } from "next-usequerystate";
 import { parseEther, formatEther, isAddress, stringify } from "viem";
 import { normalize } from "viem/ens";
-import { useNetwork, useWalletClient, useSwitchNetwork } from "wagmi";
-import { waitForTransaction } from "wagmi/actions";
+import { useWalletClient, useAccount, useSwitchChain } from "wagmi";
+import { waitForTransactionReceipt } from "wagmi/actions";
 import { InputField } from "@/components/InputField";
 import { DarkSelect } from "@/components/DarkSelect";
-import { SelectedOptionState } from "@/types";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-import { ethFormatOptions, publicClient, startHexWith0x } from "@/utils";
+import {
+  ethFormatOptions,
+  ETHSelectedOptionState,
+  publicClient,
+  startHexWith0x,
+} from "@/utils";
 import { DarkButton } from "@/components/DarkButton";
 import { chainIdToChain } from "@/data/common";
 import { decodeRecursive } from "@/lib/decoder";
 import { renderParams } from "@/components/renderParams";
+import { config } from "@/app/providers";
 
 const SendTx = () => {
   const { data: walletClient } = useWalletClient();
-  const { chain } = useNetwork();
-  const { switchNetwork } = useSwitchNetwork({
-    onSuccess: () => {
-      onChainIdMatched();
-    },
-  });
+  const { chain } = useAccount();
+  const { switchChain } = useSwitchChain();
 
   const toast = useToast();
   const toastIdRef = useRef<ToastId>();
@@ -79,9 +80,9 @@ const SendTx = () => {
     useState<number>(chainId);
 
   const [selectedEthFormatOption, setSelectedEthFormatOption] =
-    useState<SelectedOptionState>({
-      label: ethFormatOptions[0],
-      value: ethFormatOptions[0],
+    useState<ETHSelectedOptionState>({
+      label: ethFormatOptions[1],
+      value: ethFormatOptions[1],
     });
 
   const [chainIdMismatch, setChainIdMismatch] = useState(false);
@@ -92,12 +93,7 @@ const SendTx = () => {
   const [decoded, setDecoded] = useState<any>();
 
   useEffect(() => {
-    if (
-      switchNetwork &&
-      chain &&
-      chainIdFromURLOnLoad &&
-      chain.id !== chainIdFromURLOnLoad
-    ) {
+    if (chain && chainIdFromURLOnLoad && chain.id !== chainIdFromURLOnLoad) {
       toastIdRef.current = toast({
         title: "Wallet's Network should match the chainId passed via URL",
         description: `Switch network to ${chainIdToChain[chainIdFromURLOnLoad]?.name} to continue`,
@@ -108,9 +104,9 @@ const SendTx = () => {
       });
 
       setChainIdMismatch(true);
-      switchNetwork(chainIdFromURLOnLoad);
+      switchChain({ chainId: chainIdFromURLOnLoad });
     }
-  }, [chainIdFromURLOnLoad, switchNetwork]);
+  }, [chainIdFromURLOnLoad, switchChain]);
 
   useEffect(() => {
     if (chain) {
@@ -183,7 +179,7 @@ const SendTx = () => {
           isClosable: true,
         });
 
-        await waitForTransaction({
+        await waitForTransactionReceipt(config, {
           hash,
         });
         toast.close(toastIdRef.current);
@@ -247,7 +243,7 @@ const SendTx = () => {
           isClosable: true,
         });
 
-        await waitForTransaction({
+        await waitForTransactionReceipt(config, {
           hash,
         });
         toast.close(toastIdRef.current);
@@ -409,7 +405,7 @@ const SendTx = () => {
                             rounded={"lg"}
                           >
                             {decoded.args.map((arg: any, i: number) => {
-                              return renderParams(i, arg);
+                              return renderParams(i, arg, chainId);
                             })}
                           </Stack>
                         </Box>
@@ -438,7 +434,9 @@ const SendTx = () => {
                     w: "8rem",
                   }}
                   selectedOption={selectedEthFormatOption}
-                  setSelectedOption={setSelectedEthFormatOption}
+                  setSelectedOption={(value) =>
+                    setSelectedEthFormatOption(value as ETHSelectedOptionState)
+                  }
                   options={ethFormatOptions.map((str) => ({
                     label: str,
                     value: str,

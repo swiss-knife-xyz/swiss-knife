@@ -8,6 +8,7 @@ import subdomains from "@/subdomains";
 const Calldata = () => {
   const router = useRouter();
 
+  // /decoder on load
   useEffect(() => {
     router.push(`${getPath(subdomains.CALLDATA.base)}decoder`);
   }, []);
