@@ -26,7 +26,7 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import AddressDisplay from "@/components/AddressDisplay";
 import TypeBadge from "../components/TypeBadge";
 
-export const decodeDataFromUrl = (
+const decodeDataFromUrl = (
   encodedData: string
 ): SharedSignaturePayload | null => {
   try {
@@ -198,7 +198,7 @@ export default function SignatureView() {
             return (
               <Alert status="error" borderRadius="md">
                 <AlertIcon />
-                EIP-712 'types' definition is missing or invalid.
+                EIP-712 &apos;types&apos; definition is missing or invalid.
               </Alert>
             );
           }
@@ -206,7 +206,7 @@ export default function SignatureView() {
             return (
               <Alert status="error" borderRadius="md">
                 <AlertIcon />
-                EIP-712 'primaryType' is missing or invalid.
+                EIP-712 &apos;primaryType&apos; is missing or invalid.
               </Alert>
             );
           }
@@ -214,7 +214,7 @@ export default function SignatureView() {
             return (
               <Alert status="error" borderRadius="md">
                 <AlertIcon />
-                EIP-712 'message' object is missing or invalid.
+                EIP-712 &apos;message&apos; object is missing or invalid.
               </Alert>
             );
           }
@@ -223,8 +223,8 @@ export default function SignatureView() {
             return (
               <Alert status="error" borderRadius="md">
                 <AlertIcon />
-                Definition for primary type '{primaryType}' is missing or not an
-                array.
+                Definition for primary type &apos;{primaryType}&apos; is missing
+                or not an array.
               </Alert>
             );
           }
