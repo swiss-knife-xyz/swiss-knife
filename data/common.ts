@@ -53,7 +53,7 @@ import {
   telos,
   wanchain,
   zkSync,
-  zkSyncTestnet,
+  zksyncSepoliaTestnet,
   zora,
   zoraTestnet,
   Chain,
@@ -63,7 +63,7 @@ export const CHAINLABEL_KEY = "$SK_CHAINLABEL";
 export const ADDRESS_KEY = "$SK_ADDRESS";
 export const TX_KEY = "$SK_TX";
 
-export const c:{[name: string]: Chain} = {
+export const c: { [name: string]: Chain } = {
   mainnet,
   arbitrum,
   arbitrumGoerli,
@@ -118,7 +118,7 @@ export const c:{[name: string]: Chain} = {
   telos,
   wanchain,
   zkSync,
-  zkSyncTestnet,
+  zksyncSepoliaTestnet,
   zora,
   zoraTestnet,
 };

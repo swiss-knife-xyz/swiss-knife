@@ -18,7 +18,14 @@ import {
   Td,
   Tr,
 } from "@chakra-ui/react";
-import { Address, parseUnits, zeroHash, erc20Abi } from "viem";
+import {
+  Address,
+  parseUnits,
+  zeroHash,
+  erc20Abi,
+  zeroAddress,
+  Hex,
+} from "viem";
 import {
   useAccount,
   useWalletClient,
@@ -452,6 +459,9 @@ const PoolPriceToTarget = () => {
 
   const [fetchingCurrentPrice, setFetchingCurrentPrice] = useState(false);
 
+  const [amount, setAmount] = useState<string>("1");
+  const [zeroForOne, setZeroForOne] = useState<boolean>(true);
+
   const { data: currencyInfo } = useReadContracts({
     contracts: [
       {
@@ -480,6 +490,43 @@ const PoolPriceToTarget = () => {
     },
   });
 
+  useEffect(() => {
+    if (currencyInfo) {
+      setCurrency0Symbol(currencyInfo[0].result);
+      setCurrency0Decimals(currencyInfo[1].result);
+      setCurrency1Symbol(currencyInfo[2].result);
+      setCurrency1Decimals(currencyInfo[3].result);
+    }
+  }, [currencyInfo]);
+
+  const getCurrentPrice = async () => {
+    if (
+      !walletClient ||
+      !currency0 ||
+      !currency1 ||
+      tickSpacing === undefined ||
+      fee === undefined
+    ) {
+      return;
+    }
+
+    setFetchingCurrentPrice(true);
+    try {
+      setCurrentZeroForOnePrice("Fetching...");
+      setCurrentOneForZeroPrice("Fetching...");
+
+      // TODO: Implement actual price fetching logic
+    } catch (error) {
+      console.error("Error fetching current price:", error);
+    } finally {
+      setFetchingCurrentPrice(false);
+    }
+  };
+
+  const decimals = zeroForOne
+    ? currency0Decimals || 18
+    : currency1Decimals || 18;
+
   const result = useSimulateContract({
     address: quoterAddress[chain!.id],
     abi: quoterAbi,
@@ -491,10 +538,10 @@ const PoolPriceToTarget = () => {
           currency1: currency1 as Address,
           tickSpacing: tickSpacing!,
           fee: fee!,
-          hooks: hookAddress as Address,
+          hooks: (hookAddress || zeroAddress) as Address,
         },
         exactAmount: parseUnits(amount, decimals),
-        hookData: hookData,
+        hookData: (hookData || zeroHash) as Hex,
         sqrtPriceLimitX96: 0n,
         zeroForOne,
       },
@@ -503,20 +550,11 @@ const PoolPriceToTarget = () => {
       enabled:
         !!currency0 &&
         !!currency1 &&
-        !hookAddress &&
         tickSpacing !== undefined &&
-        fee !== undefined,
+        fee !== undefined &&
+        !!amount,
     },
   });
-
-  useEffect(() => {
-    if (currencyInfo) {
-      setCurrency0Symbol(currencyInfo[0].result);
-      setCurrency0Decimals(currencyInfo[1].result);
-      setCurrency1Symbol(currencyInfo[2].result);
-      setCurrency1Decimals(currencyInfo[3].result);
-    }
-  }, [currencyInfo]);
 
   return (
     <>
@@ -599,6 +637,35 @@ const PoolPriceToTarget = () => {
                 value={hookData}
                 onChange={(e) => setHookData(e.target.value)}
               />
+            </Td>
+          </Tr>
+          <Tr>
+            <Td>Amount</Td>
+            <Td>
+              <Input
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount to quote"
+              />
+            </Td>
+          </Tr>
+          <Tr>
+            <Td>Zero for One</Td>
+            <Td>
+              <HStack>
+                <Button
+                  colorScheme={zeroForOne ? "blue" : "gray"}
+                  onClick={() => setZeroForOne(true)}
+                >
+                  True (Currency0 → Currency1)
+                </Button>
+                <Button
+                  colorScheme={!zeroForOne ? "blue" : "gray"}
+                  onClick={() => setZeroForOne(false)}
+                >
+                  False (Currency1 → Currency0)
+                </Button>
+              </HStack>
             </Td>
           </Tr>
           <Tr>
