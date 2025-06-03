@@ -312,7 +312,7 @@ export default function SignatureView() {
             color="gray.200"
             borderRadius="md"
             fontFamily="monospace"
-            maxHeight="100px"
+            height="150px"
           >
             {signatureData.message}
           </Code>

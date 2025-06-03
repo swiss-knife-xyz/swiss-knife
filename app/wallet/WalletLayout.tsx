@@ -41,7 +41,7 @@ export const BaseLayout = ({ children }: LayoutParams) => {
     <Layout>
       <HStack alignItems={"stretch"} h="full" w="full">
         <Sidebar
-          heading="Safe"
+          heading="Wallet"
           items={SidebarItems}
           subdomain={subdomains.WALLET.base}
         />
