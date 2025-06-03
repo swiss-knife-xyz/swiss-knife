@@ -1,16 +1,23 @@
 "use client";
 
 import { HStack, Center } from "@chakra-ui/react";
+import {
+  FiDollarSign,
+  FiHash,
+  FiLock,
+  FiAlignLeft,
+  FiCheckCircle,
+} from "react-icons/fi";
 import { Layout } from "@/components/Layout";
 import { Sidebar, SidebarItem } from "@/components/Sidebar";
 import subdomains from "@/subdomains";
 
 const SidebarItems: SidebarItem[] = [
-  { name: "ETH", path: "eth" },
-  { name: "Hexadecimal", path: "hexadecimal" },
-  { name: "Keccak256", path: "keccak256" },
-  { name: "Padding", path: "padding" },
-  { name: "Address checksum", path: "address-checksum" },
+  { name: "ETH", path: "eth", icon: FiDollarSign },
+  { name: "Hexadecimal", path: "hexadecimal", icon: FiHash },
+  { name: "Keccak256", path: "keccak256", icon: FiLock },
+  { name: "Padding", path: "padding", icon: FiAlignLeft },
+  { name: "Address checksum", path: "address-checksum", icon: FiCheckCircle },
 ];
 
 export const ConverterLayout = ({
@@ -20,13 +27,13 @@ export const ConverterLayout = ({
 }) => {
   return (
     <Layout>
-      <HStack alignItems={"stretch"} h="full">
+      <HStack alignItems={"flex-start"} h="full">
         <Sidebar
           heading="Converters"
           items={SidebarItems}
           subdomain={subdomains.CONVERTER.base}
         />
-        <Center flexDir={"column"} w="full">
+        <Center mt={8} flexDir={"column"} w="full" flex={1}>
           {children}
         </Center>
       </HStack>

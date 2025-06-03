@@ -12,10 +12,13 @@ import {
   Spacer,
   Text,
   VStack,
+  HStack,
+  Icon,
 } from "@chakra-ui/react";
 import { Address, parseUnits, zeroAddress, Hex } from "viem";
 import { useAccount, useSwitchChain, useSimulateContract } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
+import { FiTarget, FiTrendingUp } from "react-icons/fi";
 
 import { chainIdToChain } from "@/data/common";
 import { quoterAbi, quoterAddress, PoolKey } from "./lib/constants";
@@ -222,9 +225,35 @@ const PoolPriceToTarget = () => {
   );
 
   return (
-    <>
-      <Heading color={"custom.pale"}>UniV4 Pool Price to Target</Heading>
-      <Flex w="100%" mt={4}>
+    <Box
+      p={6}
+      bg="rgba(0, 0, 0, 0.05)"
+      backdropFilter="blur(5px)"
+      borderRadius="xl"
+      border="1px solid"
+      borderColor="whiteAlpha.50"
+      maxW="1400px"
+      mx="auto"
+    >
+      {/* Modern Page Header */}
+      <Box mb={8} textAlign="center">
+        <HStack justify="center" spacing={3} mb={4}>
+          <Icon as={FiTarget} color="orange.400" boxSize={8} />
+          <Heading
+            size="xl"
+            color="gray.100"
+            fontWeight="bold"
+            letterSpacing="tight"
+          >
+            Pool Price to Target
+          </Heading>
+        </HStack>
+        <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
+          Calculate swap amount to bring Uniswap V4 pool price to target price
+        </Text>
+      </Box>
+
+      <Flex w="100%" mb={6}>
         <Spacer />
         <ConnectButton />
       </Flex>
@@ -259,7 +288,7 @@ const PoolPriceToTarget = () => {
           </Box>
         </Center>
       ) : (
-        <Box mt={4} w="full" px={8}>
+        <Box w="full" px={8}>
           <PoolInfoForm
             currency0={currency0}
             setCurrency0={setCurrency0}
@@ -411,7 +440,7 @@ const PoolPriceToTarget = () => {
           </Box>
         </Box>
       )}
-    </>
+    </Box>
   );
 };
 

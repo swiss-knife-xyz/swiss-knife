@@ -186,7 +186,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
           Position Range:
         </Text>
         <Button
-          colorScheme="purple"
+          colorScheme="blue"
           variant={priceInputMode ? "solid" : "outline"}
           onClick={() => setPriceInputMode(!priceInputMode)}
           size="sm"

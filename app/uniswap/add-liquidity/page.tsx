@@ -21,6 +21,11 @@ import {
   Tr,
   Text,
   VStack,
+  HStack,
+  Icon,
+  Badge,
+  Collapse,
+  useDisclosure,
 } from "@chakra-ui/react";
 import {
   Address,
@@ -56,6 +61,20 @@ import { PoolInitializationForm } from "./components/PoolInitializationForm";
 import { LiquidityAmountInput } from "./components/LiquidityAmountInput";
 import { PositionRangeInput } from "./components/PositionRangeInput";
 import { TokenApprovals } from "./components/TokenApprovals";
+import {
+  FiAlertTriangle,
+  FiDollarSign,
+  FiSettings,
+  FiShield,
+  FiRefreshCw,
+  FiPlus,
+  FiChevronDown,
+  FiChevronUp,
+  FiDroplet,
+} from "react-icons/fi";
+
+// Import the PoolInfoForm from pool-price-to-target
+import { PoolInfoForm } from "../pool-price-to-target/components/PoolInfoForm";
 
 // Import constants
 import {
@@ -89,12 +108,85 @@ import {
   formatBalance,
 } from "./lib/utils";
 
+// Create ApprovalStatusRow component inline
+const ApprovalStatusRow: React.FC<{
+  label: string;
+  approval?: bigint;
+  requiredAmount: string;
+  decimals: number;
+  isPermit2?: boolean;
+}> = ({ label, approval, requiredAmount, decimals, isPermit2 = false }) => {
+  const getStatus = () => {
+    if (!requiredAmount || requiredAmount === "" || requiredAmount === "0") {
+      return { text: "-", color: "gray.400" };
+    }
+    try {
+      const requiredAmountBigInt = parseUnits(requiredAmount, decimals);
+      if (approval === undefined) return { text: "-", color: "gray.400" };
+      if (approval >= requiredAmountBigInt) {
+        return {
+          text: isPermit2 ? "✅ Allowed" : "✅ Approved",
+          color: "green.400",
+        };
+      }
+      return {
+        text: isPermit2 ? "⚠️ Permit2 approval needed" : "⚠️ Approval needed",
+        color: isPermit2 ? "purple.400" : "orange.400",
+      };
+    } catch {
+      return { text: "Invalid Amount", color: "red.400" };
+    }
+  };
+
+  const status = getStatus();
+
+  return (
+    <Flex
+      justify="space-between"
+      align="center"
+      bg="whiteAlpha.30"
+      px={3}
+      py={2}
+      borderRadius="md"
+      border="1px solid"
+      borderColor="whiteAlpha.100"
+    >
+      <Text color="gray.300" fontSize="sm">
+        {label}
+      </Text>
+      <Badge
+        colorScheme={
+          status.color.includes("green")
+            ? "green"
+            : status.color.includes("red")
+            ? "red"
+            : status.color.includes("purple")
+            ? "purple"
+            : status.color.includes("orange")
+            ? "orange"
+            : "gray"
+        }
+        fontSize="xs"
+        px={2}
+        py={0.5}
+        rounded="md"
+      >
+        {status.text}
+      </Badge>
+    </Flex>
+  );
+};
+
 const AddLiquidity = () => {
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   const { chain, address } = useAccount();
   const { switchChain } = useSwitchChain();
   const { data: balanceData } = useBalance({ address });
+
+  // Disclosure hook for Token Approvals section
+  const { isOpen: isApprovalsOpen, onToggle: onToggleApprovals } =
+    useDisclosure();
 
   const chainNotSupported =
     chain &&
@@ -127,9 +219,9 @@ const AddLiquidity = () => {
     zeroAddress
   );
 
-  // Add hooksData state with localStorage
-  const [hooksData, setHooksData] = useLocalStorage<string>(
-    "uniswap-add-liquidity-hooksData",
+  // Add hookData state with localStorage (rename from hooksData to match PoolInfoForm interface)
+  const [hookData, setHookData] = useLocalStorage<string>(
+    "uniswap-add-liquidity-hookData",
     "0x"
   );
 
@@ -290,6 +382,36 @@ const AddLiquidity = () => {
   } = useAddLiquidityTransaction({
     isChainSupported,
   });
+
+  // Automatically check approvals when dependencies change
+  useEffect(() => {
+    if (
+      address &&
+      isChainSupported &&
+      currency0 &&
+      currency1 &&
+      (amount0 || amount1) &&
+      currency0Decimals &&
+      currency1Decimals
+    ) {
+      // Small delay to avoid rapid consecutive calls
+      const timeoutId = setTimeout(() => {
+        checkApprovals();
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [
+    address,
+    isChainSupported,
+    currency0,
+    currency1,
+    amount0,
+    amount1,
+    currency0Decimals,
+    currency1Decimals,
+    checkApprovals,
+  ]);
 
   // Auto-swap currencies if currency1 < currency0 (Uniswap convention)
   useEffect(() => {
@@ -526,10 +648,10 @@ const AddLiquidity = () => {
         V4PMActions.MINT_POSITION +
         V4PMActions.SETTLE_PAIR) as Hex;
 
-      // Validate hooksData format
-      const validHooksData = hooksData.startsWith("0x")
-        ? (hooksData as Hex)
-        : (`0x${hooksData}` as Hex);
+      // Validate hookData format
+      const validHookData = hookData.startsWith("0x")
+        ? (hookData as Hex)
+        : (`0x${hookData}` as Hex);
 
       const mintPositionParams = encodeAbiParameters(UniV4PM_MintPositionAbi, [
         poolKey,
@@ -539,7 +661,7 @@ const AddLiquidity = () => {
         finalAmount0,
         finalAmount1,
         address,
-        validHooksData,
+        validHookData,
       ]);
 
       const settlePairParams = encodeAbiParameters(UniV4PM_SettlePairAbi, [
@@ -594,7 +716,7 @@ const AddLiquidity = () => {
     initialPrice,
     currentTick,
     slot0Data,
-    hooksData,
+    hookData,
     poolKey,
     executeSendCalls,
   ]);
@@ -609,10 +731,114 @@ const AddLiquidity = () => {
     }
   }, [isTransactionComplete, fetchPoolInfo, checkApprovals]);
 
+  // Helper function to get approval summary status
+  const getApprovalSummary = () => {
+    if (!address || !isChainSupported) return null;
+
+    const needsApproval = [];
+
+    // Check currency0 approvals
+    if (currency0 !== zeroAddress && amount0 && currency0Decimals) {
+      try {
+        const requiredAmount = parseUnits(amount0, currency0Decimals);
+        if (
+          currency0Approval !== undefined &&
+          currency0Approval < requiredAmount
+        ) {
+          needsApproval.push(`${currency0Symbol || "Currency0"} → Permit2`);
+        }
+        if (
+          currency0Permit2Allowance !== undefined &&
+          currency0Permit2Allowance < requiredAmount
+        ) {
+          needsApproval.push(
+            `Permit2 → PM (${currency0Symbol || "Currency0"})`
+          );
+        }
+      } catch {}
+    }
+
+    // Check currency1 approvals
+    if (currency1 !== zeroAddress && amount1 && currency1Decimals) {
+      try {
+        const requiredAmount = parseUnits(amount1, currency1Decimals);
+        if (
+          currency1Approval !== undefined &&
+          currency1Approval < requiredAmount
+        ) {
+          needsApproval.push(`${currency1Symbol || "Currency1"} → Permit2`);
+        }
+        if (
+          currency1Permit2Allowance !== undefined &&
+          currency1Permit2Allowance < requiredAmount
+        ) {
+          needsApproval.push(
+            `Permit2 → PM (${currency1Symbol || "Currency1"})`
+          );
+        }
+      } catch {}
+    }
+
+    return needsApproval;
+  };
+
+  const approvalSummary = getApprovalSummary();
+
+  // Helper functions to check if amounts are valid (not exceeding balance)
+  const isAmount0Valid = () => {
+    if (!amount0 || amount0 === "" || amount0 === "0") return true;
+    if (!currency0Balance || !currency0Decimals) return true;
+    try {
+      const enteredAmount = parseUnits(amount0, currency0Decimals);
+      return enteredAmount <= currency0Balance;
+    } catch {
+      return false;
+    }
+  };
+
+  const isAmount1Valid = () => {
+    if (!amount1 || amount1 === "" || amount1 === "0") return true;
+    if (!currency1Balance || !currency1Decimals) return true;
+    try {
+      const enteredAmount = parseUnits(amount1, currency1Decimals);
+      return enteredAmount <= currency1Balance;
+    } catch {
+      return false;
+    }
+  };
+
+  const hasInvalidAmounts = !isAmount0Valid() || !isAmount1Valid();
+
   return (
-    <>
-      <Heading color={"custom.pale"}>UniV4 Add Liquidity</Heading>
-      <Flex w="100%" mt={4}>
+    <Box
+      p={6}
+      bg="rgba(0, 0, 0, 0.05)"
+      backdropFilter="blur(5px)"
+      borderRadius="xl"
+      border="1px solid"
+      borderColor="whiteAlpha.50"
+      maxW="1400px"
+      mx="auto"
+    >
+      {/* Modern Page Header */}
+      <Box mb={8} textAlign="center">
+        <HStack justify="center" spacing={3} mb={4}>
+          <Icon as={FiDroplet} color="blue.400" boxSize={8} />
+          <Heading
+            size="xl"
+            color="gray.100"
+            fontWeight="bold"
+            letterSpacing="tight"
+          >
+            Add Liquidity
+          </Heading>
+        </HStack>
+        <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
+          Provide liquidity to Uniswap V4 pools and earn fees from trades
+        </Text>
+      </Box>
+
+      <Flex w="100%" mb={6}>
         <Spacer />
         <ConnectButton />
       </Flex>
@@ -647,187 +873,356 @@ const AddLiquidity = () => {
           </Box>
         </Center>
       ) : (
-        <Table variant={"unstyled"}>
-          <Tbody>
-            <Tr>
-              <Td>currency0</Td>
-              <Td>
-                <InputGroup>
-                  <Input
-                    value={currency0}
-                    onChange={(e) => setCurrency0(e.target.value)}
-                    placeholder="Enter currency0 address"
-                  />
-                  {currency0Symbol && (
-                    <InputRightAddon>
-                      <Center flexDir={"column"}>
-                        <Box>{currency0Symbol}</Box>
-                        <Box fontSize={"xs"}>
-                          ({currency0Decimals} decimals)
-                        </Box>
-                      </Center>
-                    </InputRightAddon>
-                  )}
-                </InputGroup>
-              </Td>
-            </Tr>
-            <Tr>
-              <Td>currency1</Td>
-              <Td>
-                <InputGroup>
-                  <Input
-                    value={currency1}
-                    onChange={(e) => setCurrency1(e.target.value)}
-                    placeholder="Enter currency1 address"
-                  />
-                  {currency1Symbol && (
-                    <InputRightAddon>
-                      <Center flexDir={"column"}>
-                        <Box>{currency1Symbol}</Box>
-                        <Box fontSize={"xs"}>
-                          ({currency1Decimals} decimals)
-                        </Box>
-                      </Center>
-                    </InputRightAddon>
-                  )}
-                </InputGroup>
-              </Td>
-            </Tr>
-            <Tr>
-              <Td>fee</Td>
-              <Td>
-                <Input
-                  value={fee}
-                  onChange={(e) => {
-                    if (isValidNumericInput(e.target.value)) {
-                      setFee(Number(e.target.value) || 0);
-                    }
-                  }}
-                  placeholder="Enter fee (e.g., 3000 for 0.3%)"
-                />
-              </Td>
-            </Tr>
-            <Tr>
-              <Td>tickSpacing</Td>
-              <Td>
-                <Input
-                  value={tickSpacing}
-                  onChange={(e) => {
-                    if (isValidNumericInput(e.target.value)) {
-                      setTickSpacing(Number(e.target.value) || 0);
-                    }
-                  }}
-                  placeholder="Enter tick spacing (e.g., 60)"
-                />
-              </Td>
-            </Tr>
-            <Tr>
-              <Td>hookAddress</Td>
-              <Td>
-                <Input
-                  value={hookAddress}
-                  onChange={(e) => setHookAddress(e.target.value)}
-                  placeholder="Enter hook address (optional)"
-                />
-              </Td>
-            </Tr>
-            <Tr>
-              <Td>hooksData</Td>
-              <Td>
-                <Input
-                  value={hooksData}
-                  onChange={(e) => setHooksData(e.target.value)}
-                  placeholder="Enter hooks data (defaults to 0x)"
-                />
-              </Td>
-            </Tr>
-            <Tr>
-              <Td colSpan={2}>
-                <Divider />
-              </Td>
-            </Tr>
-            <PoolInfoDisplay
-              isPoolInitialized={isPoolInitialized}
-              currentSqrtPriceX96={currentSqrtPriceX96}
-              currentTick={currentTick}
-              currentZeroForOnePrice={currentZeroForOnePrice}
-              currentOneForZeroPrice={currentOneForZeroPrice}
-              currency0Symbol={currency0Symbol}
-              currency1Symbol={currency1Symbol}
-              fetchPoolInfo={fetchPoolInfo}
-              isSlot0Loading={isSlot0Loading}
-              poolId={poolId}
-              isChainSupported={isChainSupported}
-              currency0={currency0}
-              currency1={currency1}
-            />
-            <PoolInitializationForm
-              isPoolInitialized={isPoolInitialized}
-              initialPrice={initialPrice}
-              setInitialPrice={setInitialPrice}
-              initialPriceDirection={initialPriceDirection}
-              setInitialPriceDirection={setInitialPriceDirection}
-              currency0Symbol={currency0Symbol}
-              currency1Symbol={currency1Symbol}
-            />
-            <Tr>
-              <Td colSpan={2}>
-                <Divider />
-              </Td>
-            </Tr>
-            <Tr>
-              <Td colSpan={2}>
-                <Heading size={"md"} mb={4}>
-                  Liquidity Position:
+        <Box w="full" px={8}>
+          <PoolInfoForm
+            currency0={currency0}
+            setCurrency0={setCurrency0}
+            currency0Symbol={currency0Symbol}
+            currency0Decimals={currency0Decimals}
+            currency1={currency1}
+            setCurrency1={setCurrency1}
+            currency1Symbol={currency1Symbol}
+            currency1Decimals={currency1Decimals}
+            fee={fee}
+            setFee={setFee}
+            tickSpacing={tickSpacing}
+            setTickSpacing={setTickSpacing}
+            hookAddress={hookAddress}
+            setHookAddress={setHookAddress}
+            hookData={hookData}
+            setHookData={setHookData}
+          />
+
+          <Divider my={4} />
+
+          {/* Pool Initialization Section */}
+          {isPoolInitialized === false && (
+            <>
+              <Box
+                p={4}
+                bg="yellow.900"
+                borderRadius="lg"
+                border="1px solid"
+                borderColor="yellow.600"
+              >
+                <VStack spacing={4} align="stretch">
+                  <HStack spacing={2} align="center">
+                    <Icon as={FiAlertTriangle} color="yellow.400" boxSize={5} />
+                    <Heading size="md" color="yellow.200">
+                      Pool Initialization Required
+                    </Heading>
+                  </HStack>
+
+                  <Text fontSize="sm" color="yellow.300">
+                    This pool needs to be initialized. Please set the initial
+                    price.
+                  </Text>
+
+                  <Box>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="medium"
+                      color="yellow.200"
+                      mb={2}
+                    >
+                      Initial Price
+                    </Text>
+                    <InputGroup>
+                      <Input
+                        value={initialPrice}
+                        onChange={(e) => {
+                          if (isValidNumericInput(e.target.value)) {
+                            setInitialPrice(e.target.value);
+                          }
+                        }}
+                        placeholder="Enter initial price (e.g., 1800)"
+                        bg="yellow.800"
+                        border="1px solid"
+                        borderColor="yellow.600"
+                        _hover={{ borderColor: "yellow.500" }}
+                        _focus={{
+                          borderColor: "yellow.400",
+                          boxShadow:
+                            "0 0 0 1px var(--chakra-colors-yellow-400)",
+                        }}
+                        color="yellow.100"
+                        _placeholder={{ color: "yellow.500" }}
+                      />
+                      <InputRightAddon
+                        bg="yellow.800"
+                        borderColor="yellow.600"
+                        px={3}
+                        py={2}
+                      >
+                        <Button
+                          colorScheme="yellow"
+                          variant="ghost"
+                          onClick={() =>
+                            setInitialPriceDirection(!initialPriceDirection)
+                          }
+                          size="sm"
+                          color="yellow.200"
+                          _hover={{ bg: "yellow.700" }}
+                        >
+                          {initialPriceDirection
+                            ? `${currency1Symbol || "Currency1"} per ${
+                                currency0Symbol || "Currency0"
+                              }`
+                            : `${currency0Symbol || "Currency0"} per ${
+                                currency1Symbol || "Currency1"
+                              }`}
+                        </Button>
+                      </InputRightAddon>
+                    </InputGroup>
+                  </Box>
+                </VStack>
+              </Box>
+
+              <Divider my={4} />
+            </>
+          )}
+
+          {/* Liquidity Position Section */}
+          <Box
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <VStack spacing={6} align="stretch">
+              <HStack spacing={2} align="center">
+                <Icon as={FiDollarSign} color="green.400" boxSize={6} />
+                <Heading size="md" color="gray.300">
+                  Liquidity Position
                 </Heading>
-              </Td>
-            </Tr>
-            <Tr>
-              <Td>Amount {currency0Symbol || "Currency0"}</Td>
-              <LiquidityAmountInput
-                labelSymbol={currency0Symbol || "Currency0"}
-                value={amount0}
-                onAmountChange={(val) => {
-                  setAmount0(val);
-                  setLastUpdatedField("amount0");
-                  if (val === "" || val === "0") {
-                    setAmount1("");
-                    if (setIsCalculating) setIsCalculating(false);
-                    if (setCalculatingField) setCalculatingField(null);
-                  }
-                }}
-                balance={currency0Balance}
-                decimals={currency0Decimals}
-                isCalculatingField={
-                  isCalculating && calculatingField === "amount0"
-                }
-                placeholder="Enter amount of currency0"
-              />
-            </Tr>
-            <Tr>
-              <Td>Amount {currency1Symbol || "Currency1"}</Td>
-              <LiquidityAmountInput
-                labelSymbol={currency1Symbol || "Currency1"}
-                value={amount1}
-                onAmountChange={(val) => {
-                  setAmount1(val);
-                  setLastUpdatedField("amount1");
-                  if (val === "" || val === "0") {
-                    setAmount0("");
-                    if (setIsCalculating) setIsCalculating(false);
-                    if (setCalculatingField) setCalculatingField(null);
-                  }
-                }}
-                balance={currency1Balance}
-                decimals={currency1Decimals}
-                isCalculatingField={
-                  isCalculating && calculatingField === "amount1"
-                }
-                placeholder="Enter amount of currency1"
-              />
-            </Tr>
-            <Tr>
-              <Td colSpan={2}>
+              </HStack>
+
+              {/* Amount Inputs */}
+              <VStack spacing={4} align="stretch">
+                {/* Amount 0 */}
+                <Box>
+                  <HStack spacing={2} mb={2}>
+                    <Icon as={FiDollarSign} color="blue.400" boxSize={4} />
+                    <Text color="gray.300" fontSize="sm" fontWeight="medium">
+                      Amount {currency0Symbol || "Currency0"}
+                    </Text>
+                  </HStack>
+                  <Box position="relative">
+                    <InputGroup>
+                      <Input
+                        bg="whiteAlpha.50"
+                        border="1px solid"
+                        borderColor={
+                          !isAmount0Valid() ? "red.400" : "whiteAlpha.200"
+                        }
+                        _hover={{
+                          borderColor: !isAmount0Valid()
+                            ? "red.500"
+                            : "whiteAlpha.300",
+                        }}
+                        _focus={{
+                          borderColor: !isAmount0Valid()
+                            ? "red.400"
+                            : "blue.400",
+                          boxShadow: !isAmount0Valid()
+                            ? "0 0 0 1px var(--chakra-colors-red-400)"
+                            : "0 0 0 1px var(--chakra-colors-blue-400)",
+                        }}
+                        color="gray.100"
+                        _placeholder={{ color: "gray.500" }}
+                        rounded="md"
+                        value={amount0}
+                        onChange={(e) => {
+                          if (isValidNumericInput(e.target.value)) {
+                            setAmount0(e.target.value);
+                            setLastUpdatedField("amount0");
+                            if (
+                              e.target.value === "" ||
+                              e.target.value === "0"
+                            ) {
+                              setAmount1("");
+                              if (setIsCalculating) setIsCalculating(false);
+                              if (setCalculatingField)
+                                setCalculatingField(null);
+                            }
+                          }
+                        }}
+                        placeholder="Enter amount of currency0"
+                        pr={
+                          isCalculating && calculatingField === "amount0"
+                            ? "40px"
+                            : "16px"
+                        }
+                      />
+                      {isCalculating && calculatingField === "amount0" && (
+                        <InputRightElement>
+                          <Spinner size="sm" color="blue.500" />
+                        </InputRightElement>
+                      )}
+                    </InputGroup>
+                    <Text
+                      position="absolute"
+                      top="-20px"
+                      right="4px"
+                      fontSize="xs"
+                      color={!isAmount0Valid() ? "red.400" : "gray.400"}
+                      cursor="pointer"
+                      _hover={{
+                        color: !isAmount0Valid() ? "red.300" : "blue.400",
+                        textDecoration: "underline",
+                      }}
+                      onClick={() => {
+                        if (currency0Balance && currency0Decimals) {
+                          const maxBalance = formatUnits(
+                            currency0Balance,
+                            currency0Decimals
+                          );
+                          setAmount0(maxBalance);
+                          setLastUpdatedField("amount0");
+                          // Clear amount1 and stop calculating to let user manually adjust or let calculation happen
+                          if (amount1) {
+                            setAmount1("");
+                          }
+                          if (setIsCalculating) setIsCalculating(false);
+                          if (setCalculatingField) setCalculatingField(null);
+                        }
+                      }}
+                      title="Click to use max balance"
+                    >
+                      Balance:{" "}
+                      {formatBalance(currency0Balance, currency0Decimals || 18)}
+                    </Text>
+                    {!isAmount0Valid() && amount0 && amount0 !== "0" && (
+                      <Text
+                        position="absolute"
+                        bottom="-20px"
+                        left="4px"
+                        fontSize="xs"
+                        color="red.400"
+                      >
+                        Insufficient balance
+                      </Text>
+                    )}
+                  </Box>
+                </Box>
+
+                {/* Amount 1 */}
+                <Box>
+                  <HStack spacing={2} mb={2}>
+                    <Icon as={FiDollarSign} color="green.400" boxSize={4} />
+                    <Text color="gray.300" fontSize="sm" fontWeight="medium">
+                      Amount {currency1Symbol || "Currency1"}
+                    </Text>
+                  </HStack>
+                  <Box position="relative">
+                    <InputGroup>
+                      <Input
+                        bg="whiteAlpha.50"
+                        border="1px solid"
+                        borderColor={
+                          !isAmount1Valid() ? "red.400" : "whiteAlpha.200"
+                        }
+                        _hover={{
+                          borderColor: !isAmount1Valid()
+                            ? "red.500"
+                            : "whiteAlpha.300",
+                        }}
+                        _focus={{
+                          borderColor: !isAmount1Valid()
+                            ? "red.400"
+                            : "green.400",
+                          boxShadow: !isAmount1Valid()
+                            ? "0 0 0 1px var(--chakra-colors-red-400)"
+                            : "0 0 0 1px var(--chakra-colors-green-400)",
+                        }}
+                        color="gray.100"
+                        _placeholder={{ color: "gray.500" }}
+                        rounded="md"
+                        value={amount1}
+                        onChange={(e) => {
+                          if (isValidNumericInput(e.target.value)) {
+                            setAmount1(e.target.value);
+                            setLastUpdatedField("amount1");
+                            if (
+                              e.target.value === "" ||
+                              e.target.value === "0"
+                            ) {
+                              setAmount0("");
+                              if (setIsCalculating) setIsCalculating(false);
+                              if (setCalculatingField)
+                                setCalculatingField(null);
+                            }
+                          }
+                        }}
+                        placeholder="Enter amount of currency1"
+                        pr={
+                          isCalculating && calculatingField === "amount1"
+                            ? "40px"
+                            : "16px"
+                        }
+                      />
+                      {isCalculating && calculatingField === "amount1" && (
+                        <InputRightElement>
+                          <Spinner size="sm" color="green.500" />
+                        </InputRightElement>
+                      )}
+                    </InputGroup>
+                    <Text
+                      position="absolute"
+                      top="-20px"
+                      right="4px"
+                      fontSize="xs"
+                      color={!isAmount1Valid() ? "red.400" : "gray.400"}
+                      cursor="pointer"
+                      _hover={{
+                        color: !isAmount1Valid() ? "red.300" : "green.400",
+                        textDecoration: "underline",
+                      }}
+                      onClick={() => {
+                        if (currency1Balance && currency1Decimals) {
+                          const maxBalance = formatUnits(
+                            currency1Balance,
+                            currency1Decimals
+                          );
+                          setAmount1(maxBalance);
+                          setLastUpdatedField("amount1");
+                          // Clear amount0 and stop calculating to let user manually adjust or let calculation happen
+                          if (amount0) {
+                            setAmount0("");
+                          }
+                          if (setIsCalculating) setIsCalculating(false);
+                          if (setCalculatingField) setCalculatingField(null);
+                        }
+                      }}
+                      title="Click to use max balance"
+                    >
+                      Balance:{" "}
+                      {formatBalance(currency1Balance, currency1Decimals || 18)}
+                    </Text>
+                    {!isAmount1Valid() && amount1 && amount1 !== "0" && (
+                      <Text
+                        position="absolute"
+                        bottom="-20px"
+                        left="4px"
+                        fontSize="xs"
+                        color="red.400"
+                      >
+                        Insufficient balance
+                      </Text>
+                    )}
+                  </Box>
+                </Box>
+              </VStack>
+
+              {/* Position Range Section */}
+              <Box>
+                <HStack spacing={2} mb={3}>
+                  <Icon as={FiSettings} color="purple.400" boxSize={4} />
+                  <Text color="gray.300" fontSize="sm" fontWeight="medium">
+                    Position Range
+                  </Text>
+                </HStack>
                 <PositionRangeInput
                   priceInputMode={priceInputMode}
                   setPriceInputMode={setPriceInputMode}
@@ -847,86 +1242,200 @@ const AddLiquidity = () => {
                   currency1Symbol={currency1Symbol}
                   tickSpacing={tickSpacing}
                 />
-              </Td>
-            </Tr>
-            <TokenApprovals
-              checkApprovals={checkApprovals}
-              isCheckingApprovals={isCheckingApprovals}
-              address={address}
-              isChainSupported={isChainSupported}
-              currency0={currency0}
-              currency1={currency1}
-              currency0Symbol={currency0Symbol}
-              currency1Symbol={currency1Symbol}
-              amount0={amount0}
-              amount1={amount1}
-              currency0Decimals={currency0Decimals}
-              currency1Decimals={currency1Decimals}
-              currency0Approval={currency0Approval}
-              currency1Approval={currency1Approval}
-              currency0Permit2Allowance={currency0Permit2Allowance}
-              currency1Permit2Allowance={currency1Permit2Allowance}
-            />
-            <Tr>
-              <Td colSpan={2}>
-                <Box mt={6}>
+              </Box>
+            </VStack>
+          </Box>
+
+          <Divider my={4} />
+
+          {/* Token Approvals Section */}
+          <Box
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <VStack spacing={4} align="stretch">
+              <HStack spacing={4} align="center" justify="space-between">
+                <HStack spacing={2} align="center">
+                  <Icon as={FiShield} color="blue.400" boxSize={6} />
+                  <Heading size="md" color="gray.300">
+                    Token Approvals
+                  </Heading>
+                  {isCheckingApprovals && (
+                    <Spinner size="sm" color="blue.400" />
+                  )}
+                  {/* Approval status summary */}
+                  {approvalSummary && approvalSummary.length > 0 ? (
+                    <Badge
+                      colorScheme="orange"
+                      fontSize="xs"
+                      px={2}
+                      rounded="md"
+                    >
+                      (auto batched)
+                    </Badge>
+                  ) : approvalSummary &&
+                    approvalSummary.length === 0 &&
+                    (currency0 !== zeroAddress || currency1 !== zeroAddress) ? (
+                    <Badge colorScheme="green" fontSize="xs">
+                      All approved
+                    </Badge>
+                  ) : null}
+                </HStack>
+
+                <Button
+                  colorScheme="blue"
+                  onClick={onToggleApprovals}
+                  variant="ghost"
+                  size="sm"
+                  rightIcon={
+                    <Icon
+                      as={isApprovalsOpen ? FiChevronUp : FiChevronDown}
+                      boxSize={4}
+                    />
+                  }
+                >
+                  {isApprovalsOpen ? "Hide" : "Show"} Details
+                </Button>
+              </HStack>
+
+              <Collapse in={isApprovalsOpen} animateOpacity>
+                <VStack spacing={4} align="stretch">
                   <Button
-                    colorScheme="green"
-                    size="lg"
-                    width="100%"
-                    onClick={addLiquidity}
-                    isLoading={isTransactionLoading}
-                    loadingText={
-                      !isPoolInitialized && isPoolInitialized !== undefined
-                        ? "Initializing Pool & Adding Liquidity..."
-                        : "Adding Liquidity..."
-                    }
-                    isDisabled={
-                      !address ||
-                      !currency0 ||
-                      !currency1 ||
-                      !amount0 ||
-                      !amount1 ||
-                      !isChainSupported ||
-                      (!isPoolInitialized && !initialPrice) ||
-                      isTransactionLoading
-                    }
+                    colorScheme="blue"
+                    onClick={checkApprovals}
+                    isLoading={isCheckingApprovals}
+                    loadingText="Checking..."
+                    isDisabled={!address || !isChainSupported}
+                    leftIcon={<Icon as={FiRefreshCw} boxSize={3} />}
+                    size="xs"
+                    alignSelf="flex-end"
                   >
-                    {!isPoolInitialized && isPoolInitialized !== undefined
-                      ? "Initialize Pool & Add Liquidity"
-                      : "Add Liquidity"}
+                    Refresh Approvals
                   </Button>
 
-                  {!isPoolInitialized && isPoolInitialized !== undefined && (
-                    <Text
-                      fontSize="sm"
-                      color="yellow.400"
-                      mt={2}
-                      textAlign="center"
-                    >
-                      Note: Pool initialization and liquidity provision will be
-                      done in one transaction
-                    </Text>
+                  {/* Approval Status */}
+                  {((currency0 !== zeroAddress &&
+                    amount0 &&
+                    currency0Decimals) ||
+                    (currency1 !== zeroAddress &&
+                      amount1 &&
+                      currency1Decimals)) && (
+                    <VStack spacing={3} align="stretch">
+                      {currency0 !== zeroAddress &&
+                        amount0 &&
+                        currency0Decimals && (
+                          <VStack spacing={2} align="stretch">
+                            <ApprovalStatusRow
+                              label={`${
+                                currency0Symbol || "Currency0"
+                              } → Permit2`}
+                              approval={currency0Approval}
+                              requiredAmount={amount0}
+                              decimals={currency0Decimals}
+                            />
+                            <ApprovalStatusRow
+                              label={`Permit2 → Position Manager (${
+                                currency0Symbol || "Currency0"
+                              })`}
+                              approval={currency0Permit2Allowance}
+                              requiredAmount={amount0}
+                              decimals={currency0Decimals}
+                              isPermit2={true}
+                            />
+                          </VStack>
+                        )}
+                      {currency1 !== zeroAddress &&
+                        amount1 &&
+                        currency1Decimals && (
+                          <VStack spacing={2} align="stretch">
+                            <ApprovalStatusRow
+                              label={`${
+                                currency1Symbol || "Currency1"
+                              } → Permit2`}
+                              approval={currency1Approval}
+                              requiredAmount={amount1}
+                              decimals={currency1Decimals}
+                            />
+                            <ApprovalStatusRow
+                              label={`Permit2 → Position Manager (${
+                                currency1Symbol || "Currency1"
+                              })`}
+                              approval={currency1Permit2Allowance}
+                              requiredAmount={amount1}
+                              decimals={currency1Decimals}
+                              isPermit2={true}
+                            />
+                          </VStack>
+                        )}
+                    </VStack>
                   )}
+                </VStack>
+              </Collapse>
+            </VStack>
+          </Box>
 
-                  {(currency0 !== zeroAddress || currency1 !== zeroAddress) && (
-                    <Text
-                      fontSize="sm"
-                      color="blue.400"
-                      mt={2}
-                      textAlign="center"
-                    >
-                      💡 Any required approvals will be automatically included
-                      in the transaction
-                    </Text>
-                  )}
-                </Box>
-              </Td>
-            </Tr>
-          </Tbody>
-        </Table>
+          <Divider my={4} />
+
+          {/* Add Liquidity Button Section */}
+          <Box
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <VStack spacing={4} align="stretch">
+              <Button
+                colorScheme="green"
+                size="lg"
+                onClick={addLiquidity}
+                isLoading={isTransactionLoading}
+                loadingText={
+                  !isPoolInitialized && isPoolInitialized !== undefined
+                    ? "Initializing Pool & Adding Liquidity..."
+                    : "Adding Liquidity..."
+                }
+                isDisabled={
+                  !address ||
+                  !currency0 ||
+                  !currency1 ||
+                  !amount0 ||
+                  !amount1 ||
+                  !isChainSupported ||
+                  (!isPoolInitialized && !initialPrice) ||
+                  isTransactionLoading ||
+                  hasInvalidAmounts
+                }
+                leftIcon={<Icon as={FiPlus} boxSize={4} />}
+              >
+                {hasInvalidAmounts
+                  ? "Invalid Token Amounts"
+                  : !isPoolInitialized && isPoolInitialized !== undefined
+                  ? "Initialize Pool & Add Liquidity"
+                  : "Add Liquidity"}
+              </Button>
+
+              {!isPoolInitialized && isPoolInitialized !== undefined && (
+                <Text fontSize="sm" color="yellow.400" textAlign="center">
+                  Note: Pool initialization and liquidity provision will be done
+                  in one transaction
+                </Text>
+              )}
+
+              {(currency0 !== zeroAddress || currency1 !== zeroAddress) && (
+                <Text fontSize="sm" color="blue.400" textAlign="center">
+                  💡 Any required approvals will be automatically included in
+                  the transaction
+                </Text>
+              )}
+            </VStack>
+          </Box>
+        </Box>
       )}
-    </>
+    </Box>
   );
 };
 

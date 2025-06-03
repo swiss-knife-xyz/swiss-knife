@@ -29,22 +29,8 @@ export const Layout = ({ children }: LayoutParams) => {
           <Flex flexDir="column" flexGrow={1} overflow="hidden">
             <Navbar />
             <Box overflowX="auto" flexGrow={1}>
-              <Container
-                mt={12}
-                minW="max-content"
-                px={isNavExpanded ? 4 : -20}
-              >
-                <Flex
-                  flexDir="column"
-                  mt="0.5rem"
-                  p="4"
-                  border="1px"
-                  borderColor="whiteAlpha.700"
-                  borderStyle="dotted"
-                  rounded="lg"
-                >
-                  {children}
-                </Flex>
+              <Container mt={8} minW="max-content" px={6} maxW="full">
+                {children}
               </Container>
             </Box>
           </Flex>

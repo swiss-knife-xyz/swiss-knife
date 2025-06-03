@@ -1,4 +1,23 @@
-import { Box, Button, Heading, Text, Tr, Td } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Heading,
+  Text,
+  HStack,
+  VStack,
+  Badge,
+  Flex,
+  Icon,
+  Alert,
+  AlertIcon,
+} from "@chakra-ui/react";
+import {
+  FiRefreshCw,
+  FiTrendingUp,
+  FiActivity,
+  FiInfo,
+  FiAlertTriangle,
+} from "react-icons/fi";
 
 interface PoolInfoDisplayProps {
   isPoolInitialized?: boolean;
@@ -31,87 +50,166 @@ export const PoolInfoDisplay: React.FC<PoolInfoDisplayProps> = ({
   currency0,
   currency1,
 }) => {
+  const poolInteractionDisabled =
+    !currency0 || !currency1 || !isChainSupported || !poolId;
+
   return (
-    <>
-      <Tr>
-        <Td colSpan={2}>
-          <Heading size={"md"} mb={4}>
-            Pool Information:
-          </Heading>
+    <Box
+      p={4}
+      bg="whiteAlpha.50"
+      borderRadius="lg"
+      border="1px solid"
+      borderColor="whiteAlpha.200"
+    >
+      <VStack spacing={4} align="stretch">
+        {/* Header with Button */}
+        <HStack spacing={4} align="center">
+          <HStack spacing={2} align="center">
+            <Icon as={FiInfo} color="purple.400" boxSize={6} />
+            <Heading size="md" color="gray.300">
+              Pool Information
+            </Heading>
+          </HStack>
+
           <Button
-            colorScheme="blue"
+            colorScheme="purple"
             onClick={fetchPoolInfo}
-            mb={4}
             isLoading={isSlot0Loading}
-            loadingText="Fetching pool info..."
-            isDisabled={
-              !currency0 || !currency1 || !isChainSupported || !poolId
-            }
+            loadingText="Fetching..."
+            isDisabled={poolInteractionDisabled}
+            leftIcon={<Icon as={FiRefreshCw} boxSize={3} />}
+            size="xs"
           >
-            Fetch Pool Information
+            Fetch
           </Button>
+        </HStack>
 
-          {isPoolInitialized !== undefined && (
-            <Box mb={4}>
-              <Text>
-                Pool Status:{" "}
-                <Box
-                  as="span"
-                  color={isPoolInitialized ? "green.400" : "red.400"}
-                  fontWeight="bold"
-                >
-                  {isPoolInitialized ? "Initialized" : "Not Initialized"}
-                </Box>
+        {/* Pool Status */}
+        {isPoolInitialized !== undefined && (
+          <Box>
+            <HStack spacing={2} align="center" mb={2}>
+              <Icon as={FiActivity} color="gray.400" boxSize={4} />
+              <Text fontSize="sm" color="gray.400">
+                Pool Status:
               </Text>
-              {!isPoolInitialized && (
-                <Text fontSize="sm" color="yellow.400" mt={1}>
-                  ⚠️ Pool needs to be initialized first
+              <Badge
+                colorScheme={isPoolInitialized ? "green" : "red"}
+                fontSize="xs"
+                px={2}
+                py={0.5}
+              >
+                {isPoolInitialized ? "Initialized" : "Not Initialized"}
+              </Badge>
+            </HStack>
+
+            {!isPoolInitialized && (
+              <Alert
+                status="warning"
+                size="sm"
+                bg="yellow.900"
+                borderColor="yellow.600"
+              >
+                <AlertIcon />
+                <Text fontSize="xs" color="yellow.200">
+                  Pool needs to be initialized first
                 </Text>
+              </Alert>
+            )}
+          </Box>
+        )}
+
+        {/* Current Tick */}
+        {currentTick !== undefined && (
+          <HStack spacing={2} align="center">
+            <Icon as={FiActivity} color="gray.400" boxSize={3} />
+            <Text fontSize="sm" color="gray.400">
+              Current Tick:
+            </Text>
+            <Badge colorScheme="blue" fontSize="xs" px={2} py={0.5}>
+              {currentTick}
+            </Badge>
+          </HStack>
+        )}
+
+        {/* SqrtPriceX96 (Technical Info) */}
+        {currentSqrtPriceX96 && (
+          <HStack spacing={2} align="center">
+            <Icon as={FiActivity} color="gray.400" boxSize={3} />
+            <Text fontSize="sm" color="gray.400">
+              SqrtPriceX96:
+            </Text>
+            <Text fontSize="xs" color="gray.500" fontFamily="mono">
+              {currentSqrtPriceX96}
+            </Text>
+          </HStack>
+        )}
+
+        {/* Current Pool Prices */}
+        {(currentZeroForOnePrice || currentOneForZeroPrice) && (
+          <Box>
+            <HStack spacing={2} align="center" mb={3}>
+              <Icon as={FiTrendingUp} color="blue.400" boxSize={4} />
+              <Text fontSize="sm" fontWeight="medium" color="gray.300">
+                Current Pool Prices
+              </Text>
+            </HStack>
+
+            <HStack spacing={3} align="stretch">
+              {currentZeroForOnePrice && (
+                <Flex
+                  justify="space-between"
+                  align="center"
+                  bg="whiteAlpha.50"
+                  px={3}
+                  py={2}
+                  borderRadius="md"
+                  border="1px solid"
+                  borderColor="whiteAlpha.100"
+                  flex={1}
+                >
+                  <Text color="gray.300" fontSize="sm">
+                    1 {currency0Symbol || "Currency0"} =
+                  </Text>
+                  <HStack spacing={1}>
+                    <Text fontWeight="bold" color="blue.300" fontSize="sm">
+                      {currentZeroForOnePrice}
+                    </Text>
+                    <Text fontSize="xs" color="gray.400">
+                      {currency1Symbol || "Currency1"}
+                    </Text>
+                  </HStack>
+                </Flex>
               )}
-            </Box>
-          )}
 
-          {currentTick !== undefined && (
-            <Box mb={4}>
-              <Text fontSize="sm" color="gray.400">
-                Current Tick: {currentTick}
-              </Text>
-            </Box>
-          )}
-
-          {currentSqrtPriceX96 && (
-            <Box mb={4}>
-              <Text fontSize="sm" color="gray.400">
-                Current sqrtPriceX96: {currentSqrtPriceX96}
-              </Text>
-            </Box>
-          )}
-        </Td>
-      </Tr>
-      {(currentZeroForOnePrice || currentOneForZeroPrice) && (
-        <>
-          {currentZeroForOnePrice && (
-            <Tr>
-              <Td>1 {currency0Symbol || "Currency0"} =</Td>
-              <Td>
-                <Box fontWeight="bold">
-                  {currentZeroForOnePrice} {currency1Symbol || "Currency1"}
-                </Box>
-              </Td>
-            </Tr>
-          )}
-          {currentOneForZeroPrice && (
-            <Tr>
-              <Td>1 {currency1Symbol || "Currency1"} =</Td>
-              <Td>
-                <Box fontWeight="bold">
-                  {currentOneForZeroPrice} {currency0Symbol || "Currency0"}
-                </Box>
-              </Td>
-            </Tr>
-          )}
-        </>
-      )}
-    </>
+              {currentOneForZeroPrice && (
+                <Flex
+                  justify="space-between"
+                  align="center"
+                  bg="whiteAlpha.50"
+                  px={3}
+                  py={2}
+                  borderRadius="md"
+                  border="1px solid"
+                  borderColor="whiteAlpha.100"
+                  flex={1}
+                >
+                  <Text color="gray.300" fontSize="sm">
+                    1 {currency1Symbol || "Currency1"} =
+                  </Text>
+                  <HStack spacing={1}>
+                    <Text fontWeight="bold" color="green.300" fontSize="sm">
+                      {currentOneForZeroPrice}
+                    </Text>
+                    <Text fontSize="xs" color="gray.400">
+                      {currency0Symbol || "Currency0"}
+                    </Text>
+                  </HStack>
+                </Flex>
+              )}
+            </HStack>
+          </Box>
+        )}
+      </VStack>
+    </Box>
   );
 };
