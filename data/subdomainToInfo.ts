@@ -44,8 +44,9 @@ export const subdomainToInfo = {
   },
   [subdomains.UNISWAP.base]: {
     emoji: "🦄",
-    label: "Uniswap V3",
-    description: "Convert Uniswap V3 ticks to prices for any token pair",
+    label: "Uniswap V4",
+    description:
+      "Convert ticks to prices, calculate swap amounts & provide liquidity",
   },
   [subdomains.CHARACTER_COUNTER.base]: {
     emoji: "🔢",
@@ -67,5 +68,26 @@ export const subdomainToInfo = {
     emoji: "🛠️",
     label: "Foundry",
     description: "Visualize and collapse Foundry stack traces and more",
+  },
+  [subdomains.WALLET.base]: {
+    emoji: "💰",
+    label: "Wallet",
+    description: "Connect your wallet from one browser to another",
+  },
+  [subdomains.ENS.base]: {
+    emoji: "🔗",
+    label: "ENS",
+    description: "View ENS history & CCIP resolve visualization",
+  },
+  [subdomains.SAFE.base]: {
+    emoji: "🔒",
+    label: "Safe",
+    description: "Verify signatures & calldata for your Safe{Wallet}",
+  },
+  [subdomains["7702BEAT"].base]: {
+    emoji: "👑",
+    label: "7702 Beat",
+    description:
+      "Stats about 7702 adoption across EVM chains, Wallets and Dapps",
   },
 };
