@@ -520,6 +520,12 @@ export const addressExplorers: ExplorersData = {
       [c.avalancheFuji.id]: "testnet.",
     },
   },
+  Sonicscan: {
+    urlLayout: `https://sonicscan.org/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.sonic.id]: "",
+    },
+  },
   Tenderly: {
     forContracts: true,
     urlLayout: `https://dashboard.tenderly.co/contract/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,

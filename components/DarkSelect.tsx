@@ -119,7 +119,20 @@ export const DarkSelect = ({
         placeholder={placeholder}
         size="md"
         tagVariant="solid"
-        chakraStyles={commonChakraStyles}
+        chakraStyles={{
+          ...commonChakraStyles,
+          menu: (provided: any) => ({
+            ...provided,
+            position: "absolute",
+            zIndex: 9999,
+          }),
+        }}
+        styles={{
+          menuPortal: (provided: any) => ({
+            ...provided,
+            zIndex: 9999,
+          }),
+        }}
         closeMenuOnSelect
         useBasicStyles
         menuPortalTarget={menuPortalTarget}

@@ -13,12 +13,16 @@ const nextConfig = {
           destination: "/chainIcons/:asset*",
         },
         {
+          source: "/external/:asset*",
+          destination: "/external/:asset*",
+        },
+        {
           source: "/icon.png",
           destination: "/icon.png",
         },
         // set up subdomains
         ...Object.values(subdomains).map((subdomain) => ({
-          source: "/:path((?!_next|chainIcons|icon.png).*)", // Exclude chainIcons from subdomain rewrites
+          source: "/:path((?!_next|chainIcons|external|icon.png).*)", // Exclude chainIcons and external from subdomain rewrites
           has: [
             {
               type: "host",

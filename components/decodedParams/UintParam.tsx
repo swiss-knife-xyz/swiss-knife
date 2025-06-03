@@ -6,6 +6,8 @@ import {
   Skeleton,
   Text,
   Box,
+  Flex,
+  Portal,
 } from "@chakra-ui/react";
 import { ethFormatOptions, convertTo, ETHSelectedOptionState } from "@/utils";
 import { InputField } from "../InputField";
@@ -85,19 +87,25 @@ export const UintParam = ({ value: _value }: Params) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      style={{ width: "100%" }}
     >
-      <Box>
-        <HStack>
-          <Box maxW="25rem">
+      <Box width="100%">
+        <Flex
+          direction={{ base: "column", md: "row" }}
+          width="100%"
+          gap={2}
+          alignItems="flex-start"
+        >
+          <Box flex="1" minW="0" maxW="100%">
             <InputField
               InputLeftElement={
                 <>
                   {unixSelected && (
                     <InputLeftElement>
                       <Button
-                        px="2rem"
-                        ml="2rem"
-                        size="sm"
+                        px="1rem"
+                        ml="1rem"
+                        size="xs"
                         onClick={() => setShowLocalTime((prev) => !prev)}
                       >
                         {showLocalTime ? "Local" : "UTC"}
@@ -107,9 +115,12 @@ export const UintParam = ({ value: _value }: Params) => {
                   {isNumericFormat && (
                     <InputLeftElement>
                       <Button
-                        px="2rem"
-                        ml="2rem"
-                        size="sm"
+                        size="xs"
+                        minW="14"
+                        px="2"
+                        py="4"
+                        ml="1.5rem"
+                        h="5"
                         onClick={() => setShowFormatted((prev) => !prev)}
                       >
                         {showFormatted ? "Raw" : "Format"}
@@ -128,29 +139,51 @@ export const UintParam = ({ value: _value }: Params) => {
                   : conversionValue
               }
               pl={unixSelected || isNumericFormat ? "5rem" : undefined}
-              w={unixSelected || isNumericFormat ? "25rem" : undefined}
               placeholder=""
               isReadOnly
               onChange={() => {}}
+              fontSize="sm"
+              width="100%"
             />
           </Box>
-          <DarkSelect
-            boxProps={{
-              minW: "9rem",
-              fontSize: "small",
+          <Box
+            width={{ base: "100%", md: "auto" }}
+            zIndex="9999"
+            position="relative"
+            className="uint-select-container"
+            sx={{
+              "& .chakra-react-select__menu": {
+                zIndex: 9999,
+                position: "absolute !important",
+              },
             }}
-            selectedOption={selectedEthFormatOption}
-            setSelectedOption={(value) =>
-              setSelectedEthFormatOption(value as ETHSelectedOptionState)
-            }
-            options={ethFormatOptions.map((str) => ({
-              label: str,
-              value: str,
-            }))}
-          />
-        </HStack>
+          >
+            <DarkSelect
+              boxProps={{
+                minW: { base: "100%", md: "8rem" },
+                maxW: { base: "100%", md: "8rem" },
+                fontSize: "xs",
+                position: "static",
+                zIndex: 9999,
+              }}
+              selectedOption={selectedEthFormatOption}
+              setSelectedOption={(value) =>
+                setSelectedEthFormatOption(value as ETHSelectedOptionState)
+              }
+              options={ethFormatOptions.map((str) => ({
+                label: str,
+                value: str,
+              }))}
+            />
+          </Box>
+        </Flex>
         {isNumericFormat && showFormatted && (
-          <Text fontSize="sm" color="gray.500" ml="5rem" mt={1}>
+          <Text
+            fontSize="xs"
+            color="whiteAlpha.700"
+            ml={unixSelected || isNumericFormat ? "5rem" : 0}
+            mt={1}
+          >
             ({formatCompact(conversionValue)})
           </Text>
         )}

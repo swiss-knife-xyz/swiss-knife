@@ -242,6 +242,12 @@ export const txExplorers: ExplorersData = {
       [c.avalancheFuji.id]: "testnet.",
     },
   },
+  Sonicscan: {
+    urlLayout: `https://sonicscan.org/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.sonic.id]: "",
+    },
+  },
   Tenderly: {
     urlLayout: `https://dashboard.tenderly.co/tx/${CHAINLABEL_KEY}/${TX_KEY}`,
     chainIdToLabel: {
@@ -304,10 +310,10 @@ export const txExplorers: ExplorersData = {
     },
     faviconUrl: "https://scan.vf.at/favicon.ico",
   },
-  Viewblock: {
-    urlLayout: `https://viewblock.io/starknet/tx/${TX_KEY}`,
-    chainIdToLabel: {
-      [c.mainnet.id]: "",
-    },
-  },
+  // Viewblock: {
+  //   urlLayout: `https://viewblock.io/starknet/tx/${TX_KEY}`,
+  //   chainIdToLabel: {
+  //     [c.starknet.id]: "",
+  //   },
+  // },
 };

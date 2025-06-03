@@ -1,4 +1,4 @@
-import { Box } from "@chakra-ui/react";
+import { Box, useBreakpointValue, Flex } from "@chakra-ui/react";
 import { ConnectButton as RConnectButton } from "@rainbow-me/rainbowkit";
 
 import { ConnectWalletBtn } from "./ConnectWalletBtn";
@@ -17,6 +17,13 @@ export const ConnectButton = ({
   hideAccount?: boolean;
 }) => {
   const { switchChain } = useSwitchChain();
+  const isMobile = useBreakpointValue({ base: true, md: false });
+
+  // Only hide account if explicitly requested
+  const shouldHideAccount = hideAccount;
+
+  // Determine if we should show a compact version of the buttons
+  const isCompact = isMobile;
 
   return (
     <RConnectButton.Custom>
@@ -46,15 +53,18 @@ export const ConnectButton = ({
               }
 
               return (
-                <Box
-                  display="flex"
+                <Flex
                   py="0"
                   alignItems="center"
                   borderRadius="xl"
+                  flexWrap="nowrap"
+                  justifyContent="flex-end"
+                  maxW="100%"
+                  width="auto"
                 >
                   {chain.unsupported ||
                   (expectedChainId && expectedChainId !== chain.id) ? (
-                    <Box mr={!hideAccount ? "2" : undefined}>
+                    <Box mr={!shouldHideAccount ? "2" : undefined} w="auto">
                       <WrongNetworkBtn
                         txt={
                           expectedChainId
@@ -68,18 +78,28 @@ export const ConnectButton = ({
                             switchChain({ chainId: expectedChainId });
                           }
                         }}
+                        isCompact={isCompact}
                       />
                     </Box>
                   ) : (
-                    <ChainButton onClick={openChainModal} chain={chain} />
+                    <Box mr={2} flex={isMobile ? "1" : "initial"}>
+                      <ChainButton
+                        onClick={openChainModal}
+                        chain={chain}
+                        isCompact={isCompact}
+                      />
+                    </Box>
                   )}
-                  {!hideAccount && (
-                    <AccountButton
-                      onClick={openAccountModal}
-                      account={account}
-                    />
+                  {!shouldHideAccount && (
+                    <Box flex={isMobile ? "1" : "initial"}>
+                      <AccountButton
+                        onClick={openAccountModal}
+                        account={account}
+                        isCompact={isCompact}
+                      />
+                    </Box>
                   )}
-                </Box>
+                </Flex>
               );
             })()}
           </Box>

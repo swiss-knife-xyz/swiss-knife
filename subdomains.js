@@ -33,7 +33,7 @@ const subdomains = {
   },
   UNISWAP: {
     base: "uniswap",
-    paths: ["tick-to-price"],
+    paths: ["tick-to-price", "pool-price-to-target"],
   },
   CONTRACT_ADDRESS: {
     base: "contract-address",
@@ -46,6 +46,23 @@ const subdomains = {
   FOUNDRY: {
     base: "foundry",
     paths: ["forge-stack-tracer-ui"],
+  },
+  WALLET: {
+    base: "wallet",
+    paths: ["bridge"],
+  },
+  ENS: {
+    base: "ens",
+    paths: ["history"],
+  },
+  "7702BEAT": {
+    base: "7702beat",
+    paths: [],
+    isRelativePath: true,
+  },
+  SAFE: {
+    base: "safe",
+    paths: ["calldata-decoder", "eip-712-hash"],
   },
 };
 

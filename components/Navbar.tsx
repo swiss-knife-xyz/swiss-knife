@@ -1,193 +1,186 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  Center,
-  Spacer,
-  Heading,
-  HStack,
-  Text,
-  Image,
+  Box,
   Flex,
+  HStack,
+  useBreakpointValue,
+  Heading,
+  Image,
   Link as ChakraLink,
-  Alert,
   VStack,
   useDisclosure,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  Table,
-  Thead,
-  Tr,
-  Th,
-  Tbody,
-  Td,
+  IconButton,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
 } from "@chakra-ui/react";
+import { HamburgerIcon } from "@chakra-ui/icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGithub } from "@fortawesome/free-brands-svg-icons";
 import { baseURL } from "@/config";
-import { ILeaderboard } from "@/types";
-import { apiBasePath, slicedText } from "@/utils";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { DarkButton } from "./DarkButton";
+import subdomains from "@/subdomains";
+import { getPath } from "@/utils";
 import { NotificationBar } from "./NotificationBar";
 
 export const Navbar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-
-  const [leaderboard, setLeaderboard] = useState<ILeaderboard | null>(null);
-
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        const response = await fetch(
-          `${
-            process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-              ? ""
-              : "https://swiss-knife.xyz"
-          }/api/leaderboard-db`
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log({ data });
-        setLeaderboard(data);
-      } catch (error) {
-        console.error("Failed to fetch leaderboard:", error);
-      }
-    };
-    // fetchLeaderboard();
-  }, []);
+  const {
+    isOpen: isMenuOpen,
+    onOpen: onMenuOpen,
+    onClose: onMenuClose,
+  } = useDisclosure();
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   return (
-    <VStack w="100%">
-      <Flex w="100%">
-        <Spacer flex="1" />
-        <Center pt={"10"}>
-          <Heading color="custom.pale" pl="1rem">
-            <Link href={baseURL}>
-              <HStack spacing={"4"}>
-                <Image w="3rem" alt="icon" src="/icon.png" rounded={"lg"} />
-                <Text>Swiss Knife</Text>
-              </HStack>
-            </Link>
-          </Heading>
-        </Center>
-        <Flex flex="1" justifyContent="flex-end" pr="1rem" pt="1rem">
-          <ChakraLink
-            href={"https://github.com/swiss-knife-xyz/swiss-knife"}
-            isExternal
-          >
-            <FontAwesomeIcon icon={faGithub} size="2x" />
-          </ChakraLink>
-        </Flex>
-      </Flex>
-      <NotificationBar />
-      {leaderboard && (
-        <Alert status="info" bg={"#151515"}>
-          <Center w="100%">
-            <VStack>
-              <HStack>
-                <Text>🏆 Current Top donor: </Text>
-
-                <ChakraLink
-                  href={`https://arbiscan.io/address/${leaderboard.topDonorsWithEns[0].address}`}
-                  isExternal
-                >
-                  <HStack>
-                    <Text color="whiteAlpha.800">
-                      {leaderboard.topDonorsWithEns[0].ens.length > 0
-                        ? leaderboard.topDonorsWithEns[0].ens
-                        : slicedText(leaderboard.topDonorsWithEns[0].address)}
-                    </Text>
-                    <ExternalLinkIcon />
-                  </HStack>
-                </ChakraLink>
-              </HStack>
-              <DarkButton onClick={onOpen}>View Leaderboard 🏆</DarkButton>
-            </VStack>
-          </Center>
-          <Modal isOpen={isOpen} onClose={() => onClose()} isCentered>
-            <ModalOverlay bg="none" backdropFilter="auto" backdropBlur="5px" />
-            <ModalContent
-              minW={{
-                base: 0,
-                sm: "30rem",
-                md: "40rem",
-              }}
-              pb="6"
-              bg="bg.900"
+    <VStack w="100%" spacing={0}>
+      {/* Main Navbar */}
+      <Flex
+        w="100%"
+        py={3}
+        px={4}
+        alignItems="center"
+        justifyContent="space-between"
+        borderBottom="1px solid"
+        borderColor="whiteAlpha.200"
+        bg="blackAlpha.400"
+      >
+        {/* Logo */}
+        <Link href={baseURL}>
+          <HStack spacing={{ base: "2", sm: "3" }}>
+            <Image
+              w={{ base: "2rem", sm: "2.5rem" }}
+              h={{ base: "2rem", sm: "2.5rem" }}
+              alt="icon"
+              src="/icon.png"
+              rounded="lg"
+            />
+            <Heading
+              color="custom.pale"
+              fontSize={{ base: "lg", sm: "xl", md: "2xl" }}
+              display={{ base: "block", sm: "block" }}
             >
-              <ModalHeader>Gitcoin Donors Leaderboard</ModalHeader>
-              <ModalCloseButton />
-              <ModalBody>
-                <HStack>
-                  <Text>Donate on Gitcoin:</Text>
-                  <ChakraLink
-                    href="https://explorer.gitcoin.co/#/round/42161/27/33"
-                    isExternal
-                  >
-                    <HStack color="blue.200">
-                      <Text>Here</Text>
-                      <ExternalLinkIcon />
-                    </HStack>
-                  </ChakraLink>
-                </HStack>
-                <Table>
-                  <Thead>
-                    <Tr>
-                      <Th>Rank</Th>
-                      <Th>
-                        <Center>Donor</Center>
-                      </Th>
-                      <Th>Amount</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {leaderboard.topDonorsWithEns.map((donor, index) => (
-                      <Tr
-                        key={index}
-                        bg={
-                          index === 0
-                            ? "#EFCA1A" // gold
-                            : index === 1
-                            ? "#B4B4B4" // silver
-                            : index === 2
-                            ? "#BB7C3D" // bronze
-                            : ""
-                        }
-                      >
-                        <Td>{index + 1}</Td>
-                        <Td>
-                          <ChakraLink
-                            href={`https://arbiscan.io/address/${donor.address}`}
-                            isExternal
+              Swiss Knife
+            </Heading>
+          </HStack>
+        </Link>
+
+        {/* Right side actions */}
+        <HStack spacing={4}>
+          {/* GitHub link */}
+          <ChakraLink
+            href="https://github.com/swiss-knife-xyz/swiss-knife"
+            isExternal
+            display="flex"
+            alignItems="center"
+          >
+            <FontAwesomeIcon icon={faGithub} size={isMobile ? "lg" : "xl"} />
+          </ChakraLink>
+
+          <IconButton
+            aria-label="Open menu"
+            icon={<HamburgerIcon />}
+            variant="ghost"
+            color="white"
+            colorScheme="whiteAlpha"
+            onClick={onMenuOpen}
+            size="md"
+          />
+        </HStack>
+      </Flex>
+
+      {/* Notification Bar */}
+      <NotificationBar />
+
+      {/* Mobile Menu Drawer */}
+      <Drawer isOpen={isMenuOpen} placement="right" onClose={onMenuClose}>
+        <DrawerOverlay backdropFilter="blur(5px)" />
+        <DrawerContent bg="bg.900" maxW="280px">
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth="1px">🔨 All Tools</DrawerHeader>
+          <DrawerBody pt={4}>
+            <Accordion allowMultiple defaultIndex={[]} width="100%">
+              {Object.keys(subdomains).map((key, index) => {
+                const subdomain = subdomains[key];
+                const hasPaths = subdomain.paths.length > 0;
+
+                return (
+                  <AccordionItem key={index} border="none" mb={2}>
+                    {hasPaths ? (
+                      <>
+                        <AccordionButton
+                          p={2}
+                          _hover={{ bg: "whiteAlpha.100" }}
+                          rounded="md"
+                        >
+                          <Box
+                            as="span"
+                            flex="1"
+                            textAlign="left"
+                            fontSize="sm"
                           >
-                            <Center>
-                              <HStack>
-                                <Text>
-                                  {donor.ens.length > 0
-                                    ? donor.ens
-                                    : slicedText(donor.address)}
-                                </Text>
-                                <ExternalLinkIcon />
-                              </HStack>
-                            </Center>
-                          </ChakraLink>
-                        </Td>
-                        <Td>${donor.usdAmount}</Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
-              </ModalBody>
-            </ModalContent>
-          </Modal>
-        </Alert>
-      )}
+                            {subdomain.base}
+                          </Box>
+                          <AccordionIcon />
+                        </AccordionButton>
+                        <AccordionPanel pb={2} pl={4}>
+                          <VStack align="start" spacing={1} width="100%">
+                            {subdomain.paths.map((path, pathIndex) => (
+                              <Link
+                                key={pathIndex}
+                                href={`${getPath(
+                                  subdomain.base,
+                                  subdomain.isRelativePath
+                                )}${path}`}
+                                style={{ width: "100%" }}
+                                onClick={onMenuClose}
+                              >
+                                <Box
+                                  p={2}
+                                  _hover={{ bg: "whiteAlpha.100" }}
+                                  rounded="md"
+                                  width="100%"
+                                  fontSize="xs"
+                                >
+                                  {path}
+                                </Box>
+                              </Link>
+                            ))}
+                          </VStack>
+                        </AccordionPanel>
+                      </>
+                    ) : (
+                      <Link
+                        href={getPath(subdomain.base, subdomain.isRelativePath)}
+                        style={{ width: "100%" }}
+                        onClick={onMenuClose}
+                      >
+                        <Box
+                          p={2}
+                          _hover={{ bg: "whiteAlpha.100" }}
+                          rounded="md"
+                          width="100%"
+                          fontSize="sm"
+                        >
+                          {subdomain.base}
+                        </Box>
+                      </Link>
+                    )}
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
     </VStack>
   );
 };

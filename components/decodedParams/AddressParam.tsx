@@ -87,9 +87,9 @@ export const AddressParam = ({
               : "https://swiss-knife.xyz"
           }/api/labels/${address}`
         );
-        const data = res.data.data;
+        const data = res.data;
         if (data.length > 0) {
-          setAddressLabels(data.map((d: any) => d.address_name ?? d.label));
+          setAddressLabels(data);
         }
       } catch {
         setAddressLabels([]);
@@ -207,11 +207,12 @@ export const AddressParam = ({
           </InputGroup>
           {showLink && (
             <Link
-              href={`${getPath(subdomains.EXPLORER.base)}address/${value}${
-                chainId ? `/contract?chainId=${chainId}` : ""
-              }`}
-              title="View on explorer"
-              isExternal
+              href={`${getPath(
+                subdomains.EXPLORER.base,
+                subdomains.EXPLORER.isRelativePath
+              )}address/${value}${!!chainId ? "?chainId=" + chainId : ""}`}
+              target="_blank"
+              _hover={{ textDecoration: "none" }}
             >
               <Button size={"xs"}>
                 <HStack>

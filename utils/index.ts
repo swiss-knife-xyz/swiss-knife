@@ -24,10 +24,22 @@ import {
 } from "@/types";
 import { formatEther, formatUnits } from "viem";
 
-export const getPath = (subdomain: string) => {
-  return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-    ? `/${subdomain}/`
-    : `https://${subdomain}.swiss-knife.xyz/`;
+export const getPath = (subdomain: string, isRelativePath: boolean = false) => {
+  if (subdomain.length === 0) {
+    return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+      ? "/"
+      : "https://swiss-knife.xyz/";
+  }
+
+  if (isRelativePath) {
+    return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+      ? `/${subdomain}/`
+      : `https://swiss-knife.xyz/${subdomain}/`;
+  } else {
+    return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+      ? `/${subdomain}/`
+      : `https://${subdomain}.swiss-knife.xyz/`;
+  }
 };
 
 export const apiBasePath =
@@ -64,7 +76,7 @@ export const getMetadata = (_metadata: {
 
 export const publicClient = createPublicClient({
   chain: mainnet,
-  transport: http(process.env.MAINNET_RPC_URL),
+  transport: http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL),
 });
 
 export const getEnsAddress = async (name: string) => {
@@ -168,7 +180,7 @@ export interface ETHSelectedOptionState {
 export function convertTo(
   selectedEthFormatOption: ETHSelectedOptionState,
   value: any
-) {
+): string {
   if (!selectedEthFormatOption?.value) {
     return "";
   }
@@ -185,13 +197,13 @@ export function convertTo(
     case "Unix Time":
       return convertUnixSecondsToGMT(Number(value));
     case "Bps ↔️ %":
-      return `${((parseFloat(value) * 1_00) / 10_000).toFixed(2).toString()}%`;
+      return `${((parseFloat(value) * 1_00) / 10_000).toFixed(2)}%`;
     case "Days":
-      return value / 86400;
+      return (value / 86400).toString();
     case "Hours":
-      return value / 3600;
+      return (value / 3600).toString();
     case "Minutes":
-      return value / 60;
+      return (value / 60).toString();
     default:
       return "";
   }

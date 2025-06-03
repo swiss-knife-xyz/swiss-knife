@@ -7,9 +7,10 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, WagmiProvider, createConfig } from "wagmi";
 import {
-  connectorsForWallets,
+  getDefaultConfig,
   RainbowKitProvider,
   darkTheme,
+  connectorsForWallets,
 } from "@rainbow-me/rainbowkit";
 
 import {
@@ -19,58 +20,45 @@ import {
   safeWallet,
   coinbaseWallet,
 } from "@rainbow-me/rainbowkit/wallets";
+import { frameConnector } from "@/utils/frameConnector";
 import {
-  mainnet,
-  arbitrum,
-  arbitrumSepolia,
-  avalanche,
-  base,
-  baseSepolia,
-  bsc,
-  canto,
-  evmos,
-  fantom,
-  gnosis,
-  goerli,
-  linea,
-  optimism,
-  polygon,
-  polygonMumbai,
-  sepolia,
-  zora,
-  Chain,
-} from "wagmi/chains";
-
-const chains: readonly [Chain, ...Chain[]] = [
-  // first chain is the default
-  mainnet,
-  arbitrum,
-  arbitrumSepolia,
-  avalanche,
-  base,
-  baseSepolia,
-  bsc,
-  fantom,
-  gnosis,
-  goerli,
-  optimism,
-  polygon,
-  polygonMumbai,
-  sepolia,
-  zora,
-];
+  impersonatorWallet,
+  useImpersonatorModal,
+  ImpersonatorFloatingButton,
+} from "@/utils/impersonatorConnector";
+import { walletChains } from "@/data/chains";
+export { walletChains };
 
 const appName = "Swiss-Knife.xyz";
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;
+
+// Create a global variable to store the modal opener function
+let globalOpenImpersonatorModal: (() => Promise<any>) | null = null;
 
 const connectors = connectorsForWallets(
   [
     {
       groupName: "Popular",
       wallets: [
+        impersonatorWallet({
+          openModal: () => {
+            if (!globalOpenImpersonatorModal) {
+              throw new Error("Impersonator modal not initialized");
+            }
+            return globalOpenImpersonatorModal();
+          },
+        }),
         metaMaskWallet,
         coinbaseWallet,
-        walletConnectWallet,
+        // Use WalletConnect with a custom storage prefix
+        // This is to prevent clashes with our walletkit in wallet/bridge.
+        ({ projectId }) =>
+          walletConnectWallet({
+            projectId,
+            options: {
+              customStoragePrefix: "rainbowkit-client-role-",
+            },
+          }),
         rainbowWallet,
         safeWallet,
       ],
@@ -80,9 +68,9 @@ const connectors = connectorsForWallets(
 );
 
 export const config = createConfig({
-  connectors,
-  chains,
-  transports: chains.reduce<Record<number, ReturnType<typeof http>>>(
+  connectors: [frameConnector(), ...connectors],
+  chains: walletChains,
+  transports: walletChains.reduce<Record<number, ReturnType<typeof http>>>(
     (transport, chain) => {
       transport[chain.id] = http();
       return transport;
@@ -94,16 +82,20 @@ export const config = createConfig({
 const queryClient = new QueryClient();
 
 export const Providers = ({ children }: { children: React.ReactNode }) => {
+  // Set up impersonator modal hook
+  const { openModal, ModalComponent } = useImpersonatorModal();
+
+  // Set the global modal opener function
+  globalOpenImpersonatorModal = openModal;
+
   return (
     <ChakraProvider theme={theme}>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider
-            theme={darkTheme()}
-            modalSize={"compact"}
-            coolMode={true}
-          >
+          <RainbowKitProvider theme={darkTheme()} modalSize={"compact"}>
             {children}
+            <ModalComponent />
+            <ImpersonatorFloatingButton />
           </RainbowKitProvider>
         </QueryClientProvider>
       </WagmiProvider>

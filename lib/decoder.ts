@@ -642,9 +642,16 @@ export async function decodeRecursive({
         rawArgs: parsedTransaction.args,
         args: await Promise.all(
           parsedTransaction.args[0].map(async (tx: string[], i: number) => {
+            const operation = tx[0];
             const to = tx[1];
             const value = tx[2];
             const calldata = tx[4];
+
+            const operationIdToName: { [key: number]: string } = {
+              0: "CALL",
+              1: "DELEGATECALL",
+              2: "CREATE",
+            };
 
             // encode to and calldata into new calldata
             const encodedAbi = [
@@ -653,6 +660,10 @@ export async function decodeRecursive({
                 type: "function",
                 stateMutability: "nonpayable",
                 inputs: [
+                  {
+                    name: "OperationType",
+                    type: "string",
+                  },
                   {
                     name: "to",
                     type: "address",
@@ -672,7 +683,12 @@ export async function decodeRecursive({
             const encodedCalldata = await encodeFunctionData({
               abi: encodedAbi,
               functionName: "tx",
-              args: [to as Hex, BigInt(value), calldata as Hex],
+              args: [
+                operationIdToName[Number(operation)],
+                to as Hex,
+                BigInt(value),
+                calldata as Hex,
+              ],
             });
 
             const fragment = FunctionFragment.from({

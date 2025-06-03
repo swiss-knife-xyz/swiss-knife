@@ -62,6 +62,7 @@ import {
   scroll,
   scrollSepolia,
   sepolia,
+  sonic,
   taikoJolnir,
   taikoTestnetSepolia,
   telos,
@@ -73,6 +74,8 @@ import {
   zora,
   zoraTestnet,
   Chain,
+  unichain,
+  ink,
 } from "viem/chains";
 import { _chains } from "./_chains";
 
@@ -147,6 +150,7 @@ export const c: { [name: string]: Chain } = {
   ronin,
   scroll,
   scrollSepolia,
+  sonic,
   taikoJolnir,
   taikoTestnetSepolia,
   telos,
@@ -224,6 +228,19 @@ export const chainIdToChain = (() => {
 
   Object.values(c).map((chain) => {
     res[chain.id] = chain;
+
+    // Override mainnet RPC URL with env variable if available
+    if (chain.id === mainnet.id && process.env.NEXT_PUBLIC_MAINNET_RPC_URL) {
+      res[chain.id] = {
+        ...chain,
+        rpcUrls: {
+          ...chain.rpcUrls,
+          default: {
+            http: [process.env.NEXT_PUBLIC_MAINNET_RPC_URL],
+          },
+        },
+      };
+    }
   });
 
   return res;
@@ -255,16 +272,19 @@ export const chainIdToImage = (() => {
   let res: {
     [chainId: number]: string;
   } = {
+    // source: https://github.com/rainbow-me/rainbowkit/tree/main/packages/rainbowkit/src/components/RainbowKitProvider/chainIcons
     [arbitrum.id]: `${basePath}/arbitrum.svg`,
     [avalanche.id]: `${basePath}/avalanche.svg`,
     [base.id]: `${basePath}/base.svg`,
     [bsc.id]: `${basePath}/bsc.svg`,
     [cronos.id]: `${basePath}/cronos.svg`,
     [goerli.id]: `${basePath}/ethereum.svg`,
+    [ink.id]: `${basePath}/ink.svg`,
     [mainnet.id]: `${basePath}/ethereum.svg`,
     [optimism.id]: `${basePath}/optimism.svg`,
     [polygon.id]: `${basePath}/polygon.svg`,
     [sepolia.id]: `${basePath}/ethereum.svg`,
+    [unichain.id]: `${basePath}/unichain.svg`,
     [zora.id]: `${basePath}/zora.svg`,
   };
 
