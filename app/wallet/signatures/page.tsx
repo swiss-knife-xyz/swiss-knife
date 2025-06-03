@@ -8,7 +8,11 @@ import { parseAsString, useQueryState } from "next-usequerystate";
 import { SignMessage } from "./components/SignMessage";
 import { SignTypedData } from "./components/SignTypedData";
 import { exampleTypedDataJSON } from "./components/types";
-import { SignatureType, SharedSignaturePayload } from "./components/types";
+import {
+  SignatureType,
+  SharedSignaturePayload,
+  SignerEntry,
+} from "./components/types";
 
 const DEFAULT_EXAMPLE_PRETTY = JSON.stringify(exampleTypedDataJSON, null, 2);
 const DEFAULT_EXAMPLE_MINIFIED = JSON.stringify(exampleTypedDataJSON);
@@ -100,8 +104,18 @@ export default function WalletSignatures() {
       typedDataObject?: any;
     }
   ) => {
+    if (!address) {
+      throw new Error("No address found for signature.");
+    }
     try {
       let payloadForUrl: SharedSignaturePayload | undefined;
+
+      const newSignerEntry: SignerEntry = {
+        address: address,
+        signature: signature,
+        timestamp: new Date().toISOString(),
+      };
+
       let finalTypedDataRaw = signedContent.typedDataRaw;
       let finalTypedDataObject = signedContent.typedDataObject;
 
@@ -114,9 +128,7 @@ export default function WalletSignatures() {
         payloadForUrl = {
           type: "message",
           message: signedContent.message,
-          signature: signature,
-          address: address!,
-          timestamp: new Date().toISOString(),
+          signers: [newSignerEntry],
         };
       } else if (type === "typed_data") {
         if (!finalTypedDataRaw || finalTypedDataRaw.trim() === "") {
@@ -136,9 +148,7 @@ export default function WalletSignatures() {
           type: "typed_data",
           rawData: finalTypedDataRaw,
           parsedData: finalTypedDataObject,
-          signature: signature,
-          address: address!,
-          timestamp: new Date().toISOString(),
+          signers: [newSignerEntry],
         };
       } else {
         console.error("Unknown signature type:", type);

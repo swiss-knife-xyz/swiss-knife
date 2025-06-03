@@ -1,8 +1,10 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { verifyMessage, verifyTypedData } from "viem";
+import { verifyMessage, verifyTypedData, Address } from "viem";
+import { useAccount, useSignMessage, useSignTypedData } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 import {
   VStack,
   Heading,
@@ -15,13 +17,26 @@ import {
   AlertTitle,
   AlertDescription,
   Flex,
-  Center,
   Tooltip,
   Icon,
   Grid,
+  Button,
+  useToast,
 } from "@chakra-ui/react";
-import { CheckCircleIcon, WarningIcon, WarningTwoIcon } from "@chakra-ui/icons";
-import { SharedSignaturePayload, EIP712TypedData } from "../components/types";
+import {
+  CheckCircleIcon,
+  WarningIcon,
+  WarningTwoIcon,
+  AddIcon,
+  LinkIcon,
+  ArrowBackIcon,
+} from "@chakra-ui/icons";
+
+import {
+  SharedSignaturePayload,
+  EIP712TypedData,
+  SignerEntry,
+} from "../components/types";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import AddressDisplay from "@/components/AddressDisplay";
 import TypeBadge from "../components/TypeBadge";
@@ -51,9 +66,22 @@ const explorerBaseUrl = "https://etherscan.io/address/";
 
 export default function SignatureView() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { address: connectedAddress, isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
+  const toast = useToast();
+
+  const { signMessageAsync, isPending: isSigningMessage } = useSignMessage();
+  const { signTypedDataAsync, isPending: isSigningTypedData } =
+    useSignTypedData();
+
   const [signatureData, setSignatureData] =
     useState<SharedSignaturePayload | null>(null);
-  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+
+  const [verificationStatuses, setVerificationStatuses] = useState<
+    Record<string, boolean | null>
+  >({});
+  const [isVerifyingAll, setIsVerifyingAll] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,10 +89,10 @@ export default function SignatureView() {
     const encodedData = searchParams.get("payload");
     if (encodedData) {
       const decoded = decodeDataFromUrl(encodedData);
-      if (decoded) {
+      if (decoded && decoded.signers && Array.isArray(decoded.signers)) {
         setSignatureData(decoded);
       } else {
-        setError("Invalid signature data format in URL.");
+        setError("Invalid multi-signature data format in URL.");
         setSignatureData(null);
       }
     } else {
@@ -74,85 +102,158 @@ export default function SignatureView() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (!signatureData) {
-      setIsVerified(null);
+    if (
+      !signatureData ||
+      !signatureData.signers ||
+      signatureData.signers.length === 0
+    ) {
+      setVerificationStatuses({});
+      setIsVerifyingAll(false);
       return;
     }
-    const verify = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        let isValid = false;
-        if (signatureData.type === "message" && signatureData.message) {
-          isValid = await verifyMessage({
-            address: signatureData.address,
-            message: signatureData.message,
-            signature: signatureData.signature,
-          });
-        } else if (
-          signatureData.type === "typed_data" &&
-          signatureData.parsedData
-        ) {
-          const {
-            domain,
-            types,
-            primaryType,
-            message: typedMessage,
-          } = signatureData.parsedData as EIP712TypedData;
-          if (types && primaryType && typedMessage) {
-            isValid = await verifyTypedData({
-              address: signatureData.address,
-              domain: domain,
+
+    const verifyAllSignatures = async () => {
+      setIsVerifyingAll(true);
+      const newStatuses: Record<string, boolean | null> = {};
+      let anErrorOccurredDuringVerification = false;
+
+      for (const signerEntry of signatureData.signers) {
+        try {
+          let isValid = false;
+          if (signatureData.type === "message" && signatureData.message) {
+            isValid = await verifyMessage({
+              message: signatureData.message,
+              address: signerEntry.address,
+              signature: signerEntry.signature,
+            });
+          } else if (
+            signatureData.type === "typed_data" &&
+            signatureData.parsedData
+          ) {
+            const {
+              domain,
               types,
               primaryType,
               message: typedMessage,
-              signature: signatureData.signature,
-            });
+            } = signatureData.parsedData;
+            if (types && primaryType && typedMessage) {
+              isValid = await verifyTypedData({
+                domain,
+                types,
+                primaryType,
+                message: typedMessage,
+                address: signerEntry.address,
+                signature: signerEntry.signature,
+              });
+            } else {
+              throw new Error("Core typed data is malformed for verification.");
+            }
           } else {
-            throw new Error(
-              "Parsed typed data is missing essential fields for verification."
-            );
+            throw new Error("Signature data type or core data is missing.");
           }
-        } else {
-          throw new Error("Signature data is incomplete for verification.");
+          newStatuses[signerEntry.signature] = isValid;
+        } catch (e) {
+          console.error(
+            `Verification failed for ${signerEntry.address} (sig: ${signerEntry.signature.substring(0, 10)}...):`,
+            e
+          );
+          newStatuses[signerEntry.signature] = false;
+          anErrorOccurredDuringVerification = true;
         }
-        setIsVerified(isValid);
-      } catch (e) {
-        console.error("Verification failed:", e);
-        setError(
-          e instanceof Error
-            ? e.message
-            : "An unknown error occurred during verification."
-        );
-        setIsVerified(false);
-      } finally {
-        setIsLoading(false);
       }
+      setVerificationStatuses(newStatuses);
+      if (anErrorOccurredDuringVerification && !error)
+        setError(
+          "One or more signature verifications encountered an issue. Check console."
+        );
+      setIsVerifyingAll(false);
     };
-    verify();
-  }, [signatureData]);
+
+    verifyAllSignatures();
+  }, [signatureData, error]);
+
+  const handleSignAgain = async () => {
+    if (!signatureData || !isConnected || !connectedAddress) {
+      if (!isConnected) openConnectModal?.();
+      return;
+    }
+    if (
+      signatureData.signers.some(
+        (s) => s.address.toLowerCase() === connectedAddress.toLowerCase()
+      )
+    ) {
+      return;
+    }
+
+    let newSignatureHex: `0x${string}` | undefined;
+
+    try {
+      if (signatureData.type === "message" && signatureData.message) {
+        newSignatureHex = await signMessageAsync({
+          message: signatureData.message,
+        });
+      } else if (
+        signatureData.type === "typed_data" &&
+        signatureData.parsedData
+      ) {
+        newSignatureHex = await signTypedDataAsync(
+          signatureData.parsedData as any
+        );
+      } else {
+        return;
+      }
+
+      if (newSignatureHex) {
+        const newSignerEntry: SignerEntry = {
+          address: connectedAddress,
+          signature: newSignatureHex,
+          timestamp: new Date().toISOString(),
+        };
+        const updatedSignatureData: SharedSignaturePayload = {
+          ...signatureData,
+          signers: [...signatureData.signers, newSignerEntry],
+        };
+        setSignatureData(updatedSignatureData); // This will trigger re-verification useEffect
+
+        const jsonString = JSON.stringify(updatedSignatureData);
+        const base64String = btoa(jsonString);
+        const encodedPayload = encodeURIComponent(base64String);
+        router.push(`/wallet/signatures/view?payload=${encodedPayload}`, {
+          scroll: false,
+        });
+      }
+    } catch (signError) {
+      console.error("Error signing again:", signError);
+    }
+  };
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({
+      title: "Link copied to clipboard",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
 
   if (isLoading && !signatureData && !error) {
     return (
       <VStack justify="center" align="center" minH="50vh">
-        <Spinner size="xl" />
-        <Text mt={4}>Loading signature data...</Text>
+        <Spinner size="xl" /> <Text mt={4}>Loading signature data...</Text>
       </VStack>
     );
   }
-
   if (error && !signatureData) {
     return (
       <VStack justify="center" align="center" minH="50vh" p={4}>
         <Alert status="error" borderRadius="md">
-          <AlertIcon />
-          <AlertTitle>Error!</AlertTitle>
+          <AlertIcon /> <AlertTitle>Error!</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       </VStack>
     );
   }
-
   if (!signatureData) {
     return (
       <VStack justify="center" align="center" minH="50vh">
@@ -161,15 +262,46 @@ export default function SignatureView() {
     );
   }
 
+  const canSignAgain =
+    signatureData &&
+    connectedAddress &&
+    !signatureData.signers.some(
+      (s) => s.address.toLowerCase() === connectedAddress.toLowerCase()
+    );
+  const signButtonText = !isConnected
+    ? "Connect Wallet"
+    : canSignAgain
+      ? signatureData?.type === "message"
+        ? "Sign Message"
+        : "Sign Typed Data"
+      : "Already Signed";
+  const isSignButtonLoading = isSigningMessage || isSigningTypedData;
+
   return (
     <VStack spacing={6} align="stretch" maxW="800px" mx="auto" p={4} py={8}>
-      <Center>
-        <Heading fontSize="2xl" mb={4}>
-          {signatureData.type === "message"
-            ? "Message Signature"
-            : "Typed Data Signature"}
-        </Heading>
-      </Center>
+      <Flex alignItems="center" position="relative" py={4}>
+        <Button
+          leftIcon={<ArrowBackIcon />}
+          onClick={() => router.push("/wallet/signatures")}
+          variant="ghost"
+          colorScheme="white"
+          fontSize={"md"}
+        >
+          Back
+        </Button>
+        <Box flexGrow={1} textAlign="center">
+          <Heading fontSize="2xl" display="inline-block">
+            {signatureData.type === "message"
+              ? "Message Signature"
+              : "Typed Data Signature"}
+          </Heading>
+        </Box>
+        <Box visibility="hidden" aria-hidden="true">
+          <Button leftIcon={<ArrowBackIcon />} variant="ghost" fontSize={"md"}>
+            Back
+          </Button>
+        </Box>
+      </Flex>
       {signatureData.type === "message" && signatureData.message && (
         <Box borderWidth="1px" borderRadius="lg" p={5}>
           <Code
@@ -180,7 +312,7 @@ export default function SignatureView() {
             color="gray.200"
             borderRadius="md"
             fontFamily="monospace"
-            height="100px"
+            maxHeight="100px"
           >
             {signatureData.message}
           </Code>
@@ -197,24 +329,24 @@ export default function SignatureView() {
           if (!types || typeof types !== "object") {
             return (
               <Alert status="error" borderRadius="md">
-                <AlertIcon />
-                EIP-712 &apos;types&apos; definition is missing or invalid.
+                <AlertIcon /> EIP-712 &apos;types&apos; definition is missing or
+                invalid.
               </Alert>
             );
           }
           if (!primaryType || typeof primaryType !== "string") {
             return (
               <Alert status="error" borderRadius="md">
-                <AlertIcon />
-                EIP-712 &apos;primaryType&apos; is missing or invalid.
+                <AlertIcon /> EIP-712 &apos;primaryType&apos; is missing or
+                invalid.
               </Alert>
             );
           }
           if (!message || typeof message !== "object") {
             return (
               <Alert status="error" borderRadius="md">
-                <AlertIcon />
-                EIP-712 &apos;message&apos; object is missing or invalid.
+                <AlertIcon /> EIP-712 &apos;message&apos; object is missing or
+                invalid.
               </Alert>
             );
           }
@@ -222,9 +354,8 @@ export default function SignatureView() {
           if (!primaryTypeDefinition || !Array.isArray(primaryTypeDefinition)) {
             return (
               <Alert status="error" borderRadius="md">
-                <AlertIcon />
-                Definition for primary type &apos;{primaryType}&apos; is missing
-                or not an array.
+                <AlertIcon /> Definition for primary type &apos;{primaryType}
+                &apos; is missing or not an array.
               </Alert>
             );
           }
@@ -248,8 +379,8 @@ export default function SignatureView() {
                 <AddressDisplay
                   address={value}
                   fullAddress={value}
-                  showExplorerLink={true}
-                  explorerUrl={`${explorerBaseUrl}${signatureData.address}`}
+                  showExplorerLink
+                  explorerUrl={`${explorerBaseUrl}${value}`}
                 />
               );
             }
@@ -263,13 +394,11 @@ export default function SignatureView() {
                 >
                   {typeof value === "string"
                     ? `"${String(value)}"`
-                    : String(value === null ? "null" : value)}{" "}
+                    : String(value === null ? "null" : value)}
                 </Text>
               );
             }
-
             const structDefinition = currentTypes[fieldType];
-
             if (structDefinition && Array.isArray(structDefinition)) {
               return (
                 <Box pl={nestingLevel > 0 ? 4 : 2} mt={1} w="full">
@@ -337,7 +466,7 @@ export default function SignatureView() {
                 typeof domain === "object" &&
                 Object.keys(domain).length > 0 && (
                   <Box borderWidth="1px" borderRadius="lg" p={5}>
-                    <Heading size="sm" mb={3} color="gray.200">
+                    <Heading size="md" mr={3} color="gray.100">
                       Domain
                     </Heading>
                     {Object.entries(domain).map(([key, value]) => (
@@ -363,8 +492,8 @@ export default function SignatureView() {
                           <AddressDisplay
                             address={String(value)}
                             fullAddress={String(value)}
-                            showExplorerLink={true}
-                            explorerUrl={`${explorerBaseUrl}${signatureData.address}`}
+                            showExplorerLink
+                            explorerUrl={`${explorerBaseUrl}${String(value)}`}
                           />
                         ) : (
                           <Text
@@ -489,7 +618,7 @@ export default function SignatureView() {
                               <Text
                                 fontWeight="bold"
                                 color="gray.300"
-                                fontSize="lg"
+                                fontSize="md"
                                 mb={1}
                               >
                                 {typeName}
@@ -509,8 +638,8 @@ export default function SignatureView() {
                           <Box key={typeName} mb={4} _last={{ mb: 0 }}>
                             <Text
                               fontWeight="bold"
-                              color="gray.200"
-                              fontSize="lg"
+                              color="gray.300"
+                              fontSize="md"
                               mb={2}
                             >
                               {typeName}
@@ -551,95 +680,129 @@ export default function SignatureView() {
           );
         })()}
       <Box borderWidth="1px" borderRadius="lg" p={5}>
-        <Flex justifyContent="space-between" alignItems="center" mb={3}>
-          <Heading size="md" color="gray.100">
-            Signature
-          </Heading>
-          {isVerified === true && (
-            <Tooltip
-              label="The signature matches the data and address."
-              bg="green.600"
-              color="white"
-              hasArrow
-              rounded="md"
+        <Heading size="md" color="gray.100">
+          Signature
+        </Heading>
+        {signatureData.signers.map((signerEntry, index) => {
+          const isCurrentSignerVerified =
+            verificationStatuses[signerEntry.signature];
+
+          return (
+            <Box
+              key={signerEntry.signature + index}
+              py={6}
+              borderBottomWidth={"1px"}
+              borderColor="border.muted"
+              _last={{ borderBottomWidth: 0 }}
             >
-              <Flex alignItems="center" color="green.300">
-                <Icon as={CheckCircleIcon} w={5} h={5} />
+              <Flex
+                py={2}
+                justifyContent="space-between"
+                alignItems="start"
+                mt={isCurrentSignerVerified !== null ? 0 : 2}
+              >
+                <Grid gap={1}>
+                  <AddressDisplay
+                    address={signerEntry.address}
+                    fullAddress={signerEntry.address}
+                    showExplorerLink={true}
+                    explorerUrl={`${explorerBaseUrl}${signerEntry.address}`}
+                  />
+                  <Text fontSize="10px" color="gray.400">
+                    {new Date(signerEntry.timestamp).toLocaleString()}
+                  </Text>
+                </Grid>
+                {isVerifyingAll &&
+                  verificationStatuses[signerEntry.signature] === undefined && (
+                    <Tooltip
+                      label="Verifying..."
+                      bg="yellow.600"
+                      color="white"
+                      hasArrow
+                    >
+                      <Spinner size="sm" color="yellow.300" />
+                    </Tooltip>
+                  )}
+                {isCurrentSignerVerified === true && (
+                  <Tooltip
+                    label="The signature matches the data and address."
+                    bg="green.600"
+                    color="white"
+                    hasArrow
+                    rounded="md"
+                  >
+                    <Flex alignItems="center" color="green.300">
+                      <Icon as={CheckCircleIcon} w={5} h={5} />
+                    </Flex>
+                  </Tooltip>
+                )}
+                {isCurrentSignerVerified === false && (
+                  <Tooltip
+                    label={
+                      error || "Signature does not match or an error occurred."
+                    }
+                    bg="red.600"
+                    color="white"
+                    hasArrow
+                    rounded="md"
+                  >
+                    <Flex alignItems="center" color="red.300">
+                      <Icon as={WarningTwoIcon} w={5} h={5} />
+                    </Flex>
+                  </Tooltip>
+                )}
+                {isCurrentSignerVerified === null && !isVerifyingAll && (
+                  <Tooltip
+                    label="Verification status unknown."
+                    bg="gray.600"
+                    color="white"
+                    hasArrow
+                  >
+                    <Icon as={WarningIcon} color="gray.400" w={5} h={5} />
+                  </Tooltip>
+                )}
               </Flex>
-            </Tooltip>
-          )}
-          {isVerified === false && (
-            <Tooltip
-              label={error || "Signature does not match or an error occurred."}
-              bg="red.600"
-              color="white"
-              hasArrow
-              rounded="md"
-            >
-              <Flex alignItems="center" color="red.300">
-                <Icon as={WarningTwoIcon} w={5} h={5} />
+              <Flex alignItems="center" mt={2}>
+                <Code
+                  p={3}
+                  display="block"
+                  wordBreak="break-all"
+                  bg="gray.900"
+                  color="gray.200"
+                  borderRadius="md"
+                  fontFamily="monospace"
+                  flex="1"
+                  mr={2}
+                >
+                  {signerEntry.signature}
+                </Code>
+                <CopyToClipboard textToCopy={signerEntry.signature} />
               </Flex>
-            </Tooltip>
-          )}
-          {isVerified === null && isLoading && (
-            <Tooltip
-              label="Verifying signature..."
-              bg="yellow.600"
-              color="white"
-              hasArrow
-            >
-              <Spinner size="sm" color="yellow.300" />
-            </Tooltip>
-          )}
-          {isVerified === null && !isLoading && !error && (
-            <Tooltip
-              label="Verification status unknown."
-              bg="gray.600"
-              color="white"
-              hasArrow
-            >
-              <Icon as={WarningIcon} color="gray.400" w={5} h={5} />
-            </Tooltip>
-          )}
-        </Flex>
-        <Flex
-          py={2}
-          justifyContent="space-between"
-          alignItems="center"
-          direction={{ base: "column", md: "row" }}
-          mt={isVerified !== null ? 0 : 2}
-        >
-          <AddressDisplay
-            address={signatureData.address}
-            fullAddress={signatureData.address}
-            showExplorerLink={true}
-            explorerUrl={`${explorerBaseUrl}${signatureData.address}`}
-          />
-          <Text
-            fontSize="xs"
-            color="gray.400"
-            textAlign={{ base: "left", md: "right" }}
-          >
-            {new Date(signatureData.timestamp).toLocaleString()}
-          </Text>
-        </Flex>
-        <Flex alignItems="center" mt={2}>
-          <Code
-            p={3}
-            display="block"
-            wordBreak="break-all"
-            bg="gray.900"
-            color="gray.200"
-            borderRadius="md"
-            fontFamily="monospace"
-            flex="1"
-            mr={2}
-          >
-            {signatureData.signature}
-          </Code>
-          <CopyToClipboard textToCopy={signatureData.signature} />
-        </Flex>
+            </Box>
+          );
+        })}
       </Box>
+      {signatureData && (
+        <Flex justifyContent="end" mt={6} gap={4}>
+          <Button
+            leftIcon={<LinkIcon />}
+            onClick={handleShare}
+            colorScheme="green"
+          >
+            Share
+          </Button>
+          <Button
+            onClick={!isConnected ? openConnectModal : handleSignAgain}
+            leftIcon={canSignAgain && isConnected ? <AddIcon /> : undefined}
+            colorScheme={canSignAgain && isConnected ? "blue" : "gray"}
+            isDisabled={!canSignAgain && isConnected && isConnected}
+            isLoading={isSignButtonLoading}
+            loadingText="Signing..."
+          >
+            {signButtonText}
+          </Button>
+        </Flex>
+      )}
     </VStack>
   );
 }

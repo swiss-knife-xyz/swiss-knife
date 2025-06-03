@@ -2,12 +2,10 @@ export type SignatureType = "message" | "typed_data";
 
 export type SharedSignaturePayload = {
   type: SignatureType;
-  address: `0x${string}`;
-  timestamp: string;
-  signature: `0x${string}`;
   message?: string;
   rawData?: string;
   parsedData?: EIP712TypedData;
+  signers: SignerEntry[];
 };
 
 export type EIP712TypedData = {
@@ -15,6 +13,12 @@ export type EIP712TypedData = {
   types: Record<string, Array<{ name: string; type: string }>>;
   primaryType: string;
   message: Record<string, any>;
+};
+
+export type SignerEntry = {
+  address: `0x${string}`;
+  signature: `0x${string}`;
+  timestamp: string;
 };
 
 export const exampleTypedDataJSON = {
