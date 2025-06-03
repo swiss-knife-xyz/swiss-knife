@@ -28,6 +28,30 @@ import {
   FiBarChart,
 } from "react-icons/fi";
 
+// Helper function to validate hexadecimal number (complete)
+const isValidHexNum = (value: string): boolean => {
+  if (!value) return false;
+
+  // Check if it starts with 0x and contains only valid hex characters
+  const hexRegex = /^0x[a-fA-F0-9]+$/;
+  return hexRegex.test(value);
+};
+
+// Helper function to check if input could become a valid hex number
+const isValidPartialHex = (value: string): boolean => {
+  if (!value) return true; // Empty is valid (user is starting to type)
+
+  // Allow "0" (start of "0x")
+  if (value === "0") return true;
+
+  // Allow "0x" (valid prefix)
+  if (value === "0x") return true;
+
+  // Must start with "0x" and contain only valid hex characters
+  const partialHexRegex = /^0x[a-fA-F0-9]*$/;
+  return partialHexRegex.test(value);
+};
+
 const TokenInput = ({
   title,
   tokenName,
@@ -47,6 +71,44 @@ const TokenInput = ({
   setTokenDecimals: (val?: number) => void;
   iconColor: string;
 }) => {
+  const [addressError, setAddressError] = useState<string>("");
+  const [inputValue, setInputValue] = useState<string>(tokenAddress || "");
+
+  // Update input value when tokenAddress changes from localStorage
+  useEffect(() => {
+    setInputValue(tokenAddress || "");
+  }, [tokenAddress]);
+
+  const handleAddressChange = (value: string) => {
+    // Always update the input display value
+    setInputValue(value);
+
+    if (!value) {
+      setTokenAddress(undefined);
+      setAddressError("");
+      return;
+    }
+
+    // Check if the input could become valid
+    if (!isValidPartialHex(value)) {
+      setAddressError("Invalid Address");
+      // Don't save to localStorage
+      return;
+    }
+
+    // Clear error for valid partial input
+    setAddressError("");
+
+    // Only save to localStorage if it's a complete valid hex number
+    if (isValidHexNum(value)) {
+      setTokenAddress(value);
+    } else {
+      // For partial inputs (like "0" or "0x"), don't save to localStorage yet
+      // but don't show error either
+      setTokenAddress(undefined);
+    }
+  };
+
   return (
     <Box
       p={6}
@@ -88,28 +150,37 @@ const TokenInput = ({
             />
           </FormControl>
 
-          <FormControl>
+          <FormControl isInvalid={!!addressError}>
             <FormLabel color="gray.400" fontSize="sm" fontWeight="medium">
               Contract Address
             </FormLabel>
             <Input
               bg="whiteAlpha.50"
               border="1px solid"
-              borderColor="whiteAlpha.200"
-              _hover={{ borderColor: "whiteAlpha.300" }}
+              borderColor={addressError ? "red.400" : "whiteAlpha.200"}
+              _hover={{
+                borderColor: addressError ? "red.400" : "whiteAlpha.300",
+              }}
               _focus={{
-                borderColor: iconColor,
-                boxShadow: `0 0 0 1px var(--chakra-colors-${iconColor.replace(
-                  ".",
-                  "-"
-                )})`,
+                borderColor: addressError ? "red.400" : iconColor,
+                boxShadow: addressError
+                  ? "0 0 0 1px var(--chakra-colors-red-400)"
+                  : `0 0 0 1px var(--chakra-colors-${iconColor.replace(
+                      ".",
+                      "-"
+                    )})`,
               }}
               color="gray.100"
               _placeholder={{ color: "gray.500" }}
               placeholder="0x..."
-              value={tokenAddress || ""}
-              onChange={(e) => setTokenAddress(e.target.value || undefined)}
+              value={inputValue}
+              onChange={(e) => handleAddressChange(e.target.value)}
             />
+            {addressError && (
+              <Text color="red.400" fontSize="xs" mt={1}>
+                {addressError}
+              </Text>
+            )}
           </FormControl>
 
           <FormControl>
@@ -185,6 +256,16 @@ const TickToPrice = () => {
   const [token1PerToken0InDecimals, setToken1PerToken0InDecimals] =
     useState<number>();
 
+  // Validate and clean up invalid addresses from localStorage on mount
+  useEffect(() => {
+    if (tokenAAddress && !isValidHexNum(tokenAAddress)) {
+      setTokenAAddress(undefined);
+    }
+    if (tokenBAddress && !isValidHexNum(tokenBAddress)) {
+      setTokenBAddress(undefined);
+    }
+  }, []); // Empty dependency array for mount only
+
   useEffect(() => {
     if (
       !tokenAAddress ||
@@ -194,6 +275,11 @@ const TickToPrice = () => {
       !tokenBDecimals
     )
       return;
+
+    // Additional safety check before BigInt conversion
+    if (!isValidHexNum(tokenAAddress) || !isValidHexNum(tokenBAddress)) {
+      return;
+    }
 
     const _isTokenA0 = BigInt(tokenAAddress) < BigInt(tokenBAddress);
     setIsTokenA0(_isTokenA0);
@@ -244,6 +330,7 @@ const TickToPrice = () => {
           border="1px solid"
           borderColor="whiteAlpha.200"
           mb={6}
+          minW="50rem"
         >
           <VStack spacing={6} align="stretch">
             <HStack spacing={2} align="center">
@@ -279,6 +366,27 @@ const TickToPrice = () => {
                 />
               </GridItem>
             </Grid>
+
+            <HStack justify="center">
+              <Badge
+                colorScheme="purple"
+                fontSize="sm"
+                px={3}
+                py={1}
+                borderRadius="full"
+              >
+                Token0: {isTokenA0 ? tokenAName : tokenBName}
+              </Badge>
+              <Badge
+                colorScheme="orange"
+                fontSize="sm"
+                px={3}
+                py={1}
+                borderRadius="full"
+              >
+                Token1: {isTokenA0 ? tokenBName : tokenAName}
+              </Badge>
+            </HStack>
           </VStack>
         </Box>
 
@@ -422,18 +530,6 @@ const TickToPrice = () => {
                     </VStack>
                   </Box>
                 </VStack>
-
-                <HStack justify="center" mt={4}>
-                  <Badge
-                    colorScheme="purple"
-                    fontSize="sm"
-                    px={3}
-                    py={1}
-                    borderRadius="full"
-                  >
-                    Token0: {isTokenA0 ? tokenAName : tokenBName}
-                  </Badge>
-                </HStack>
               </VStack>
             </Box>
           </Box>
