@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { DarkSelect } from "@/components/DarkSelect";
 import {
@@ -451,7 +451,7 @@ export const ContractPage = ({
     chainId: number;
   };
 }) => {
-  const router = useRouter();
+  const router = useTopLoaderRouter();
 
   const networkOptionsIndex = networkOptions.findIndex(
     (option) => option.value === chainId

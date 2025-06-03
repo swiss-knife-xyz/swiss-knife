@@ -1,7 +1,11 @@
 "use client";
 
-import { useSelectedLayoutSegments } from "next/navigation";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import {
+  usePathname,
+  useSearchParams,
+  useSelectedLayoutSegments,
+} from "next/navigation";
+import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import NLink from "next/link";
 import { ReactNode, useState, useEffect } from "react";
 import {
@@ -51,7 +55,7 @@ const isValidTransaction = (tx: string) => {
 
 export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
   const segments = useSelectedLayoutSegments();
-  const router = useRouter();
+  const router = useTopLoaderRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 

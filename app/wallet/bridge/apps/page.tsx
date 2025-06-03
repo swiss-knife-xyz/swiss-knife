@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
+import { useSearchParams } from "next/navigation";
 import {
   Box,
   Container,
@@ -97,7 +98,7 @@ function AppStoreContent({
   const isMobile = useBreakpointValue({ base: true, md: false });
   const { openConnectModal } = useConnectModal();
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const router = useTopLoaderRouter();
   const connections = useConnections();
   const { iframeRef, isReady } = useImpersonatorIframe();
   const [iframeKey, setIframeKey] = useState(0);

@@ -1,4 +1,5 @@
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { Box, Flex, Center, Heading, Icon, VStack } from "@chakra-ui/react";
 import { getPath } from "@/utils";
 import { useState } from "react";
@@ -23,7 +24,7 @@ const SidebarItem = ({
   isRelativePath,
   icon,
 }: SidebarItemProps) => {
-  const router = useRouter();
+  const router = useTopLoaderRouter();
   const pathname = usePathname();
   const [isHovered, setIsHovered] = useState(false);
 

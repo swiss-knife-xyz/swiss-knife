@@ -1,12 +1,12 @@
 "use client";
 
+import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 
 const Safe = () => {
-  const router = useRouter();
+  const router = useTopLoaderRouter();
 
   useEffect(() => {
     router.push(`${getPath(subdomains.SAFE.base)}eip-712-hash`);

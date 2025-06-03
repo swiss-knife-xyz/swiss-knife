@@ -10,6 +10,7 @@
     "fetch-dapps": "tsx scripts/fetchSafeDapps.ts"
   },
   "dependencies": {
+    "@bprogress/next": "^3.2.12",
     "@chakra-ui/icons": "^2.2.4",
     "@chakra-ui/next-js": "^2.4.2",
     "@chakra-ui/react": "^2.10.3",
