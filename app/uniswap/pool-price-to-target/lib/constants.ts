@@ -185,6 +185,102 @@ export const quoterAbi = [
         type: "tuple",
       },
     ],
+    name: "_quoteExactOutputSingle",
+    outputs: [{ internalType: "bytes", name: "", type: "bytes" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "msgSender",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "poolManager",
+    outputs: [
+      { internalType: "contract IPoolManager", name: "", type: "address" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        components: [
+          { internalType: "Currency", name: "exactCurrency", type: "address" },
+          {
+            components: [
+              {
+                internalType: "Currency",
+                name: "intermediateCurrency",
+                type: "address",
+              },
+              { internalType: "uint24", name: "fee", type: "uint24" },
+              { internalType: "int24", name: "tickSpacing", type: "int24" },
+              {
+                internalType: "contract IHooks",
+                name: "hooks",
+                type: "address",
+              },
+              { internalType: "bytes", name: "hookData", type: "bytes" },
+            ],
+            internalType: "struct PathKey[]",
+            name: "path",
+            type: "tuple[]",
+          },
+          { internalType: "uint128", name: "exactAmount", type: "uint128" },
+        ],
+        internalType: "struct IV4QuoterV2.QuoteExactParams",
+        name: "params",
+        type: "tuple",
+      },
+    ],
+    name: "quoteExactInput",
+    outputs: [
+      { internalType: "uint256", name: "amountOut", type: "uint256" },
+      {
+        internalType: "uint160[]",
+        name: "sqrtPriceX96AfterList",
+        type: "uint160[]",
+      },
+      { internalType: "int24[]", name: "tickAfterList", type: "int24[]" },
+      { internalType: "uint256", name: "gasEstimate", type: "uint256" },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            components: [
+              { internalType: "Currency", name: "currency0", type: "address" },
+              { internalType: "Currency", name: "currency1", type: "address" },
+              { internalType: "uint24", name: "fee", type: "uint24" },
+              { internalType: "int24", name: "tickSpacing", type: "int24" },
+              {
+                internalType: "contract IHooks",
+                name: "hooks",
+                type: "address",
+              },
+            ],
+            internalType: "struct PoolKey",
+            name: "poolKey",
+            type: "tuple",
+          },
+          { internalType: "bool", name: "zeroForOne", type: "bool" },
+          { internalType: "uint128", name: "exactAmount", type: "uint128" },
+          { internalType: "bytes", name: "hookData", type: "bytes" },
+        ],
+        internalType: "struct IV4QuoterV2.QuoteExactSingleParams",
+        name: "params",
+        type: "tuple",
+      },
+    ],
     name: "quoteExactInputSingle",
     outputs: [
       { internalType: "uint256", name: "amountOut", type: "uint256" },
@@ -199,23 +295,33 @@ export const quoterAbi = [
     inputs: [
       {
         components: [
-          { internalType: "Currency", name: "currency0", type: "address" },
-          { internalType: "Currency", name: "currency1", type: "address" },
-          { internalType: "uint24", name: "fee", type: "uint24" },
-          { internalType: "int24", name: "tickSpacing", type: "int24" },
+          { internalType: "Currency", name: "exactCurrency", type: "address" },
           {
-            internalType: "contract IHooks",
-            name: "hooks",
-            type: "address",
+            components: [
+              {
+                internalType: "Currency",
+                name: "intermediateCurrency",
+                type: "address",
+              },
+              { internalType: "uint24", name: "fee", type: "uint24" },
+              { internalType: "int24", name: "tickSpacing", type: "int24" },
+              {
+                internalType: "contract IHooks",
+                name: "hooks",
+                type: "address",
+              },
+              { internalType: "bytes", name: "hookData", type: "bytes" },
+            ],
+            internalType: "struct PathKey[]",
+            name: "path",
+            type: "tuple[]",
           },
+          { internalType: "uint128", name: "exactAmount", type: "uint128" },
         ],
-        internalType: "struct PoolKey",
-        name: "poolKey",
+        internalType: "struct IV4QuoterV2.QuoteExactParams",
+        name: "params",
         type: "tuple",
       },
-      { internalType: "bool", name: "zeroForOne", type: "bool" },
-      { internalType: "uint128", name: "exactAmount", type: "uint128" },
-      { internalType: "bytes", name: "hookData", type: "bytes" },
     ],
     name: "quoteExactOutput",
     outputs: [
@@ -235,23 +341,30 @@ export const quoterAbi = [
     inputs: [
       {
         components: [
-          { internalType: "Currency", name: "currency0", type: "address" },
-          { internalType: "Currency", name: "currency1", type: "address" },
-          { internalType: "uint24", name: "fee", type: "uint24" },
-          { internalType: "int24", name: "tickSpacing", type: "int24" },
           {
-            internalType: "contract IHooks",
-            name: "hooks",
-            type: "address",
+            components: [
+              { internalType: "Currency", name: "currency0", type: "address" },
+              { internalType: "Currency", name: "currency1", type: "address" },
+              { internalType: "uint24", name: "fee", type: "uint24" },
+              { internalType: "int24", name: "tickSpacing", type: "int24" },
+              {
+                internalType: "contract IHooks",
+                name: "hooks",
+                type: "address",
+              },
+            ],
+            internalType: "struct PoolKey",
+            name: "poolKey",
+            type: "tuple",
           },
+          { internalType: "bool", name: "zeroForOne", type: "bool" },
+          { internalType: "uint128", name: "exactAmount", type: "uint128" },
+          { internalType: "bytes", name: "hookData", type: "bytes" },
         ],
-        internalType: "struct PoolKey",
-        name: "poolKey",
+        internalType: "struct IV4QuoterV2.QuoteExactSingleParams",
+        name: "params",
         type: "tuple",
       },
-      { internalType: "bool", name: "zeroForOne", type: "bool" },
-      { internalType: "uint128", name: "exactAmount", type: "uint128" },
-      { internalType: "bytes", name: "hookData", type: "bytes" },
     ],
     name: "quoteExactOutputSingle",
     outputs: [

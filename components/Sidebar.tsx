@@ -28,9 +28,11 @@ const SidebarItem = ({
   const pathname = usePathname();
   const [isHovered, setIsHovered] = useState(false);
 
+  const fullPath = `${getPath(subdomain, isRelativePath)}${path}`;
   const isActive = exactPathMatch
-    ? pathname === `${getPath(subdomain, isRelativePath)}${path}`
-    : pathname.includes(path);
+    ? pathname === fullPath
+    : pathname.startsWith(fullPath) &&
+      (pathname === fullPath || pathname[fullPath.length] === "/");
 
   return (
     <Box

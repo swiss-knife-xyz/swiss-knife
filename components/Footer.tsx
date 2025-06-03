@@ -19,6 +19,7 @@ import subdomains from "@/subdomains";
 export const Footer = () => {
   return (
     <Box
+      mt={10}
       bg="bg.900"
       py={{ base: 8, md: 10 }}
       borderTop="1px"

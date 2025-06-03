@@ -2,9 +2,9 @@ import { getMetadata } from "@/utils";
 import { UniswapLayout as UniswapLayoutC } from "./UniswapLayout";
 
 export const metadata = getMetadata({
-  title: "UniswapV3 | Swiss-Knife.xyz",
+  title: "Uniswap V4 | Swiss-Knife.xyz",
   description:
-    "Calculator to convert UniswapV3 tick to price for any token pair addresses.",
+    "Calculator to convert Uniswap V4 tick to price for any token pair addresses.",
   images: "https://swiss-knife.xyz/og/uniswap.png",
 });
 
