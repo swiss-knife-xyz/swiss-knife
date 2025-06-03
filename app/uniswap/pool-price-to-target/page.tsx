@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useLocalStorage } from "usehooks-ts";
 import {
   Box,
   Button,
@@ -8,527 +9,114 @@ import {
   Divider,
   Flex,
   Heading,
-  HStack,
-  Input,
-  InputGroup,
-  InputRightAddon,
   Spacer,
-  Table,
-  Tbody,
-  Td,
-  Tr,
+  Text,
+  VStack,
 } from "@chakra-ui/react";
-import {
-  Address,
-  parseUnits,
-  zeroHash,
-  erc20Abi,
-  zeroAddress,
-  Hex,
-} from "viem";
-import {
-  useAccount,
-  useWalletClient,
-  useSwitchChain,
-  useReadContracts,
-  useSimulateContract,
-} from "wagmi";
+import { Address, parseUnits, zeroAddress, Hex } from "viem";
+import { useAccount, useSwitchChain, useSimulateContract } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
-import { baseSepolia } from "viem/chains";
+
 import { chainIdToChain } from "@/data/common";
+import { quoterAbi, quoterAddress, PoolKey } from "./lib/constants";
+import { getPoolId, getSearchRangeTokenSymbol } from "./lib/utils";
+import { usePoolFormState } from "./hooks/usePoolFormState";
+import { useCurrencyInfo } from "./hooks/useCurrencyInfo";
+import { useCurrentPoolPrices } from "./hooks/useCurrentPoolPrices";
+import { useTargetPriceCalculator } from "./hooks/useTargetPriceCalculator";
 
-const quoterAbi = [
-  {
-    inputs: [
-      {
-        internalType: "contract IPoolManager",
-        name: "_poolManager",
-        type: "address",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "constructor",
-  },
-  { inputs: [], name: "InsufficientAmountOut", type: "error" },
-  { inputs: [], name: "InvalidLockCaller", type: "error" },
-  { inputs: [], name: "InvalidQuoteBatchParams", type: "error" },
-  { inputs: [], name: "LockFailure", type: "error" },
-  { inputs: [], name: "NotPoolManager", type: "error" },
-  { inputs: [], name: "NotSelf", type: "error" },
-  {
-    inputs: [{ internalType: "bytes", name: "revertData", type: "bytes" }],
-    name: "UnexpectedRevertBytes",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          { internalType: "Currency", name: "exactCurrency", type: "address" },
-          {
-            components: [
-              {
-                internalType: "Currency",
-                name: "intermediateCurrency",
-                type: "address",
-              },
-              { internalType: "uint24", name: "fee", type: "uint24" },
-              { internalType: "int24", name: "tickSpacing", type: "int24" },
-              {
-                internalType: "contract IHooks",
-                name: "hooks",
-                type: "address",
-              },
-              { internalType: "bytes", name: "hookData", type: "bytes" },
-            ],
-            internalType: "struct PathKey[]",
-            name: "path",
-            type: "tuple[]",
-          },
-          { internalType: "uint128", name: "exactAmount", type: "uint128" },
-        ],
-        internalType: "struct IQuoter.QuoteExactParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "_quoteExactInput",
-    outputs: [{ internalType: "bytes", name: "", type: "bytes" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            components: [
-              { internalType: "Currency", name: "currency0", type: "address" },
-              { internalType: "Currency", name: "currency1", type: "address" },
-              { internalType: "uint24", name: "fee", type: "uint24" },
-              { internalType: "int24", name: "tickSpacing", type: "int24" },
-              {
-                internalType: "contract IHooks",
-                name: "hooks",
-                type: "address",
-              },
-            ],
-            internalType: "struct PoolKey",
-            name: "poolKey",
-            type: "tuple",
-          },
-          { internalType: "bool", name: "zeroForOne", type: "bool" },
-          { internalType: "uint128", name: "exactAmount", type: "uint128" },
-          {
-            internalType: "uint160",
-            name: "sqrtPriceLimitX96",
-            type: "uint160",
-          },
-          { internalType: "bytes", name: "hookData", type: "bytes" },
-        ],
-        internalType: "struct IQuoter.QuoteExactSingleParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "_quoteExactInputSingle",
-    outputs: [{ internalType: "bytes", name: "", type: "bytes" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          { internalType: "Currency", name: "exactCurrency", type: "address" },
-          {
-            components: [
-              {
-                internalType: "Currency",
-                name: "intermediateCurrency",
-                type: "address",
-              },
-              { internalType: "uint24", name: "fee", type: "uint24" },
-              { internalType: "int24", name: "tickSpacing", type: "int24" },
-              {
-                internalType: "contract IHooks",
-                name: "hooks",
-                type: "address",
-              },
-              { internalType: "bytes", name: "hookData", type: "bytes" },
-            ],
-            internalType: "struct PathKey[]",
-            name: "path",
-            type: "tuple[]",
-          },
-          { internalType: "uint128", name: "exactAmount", type: "uint128" },
-        ],
-        internalType: "struct IQuoter.QuoteExactParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "_quoteExactOutput",
-    outputs: [{ internalType: "bytes", name: "", type: "bytes" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            components: [
-              { internalType: "Currency", name: "currency0", type: "address" },
-              { internalType: "Currency", name: "currency1", type: "address" },
-              { internalType: "uint24", name: "fee", type: "uint24" },
-              { internalType: "int24", name: "tickSpacing", type: "int24" },
-              {
-                internalType: "contract IHooks",
-                name: "hooks",
-                type: "address",
-              },
-            ],
-            internalType: "struct PoolKey",
-            name: "poolKey",
-            type: "tuple",
-          },
-          { internalType: "bool", name: "zeroForOne", type: "bool" },
-          { internalType: "uint128", name: "exactAmount", type: "uint128" },
-          {
-            internalType: "uint160",
-            name: "sqrtPriceLimitX96",
-            type: "uint160",
-          },
-          { internalType: "bytes", name: "hookData", type: "bytes" },
-        ],
-        internalType: "struct IQuoter.QuoteExactSingleParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "_quoteExactOutputSingle",
-    outputs: [{ internalType: "bytes", name: "", type: "bytes" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "poolManager",
-    outputs: [
-      { internalType: "contract IPoolManager", name: "", type: "address" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          { internalType: "Currency", name: "exactCurrency", type: "address" },
-          {
-            components: [
-              {
-                internalType: "Currency",
-                name: "intermediateCurrency",
-                type: "address",
-              },
-              { internalType: "uint24", name: "fee", type: "uint24" },
-              { internalType: "int24", name: "tickSpacing", type: "int24" },
-              {
-                internalType: "contract IHooks",
-                name: "hooks",
-                type: "address",
-              },
-              { internalType: "bytes", name: "hookData", type: "bytes" },
-            ],
-            internalType: "struct PathKey[]",
-            name: "path",
-            type: "tuple[]",
-          },
-          { internalType: "uint128", name: "exactAmount", type: "uint128" },
-        ],
-        internalType: "struct IQuoter.QuoteExactParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "quoteExactInput",
-    outputs: [
-      { internalType: "int128[]", name: "deltaAmounts", type: "int128[]" },
-      {
-        internalType: "uint160[]",
-        name: "sqrtPriceX96AfterList",
-        type: "uint160[]",
-      },
-      {
-        internalType: "uint32[]",
-        name: "initializedTicksLoadedList",
-        type: "uint32[]",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            components: [
-              { internalType: "Currency", name: "currency0", type: "address" },
-              { internalType: "Currency", name: "currency1", type: "address" },
-              { internalType: "uint24", name: "fee", type: "uint24" },
-              { internalType: "int24", name: "tickSpacing", type: "int24" },
-              {
-                internalType: "contract IHooks",
-                name: "hooks",
-                type: "address",
-              },
-            ],
-            internalType: "struct PoolKey",
-            name: "poolKey",
-            type: "tuple",
-          },
-          { internalType: "bool", name: "zeroForOne", type: "bool" },
-          { internalType: "uint128", name: "exactAmount", type: "uint128" },
-          {
-            internalType: "uint160",
-            name: "sqrtPriceLimitX96",
-            type: "uint160",
-          },
-          { internalType: "bytes", name: "hookData", type: "bytes" },
-        ],
-        internalType: "struct IQuoter.QuoteExactSingleParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "quoteExactInputSingle",
-    outputs: [
-      { internalType: "int128[]", name: "deltaAmounts", type: "int128[]" },
-      { internalType: "uint160", name: "sqrtPriceX96After", type: "uint160" },
-      {
-        internalType: "uint32",
-        name: "initializedTicksLoaded",
-        type: "uint32",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          { internalType: "Currency", name: "exactCurrency", type: "address" },
-          {
-            components: [
-              {
-                internalType: "Currency",
-                name: "intermediateCurrency",
-                type: "address",
-              },
-              { internalType: "uint24", name: "fee", type: "uint24" },
-              { internalType: "int24", name: "tickSpacing", type: "int24" },
-              {
-                internalType: "contract IHooks",
-                name: "hooks",
-                type: "address",
-              },
-              { internalType: "bytes", name: "hookData", type: "bytes" },
-            ],
-            internalType: "struct PathKey[]",
-            name: "path",
-            type: "tuple[]",
-          },
-          { internalType: "uint128", name: "exactAmount", type: "uint128" },
-        ],
-        internalType: "struct IQuoter.QuoteExactParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "quoteExactOutput",
-    outputs: [
-      { internalType: "int128[]", name: "deltaAmounts", type: "int128[]" },
-      {
-        internalType: "uint160[]",
-        name: "sqrtPriceX96AfterList",
-        type: "uint160[]",
-      },
-      {
-        internalType: "uint32[]",
-        name: "initializedTicksLoadedList",
-        type: "uint32[]",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            components: [
-              { internalType: "Currency", name: "currency0", type: "address" },
-              { internalType: "Currency", name: "currency1", type: "address" },
-              { internalType: "uint24", name: "fee", type: "uint24" },
-              { internalType: "int24", name: "tickSpacing", type: "int24" },
-              {
-                internalType: "contract IHooks",
-                name: "hooks",
-                type: "address",
-              },
-            ],
-            internalType: "struct PoolKey",
-            name: "poolKey",
-            type: "tuple",
-          },
-          { internalType: "bool", name: "zeroForOne", type: "bool" },
-          { internalType: "uint128", name: "exactAmount", type: "uint128" },
-          {
-            internalType: "uint160",
-            name: "sqrtPriceLimitX96",
-            type: "uint160",
-          },
-          { internalType: "bytes", name: "hookData", type: "bytes" },
-        ],
-        internalType: "struct IQuoter.QuoteExactSingleParams",
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "quoteExactOutputSingle",
-    outputs: [
-      { internalType: "int128[]", name: "deltaAmounts", type: "int128[]" },
-      { internalType: "uint160", name: "sqrtPriceX96After", type: "uint160" },
-      {
-        internalType: "uint32",
-        name: "initializedTicksLoaded",
-        type: "uint32",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "bytes", name: "data", type: "bytes" }],
-    name: "unlockCallback",
-    outputs: [{ internalType: "bytes", name: "", type: "bytes" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
-
-const quoterAddress: Record<number, Address> = {
-  [baseSepolia.id]: "0xf3A39C86dbd13C45365E57FB90fe413371F65AF8",
-};
+// Import new components
+import { PoolInfoForm } from "./components/PoolInfoForm";
+import { CurrentPoolPriceDisplay } from "./components/CurrentPoolPriceDisplay";
+import { SwapQuoteForm } from "./components/SwapQuoteForm";
+import { QuoteResultDetails } from "./components/QuoteResultDetails";
+import { TargetPriceCalculatorForm } from "./components/TargetPriceCalculatorForm";
+import { TargetPriceSwapControls } from "./components/TargetPriceSwapControls";
+import { PriceAnalysisDisplay } from "./components/PriceAnalysisDisplay";
 
 const PoolPriceToTarget = () => {
-  const { data: walletClient } = useWalletClient();
   const { chain } = useAccount();
   const { switchChain } = useSwitchChain();
 
+  const {
+    currency0,
+    setCurrency0,
+    currency1,
+    setCurrency1,
+    tickSpacing,
+    setTickSpacing,
+    fee,
+    setFee,
+    hookAddress,
+    setHookAddress,
+    hookData,
+    setHookData,
+  } = usePoolFormState();
+
+  const {
+    currency0Symbol,
+    currency0Decimals,
+    currency1Symbol,
+    currency1Decimals,
+  } = useCurrencyInfo({ currency0, currency1, setCurrency0, setCurrency1 });
+
   const chainNotSupported = chain && !quoterAddress[chain.id];
+  const isChainSupported = chain && quoterAddress[chain.id];
 
-  const [currency0, setCurrency0] = useState<string | undefined>();
-  const [currency1, setCurrency1] = useState<string | undefined>();
-  const [tickSpacing, setTickSpacing] = useState<number | undefined>();
-  const [fee, setFee] = useState<number | undefined>();
-  const [hookAddress, setHookAddress] = useState<string | undefined>();
-  const [hookData, setHookData] = useState<string | undefined>(zeroHash);
+  // State for price after swap direction toggle (Used by QuoteResultDetails)
+  const [priceAfterSwapDirection, setPriceAfterSwapDirection] =
+    useLocalStorage<boolean>(
+      "uniswap-priceAfterSwapDirection",
+      true // true = currency1 per currency0, false = currency0 per currency1
+    );
 
-  const [currency0Symbol, setCurrency0Symbol] = useState<string | undefined>();
-  const [currency0Decimals, setCurrency0Decimals] = useState<
-    number | undefined
-  >();
-  const [currency1Symbol, setCurrency1Symbol] = useState<string | undefined>();
-  const [currency1Decimals, setCurrency1Decimals] = useState<
-    number | undefined
-  >();
+  // State for effective price direction toggle (Used by QuoteResultDetails)
+  const [effectivePriceDirection, setEffectivePriceDirection] =
+    useLocalStorage<boolean>(
+      "uniswap-effectivePriceDirection",
+      true // true = currency1 per currency0, false = currency0 per currency1
+    );
 
-  const [currentZeroForOnePrice, setCurrentZeroForOnePrice] = useState<
-    string | undefined
-  >();
-  const [currentOneForZeroPrice, setCurrentOneForZeroPrice] = useState<
-    string | undefined
-  >();
-  const [targetPrice, setTargetPrice] = useState<string | undefined>();
+  const [amount, setAmount] = useLocalStorage<string>("uniswap-amount", "1");
+  const [zeroForOne, setZeroForOne] = useLocalStorage<boolean>(
+    "uniswap-zeroForOne",
+    true
+  );
 
-  const [fetchingCurrentPrice, setFetchingCurrentPrice] = useState(false);
+  // Add ref for scroll target
+  const swapAmountRef = useRef<HTMLTableRowElement>(null);
 
-  const [amount, setAmount] = useState<string>("1");
-  const [zeroForOne, setZeroForOne] = useState<boolean>(true);
-
-  const { data: currencyInfo } = useReadContracts({
-    contracts: [
-      {
-        address: currency0 as Address,
-        abi: erc20Abi,
-        functionName: "symbol",
-      },
-      {
-        address: currency0 as Address,
-        abi: erc20Abi,
-        functionName: "decimals",
-      },
-      {
-        address: currency1 as Address,
-        abi: erc20Abi,
-        functionName: "symbol",
-      },
-      {
-        address: currency1 as Address,
-        abi: erc20Abi,
-        functionName: "decimals",
-      },
-    ],
-    query: {
-      enabled: !!currency0 && !!currency1,
-    },
-  });
-
-  useEffect(() => {
-    if (currencyInfo) {
-      setCurrency0Symbol(currencyInfo[0].result);
-      setCurrency0Decimals(currencyInfo[1].result);
-      setCurrency1Symbol(currencyInfo[2].result);
-      setCurrency1Decimals(currencyInfo[3].result);
-    }
-  }, [currencyInfo]);
-
-  const getCurrentPrice = async () => {
-    if (
-      !walletClient ||
-      !currency0 ||
-      !currency1 ||
-      tickSpacing === undefined ||
-      fee === undefined
-    ) {
-      return;
-    }
-
-    setFetchingCurrentPrice(true);
-    try {
-      setCurrentZeroForOnePrice("Fetching...");
-      setCurrentOneForZeroPrice("Fetching...");
-
-      // TODO: Implement actual price fetching logic
-    } catch (error) {
-      console.error("Error fetching current price:", error);
-    } finally {
-      setFetchingCurrentPrice(false);
-    }
+  const poolKey: PoolKey = {
+    currency0: currency0 as Address,
+    currency1: currency1 as Address,
+    fee: fee!,
+    tickSpacing: tickSpacing!,
+    hooks: (hookAddress || zeroAddress) as Address,
   };
+
+  const poolId =
+    currency0 && currency1 && tickSpacing ? getPoolId(poolKey) : null;
+
+  // Use the new current pool prices hook
+  const {
+    currentZeroForOnePrice,
+    currentOneForZeroPrice,
+    slot0Tick,
+    isSlot0Loading,
+    fetchCurrentPrices,
+  } = useCurrentPoolPrices({
+    poolId,
+    chain,
+    currency0Decimals,
+    currency1Decimals,
+  });
 
   const decimals = zeroForOne
     ? currency0Decimals || 18
     : currency1Decimals || 18;
 
   const result = useSimulateContract({
-    address: quoterAddress[chain!.id],
+    address: chain?.id ? quoterAddress[chain.id] : undefined,
     abi: quoterAbi,
     functionName: "quoteExactInputSingle",
     args: [
@@ -540,21 +128,98 @@ const PoolPriceToTarget = () => {
           fee: fee!,
           hooks: (hookAddress || zeroAddress) as Address,
         },
-        exactAmount: parseUnits(amount, decimals),
-        hookData: (hookData || zeroHash) as Hex,
-        sqrtPriceLimitX96: 0n,
         zeroForOne,
+        exactAmount: parseUnits(amount, decimals),
+        hookData: (hookData || "0x") as Hex,
       },
     ],
     query: {
-      enabled:
-        !!currency0 &&
-        !!currency1 &&
-        tickSpacing !== undefined &&
-        fee !== undefined &&
-        !!amount,
+      enabled: false, // Disable auto-fetching
     },
   });
+
+  const fetchQuoteResult = () => {
+    if (
+      currency0.length > 0 &&
+      currency1.length > 0 &&
+      amount &&
+      isChainSupported
+    ) {
+      result.refetch();
+    }
+  };
+
+  // Auto-fetch quote result with debounce when amount changes
+  useEffect(() => {
+    // Only set up debounce if all conditions are met
+    if (
+      currency0.length > 0 &&
+      currency1.length > 0 &&
+      amount &&
+      isChainSupported &&
+      !isNaN(Number(amount)) &&
+      Number(amount) > 0
+    ) {
+      const timeoutId = setTimeout(() => {
+        result.refetch();
+      }, 800); // 800ms debounce
+
+      // Cleanup function to clear timeout on dependency change
+      return () => clearTimeout(timeoutId);
+    }
+  }, [
+    amount,
+    currency0,
+    currency1,
+    zeroForOne,
+    fee,
+    tickSpacing,
+    hookAddress,
+    hookData,
+    isChainSupported,
+    result,
+  ]);
+
+  // useTargetPriceCalculator hook
+  const {
+    targetPrice,
+    setTargetPrice,
+    targetPriceDirection,
+    setTargetPriceDirection,
+    threshold,
+    setThreshold,
+    searchLow,
+    setSearchLow,
+    searchHigh,
+    setSearchHigh,
+    maxIterations,
+    setMaxIterations,
+    searchProgress,
+    isSearching,
+    searchResult,
+    performOptimizedParallelSearch,
+    stopBinarySearch,
+  } = useTargetPriceCalculator({
+    poolKey,
+    currency0Decimals,
+    currency1Decimals,
+    currency0Symbol,
+    currency1Symbol,
+    currentZeroForOnePrice,
+    currentOneForZeroPrice,
+    hookDataProp: (hookData || "0x") as Hex, // Pass hookData from usePoolFormState
+    chain,
+  });
+
+  // Helper function to get the token symbol for search ranges
+  const searchRangeTokenSymbol = getSearchRangeTokenSymbol(
+    targetPrice,
+    currentZeroForOnePrice,
+    currentOneForZeroPrice,
+    targetPriceDirection,
+    currency0Symbol,
+    currency1Symbol
+  );
 
   return (
     <>
@@ -563,170 +228,189 @@ const PoolPriceToTarget = () => {
         <Spacer />
         <ConnectButton />
       </Flex>
-      <Table variant={"unstyled"}>
-        <Tbody>
-          <Tr>
-            <Td>currency0</Td>
-            <Td>
-              <InputGroup>
-                <Input
-                  value={currency0}
-                  onChange={(e) => setCurrency0(e.target.value)}
-                />
-                {currency0Symbol && (
-                  <InputRightAddon>
-                    <Center flexDir={"column"}>
-                      <Box>{currency0Symbol}</Box>
-                      <Box fontSize={"xs"}>({currency0Decimals} decimals)</Box>
-                    </Center>
-                  </InputRightAddon>
-                )}
-              </InputGroup>
-            </Td>
-          </Tr>
-          <Tr>
-            <Td>currency1</Td>
-            <Td>
-              <InputGroup>
-                <Input
-                  value={currency1}
-                  onChange={(e) => setCurrency1(e.target.value)}
-                />
-                {currency1Symbol && (
-                  <InputRightAddon>
-                    <Center flexDir={"column"}>
-                      <Box>{currency1Symbol}</Box>
-                      <Box fontSize={"xs"}>({currency1Decimals} decimals)</Box>
-                    </Center>
-                  </InputRightAddon>
-                )}
-              </InputGroup>
-            </Td>
-          </Tr>
-          <Tr>
-            <Td>tickSpacing</Td>
-            <Td>
-              <Input
-                value={tickSpacing}
-                onChange={(e) => setTickSpacing(Number(e.target.value))}
+
+      {!chain ? (
+        <Center mt={8}>
+          <Box textAlign="center">
+            <Text fontSize="lg" mb={4}>
+              Please connect your wallet to use this tool
+            </Text>
+          </Box>
+        </Center>
+      ) : chainNotSupported ? (
+        <Center mt={8}>
+          <Box textAlign="center">
+            <Text fontSize="lg" mb={4} color="red.400">
+              Chain not supported. Please switch to a supported chain:
+            </Text>
+            <VStack spacing={2}>
+              {Object.keys(quoterAddress)
+                .map((chainId) => parseInt(chainId))
+                .map((chainId) => (
+                  <Button
+                    key={chainId}
+                    onClick={() => switchChain?.({ chainId })}
+                    colorScheme="blue"
+                  >
+                    {chainIdToChain[chainId].name}
+                  </Button>
+                ))}
+            </VStack>
+          </Box>
+        </Center>
+      ) : (
+        <Box mt={4} w="full" px={8}>
+          <PoolInfoForm
+            currency0={currency0}
+            setCurrency0={setCurrency0}
+            currency0Symbol={currency0Symbol}
+            currency0Decimals={currency0Decimals}
+            currency1={currency1}
+            setCurrency1={setCurrency1}
+            currency1Symbol={currency1Symbol}
+            currency1Decimals={currency1Decimals}
+            fee={fee}
+            setFee={setFee}
+            tickSpacing={tickSpacing}
+            setTickSpacing={setTickSpacing}
+            hookAddress={hookAddress}
+            setHookAddress={setHookAddress}
+            hookData={hookData}
+            setHookData={setHookData}
+          />
+
+          <Divider my={4} />
+
+          <Box>
+            <CurrentPoolPriceDisplay
+              fetchCurrentPrices={fetchCurrentPrices}
+              isSlot0Loading={isSlot0Loading}
+              poolInteractionDisabled={
+                !currency0.length ||
+                !currency1.length ||
+                !currency0Decimals ||
+                !currency1Decimals ||
+                !isChainSupported ||
+                !poolId
+              }
+              slot0Tick={slot0Tick}
+              currentZeroForOnePrice={currentZeroForOnePrice}
+              currentOneForZeroPrice={currentOneForZeroPrice}
+              currency0Symbol={currency0Symbol}
+              currency1Symbol={currency1Symbol}
+            />
+          </Box>
+
+          <Divider my={4} />
+
+          <Box
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <SwapQuoteForm
+              amount={amount}
+              setAmount={setAmount}
+              zeroForOne={zeroForOne}
+              setZeroForOne={setZeroForOne}
+              currency0Symbol={currency0Symbol}
+              currency1Symbol={currency1Symbol}
+              fetchQuoteResult={fetchQuoteResult}
+              isQuoteLoading={result.isLoading}
+              quoteDisabled={
+                !currency0.length ||
+                !currency1.length ||
+                !amount ||
+                !isChainSupported ||
+                !poolKey
+              }
+              swapAmountRef={swapAmountRef}
+            />
+
+            {(result.data || result.error) && (
+              <QuoteResultDetails
+                quoteResultData={
+                  result.data?.result as
+                    | readonly [bigint, bigint, number, bigint]
+                    | undefined
+                }
+                quoteError={result.error}
+                amount={amount}
+                zeroForOne={zeroForOne}
+                currency0Symbol={currency0Symbol}
+                currency1Symbol={currency1Symbol}
+                currency0Decimals={currency0Decimals}
+                currency1Decimals={currency1Decimals}
+                effectivePriceDirection={effectivePriceDirection}
+                setEffectivePriceDirection={setEffectivePriceDirection}
+                priceAfterSwapDirection={priceAfterSwapDirection}
+                setPriceAfterSwapDirection={setPriceAfterSwapDirection}
+                currentZeroForOnePrice={currentZeroForOnePrice}
+                currentOneForZeroPrice={currentOneForZeroPrice}
               />
-            </Td>
-          </Tr>
-          <Tr>
-            <Td>fee</Td>
-            <Td>
-              <Input
-                value={fee}
-                onChange={(e) => setFee(Number(e.target.value))}
-              />
-            </Td>
-          </Tr>
-          <Tr>
-            <Td>hookAddress</Td>
-            <Td>
-              <Input
-                value={hookAddress}
-                onChange={(e) => setHookAddress(e.target.value)}
-              />
-            </Td>
-          </Tr>
-          <Tr>
-            <Td>hookData</Td>
-            <Td>
-              <Input
-                value={hookData}
-                onChange={(e) => setHookData(e.target.value)}
-              />
-            </Td>
-          </Tr>
-          <Tr>
-            <Td>Amount</Td>
-            <Td>
-              <Input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount to quote"
-              />
-            </Td>
-          </Tr>
-          <Tr>
-            <Td>Zero for One</Td>
-            <Td>
-              <HStack>
-                <Button
-                  colorScheme={zeroForOne ? "blue" : "gray"}
-                  onClick={() => setZeroForOne(true)}
-                >
-                  True (Currency0 → Currency1)
-                </Button>
-                <Button
-                  colorScheme={!zeroForOne ? "blue" : "gray"}
-                  onClick={() => setZeroForOne(false)}
-                >
-                  False (Currency1 → Currency0)
-                </Button>
-              </HStack>
-            </Td>
-          </Tr>
-          <Tr>
-            <Td colSpan={2}>
-              <Divider />
-            </Td>
-          </Tr>
-          <Tr>
-            <Td colSpan={2}>
-              <Center flexDir={"column"}>
-                <Button
-                  isDisabled={!walletClient || chainNotSupported}
-                  onClick={() => getCurrentPrice()}
-                  isLoading={fetchingCurrentPrice}
-                >
-                  {!walletClient
-                    ? "Connect Wallet first"
-                    : chainNotSupported
-                    ? "Chain Not Supported"
-                    : "Get Current Price"}
-                </Button>
-                {chainNotSupported && (
-                  <Box mt={4}>
-                    <Box>Supported Chains:</Box>
-                    <Box mt={2}>
-                      {Object.keys(quoterAddress)
-                        .map((chainId) => parseInt(chainId))
-                        .map((chainId) => (
-                          <Button
-                            key={chainId}
-                            onClick={() => switchChain?.({ chainId })}
-                          >
-                            {chainIdToChain[chainId].name}
-                          </Button>
-                        ))}
-                    </Box>
-                  </Box>
-                )}
-              </Center>
-            </Td>
-          </Tr>
-          {currentZeroForOnePrice && (
-            <Tr>
-              <Td colSpan={2}>
-                <Heading size={"md"}>
-                  zeroForOne: {currentZeroForOnePrice}
-                </Heading>
-              </Td>
-            </Tr>
-          )}
-          {currentOneForZeroPrice && (
-            <Tr>
-              <Td colSpan={2}>
-                <Heading size={"md"}>
-                  oneForZero: {currentOneForZeroPrice}
-                </Heading>
-              </Td>
-            </Tr>
-          )}
-        </Tbody>
-      </Table>
+            )}
+          </Box>
+
+          <Divider my={4} />
+
+          <Box my={2}>
+            <TargetPriceCalculatorForm
+              targetPrice={targetPrice}
+              setTargetPrice={setTargetPrice}
+              targetPriceDirection={targetPriceDirection}
+              setTargetPriceDirection={setTargetPriceDirection}
+              threshold={threshold}
+              setThreshold={setThreshold}
+              searchLow={searchLow}
+              setSearchLow={setSearchLow}
+              searchHigh={searchHigh}
+              setSearchHigh={setSearchHigh}
+              maxIterations={maxIterations}
+              setMaxIterations={setMaxIterations}
+              currency0Symbol={currency0Symbol}
+              currency1Symbol={currency1Symbol}
+              searchRangeTokenSymbol={searchRangeTokenSymbol}
+            />
+          </Box>
+
+          <Box>
+            <PriceAnalysisDisplay
+              targetPrice={targetPrice}
+              currentZeroForOnePrice={currentZeroForOnePrice}
+              currentOneForZeroPrice={currentOneForZeroPrice}
+              targetPriceDirection={targetPriceDirection}
+              currency0Symbol={currency0Symbol}
+              currency1Symbol={currency1Symbol}
+            />
+          </Box>
+
+          <Box my={2}>
+            <TargetPriceSwapControls
+              performOptimizedParallelSearch={performOptimizedParallelSearch}
+              stopSearch={stopBinarySearch}
+              isSearching={isSearching}
+              searchProgress={searchProgress}
+              searchResult={searchResult}
+              searchDisabled={
+                !targetPrice ||
+                !currentZeroForOnePrice ||
+                !currentOneForZeroPrice ||
+                !threshold ||
+                !searchLow ||
+                !searchHigh ||
+                !isChainSupported ||
+                !poolKey
+              }
+              setAmount={setAmount}
+              setZeroForOne={setZeroForOne}
+              swapAmountRef={swapAmountRef as React.RefObject<HTMLElement>}
+              threshold={threshold}
+            />
+          </Box>
+        </Box>
+      )}
     </>
   );
 };

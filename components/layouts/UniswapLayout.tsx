@@ -8,6 +8,7 @@ import subdomains from "@/subdomains";
 const SidebarItems: SidebarItem[] = [
   { name: "Tick to Price", path: "tick-to-price" },
   { name: "Pool Price to Target", path: "pool-price-to-target" },
+  { name: "Add Liquidity", path: "add-liquidity" },
 ];
 
 export const UniswapLayout = ({ children }: { children: React.ReactNode }) => {
