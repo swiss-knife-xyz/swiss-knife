@@ -11,6 +11,15 @@ export {
 
 export { UniversalRouterAbi } from "@/lib/uniswap/abi/UniversalRouter";
 
+// Local storage keys enum for consistency across components
+export enum SwapLocalStorageKeys {
+  POOLS = "uniswap-swap-pools",
+  FROM_CURRENCY = "uniswap-swap-from",
+  TO_CURRENCY = "uniswap-swap-to",
+  AMOUNT = "uniswap-swap-amount",
+  SLIPPAGE = "uniswap-swap-slippage",
+}
+
 // Universal Router contract addresses
 export const UniversalRouterAddress: Record<number, Address> = {
   [baseSepolia.id]: "0x492E6456D9528771018DeB9E87ef7750EF184104",

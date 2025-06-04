@@ -179,3 +179,49 @@ export const canPoolsConnect = (
     pool1.currency0 === pool2.currency1
   );
 };
+
+/**
+ * Formats token balance for display
+ */
+export const formatTokenBalance = (
+  balance?: bigint,
+  decimals?: number,
+  symbol?: string
+): string => {
+  if (!balance || !decimals) return "0";
+
+  const divisor = BigInt(10 ** decimals);
+  const wholePart = balance / divisor;
+  const fractionalPart = balance % divisor;
+
+  if (fractionalPart === 0n) {
+    return `${wholePart.toString()} ${symbol || ""}`.trim();
+  }
+
+  // Convert fractional part to decimal string
+  const fractionalStr = fractionalPart.toString().padStart(decimals, "0");
+  // Remove trailing zeros
+  const trimmedFractional = fractionalStr.replace(/0+$/, "");
+
+  if (trimmedFractional === "") {
+    return `${wholePart.toString()} ${symbol || ""}`.trim();
+  }
+
+  const formattedBalance = `${wholePart.toString()}.${trimmedFractional}`;
+
+  // If the number is very large, show shorter format
+  const numericValue = parseFloat(formattedBalance);
+  if (numericValue > 10000) {
+    return `${numericValue.toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    })} ${symbol || ""}`.trim();
+  } else if (numericValue > 1) {
+    return `${numericValue.toLocaleString(undefined, {
+      maximumFractionDigits: 4,
+    })} ${symbol || ""}`.trim();
+  } else {
+    return `${numericValue.toLocaleString(undefined, {
+      maximumFractionDigits: 6,
+    })} ${symbol || ""}`.trim();
+  }
+};

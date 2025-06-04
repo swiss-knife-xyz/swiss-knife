@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import {
   Box,
@@ -15,10 +15,6 @@ import {
   InputRightElement,
   Spacer,
   Spinner,
-  Table,
-  Tbody,
-  Td,
-  Tr,
   Text,
   VStack,
   HStack,
@@ -29,7 +25,6 @@ import {
 } from "@chakra-ui/react";
 import {
   Address,
-  zeroHash,
   erc20Abi,
   zeroAddress,
   parseUnits,
@@ -44,23 +39,17 @@ import {
   useAccount,
   useWalletClient,
   useSwitchChain,
-  useReadContract,
   usePublicClient,
   useBalance,
 } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { chainIdToChain } from "@/data/common";
-import { TickMath } from "@uniswap/v3-sdk";
 import { useTokenInfo } from "./hooks/useTokenInfo";
 import { usePoolState } from "./hooks/usePoolState";
 import { useApprovalStates } from "./hooks/useApprovalStates";
 import { useLiquidityCalculations } from "./hooks/useLiquidityCalculations";
 import { useAddLiquidityTransaction } from "./hooks/useAddLiquidityTransaction";
-import { PoolInfoDisplay } from "./components/PoolInfoDisplay";
-import { PoolInitializationForm } from "./components/PoolInitializationForm";
-import { LiquidityAmountInput } from "./components/LiquidityAmountInput";
 import { PositionRangeInput } from "./components/PositionRangeInput";
-import { TokenApprovals } from "./components/TokenApprovals";
 import {
   FiAlertTriangle,
   FiDollarSign,
@@ -78,7 +67,6 @@ import { PoolInfoForm } from "../pool-price-to-target/components/PoolInfoForm";
 
 // Import constants
 import {
-  StateViewAbi,
   StateViewAddress,
   Permit2Address,
   UniV4PositionManagerAddress,
@@ -87,23 +75,17 @@ import {
   UniV4PM_MintPositionAbi,
   UniV4PM_SettlePairAbi,
   V4PMActions,
-  Q96,
-  Q192,
-  MIN_TICK,
-  MAX_TICK,
 } from "./lib/constants";
+import { PoolConfigLocalStorageKeys } from "../pool-price-to-target/lib/constants";
+import { AddLiquidityLocalStorageKeys } from "./lib/constants";
 
 // Import utility functions
 import {
-  getNearestUsableTick,
   priceToSqrtPriceX96,
   getLiquidityFromAmounts,
   getAmountsForLiquidity,
   getPoolId,
   PoolKey,
-  getTickFromPrice,
-  priceRatioToTick,
-  tickToPriceRatio,
   isValidNumericInput,
   formatBalance,
 } from "./lib/utils";
@@ -202,73 +184,76 @@ const AddLiquidity = () => {
 
   // Form state with shared localStorage keys (same as pool-price-to-target)
   const [currency0, setCurrency0] = useLocalStorage<string>(
-    "uniswap-currency0",
+    PoolConfigLocalStorageKeys.CURRENCY0,
     ""
   );
   const [currency1, setCurrency1] = useLocalStorage<string>(
-    "uniswap-currency1",
+    PoolConfigLocalStorageKeys.CURRENCY1,
     ""
   );
   const [tickSpacing, setTickSpacing] = useLocalStorage<number>(
-    "uniswap-tickSpacing",
+    PoolConfigLocalStorageKeys.TICK_SPACING,
     60
   );
-  const [fee, setFee] = useLocalStorage<number>("uniswap-fee", 3000);
+  const [fee, setFee] = useLocalStorage<number>(
+    PoolConfigLocalStorageKeys.FEE,
+    3000
+  );
   const [hookAddress, setHookAddress] = useLocalStorage<string>(
-    "uniswap-hookAddress",
+    PoolConfigLocalStorageKeys.HOOK_ADDRESS,
     zeroAddress
   );
 
   // Add hookData state with localStorage (rename from hooksData to match PoolInfoForm interface)
   const [hookData, setHookData] = useLocalStorage<string>(
-    "uniswap-add-liquidity-hookData",
+    AddLiquidityLocalStorageKeys.HOOK_DATA,
     "0x"
   );
 
   // Liquidity provision state
   const [amount0, setAmount0] = useLocalStorage<string>(
-    "uniswap-add-liquidity-amount0",
+    AddLiquidityLocalStorageKeys.AMOUNT0,
     "1"
   );
   const [amount1, setAmount1] = useLocalStorage<string>(
-    "uniswap-add-liquidity-amount1",
+    AddLiquidityLocalStorageKeys.AMOUNT1,
     "1"
   );
   const [tickLower, setTickLower] = useLocalStorage<string>(
-    "uniswap-add-liquidity-tickLower",
+    AddLiquidityLocalStorageKeys.TICK_LOWER,
     "-887220"
   );
   const [tickUpper, setTickUpper] = useLocalStorage<string>(
-    "uniswap-add-liquidity-tickUpper",
+    AddLiquidityLocalStorageKeys.TICK_UPPER,
     "887220"
   );
 
   // Add new states for price mode inputs
   const [priceInputMode, setPriceInputMode] = useLocalStorage<boolean>(
-    "uniswap-add-liquidity-priceInputMode",
+    AddLiquidityLocalStorageKeys.PRICE_INPUT_MODE,
     false // false = tick mode, true = price mode
   );
   const [lowerPrice, setLowerPrice] = useLocalStorage<string>(
-    "uniswap-add-liquidity-lowerPrice",
+    AddLiquidityLocalStorageKeys.LOWER_PRICE,
     "0.5"
   );
   const [upperPrice, setUpperPrice] = useLocalStorage<string>(
-    "uniswap-add-liquidity-upperPrice",
+    AddLiquidityLocalStorageKeys.UPPER_PRICE,
     "2"
   );
   const [priceDirection, setPriceDirection] = useLocalStorage<boolean>(
-    "uniswap-add-liquidity-priceDirection",
+    AddLiquidityLocalStorageKeys.PRICE_DIRECTION,
     true // true = currency1 per currency0, false = currency0 per currency1
   );
 
   // Pool initialization state
   const [initialPrice, setInitialPrice] = useLocalStorage<string>(
-    "uniswap-add-liquidity-initialPrice",
+    AddLiquidityLocalStorageKeys.INITIAL_PRICE,
     "1"
   );
   const [initialPriceDirection, setInitialPriceDirection] =
     useLocalStorage<boolean>(
-      "uniswap-add-liquidity-initialPriceDirection",
+      AddLiquidityLocalStorageKeys.INITIAL_PRICE_DIRECTION,
       true // true = currency1 per currency0, false = currency0 per currency1
     );
 

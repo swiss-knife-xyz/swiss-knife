@@ -1,26 +1,30 @@
 import { useLocalStorage } from "usehooks-ts";
 import { zeroHash } from "viem";
+import { PoolConfigLocalStorageKeys } from "../lib/constants";
 
 export function usePoolFormState() {
   const [currency0, setCurrency0] = useLocalStorage<string>(
-    "uniswap-currency0",
+    PoolConfigLocalStorageKeys.CURRENCY0,
     ""
   );
   const [currency1, setCurrency1] = useLocalStorage<string>(
-    "uniswap-currency1",
+    PoolConfigLocalStorageKeys.CURRENCY1,
     ""
   );
   const [tickSpacing, setTickSpacing] = useLocalStorage<number>(
-    "uniswap-tickSpacing",
+    PoolConfigLocalStorageKeys.TICK_SPACING,
     60
   );
-  const [fee, setFee] = useLocalStorage<number>("uniswap-fee", 3000);
+  const [fee, setFee] = useLocalStorage<number>(
+    PoolConfigLocalStorageKeys.FEE,
+    3000
+  );
   const [hookAddress, setHookAddress] = useLocalStorage<string>(
-    "uniswap-hookAddress",
+    PoolConfigLocalStorageKeys.HOOK_ADDRESS,
     ""
   );
   const [hookData, setHookData] = useLocalStorage<string>(
-    "uniswap-hookData",
+    PoolConfigLocalStorageKeys.HOOK_DATA,
     zeroHash
   );
 

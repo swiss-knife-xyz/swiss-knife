@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useToast } from "@chakra-ui/react";
+import { useToast, Link, HStack, Text } from "@chakra-ui/react";
 import { useSendCalls, useWaitForCallsStatus } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { Hex, Call } from "viem";
 import { useAccount } from "wagmi";
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 
 interface UseAddLiquidityTransactionProps {
   isChainSupported: boolean;
@@ -66,6 +67,7 @@ export const useAddLiquidityTransaction = ({
           title: "Chain not supported",
           description: "Please switch to a supported chain",
           status: "error",
+          position: "bottom-right",
           duration: 5000,
           isClosable: true,
         });
@@ -94,11 +96,12 @@ export const useAddLiquidityTransaction = ({
 
                 setTimeout(() => {
                   toast({
-                    id: data.id, // Use sendCalls ID initially
+                    id: data.id,
                     title: "Transaction Submitted",
                     description: "Adding liquidity to pool",
                     status: "loading",
-                    duration: null, // Keep until we update it
+                    position: "bottom-right",
+                    duration: null,
                     isClosable: true,
                   });
                 }, 0);
@@ -120,6 +123,7 @@ export const useAddLiquidityTransaction = ({
                 ? (error as any).shortMessage || error.message
                 : "Failed to add liquidity",
             status: "error",
+            position: "bottom-right",
             duration: 10000,
             isClosable: true,
           });
@@ -163,10 +167,16 @@ export const useAddLiquidityTransaction = ({
             : "";
           toast.update(sendCallsData.id, {
             title: "Transaction Submitted",
-            description: `Adding liquidity to pool${
-              txUrl ? `. View transaction: ${txUrl}` : ""
-            }`,
+            description: (
+              <Link href={txUrl} isExternal>
+                <HStack>
+                  <Text>View on explorer</Text>
+                  <ExternalLinkIcon />
+                </HStack>
+              </Link>
+            ),
             status: "loading",
+            position: "bottom-right",
             duration: null,
             isClosable: true,
           });
@@ -215,10 +225,16 @@ export const useAddLiquidityTransaction = ({
 
             toast.update(effectInstanceToastId, {
               title: "Transaction Confirmed",
-              description: `Successfully added liquidity${
-                txUrl ? `. View transaction: ${txUrl}` : ""
-              }`,
+              description: (
+                <Link href={txUrl} isExternal>
+                  <HStack>
+                    <Text>View on explorer</Text>
+                    <ExternalLinkIcon />
+                  </HStack>
+                </Link>
+              ),
               status: "success",
+              position: "bottom-right",
               duration: 10000,
               isClosable: true,
             });
@@ -251,10 +267,16 @@ export const useAddLiquidityTransaction = ({
 
             toast.update(effectInstanceToastId, {
               title: "Transaction Failed",
-              description: `Failed to add liquidity. Please try again${
-                txUrl ? `. View transaction: ${txUrl}` : ""
-              }`,
+              description: (
+                <Link href={txUrl} isExternal>
+                  <HStack>
+                    <Text>View on explorer</Text>
+                    <ExternalLinkIcon />
+                  </HStack>
+                </Link>
+              ),
               status: "error",
+              position: "bottom-right",
               duration: 15000,
               isClosable: true,
             });
@@ -288,10 +310,16 @@ export const useAddLiquidityTransaction = ({
 
           toast.update(effectInstanceToastId, {
             title: "Transaction Pending",
-            description: `Adding liquidity to pool${
-              txUrl ? `. View transaction: ${txUrl}` : ""
-            }`,
+            description: (
+              <Link href={txUrl} isExternal>
+                <HStack>
+                  <Text>View on explorer</Text>
+                  <ExternalLinkIcon />
+                </HStack>
+              </Link>
+            ),
             status: "loading",
+            position: "bottom-right",
             duration: null,
             isClosable: true,
           });

@@ -1,6 +1,16 @@
 import { Address } from "viem";
 import { baseSepolia } from "viem/chains";
 
+// Shared pool configuration keys used across multiple components
+export enum PoolConfigLocalStorageKeys {
+  CURRENCY0 = "uniswap-currency0",
+  CURRENCY1 = "uniswap-currency1",
+  TICK_SPACING = "uniswap-tickSpacing",
+  FEE = "uniswap-fee",
+  HOOK_ADDRESS = "uniswap-hookAddress",
+  HOOK_DATA = "uniswap-hookData",
+}
+
 export const quoterAbi = [
   {
     inputs: [

@@ -26,6 +26,9 @@ export interface SearchResult {
   token: string;
   finalPrice: string;
   direction: string;
+  targetPrice?: string; // Add target price for deviation calculation
+  priceDeviation?: string; // Add price deviation
+  currentPrice?: string; // Add current price for reference
 }
 
 export const useTargetPriceCalculator = ({
@@ -65,6 +68,9 @@ export const useTargetPriceCalculator = ({
   );
   const [searchProgress, setSearchProgress] = useState<string>("");
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [isBinarySearching, setIsBinarySearching] = useState<boolean>(false);
+  const [isParallelSearching, setIsParallelSearching] =
+    useState<boolean>(false);
   const shouldStopSearch = useRef<boolean>(false);
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
 
@@ -102,7 +108,7 @@ export const useTargetPriceCalculator = ({
       return;
     }
 
-    setIsSearching(true);
+    setIsBinarySearching(true);
     shouldStopSearch.current = false;
     setSearchProgress("Initializing binary search...");
     setSearchResult(null);
@@ -243,6 +249,13 @@ export const useTargetPriceCalculator = ({
               direction: swapZeroForOne
                 ? "Sell Currency0 for Currency1"
                 : "Sell Currency1 for Currency0",
+              targetPrice: targetPrice,
+              priceDeviation: (
+                (Math.abs(adjustedPriceAfter - targetPriceNum) /
+                  targetPriceNum) *
+                100
+              ).toFixed(2),
+              currentPrice: currentPriceNum.toFixed(6),
             });
             setSearchProgress(
               `✅ Found optimal amount: ${swapAmountFormatted} ${swapTokenSymbolToUse}`
@@ -292,7 +305,7 @@ export const useTargetPriceCalculator = ({
         `❌ Search failed: ${error.shortMessage || error.message || error}`
       );
     } finally {
-      setIsSearching(false);
+      setIsBinarySearching(false);
       shouldStopSearch.current = false;
     }
   }, [
@@ -337,7 +350,7 @@ export const useTargetPriceCalculator = ({
       return;
     }
 
-    setIsSearching(true);
+    setIsParallelSearching(true);
     shouldStopSearch.current = false;
     setSearchProgress("Initializing parallel search...");
     setSearchResult(null);
@@ -512,6 +525,12 @@ export const useTargetPriceCalculator = ({
             direction: swapZeroForOne
               ? "Sell Currency0 for Currency1"
               : "Sell Currency1 for Currency0",
+            targetPrice: targetPrice,
+            priceDeviation: (
+              (Math.abs(bestMatch.price - targetPriceNum) / targetPriceNum) *
+              100
+            ).toFixed(2),
+            currentPrice: currentPriceNum.toFixed(6),
           });
           setSearchProgress(
             `✅ Found optimal amount: ${finalAmountFormatted} ${swapTokenSymbolToUse}`
@@ -540,7 +559,7 @@ export const useTargetPriceCalculator = ({
         `❌ Search failed: ${error.shortMessage || error.message || error}`
       );
     } finally {
-      setIsSearching(false);
+      setIsParallelSearching(false);
       shouldStopSearch.current = false;
     }
   }, [
@@ -687,6 +706,15 @@ export const useTargetPriceCalculator = ({
           direction: swapZeroForOne
             ? "Sell Currency0 for Currency1"
             : "Sell Currency1 for Currency0",
+          targetPrice: targetPrice,
+          priceDeviation: (
+            (Math.abs(refinedBestMatch.price - targetPriceNum) /
+              targetPriceNum) *
+            100
+          ).toFixed(2),
+          currentPrice: targetPriceDirection
+            ? currentZeroForOnePrice || "0"
+            : currentOneForZeroPrice || "0",
         });
 
         const matchQuality =
@@ -712,6 +740,14 @@ export const useTargetPriceCalculator = ({
           direction: swapZeroForOne
             ? "Sell Currency0 for Currency1"
             : "Sell Currency1 for Currency0",
+          targetPrice: targetPrice,
+          priceDeviation: (
+            (Math.abs(bestMatch.price - targetPriceNum) / targetPriceNum) *
+            100
+          ).toFixed(2),
+          currentPrice: targetPriceDirection
+            ? currentZeroForOnePrice || "0"
+            : currentOneForZeroPrice || "0",
         });
         setSearchProgress(
           `✅ Found amount: ${finalAmountFormatted} ${swapTokenSymbolToUse}`
@@ -733,6 +769,9 @@ export const useTargetPriceCalculator = ({
     shouldStopSearch.current = true;
   }, []);
 
+  // Computed state for when any search is active
+  const isAnySearching = isBinarySearching || isParallelSearching;
+
   return {
     targetPrice,
     setTargetPrice,
@@ -747,9 +786,12 @@ export const useTargetPriceCalculator = ({
     maxIterations,
     setMaxIterations,
     searchProgress,
-    isSearching,
+    isSearching: isAnySearching, // Keep for backward compatibility
+    isBinarySearching,
+    isParallelSearching,
     searchResult,
     performOptimizedParallelSearch,
+    performBinarySearch, // Add binary search method to return
     stopBinarySearch,
   };
 };

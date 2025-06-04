@@ -144,3 +144,18 @@ export const Q192 = 2n ** 192n;
 // TickMath constants
 export const MIN_TICK = -887272;
 export const MAX_TICK = 887272;
+
+// Add liquidity specific local storage keys
+export enum AddLiquidityLocalStorageKeys {
+  HOOK_DATA = "uniswap-add-liquidity-hookData",
+  AMOUNT0 = "uniswap-add-liquidity-amount0",
+  AMOUNT1 = "uniswap-add-liquidity-amount1",
+  TICK_LOWER = "uniswap-add-liquidity-tickLower",
+  TICK_UPPER = "uniswap-add-liquidity-tickUpper",
+  PRICE_INPUT_MODE = "uniswap-add-liquidity-priceInputMode",
+  LOWER_PRICE = "uniswap-add-liquidity-lowerPrice",
+  UPPER_PRICE = "uniswap-add-liquidity-upperPrice",
+  PRICE_DIRECTION = "uniswap-add-liquidity-priceDirection",
+  INITIAL_PRICE = "uniswap-add-liquidity-initialPrice",
+  INITIAL_PRICE_DIRECTION = "uniswap-add-liquidity-initialPriceDirection",
+}

@@ -15,18 +15,19 @@ import {
   HStack,
   Icon,
 } from "@chakra-ui/react";
-import { Address, parseUnits, zeroAddress, Hex } from "viem";
-import { useAccount, useSwitchChain, useSimulateContract } from "wagmi";
+import { Address, zeroAddress, Hex } from "viem";
+import { useAccount, useSwitchChain } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { FiTarget, FiTrendingUp } from "react-icons/fi";
 
 import { chainIdToChain } from "@/data/common";
-import { quoterAbi, quoterAddress, PoolKey } from "./lib/constants";
+import { quoterAddress, PoolKey } from "./lib/constants";
 import { getPoolId, getSearchRangeTokenSymbol } from "./lib/utils";
 import { usePoolFormState } from "./hooks/usePoolFormState";
 import { useCurrencyInfo } from "./hooks/useCurrencyInfo";
 import { useCurrentPoolPrices } from "./hooks/useCurrentPoolPrices";
 import { useTargetPriceCalculator } from "./hooks/useTargetPriceCalculator";
+import { useSwapQuote } from "./hooks/useSwapQuote";
 
 // Import new components
 import { PoolInfoForm } from "./components/PoolInfoForm";
@@ -63,8 +64,8 @@ const PoolPriceToTarget = () => {
     currency1Decimals,
   } = useCurrencyInfo({ currency0, currency1, setCurrency0, setCurrency1 });
 
-  const chainNotSupported = chain && !quoterAddress[chain.id];
-  const isChainSupported = chain && quoterAddress[chain.id];
+  const chainNotSupported = !!(chain && !quoterAddress[chain.id]);
+  const isChainSupported = !!(chain && quoterAddress[chain.id]);
 
   // State for price after swap direction toggle (Used by QuoteResultDetails)
   const [priceAfterSwapDirection, setPriceAfterSwapDirection] =
@@ -114,74 +115,22 @@ const PoolPriceToTarget = () => {
     currency1Decimals,
   });
 
-  const decimals = zeroForOne
-    ? currency0Decimals || 18
-    : currency1Decimals || 18;
-
-  const result = useSimulateContract({
-    address: chain?.id ? quoterAddress[chain.id] : undefined,
-    abi: quoterAbi,
-    functionName: "quoteExactInputSingle",
-    args: [
-      {
-        poolKey: {
-          currency0: currency0 as Address,
-          currency1: currency1 as Address,
-          tickSpacing: tickSpacing!,
-          fee: fee!,
-          hooks: (hookAddress || zeroAddress) as Address,
-        },
-        zeroForOne,
-        exactAmount: parseUnits(amount, decimals),
-        hookData: (hookData || "0x") as Hex,
-      },
-    ],
-    query: {
-      enabled: false, // Disable auto-fetching
-    },
-  });
-
-  const fetchQuoteResult = () => {
-    if (
-      currency0.length > 0 &&
-      currency1.length > 0 &&
-      amount &&
-      isChainSupported
-    ) {
-      result.refetch();
-    }
-  };
-
-  // Auto-fetch quote result with debounce when amount changes
-  useEffect(() => {
-    // Only set up debounce if all conditions are met
-    if (
-      currency0.length > 0 &&
-      currency1.length > 0 &&
-      amount &&
-      isChainSupported &&
-      !isNaN(Number(amount)) &&
-      Number(amount) > 0
-    ) {
-      const timeoutId = setTimeout(() => {
-        result.refetch();
-      }, 800); // 800ms debounce
-
-      // Cleanup function to clear timeout on dependency change
-      return () => clearTimeout(timeoutId);
-    }
-  }, [
-    amount,
-    currency0,
-    currency1,
-    zeroForOne,
-    fee,
-    tickSpacing,
-    hookAddress,
-    hookData,
-    isChainSupported,
-    result,
-  ]);
+  // Use the new swap quote hook
+  const { quoteData, quoteError, isQuoteLoading, fetchQuoteResult } =
+    useSwapQuote({
+      currency0,
+      currency1,
+      amount,
+      zeroForOne,
+      fee,
+      tickSpacing,
+      hookAddress,
+      hookData,
+      currency0Decimals,
+      currency1Decimals,
+      chain,
+      isChainSupported,
+    });
 
   // useTargetPriceCalculator hook
   const {
@@ -199,8 +148,11 @@ const PoolPriceToTarget = () => {
     setMaxIterations,
     searchProgress,
     isSearching,
+    isBinarySearching,
+    isParallelSearching,
     searchResult,
     performOptimizedParallelSearch,
+    performBinarySearch,
     stopBinarySearch,
   } = useTargetPriceCalculator({
     poolKey,
@@ -347,7 +299,7 @@ const PoolPriceToTarget = () => {
               currency0Symbol={currency0Symbol}
               currency1Symbol={currency1Symbol}
               fetchQuoteResult={fetchQuoteResult}
-              isQuoteLoading={result.isLoading}
+              isQuoteLoading={isQuoteLoading}
               quoteDisabled={
                 !currency0.length ||
                 !currency1.length ||
@@ -358,14 +310,10 @@ const PoolPriceToTarget = () => {
               swapAmountRef={swapAmountRef}
             />
 
-            {(result.data || result.error) && (
+            {(quoteData || quoteError) && (
               <QuoteResultDetails
-                quoteResultData={
-                  result.data?.result as
-                    | readonly [bigint, bigint, number, bigint]
-                    | undefined
-                }
-                quoteError={result.error}
+                quoteResultData={quoteData}
+                quoteError={quoteError}
                 amount={amount}
                 zeroForOne={zeroForOne}
                 currency0Symbol={currency0Symbol}
@@ -418,8 +366,11 @@ const PoolPriceToTarget = () => {
           <Box my={2}>
             <TargetPriceSwapControls
               performOptimizedParallelSearch={performOptimizedParallelSearch}
+              performBinarySearch={performBinarySearch}
               stopSearch={stopBinarySearch}
               isSearching={isSearching}
+              isBinarySearching={isBinarySearching}
+              isParallelSearching={isParallelSearching}
               searchProgress={searchProgress}
               searchResult={searchResult}
               searchDisabled={
@@ -436,6 +387,15 @@ const PoolPriceToTarget = () => {
               setZeroForOne={setZeroForOne}
               swapAmountRef={swapAmountRef as React.RefObject<HTMLElement>}
               threshold={threshold}
+              targetPrice={targetPrice}
+              currentZeroForOnePrice={currentZeroForOnePrice}
+              currentOneForZeroPrice={currentOneForZeroPrice}
+              currency0={currency0 as Address}
+              currency1={currency1 as Address}
+              fee={fee}
+              tickSpacing={tickSpacing}
+              hookAddress={hookAddress as Address}
+              hookData={hookData}
             />
           </Box>
         </Box>

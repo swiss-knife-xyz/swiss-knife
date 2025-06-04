@@ -22,6 +22,7 @@ export function useCurrentPoolPrices({
   const [currentOneForZeroPrice, setCurrentOneForZeroPrice] = useState<
     string | undefined
   >();
+  const [isForcedLoading, setIsForcedLoading] = useState(false);
 
   const {
     data: slot0DataResult, // Renamed to avoid confusion with the whole object
@@ -38,11 +39,15 @@ export function useCurrentPoolPrices({
     },
   });
 
+  // Combined loading state
+  const isLoading = isSlot0Loading || isForcedLoading;
+
   useEffect(() => {
     if (
       slot0DataResult &&
       currency0Decimals !== undefined &&
-      currency1Decimals !== undefined
+      currency1Decimals !== undefined &&
+      !isForcedLoading // Don't update prices while forced loading
     ) {
       // slot0DataResult is: readonly [sqrtPriceX96: bigint, tick: number, protocolFee: number, lpFee: number]
       // The ABI defines tick as int24, which viem treats as number.
@@ -56,7 +61,7 @@ export function useCurrentPoolPrices({
 
       const token0PerToken1 = 1 / token1PerToken0;
       setCurrentOneForZeroPrice(token0PerToken1.toFixed(6));
-    } else if (isSlot0Loading) {
+    } else if (isLoading) {
       setCurrentZeroForOnePrice("Fetching...");
       setCurrentOneForZeroPrice("Fetching...");
     } else if (slot0Error) {
@@ -69,13 +74,14 @@ export function useCurrentPoolPrices({
     }
   }, [
     slot0DataResult,
-    isSlot0Loading,
+    isLoading,
     slot0Error,
     currency0Decimals,
     currency1Decimals,
+    isForcedLoading,
   ]);
 
-  const fetchCurrentPrices = () => {
+  const fetchCurrentPrices = async () => {
     if (
       poolId &&
       currency0Decimals &&
@@ -83,7 +89,19 @@ export function useCurrentPoolPrices({
       chain?.id &&
       StateViewAddress[chain.id]
     ) {
-      refetchSlot0();
+      // Set forced loading state immediately
+      setIsForcedLoading(true);
+
+      // Add artificial delay to ensure loading state is visible
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      try {
+        // Force refetch with fresh data (bypassing cache)
+        await refetchSlot0();
+      } finally {
+        // Clear forced loading state
+        setIsForcedLoading(false);
+      }
     }
   };
 
@@ -91,7 +109,7 @@ export function useCurrentPoolPrices({
     currentZeroForOnePrice,
     currentOneForZeroPrice,
     slot0Tick: slot0DataResult ? Number(slot0DataResult[1]) : undefined, // Expose tick directly
-    isSlot0Loading,
+    isSlot0Loading: isLoading, // Return combined loading state
     slot0Error,
     fetchCurrentPrices, // Expose refetch function
   };

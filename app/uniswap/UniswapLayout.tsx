@@ -13,11 +13,6 @@ const SidebarItems: SidebarItem[] = [
     icon: FiBarChart,
   },
   {
-    name: "Add Liquidity",
-    path: "add-liquidity",
-    icon: FiPlus,
-  },
-  {
     name: "Swap",
     path: "swap",
     icon: FiRefreshCw,
@@ -26,6 +21,11 @@ const SidebarItems: SidebarItem[] = [
     name: "Pool Price to Target",
     path: "pool-price-to-target",
     icon: FiTarget,
+  },
+  {
+    name: "Add Liquidity",
+    path: "add-liquidity",
+    icon: FiPlus,
   },
 ];
 

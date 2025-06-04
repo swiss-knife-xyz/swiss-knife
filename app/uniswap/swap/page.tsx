@@ -32,6 +32,7 @@ import { useCurrencyInfo } from "./hooks/useCurrencyInfo";
 import { PoolWithHookData } from "@/lib/uniswap/types";
 import { getAvailableCurrencies } from "./lib/utils";
 import { StateViewAddress, Permit2Address } from "./lib/constants";
+import { SwapLocalStorageKeys } from "./lib/constants";
 
 const SwapPage = () => {
   const { chain, address } = useAccount();
@@ -47,7 +48,7 @@ const SwapPage = () => {
 
   // Pool configuration state
   const [pools, setPools] = useLocalStorage<PoolWithHookData[]>(
-    "uniswap-swap-pools",
+    SwapLocalStorageKeys.POOLS,
     [
       {
         currency0: zeroAddress,
@@ -62,19 +63,19 @@ const SwapPage = () => {
 
   // Swap state
   const [fromCurrency, setFromCurrency] = useLocalStorage<Address>(
-    "uniswap-swap-from",
+    SwapLocalStorageKeys.FROM_CURRENCY,
     zeroAddress
   );
   const [toCurrency, setToCurrency] = useLocalStorage<Address>(
-    "uniswap-swap-to",
+    SwapLocalStorageKeys.TO_CURRENCY,
     "" as Address
   );
   const [swapAmount, setSwapAmount] = useLocalStorage<string>(
-    "uniswap-swap-amount",
+    SwapLocalStorageKeys.AMOUNT,
     "1"
   );
   const [slippage, setSlippage] = useLocalStorage<string>(
-    "uniswap-swap-slippage",
+    SwapLocalStorageKeys.SLIPPAGE,
     "0.5"
   );
 
@@ -256,24 +257,27 @@ const SwapPage = () => {
           <Divider my={6} />
 
           {/* Swap Interface Section */}
-          <SwapInterface
-            fromCurrency={fromCurrency}
-            setFromCurrency={setFromCurrency}
-            toCurrency={toCurrency}
-            setToCurrency={setToCurrency}
-            swapAmount={swapAmount}
-            setSwapAmount={setSwapAmount}
-            slippage={slippage}
-            setSlippage={setSlippage}
-            availableCurrencies={endpointCurrencies}
-            quotedAmount={quotedAmount || undefined}
-            isQuoting={isQuoting}
-            onSwapCurrencies={swapCurrencies}
-            onExecuteSwap={handleExecuteSwap}
-            isSwapDisabled={isSwapDisabled}
-            isSwapLoading={isSwapLoading}
-            currencyInfoMap={currencyInfoMap}
-          />
+          <Box id="swap">
+            <SwapInterface
+              fromCurrency={fromCurrency}
+              setFromCurrency={setFromCurrency}
+              toCurrency={toCurrency}
+              setToCurrency={setToCurrency}
+              swapAmount={swapAmount}
+              setSwapAmount={setSwapAmount}
+              slippage={slippage}
+              setSlippage={setSlippage}
+              availableCurrencies={endpointCurrencies}
+              quotedAmount={quotedAmount || undefined}
+              isQuoting={isQuoting}
+              onSwapCurrencies={swapCurrencies}
+              onExecuteSwap={handleExecuteSwap}
+              isSwapDisabled={isSwapDisabled}
+              isSwapLoading={isSwapLoading}
+              currencyInfoMap={currencyInfoMap}
+              userAddress={address}
+            />
+          </Box>
 
           {/* Quote Error Display */}
           {quoteError && (

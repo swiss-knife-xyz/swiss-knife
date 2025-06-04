@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useToast } from "@chakra-ui/react";
+import { useToast, Link, HStack, Text } from "@chakra-ui/react";
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { useSendCalls, useWaitForCallsStatus } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -92,6 +93,7 @@ export const useSwapTransaction = ({
           title: "Chain not supported",
           description: "Please switch to a supported chain",
           status: "error",
+          position: "bottom-right",
           duration: 5000,
           isClosable: true,
         });
@@ -181,6 +183,7 @@ export const useSwapTransaction = ({
                     title: "Transaction Submitted",
                     description: "Swapping tokens",
                     status: "loading",
+                    position: "bottom-right",
                     duration: null,
                     isClosable: true,
                   });
@@ -202,6 +205,7 @@ export const useSwapTransaction = ({
                 ? (error as any).shortMessage || error.message
                 : "Failed to swap tokens",
             status: "error",
+            position: "bottom-right",
             duration: 10000,
             isClosable: true,
           });
@@ -242,10 +246,16 @@ export const useSwapTransaction = ({
             : "";
           toast.update(sendCallsData.id, {
             title: "Transaction Submitted",
-            description: `Swapping tokens${
-              txUrl ? `. View transaction: ${txUrl}` : ""
-            }`,
+            description: (
+              <Link href={txUrl} isExternal>
+                <HStack>
+                  <Text>View on explorer</Text>
+                  <ExternalLinkIcon />
+                </HStack>
+              </Link>
+            ),
             status: "loading",
+            position: "bottom-right",
             duration: null,
             isClosable: true,
           });
@@ -291,10 +301,16 @@ export const useSwapTransaction = ({
 
             toast.update(effectInstanceToastId, {
               title: "Swap Successful",
-              description: `Successfully swapped tokens${
-                txUrl ? `. View transaction: ${txUrl}` : ""
-              }`,
+              description: (
+                <Link href={txUrl} isExternal>
+                  <HStack>
+                    <Text>View on explorer</Text>
+                    <ExternalLinkIcon />
+                  </HStack>
+                </Link>
+              ),
               status: "success",
+              position: "bottom-right",
               duration: 10000,
               isClosable: true,
             });
@@ -323,10 +339,16 @@ export const useSwapTransaction = ({
 
             toast.update(effectInstanceToastId, {
               title: "Swap Failed",
-              description: `Failed to swap tokens. Please try again${
-                txUrl ? `. View transaction: ${txUrl}` : ""
-              }`,
+              description: (
+                <Link href={txUrl} isExternal>
+                  <HStack>
+                    <Text>View on explorer</Text>
+                    <ExternalLinkIcon />
+                  </HStack>
+                </Link>
+              ),
               status: "error",
+              position: "bottom-right",
               duration: 15000,
               isClosable: true,
             });
@@ -357,10 +379,16 @@ export const useSwapTransaction = ({
 
           toast.update(effectInstanceToastId, {
             title: "Transaction Pending",
-            description: `Swapping tokens${
-              txUrl ? `. View transaction: ${txUrl}` : ""
-            }`,
+            description: (
+              <Link href={txUrl} isExternal>
+                <HStack>
+                  <Text>View on explorer</Text>
+                  <ExternalLinkIcon />
+                </HStack>
+              </Link>
+            ),
             status: "loading",
+            position: "bottom-right",
             duration: null,
             isClosable: true,
           });
