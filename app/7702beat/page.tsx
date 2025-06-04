@@ -188,6 +188,12 @@ const dapps: SupportedApp[] = [
     supportedChainIds: [mainnet.id],
   },
   {
+    name: "Escher",
+    logoUrl: getFaviconUrl("https://app.escher.finance/"),
+    siteUrl: "https://app.escher.finance/",
+    supportedChainIds: [mainnet.id],
+  },
+  {
     name: "Ethena",
     logoUrl: getFaviconUrl("https://app.ethena.fi/"),
     siteUrl: "https://app.ethena.fi/",
