@@ -112,18 +112,16 @@ export default function VerifySignatures() {
       px={{ base: 2, md: 4 }}
     >
       <Grid gap={1}>
-        <Text>Address</Text>
+        <Text fontWeight="bold">Address</Text>
         <Input
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          borderColor={"gray.400"}
-          bg={"whiteAlpha.50"}
           placeholder="0x..."
         />
       </Grid>
 
       <Grid gap={1}>
-        <Text>Message or Typed Data</Text>
+        <Text fontWeight="bold">Message or Typed Data</Text>
         <JsonTextArea
           value={message}
           onChange={handleMessageChange}
@@ -133,12 +131,10 @@ export default function VerifySignatures() {
       </Grid>
 
       <Grid gap={1}>
-        <Text>Signature Hash</Text>
+        <Text fontWeight="bold">Signature Hash</Text>
         <Input
           value={signatureHash}
           onChange={(e) => setSignatureHash(e.target.value)}
-          borderColor={"gray.400"}
-          bg={"whiteAlpha.50"}
           placeholder="0x..."
         />
       </Grid>
@@ -162,8 +158,7 @@ export default function VerifySignatures() {
         {verificationResult?.error
           ? verificationResult.error
           : verificationResult
-            ? `Signature ${verificationResult.isValid ? "verified" : "invalid"} 
-       (${verificationResult.type === "typedData" ? "EIP-712 Typed Data" : "Simple Message"})`
+            ? `Signature ${verificationResult.isValid ? "verified" : "invalid"}`
             : ""}
       </Alert>
 

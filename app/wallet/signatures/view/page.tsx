@@ -308,7 +308,7 @@ export default function SignatureView() {
             p={3}
             display="block"
             whiteSpace="pre-wrap"
-            bg="gray.900"
+            bg="whiteAlpha.50"
             color="gray.200"
             borderRadius="md"
             fontFamily="monospace"
@@ -767,7 +767,7 @@ export default function SignatureView() {
                   p={3}
                   display="block"
                   wordBreak="break-all"
-                  bg="gray.900"
+                  bg="whiteAlpha.50"
                   color="gray.200"
                   borderRadius="md"
                   fontFamily="monospace"
