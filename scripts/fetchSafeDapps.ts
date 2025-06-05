@@ -14,6 +14,12 @@ import {
   avalanche,
   zora,
   celo,
+  blast,
+  mode,
+  linea,
+  worldchain,
+  scroll,
+  mantle,
 } from "viem/chains";
 
 // Configuration for custom dapps and disabled dapps
@@ -115,6 +121,7 @@ const customDappConfig = {
     150, // Solid World
     40, // QuickSwap
     161, // Maple Finance Sepolia
+    69, // Matcha
   ],
 
   // List of custom dapps to add
@@ -139,6 +146,29 @@ const customDappConfig = {
         celo.id,
       ],
     },
+    {
+      id: 69,
+      name: "Matcha",
+      description: "Matcha | DEX aggregator by 0x | Search, trade, done.",
+      url: "https://matcha.xyz",
+      iconUrl: "https://matcha.xyz/favicon.svg",
+      chains: [
+        mainnet.id,
+        unichain.id,
+        base.id,
+        arbitrum.id,
+        polygon.id,
+        optimism.id,
+        bsc.id,
+        avalanche.id,
+        blast.id,
+        mode.id,
+        linea.id,
+        worldchain.id,
+        scroll.id,
+        mantle.id,
+      ],
+    },
   ] as SafeDappInfo[],
 
   dappsPriority: [
@@ -148,6 +178,7 @@ const customDappConfig = {
     88, // Revoke.cash
     20, // Curve Finance
     151, // Aerodrome Finance
+    69, // Matcha
     155, // Jumper Exchange
     74, // CoW Swap
     48, // Superfluid
@@ -185,7 +216,7 @@ interface SafeApiResponse {
 
 function transformDappInfo(
   dapp: SafeApiResponse,
-  chainId: number
+  chainId: number,
 ): SafeDappInfo {
   const chains = dapp.networks || [];
   // Ensure chainId is included in the chains array
