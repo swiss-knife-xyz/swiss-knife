@@ -96,14 +96,17 @@ export function JsonTextArea({
       ref={boxRef}
       overflowY="scroll"
       className={`scroll ${className}`}
-      bg={"whiteAlpha.50"}
       border="1px"
-      borderColor={"gray.400"}
+      borderColor={"whiteAlpha.300"}
       roundedLeft="md"
       roundedRight="4px"
       resize={canResize ? "both" : "none"}
       position="relative"
       width={autoMaxWidth ? maxWidth : undefined}
+      transitionDuration={"0.2s"}
+      _hover={{
+        borderColor: "whiteAlpha.400",
+      }}
       {...props}
     >
       <ChakraSimpleEditor
