@@ -208,6 +208,12 @@ const dapps: SupportedApp[] = [
     supportedChainIds: [mainnet.id],
   },
   {
+    name: "Euler",
+    logoUrl: getFaviconUrl("https://app.euler.finance/"),
+    siteUrl: "https://app.euler.finance/",
+    supportedChainIds: [mainnet.id, base.id, berachain.id, bsc.id, unichain.id],
+  },
+  {
     name: "Fibrous",
     logoUrl: getFaviconUrl("https://app.fibrous.finance/"),
     siteUrl: "https://app.fibrous.finance/",
