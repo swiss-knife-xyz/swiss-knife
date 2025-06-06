@@ -1,5 +1,5 @@
-import { ExplorerLayout as ExplorerLayoutC } from "@/components/layouts/ExplorerLayout";
 import { getMetadata } from "@/utils";
+import { ExplorerLayout as ExplorerLayoutC } from "./ExplorerLayout";
 
 export const metadata = getMetadata({
   title: "Explorer | Swiss-Knife.xyz",

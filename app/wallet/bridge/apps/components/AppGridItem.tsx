@@ -2,6 +2,7 @@ import React from "react";
 import { GridItem, Box, VStack, Text, Button, HStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart } from "@fortawesome/free-solid-svg-icons";
+import Image from "next/image";
 import { useFavAppDragNDrop } from "@/hooks/useFavAppDragNDrop";
 import { SafeDappInfo } from "@/types/safeDapps";
 
@@ -45,10 +46,12 @@ const CommonAppGridItem = ({
         pt={6}
       >
         <Box w="60px" h="60px" borderRadius="full" overflow="hidden" bg="white">
-          <img
+          <Image
             src={dapp.iconUrl}
             alt={dapp.name}
-            style={{ width: "100%", height: "100%" }}
+            width={60}
+            height={60}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         </Box>
         <Text color="white" fontWeight="bold" fontSize="lg" textAlign="center">

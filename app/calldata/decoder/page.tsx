@@ -2,7 +2,7 @@ import { fetchFunctionInterface } from "@/lib/decoder";
 import { getMetadata, startHexWith0x } from "@/utils";
 import type { Metadata } from "next";
 // Putting the page into separate component as it uses "use client" which doesn't work with `generateMetadata`
-import { CalldataDecoderPage as CalldataDecoderP } from "@/components/pages/CalldataDecoderPage";
+import { CalldataDecoderPage as CalldataDecoderP } from "./CalldataDecoderPage";
 import { metadata } from "../layout";
 import { Chain, createPublicClient, Hex, http } from "viem";
 import { c, chainIdToChain } from "@/data/common";

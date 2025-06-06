@@ -1,11 +1,11 @@
 "use client";
 
+import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { useEffect } from "react";
 import { getPath } from "@/utils";
-import { useRouter } from "next/navigation";
 
 export default function NotFound() {
-  const router = useRouter();
+  const router = useTopLoaderRouter();
 
   useEffect(() => {
     // Redirect to the home page

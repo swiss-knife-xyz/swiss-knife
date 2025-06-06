@@ -26,7 +26,7 @@ const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
   })
 );
 
-const CalldataEncoder = () => {
+const ViemErrorSimulate = () => {
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>({
       label: mainnet.name,
@@ -151,4 +151,4 @@ Raw Call Arguments:
   );
 };
 
-export default CalldataEncoder;
+export default ViemErrorSimulate;

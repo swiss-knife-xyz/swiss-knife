@@ -1,5 +1,5 @@
-import { FoundryLayout as FoundryLayoutC } from "@/components/layouts/FoundryLayout";
 import { getMetadata } from "@/utils";
+import { FoundryLayout as FoundryLayoutC } from "./FoundryLayout";
 
 export const metadata = getMetadata({
   title: "Foundry | Swiss-Knife.xyz",

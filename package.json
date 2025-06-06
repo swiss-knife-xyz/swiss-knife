@@ -10,6 +10,7 @@
     "fetch-dapps": "tsx scripts/fetchSafeDapps.ts"
   },
   "dependencies": {
+    "@bprogress/next": "^3.2.12",
     "@chakra-ui/icons": "^2.2.4",
     "@chakra-ui/next-js": "^2.4.2",
     "@chakra-ui/react": "^2.10.3",
@@ -31,6 +32,7 @@
     "@types/node": "20.2.5",
     "@types/react": "18.2.7",
     "@types/react-dom": "18.2.4",
+    "@uniswap/v3-sdk": "^3.25.2",
     "@upstash/ratelimit": "^1.2.1",
     "@upstash/redis": "^1.34.3",
     "@wagmi/core": "^2.17.2",

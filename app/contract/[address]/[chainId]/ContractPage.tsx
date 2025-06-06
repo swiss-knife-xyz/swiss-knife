@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { DarkSelect } from "@/components/DarkSelect";
 import {
@@ -41,11 +41,11 @@ import {
   startHexWith0x,
 } from "@/utils";
 import { ABIFunction } from "@shazow/whatsabi/lib.types/abi";
-import { StorageSlot } from "../fnParams/StorageSlot";
-import { RawCalldata } from "../fnParams/RawCalldata";
+import { StorageSlot } from "@/components/fnParams/StorageSlot";
+import { RawCalldata } from "@/components/fnParams/RawCalldata";
 import subdomains from "@/subdomains";
 import { fetchFunctionInterface } from "@/lib/decoder";
-import { DarkButton } from "../DarkButton";
+import { DarkButton } from "@/components/DarkButton";
 import { processContractBytecode } from "@/utils/index";
 
 const useDebouncedValue = (value: any, delay: number) => {
@@ -451,7 +451,7 @@ export const ContractPage = ({
     chainId: number;
   };
 }) => {
-  const router = useRouter();
+  const router = useTopLoaderRouter();
 
   const networkOptionsIndex = networkOptions.findIndex(
     (option) => option.value === chainId
@@ -637,9 +637,14 @@ export const ContractPage = ({
     if (selectedNetworkOption) {
       const newChainId = parseInt(selectedNetworkOption.value.toString());
 
-      router.push(
-        `${getPath(subdomains.EXPLORER.base)}contract/${address}/${newChainId}`
-      );
+      // Only push new route if chainId actually changed
+      if (newChainId !== chainId) {
+        router.push(
+          `${getPath(
+            subdomains.EXPLORER.base
+          )}contract/${address}/${newChainId}`
+        );
+      }
 
       setClient(
         createPublicClient({
@@ -648,7 +653,7 @@ export const ContractPage = ({
         })
       );
     }
-  }, [selectedNetworkOption]);
+  }, [selectedNetworkOption, chainId, router, address]);
 
   // Fetch ABI when address or chainId changes
   useEffect(() => {

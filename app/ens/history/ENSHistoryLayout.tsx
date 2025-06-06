@@ -1,7 +1,8 @@
 "use client";
 
 import NextLink from "next/link";
-import { useRouter, useParams } from "next/navigation";
+import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
+import { useParams } from "next/navigation";
 import { ReactNode, useRef, useState } from "react";
 import {
   Heading,
@@ -22,7 +23,7 @@ import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 
 export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
-  const router = useRouter();
+  const router = useTopLoaderRouter();
   const params = useParams();
 
   const ensNameFromParams =
