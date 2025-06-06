@@ -53,6 +53,11 @@ export const getMetadata = (_metadata: {
   images: string;
 }) => {
   const metadata: Metadata = {
+    metadataBase: new URL(
+      process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+        ? "http://localhost:3000"
+        : "https://swiss-knife.xyz"
+    ),
     title: _metadata.title,
     description: _metadata.description,
     twitter: {
