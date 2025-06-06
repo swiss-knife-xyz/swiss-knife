@@ -24,6 +24,7 @@ const subdomainToLabel = {
   [subdomains.ENS.base]: "ENS",
   [subdomains["7702BEAT"].base]: "7702 Beat",
   [subdomains.SAFE.base]: "Safe",
+  [subdomains.APPS.base]: "Apps",
 };
 
 const Btn = ({
