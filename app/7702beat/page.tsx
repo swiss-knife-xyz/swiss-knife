@@ -26,11 +26,12 @@ import {
 import { Layout } from "@/components/Layout";
 import {
   mainnet,
-  optimism,
   base,
+  berachain,
   bsc,
   gnosis,
   ink,
+  optimism,
   polygon,
   unichain,
 } from "wagmi/chains";
@@ -71,6 +72,13 @@ const chains: Chain[] = [
     color: "blue.400",
     abbreviation: "BASE",
     chainObj: base,
+  },
+  {
+    id: berachain.id,
+    name: "Berachain",
+    color: "orange.600",
+    abbreviation: "BERA",
+    chainObj: berachain,
   },
   {
     id: bsc.id,

@@ -10,6 +10,7 @@ import {
   base,
   baseGoerli,
   baseSepolia,
+  berachain,
   bitTorrent,
   bitTorrentTestnet,
   // TODO: upgrade package and add these chains:
@@ -102,6 +103,7 @@ export const c: { [name: string]: Chain } = {
   base,
   baseGoerli,
   baseSepolia,
+  berachain,
   bitTorrent,
   bitTorrentTestnet,
   boba,
@@ -276,6 +278,7 @@ export const chainIdToImage = (() => {
     [arbitrum.id]: `${basePath}/arbitrum.svg`,
     [avalanche.id]: `${basePath}/avalanche.svg`,
     [base.id]: `${basePath}/base.svg`,
+    [berachain.id]: `${basePath}/berachain.svg`,
     [bsc.id]: `${basePath}/bsc.svg`,
     [cronos.id]: `${basePath}/cronos.svg`,
     [goerli.id]: `${basePath}/ethereum.svg`,
