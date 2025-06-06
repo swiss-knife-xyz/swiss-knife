@@ -161,21 +161,21 @@
       ]
     },
     {
-      "id": 178,
-      "name": "Figment",
-      "description": "Stake your ETH and get instant rewards. No claiming, no pooling. You're always in control of your funds.",
-      "url": "https://dapp.figment.io/staking",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/a29382ff-1699-4f47-834b-e5346ca324f7/icon.png",
-      "chains": [
-        1
-      ]
-    },
-    {
       "id": 14,
       "name": "Lido Staking",
       "description": "Lido is the liquid staking solution for Ethereum.",
       "url": "https://stake.lido.fi/?ref=0x5afE11DBF44AB2D88162f687e01F8DD7a8A3EEEe",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/14/icon.png",
+      "chains": [
+        1
+      ]
+    },
+    {
+      "id": 178,
+      "name": "Figment",
+      "description": "Stake your ETH and get instant rewards. No claiming, no pooling. You're always in control of your funds.",
+      "url": "https://dapp.figment.io/staking",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/a29382ff-1699-4f47-834b-e5346ca324f7/icon.png",
       "chains": [
         1
       ]
@@ -671,16 +671,6 @@
       ]
     },
     {
-      "id": 38,
-      "name": "Uniswap",
-      "description": "Swap or provide liquidity on the Uniswap Protocol",
-      "url": "https://app.uniswap.org",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/38/icon.png",
-      "chains": [
-        1
-      ]
-    },
-    {
       "id": 108,
       "name": "Exactly",
       "description": "Decentralizing the credit market, today",
@@ -696,6 +686,16 @@
       "description": "The insurance alternative for crypto and more.",
       "url": "https://app.nexusmutual.io",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/96/icon.png",
+      "chains": [
+        1
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Uniswap",
+      "description": "Swap or provide liquidity on the Uniswap Protocol",
+      "url": "https://app.uniswap.org",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/38/icon.png",
       "chains": [
         1
       ]
@@ -1261,16 +1261,6 @@
       ]
     },
     {
-      "id": 202,
-      "name": "StakeKit",
-      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
-      "url": "https://safe.stakek.it/",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
-      "chains": [
-        1
-      ]
-    },
-    {
       "id": 33,
       "name": "CSV Airdrop",
       "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
@@ -1296,16 +1286,6 @@
       "description": "Lagoon Finance brings DeFi to your fingertips with secure and risk-optimized yield from vaults managed by professional curators.",
       "url": "https://app.lagoon.finance/",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/857018a3-758e-4ad1-8d48-dd5f1aac8ab8/icon.png",
-      "chains": [
-        1
-      ]
-    },
-    {
-      "id": 25,
-      "name": "Velora (formerly ParaSwap)",
-      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
-      "url": "https://embedded.paraswap.io",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
       "chains": [
         1
       ]
@@ -1351,11 +1331,41 @@
       ]
     },
     {
+      "id": 202,
+      "name": "StakeKit",
+      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
+      "url": "https://safe.stakek.it/",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
+      "chains": [
+        1
+      ]
+    },
+    {
+      "id": 92,
+      "name": "OpenOcean",
+      "description": "The leading DEX Aggregator, offering the best swap returns across 17 chains.",
+      "url": "https://gnosis.openocean.finance/?referrer=0x19E89c0774090C52D2117D9efE1CFB37218BE493",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/92/icon.png",
+      "chains": [
+        1
+      ]
+    },
+    {
       "id": 165,
       "name": "Morpho",
       "description": "A dApp to manage your positions on Morpho.",
       "url": "https://app.morpho.org/",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/79369888-5343-4b1c-a06f-66f6ac73c193/icon.png",
+      "chains": [
+        1
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Velora (formerly ParaSwap)",
+      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
+      "url": "https://embedded.velora.xyz/?referrer=safe_app",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
       "chains": [
         1
       ]
@@ -1593,16 +1603,6 @@
       ]
     },
     {
-      "id": 38,
-      "name": "Uniswap",
-      "description": "Swap or provide liquidity on the Uniswap Protocol",
-      "url": "https://app.uniswap.org",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/38/icon.png",
-      "chains": [
-        10
-      ]
-    },
-    {
       "id": 108,
       "name": "Exactly",
       "description": "Decentralizing the credit market, today",
@@ -1618,6 +1618,16 @@
       "description": "On-chain tokenized derivatives products",
       "url": "https://toros.finance",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/107/icon.png",
+      "chains": [
+        10
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Uniswap",
+      "description": "Swap or provide liquidity on the Uniswap Protocol",
+      "url": "https://app.uniswap.org",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/38/icon.png",
       "chains": [
         10
       ]
@@ -1843,16 +1853,6 @@
       ]
     },
     {
-      "id": 202,
-      "name": "StakeKit",
-      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
-      "url": "https://safe.stakek.it/",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
-      "chains": [
-        10
-      ]
-    },
-    {
       "id": 33,
       "name": "CSV Airdrop",
       "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
@@ -1868,16 +1868,6 @@
       "description": "Transfer all your Safe assets in a single transaction",
       "url": "https://apps-portal.safe.global/drain-safe",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/43/icon.png",
-      "chains": [
-        10
-      ]
-    },
-    {
-      "id": 25,
-      "name": "Velora (formerly ParaSwap)",
-      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
-      "url": "https://embedded.paraswap.io",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
       "chains": [
         10
       ]
@@ -1908,6 +1898,36 @@
       "description": "Pendle enables the permissionless tokenization and trading of yield, unlocking various strategies such as obtaining fixed yield, long crypto yields, or trade yields of any assets on Pendle.",
       "url": "https://app.pendle.finance/?utm_source=SafeWallet",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/cbc8f430-40c3-4f19-9f1a-3e8200608ef6/icon.png",
+      "chains": [
+        10
+      ]
+    },
+    {
+      "id": 202,
+      "name": "StakeKit",
+      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
+      "url": "https://safe.stakek.it/",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
+      "chains": [
+        10
+      ]
+    },
+    {
+      "id": 92,
+      "name": "OpenOcean",
+      "description": "The leading DEX Aggregator, offering the best swap returns across 17 chains.",
+      "url": "https://gnosis.openocean.finance/?referrer=0x19E89c0774090C52D2117D9efE1CFB37218BE493",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/92/icon.png",
+      "chains": [
+        10
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Velora (formerly ParaSwap)",
+      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
+      "url": "https://embedded.velora.xyz/?referrer=safe_app",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
       "chains": [
         10
       ]
@@ -2275,16 +2295,6 @@
       ]
     },
     {
-      "id": 202,
-      "name": "StakeKit",
-      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
-      "url": "https://safe.stakek.it/",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
-      "chains": [
-        56
-      ]
-    },
-    {
       "id": 33,
       "name": "CSV Airdrop",
       "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
@@ -2300,16 +2310,6 @@
       "description": "Transfer all your Safe assets in a single transaction",
       "url": "https://apps-portal.safe.global/drain-safe",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/43/icon.png",
-      "chains": [
-        56
-      ]
-    },
-    {
-      "id": 25,
-      "name": "Velora (formerly ParaSwap)",
-      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
-      "url": "https://embedded.paraswap.io",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
       "chains": [
         56
       ]
@@ -2340,6 +2340,36 @@
       "description": "Pendle enables the permissionless tokenization and trading of yield, unlocking various strategies such as obtaining fixed yield, long crypto yields, or trade yields of any assets on Pendle.",
       "url": "https://app.pendle.finance/?utm_source=SafeWallet",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/cbc8f430-40c3-4f19-9f1a-3e8200608ef6/icon.png",
+      "chains": [
+        56
+      ]
+    },
+    {
+      "id": 202,
+      "name": "StakeKit",
+      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
+      "url": "https://safe.stakek.it/",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
+      "chains": [
+        56
+      ]
+    },
+    {
+      "id": 92,
+      "name": "OpenOcean",
+      "description": "The leading DEX Aggregator, offering the best swap returns across 17 chains.",
+      "url": "https://gnosis.openocean.finance/?referrer=0x19E89c0774090C52D2117D9efE1CFB37218BE493",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/92/icon.png",
+      "chains": [
+        56
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Velora (formerly ParaSwap)",
+      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
+      "url": "https://embedded.velora.xyz/?referrer=safe_app",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
       "chains": [
         56
       ]
@@ -2787,10 +2817,20 @@
       ]
     },
     {
+      "id": 92,
+      "name": "OpenOcean",
+      "description": "The leading DEX Aggregator, offering the best swap returns across 17 chains.",
+      "url": "https://gnosis.openocean.finance/?referrer=0x19E89c0774090C52D2117D9efE1CFB37218BE493",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/92/icon.png",
+      "chains": [
+        100
+      ]
+    },
+    {
       "id": 25,
       "name": "Velora (formerly ParaSwap)",
       "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
-      "url": "https://embedded.paraswap.io",
+      "url": "https://embedded.velora.xyz/?referrer=safe_app",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
       "chains": [
         100
@@ -2798,6 +2838,16 @@
     }
   ],
   "130": [
+    {
+      "id": 38,
+      "name": "Uniswap",
+      "description": "Swap or provide liquidity on the Uniswap Protocol",
+      "url": "https://app.uniswap.org",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/38/icon.png",
+      "chains": [
+        130
+      ]
+    },
     {
       "id": 192,
       "name": "KyberSwap",
@@ -2844,6 +2894,16 @@
       "description": "Venus is a decentralized finance (DeFi) algorithmic money market protocol on EVM networks.",
       "url": "https://app.venus.io/?utm_source=SafeWallet",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/f586f39e-71ac-4772-b988-2bde27edfdeb/icon.png",
+      "chains": [
+        130
+      ]
+    },
+    {
+      "id": 165,
+      "name": "Morpho",
+      "description": "A dApp to manage your positions on Morpho.",
+      "url": "https://app.morpho.org/",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/79369888-5343-4b1c-a06f-66f6ac73c193/icon.png",
       "chains": [
         130
       ]
@@ -3171,21 +3231,21 @@
       ]
     },
     {
-      "id": 38,
-      "name": "Uniswap",
-      "description": "Swap or provide liquidity on the Uniswap Protocol",
-      "url": "https://app.uniswap.org",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/38/icon.png",
-      "chains": [
-        137
-      ]
-    },
-    {
       "id": 107,
       "name": "Toros",
       "description": "On-chain tokenized derivatives products",
       "url": "https://toros.finance",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/107/icon.png",
+      "chains": [
+        137
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Uniswap",
+      "description": "Swap or provide liquidity on the Uniswap Protocol",
+      "url": "https://app.uniswap.org",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/38/icon.png",
       "chains": [
         137
       ]
@@ -3421,16 +3481,6 @@
       ]
     },
     {
-      "id": 202,
-      "name": "StakeKit",
-      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
-      "url": "https://safe.stakek.it/",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
-      "chains": [
-        137
-      ]
-    },
-    {
       "id": 33,
       "name": "CSV Airdrop",
       "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
@@ -3446,16 +3496,6 @@
       "description": "Transfer all your Safe assets in a single transaction",
       "url": "https://apps-portal.safe.global/drain-safe",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/43/icon.png",
-      "chains": [
-        137
-      ]
-    },
-    {
-      "id": 25,
-      "name": "Velora (formerly ParaSwap)",
-      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
-      "url": "https://embedded.paraswap.io",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
       "chains": [
         137
       ]
@@ -3481,11 +3521,41 @@
       ]
     },
     {
+      "id": 202,
+      "name": "StakeKit",
+      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
+      "url": "https://safe.stakek.it/",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
+      "chains": [
+        137
+      ]
+    },
+    {
+      "id": 92,
+      "name": "OpenOcean",
+      "description": "The leading DEX Aggregator, offering the best swap returns across 17 chains.",
+      "url": "https://gnosis.openocean.finance/?referrer=0x19E89c0774090C52D2117D9efE1CFB37218BE493",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/92/icon.png",
+      "chains": [
+        137
+      ]
+    },
+    {
       "id": 165,
       "name": "Morpho",
       "description": "A dApp to manage your positions on Morpho.",
       "url": "https://app.morpho.org/",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/79369888-5343-4b1c-a06f-66f6ac73c193/icon.png",
+      "chains": [
+        137
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Velora (formerly ParaSwap)",
+      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
+      "url": "https://embedded.velora.xyz/?referrer=safe_app",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
       "chains": [
         137
       ]
@@ -3563,16 +3633,6 @@
       ]
     },
     {
-      "id": 202,
-      "name": "StakeKit",
-      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
-      "url": "https://safe.stakek.it/",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
-      "chains": [
-        146
-      ]
-    },
-    {
       "id": 33,
       "name": "CSV Airdrop",
       "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
@@ -3601,9 +3661,20 @@
       "chains": [
         146
       ]
+    },
+    {
+      "id": 202,
+      "name": "StakeKit",
+      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
+      "url": "https://safe.stakek.it/",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
+      "chains": [
+        146
+      ]
     }
   ],
   "369": [],
+  "1868": [],
   "8453": [
     {
       "id": 1,
@@ -3996,16 +4067,6 @@
       ]
     },
     {
-      "id": 202,
-      "name": "StakeKit",
-      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
-      "url": "https://safe.stakek.it/",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
-      "chains": [
-        8453
-      ]
-    },
-    {
       "id": 33,
       "name": "CSV Airdrop",
       "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
@@ -4046,16 +4107,6 @@
       ]
     },
     {
-      "id": 25,
-      "name": "Velora (formerly ParaSwap)",
-      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
-      "url": "https://embedded.paraswap.io",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
-      "chains": [
-        8453
-      ]
-    },
-    {
       "id": 205,
       "name": "Venus Protocol",
       "description": "Venus is a decentralized finance (DeFi) algorithmic money market protocol on EVM networks.",
@@ -4086,11 +4137,31 @@
       ]
     },
     {
+      "id": 202,
+      "name": "StakeKit",
+      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
+      "url": "https://safe.stakek.it/",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
+      "chains": [
+        8453
+      ]
+    },
+    {
       "id": 165,
       "name": "Morpho",
       "description": "A dApp to manage your positions on Morpho.",
       "url": "https://app.morpho.org/",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/79369888-5343-4b1c-a06f-66f6ac73c193/icon.png",
+      "chains": [
+        8453
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Velora (formerly ParaSwap)",
+      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
+      "url": "https://embedded.velora.xyz/?referrer=safe_app",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
       "chains": [
         8453
       ]
@@ -4359,21 +4430,21 @@
       ]
     },
     {
-      "id": 38,
-      "name": "Uniswap",
-      "description": "Swap or provide liquidity on the Uniswap Protocol",
-      "url": "https://app.uniswap.org",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/38/icon.png",
-      "chains": [
-        42161
-      ]
-    },
-    {
       "id": 107,
       "name": "Toros",
       "description": "On-chain tokenized derivatives products",
       "url": "https://toros.finance",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/107/icon.png",
+      "chains": [
+        42161
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Uniswap",
+      "description": "Swap or provide liquidity on the Uniswap Protocol",
+      "url": "https://app.uniswap.org",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/38/icon.png",
       "chains": [
         42161
       ]
@@ -4679,16 +4750,6 @@
       ]
     },
     {
-      "id": 202,
-      "name": "StakeKit",
-      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
-      "url": "https://safe.stakek.it/",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
-      "chains": [
-        42161
-      ]
-    },
-    {
       "id": 33,
       "name": "CSV Airdrop",
       "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
@@ -4719,16 +4780,6 @@
       ]
     },
     {
-      "id": 25,
-      "name": "Velora (formerly ParaSwap)",
-      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
-      "url": "https://embedded.paraswap.io",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
-      "chains": [
-        42161
-      ]
-    },
-    {
       "id": 205,
       "name": "Venus Protocol",
       "description": "Venus is a decentralized finance (DeFi) algorithmic money market protocol on EVM networks.",
@@ -4754,6 +4805,36 @@
       "description": "Pendle enables the permissionless tokenization and trading of yield, unlocking various strategies such as obtaining fixed yield, long crypto yields, or trade yields of any assets on Pendle.",
       "url": "https://app.pendle.finance/?utm_source=SafeWallet",
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/cbc8f430-40c3-4f19-9f1a-3e8200608ef6/icon.png",
+      "chains": [
+        42161
+      ]
+    },
+    {
+      "id": 202,
+      "name": "StakeKit",
+      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
+      "url": "https://safe.stakek.it/",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
+      "chains": [
+        42161
+      ]
+    },
+    {
+      "id": 92,
+      "name": "OpenOcean",
+      "description": "The leading DEX Aggregator, offering the best swap returns across 17 chains.",
+      "url": "https://gnosis.openocean.finance/?referrer=0x19E89c0774090C52D2117D9efE1CFB37218BE493",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/92/icon.png",
+      "chains": [
+        42161
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Velora (formerly ParaSwap)",
+      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
+      "url": "https://embedded.velora.xyz/?referrer=safe_app",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
       "chains": [
         42161
       ]
@@ -5101,16 +5182,6 @@
       ]
     },
     {
-      "id": 202,
-      "name": "StakeKit",
-      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
-      "url": "https://safe.stakek.it/",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
-      "chains": [
-        43114
-      ]
-    },
-    {
       "id": 33,
       "name": "CSV Airdrop",
       "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
@@ -5131,16 +5202,6 @@
       ]
     },
     {
-      "id": 25,
-      "name": "Velora (formerly ParaSwap)",
-      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
-      "url": "https://embedded.paraswap.io",
-      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
-      "chains": [
-        43114
-      ]
-    },
-    {
       "id": 209,
       "name": "Aave Governance",
       "description": "An application for interacting with Aave Governance V3 smart contracts, enabling users to visualize blockchain governance data and build transactions.",
@@ -5148,6 +5209,68 @@
       "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/ef489051-8bc9-452e-ae8d-a3cfeda131aa/icon.png",
       "chains": [
         43114
+      ]
+    },
+    {
+      "id": 202,
+      "name": "StakeKit",
+      "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
+      "url": "https://safe.stakek.it/",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
+      "chains": [
+        43114
+      ]
+    },
+    {
+      "id": 92,
+      "name": "OpenOcean",
+      "description": "The leading DEX Aggregator, offering the best swap returns across 17 chains.",
+      "url": "https://gnosis.openocean.finance/?referrer=0x19E89c0774090C52D2117D9efE1CFB37218BE493",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/92/icon.png",
+      "chains": [
+        43114
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Velora (formerly ParaSwap)",
+      "description": "Velora is the most advanced intent-based trading protocol in DeFi. Unlock powerful features like crosschain swaps, limit orders, Super Hooks, and real-time execution.",
+      "url": "https://embedded.velora.xyz/?referrer=safe_app",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/27e521b0-a694-4c18-9024-7869d7348ff4/icon.png",
+      "chains": [
+        43114
+      ]
+    }
+  ],
+  "57073": [
+    {
+      "id": 29,
+      "name": "Transaction Builder",
+      "description": "Compose custom contract interactions and batch them into a single transaction",
+      "url": "https://apps-portal.safe.global/tx-builder",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/29/icon.png",
+      "chains": [
+        57073
+      ]
+    },
+    {
+      "id": 33,
+      "name": "CSV Airdrop",
+      "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
+      "url": "https://schmanu.infura-ipfs.io/ipfs/QmTNXEN4f4r9XnFk5QUmsMz1JjvvvGp2Eudv3Y5N5qRWEv",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/33/icon.png",
+      "chains": [
+        57073
+      ]
+    },
+    {
+      "id": 43,
+      "name": "Drain Account",
+      "description": "Transfer all your Safe assets in a single transaction",
+      "url": "https://apps-portal.safe.global/drain-safe",
+      "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/43/icon.png",
+      "chains": [
+        57073
       ]
     }
   ],
