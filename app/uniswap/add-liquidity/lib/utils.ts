@@ -23,9 +23,19 @@ export const getNearestUsableTick = (
 export const priceToSqrtPriceX96 = (
   price: number,
   decimals0: number,
-  decimals1: number
+  decimals1: number,
+  isDirection1Per0: boolean = true
 ): bigint => {
-  const adjustedPrice = (price * 10 ** decimals1) / 10 ** decimals0;
+  // Calculate the effective price considering direction
+  let effectivePrice = price;
+
+  // If direction is false (currency0 per currency1),
+  // we need to invert for sqrtPriceX96 calculation
+  if (!isDirection1Per0) {
+    effectivePrice = 1 / effectivePrice;
+  }
+
+  const adjustedPrice = (effectivePrice * 10 ** decimals1) / 10 ** decimals0;
   const sqrtPrice = Math.sqrt(adjustedPrice);
   return BigInt(Math.round(sqrtPrice * Number(Q96)));
 };
@@ -143,7 +153,8 @@ export const priceRatioToTick = (
   isDirection1Per0: boolean,
   decimals0: number,
   decimals1: number,
-  spacing: number
+  spacing: number,
+  shouldGetNearestUsableTick: boolean = true
 ): number => {
   if (!priceInput || isNaN(Number(priceInput))) return 0;
 
@@ -168,12 +179,20 @@ export const priceRatioToTick = (
     // Calculate tick: tick = log(price) / log(1.0001)
     const tick = Math.log(priceRatio) / Math.log(1.0001);
 
-    return getNearestUsableTick(Math.round(tick), spacing);
+    if (shouldGetNearestUsableTick) {
+      return getNearestUsableTick(Math.round(tick), spacing);
+    } else {
+      return Math.round(tick);
+    }
   } catch (error) {
     console.error("Error converting price to tick:", error);
     // Fallback to basic calculation
     const rawTick = getTickFromPrice(inputPrice);
-    return getNearestUsableTick(rawTick, spacing);
+    if (shouldGetNearestUsableTick) {
+      return getNearestUsableTick(rawTick, spacing);
+    } else {
+      return rawTick;
+    }
   }
 };
 

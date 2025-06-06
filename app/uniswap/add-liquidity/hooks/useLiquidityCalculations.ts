@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { parseUnits, formatUnits } from "viem";
 import { TickMath } from "@uniswap/v3-sdk";
 import { Q96, Q192 } from "../lib/constants";
-import { getTickFromPrice as getTickFromPriceUtil } from "../lib/utils"; // Renamed to avoid conflict if used internally
+import { priceRatioToTick } from "../lib/utils";
 
 interface UseLiquidityCalculationsProps {
   currency0Decimals?: number;
@@ -13,6 +13,7 @@ interface UseLiquidityCalculationsProps {
   slot0Data?: readonly [bigint, number, number, number] | undefined;
   tickLower?: string;
   tickUpper?: string;
+  tickSpacing?: number;
   amount0: string;
   setAmount0: (value: string) => void;
   amount1: string;
@@ -37,6 +38,7 @@ export const useLiquidityCalculations = ({
   slot0Data,
   tickLower,
   tickUpper,
+  tickSpacing,
   amount0,
   setAmount0,
   amount1,
@@ -49,10 +51,6 @@ export const useLiquidityCalculations = ({
   const [calculatingField, setCalculatingField] = useState<
     "amount0" | "amount1" | null
   >(null);
-
-  const getTickFromPrice = useCallback((price: number) => {
-    return getTickFromPriceUtil(price);
-  }, []);
 
   const calculateAmount1FromAmount0 = useCallback(
     (
@@ -178,11 +176,20 @@ export const useLiquidityCalculations = ({
       try {
         let currentTick: number;
         if (isPoolInitialized && slot0Data) currentTick = Number(slot0Data[1]);
-        else if (!isPoolInitialized && initialPrice) {
-          const adjustedPrice = initialPriceDirection
-            ? Number(initialPrice)
-            : 1 / Number(initialPrice);
-          currentTick = getTickFromPrice(adjustedPrice);
+        else if (
+          !isPoolInitialized &&
+          initialPrice &&
+          tickSpacing &&
+          initialPriceDirection !== undefined
+        ) {
+          currentTick = priceRatioToTick(
+            initialPrice,
+            initialPriceDirection,
+            currency0Decimals,
+            currency1Decimals,
+            tickSpacing,
+            false // Don't snap to nearest usable tick for calculation consistency
+          );
         } else {
           setIsCalculating(false);
           setCalculatingField(null);
@@ -238,10 +245,10 @@ export const useLiquidityCalculations = ({
     slot0Data,
     tickLower,
     tickUpper,
+    tickSpacing,
     calculateAmount1FromAmount0,
     setAmount1,
     amount1,
-    getTickFromPrice,
   ]);
 
   useEffect(() => {
@@ -258,11 +265,20 @@ export const useLiquidityCalculations = ({
       try {
         let currentTick: number;
         if (isPoolInitialized && slot0Data) currentTick = Number(slot0Data[1]);
-        else if (!isPoolInitialized && initialPrice) {
-          const adjustedPrice = initialPriceDirection
-            ? Number(initialPrice)
-            : 1 / Number(initialPrice);
-          currentTick = getTickFromPrice(adjustedPrice);
+        else if (
+          !isPoolInitialized &&
+          initialPrice &&
+          tickSpacing &&
+          initialPriceDirection !== undefined
+        ) {
+          currentTick = priceRatioToTick(
+            initialPrice,
+            initialPriceDirection,
+            currency0Decimals,
+            currency1Decimals,
+            tickSpacing,
+            false // Don't snap to nearest usable tick for calculation consistency
+          );
         } else {
           setIsCalculating(false);
           setCalculatingField(null);
@@ -318,10 +334,10 @@ export const useLiquidityCalculations = ({
     slot0Data,
     tickLower,
     tickUpper,
+    tickSpacing,
     calculateAmount0FromAmount1,
     setAmount0,
     amount0,
-    getTickFromPrice,
   ]);
 
   return {

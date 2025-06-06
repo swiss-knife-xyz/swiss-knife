@@ -57,6 +57,78 @@ export const isValidNumericInput = (value: string): boolean => {
   return !isNaN(num) && isFinite(num);
 };
 
+// Helper function to format prices for display only - keeps full precision for calculations
+export const formatPriceForDisplay = (price: number | string): string => {
+  const numPrice = typeof price === "string" ? Number(price) : price;
+
+  if (numPrice === 0 || !isFinite(numPrice)) return "0";
+
+  // Try formatting with 6 decimal places first
+  const formatted6 = numPrice.toFixed(6);
+
+  // If the 6-decimal version shows as 0.000000 but the number isn't actually zero,
+  // show full precision (up to the maximum meaningful digits)
+  if (formatted6 === "0.000000" && numPrice !== 0) {
+    // For very small numbers, use exponential notation if needed
+    if (Math.abs(numPrice) < 1e-10) {
+      return numPrice.toExponential(3);
+    }
+    // Otherwise show up to 18 decimal places (removing trailing zeros)
+    return numPrice.toFixed(18).replace(/\.?0+$/, "");
+  }
+
+  // For normal cases, use the 6-decimal format (removing trailing zeros)
+  return formatted6.replace(/\.?0+$/, "");
+};
+
+// Helper function to format numbers avoiding scientific notation
+export const formatNumberAvoidingScientificNotation = (
+  value: number | string
+): string => {
+  const numValue = typeof value === "string" ? Number(value) : value;
+
+  if (numValue === 0 || !isFinite(numValue)) return "0";
+
+  const absValue = Math.abs(numValue);
+
+  // For very large numbers (>= 1e15), use exponential to avoid too many digits
+  if (absValue >= 1e15) {
+    return numValue.toExponential(6);
+  }
+
+  // For numbers >= 1, show up to 6 decimal places (removing trailing zeros)
+  if (absValue >= 1) {
+    return numValue.toFixed(6).replace(/\.?0+$/, "");
+  }
+
+  // For small numbers, determine how many decimal places we need to show significant digits
+  let decimalPlaces = 6; // Default minimum
+
+  // Calculate how many decimal places we need to show at least 6 significant digits
+  if (absValue > 0) {
+    const magnitude = Math.floor(Math.log10(absValue));
+    if (magnitude < 0) {
+      // For numbers like 0.000001, we need at least abs(magnitude) + 5 decimal places
+      decimalPlaces = Math.max(6, Math.abs(magnitude) + 5);
+      // Cap at 18 decimal places to avoid excessive precision
+      decimalPlaces = Math.min(decimalPlaces, 18);
+    }
+  }
+
+  const formatted = numValue.toFixed(decimalPlaces);
+
+  // Remove trailing zeros but keep at least one decimal place if there was a decimal point
+  return formatted.replace(/\.?0+$/, "").replace(/\.$/, "");
+};
+
+// Helper function to check if a price is effectively zero (considering floating point precision)
+export const isEffectivelyZero = (
+  price: number,
+  threshold: number = 1e-18
+): boolean => {
+  return Math.abs(price) < threshold;
+};
+
 export const getSearchRangeTokenSymbol = (
   targetPrice?: string,
   currentZeroForOnePrice?: string,
@@ -138,7 +210,8 @@ export const calculateEffectivePrice = (
     ? 1 / effectivePrice
     : effectivePrice;
 
-  return displayPrice.toFixed(8);
+  // Return raw number as string for calculations - format only on display
+  return displayPrice.toString();
 };
 
 export const calculatePriceImpact = (
@@ -178,7 +251,7 @@ export const calculatePriceImpact = (
     currentPrice = Number(currentOneForZeroPriceStr);
   }
 
-  if (currentPrice === 0)
+  if (isEffectivelyZero(currentPrice))
     return { value: "N/A (curr price 0)", color: "gray.500" };
 
   const priceImpact = ((effectivePrice - currentPrice) / currentPrice) * 100;
@@ -208,7 +281,8 @@ export const calculatePriceAfterSwap = (
     currency1Decimals
   );
   const displayPrice = priceAfterSwapDirection ? directPrice : 1 / directPrice;
-  return displayPrice.toFixed(8);
+  // Return raw number as string for calculations - format only on display
+  return displayPrice.toString();
 };
 
 export const calculatePriceChangePercentage = (
@@ -241,7 +315,7 @@ export const calculatePriceChangePercentage = (
     ? Number(currentZeroForOnePriceStr)
     : Number(currentOneForZeroPriceStr);
 
-  if (currentPrice === 0)
+  if (isEffectivelyZero(currentPrice))
     return { value: "N/A (curr price 0)", color: "gray.500" };
 
   const priceChange = ((priceAfterSwap - currentPrice) / currentPrice) * 100;

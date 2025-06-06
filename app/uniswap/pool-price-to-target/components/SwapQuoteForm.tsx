@@ -40,7 +40,7 @@ export const SwapQuoteForm: React.FC<SwapQuoteFormProps> = ({
   swapAmountRef,
 }) => {
   return (
-    <VStack spacing={4} align="stretch">
+    <VStack spacing={4} align="stretch" minW="40rem">
       {/* Swap Amount Section */}
       <Box ref={swapAmountRef}>
         <Text color="gray.400" mb={2}>

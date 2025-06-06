@@ -18,6 +18,7 @@ import {
   calculatePriceImpact,
   calculatePriceAfterSwap,
   calculatePriceChangePercentage,
+  formatNumberAvoidingScientificNotation,
 } from "../lib/utils";
 
 interface QuoteResultDetailsProps {
@@ -84,7 +85,7 @@ export const QuoteResultDetails: React.FC<QuoteResultDetailsProps> = ({
       ? Math.abs(
           Number(amountOut) /
             Math.pow(10, zeroForOne ? currency1Decimals : currency0Decimals)
-        ).toFixed(6)
+        )
       : "N/A";
 
   const effectivePriceStr =
@@ -177,7 +178,9 @@ export const QuoteResultDetails: React.FC<QuoteResultDetailsProps> = ({
           </HStack>
           <HStack spacing={2}>
             <Text color="blue.300" fontWeight="bold">
-              {effectivePriceStr}
+              {effectivePriceStr === "N/A" || effectivePriceStr === "Loading..."
+                ? effectivePriceStr
+                : formatNumberAvoidingScientificNotation(effectivePriceStr)}
             </Text>
             {currency0Symbol && currency1Symbol && (
               <Button
@@ -234,7 +237,9 @@ export const QuoteResultDetails: React.FC<QuoteResultDetailsProps> = ({
           </HStack>
           <HStack spacing={2}>
             <Text color="purple.300" fontWeight="bold">
-              {priceAfterSwapStr}
+              {priceAfterSwapStr === "Loading decimals..."
+                ? priceAfterSwapStr
+                : formatNumberAvoidingScientificNotation(priceAfterSwapStr)}
             </Text>
             {currency0Symbol && currency1Symbol && (
               <Button

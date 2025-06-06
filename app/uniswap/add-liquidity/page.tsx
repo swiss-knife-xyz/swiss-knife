@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef, useMemo } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import {
   Box,
@@ -62,8 +62,9 @@ import {
   FiDroplet,
 } from "react-icons/fi";
 
-// Import the PoolInfoForm from pool-price-to-target
+// Import components from pool-price-to-target
 import { PoolInfoForm } from "../pool-price-to-target/components/PoolInfoForm";
+import { CurrentPoolPriceDisplay } from "../pool-price-to-target/components/CurrentPoolPriceDisplay";
 
 // Import constants
 import {
@@ -88,6 +89,7 @@ import {
   PoolKey,
   isValidNumericInput,
   formatBalance,
+  priceRatioToTick,
 } from "./lib/utils";
 
 // Create ApprovalStatusRow component inline
@@ -289,13 +291,16 @@ const AddLiquidity = () => {
     currency1EthBalance?.value
   );
 
-  const poolKey: PoolKey = {
-    currency0: currency0 as Address,
-    currency1: currency1 as Address,
-    fee: fee!,
-    tickSpacing: tickSpacing!,
-    hooks: (hookAddress || zeroAddress) as Address,
-  };
+  const poolKey: PoolKey = useMemo(
+    () => ({
+      currency0: currency0 as Address,
+      currency1: currency1 as Address,
+      fee: fee!,
+      tickSpacing: tickSpacing!,
+      hooks: (hookAddress || zeroAddress) as Address,
+    }),
+    [currency0, currency1, fee, tickSpacing, hookAddress]
+  );
 
   const poolId =
     currency0 && currency1 && tickSpacing ? getPoolId(poolKey) : null;
@@ -353,6 +358,7 @@ const AddLiquidity = () => {
     slot0Data,
     tickLower,
     tickUpper,
+    tickSpacing,
     amount0,
     setAmount0, // Pass down the setter from useLocalStorage
     amount1,
@@ -367,6 +373,74 @@ const AddLiquidity = () => {
   } = useAddLiquidityTransaction({
     isChainSupported,
   });
+
+  // Use ref to track previous tick values to detect changes
+  const prevTicksRef = useRef<{ tickLower: string; tickUpper: string }>({
+    tickLower: "",
+    tickUpper: "",
+  });
+
+  // Add effect to trigger recalculation when ticks change
+  useEffect(() => {
+    // Check if ticks have actually changed
+    const ticksChanged =
+      prevTicksRef.current.tickLower !== tickLower ||
+      prevTicksRef.current.tickUpper !== tickUpper;
+
+    // Only recalculate if ticks changed and we have the necessary data
+    if (
+      ticksChanged &&
+      currency0Decimals &&
+      currency1Decimals &&
+      tickLower &&
+      tickUpper &&
+      isPoolInitialized !== undefined
+    ) {
+      // Update ref with current tick values
+      prevTicksRef.current = { tickLower, tickUpper };
+
+      // Small delay to avoid rapid consecutive calls and let previous calculations complete
+      const timeoutId = setTimeout(() => {
+        const hasAmount0 = amount0 && amount0 !== "" && amount0 !== "0";
+        const hasAmount1 = amount1 && amount1 !== "" && amount1 !== "0";
+
+        if (hasAmount0 && !hasAmount1) {
+          // Only amount0 is set, recalculate amount1
+          setLastUpdatedField("amount0");
+        } else if (hasAmount1 && !hasAmount0) {
+          // Only amount1 is set, recalculate amount0
+          setLastUpdatedField("amount1");
+        } else if (hasAmount0 && hasAmount1) {
+          // Both amounts are set, recalculate based on lastUpdatedField
+          // If no lastUpdatedField is set, default to recalculating amount1
+          if (lastUpdatedField === "amount0") {
+            setLastUpdatedField("amount0");
+          } else if (lastUpdatedField === "amount1") {
+            setLastUpdatedField("amount1");
+          } else {
+            // Default to updating amount1 based on amount0
+            setLastUpdatedField("amount0");
+          }
+        }
+        // If neither amount is set, do nothing
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    } else if (!ticksChanged && prevTicksRef.current.tickLower === "") {
+      // Initial load - update ref without triggering calculation
+      prevTicksRef.current = { tickLower, tickUpper };
+    }
+  }, [
+    tickLower,
+    tickUpper,
+    currency0Decimals,
+    currency1Decimals,
+    isPoolInitialized,
+    amount0,
+    amount1,
+    lastUpdatedField,
+    setLastUpdatedField,
+  ]);
 
   // Automatically check approvals when dependencies change
   useEffect(() => {
@@ -430,9 +504,51 @@ const AddLiquidity = () => {
       const tickLowerNum = parseInt(tickLower);
       const tickUpperNum = parseInt(tickUpper);
 
+      // Calculate the correct current tick for liquidity calculations
+      let effectiveCurrentTick: number;
+
+      if (isPoolInitialized) {
+        // Pool is initialized, use the actual current tick
+        effectiveCurrentTick =
+          currentTick ?? (slot0Data ? Number(slot0Data[1]) : 0);
+      } else {
+        // Pool is not initialized, calculate tick from initial price
+        if (
+          !initialPrice ||
+          !currency0Decimals ||
+          !currency1Decimals ||
+          !tickSpacing
+        ) {
+          throw new Error(
+            "Initial price, token decimals, and tick spacing are required for uninitialized pools"
+          );
+        }
+
+        effectiveCurrentTick = priceRatioToTick(
+          initialPrice,
+          initialPriceDirection,
+          currency0Decimals,
+          currency1Decimals,
+          tickSpacing,
+          false // Don't snap to nearest usable tick for initialization
+        );
+      }
+
+      console.log({
+        currentTick,
+        effectiveCurrentTick,
+        isPoolInitialized,
+        initialPrice,
+        initialPriceDirection,
+        amount0Parsed,
+        amount1Parsed,
+        tickLowerNum,
+        tickUpperNum,
+      });
+
       // Calculate liquidity first using user's input amounts
       const initialLiquidity = getLiquidityFromAmounts({
-        currentTick: currentTick ?? (slot0Data ? Number(slot0Data[1]) : 0),
+        currentTick: effectiveCurrentTick,
         tickLower: tickLowerNum,
         tickUpper: tickUpperNum,
         amount0: amount0Parsed,
@@ -441,7 +557,7 @@ const AddLiquidity = () => {
 
       // Calculate the actual amounts needed for this liquidity
       const actualAmounts = getAmountsForLiquidity({
-        currentTick: currentTick ?? (slot0Data ? Number(slot0Data[1]) : 0),
+        currentTick: effectiveCurrentTick,
         tickLower: tickLowerNum,
         tickUpper: tickUpperNum,
         liquidity: initialLiquidity,
@@ -461,7 +577,7 @@ const AddLiquidity = () => {
 
         // Calculate liquidity constrained by each amount separately
         const liquidity0Constrained = getLiquidityFromAmounts({
-          currentTick: currentTick ?? (slot0Data ? Number(slot0Data[1]) : 0),
+          currentTick: effectiveCurrentTick,
           tickLower: tickLowerNum,
           tickUpper: tickUpperNum,
           amount0: amount0Parsed,
@@ -469,7 +585,7 @@ const AddLiquidity = () => {
         });
 
         const liquidity1Constrained = getLiquidityFromAmounts({
-          currentTick: currentTick ?? (slot0Data ? Number(slot0Data[1]) : 0),
+          currentTick: effectiveCurrentTick,
           tickLower: tickLowerNum,
           tickUpper: tickUpperNum,
           amount0: 0n, // Only constrain by amount1
@@ -484,7 +600,7 @@ const AddLiquidity = () => {
 
         // Recalculate amounts for the constrained liquidity
         const constrainedAmounts = getAmountsForLiquidity({
-          currentTick: currentTick ?? (slot0Data ? Number(slot0Data[1]) : 0),
+          currentTick: effectiveCurrentTick,
           tickLower: tickLowerNum,
           tickUpper: tickUpperNum,
           liquidity: finalLiquidity,
@@ -495,14 +611,18 @@ const AddLiquidity = () => {
       }
 
       // IMPORTANT: Add conservative buffer to account for contract rounding differences
-      // Reduce liquidity by 0.1% to ensure contract calculations stay within user bounds
-      const liquidityBuffer = finalLiquidity / 1000n; // 0.1%
+      // Reduce liquidity by 0.01% to ensure contract calculations stay within user bounds
+      const liquidityBuffer = finalLiquidity / 10000n; // 0.01%
       const conservativeLiquidity =
         finalLiquidity - (liquidityBuffer > 1n ? liquidityBuffer : 1n);
 
       // Use conservative liquidity but keep user's original amounts as maximums
       // The conservative liquidity ensures the contract won't need more than user provided
-      finalLiquidity = conservativeLiquidity;
+      if (isPoolInitialized) {
+        // if pool is already initialized then use conservative liquidity
+        // as a new pool would accept any liquidity amounts given by us
+        finalLiquidity = conservativeLiquidity;
+      }
       finalAmount0 = amount0Parsed; // Use user's full amount as maximum
       finalAmount1 = amount1Parsed; // Use user's full amount as maximum
 
@@ -614,7 +734,8 @@ const AddLiquidity = () => {
         const initialSqrtPriceX96 = priceToSqrtPriceX96(
           Number(initialPrice),
           currency0Decimals || 18,
-          currency1Decimals || 18
+          currency1Decimals || 18,
+          initialPriceDirection
         );
 
         calls.push({
@@ -699,6 +820,8 @@ const AddLiquidity = () => {
     chain,
     isPoolInitialized,
     initialPrice,
+    initialPriceDirection,
+    tickSpacing,
     currentTick,
     slot0Data,
     hookData,
@@ -880,6 +1003,33 @@ const AddLiquidity = () => {
 
           <Divider my={4} />
 
+          {/* Current Pool Price Section - Only show when pool is initialized */}
+          {isPoolInitialized === true && (
+            <>
+              <Box>
+                <CurrentPoolPriceDisplay
+                  fetchCurrentPrices={fetchPoolInfo}
+                  isSlot0Loading={isSlot0Loading}
+                  poolInteractionDisabled={
+                    !currency0 ||
+                    !currency1 ||
+                    !currency0Decimals ||
+                    !currency1Decimals ||
+                    !isChainSupported ||
+                    !poolId
+                  }
+                  slot0Tick={currentTick}
+                  currentZeroForOnePrice={currentZeroForOnePrice}
+                  currentOneForZeroPrice={currentOneForZeroPrice}
+                  currency0Symbol={currency0Symbol}
+                  currency1Symbol={currency1Symbol}
+                />
+              </Box>
+
+              <Divider my={4} />
+            </>
+          )}
+
           {/* Pool Initialization Section */}
           {isPoolInitialized === false && (
             <>
@@ -959,6 +1109,73 @@ const AddLiquidity = () => {
                         </Button>
                       </InputRightAddon>
                     </InputGroup>
+
+                    {/* Show corresponding tick value and sqrt price */}
+                    {initialPrice &&
+                      currency0Decimals !== undefined &&
+                      currency1Decimals !== undefined &&
+                      parseFloat(initialPrice) > 0 && (
+                        <VStack spacing={2} mt={2}>
+                          <Box p={2} bg="yellow.800" borderRadius="md" w="full">
+                            <Text fontSize="xs" color="yellow.300" mb={1}>
+                              Corresponding Tick Value:
+                            </Text>
+                            <Text
+                              fontSize="sm"
+                              color="yellow.200"
+                              fontWeight="medium"
+                            >
+                              {(() => {
+                                try {
+                                  if (!tickSpacing)
+                                    return "Missing tick spacing";
+
+                                  const tick = priceRatioToTick(
+                                    initialPrice,
+                                    initialPriceDirection,
+                                    currency0Decimals,
+                                    currency1Decimals,
+                                    tickSpacing,
+                                    false // Don't snap to nearest usable tick for display
+                                  );
+
+                                  return tick.toString();
+                                } catch {
+                                  return "Invalid price";
+                                }
+                              })()}
+                            </Text>
+                          </Box>
+
+                          <Box p={2} bg="yellow.800" borderRadius="md" w="full">
+                            <Text fontSize="xs" color="yellow.300" mb={1}>
+                              Initial SqrtPriceX96:
+                            </Text>
+                            <Text
+                              fontSize="sm"
+                              color="yellow.200"
+                              fontWeight="medium"
+                              wordBreak="break-all"
+                            >
+                              {(() => {
+                                try {
+                                  const initialSqrtPriceX96 =
+                                    priceToSqrtPriceX96(
+                                      parseFloat(initialPrice),
+                                      currency0Decimals,
+                                      currency1Decimals,
+                                      initialPriceDirection
+                                    );
+
+                                  return initialSqrtPriceX96.toString();
+                                } catch {
+                                  return "Invalid price";
+                                }
+                              })()}
+                            </Text>
+                          </Box>
+                        </VStack>
+                      )}
                   </Box>
                 </VStack>
               </Box>

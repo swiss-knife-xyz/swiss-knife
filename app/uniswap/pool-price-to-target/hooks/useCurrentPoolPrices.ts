@@ -57,10 +57,11 @@ export function useCurrentPoolPrices({
 
       const token1PerToken0 =
         (price * 10 ** currency0Decimals) / 10 ** currency1Decimals;
-      setCurrentZeroForOnePrice(token1PerToken0.toFixed(6));
+      // Keep full precision for calculations - format only on display
+      setCurrentZeroForOnePrice(token1PerToken0.toString());
 
       const token0PerToken1 = 1 / token1PerToken0;
-      setCurrentOneForZeroPrice(token0PerToken1.toFixed(6));
+      setCurrentOneForZeroPrice(token0PerToken1.toString());
     } else if (isLoading) {
       setCurrentZeroForOnePrice("Fetching...");
       setCurrentOneForZeroPrice("Fetching...");

@@ -11,6 +11,7 @@ import {
   Icon,
 } from "@chakra-ui/react";
 import { FiRefreshCw, FiTrendingUp, FiActivity } from "react-icons/fi";
+import { formatNumberAvoidingScientificNotation } from "../lib/utils";
 
 interface CurrentPoolPriceDisplayProps {
   fetchCurrentPrices: () => void;
@@ -90,7 +91,9 @@ export const CurrentPoolPriceDisplay: React.FC<
               <Text color="gray.300">1 {currency0Symbol || "Currency0"} =</Text>
               <HStack spacing={1}>
                 <Text fontWeight="bold" color="blue.300">
-                  {currentZeroForOnePrice}
+                  {formatNumberAvoidingScientificNotation(
+                    currentZeroForOnePrice
+                  )}
                 </Text>
                 <Text fontSize="sm" color="gray.400">
                   {currency1Symbol || "Currency1"}
@@ -114,7 +117,9 @@ export const CurrentPoolPriceDisplay: React.FC<
               <Text color="gray.300">1 {currency1Symbol || "Currency1"} =</Text>
               <HStack spacing={1}>
                 <Text fontWeight="bold" color="green.300">
-                  {currentOneForZeroPrice}
+                  {formatNumberAvoidingScientificNotation(
+                    currentOneForZeroPrice
+                  )}
                 </Text>
                 <Text fontSize="sm" color="gray.400">
                   {currency0Symbol || "Currency0"}

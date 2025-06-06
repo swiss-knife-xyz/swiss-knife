@@ -92,7 +92,7 @@ export const PriceAnalysisDisplay: React.FC<PriceAnalysisDisplayProps> = ({
               py={1}
               rounded="md"
             >
-              {currentPriceForDirection.toFixed(6)}
+              {currentPriceForDirection}
             </Badge>
           </HStack>
 
@@ -109,7 +109,7 @@ export const PriceAnalysisDisplay: React.FC<PriceAnalysisDisplayProps> = ({
               py={1}
               rounded="md"
             >
-              {targetPriceNum.toFixed(6)}
+              {targetPriceNum}
             </Badge>
           </HStack>
 

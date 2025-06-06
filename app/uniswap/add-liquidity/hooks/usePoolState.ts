@@ -45,6 +45,7 @@ export const usePoolState = (
   const [currentOneForZeroPrice, setCurrentOneForZeroPrice] = useState<
     string | undefined
   >();
+  const [isForcedLoading, setIsForcedLoading] = useState(false);
 
   const {
     data: slot0Data,
@@ -68,8 +69,12 @@ export const usePoolState = (
     },
   });
 
+  // Combined loading state
+  const isLoading = isSlot0Loading || isForcedLoading;
+
   useEffect(() => {
-    if (slot0Data) {
+    if (slot0Data && !isForcedLoading) {
+      // Don't update while forced loading
       const [sqrtPriceX96, tick] = slot0Data;
       const isInit = sqrtPriceX96 !== 0n;
       setIsPoolInitialized(isInit);
@@ -92,10 +97,16 @@ export const usePoolState = (
         setCurrentZeroForOnePrice(undefined);
         setCurrentOneForZeroPrice(undefined);
       }
-    } else if (isSlot0Loading) {
+    } else if (isLoading && !isForcedLoading) {
+      // Only set to undefined on initial loading, not during forced refresh
       setIsPoolInitialized(undefined);
       setCurrentSqrtPriceX96("Loading...");
       setCurrentTick(undefined);
+      setCurrentZeroForOnePrice("Fetching...");
+      setCurrentOneForZeroPrice("Fetching...");
+    } else if (isForcedLoading) {
+      // During forced loading, keep initialized state but show loading values
+      setCurrentSqrtPriceX96("Loading...");
       setCurrentZeroForOnePrice("Fetching...");
       setCurrentOneForZeroPrice("Fetching...");
     } else if (slot0Error) {
@@ -107,15 +118,28 @@ export const usePoolState = (
     }
   }, [
     slot0Data,
-    isSlot0Loading,
+    isLoading,
     slot0Error,
     currency0Decimals,
     currency1Decimals,
+    isForcedLoading,
   ]);
 
-  const fetchPoolInfo = useCallback(() => {
+  const fetchPoolInfo = useCallback(async () => {
     if (poolId && isChainSupported && refetchSlot0) {
-      refetchSlot0();
+      // Set forced loading state immediately
+      setIsForcedLoading(true);
+
+      // Add artificial delay to ensure loading state is visible
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      try {
+        // Force refetch with fresh data (bypassing cache)
+        await refetchSlot0();
+      } finally {
+        // Clear forced loading state
+        setIsForcedLoading(false);
+      }
     }
   }, [poolId, isChainSupported, refetchSlot0]);
 
@@ -126,7 +150,7 @@ export const usePoolState = (
     currentZeroForOnePrice,
     currentOneForZeroPrice,
     slot0Data,
-    isSlot0Loading,
+    isSlot0Loading: isLoading, // Return combined loading state
     slot0Error,
     fetchPoolInfo,
   };
