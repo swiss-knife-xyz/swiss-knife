@@ -435,8 +435,13 @@ const ChainTag = ({ chain }: { chain: Chain }) => {
       placement="top"
       bg="white"
     >
-      <Box display="inline-flex" alignItems="center" mr={1} mb={1}>
-        <ChainIcon chain={chain} size="24px" />
+      <Box
+        display="inline-flex"
+        alignItems="center"
+        mr={{ base: 0.5, md: 1 }}
+        mb={1}
+      >
+        <ChainIcon chain={chain} size={{ base: "20px", md: "24px" }} />
       </Box>
     </Tooltip>
   );
@@ -447,7 +452,7 @@ const ChainIcon = ({
   size = "24px",
 }: {
   chain: Chain;
-  size?: string;
+  size?: string | { base: string; md: string };
 }) => {
   const logoUrl = chainIdToImage[chain.id] || "";
 
@@ -496,7 +501,7 @@ const AppChainDisplay = ({
     .filter((chain) => chain !== undefined) as Chain[]; // Type assertion to Chain[]
 
   return (
-    <Flex wrap="wrap" gap={2}>
+    <Flex wrap="wrap" gap={{ base: 1, md: 2 }} maxW="100%" overflow="hidden">
       {chainsToDisplay.map((chain) => (
         <ChainTag key={chain.id} chain={chain} />
       ))}
@@ -509,7 +514,7 @@ const AppLogo = ({
   size = "24px",
 }: {
   app: SupportedApp;
-  size?: string;
+  size?: string | { base: string; md: string };
 }) => {
   return (
     <Box
@@ -545,7 +550,7 @@ const ChainCard = ({ chain, onClick, isSelected }: ChainCardProps) => (
     borderWidth="1px"
     borderColor={isSelected ? chain.color : "whiteAlpha.400"}
     borderRadius="lg"
-    p={4}
+    p={{ base: 3, md: 4 }}
     bg={isSelected ? `${chain.color}15` : "blackAlpha.200"}
     textAlign="center"
     cursor="pointer"
@@ -556,12 +561,25 @@ const ChainCard = ({ chain, onClick, isSelected }: ChainCardProps) => (
       boxShadow: "md",
     }}
     onClick={() => onClick(chain)}
+    minH={{ base: "100px", md: "120px" }}
+    display="flex"
+    flexDirection="column"
+    justifyContent="center"
   >
-    <ChainIcon chain={chain} size="40px" />
-    <Text fontWeight="bold" color={chain.color} mb={1}>
+    <ChainIcon chain={chain} size={{ base: "32px", md: "40px" }} />
+    <Text
+      fontWeight="bold"
+      color={chain.color}
+      mb={1}
+      fontSize={{ base: "sm", md: "md" }}
+    >
       {chain.abbreviation || chain.name}
     </Text>
-    <Text fontSize="sm" color="whiteAlpha.800">
+    <Text
+      fontSize={{ base: "xs", md: "sm" }}
+      color="whiteAlpha.800"
+      noOfLines={1}
+    >
       {chain.name}
     </Text>
   </Box>
@@ -584,7 +602,7 @@ const AppCard = ({
       borderWidth="1px"
       borderColor="whiteAlpha.300"
       borderRadius="lg"
-      p={4}
+      p={{ base: 3, md: 4 }}
       mb={4}
       bg="blackAlpha.200"
       opacity={isAppFiltered ? 0.5 : 1}
@@ -592,8 +610,8 @@ const AppCard = ({
       _hover={{ borderColor: "whiteAlpha.400" }}
     >
       <Flex align="center" mb={3}>
-        <AppLogo app={app} size="30px" />
-        <Heading size="md" color="white">
+        <AppLogo app={app} size={{ base: "24px", md: "30px" }} />
+        <Heading size={{ base: "sm", md: "md" }} color="white">
           {app.siteUrl ? (
             <Link
               href={app.siteUrl}
@@ -690,30 +708,42 @@ const WallOfShameTimer = () => {
   }, []);
 
   return (
-    <VStack spacing={6} textAlign="center" mb={8}>
+    <VStack
+      spacing={{ base: 4, md: 6 }}
+      textAlign="center"
+      mb={{ base: 6, md: 8 }}
+    >
       <Box>
-        <Text fontSize="lg" color="whiteAlpha.700" mb={2}>
+        <Text fontSize={{ base: "md", md: "lg" }} color="whiteAlpha.700" mb={2}>
           Time since Pectra went live on Mainnet:
         </Text>
         <Text
-          fontSize="3xl"
+          fontSize={{ base: "lg", md: "3xl" }}
           fontWeight="bold"
           color="red.400"
           fontFamily="mono"
+          overflow="hidden"
+          textOverflow="ellipsis"
+          whiteSpace="nowrap"
+          maxW="100%"
         >
           {timeElapsed}
         </Text>
       </Box>
 
       <Box>
-        <Text fontSize="lg" color="whiteAlpha.700" mb={2}>
+        <Text fontSize={{ base: "md", md: "lg" }} color="whiteAlpha.700" mb={2}>
           Time since Pectra went live on Sepolia Testnet:
         </Text>
         <Text
-          fontSize="3xl"
+          fontSize={{ base: "lg", md: "3xl" }}
           fontWeight="bold"
           color="blue.400"
           fontFamily="mono"
+          overflow="hidden"
+          textOverflow="ellipsis"
+          whiteSpace="nowrap"
+          maxW="100%"
         >
           {sepoliaTimeElapsed}
         </Text>
@@ -735,16 +765,21 @@ const ShameAppCard = ({
       borderWidth="1px"
       borderColor="red.500"
       borderRadius="lg"
-      p={4}
+      p={{ base: 3, md: 4 }}
       mb={4}
       bg="rgba(153, 27, 27, 0.1)"
       transition="all 0.2s"
       _hover={{ borderColor: "red.400", bg: "rgba(153, 27, 27, 0.2)" }}
     >
-      <Flex align="center" justify="space-between">
-        <Flex align="center">
-          <AppLogo app={app} size="30px" />
-          <Heading size="md" color="white">
+      <Flex
+        align="center"
+        justify="space-between"
+        direction={{ base: "column", md: "row" }}
+        gap={{ base: 3, md: 0 }}
+      >
+        <Flex align="center" flex="1">
+          <AppLogo app={app} size={{ base: "24px", md: "30px" }} />
+          <Heading size={{ base: "sm", md: "md" }} color="white">
             {app.siteUrl ? (
               <Link
                 href={app.siteUrl}
@@ -761,7 +796,7 @@ const ShameAppCard = ({
             )}
           </Heading>
         </Flex>
-        <HStack spacing={3}>
+        <HStack spacing={{ base: 2, md: 3 }} flexWrap="wrap">
           {app.twitterHandle && (
             <Tooltip label="Post on X to demand support" hasArrow>
               <Button
@@ -786,7 +821,12 @@ const ShameAppCard = ({
               </Button>
             </Tooltip>
           )}
-          <Badge colorScheme="red" variant="solid" rounded={"md"}>
+          <Badge
+            colorScheme="red"
+            variant="solid"
+            rounded={"md"}
+            fontSize={{ base: "xs", md: "sm" }}
+          >
             No 7702 Support
           </Badge>
         </HStack>
@@ -796,7 +836,7 @@ const ShameAppCard = ({
 };
 
 const SevenSevenZeroTwoBeat = () => {
-  const isMobile = useBreakpointValue({ base: true, md: false });
+  const isMobile = useBreakpointValue({ base: true, lg: false });
   const [selectedChain, setSelectedChain] = useState<Chain | null>(null);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const router = useRouter();
@@ -860,21 +900,67 @@ const SevenSevenZeroTwoBeat = () => {
 
   return (
     <Layout>
-      <VStack spacing={10} align="stretch" width="100%" px={{ base: 2, md: 4 }}>
-        <Center flexDirection="column" pt={8}>
-          <Heading
-            as="h1"
-            size="2xl"
-            mb={4}
-            textAlign="center"
-            color="white"
-            letterSpacing="tight"
-            fontWeight="black"
-            display="inline-flex"
-            alignItems="center"
-            position="relative"
+      <Box
+        width="100%"
+        maxW="90vw"
+        overflowX="hidden"
+        position="relative"
+        minH="100vh"
+      >
+        <VStack
+          spacing={{ base: 6, md: 10 }}
+          align="stretch"
+          width="100%"
+          maxW="100%"
+          px={0}
+          overflowX="hidden"
+        >
+          <Center
+            flexDirection="column"
+            pt={{ base: 2, md: 4 }}
+            width="100%"
+            maxW="100%"
+            px={{ base: 4, md: 6 }}
           >
-            <Text as="span" color="red.400">
+            <Heading
+              as="h1"
+              size={{ base: "xl", md: "2xl" }}
+              mb={4}
+              textAlign="center"
+              color="white"
+              letterSpacing="tight"
+              fontWeight="black"
+              display="inline-flex"
+              alignItems="center"
+              position="relative"
+              maxW="100%"
+              overflow="hidden"
+            >
+              <Text as="span" color="red.400">
+                <Link
+                  href="https://eip.tools/eip/7702"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  color="inherit"
+                  textDecoration="none"
+                  _hover={{ textDecoration: "underline" }}
+                >
+                  7702
+                </Link>
+              </Text>
+              <Text as="span" color="white" ml={2}>
+                Beat
+              </Text>
+            </Heading>
+
+            <Text
+              fontSize={{ base: "md", md: "lg" }}
+              textAlign="center"
+              color="whiteAlpha.800"
+              maxW={{ base: "90%", md: "700px" }}
+              px={{ base: 2, md: 4 }}
+            >
+              Stats about{" "}
               <Link
                 href="https://eip.tools/eip/7702"
                 target="_blank"
@@ -884,336 +970,405 @@ const SevenSevenZeroTwoBeat = () => {
                 _hover={{ textDecoration: "underline" }}
               >
                 7702
-              </Link>
+              </Link>{" "}
+              adoption across EVM chains, Wallets and Dapps
             </Text>
-            <Text as="span" color="white" ml={2}>
-              Beat
-            </Text>
-          </Heading>
+          </Center>
 
-          <Text
-            fontSize="lg"
-            textAlign="center"
-            color="whiteAlpha.800"
-            maxW="700px"
-            px={4}
+          <Tabs
+            variant="enclosed"
+            colorScheme="red"
+            index={activeTabIndex}
+            onChange={handleTabChange}
           >
-            Stats about{" "}
-            <Link
-              href="https://eip.tools/eip/7702"
-              target="_blank"
-              rel="noopener noreferrer"
-              color="inherit"
-              textDecoration="none"
-              _hover={{ textDecoration: "underline" }}
-            >
-              7702
-            </Link>{" "}
-            adoption across EVM chains, Wallets and Dapps
-          </Text>
-        </Center>
+            <TabList mb={{ base: 4, md: 8 }} justifyContent="center">
+              <Tab
+                color="whiteAlpha.700"
+                _selected={{ color: "white", bg: "whiteAlpha.200" }}
+                fontSize={{ base: "sm", md: "md" }}
+                px={{ base: 3, md: 4 }}
+              >
+                💎 7702 Support
+              </Tab>
+              <Tab
+                color="whiteAlpha.700"
+                _selected={{ color: "white", bg: "whiteAlpha.200" }}
+                fontSize={{ base: "sm", md: "md" }}
+                px={{ base: 3, md: 4 }}
+              >
+                😡 Wall of Shame
+              </Tab>
+            </TabList>
 
-        <Tabs
-          variant="enclosed"
-          colorScheme="red"
-          index={activeTabIndex}
-          onChange={handleTabChange}
-        >
-          <TabList mb={8} justifyContent="center">
-            <Tab
-              color="whiteAlpha.700"
-              _selected={{ color: "white", bg: "whiteAlpha.200" }}
-            >
-              💎 7702 Support
-            </Tab>
-            <Tab
-              color="whiteAlpha.700"
-              _selected={{ color: "white", bg: "whiteAlpha.200" }}
-            >
-              😡 Wall of Shame
-            </Tab>
-          </TabList>
+            <TabPanels>
+              <TabPanel
+                px={{ base: 4, md: 6 }}
+                width="100%"
+                maxW="100%"
+                overflowX="hidden"
+              >
+                {/* Existing 7702 Support Content */}
 
-          <TabPanels>
-            <TabPanel px={0}>
-              {/* Existing 7702 Support Content */}
-
-              <Box>
-                <Flex justify="space-between" align="center" mb={5}>
-                  <Heading size="lg" color="white">
-                    Chains Supporting{" "}
-                    <Link
-                      href="https://eip.tools/eip/7702"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      color="inherit"
-                      textDecoration="none"
-                      _hover={{ textDecoration: "underline" }}
-                    >
-                      7702
-                    </Link>
-                  </Heading>
-                  {selectedChain && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={clearFilter}
-                      borderRadius="md"
-                      color="white"
-                      borderColor="whiteAlpha.400"
-                      _hover={{ bg: "whiteAlpha.100" }}
-                    >
-                      Clear Filter
-                    </Button>
-                  )}
-                </Flex>
-                <SimpleGrid
-                  columns={{ base: 2, sm: 3, md: 5 }}
-                  spacing={4}
-                  mb={6}
+                <Box
+                  mb={{ base: 6, md: 8 }}
+                  width="100%"
+                  maxW="100%"
+                  overflowX="hidden"
                 >
-                  {chains.map((chain, idx) => (
-                    <ChainCard
-                      key={idx}
-                      chain={chain}
-                      onClick={handleChainClick}
-                      isSelected={selectedChain?.id === chain.id}
-                    />
-                  ))}
-                </SimpleGrid>
-              </Box>
-
-              <Box>
-                <Heading size="lg" mb={5} color="white">
-                  Wallets
-                </Heading>
-
-                {isMobile ? (
-                  // Mobile view with cards
-                  <VStack spacing={4} align="stretch">
-                    {wallets.map((wallet, idx) => (
-                      <AppCard
+                  <Flex
+                    justify="space-between"
+                    align={{ base: "flex-start", md: "center" }}
+                    mb={5}
+                    direction={{ base: "column", md: "row" }}
+                    gap={{ base: 3, md: 0 }}
+                    width="100%"
+                    maxW="100%"
+                  >
+                    <Heading size={{ base: "md", md: "lg" }} color="white">
+                      Chains Supporting{" "}
+                      <Link
+                        href="https://eip.tools/eip/7702"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        color="inherit"
+                        textDecoration="none"
+                        _hover={{ textDecoration: "underline" }}
+                      >
+                        7702
+                      </Link>
+                    </Heading>
+                    {selectedChain && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={clearFilter}
+                        borderRadius="md"
+                        color="white"
+                        borderColor="whiteAlpha.400"
+                        _hover={{ bg: "whiteAlpha.100" }}
+                      >
+                        Clear Filter
+                      </Button>
+                    )}
+                  </Flex>
+                  <SimpleGrid
+                    columns={{ base: 2, sm: 3, md: 5 }}
+                    spacing={{ base: 2, md: 4 }}
+                    mb={6}
+                    maxW="100%"
+                    width="100%"
+                  >
+                    {chains.map((chain, idx) => (
+                      <ChainCard
                         key={idx}
-                        app={wallet}
-                        filterChain={selectedChain}
+                        chain={chain}
+                        onClick={handleChainClick}
+                        isSelected={selectedChain?.id === chain.id}
                       />
                     ))}
-                  </VStack>
-                ) : (
-                  // Desktop view with table
-                  <Box
-                    overflowX="auto"
-                    borderRadius="lg"
-                    borderWidth="1px"
-                    borderColor="whiteAlpha.200"
-                  >
-                    <Table variant="simple">
-                      <Tbody>
-                        {wallets.map((wallet, index) => {
-                          const isWalletFiltered =
-                            selectedChain !== null &&
-                            !supportsChain(wallet, selectedChain);
-                          return (
-                            <Tr
-                              key={index}
-                              borderBottom={
-                                index < wallets.length - 1
-                                  ? "1px solid"
-                                  : "none"
-                              }
-                              borderColor="whiteAlpha.200"
-                              opacity={isWalletFiltered ? 0.5 : 1}
-                              bg={
-                                isWalletFiltered
-                                  ? "blackAlpha.400"
-                                  : "transparent"
-                              }
-                            >
-                              <Td
-                                width="200px"
-                                py={4}
-                                fontWeight="bold"
-                                color="white"
-                                verticalAlign="middle"
-                              >
-                                <Flex align="center">
-                                  <AppLogo app={wallet} size="26px" />
-                                  {wallet.siteUrl ? (
-                                    <Link
-                                      href={wallet.siteUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      color="inherit"
-                                      textDecoration="none"
-                                      _hover={{ textDecoration: "underline" }}
-                                    >
-                                      <Text>{wallet.name}</Text>
-                                    </Link>
-                                  ) : (
-                                    <Text>{wallet.name}</Text>
-                                  )}
-                                </Flex>
-                              </Td>
-                              <Td py={4}>
-                                <AppChainDisplay
-                                  supportedAppChainIds={
-                                    wallet.supportedChainIds
-                                  }
-                                  globalChainsList={chains}
-                                />
-                              </Td>
-                            </Tr>
-                          );
-                        })}
-                      </Tbody>
-                    </Table>
-                  </Box>
-                )}
-              </Box>
-
-              <Box>
-                <HStack mb={5} alignItems="baseline">
-                  <Heading size="lg" color="white">
-                    Dapps
-                  </Heading>
-                  <Text fontSize={"md"} color="whiteAlpha.800">
-                    (Supporting{" "}
-                    <Link
-                      href="https://eip.tools/eip/5792"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      color="inherit"
-                      textDecoration="none"
-                      _hover={{ textDecoration: "underline" }}
-                    >
-                      EIP-5792
-                    </Link>
-                    )
-                  </Text>
-                </HStack>
-
-                {isMobile ? (
-                  // Mobile view with cards
-                  <VStack spacing={4} align="stretch">
-                    {dapps.map((dapp, idx) => (
-                      <AppCard
-                        key={idx}
-                        app={dapp}
-                        filterChain={selectedChain}
-                      />
-                    ))}
-                  </VStack>
-                ) : (
-                  // Desktop view with table
-                  <Box
-                    overflowX="auto"
-                    borderRadius="lg"
-                    borderWidth="1px"
-                    borderColor="whiteAlpha.200"
-                  >
-                    <Table variant="simple">
-                      <Tbody>
-                        {dapps.map((dapp, index) => {
-                          const isDappFiltered =
-                            selectedChain !== null &&
-                            !supportsChain(dapp, selectedChain);
-                          return (
-                            <Tr
-                              key={index}
-                              borderBottom={
-                                index < dapps.length - 1 ? "1px solid" : "none"
-                              }
-                              borderColor="whiteAlpha.200"
-                              opacity={isDappFiltered ? 0.5 : 1}
-                              bg={
-                                isDappFiltered
-                                  ? "blackAlpha.400"
-                                  : "transparent"
-                              }
-                            >
-                              <Td
-                                width="200px"
-                                py={4}
-                                fontWeight="bold"
-                                color="white"
-                                verticalAlign="middle"
-                              >
-                                <Flex align="center">
-                                  <AppLogo app={dapp} size="26px" />
-                                  {dapp.siteUrl ? (
-                                    <Link
-                                      href={dapp.siteUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      color="inherit"
-                                      textDecoration="none"
-                                      _hover={{ textDecoration: "underline" }}
-                                    >
-                                      <Text>{dapp.name}</Text>
-                                    </Link>
-                                  ) : (
-                                    <Text>{dapp.name}</Text>
-                                  )}
-                                </Flex>
-                              </Td>
-                              <Td py={4}>
-                                <AppChainDisplay
-                                  supportedAppChainIds={dapp.supportedChainIds}
-                                  globalChainsList={chains}
-                                />
-                              </Td>
-                            </Tr>
-                          );
-                        })}
-                      </Tbody>
-                    </Table>
-                  </Box>
-                )}
-              </Box>
-            </TabPanel>
-
-            <TabPanel px={0}>
-              {/* Wall of Shame Content */}
-
-              <WallOfShameTimer />
-              <VStack spacing={8} align="stretch">
-                <Box>
-                  <Heading size="lg" mb={5} color="white">
-                    Chains
-                  </Heading>
-                  <VStack spacing={4} align="stretch">
-                    {shameChains.map((chain, idx) => (
-                      <ShameAppCard key={idx} app={chain} isChain />
-                    ))}
-                  </VStack>
+                  </SimpleGrid>
                 </Box>
 
-                <Box>
-                  <Heading size="lg" mb={5} color="white">
+                <Box
+                  mb={{ base: 6, md: 8 }}
+                  width="100%"
+                  maxW="100%"
+                  overflowX="hidden"
+                >
+                  <Heading size={{ base: "md", md: "lg" }} mb={5} color="white">
                     Wallets
                   </Heading>
-                  <VStack spacing={4} align="stretch">
-                    {shameWallets.map((wallet, idx) => (
-                      <ShameAppCard key={idx} app={wallet} />
-                    ))}
-                  </VStack>
+
+                  {isMobile ? (
+                    // Mobile view with cards
+                    <VStack
+                      spacing={4}
+                      align="stretch"
+                      width="100%"
+                      maxW="100%"
+                    >
+                      {wallets.map((wallet, idx) => (
+                        <AppCard
+                          key={idx}
+                          app={wallet}
+                          filterChain={selectedChain}
+                        />
+                      ))}
+                    </VStack>
+                  ) : (
+                    // Desktop view with table
+                    <Box
+                      overflowX="auto"
+                      borderRadius="lg"
+                      borderWidth="1px"
+                      borderColor="whiteAlpha.200"
+                      maxW="100%"
+                      width="100%"
+                    >
+                      <Table variant="simple" size="sm">
+                        <Tbody>
+                          {wallets.map((wallet, index) => {
+                            const isWalletFiltered =
+                              selectedChain !== null &&
+                              !supportsChain(wallet, selectedChain);
+                            return (
+                              <Tr
+                                key={index}
+                                borderBottom={
+                                  index < wallets.length - 1
+                                    ? "1px solid"
+                                    : "none"
+                                }
+                                borderColor="whiteAlpha.200"
+                                opacity={isWalletFiltered ? 0.5 : 1}
+                                bg={
+                                  isWalletFiltered
+                                    ? "blackAlpha.400"
+                                    : "transparent"
+                                }
+                              >
+                                <Td
+                                  width={{ base: "150px", md: "200px" }}
+                                  py={4}
+                                  fontWeight="bold"
+                                  color="white"
+                                  verticalAlign="middle"
+                                >
+                                  <Flex align="center">
+                                    <AppLogo app={wallet} size="26px" />
+                                    {wallet.siteUrl ? (
+                                      <Link
+                                        href={wallet.siteUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        color="inherit"
+                                        textDecoration="none"
+                                        _hover={{ textDecoration: "underline" }}
+                                      >
+                                        <Text
+                                          fontSize={{ base: "sm", md: "md" }}
+                                        >
+                                          {wallet.name}
+                                        </Text>
+                                      </Link>
+                                    ) : (
+                                      <Text fontSize={{ base: "sm", md: "md" }}>
+                                        {wallet.name}
+                                      </Text>
+                                    )}
+                                  </Flex>
+                                </Td>
+                                <Td py={4}>
+                                  <AppChainDisplay
+                                    supportedAppChainIds={
+                                      wallet.supportedChainIds
+                                    }
+                                    globalChainsList={chains}
+                                  />
+                                </Td>
+                              </Tr>
+                            );
+                          })}
+                        </Tbody>
+                      </Table>
+                    </Box>
+                  )}
                 </Box>
 
-                <Box>
-                  <Heading size="lg" mb={5} color="white">
-                    Dapps
-                  </Heading>
-                  <VStack spacing={4} align="stretch">
-                    {shameDapps.map((dapp, idx) => (
-                      <ShameAppCard key={idx} app={dapp} />
-                    ))}
+                <Box width="100%" maxW="100%" overflowX="hidden">
+                  <VStack
+                    mb={5}
+                    alignItems={{ base: "flex-start", md: "baseline" }}
+                    spacing={{ base: 2, md: 0 }}
+                    direction={{ base: "column", md: "row" }}
+                    align={{ base: "stretch", md: "flex-start" }}
+                    width="100%"
+                    maxW="100%"
+                  >
+                    <Heading size={{ base: "md", md: "lg" }} color="white">
+                      Dapps
+                    </Heading>
+                    <Text
+                      fontSize={{ base: "sm", md: "md" }}
+                      color="whiteAlpha.800"
+                    >
+                      (Supporting{" "}
+                      <Link
+                        href="https://eip.tools/eip/5792"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        color="inherit"
+                        textDecoration="none"
+                        _hover={{ textDecoration: "underline" }}
+                      >
+                        EIP-5792
+                      </Link>
+                      )
+                    </Text>
                   </VStack>
+
+                  {isMobile ? (
+                    // Mobile view with cards
+                    <VStack
+                      spacing={4}
+                      align="stretch"
+                      width="100%"
+                      maxW="100%"
+                    >
+                      {dapps.map((dapp, idx) => (
+                        <AppCard
+                          key={idx}
+                          app={dapp}
+                          filterChain={selectedChain}
+                        />
+                      ))}
+                    </VStack>
+                  ) : (
+                    // Desktop view with table
+                    <Box
+                      overflowX="auto"
+                      borderRadius="lg"
+                      borderWidth="1px"
+                      borderColor="whiteAlpha.200"
+                      maxW="100%"
+                      width="100%"
+                    >
+                      <Table variant="simple" size="sm">
+                        <Tbody>
+                          {dapps.map((dapp, index) => {
+                            const isDappFiltered =
+                              selectedChain !== null &&
+                              !supportsChain(dapp, selectedChain);
+                            return (
+                              <Tr
+                                key={index}
+                                borderBottom={
+                                  index < dapps.length - 1
+                                    ? "1px solid"
+                                    : "none"
+                                }
+                                borderColor="whiteAlpha.200"
+                                opacity={isDappFiltered ? 0.5 : 1}
+                                bg={
+                                  isDappFiltered
+                                    ? "blackAlpha.400"
+                                    : "transparent"
+                                }
+                              >
+                                <Td
+                                  width={{ base: "150px", md: "200px" }}
+                                  py={4}
+                                  fontWeight="bold"
+                                  color="white"
+                                  verticalAlign="middle"
+                                >
+                                  <Flex align="center">
+                                    <AppLogo app={dapp} size="26px" />
+                                    {dapp.siteUrl ? (
+                                      <Link
+                                        href={dapp.siteUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        color="inherit"
+                                        textDecoration="none"
+                                        _hover={{ textDecoration: "underline" }}
+                                      >
+                                        <Text
+                                          fontSize={{ base: "sm", md: "md" }}
+                                        >
+                                          {dapp.name}
+                                        </Text>
+                                      </Link>
+                                    ) : (
+                                      <Text fontSize={{ base: "sm", md: "md" }}>
+                                        {dapp.name}
+                                      </Text>
+                                    )}
+                                  </Flex>
+                                </Td>
+                                <Td py={4}>
+                                  <AppChainDisplay
+                                    supportedAppChainIds={
+                                      dapp.supportedChainIds
+                                    }
+                                    globalChainsList={chains}
+                                  />
+                                </Td>
+                              </Tr>
+                            );
+                          })}
+                        </Tbody>
+                      </Table>
+                    </Box>
+                  )}
                 </Box>
-              </VStack>
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
-      </VStack>
+              </TabPanel>
+
+              <TabPanel
+                px={{ base: 4, md: 6 }}
+                width="100%"
+                maxW="100%"
+                overflowX="hidden"
+              >
+                {/* Wall of Shame Content */}
+
+                <WallOfShameTimer />
+                <VStack
+                  spacing={{ base: 6, md: 8 }}
+                  align="stretch"
+                  width="100%"
+                  maxW="100%"
+                >
+                  <Box width="100%" maxW="100%" overflowX="hidden">
+                    <Heading
+                      size={{ base: "md", md: "lg" }}
+                      mb={5}
+                      color="white"
+                    >
+                      Chains
+                    </Heading>
+                    <VStack spacing={4} align="stretch">
+                      {shameChains.map((chain, idx) => (
+                        <ShameAppCard key={idx} app={chain} isChain />
+                      ))}
+                    </VStack>
+                  </Box>
+
+                  <Box width="100%" maxW="100%" overflowX="hidden">
+                    <Heading
+                      size={{ base: "md", md: "lg" }}
+                      mb={5}
+                      color="white"
+                    >
+                      Wallets
+                    </Heading>
+                    <VStack spacing={4} align="stretch">
+                      {shameWallets.map((wallet, idx) => (
+                        <ShameAppCard key={idx} app={wallet} />
+                      ))}
+                    </VStack>
+                  </Box>
+
+                  <Box width="100%" maxW="100%" overflowX="hidden">
+                    <Heading
+                      size={{ base: "md", md: "lg" }}
+                      mb={5}
+                      color="white"
+                    >
+                      Dapps
+                    </Heading>
+                    <VStack spacing={4} align="stretch">
+                      {shameDapps.map((dapp, idx) => (
+                        <ShameAppCard key={idx} app={dapp} />
+                      ))}
+                    </VStack>
+                  </Box>
+                </VStack>
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
+        </VStack>
+      </Box>
     </Layout>
   );
 };
