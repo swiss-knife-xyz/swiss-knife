@@ -56,6 +56,7 @@ interface Chain {
 interface SupportedApp {
   name: string;
   logoUrl?: string;
+  needsWhiteBg?: boolean;
   siteUrl?: string;
   supportedChainIds: number[];
   filterSupportsAllChains?: boolean; // For filtering logic: if true, supports all chains in the global list
@@ -67,7 +68,8 @@ const getFaviconUrl = (url: string) => {
 };
 
 // Wall of Shame epoch timestamp - you can update this later
-const WALL_OF_SHAME_START_EPOCH = 1746621911; // January 1, 2024 00:00:00 UTC
+const WALL_OF_SHAME_START_EPOCH = 1746621911;
+const SEPOLIA_PECTRA_START_EPOCH = 1741159740;
 
 // All chains that support 7702
 const chains: Chain[] = [
@@ -240,6 +242,7 @@ const dapps: SupportedApp[] = [
   {
     name: "Jumper",
     logoUrl: getFaviconUrl("https://jumper.exchange/"),
+    needsWhiteBg: true,
     siteUrl: "https://jumper.exchange/",
     supportedChainIds: [
       mainnet.id,
@@ -344,6 +347,7 @@ const dapps: SupportedApp[] = [
   {
     name: "Vaults.fyi",
     logoUrl: getFaviconUrl("https://app.vaults.fyi"),
+    needsWhiteBg: true,
     siteUrl: "https://app.vaults.fyi/",
     supportedChainIds: [
       mainnet.id,
@@ -398,6 +402,22 @@ const shameWallets: SupportedApp[] = [
 ];
 
 const shameDapps: SupportedApp[] = [
+  {
+    name: "Basescan",
+    logoUrl: getFaviconUrl("https://basescan.org"),
+    needsWhiteBg: true,
+    siteUrl: "https://basescan.org/",
+    supportedChainIds: [], // Empty since they don't support 7702
+    twitterHandle: "etherscan",
+  },
+  {
+    name: "BSCscan",
+    logoUrl: getFaviconUrl("https://bscscan.com"),
+    needsWhiteBg: true,
+    siteUrl: "https://bscscan.com/",
+    supportedChainIds: [], // Empty since they don't support 7702
+    twitterHandle: "etherscan",
+  },
   {
     name: "Aave",
     logoUrl: getFaviconUrl("https://app.aave.com"),
@@ -491,9 +511,6 @@ const AppLogo = ({
   app: SupportedApp;
   size?: string;
 }) => {
-  // List of apps that need white background for their logos
-  const needsWhiteBg = ["Vaults.fyi", "Jumper"];
-
   return (
     <Box
       w={size}
@@ -510,7 +527,7 @@ const AppLogo = ({
           boxSize={size}
           objectFit="contain"
           rounded={"full"}
-          bg={needsWhiteBg.includes(app.name) ? "white" : "transparent"}
+          bg={app.needsWhiteBg ? "white" : "transparent"}
         />
       ) : null}
     </Box>
@@ -633,18 +650,37 @@ Check the full list: https://swiss-knife.xyz/7702beat#wall-of-shame`;
 // Timer component for Wall of Shame
 const WallOfShameTimer = () => {
   const [timeElapsed, setTimeElapsed] = useState("");
+  const [sepoliaTimeElapsed, setSepoliaTimeElapsed] = useState("");
 
   useEffect(() => {
     const updateTimer = () => {
       const now = Math.floor(Date.now() / 1000);
-      const elapsed = now - WALL_OF_SHAME_START_EPOCH;
 
+      // Mainnet timer
+      const elapsed = now - WALL_OF_SHAME_START_EPOCH;
       const days = Math.floor(elapsed / 86400);
       const hours = Math.floor((elapsed % 86400) / 3600);
       const minutes = Math.floor((elapsed % 3600) / 60);
       const seconds = elapsed % 60;
+      setTimeElapsed(
+        `${days}d ${hours.toString().padStart(2, "0")}h ${minutes
+          .toString()
+          .padStart(2, "0")}m ${seconds.toString().padStart(2, "0")}s`
+      );
 
-      setTimeElapsed(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+      // Sepolia timer
+      const sepoliaElapsed = now - SEPOLIA_PECTRA_START_EPOCH;
+      const sepoliaDays = Math.floor(sepoliaElapsed / 86400);
+      const sepoliaHours = Math.floor((sepoliaElapsed % 86400) / 3600);
+      const sepoliaMinutes = Math.floor((sepoliaElapsed % 3600) / 60);
+      const sepoliaSeconds = sepoliaElapsed % 60;
+      setSepoliaTimeElapsed(
+        `${sepoliaDays}d ${sepoliaHours
+          .toString()
+          .padStart(2, "0")}h ${sepoliaMinutes
+          .toString()
+          .padStart(2, "0")}m ${sepoliaSeconds.toString().padStart(2, "0")}s`
+      );
     };
 
     updateTimer();
@@ -654,14 +690,35 @@ const WallOfShameTimer = () => {
   }, []);
 
   return (
-    <Box textAlign="center" mb={4}>
-      <Text fontSize="lg" color="whiteAlpha.700" mb={2}>
-        Time since Pectra went live:
-      </Text>
-      <Text fontSize="3xl" fontWeight="bold" color="red.400" fontFamily="mono">
-        {timeElapsed}
-      </Text>
-    </Box>
+    <VStack spacing={6} textAlign="center" mb={8}>
+      <Box>
+        <Text fontSize="lg" color="whiteAlpha.700" mb={2}>
+          Time since Pectra went live on Mainnet:
+        </Text>
+        <Text
+          fontSize="3xl"
+          fontWeight="bold"
+          color="red.400"
+          fontFamily="mono"
+        >
+          {timeElapsed}
+        </Text>
+      </Box>
+
+      <Box>
+        <Text fontSize="lg" color="whiteAlpha.700" mb={2}>
+          Time since Pectra went live on Sepolia Testnet:
+        </Text>
+        <Text
+          fontSize="3xl"
+          fontWeight="bold"
+          color="blue.400"
+          fontFamily="mono"
+        >
+          {sepoliaTimeElapsed}
+        </Text>
+      </Box>
+    </VStack>
   );
 };
 
