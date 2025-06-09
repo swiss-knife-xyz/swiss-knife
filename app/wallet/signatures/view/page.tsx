@@ -154,7 +154,9 @@ export default function SignatureView() {
           newStatuses[signerEntry.signature] = isValid;
         } catch (e) {
           console.error(
-            `Verification failed for ${signerEntry.address} (sig: ${signerEntry.signature.substring(0, 10)}...):`,
+            `Verification failed for ${
+              signerEntry.address
+            } (sig: ${signerEntry.signature.substring(0, 10)}...):`,
             e
           );
           newStatuses[signerEntry.signature] = false;
@@ -218,7 +220,15 @@ export default function SignatureView() {
         const jsonString = JSON.stringify(updatedSignatureData);
         const base64String = btoa(jsonString);
         const encodedPayload = encodeURIComponent(base64String);
-        router.push(`/wallet/signatures/view?payload=${encodedPayload}`, {
+
+        // Preserve the returnParams when updating the URL
+        const returnParams = searchParams.get("returnParams");
+        let newUrl = `/wallet/signatures/view?payload=${encodedPayload}`;
+        if (returnParams) {
+          newUrl += `&returnParams=${encodeURIComponent(returnParams)}`;
+        }
+
+        router.push(newUrl, {
           scroll: false,
         });
       }
@@ -235,6 +245,22 @@ export default function SignatureView() {
       duration: 3000,
       isClosable: true,
     });
+  };
+
+  const handleBackNavigation = () => {
+    const returnParams = searchParams.get("returnParams");
+    let backUrl = "/wallet/signatures#sign";
+
+    if (returnParams) {
+      try {
+        const decodedParams = decodeURIComponent(returnParams);
+        backUrl += `?${decodedParams}`;
+      } catch (error) {
+        console.error("Error decoding return parameters:", error);
+      }
+    }
+
+    router.push(backUrl);
   };
 
   if (isLoading && !signatureData && !error) {
@@ -271,10 +297,10 @@ export default function SignatureView() {
   const signButtonText = !isConnected
     ? "Connect Wallet"
     : canSignAgain
-      ? signatureData?.type === "message"
-        ? "Sign Message"
-        : "Sign Typed Data"
-      : "Already Signed";
+    ? signatureData?.type === "message"
+      ? "Sign Message"
+      : "Sign Typed Data"
+    : "Already Signed";
   const isSignButtonLoading = isSigningMessage || isSigningTypedData;
 
   return (
@@ -282,7 +308,7 @@ export default function SignatureView() {
       <Flex alignItems="center" position="relative" py={4}>
         <Button
           leftIcon={<ArrowBackIcon />}
-          onClick={() => router.push("/wallet/signatures")}
+          onClick={handleBackNavigation}
           variant="ghost"
           colorScheme="white"
           fontSize={"md"}

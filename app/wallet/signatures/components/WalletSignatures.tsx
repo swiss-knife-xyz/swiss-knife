@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
-import { VStack, Center, Text, Box } from "@chakra-ui/react";
+import { ConnectButton } from "@/components/ConnectButton";
+import { VStack, Center, Text, Box, HStack, Spacer } from "@chakra-ui/react";
 import { parseAsString, useQueryState } from "next-usequerystate";
 import { SignMessage } from "./SignMessage";
 import { SignTypedData } from "./SignTypedData";
@@ -14,7 +15,7 @@ const DEFAULT_EXAMPLE_PRETTY = JSON.stringify(exampleTypedDataJSON, null, 2);
 const DEFAULT_EXAMPLE_MINIFIED = JSON.stringify(exampleTypedDataJSON);
 
 export default function WalletSignatures() {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const router = useRouter();
 
   const [messageToSign, setMessageToSign] = useQueryState<string>(
@@ -36,6 +37,47 @@ export default function WalletSignatures() {
     }
     return DEFAULT_EXAMPLE_PRETTY;
   });
+
+  // Parse hash-based query parameters and sync with useQueryState
+  useEffect(() => {
+    const parseHashParams = () => {
+      const hash = window.location.hash.substring(1);
+      if (hash.includes("?")) {
+        const queryString = hash.split("?")[1];
+        const params = new URLSearchParams(queryString);
+
+        const hashMessageToSign = params.get("messageToSign");
+        const hashTypedDataToSign = params.get("typedDataToSign");
+
+        // Only update if the hash param is different from current state
+        if (hashMessageToSign && hashMessageToSign !== messageToSign) {
+          setMessageToSign(hashMessageToSign);
+        }
+
+        if (hashTypedDataToSign && hashTypedDataToSign !== rawTypedDataString) {
+          setRawTypedDataString(hashTypedDataToSign);
+        }
+      }
+    };
+
+    // Parse initial hash params
+    parseHashParams();
+
+    // Listen for hash changes
+    const handleHashChange = () => {
+      parseHashParams();
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+    };
+  }, [
+    messageToSign,
+    rawTypedDataString,
+    setMessageToSign,
+    setRawTypedDataString,
+  ]);
 
   useEffect(() => {
     if (rawTypedDataString && rawTypedDataString.trim() !== "") {
@@ -156,7 +198,25 @@ export default function WalletSignatures() {
         const base64String = btoa(jsonString);
         const encodedPayload = encodeURIComponent(base64String);
 
-        router.push(`/wallet/signatures/view?payload=${encodedPayload}`);
+        // Preserve current query parameters for navigation back
+        const preservedParams = new URLSearchParams();
+
+        // Preserve the form state parameters
+        if (messageToSign && messageToSign !== "Swiss-Knife") {
+          preservedParams.set("messageToSign", messageToSign);
+        }
+        if (rawTypedDataString && rawTypedDataString.trim() !== "") {
+          preservedParams.set("typedDataToSign", rawTypedDataString);
+        }
+
+        let viewUrl = `/wallet/signatures/view?payload=${encodedPayload}`;
+        if (preservedParams.toString()) {
+          viewUrl += `&returnParams=${encodeURIComponent(
+            preservedParams.toString()
+          )}`;
+        }
+
+        router.push(viewUrl);
       } else {
         throw new Error("Payload for URL was not constructed.");
       }
@@ -176,6 +236,11 @@ export default function WalletSignatures() {
       px={{ base: 2, md: 4 }}
     >
       <VStack gap={2}>
+        {isConnected && (
+          <HStack w="100%" mb={2}>
+            <Spacer /> <ConnectButton hideChain />
+          </HStack>
+        )}
         <Box position="relative" width="100%" overflow="hidden">
           <SignMessage
             messageText={messageToSign}
