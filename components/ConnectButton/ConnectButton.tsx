@@ -12,15 +12,18 @@ import { chainIdToChain } from "@/data/common";
 export const ConnectButton = ({
   expectedChainId,
   hideAccount,
+  hideChain,
 }: {
   expectedChainId?: number;
   hideAccount?: boolean;
+  hideChain?: boolean;
 }) => {
   const { switchChain } = useSwitchChain();
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   // Only hide account if explicitly requested
   const shouldHideAccount = hideAccount;
+  const shouldHideChain = hideChain;
 
   // Determine if we should show a compact version of the buttons
   const isCompact = isMobile;
@@ -82,7 +85,11 @@ export const ConnectButton = ({
                       />
                     </Box>
                   ) : (
-                    <Box mr={2} flex={isMobile ? "1" : "initial"}>
+                    <Box
+                      mr={2}
+                      flex={isMobile ? "1" : "initial"}
+                      hidden={shouldHideChain}
+                    >
                       <ChainButton
                         onClick={openChainModal}
                         chain={chain}
