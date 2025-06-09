@@ -40,6 +40,8 @@ import {
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import AddressDisplay from "@/components/AddressDisplay";
 import TypeBadge from "../components/TypeBadge";
+import { getPath } from "@/utils";
+import subdomains from "@/subdomains";
 
 const decodeDataFromUrl = (
   encodedData: string
@@ -223,7 +225,9 @@ export default function SignatureView() {
 
         // Preserve the returnParams when updating the URL
         const returnParams = searchParams.get("returnParams");
-        let newUrl = `/wallet/signatures/view?payload=${encodedPayload}`;
+        let newUrl = `${getPath(
+          subdomains.WALLET.base
+        )}signatures/view?payload=${encodedPayload}`;
         if (returnParams) {
           newUrl += `&returnParams=${encodeURIComponent(returnParams)}`;
         }
@@ -249,7 +253,7 @@ export default function SignatureView() {
 
   const handleBackNavigation = () => {
     const returnParams = searchParams.get("returnParams");
-    let backUrl = "/wallet/signatures#sign";
+    let backUrl = `${getPath(subdomains.WALLET.base)}signatures#sign`;
 
     if (returnParams) {
       try {

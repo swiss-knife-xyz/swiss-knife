@@ -10,6 +10,8 @@ import { SignMessage } from "./SignMessage";
 import { SignTypedData } from "./SignTypedData";
 import { exampleTypedDataJSON } from "./types";
 import { SignatureType, SharedSignaturePayload, SignerEntry } from "./types";
+import { getPath } from "@/utils";
+import subdomains from "@/subdomains";
 
 const DEFAULT_EXAMPLE_PRETTY = JSON.stringify(exampleTypedDataJSON, null, 2);
 const DEFAULT_EXAMPLE_MINIFIED = JSON.stringify(exampleTypedDataJSON);
@@ -209,7 +211,9 @@ export default function WalletSignatures() {
           preservedParams.set("typedDataToSign", rawTypedDataString);
         }
 
-        let viewUrl = `/wallet/signatures/view?payload=${encodedPayload}`;
+        let viewUrl = `${getPath(
+          subdomains.WALLET.base
+        )}signatures/view?payload=${encodedPayload}`;
         if (preservedParams.toString()) {
           viewUrl += `&returnParams=${encodeURIComponent(
             preservedParams.toString()
