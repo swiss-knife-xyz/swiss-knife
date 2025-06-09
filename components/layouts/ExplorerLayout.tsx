@@ -232,23 +232,6 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
           />
         )}
         <Center flexDir={"column"} mt="5">
-          <Breadcrumb
-            separator={<ChevronRightIcon color="gray.400" fontSize="sm" />}
-            fontSize="sm"
-            ml={6}
-          >
-            <BreadcrumbItem>
-              <BreadcrumbLink
-                as={NLink}
-                href={getPath(
-                  subdomains.EXPLORER.base,
-                  subdomains.EXPLORER.isRelativePath
-                )}
-              >
-                Explorer
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-          </Breadcrumb>
           <Heading fontSize={"4xl"}>
             <NLink
               href={getPath(

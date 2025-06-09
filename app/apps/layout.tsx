@@ -1,12 +1,13 @@
 import { getMetadata } from "@/utils";
 import { Metadata } from "next";
 import { headers } from "next/headers";
+import { AppsLayout as AppsLayoutC } from "./components/AppsLayout";
 
 const _metadataInfo = {
   title: "Web3 App Store | Swiss-Knife.xyz",
   description:
     "Your Web3 Operating System - Access any dapp with the power of Swiss-Knife decoder as middleware.",
-  images: "https://swiss-knife.xyz/og/web3-app-store.png",
+  images: "https://swiss-knife.xyz/og/apps.png",
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -35,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
       action: {
         type: "launch_frame",
         name: "Launch Dapp",
-        url: `https://swiss-knife.xyz/wallet/bridge/apps?url=${encodeURIComponent(
+        url: `https://apps.swiss-knife.xyz/?url=${encodeURIComponent(
           urlParam
         )}`,
         splashImageUrl: `https://swiss-knife.xyz/splashImage.png`,
@@ -61,7 +62,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const AppsLayout = ({ children }: { children: React.ReactNode }) => {
-  return <>{children}</>;
+  return <AppsLayoutC>{children}</AppsLayoutC>;
 };
 
 export default AppsLayout;

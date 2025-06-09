@@ -64,6 +64,10 @@ const subdomains = {
     base: "safe",
     paths: ["calldata-decoder", "eip-712-hash"],
   },
+  APPS: {
+    base: "apps",
+    paths: [],
+  },
 };
 
 module.exports = subdomains;

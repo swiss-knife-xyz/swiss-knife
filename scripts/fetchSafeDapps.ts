@@ -98,6 +98,7 @@ const customDappConfig = {
     124, // NFTMigratooor
     125, // Carbon
     116, // Bunni
+    48, // Superfluid
     143, // Hidden Hand
     182, // Threshold USD
     177, // Syrup Finance
@@ -150,7 +151,6 @@ const customDappConfig = {
     151, // Aerodrome Finance
     155, // Jumper Exchange
     74, // CoW Swap
-    48, // Superfluid
     93, // Balancer
     35, // Sushi
     91, // PancakeSwap
