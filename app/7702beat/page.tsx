@@ -276,6 +276,12 @@ const dapps: SupportedApp[] = [
     ],
   },
   {
+    name: "Militereum",
+    logoUrl: getFaviconUrl("https://militereum.com/"),
+    siteUrl: "https://militereum.com/",
+    supportedChainIds: [mainnet.id, optimism.id], // TODO: Polygon and Arbitrum
+  },
+  {
     name: "PWN",
     logoUrl: getFaviconUrl("https://app.pwn.xyz/"),
     siteUrl: "https://app.pwn.xyz/",
