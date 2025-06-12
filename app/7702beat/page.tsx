@@ -59,6 +59,10 @@ interface SupportedApp {
   needsWhiteBg?: boolean;
   siteUrl?: string;
   supportedChainIds: number[];
+  announcement?: {
+    epochTimestamp: number;
+    tweet: string;
+  };
   filterSupportsAllChains?: boolean; // For filtering logic: if true, supports all chains in the global list
   twitterHandle?: string; // For Wall of Shame "Post on X" functionality
 }
@@ -140,19 +144,6 @@ const chains: Chain[] = [
 
 const wallets: SupportedApp[] = [
   {
-    name: "Metamask",
-    logoUrl: getFaviconUrl("https://metamask.io"),
-    siteUrl: "https://metamask.io/",
-    supportedChainIds: [
-      mainnet.id,
-      base.id,
-      bsc.id,
-      gnosis.id,
-      optimism.id,
-      // polygon.id,
-    ],
-  },
-  {
     name: "Ambire",
     logoUrl: getFaviconUrl("https://ambire.com"),
     siteUrl: "https://www.ambire.com/",
@@ -166,6 +157,10 @@ const wallets: SupportedApp[] = [
       // polygon.id,
       unichain.id,
     ],
+    announcement: {
+      epochTimestamp: 1742565360,
+      tweet: "https://x.com/AmbireWallet/status/1903083304808857892",
+    },
   },
   {
     name: "OKX Wallet",
@@ -181,18 +176,47 @@ const wallets: SupportedApp[] = [
       // polygon.id,
       unichain.id,
     ],
+    announcement: {
+      epochTimestamp: 1746608460,
+      tweet: "https://x.com/wallet/status/1920041181410742474",
+    },
   },
   {
     name: "Trust Wallet",
     logoUrl: getFaviconUrl("https://trustwallet.com/"),
     siteUrl: "https://trustwallet.com/",
     supportedChainIds: [mainnet.id, bsc.id],
+    announcement: {
+      epochTimestamp: 1746616860,
+      tweet: "https://x.com/TrustWallet/status/1920076571064389771",
+    },
+  },
+  {
+    name: "Metamask",
+    logoUrl: getFaviconUrl("https://metamask.io"),
+    siteUrl: "https://metamask.io/",
+    supportedChainIds: [
+      mainnet.id,
+      base.id,
+      bsc.id,
+      gnosis.id,
+      optimism.id,
+      // polygon.id,
+    ],
+    announcement: {
+      epochTimestamp: 1746818400,
+      tweet: "https://x.com/MetaMask/status/1920921857785581992",
+    },
   },
   {
     name: "Uniswap Wallet",
     logoUrl: getFaviconUrl("https://wallet.uniswap.org/"),
     siteUrl: "https://wallet.uniswap.org//",
     supportedChainIds: [mainnet.id, base.id, bsc.id, optimism.id, unichain.id],
+    announcement: {
+      epochTimestamp: 1749738240,
+      tweet: "https://x.com/Uniswap/status/1933168423825035768",
+    },
   },
 ];
 
@@ -597,6 +621,15 @@ const ChainCard = ({ chain, onClick, isSelected }: ChainCardProps) => (
   </Box>
 );
 
+// Utility function to format epoch timestamp to date
+const formatAnnouncementDate = (epochTimestamp: number): string => {
+  const date = new Date(epochTimestamp * 1000);
+  const day = date.getDate(); // No padStart, so single digit days have no leading zero
+  const month = date.toLocaleString("en-US", { month: "short" });
+  const year = date.getFullYear().toString().slice(-2);
+  return `${day} ${month}'${year}`;
+};
+
 // For mobile responsive view
 const AppCard = ({
   app,
@@ -621,24 +654,38 @@ const AppCard = ({
       transition="all 0.2s"
       _hover={{ borderColor: "whiteAlpha.400" }}
     >
-      <Flex align="center" mb={3}>
-        <AppLogo app={app} size={{ base: "24px", md: "30px" }} />
-        <Heading size={{ base: "sm", md: "md" }} color="white">
-          {app.siteUrl ? (
-            <Link
-              href={app.siteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              color="inherit"
-              textDecoration="none"
-              _hover={{ textDecoration: "underline" }}
-            >
-              {app.name}
-            </Link>
-          ) : (
-            app.name
-          )}
-        </Heading>
+      <Flex align="center" mb={3} justify="space-between">
+        <Flex align="center">
+          <AppLogo app={app} size={{ base: "24px", md: "30px" }} />
+          <Heading size={{ base: "sm", md: "md" }} color="white">
+            {app.siteUrl ? (
+              <Link
+                href={app.siteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                color="inherit"
+                textDecoration="none"
+                _hover={{ textDecoration: "underline" }}
+              >
+                {app.name}
+              </Link>
+            ) : (
+              app.name
+            )}
+          </Heading>
+        </Flex>
+        {app.announcement && (
+          <Link
+            href={app.announcement.tweet}
+            target="_blank"
+            rel="noopener noreferrer"
+            fontSize="sm"
+            color="whiteAlpha.700"
+            _hover={{ color: "white", textDecoration: "none" }}
+          >
+            {formatAnnouncementDate(app.announcement.epochTimestamp)}
+          </Link>
+        )}
       </Flex>
       <Divider borderColor="whiteAlpha.300" mb={3} />
       <AppChainDisplay
@@ -1087,9 +1134,17 @@ const SevenSevenZeroTwoBeat = () => {
                   maxW="100%"
                   overflowX="hidden"
                 >
-                  <Heading size={{ base: "md", md: "lg" }} mb={5} color="white">
-                    Wallets
-                  </Heading>
+                  <Box mb={3}>
+                    <Heading size={{ base: "md", md: "lg" }} color="white">
+                      Wallets
+                    </Heading>
+                    <Text
+                      fontSize={{ base: "sm", md: "md" }}
+                      color="whiteAlpha.800"
+                    >
+                      {"(ordered by date for Pectra support)"}
+                    </Text>
+                  </Box>
 
                   {isMobile ? (
                     // Mobile view with cards
@@ -1177,6 +1232,25 @@ const SevenSevenZeroTwoBeat = () => {
                                     }
                                     globalChainsList={chains}
                                   />
+                                </Td>
+                                <Td py={4} textAlign="right">
+                                  {wallet.announcement && (
+                                    <Link
+                                      href={wallet.announcement.tweet}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      fontSize="sm"
+                                      color="whiteAlpha.700"
+                                      _hover={{
+                                        color: "white",
+                                        textDecoration: "none",
+                                      }}
+                                    >
+                                      {formatAnnouncementDate(
+                                        wallet.announcement.epochTimestamp
+                                      )}
+                                    </Link>
+                                  )}
                                 </Td>
                               </Tr>
                             );
