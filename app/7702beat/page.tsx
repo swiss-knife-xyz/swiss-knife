@@ -188,6 +188,12 @@ const wallets: SupportedApp[] = [
     siteUrl: "https://trustwallet.com/",
     supportedChainIds: [mainnet.id, bsc.id],
   },
+  {
+    name: "Uniswap Wallet",
+    logoUrl: getFaviconUrl("https://wallet.uniswap.org/"),
+    siteUrl: "https://wallet.uniswap.org//",
+    supportedChainIds: [mainnet.id, base.id, bsc.id, optimism.id, unichain.id],
+  },
 ];
 
 const dapps: SupportedApp[] = [
