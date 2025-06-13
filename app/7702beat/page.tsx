@@ -425,6 +425,13 @@ const shameChains: SupportedApp[] = [
     supportedChainIds: [], // Empty since they don't support 7702
     twitterHandle: "arbitrum",
   },
+  {
+    name: "Polygon",
+    logoUrl: getFaviconUrl("https://polygon.technology/"),
+    siteUrl: "https://polygon.technology/",
+    supportedChainIds: [], // Empty since they don't support 7702
+    twitterHandle: "0xPolygon",
+  },
 ];
 
 const shameWallets: SupportedApp[] = [
