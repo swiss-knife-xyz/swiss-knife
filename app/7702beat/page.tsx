@@ -198,6 +198,7 @@ const wallets: SupportedApp[] = [
     supportedChainIds: [
       mainnet.id,
       base.id,
+      berachain.id,
       bsc.id,
       gnosis.id,
       optimism.id,
