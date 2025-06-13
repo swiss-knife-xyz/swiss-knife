@@ -202,6 +202,7 @@ const wallets: SupportedApp[] = [
       gnosis.id,
       optimism.id,
       // polygon.id,
+      unichain.id,
     ],
     announcement: {
       epochTimestamp: 1746818400,
@@ -270,10 +271,10 @@ const dapps: SupportedApp[] = [
     supportedChainIds: [base.id],
   },
   {
-    name: 'Fluid',
-    logoUrl: getFaviconUrl('https://fluid.io'),
-    siteUrl: 'https://fluid.io',
-    supportedChainIds: [mainnet.id, base.id]
+    name: "Fluid",
+    logoUrl: getFaviconUrl("https://fluid.io"),
+    siteUrl: "https://fluid.io",
+    supportedChainIds: [mainnet.id, base.id],
   },
   {
     name: "Jumper",
