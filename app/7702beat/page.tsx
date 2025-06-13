@@ -270,6 +270,12 @@ const dapps: SupportedApp[] = [
     supportedChainIds: [base.id],
   },
   {
+    name: 'Fluid',
+    logoUrl: getFaviconUrl('https://fluid.io'),
+    siteUrl: 'https://fluid.io',
+    supportedChainIds: [mainnet.id, base.id]
+  },
+  {
     name: "Jumper",
     logoUrl: getFaviconUrl("https://jumper.exchange/"),
     needsWhiteBg: true,
