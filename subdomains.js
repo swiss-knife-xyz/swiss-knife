@@ -58,7 +58,6 @@ const subdomains = {
   "7702BEAT": {
     base: "7702beat",
     paths: [],
-    isRelativePath: true,
   },
   SAFE: {
     base: "safe",
