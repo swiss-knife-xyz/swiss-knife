@@ -150,6 +150,7 @@ const wallets: SupportedApp[] = [
     supportedChainIds: [
       mainnet.id,
       base.id,
+      berachain.id, // https://x.com/AmbireWallet/status/1932042333157249209
       bsc.id,
       gnosis.id,
       ink.id,
@@ -160,6 +161,25 @@ const wallets: SupportedApp[] = [
     announcement: {
       epochTimestamp: 1742565360,
       tweet: "https://x.com/AmbireWallet/status/1903083304808857892",
+    },
+  },
+  {
+    name: "Metamask",
+    logoUrl: getFaviconUrl("https://metamask.io"),
+    siteUrl: "https://metamask.io/",
+    supportedChainIds: [
+      mainnet.id,
+      base.id,
+      berachain.id,
+      bsc.id,
+      gnosis.id,
+      optimism.id,
+      // polygon.id,
+      unichain.id,
+    ],
+    announcement: {
+      epochTimestamp: 1746028260,
+      tweet: "https://x.com/danfinlay/status/1917607802631250094",
     },
   },
   {
@@ -189,25 +209,6 @@ const wallets: SupportedApp[] = [
     announcement: {
       epochTimestamp: 1746616860,
       tweet: "https://x.com/TrustWallet/status/1920076571064389771",
-    },
-  },
-  {
-    name: "Metamask",
-    logoUrl: getFaviconUrl("https://metamask.io"),
-    siteUrl: "https://metamask.io/",
-    supportedChainIds: [
-      mainnet.id,
-      base.id,
-      berachain.id,
-      bsc.id,
-      gnosis.id,
-      optimism.id,
-      // polygon.id,
-      unichain.id,
-    ],
-    announcement: {
-      epochTimestamp: 1746818400,
-      tweet: "https://x.com/MetaMask/status/1920921857785581992",
     },
   },
   {
