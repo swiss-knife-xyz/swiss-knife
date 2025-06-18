@@ -32,6 +32,7 @@ interface PoolInfoFormProps {
   setHookAddress: (value: string) => void;
   hookData: string | undefined;
   setHookData: (value: string) => void;
+  hideHookData?: boolean;
 }
 
 export const PoolInfoForm: React.FC<PoolInfoFormProps> = ({
@@ -51,6 +52,7 @@ export const PoolInfoForm: React.FC<PoolInfoFormProps> = ({
   setHookAddress,
   hookData,
   setHookData,
+  hideHookData,
 }) => {
   const inputStyles = {
     bg: "whiteAlpha.50",
@@ -223,23 +225,25 @@ export const PoolInfoForm: React.FC<PoolInfoFormProps> = ({
             />
           </Box>
 
-          <Box>
-            <HStack spacing={2} mb={2}>
-              <Icon as={FiCode} color="pink.400" boxSize={4} />
-              <Text color="gray.300" fontSize="sm" fontWeight="medium">
-                Hook Data
-                <Text as="span" color="gray.500" fontSize="xs" ml={1}>
-                  (optional)
+          {!hideHookData && (
+            <Box>
+              <HStack spacing={2} mb={2}>
+                <Icon as={FiCode} color="pink.400" boxSize={4} />
+                <Text color="gray.300" fontSize="sm" fontWeight="medium">
+                  Hook Data
+                  <Text as="span" color="gray.500" fontSize="xs" ml={1}>
+                    (optional)
+                  </Text>
                 </Text>
-              </Text>
-            </HStack>
-            <Input
-              {...inputStyles}
-              value={hookData || ""}
-              onChange={(e) => setHookData(e.target.value)}
-              placeholder="e.g., 0x"
-            />
-          </Box>
+              </HStack>
+              <Input
+                {...inputStyles}
+                value={hookData || ""}
+                onChange={(e) => setHookData(e.target.value)}
+                placeholder="e.g., 0x"
+              />
+            </Box>
+          )}
         </VStack>
       </VStack>
     </Box>

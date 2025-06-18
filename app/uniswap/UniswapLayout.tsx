@@ -1,7 +1,13 @@
 "use client";
 
 import { HStack, Center } from "@chakra-ui/react";
-import { FiBarChart, FiTarget, FiPlus, FiRefreshCw } from "react-icons/fi";
+import {
+  FiBarChart,
+  FiTarget,
+  FiPlus,
+  FiRefreshCw,
+  FiZap,
+} from "react-icons/fi";
 import { Layout } from "@/components/Layout";
 import { Sidebar, SidebarItem } from "@/components/Sidebar";
 import subdomains from "@/subdomains";
@@ -26,6 +32,11 @@ const SidebarItems: SidebarItem[] = [
     name: "Add Liquidity",
     path: "add-liquidity",
     icon: FiPlus,
+  },
+  {
+    name: "Initialize Pool",
+    path: "initialize-pool",
+    icon: FiZap,
   },
 ];
 

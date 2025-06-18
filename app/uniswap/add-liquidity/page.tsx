@@ -24,6 +24,17 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import {
+  FiAlertTriangle,
+  FiDollarSign,
+  FiSettings,
+  FiShield,
+  FiRefreshCw,
+  FiPlus,
+  FiChevronDown,
+  FiChevronUp,
+  FiDroplet,
+} from "react-icons/fi";
+import {
   Address,
   erc20Abi,
   zeroAddress,
@@ -35,13 +46,7 @@ import {
   maxUint160,
   Call,
 } from "viem";
-import {
-  useAccount,
-  useWalletClient,
-  useSwitchChain,
-  usePublicClient,
-  useBalance,
-} from "wagmi";
+import { useAccount, useSwitchChain, usePublicClient, useBalance } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { chainIdToChain } from "@/data/common";
 import { useTokenInfo } from "./hooks/useTokenInfo";
@@ -50,17 +55,6 @@ import { useApprovalStates } from "./hooks/useApprovalStates";
 import { useLiquidityCalculations } from "./hooks/useLiquidityCalculations";
 import { useAddLiquidityTransaction } from "./hooks/useAddLiquidityTransaction";
 import { PositionRangeInput } from "./components/PositionRangeInput";
-import {
-  FiAlertTriangle,
-  FiDollarSign,
-  FiSettings,
-  FiShield,
-  FiRefreshCw,
-  FiPlus,
-  FiChevronDown,
-  FiChevronUp,
-  FiDroplet,
-} from "react-icons/fi";
 
 // Import components from pool-price-to-target
 import { PoolInfoForm } from "../pool-price-to-target/components/PoolInfoForm";
@@ -162,11 +156,9 @@ const ApprovalStatusRow: React.FC<{
 };
 
 const AddLiquidity = () => {
-  const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   const { chain, address } = useAccount();
   const { switchChain } = useSwitchChain();
-  const { data: balanceData } = useBalance({ address });
 
   // Disclosure hook for Token Approvals section
   const { isOpen: isApprovalsOpen, onToggle: onToggleApprovals } =
