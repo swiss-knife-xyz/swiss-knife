@@ -178,6 +178,7 @@ const wallets: SupportedApp[] = [
     siteUrl: "https://metamask.io/",
     supportedChainIds: [
       mainnet.id,
+      arbitrum.id,
       base.id,
       berachain.id,
       bsc.id,
@@ -369,6 +370,8 @@ const dapps: SupportedApp[] = [
     siteUrl: "https://revoke.cash/",
     supportedChainIds: [
       mainnet.id,
+      arbitrum.id,
+      berachain.id,
       base.id,
       bsc.id,
       gnosis.id,
@@ -405,11 +408,13 @@ const dapps: SupportedApp[] = [
     siteUrl: "https://app.vaults.fyi/",
     supportedChainIds: [
       mainnet.id,
+      arbitrum.id,
       base.id,
+      berachain.id,
       gnosis.id,
       optimism.id,
       unichain.id,
-      // TODO: also supports: arbitrum, berachain, celo
+      // TODO: also supports: celo
     ],
   },
   {
