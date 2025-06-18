@@ -34,6 +34,7 @@ import { Layout } from "@/components/Layout";
 import { useRouter, usePathname } from "next/navigation";
 import {
   mainnet,
+  arbitrum,
   base,
   berachain,
   bsc,
@@ -83,6 +84,13 @@ const chains: Chain[] = [
     color: "blue.300",
     abbreviation: "ETH",
     chainObj: mainnet,
+  },
+  {
+    id: arbitrum.id,
+    name: "Arbitrum",
+    color: "blue.300",
+    abbreviation: "ARB",
+    chainObj: arbitrum,
   },
   {
     id: base.id,
@@ -420,13 +428,6 @@ const dapps: SupportedApp[] = [
 
 // Wall of Shame data
 const shameChains: SupportedApp[] = [
-  {
-    name: "Arbitrum",
-    logoUrl: getFaviconUrl("https://arbitrum.io"),
-    siteUrl: "https://arbitrum.io/",
-    supportedChainIds: [], // Empty since they don't support 7702
-    twitterHandle: "arbitrum",
-  },
   {
     name: "Polygon",
     logoUrl: getFaviconUrl("https://polygon.technology/"),
