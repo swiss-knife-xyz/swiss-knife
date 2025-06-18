@@ -462,14 +462,6 @@ const shameWallets: SupportedApp[] = [
 
 const shameDapps: SupportedApp[] = [
   {
-    name: "Basescan",
-    logoUrl: getFaviconUrl("https://basescan.org"),
-    needsWhiteBg: true,
-    siteUrl: "https://basescan.org/",
-    supportedChainIds: [], // Empty since they don't support 7702
-    twitterHandle: "etherscan",
-  },
-  {
     name: "BSCscan",
     logoUrl: getFaviconUrl("https://bscscan.com"),
     needsWhiteBg: true,
