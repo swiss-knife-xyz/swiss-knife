@@ -157,6 +157,7 @@ const wallets: SupportedApp[] = [
     siteUrl: "https://www.ambire.com/",
     supportedChainIds: [
       mainnet.id,
+      arbitrum.id,
       base.id,
       berachain.id, // https://x.com/AmbireWallet/status/1932042333157249209
       bsc.id,
