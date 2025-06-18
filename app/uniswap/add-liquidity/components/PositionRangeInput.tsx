@@ -385,7 +385,15 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
       if (!isNaN(tickNum)) {
         // Round to nearest valid tick based on tick spacing
         const roundedTick = Math.round(tickNum / tickSpacing) * tickSpacing;
-        const clampedTick = Math.max(-887272, Math.min(887272, roundedTick));
+
+        // Calculate the maximum valid tick that's divisible by tickSpacing and within bounds
+        const maxValidTick = Math.floor(887272 / tickSpacing) * tickSpacing;
+        const minValidTick = Math.ceil(-887272 / tickSpacing) * tickSpacing;
+
+        const clampedTick = Math.max(
+          minValidTick,
+          Math.min(maxValidTick, roundedTick)
+        );
         if (clampedTick !== tickNum) {
           setTickLower(clampedTick.toString());
         }
@@ -399,7 +407,15 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
       if (!isNaN(tickNum)) {
         // Round to nearest valid tick based on tick spacing
         const roundedTick = Math.round(tickNum / tickSpacing) * tickSpacing;
-        const clampedTick = Math.max(-887272, Math.min(887272, roundedTick));
+
+        // Calculate the maximum valid tick that's divisible by tickSpacing and within bounds
+        const maxValidTick = Math.floor(887272 / tickSpacing) * tickSpacing;
+        const minValidTick = Math.ceil(-887272 / tickSpacing) * tickSpacing;
+
+        const clampedTick = Math.max(
+          minValidTick,
+          Math.min(maxValidTick, roundedTick)
+        );
         if (clampedTick !== tickNum) {
           setTickUpper(clampedTick.toString());
         }
@@ -413,7 +429,12 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
 
     const tickNum = parseInt(currentTick) || 0;
     const newTick = tickNum + tickSpacing;
-    const clampedTick = Math.max(-887272, Math.min(887272, newTick));
+
+    // Calculate the maximum valid tick that's divisible by tickSpacing and within bounds
+    const maxValidTick = Math.floor(887272 / tickSpacing) * tickSpacing;
+    const minValidTick = Math.ceil(-887272 / tickSpacing) * tickSpacing;
+
+    const clampedTick = Math.max(minValidTick, Math.min(maxValidTick, newTick));
 
     if (isUpper) {
       setTickUpper(clampedTick.toString());
@@ -427,7 +448,12 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
 
     const tickNum = parseInt(currentTick) || 0;
     const newTick = tickNum - tickSpacing;
-    const clampedTick = Math.max(-887272, Math.min(887272, newTick));
+
+    // Calculate the maximum valid tick that's divisible by tickSpacing and within bounds
+    const maxValidTick = Math.floor(887272 / tickSpacing) * tickSpacing;
+    const minValidTick = Math.ceil(-887272 / tickSpacing) * tickSpacing;
+
+    const clampedTick = Math.max(minValidTick, Math.min(maxValidTick, newTick));
 
     if (isUpper) {
       setTickUpper(clampedTick.toString());
