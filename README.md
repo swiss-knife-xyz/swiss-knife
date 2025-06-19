@@ -18,6 +18,7 @@ All your EVM tools in one place: https://swiss-knife.xyz/
 8. [Uniswap](https://uniswap.swiss-knife.xyz/tick-to-price): Calculator to convert UniswapV3 tick to price for any token pair addresses.
 9. [Character Counter](https://character-counter.swiss-knife.xyz/): Count the length of the input string. Also allows to select on the input text to only get the character count for the selection.
 10. [Contract Address](https://contract-address.swiss-knife.xyz/): Determine the contract address which will get deployed by an address at a particular nonce
+11. [7702 Beat](https://7702beat.swiss-knife.xyz/): Stats about 7702 adoption across EVM chains, Wallets and Dapps
 
 ## Setup
 
