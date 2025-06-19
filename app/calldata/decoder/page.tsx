@@ -14,7 +14,7 @@ interface PageProps {
 export async function generateMetadata({
   searchParams,
 }: PageProps): Promise<Metadata> {
-  let title = "ETH Calldata Decoder | Swiss-Knife.xyz";
+  let title = "ETH Calldata Decoder | ETH.sh";
 
   let calldata = searchParams.calldata as string | undefined;
   let tx = searchParams.tx as string | undefined;
@@ -83,7 +83,7 @@ export async function generateMetadata({
     const functionInterface = await fetchFunctionInterface({ selector });
     if (functionInterface) {
       const functionName = functionInterface.split("(")[0];
-      title = `${functionName}() - Universal Calldata Decoder | Swiss-Knife.xyz`;
+      title = `${functionName}() - Universal Calldata Decoder | ETH.sh`;
     }
   }
 

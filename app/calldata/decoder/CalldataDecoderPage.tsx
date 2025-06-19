@@ -171,7 +171,7 @@ export const CalldataDecoderPage = ({
   useEffect(() => {
     document.title = `${
       result ? `${result.functionName} - ` : ""
-    }Universal Calldata Decoder | Swiss-Knife.xyz`;
+    }Universal Calldata Decoder | ETH.sh`;
   }, [result]);
 
   const decode = async ({

@@ -6,10 +6,10 @@ export async function generateMetadata({
   params: { address: string };
 }) {
   return getMetadata({
-    title: `Contract ${address} | Swiss-Knife.xyz`,
+    title: `Contract ${address} | ETH.sh`,
     description:
       "Best UI to interact with smart contracts. Read & Write contract functions with human readable output!",
-    images: `https://swiss-knife.xyz/og/contract.png`, // FIXME: add meta image for contract explorer page
+    images: `https://eth.sh/og/contract.png`, // FIXME: add meta image for contract explorer page
   });
 }
 

@@ -1,24 +1,24 @@
-<img alt="Swiss Knife Logo" src=".github/logo.png" />
+<img alt="ETH.sh Logo" src=".github/logo.png" />
 
-All your EVM tools in one place: https://swiss-knife.xyz/
+All your EVM tools in one place: https://eth.sh/
 
 ## List of Tools
 
-1. [Explorer](https://explorer.swiss-knife.xyz/): Quickly view any address/ens or transaction across a variety explorers, in just a click!
-2. [Calldata](https://calldata.swiss-knife.xyz/decoder): Decode any calldata, and view the parameters in a human-readable format, even without having the contract ABI.
-3. [Transact](https://transact.swiss-knife.xyz/send-tx): Send custom bytes calldata to transact with any contract, or leave the address blank to deploy a new contract.
-4. [Converter](https://converter.swiss-knife.xyz/eth): All the essential unit converters on one-page. Convert between:
+1. [Explorer](https://explorer.eth.sh/): Quickly view any address/ens or transaction across a variety explorers, in just a click!
+2. [Calldata](https://calldata.eth.sh/decoder): Decode any calldata, and view the parameters in a human-readable format, even without having the contract ABI.
+3. [Transact](https://transact.eth.sh/send-tx): Send custom bytes calldata to transact with any contract, or leave the address blank to deploy a new contract.
+4. [Converter](https://converter.eth.sh/eth): All the essential unit converters on one-page. Convert between:
    1. Ether, wei & gwei
    2. Hexadecimal, decimal & binary
    3. String or hex to keccack256 hash & 4 bytes selector
    4. Hex to 32 bytes left-padded & right-padded values
-5. [Constants](https://constants.swiss-knife.xyz/): Have frequently used constants at your fingertips, like Zero Address, Max Uint256, etc.
-6. [Epoch-Converter](https://epoch-converter.swiss-knife.xyz/): Grab unix timestamp, get timestamp `x` minutes/hours/days in the future, or convert timestamp to human-readable format.
-7. [Storage-Slots](https://storage-slots.swiss-knife.xyz/): Query EIP-1967 slots or custom storage slot value of any contract.
-8. [Uniswap](https://uniswap.swiss-knife.xyz/tick-to-price): Calculator to convert UniswapV3 tick to price for any token pair addresses.
-9. [Character Counter](https://character-counter.swiss-knife.xyz/): Count the length of the input string. Also allows to select on the input text to only get the character count for the selection.
-10. [Contract Address](https://contract-address.swiss-knife.xyz/): Determine the contract address which will get deployed by an address at a particular nonce
-11. [7702 Beat](https://7702beat.swiss-knife.xyz/): Stats about 7702 adoption across EVM chains, Wallets and Dapps
+5. [Constants](https://constants.eth.sh/): Have frequently used constants at your fingertips, like Zero Address, Max Uint256, etc.
+6. [Epoch-Converter](https://epoch-converter.eth.sh/): Grab unix timestamp, get timestamp `x` minutes/hours/days in the future, or convert timestamp to human-readable format.
+7. [Storage-Slots](https://storage-slots.eth.sh/): Query EIP-1967 slots or custom storage slot value of any contract.
+8. [Uniswap](https://uniswap.eth.sh/tick-to-price): Calculator to convert UniswapV3 tick to price for any token pair addresses.
+9. [Character Counter](https://character-counter.eth.sh/): Count the length of the input string. Also allows to select on the input text to only get the character count for the selection.
+10. [Contract Address](https://contract-address.eth.sh/): Determine the contract address which will get deployed by an address at a particular nonce
+11. [7702 Beat](https://7702beat.eth.sh/): Stats about 7702 adoption across EVM chains, Wallets and Dapps
 
 ## Setup
 

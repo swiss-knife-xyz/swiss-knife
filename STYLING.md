@@ -1,6 +1,6 @@
-# Swiss Knife UI Styling Guide
+# ETH.sh UI Styling Guide
 
-This document outlines the design language and styling conventions used throughout the Swiss Knife application, particularly for the Uniswap tools section.
+This document outlines the design language and styling conventions used throughout the ETH.sh application, particularly for the Uniswap tools section.
 
 ## 🎨 Design Philosophy
 
@@ -619,4 +619,4 @@ All input styling is now handled by the `InputField` component automatically:
 
 ---
 
-_This guide should be referenced when creating new components or modifying existing ones to ensure visual consistency across the Swiss Knife application._
+_This guide should be referenced when creating new components or modifying existing ones to ensure visual consistency across the ETH.sh application._

@@ -11,7 +11,7 @@ export const Logo = () => {
     >
       <Image
         src="/logo.png"
-        alt="Swiss Knife Logo"
+        alt="ETH.sh Logo"
         boxSize={{ base: "11rem", sm: "13.75rem", md: "15rem" }}
         objectFit="contain"
         borderRadius={{ base: "0.75rem", sm: "1rem", md: "1.25rem" }}

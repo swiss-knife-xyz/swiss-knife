@@ -6,13 +6,13 @@
   },
   "frame": {
     "version": "1",
-    "name": "Swiss-Knife",
-    "iconUrl": "https://swiss-knife.xyz/icon.png",
-    "homeUrl": "https://wallet.swiss-knife.xyz/bridge",
-    "imageUrl": "https://swiss-knife.xyz/frame/wallet-bridge.png",
+    "name": "ETH.sh",
+    "iconUrl": "https://eth.sh/icon.png",
+    "homeUrl": "https://wallet.eth.sh/bridge",
+    "imageUrl": "https://eth.sh/frame/wallet-bridge.png",
     "buttonTitle": "Wallet Bridge",
-    "splashImageUrl": "https://swiss-knife.xyz/splashImage.png",
+    "splashImageUrl": "https://eth.sh/splashImage.png",
     "splashBackgroundColor": "#101010",
-    "webhookUrl": "https://swiss-knife.xyz/api/webhook"
+    "webhookUrl": "https://eth.sh/api/webhook"
   }
 }

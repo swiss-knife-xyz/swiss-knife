@@ -12,8 +12,8 @@ export const SubtitleSection = () => {
       maxW="600px"
       textAlign={{ base: "center", md: "justify" }}
     >
-      Swiss Knife provides a comprehensive suite of tools for Ethereum
-      developers and users. From{" "}
+      ETH.sh provides a comprehensive suite of tools for Ethereum developers and
+      users. From{" "}
       <HighlightedText href={`${getPath(subdomains.CALLDATA.base)}decoder`}>
         decoding calldata
       </HighlightedText>{" "}

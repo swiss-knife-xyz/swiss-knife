@@ -664,7 +664,7 @@ export const ContractPage = ({
   useEffect(() => {
     if (abi) {
       if (abi.name && abi.name.length > 0) {
-        document.title = `${abi.name} - ${address} | Swiss-Knife.xyz`;
+        document.title = `${abi.name} - ${address} | ETH.sh`;
       }
 
       const readFunctions = abi.abi.filter(

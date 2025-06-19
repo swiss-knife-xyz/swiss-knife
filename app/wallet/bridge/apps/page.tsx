@@ -710,7 +710,7 @@ function AppStoreContent({
           <Box display={{ base: "none", md: "block" }} mr={4}>
             <FormControl display="flex" alignItems="center">
               <Tooltip
-                label="Verify the tx first via Swiss-Knife's calldata decoder, before sending them to your wallet"
+                label="Verify the tx first via ETH.sh's calldata decoder, before sending them to your wallet"
                 placement="top"
                 hasArrow
               >
@@ -731,7 +731,7 @@ function AppStoreContent({
                 color="white"
                 fontSize="sm"
               >
-                Enable Swiss Knife decoder
+                Enable ETH.sh decoder
               </FormLabel>
               <Switch
                 id="auto-approve"

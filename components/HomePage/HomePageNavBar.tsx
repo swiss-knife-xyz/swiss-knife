@@ -29,7 +29,7 @@ export const HomePageNavBar = () => {
           <HStack spacing={{ base: 2, md: 4 }} cursor="pointer">
             <Image
               src="/icon.png"
-              alt="Swiss Knife"
+              alt="ETH.sh"
               boxSize={{ base: "2.5rem", md: "3rem" }}
               rounded={"md"}
             />
@@ -38,7 +38,7 @@ export const HomePageNavBar = () => {
               fontSize={{ base: "2xl", md: "4xl" }}
               color="white"
             >
-              Swiss Knife
+              ETH.sh
             </Heading>
           </HStack>
         </Link>

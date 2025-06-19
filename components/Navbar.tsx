@@ -68,7 +68,7 @@ export const Navbar = () => {
               fontSize={{ base: "lg", sm: "xl", md: "2xl" }}
               display={{ base: "block", sm: "block" }}
             >
-              Swiss Knife
+              ETH.sh
             </Heading>
           </HStack>
         </Link>

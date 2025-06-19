@@ -156,7 +156,7 @@ export const AddressInput = ({
             `${
               process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
                 ? ""
-                : "https://swiss-knife.xyz"
+                : "https://eth.sh"
             }/api/labels/${val}`
           );
           const data = res.data;

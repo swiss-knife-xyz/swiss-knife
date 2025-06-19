@@ -134,7 +134,7 @@ export default function SessionRequestModal({
             `${
               process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
                 ? ""
-                : "https://swiss-knife.xyz"
+                : "https://eth.sh"
             }/api/labels/${address}`
           );
           const data = res.data;

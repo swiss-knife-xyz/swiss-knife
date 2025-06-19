@@ -43,18 +43,18 @@ export const Footer = () => {
             <HStack spacing={4} mb={4}>
               <Image
                 src="/icon.png"
-                alt="Swiss Knife"
+                alt="ETH.sh"
                 boxSize="2.5rem"
                 rounded={"md"}
               />
               <Heading fontWeight="bold" fontSize="2xl" color="white">
-                Swiss-Knife.xyz
+                ETH.sh
               </Heading>
             </HStack>
             <Text color="gray.400" fontSize="sm">
-              Swiss-Knife.xyz is a comprehensive suite of tools for Ethereum
-              developers and users, designed to simplify blockchain interactions
-              & making the EVM human-friendly.
+              ETH.sh is a comprehensive suite of tools for Ethereum developers
+              and users, designed to simplify blockchain interactions & making
+              the EVM human-friendly.
             </Text>
           </Flex>
 
@@ -209,7 +209,7 @@ export const Footer = () => {
             borderColor="whiteAlpha.200"
           >
             <Text color="gray.500" fontSize="sm" textAlign="center">
-              © {new Date().getFullYear()} Swiss Knife. All rights reserved.
+              © {new Date().getFullYear()} ETH.sh. All rights reserved.
             </Text>
             <HStack spacing={{ base: 4, md: 6 }} mt={{ base: 4, md: 0 }}>
               <ChakraLink

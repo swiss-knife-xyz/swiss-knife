@@ -28,24 +28,22 @@ export const getPath = (subdomain: string, isRelativePath: boolean = false) => {
   if (subdomain.length === 0) {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? "/"
-      : "https://swiss-knife.xyz/";
+      : "https://eth.sh/";
   }
 
   if (isRelativePath) {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? `/${subdomain}/`
-      : `https://swiss-knife.xyz/${subdomain}/`;
+      : `https://eth.sh/${subdomain}/`;
   } else {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? `/${subdomain}/`
-      : `https://${subdomain}.swiss-knife.xyz/`;
+      : `https://${subdomain}.eth.sh/`;
   }
 };
 
 export const apiBasePath =
-  process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-    ? ""
-    : "https://swiss-knife.xyz";
+  process.env.NEXT_PUBLIC_DEVELOPMENT === "true" ? "" : "https://eth.sh";
 
 export const getMetadata = (_metadata: {
   title: string;
@@ -56,7 +54,7 @@ export const getMetadata = (_metadata: {
     metadataBase: new URL(
       process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
         ? "http://localhost:3000"
-        : "https://swiss-knife.xyz"
+        : "https://eth.sh"
     ),
     title: _metadata.title,
     description: _metadata.description,

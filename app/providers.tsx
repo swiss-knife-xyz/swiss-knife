@@ -30,7 +30,7 @@ import {
 import { walletChains } from "@/data/chains";
 export { walletChains };
 
-const appName = "Swiss-Knife.xyz";
+const appName = "ETH.sh";
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;
 
 // Create a global variable to store the modal opener function

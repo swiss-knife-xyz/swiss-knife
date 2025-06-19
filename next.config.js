@@ -21,16 +21,28 @@ const nextConfig = {
           destination: "/icon.png",
         },
         // set up subdomains
-        ...Object.values(subdomains).map((subdomain) => ({
-          source: "/:path((?!_next|chainIcons|external|icon.png).*)", // Exclude chainIcons and external from subdomain rewrites
-          has: [
-            {
-              type: "host",
-              value: `${subdomain.base}.swiss-knife.xyz`,
-            },
-          ],
-          destination: `/${subdomain.base}/:path*`,
-        })),
+        ...Object.values(subdomains).flatMap((subdomain) => [
+          {
+            source: "/", // when path is empty
+            has: [
+              {
+                type: "host",
+                value: `${subdomain.base}.eth.sh`,
+              },
+            ],
+            destination: `/${subdomain.base}`,
+          },
+          {
+            source: "/:path((?!_next|chainIcons|external|icon.png).*)", // Exclude chainIcons and external from subdomain rewrites
+            has: [
+              {
+                type: "host",
+                value: `${subdomain.base}.eth.sh`,
+              },
+            ],
+            destination: `/${subdomain.base}/:path*`,
+          },
+        ]),
       ],
     };
   },

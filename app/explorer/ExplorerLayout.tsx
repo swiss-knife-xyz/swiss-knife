@@ -162,9 +162,7 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
     try {
       const res = await axios.get(
         `${
-          process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-            ? ""
-            : "https://swiss-knife.xyz"
+          process.env.NEXT_PUBLIC_DEVELOPMENT === "true" ? "" : "https://eth.sh"
         }/api/labels/${userInput}`
       );
       const data = res.data;

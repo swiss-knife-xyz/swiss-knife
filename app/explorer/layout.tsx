@@ -2,10 +2,10 @@ import { getMetadata } from "@/utils";
 import { ExplorerLayout as ExplorerLayoutC } from "./ExplorerLayout";
 
 export const metadata = getMetadata({
-  title: "Explorer | Swiss-Knife.xyz",
+  title: "Explorer | ETH.sh",
   description:
     "Quickly view any address/ens or transaction across ALL EVM explorers, in just a click!",
-  images: "https://swiss-knife.xyz/og/explorer.png",
+  images: "https://eth.sh/og/explorer.png",
 });
 
 const ExplorerLayout = ({ children }: { children: React.ReactNode }) => {

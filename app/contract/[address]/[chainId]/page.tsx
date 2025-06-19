@@ -14,7 +14,7 @@ interface PageProps {
 export async function generateMetadata({
   params: { address, chainId },
 }: PageProps): Promise<Metadata> {
-  let title = `Contract ${address} | Swiss-Knife.xyz`;
+  let title = `Contract ${address} | ETH.sh`;
 
   // add contract name to the title if possible
   let contractName = undefined as string | undefined;
@@ -27,7 +27,7 @@ export async function generateMetadata({
   } catch {}
 
   if (contractName) {
-    title = `${contractName} - ${address} | Swiss-Knife.xyz`;
+    title = `${contractName} - ${address} | ETH.sh`;
   }
 
   const layoutMetadata = await layoutGenerateMetadata({ params: { address } });
