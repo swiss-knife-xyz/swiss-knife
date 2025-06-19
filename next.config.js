@@ -23,16 +23,6 @@ const nextConfig = {
         // set up subdomains
         ...Object.values(subdomains).flatMap((subdomain) => [
           {
-            source: "/", // when path is empty
-            has: [
-              {
-                type: "host",
-                value: `${subdomain.base}.eth.sh`,
-              },
-            ],
-            destination: `/${subdomain.base}`,
-          },
-          {
             source: "/:path((?!_next|chainIcons|external|icon.png).*)", // Exclude chainIcons and external from subdomain rewrites
             has: [
               {
