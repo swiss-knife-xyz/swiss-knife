@@ -331,6 +331,12 @@ const dapps: SupportedApp[] = [
     supportedChainIds: [mainnet.id, optimism.id], // TODO: Polygon and Arbitrum
   },
   {
+    name: "PancakeSwap",
+    logoUrl: getFaviconUrl("https://pancakeswap.finance/"),
+    siteUrl: "https://pancakeswap.finance/",
+    supportedChainIds: [mainnet.id, base.id, bsc.id],
+  },
+  {
     name: "PWN",
     logoUrl: getFaviconUrl("https://app.pwn.xyz/"),
     siteUrl: "https://app.pwn.xyz/",
