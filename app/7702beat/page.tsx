@@ -464,6 +464,13 @@ const shameWallets: SupportedApp[] = [
     supportedChainIds: [], // Empty since they don't support 7702
     twitterHandle: "rainbowdotme",
   },
+  {
+    name: "Frame Wallet",
+    logoUrl: getFaviconUrl("https://frame.sh/"),
+    siteUrl: "https://frame.sh/",
+    supportedChainIds: [], // Empty since they don't support 7702
+    twitterHandle: "0xframe",
+  },
 ];
 
 const shameDapps: SupportedApp[] = [
