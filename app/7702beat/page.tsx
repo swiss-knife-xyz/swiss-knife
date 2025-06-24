@@ -312,6 +312,12 @@ const dapps: SupportedApp[] = [
     ],
   },
   {
+    name: "Lido",
+    logoUrl: getFaviconUrl("https://stake.lido.fi/"),
+    siteUrl: "https://stake.lido.fi/",
+    supportedChainIds: [mainnet.id],
+  },
+  {
     name: "LlamaSwap",
     logoUrl: getFaviconUrl("https://swap.defillama.com/"),
     siteUrl: "https://swap.defillama.com/",
@@ -324,12 +330,6 @@ const dapps: SupportedApp[] = [
       optimism.id,
       unichain.id,
     ],
-  },
-  {
-    name: "Lido",
-    logoUrl: getFaviconUrl("https://stake.lido.fi/"),
-    siteUrl: "https://stake.lido.fi/",
-    supportedChainIds: [mainnet.id],
   },
   {
     name: "Matcha",
