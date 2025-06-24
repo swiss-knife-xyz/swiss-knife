@@ -244,7 +244,13 @@ const dapps: SupportedApp[] = [
     name: "Cabana",
     logoUrl: getFaviconUrl("https://app.cabana.fi/"),
     siteUrl: "https://app.cabana.fi/",
-    supportedChainIds: [mainnet.id, base.id, gnosis.id, optimism.id],
+    supportedChainIds: [
+      mainnet.id,
+      arbitrum.id,
+      base.id,
+      gnosis.id,
+      optimism.id,
+    ],
   },
   {
     name: "Ekubo",
@@ -286,7 +292,7 @@ const dapps: SupportedApp[] = [
     name: "Fluid",
     logoUrl: getFaviconUrl("https://fluid.io"),
     siteUrl: "https://fluid.io",
-    supportedChainIds: [mainnet.id, base.id],
+    supportedChainIds: [mainnet.id, arbitrum.id, base.id],
   },
   {
     name: "Jumper",
@@ -295,12 +301,27 @@ const dapps: SupportedApp[] = [
     siteUrl: "https://jumper.exchange/",
     supportedChainIds: [
       mainnet.id,
+      arbitrum.id,
       base.id,
       bsc.id,
       gnosis.id,
       ink.id,
       optimism.id,
       // polygon.id,
+      unichain.id,
+    ],
+  },
+  {
+    name: "LlamaSwap",
+    logoUrl: getFaviconUrl("https://swap.defillama.com/"),
+    siteUrl: "https://swap.defillama.com/",
+    supportedChainIds: [
+      mainnet.id,
+      arbitrum.id,
+      base.id,
+      bsc.id,
+      gnosis.id,
+      optimism.id,
       unichain.id,
     ],
   },
@@ -316,6 +337,7 @@ const dapps: SupportedApp[] = [
     siteUrl: "https://matcha.xyz/",
     supportedChainIds: [
       mainnet.id,
+      arbitrum.id,
       base.id,
       bsc.id,
       gnosis.id,
@@ -328,13 +350,13 @@ const dapps: SupportedApp[] = [
     name: "Militereum",
     logoUrl: getFaviconUrl("https://militereum.com/"),
     siteUrl: "https://militereum.com/",
-    supportedChainIds: [mainnet.id, optimism.id], // TODO: Polygon and Arbitrum
+    supportedChainIds: [mainnet.id, arbitrum.id, optimism.id], // TODO: Polygon
   },
   {
     name: "PancakeSwap",
     logoUrl: getFaviconUrl("https://pancakeswap.finance/"),
     siteUrl: "https://pancakeswap.finance/",
-    supportedChainIds: [mainnet.id, base.id, bsc.id],
+    supportedChainIds: [mainnet.id, arbitrum.id, base.id, bsc.id],
   },
   {
     name: "PWN",
@@ -342,6 +364,7 @@ const dapps: SupportedApp[] = [
     siteUrl: "https://app.pwn.xyz/",
     supportedChainIds: [
       mainnet.id,
+      arbitrum.id,
       base.id,
       gnosis.id,
       ink.id,
@@ -355,6 +378,7 @@ const dapps: SupportedApp[] = [
     siteUrl: "https://relay.link/bridge",
     supportedChainIds: [
       mainnet.id,
+      arbitrum.id,
       base.id,
       bsc.id,
       gnosis.id,
@@ -392,7 +416,14 @@ const dapps: SupportedApp[] = [
     name: "Spark",
     logoUrl: getFaviconUrl("https://spark.fi/"),
     siteUrl: "https://spark.fi/",
-    supportedChainIds: [mainnet.id, base.id, gnosis.id],
+    supportedChainIds: [
+      mainnet.id,
+      arbitrum.id,
+      base.id,
+      gnosis.id,
+      optimism.id,
+      unichain.id,
+    ],
   },
   {
     name: "Uniswap",
@@ -400,6 +431,7 @@ const dapps: SupportedApp[] = [
     siteUrl: "https://app.uniswap.org/",
     supportedChainIds: [
       mainnet.id,
+      arbitrum.id,
       base.id,
       bsc.id,
       optimism.id,
@@ -431,9 +463,8 @@ const dapps: SupportedApp[] = [
   },
   {
     name: "ZAMM",
-    logoUrl:
-      "https://pbs.twimg.com/profile_images/1923055014492209152/YBAwv6wp_400x400.jpg",
-    siteUrl: "https://coin.nani.ooo/",
+    logoUrl: "https://www.zamm.finance/zamm-logo.svg",
+    siteUrl: "https://www.zamm.finance/",
     supportedChainIds: [mainnet.id],
   },
 ];
