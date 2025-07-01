@@ -134,13 +134,13 @@ const chains: Chain[] = [
     abbreviation: "OP",
     chainObj: optimism,
   },
-  // {
-  //   id: polygon.id,
-  //   name: "Polygon",
-  //   color: "purple.500",
-  //   abbreviation: "POL",
-  //   chainObj: polygon,
-  // },
+  {
+    id: polygon.id,
+    name: "Polygon",
+    color: "purple.500",
+    abbreviation: "POL",
+    chainObj: polygon,
+  },
   {
     id: unichain.id,
     name: "UniChain",
@@ -307,7 +307,7 @@ const dapps: SupportedApp[] = [
       gnosis.id,
       ink.id,
       optimism.id,
-      // polygon.id,
+      polygon.id,
       unichain.id,
     ],
   },
@@ -342,7 +342,7 @@ const dapps: SupportedApp[] = [
       bsc.id,
       gnosis.id,
       optimism.id,
-      // polygon.id,
+      polygon.id,
       unichain.id,
     ],
   },
@@ -350,7 +350,7 @@ const dapps: SupportedApp[] = [
     name: "Militereum",
     logoUrl: getFaviconUrl("https://militereum.com/"),
     siteUrl: "https://militereum.com/",
-    supportedChainIds: [mainnet.id, arbitrum.id, optimism.id], // TODO: Polygon
+    supportedChainIds: [mainnet.id, arbitrum.id, optimism.id, polygon.id],
   },
   {
     name: "PancakeSwap",
@@ -384,7 +384,7 @@ const dapps: SupportedApp[] = [
       gnosis.id,
       ink.id,
       optimism.id,
-      // polygon.id,
+      polygon.id,
       unichain.id,
     ],
   },
@@ -407,10 +407,10 @@ const dapps: SupportedApp[] = [
       gnosis.id,
       ink.id,
       optimism.id,
-      // polygon.id,
+      polygon.id,
       unichain.id,
     ],
-    filterSupportsAllChains: true, // Was allChains: true
+    filterSupportsAllChains: true,
   },
   {
     name: "Spark",
@@ -435,7 +435,7 @@ const dapps: SupportedApp[] = [
       base.id,
       bsc.id,
       optimism.id,
-      // polygon.id,
+      polygon.id,
       unichain.id,
     ],
   },
@@ -470,15 +470,7 @@ const dapps: SupportedApp[] = [
 ];
 
 // Wall of Shame data
-const shameChains: SupportedApp[] = [
-  {
-    name: "Polygon",
-    logoUrl: getFaviconUrl("https://polygon.technology/"),
-    siteUrl: "https://polygon.technology/",
-    supportedChainIds: [], // Empty since they don't support 7702
-    twitterHandle: "0xPolygon",
-  },
-];
+const shameChains: SupportedApp[] = [];
 
 const shameWallets: SupportedApp[] = [
   {
