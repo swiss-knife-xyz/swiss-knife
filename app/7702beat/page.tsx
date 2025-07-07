@@ -467,6 +467,12 @@ const dapps: SupportedApp[] = [
     siteUrl: "https://www.zamm.finance/",
     supportedChainIds: [mainnet.id],
   },
+  {
+    name: "Fundable Finance",
+    logoUrl: getFaviconUrl("https://evm.fundable.finance"),
+    siteUrl: "https://evm.fundable.finance",
+    supportedChainIds: [base.id, bsc.id, arbitrum.id]
+  }
 ];
 
 // Wall of Shame data
