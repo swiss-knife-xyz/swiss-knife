@@ -226,7 +226,7 @@ export default function WalletSignatures() {
         )}signatures/view?payload=${payloadParam}`;
         if (preservedParams.toString()) {
           let returnParam = preservedParams.toString();
-          if (returnParam.length > 1500) {
+          if (returnParam.length > 4000) {
             const returnKey = `swissknife_ret_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
             sessionStorage.setItem(returnKey, JSON.stringify({ returnParams: returnParam }));
             returnParam = returnKey;
