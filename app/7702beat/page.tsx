@@ -46,6 +46,12 @@ import {
 } from "wagmi/chains";
 import { chainIdToImage } from "@/data/common";
 
+const katana = {
+  id: 747474,
+  iconUrl: "https://katana.network/meta/favicon-96x96.png",
+  iconBackground: "blue.400",
+};
+
 interface Chain {
   id: number;
   name: string;
@@ -126,6 +132,13 @@ const chains: Chain[] = [
     color: "purple.400",
     abbreviation: "INK",
     chainObj: ink,
+  },
+  {
+    id: katana.id,
+    name: "Katana",
+    color: "yellow.400",
+    abbreviation: "KATANA",
+    chainObj: katana,
   },
   {
     id: optimism.id,
@@ -222,6 +235,26 @@ const wallets: SupportedApp[] = [
     },
   },
   {
+    name: "Bitget",
+    logoUrl: getFaviconUrl("https://web3.bitget.com/en"),
+    siteUrl: "https://web3.bitget.com/en",
+    // source: https://web3.bitget.com/en/assets
+    supportedChainIds: [
+      mainnet.id,
+      arbitrum.id,
+      base.id,
+      berachain.id,
+      bsc.id,
+      optimism.id,
+      polygon.id,
+      unichain.id,
+    ],
+    announcement: {
+      epochTimestamp: 1746627300,
+      tweet: "https://x.com/BitgetWallet/status/1920120423293083832",
+    },
+  },
+  {
     name: "Uniswap Wallet",
     logoUrl: getFaviconUrl("https://wallet.uniswap.org/"),
     siteUrl: "https://wallet.uniswap.org//",
@@ -239,6 +272,23 @@ const dapps: SupportedApp[] = [
     logoUrl: getFaviconUrl("https://askgina.ai/"),
     siteUrl: "https://askgina.ai/",
     supportedChainIds: [mainnet.id, base.id, bsc.id, optimism.id],
+  },
+  {
+    name: "Bungee",
+    logoUrl: getFaviconUrl("https://www.bungee.exchange/"),
+    siteUrl: "https://www.bungee.exchange/",
+    supportedChainIds: [
+      mainnet.id,
+      arbitrum.id,
+      base.id,
+      berachain.id,
+      bsc.id,
+      gnosis.id,
+      ink.id,
+      optimism.id,
+      polygon.id,
+      unichain.id,
+    ],
   },
   {
     name: "Cabana",
@@ -293,6 +343,12 @@ const dapps: SupportedApp[] = [
     logoUrl: getFaviconUrl("https://fluid.io"),
     siteUrl: "https://fluid.io",
     supportedChainIds: [mainnet.id, arbitrum.id, base.id],
+  },
+  {
+    name: "Fundable",
+    logoUrl: "https://evm.fundable.finance/favicon_io/favicon.ico",
+    siteUrl: "https://evm.fundable.finance",
+    supportedChainIds: [arbitrum.id, base.id, bsc.id, optimism.id],
   },
   {
     name: "Jumper",
@@ -1310,6 +1366,18 @@ const SevenSevenZeroTwoBeat = () => {
                       </Table>
                     </Box>
                   )}
+                  <HStack>
+                    <Text fontSize={{ base: "sm", md: "md" }} color="red.400">
+                      *
+                    </Text>
+                    <Text
+                      fontSize={{ base: "sm", md: "md" }}
+                      color="whiteAlpha.800"
+                    >
+                      Hardware wallets like Ledger and Trezor don't support 7702
+                      at the moment
+                    </Text>
+                  </HStack>
                 </Box>
 
                 <Box width="100%" maxW="100%" overflowX="hidden">
