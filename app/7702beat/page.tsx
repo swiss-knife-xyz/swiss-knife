@@ -537,6 +537,13 @@ const shameWallets: SupportedApp[] = [
     twitterHandle: "rabby_io",
   },
   {
+    name: "Phantom",
+    logoUrl: getFaviconUrl("https://phantom.com/"),
+    siteUrl: "https://phantom.com/",
+    supportedChainIds: [], // Empty since they don't support 7702
+    twitterHandle: "phantom",
+  },
+  {
     name: "Rainbow Wallet",
     logoUrl: getFaviconUrl("https://rainbow.me"),
     siteUrl: "https://rainbow.me/",
