@@ -275,8 +275,8 @@ const dapps: SupportedApp[] = [
   },
   {
     name: "Bungee",
-    logoUrl: getFaviconUrl("https://www.bungee.exchange/"),
-    siteUrl: "https://www.bungee.exchange/",
+    logoUrl: getFaviconUrl("https://bungee.exchange/"),
+    siteUrl: "https://bungee.exchange/",
     supportedChainIds: [
       mainnet.id,
       arbitrum.id,
@@ -1366,16 +1366,15 @@ const SevenSevenZeroTwoBeat = () => {
                       </Table>
                     </Box>
                   )}
-                  <HStack>
-                    <Text fontSize={{ base: "sm", md: "md" }} color="red.400">
-                      *
-                    </Text>
-                    <Text
-                      fontSize={{ base: "sm", md: "md" }}
-                      color="whiteAlpha.800"
-                    >
-                      Hardware wallets like Ledger and Trezor don't support 7702
-                      at the moment
+                  <HStack
+                    mt={{ base: 0, md: 4 }}
+                    fontSize={{ base: "xs", md: "sm" }}
+                  >
+                    <Text color="red.400">*</Text>
+                    <Text color="whiteAlpha.600">
+                      {
+                        "Hardware wallets like Ledger and Trezor don't support 7702 at the moment"
+                      }
                     </Text>
                   </HStack>
                 </Box>
@@ -1524,20 +1523,23 @@ const SevenSevenZeroTwoBeat = () => {
                   width="100%"
                   maxW="100%"
                 >
-                  <Box width="100%" maxW="100%" overflowX="hidden">
-                    <Heading
-                      size={{ base: "md", md: "lg" }}
-                      mb={5}
-                      color="white"
-                    >
-                      Chains
-                    </Heading>
-                    <VStack spacing={4} align="stretch">
-                      {shameChains.map((chain, idx) => (
-                        <ShameAppCard key={idx} app={chain} isChain />
-                      ))}
-                    </VStack>
-                  </Box>
+                  {shameChains.length > 0 && (
+                    <Box width="100%" maxW="100%" overflowX="hidden">
+                      <Heading
+                        size={{ base: "md", md: "lg" }}
+                        mb={5}
+                        color="white"
+                      >
+                        Chains
+                      </Heading>
+
+                      <VStack spacing={4} align="stretch">
+                        {shameChains.map((chain, idx) => (
+                          <ShameAppCard key={idx} app={chain} isChain />
+                        ))}
+                      </VStack>
+                    </Box>
+                  )}
 
                   <Box width="100%" maxW="100%" overflowX="hidden">
                     <Heading
