@@ -76,8 +76,9 @@ const SendTx = () => {
     "chainId",
     parseAsInteger.withDefault(1)
   );
-  const [chainIdFromURLOnLoad, setChainIdFromURLOnLoad] =
-    useState<number>(chainId);
+  const [chainIdFromURLOnLoad, setChainIdFromURLOnLoad] = useState<
+    number | undefined
+  >(undefined);
 
   const [selectedEthFormatOption, setSelectedEthFormatOption] =
     useState<ETHSelectedOptionState>({
@@ -91,6 +92,13 @@ const SendTx = () => {
   const [isDecodeModalOpen, setIsDecodeModalOpen] = useState(false);
   const [isDecoding, setIsDecoding] = useState(false);
   const [decoded, setDecoded] = useState<any>();
+
+  useEffect(() => {
+    const chainIdFromURL = searchParams.get("chainId");
+    if (chainIdFromURL) {
+      setChainIdFromURLOnLoad(chainId);
+    }
+  }, [chainId, searchParams]);
 
   useEffect(() => {
     if (chain && chainIdFromURLOnLoad && chain.id !== chainIdFromURLOnLoad) {
@@ -115,17 +123,21 @@ const SendTx = () => {
           onChainIdMatched();
         }
       } else {
-        setChainId(chain.id);
+        // Only update chainId in URL if it's not already set from URL
+        const chainIdFromURL = searchParams.get("chainId");
+        if (!chainIdFromURL) {
+          setChainId(chain.id);
+        }
       }
     }
-  }, [chain]);
+  }, [chain, searchParams]);
 
   const onChainIdMatched = () => {
     if (toastIdRef.current) {
       toast.close(toastIdRef.current);
     }
     setChainIdMismatch(false);
-    setChainIdFromURLOnLoad(0);
+    setChainIdFromURLOnLoad(undefined);
   };
 
   const resolveAddress = async (addressOrEns: string) => {
