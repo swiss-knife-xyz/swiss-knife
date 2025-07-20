@@ -79,6 +79,8 @@ const SendTx = () => {
   const [chainIdFromURLOnLoad, setChainIdFromURLOnLoad] = useState<
     number | undefined
   >(undefined);
+  const [hasEverMatchedUrlChain, setHasEverMatchedUrlChain] = useState(false);
+  const [isUrlParsed, setIsUrlParsed] = useState(false);
 
   const [selectedEthFormatOption, setSelectedEthFormatOption] =
     useState<ETHSelectedOptionState>({
@@ -96,15 +98,43 @@ const SendTx = () => {
   useEffect(() => {
     const chainIdFromURL = searchParams.get("chainId");
     if (chainIdFromURL) {
-      setChainIdFromURLOnLoad(chainId);
+      setChainIdFromURLOnLoad(parseInt(chainIdFromURL));
+      setHasEverMatchedUrlChain(false); // Reset flag for new URL requirement
+    } else {
+      // No chainId in URL - clear all restrictions
+      setChainIdFromURLOnLoad(undefined);
+      setHasEverMatchedUrlChain(true);
+      setChainIdMismatch(false);
     }
-  }, [chainId, searchParams]);
+    setIsUrlParsed(true); // Mark URL parsing as complete
+  }, [searchParams]);
 
   useEffect(() => {
-    if (chain && chainIdFromURLOnLoad && chain.id !== chainIdFromURLOnLoad) {
+    if (
+      chain &&
+      chainIdFromURLOnLoad &&
+      chain.id !== chainIdFromURLOnLoad &&
+      !hasEverMatchedUrlChain
+    ) {
       toastIdRef.current = toast({
         title: "Wallet's Network should match the chainId passed via URL",
-        description: `Switch network to ${chainIdToChain[chainIdFromURLOnLoad]?.name} to continue`,
+        description: (
+          <VStack spacing={2} align="start">
+            <Text fontSize="sm" color="gray.800">
+              Switch to{" "}
+              <Text as="span" fontWeight="bold" color="gray.900">
+                {chainIdToChain[chainIdFromURLOnLoad]?.name}
+              </Text>{" "}
+              to continue
+            </Text>
+            <DarkButton
+              size="sm"
+              onClick={() => switchChain({ chainId: chainIdFromURLOnLoad })}
+            >
+              Switch Network
+            </DarkButton>
+          </VStack>
+        ),
         status: "error",
         position: "bottom-right",
         duration: null,
@@ -112,24 +142,32 @@ const SendTx = () => {
       });
 
       setChainIdMismatch(true);
-      switchChain({ chainId: chainIdFromURLOnLoad });
     }
-  }, [chainIdFromURLOnLoad, switchChain]);
+  }, [chain, chainIdFromURLOnLoad, switchChain, hasEverMatchedUrlChain]);
 
   useEffect(() => {
-    if (chain) {
+    if (chain && isUrlParsed) {
       if (chainIdFromURLOnLoad) {
         if (chain.id === chainIdFromURLOnLoad) {
           onChainIdMatched();
-        }
-      } else {
-        const chainIdFromURL = searchParams.get("chainId");
-        if (!chainIdFromURL) {
+        } else if (hasEverMatchedUrlChain) {
+          // User has satisfied URL requirement and is now free to switch chains
+          setChainIdMismatch(false);
           setChainId(chain.id);
         }
+        // Don't update URL when there's a pending requirement and user hasn't matched yet
+      } else {
+        // In normal mode, always sync URL with wallet chain
+        setChainId(chain.id);
       }
     }
-  }, [chain, searchParams]);
+  }, [
+    chain,
+    searchParams,
+    chainIdFromURLOnLoad,
+    hasEverMatchedUrlChain,
+    isUrlParsed,
+  ]);
 
   const onChainIdMatched = () => {
     if (toastIdRef.current) {
@@ -137,6 +175,7 @@ const SendTx = () => {
     }
     setChainIdMismatch(false);
     setChainIdFromURLOnLoad(undefined);
+    setHasEverMatchedUrlChain(true);
   };
 
   const resolveAddress = async (addressOrEns: string) => {
