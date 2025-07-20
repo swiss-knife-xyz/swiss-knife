@@ -123,7 +123,6 @@ const SendTx = () => {
           onChainIdMatched();
         }
       } else {
-        // Only update chainId in URL if it's not already set from URL
         const chainIdFromURL = searchParams.get("chainId");
         if (!chainIdFromURL) {
           setChainId(chain.id);
