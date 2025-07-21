@@ -44,7 +44,13 @@ import {
   polygon,
   unichain,
 } from "wagmi/chains";
+import { useAccount, usePublicClient, useSendCalls } from "wagmi";
+import { type UseClientParameters } from "wagmi";
+import { ConnectButton } from "@/components/ConnectButton";
 import { chainIdToImage } from "@/data/common";
+import axios from "axios";
+import { Address, erc20Abi, parseEther } from "viem";
+import { fetchContractAbi } from "@/utils";
 
 const katana = {
   id: 747474,
@@ -1005,6 +1011,8 @@ const SevenSevenZeroTwoBeat = () => {
   const isMobile = useBreakpointValue({ base: true, lg: false });
   const [selectedChain, setSelectedChain] = useState<Chain | null>(null);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [authData, setAuthData] = useState<string | null>(null);
+  const [addressLabels, setAddressLabels] = useState<string[]>([]);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -1063,6 +1071,58 @@ const SevenSevenZeroTwoBeat = () => {
   const filteredDapps = selectedChain
     ? dapps.filter((dapp) => supportsChain(dapp, selectedChain))
     : dapps;
+
+  const client = usePublicClient();
+  const { address } = useAccount();
+  const { sendCalls } = useSendCalls();
+
+  useEffect(() => {
+    if (!client || !address) {
+      setAuthData(null);
+      return;
+    }
+    (async () => {
+      const newCode = await client.getCode({
+        address,
+      });
+      if (newCode) {
+        const is7702Enabled = newCode.startsWith("0xef0100");
+        console.log({ is7702Enabled });
+        if (is7702Enabled) {
+          const auth = `0x${newCode.split("0xef0100")[1]}`;
+          console.log({ auth });
+          setAuthData(auth);
+        }
+      }
+    })();
+  }, [client, address]);
+
+  const fetchSetAddressLabels = useCallback(async () => {
+    setAddressLabels([]);
+    try {
+      const res = await axios.get(
+        `${
+          process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+            ? ""
+            : "https://swiss-knife.xyz"
+        }/api/labels/${address}`
+      );
+      const data = res.data;
+      if (data.length > 0) {
+        setAddressLabels(data);
+      }
+    } catch {
+      setAddressLabels([]);
+    }
+  }, [address]);
+
+  const skeletonAddress = "0x1111222233334444000000000000000000000000";
+
+  useEffect(() => {
+    if (address !== skeletonAddress) {
+      fetchSetAddressLabels();
+    }
+  }, [address, fetchSetAddressLabels]);
 
   return (
     <Layout>
@@ -1163,6 +1223,14 @@ const SevenSevenZeroTwoBeat = () => {
                 px={{ base: 3, md: 4 }}
               >
                 😡 Wall of Shame
+              </Tab>
+              <Tab
+                color="whiteAlpha.700"
+                _selected={{ color: "white", bg: "whiteAlpha.200" }}
+                fontSize={{ base: "sm", md: "md" }}
+                px={{ base: 3, md: 4 }}
+              >
+                🔨 Tools
               </Tab>
             </TabList>
 
@@ -1571,6 +1639,76 @@ const SevenSevenZeroTwoBeat = () => {
                     </VStack>
                   </Box>
                 </VStack>
+              </TabPanel>
+
+              <TabPanel
+                px={{ base: 4, md: 6 }}
+                width="100%"
+                maxW="100%"
+                overflowX="hidden"
+              >
+                {/* Tools Content */}
+
+                <ConnectButton />
+                <Box>
+                  <Text
+                    fontSize={{ base: "md", md: "lg" }}
+                    color="whiteAlpha.700"
+                    mb={2}
+                  >
+                    {authData ? (
+                      `Auth Address: ${authData}`
+                    ) : (
+                      <VStack align="start" spacing={3} mt={2}>
+                        <Text
+                          fontSize={{ base: "md", md: "lg" }}
+                          color="whiteAlpha.700"
+                        >
+                          Not 7702
+                        </Text>
+                        <Button
+                          onClick={() => {
+                            if (!address) return;
+                            sendCalls({
+                              calls: [
+                                {
+                                  to: address,
+                                  value: parseEther("0"),
+                                },
+                                {
+                                  // data: "0x",
+                                  to: address,
+                                },
+                              ],
+                            });
+                          }}
+                          colorScheme="green"
+                          size="sm"
+                          isDisabled={!address}
+                        >
+                          Upgrade Account
+                        </Button>
+                      </VStack>
+                    )}
+                  </Text>
+                  {addressLabels.length > 0 && (
+                    <HStack py="2">
+                      <Text fontSize={"xs"} opacity={0.6}>
+                        Tags:{" "}
+                      </Text>
+                      {addressLabels.map((label, index) => (
+                        <Tag
+                          key={index}
+                          size="sm"
+                          variant="solid"
+                          colorScheme="blue"
+                        >
+                          {label}
+                        </Tag>
+                      ))}
+                    </HStack>
+                  )}
+                </Box>
               </TabPanel>
             </TabPanels>
           </Tabs>
