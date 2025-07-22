@@ -19,6 +19,7 @@ import {
   Alert,
   AlertIcon,
   HStack,
+  Link,
 } from "@chakra-ui/react";
 import { Global } from "@emotion/react";
 import frameSdk, { Context } from "@farcaster/frame-sdk";
@@ -719,14 +720,14 @@ export default function DSProxyPage() {
                         <Text>
                           Transactions will be executed via {"DeFiSaver's "}
                         </Text>
-                        <Text
-                          as="a"
+                        <Link
                           href="https://github.com/defisaver/defisaver-v3-contracts/blob/main/contracts/actions/utils/ExecuteCall.sol"
+                          isExternal
                           textDecoration="underline"
                           display="inline"
                         >
                           ExecuteCall contract
-                        </Text>
+                        </Link>
                       </HStack>
                     </VStack>
                   </Box>
