@@ -729,6 +729,20 @@ export default function DSProxyPage() {
                           ExecuteCall contract
                         </Link>
                       </HStack>
+
+                      {executorAddress && (
+                        <HStack spacing={2} fontSize="xs">
+                          <Text>Executor address:</Text>
+                          <Link
+                            fontFamily="mono"
+                            color="blue.300"
+                            isExternal
+                            href={`${chainIdToChain[chainId].blockExplorers?.default.url}/address/${executorAddress}`}
+                          >
+                            {executorAddress}
+                          </Link>
+                        </HStack>
+                      )}
                     </VStack>
                   </Box>
                 )}
