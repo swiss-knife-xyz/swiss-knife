@@ -14,24 +14,27 @@ import {
   Skeleton,
   SkeletonText,
   Stack,
-  Button,
-  Center,
   FormControl,
-  FormLabel,
   Input,
   Alert,
   AlertIcon,
+  HStack,
 } from "@chakra-ui/react";
 import { Global } from "@emotion/react";
 import frameSdk, { Context } from "@farcaster/frame-sdk";
-import { useAccount, useWalletClient, useChainId, useSwitchChain } from "wagmi";
-import { base } from "viem/chains";
+import {
+  useAccount,
+  useWalletClient,
+  useChainId,
+  useSwitchChain,
+  usePublicClient,
+} from "wagmi";
+import { arbitrum, base, baseSepolia, mainnet, optimism } from "viem/chains";
 import { buildApprovedNamespaces } from "@walletconnect/utils";
 import { ConnectButton } from "@/components/ConnectButton/ConnectButton";
 import { walletChains } from "@/app/providers";
-import { chainIdToChain, c } from "@/data/common";
-import { DarkSelect } from "@/components/DarkSelect";
-import { SelectedOptionState } from "@/types";
+import { chainIdToChain } from "@/data/common";
+import { Address, isAddress } from "viem";
 
 // Import types
 import {
@@ -52,19 +55,31 @@ import { filterActiveSessions } from "../bridge/utils";
 // Import our custom DS Proxy components
 import DSProxySessionRequestModal from "./components/DSProxySessionRequestModal";
 import DSProxyWalletKitEventHandler from "./components/DSProxyWalletKitEventHandler";
+import { InfoIcon } from "@chakra-ui/icons";
 
-// Create network options for the chain dropdown
-const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
-  (k, i) => ({
-    label: c[k].name,
-    value: c[k].id,
-  })
-);
+// Executor addresses mapping by chainId
+const EXECUTOR_ADDRESSES: Record<number, Address> = {
+  [mainnet.id]: "0x538eda025a8be6ff8fc1fe6050ba3aafb7620608",
+  [arbitrum.id]: "0x15e98867e2df679445e4bb90f108ad2928d14397",
+  [base.id]: "0x232c43c354dbebb75c1ed0d9a3fddde5d630e335",
+  [baseSepolia.id]: "0x0D7A8Be0d74d3B98cc86c99e27b340697336C1f4",
+  [optimism.id]: "0xfd5ac928aac40d490bcf1a83038d58aa90ea39a7",
+};
+
+// Get supported chain names for display
+const getSupportedChains = (): string[] => {
+  return Object.keys(EXECUTOR_ADDRESSES).map((chainIdStr) => {
+    const chainId = parseInt(chainIdStr);
+    const chain = chainIdToChain[chainId];
+    return chain ? chain.name : `Chain ${chainId}`;
+  });
+};
 
 export default function DSProxyPage() {
   const toast = useToast();
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
 
@@ -73,15 +88,23 @@ export default function DSProxyPage() {
     "dsProxyAddress",
     ""
   );
-  const [selectedChain, setSelectedChain] =
-    useLocalStorage<SelectedOptionState>(
-      "dsProxySelectedChain",
-      networkOptions[0]
-    );
-  const [executorAddress, setExecutorAddress] = useLocalStorage<string>(
-    "dsProxyExecutorAddress",
-    ""
-  );
+
+  // Add validation states
+  const [dsProxyValidation, setDsProxyValidation] = useState<{
+    isValidating: boolean;
+    isContract: boolean | null;
+    isOwner: boolean | null;
+    error: string | null;
+  }>({
+    isValidating: false,
+    isContract: null,
+    isOwner: null,
+    error: null,
+  });
+
+  // Get executor address for current chain
+  const executorAddress = EXECUTOR_ADDRESSES[chainId];
+  const isChainSupported = !!executorAddress;
 
   // State for Frame
   const [isFrameSDKLoaded, setIsFrameSDKLoaded] = useState(false);
@@ -133,10 +156,113 @@ export default function DSProxyPage() {
   const isConfigurationValid = (): boolean => {
     return (
       dsProxyAddress.trim() !== "" &&
-      executorAddress.trim() !== "" &&
-      selectedChain?.value != null
+      isChainSupported &&
+      dsProxyValidation.isContract === true &&
+      dsProxyValidation.isOwner === true &&
+      !dsProxyValidation.isValidating
     );
   };
+
+  // Validate DS Proxy address
+  const validateDsProxyAddress = useCallback(
+    async (proxyAddress: string) => {
+      if (
+        !proxyAddress.trim() ||
+        !isAddress(proxyAddress) ||
+        !publicClient ||
+        !address
+      ) {
+        setDsProxyValidation({
+          isValidating: false,
+          isContract: null,
+          isOwner: null,
+          error: null,
+        });
+        return;
+      }
+
+      setDsProxyValidation({
+        isValidating: true,
+        isContract: null,
+        isOwner: null,
+        error: null,
+      });
+
+      try {
+        // Check if the address is a contract
+        const bytecode = await publicClient.getBytecode({
+          address: proxyAddress as Address,
+        });
+
+        if (!bytecode || bytecode === "0x") {
+          setDsProxyValidation({
+            isValidating: false,
+            isContract: false,
+            isOwner: null,
+            error: "Invalid DSProxy address - not a contract",
+          });
+          return;
+        }
+
+        // Check if the connected wallet is the owner
+        try {
+          const owner = await publicClient.readContract({
+            address: proxyAddress as Address,
+            abi: [
+              {
+                inputs: [],
+                name: "owner",
+                outputs: [
+                  { internalType: "address", name: "", type: "address" },
+                ],
+                stateMutability: "view",
+                type: "function",
+              },
+            ],
+            functionName: "owner",
+          });
+
+          const isOwner = owner?.toLowerCase() === address?.toLowerCase();
+
+          setDsProxyValidation({
+            isValidating: false,
+            isContract: true,
+            isOwner,
+            error: isOwner
+              ? null
+              : "Connected wallet is not the owner of this DSProxy",
+          });
+        } catch (error) {
+          console.error("Error checking owner:", error);
+          setDsProxyValidation({
+            isValidating: false,
+            isContract: true,
+            isOwner: false,
+            error:
+              "Failed to verify DSProxy owner - contract may not have owner() function",
+          });
+        }
+      } catch (error) {
+        console.error("Error validating DSProxy address:", error);
+        setDsProxyValidation({
+          isValidating: false,
+          isContract: null,
+          isOwner: null,
+          error: "Failed to validate DSProxy address",
+        });
+      }
+    },
+    [publicClient, address]
+  );
+
+  // Effect to validate DSProxy address with 500ms delay
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      validateDsProxyAddress(dsProxyAddress);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [dsProxyAddress, validateDsProxyAddress]);
 
   // Connect to dapp using WalletConnect URI
   const connectToDapp = useCallback(async () => {
@@ -535,48 +661,73 @@ export default function DSProxyPage() {
                       size={{ base: "sm", md: "md" }}
                       mb={{ base: 3, md: 4 }}
                     >
-                      DSProxy Configuration
+                      DSProxy Address
                     </Heading>
                     <VStack spacing={{ base: 3, md: 4 }}>
                       <FormControl isRequired>
-                        <FormLabel>DSProxy Contract Address</FormLabel>
                         <Input
                           placeholder="0x..."
                           value={dsProxyAddress}
                           onChange={(e) => setDsProxyAddress(e.target.value)}
                           size={{ base: "md", md: "md" }}
+                          isDisabled={dsProxyValidation.isValidating}
                         />
                       </FormControl>
 
-                      <FormControl isRequired>
-                        <FormLabel>Chain</FormLabel>
-                        <DarkSelect
-                          boxProps={{
-                            w: "100%",
-                          }}
-                          selectedOption={selectedChain}
-                          setSelectedOption={setSelectedChain}
-                          options={networkOptions}
-                        />
-                      </FormControl>
-
-                      <FormControl isRequired>
-                        <FormLabel>Executor Contract Address</FormLabel>
-                        <Input
-                          placeholder="0x..."
-                          value={executorAddress}
-                          onChange={(e) => setExecutorAddress(e.target.value)}
-                          size={{ base: "md", md: "md" }}
-                        />
-                      </FormControl>
-
-                      {!isConfigurationValid() && (
-                        <Alert status="warning" borderRadius="md">
+                      {dsProxyValidation.isValidating && (
+                        <Alert status="info" borderRadius="md">
                           <AlertIcon />
-                          Please provide DSProxy address, executor contract
-                          address, and select a chain to continue.
+                          Validating DSProxy address...
                         </Alert>
                       )}
+
+                      {dsProxyValidation.error && (
+                        <Alert status="error" borderRadius="md">
+                          <AlertIcon />
+                          {dsProxyValidation.error}
+                        </Alert>
+                      )}
+
+                      {dsProxyValidation.isContract === true &&
+                        dsProxyValidation.isOwner === true && (
+                          <Alert status="success" borderRadius="md">
+                            <AlertIcon />
+                            DSProxy address validated successfully
+                          </Alert>
+                        )}
+
+                      {!isChainSupported && (
+                        <Alert status="warning" borderRadius="md">
+                          <AlertIcon />
+                          This chain is not supported. Please switch to a
+                          supported chain: {getSupportedChains().join(", ")}
+                        </Alert>
+                      )}
+
+                      {!isConfigurationValid() &&
+                        isChainSupported &&
+                        !dsProxyValidation.error &&
+                        dsProxyAddress.trim() === "" && (
+                          <Alert status="warning" borderRadius="md">
+                            <AlertIcon />
+                            Please provide DSProxy address to continue.
+                          </Alert>
+                        )}
+
+                      <HStack spacing={2}>
+                        <InfoIcon color="gray.500" />
+                        <Text>
+                          Transactions will be executed via {"DeFiSaver's "}
+                        </Text>
+                        <Text
+                          as="a"
+                          href="https://github.com/defisaver/defisaver-v3-contracts/blob/main/contracts/actions/utils/ExecuteCall.sol"
+                          textDecoration="underline"
+                          display="inline"
+                        >
+                          ExecuteCall contract
+                        </Text>
+                      </HStack>
                     </VStack>
                   </Box>
                 )}
@@ -625,7 +776,7 @@ export default function DSProxyPage() {
           targetChainId={targetChainId}
           onChainSwitch={handleChainSwitch}
           dsProxyAddress={dsProxyAddress}
-          dsProxyChainId={(selectedChain?.value as number) || 1}
+          dsProxyChainId={chainId}
           executorAddress={executorAddress}
           walletKit={walletKit}
           address={address}
