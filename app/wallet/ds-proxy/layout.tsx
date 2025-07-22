@@ -2,8 +2,9 @@ import { getMetadata } from "@/utils";
 import { Metadata } from "next";
 
 const _metadataInfo = {
-  title: "DSProxy Bridge | Swiss-Knife.xyz",
-  description: "Connect your DSProxy contract to any dapp via WalletConnect.",
+  title: "DSProxy Connect | Swiss-Knife.xyz",
+  description:
+    "Connect your DSProxy contract to any dapp via WalletConnect and execute transactions.",
   images: "https://swiss-knife.xyz/og/wallet-ds-proxy.png",
 };
 
