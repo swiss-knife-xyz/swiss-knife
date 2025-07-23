@@ -284,6 +284,28 @@ const customDappConfig = {
         "https://safe-transaction-assets.safe.global/safe_apps/142/icon.png",
       chains: [mainnet.id, base.id],
     },
+    {
+      id: 1753279954,
+      name: "DefiLlama Swap ",
+      description:
+        "LlamaSwap looks for the best route for your trade among a variety of Dex Aggregators, guaranteeing you the best execution prices in DeFi.",
+      url: "https://swap.defillama.com/",
+      iconUrl:
+        "https://swap.defillama.com/_next/static/media/loader.268d236d.png",
+      chains: [
+        mainnet.id,
+        base.id,
+        arbitrum.id,
+        avalanche.id,
+        bsc.id,
+        celo.id,
+        gnosis.id,
+        optimism.id,
+        polygon.id,
+        sonic.id,
+        unichain.id,
+      ],
+    },
   ] as SafeDappInfo[],
 
   dappsPriority: [
