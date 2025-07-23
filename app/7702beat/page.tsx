@@ -37,7 +37,12 @@ import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { FaXTwitter } from "react-icons/fa6";
 import { FiTool, FiShield, FiCheck, FiX, FiExternalLink } from "react-icons/fi";
 import { Layout } from "@/components/Layout";
-import { useAccount, usePublicClient, useSendCalls, useChainId } from "wagmi";
+import {
+  useAccount,
+  usePublicClient,
+  useSendCalls,
+  useWaitForCallsStatus,
+} from "wagmi";
 import {
   mainnet,
   arbitrum,
@@ -1022,7 +1027,19 @@ const SevenSevenZeroTwoBeat = () => {
 
   const client = usePublicClient();
   const { address, chain } = useAccount();
-  const { sendCalls } = useSendCalls();
+  const {
+    sendCalls,
+    data: sendCallsData,
+    isPending,
+    isError: isSendCallsError,
+  } = useSendCalls();
+
+  const {
+    data: waitForCallsStatusData,
+    isLoading: isWaitingForCalls,
+    isSuccess: isCallsSuccess,
+    isError: isCallsError,
+  } = useWaitForCallsStatus({ id: sendCallsData?.id });
 
   const [selectedChain, setSelectedChain] = useState<Chain | null>(null);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -1090,7 +1107,7 @@ const SevenSevenZeroTwoBeat = () => {
     ? dapps.filter((dapp) => supportsChain(dapp, selectedChain))
     : dapps;
 
-  useEffect(() => {
+  const fetchAuthAddress = useCallback(async () => {
     if (!client || !address || !chain?.id) {
       setAuthAddress(null);
       setIsAuthFetching(false);
@@ -1098,30 +1115,39 @@ const SevenSevenZeroTwoBeat = () => {
     }
 
     setIsAuthFetching(true);
-    (async () => {
-      try {
-        const addressCode = await client.getCode({
-          address,
-        });
-        if (addressCode) {
-          const is7702Enabled = addressCode.startsWith("0xef0100");
-          if (is7702Enabled) {
-            const auth = `0x${addressCode.split("0xef0100")[1]}`;
-            setAuthAddress(auth);
-          } else {
-            setAuthAddress(null);
-          }
+    try {
+      const addressCode = await client.getCode({
+        address,
+      });
+      if (addressCode) {
+        const is7702Enabled = addressCode.startsWith("0xef0100");
+        if (is7702Enabled) {
+          const auth = `0x${addressCode.split("0xef0100")[1]}`;
+          setAuthAddress(auth);
         } else {
           setAuthAddress(null);
         }
-      } catch (error) {
-        console.error("Error fetching auth address:", error);
+      } else {
         setAuthAddress(null);
-      } finally {
-        setIsAuthFetching(false);
       }
-    })();
+    } catch (error) {
+      console.error("Error fetching auth address:", error);
+      setAuthAddress(null);
+    } finally {
+      setIsAuthFetching(false);
+    }
   }, [client, address, chain?.id]);
+
+  useEffect(() => {
+    fetchAuthAddress();
+  }, [fetchAuthAddress]);
+
+  // Refetch auth address when transaction is confirmed
+  useEffect(() => {
+    if (isCallsSuccess) {
+      fetchAuthAddress();
+    }
+  }, [isCallsSuccess, fetchAuthAddress]);
 
   const fetchSetAddressLabels = useCallback(async () => {
     setAddressLabels([]);
@@ -1731,11 +1757,13 @@ const SevenSevenZeroTwoBeat = () => {
                         justify="space-between"
                       >
                         <HStack spacing={2}>
-                          <Icon
-                            as={authAddress ? FiCheck : FiX}
-                            color={authAddress ? "green.400" : "red.400"}
-                            boxSize={6}
-                          />
+                          {!isAuthFetching && (
+                            <Icon
+                              as={authAddress ? FiCheck : FiX}
+                              color={authAddress ? "green.400" : "red.400"}
+                              boxSize={6}
+                            />
+                          )}
                           <Heading size="md" color="gray.300">
                             Account Status
                           </Heading>
@@ -1872,7 +1900,7 @@ const SevenSevenZeroTwoBeat = () => {
                                 py={1}
                                 rounded="md"
                               >
-                                Not 7702 Enabled
+                                7702 Not Enabled
                               </Badge>
                               <Button
                                 onClick={() => {
@@ -1888,16 +1916,56 @@ const SevenSevenZeroTwoBeat = () => {
                                 }}
                                 colorScheme="green"
                                 size="sm"
-                                isDisabled={!address}
+                                isDisabled={
+                                  !address || isPending || isWaitingForCalls
+                                }
+                                isLoading={isPending || isWaitingForCalls}
+                                loadingText={
+                                  isPending
+                                    ? "Sending request..."
+                                    : "Confirming..."
+                                }
                                 leftIcon={<Icon as={FiShield} boxSize={4} />}
                               >
                                 Upgrade Account
                               </Button>
                             </HStack>
 
+                            {/* Error Messages */}
+                            {(isSendCallsError || isCallsError) && (
+                              <Box
+                                p={4}
+                                bg="red.900"
+                                borderRadius="md"
+                                border="1px solid"
+                                borderColor="red.600"
+                              >
+                                <Text color="red.200" fontSize="sm">
+                                  Transaction failed. Please try again.
+                                </Text>
+                              </Box>
+                            )}
+
+                            {/* Success Message */}
+                            {isCallsSuccess && (
+                              <Box
+                                p={4}
+                                bg="green.900"
+                                borderRadius="md"
+                                border="1px solid"
+                                borderColor="green.600"
+                              >
+                                <Text color="green.200" fontSize="sm">
+                                  Account successfully upgraded! Refreshing
+                                  status...
+                                </Text>
+                              </Box>
+                            )}
+
                             {/* Description */}
                             <Box
                               p={4}
+                              maxW="40rem"
                               bg="whiteAlpha.100"
                               borderRadius="md"
                               border="1px solid"
