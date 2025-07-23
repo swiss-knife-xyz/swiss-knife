@@ -42,6 +42,8 @@ import {
   usePublicClient,
   useSendCalls,
   useWaitForCallsStatus,
+  useCapabilities,
+  useChainId,
 } from "wagmi";
 import {
   mainnet,
@@ -1034,6 +1036,11 @@ const SevenSevenZeroTwoBeat = () => {
 
   const client = usePublicClient();
   const { address, chain } = useAccount();
+  const chainId = useChainId();
+  const { data: availableCapabilities } = useCapabilities({
+    account: address,
+    chainId,
+  });
   const {
     sendCalls,
     data: sendCallsData,
@@ -2003,6 +2010,88 @@ const SevenSevenZeroTwoBeat = () => {
                           >
                             Please connect your wallet to check your
                             account&apos;s 7702 status
+                          </Text>
+                        </Box>
+                      )}
+                    </VStack>
+                  </Box>
+
+                  {/* Wallet Capabilities Section */}
+                  <Box
+                    p={4}
+                    bg="whiteAlpha.50"
+                    borderRadius="lg"
+                    border="1px solid"
+                    borderColor="whiteAlpha.200"
+                    maxW="800px"
+                    mx="auto"
+                    mt={8}
+                  >
+                    <VStack spacing={4} align="stretch">
+                      <HStack spacing={2} align="center">
+                        <Icon as={FiTool} color="blue.400" boxSize={6} />
+                        <Heading size="md" color="gray.300">
+                          Wallet Capabilities
+                        </Heading>
+                      </HStack>
+
+                      {address ? (
+                        <VStack spacing={4} align="stretch">
+                          <HStack spacing={2} align="center">
+                            <Text
+                              color="gray.400"
+                              fontSize="sm"
+                              fontWeight="medium"
+                            >
+                              Chain ID: {chainId}
+                            </Text>
+                          </HStack>
+
+                          <Box
+                            p={4}
+                            bg="blackAlpha.400"
+                            borderRadius="md"
+                            border="1px solid"
+                            borderColor="whiteAlpha.200"
+                            maxH="300px"
+                            overflowY="auto"
+                          >
+                            <Text
+                              color="gray.300"
+                              fontSize="sm"
+                              mb={2}
+                              fontWeight="medium"
+                            >
+                              Available Capabilities:
+                            </Text>
+                            <Box
+                              as="pre"
+                              color="gray.300"
+                              fontSize="xs"
+                              fontFamily="mono"
+                              whiteSpace="pre-wrap"
+                              wordBreak="break-word"
+                            >
+                              {availableCapabilities
+                                ? JSON.stringify(availableCapabilities, null, 2)
+                                : "No capabilities available"}
+                            </Box>
+                          </Box>
+                        </VStack>
+                      ) : (
+                        <Box
+                          p={4}
+                          bg="whiteAlpha.100"
+                          borderRadius="md"
+                          border="1px solid"
+                          borderColor="whiteAlpha.200"
+                        >
+                          <Text
+                            color="gray.400"
+                            fontSize="sm"
+                            textAlign="center"
+                          >
+                            Please connect your wallet to view capabilities
                           </Text>
                         </Box>
                       )}
