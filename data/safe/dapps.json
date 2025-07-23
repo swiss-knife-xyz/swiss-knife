@@ -19,23 +19,17 @@
     ]
   },
   {
-    "id": 157,
-    "name": "Morpho Aave V3-ETH Optimizer",
-    "description": "A dApp to manage your positions on Morpho AaveV3-ETH Optimizer",
-    "url": "https://aavev3.morpho.org/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/157/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
     "id": 44,
     "name": "Yearn",
     "description": "The yield protocol for digital assets",
     "url": "https://yearn.fi",
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/44/icon.png",
     "chains": [
-      1
+      1,
+      42161,
+      8453,
+      137,
+      146
     ]
   },
   {
@@ -46,12 +40,23 @@
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/88/icon.png",
     "chains": [
       1,
+      8453,
       42161,
       43114,
       56,
       100,
+      57073,
       10,
-      137
+      137,
+      130,
+      7777777,
+      369,
+      1868,
+      146,
+      11155111,
+      421614,
+      84532,
+      10143
     ]
   },
   {
@@ -61,7 +66,17 @@
     "url": "https://www.curve.finance/",
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/b979c596-ffd7-43ca-b732-4057479dd282/icon.png",
     "chains": [
-      1
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      57073,
+      10,
+      137,
+      146,
+      421614
     ]
   },
   {
@@ -101,7 +116,9 @@
       1,
       8453,
       42161,
+      43114,
       100,
+      137,
       11155111
     ]
   },
@@ -165,7 +182,11 @@
     "url": "https://app.sky.money/",
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/abf3c7f9-baa3-42bf-9782-d77433e22fc1/icon.png",
     "chains": [
-      1
+      1,
+      42161,
+      8453,
+      10,
+      130
     ]
   },
   {
@@ -203,7 +224,13 @@
     "url": "https://app.aura.finance/",
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/87/icon.png",
     "chains": [
-      1
+      1,
+      42161,
+      43114,
+      8453,
+      100,
+      10,
+      137
     ]
   },
   {
@@ -226,7 +253,8 @@
     "url": "https://www.drips.network/",
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/135/icon.png",
     "chains": [
-      1
+      1,
+      10
     ]
   },
   {
@@ -393,41 +421,11 @@
     ]
   },
   {
-    "id": 89,
-    "name": "DustSweeper",
-    "description": "Swap small token balances for ETH with minimal gas!",
-    "url": "https://www.dustsweeper.xyz",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/89/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
     "id": 94,
     "name": "Maker Governance Portal",
     "description": "Vote with or delegate your MKR tokens to help protect the integrity of the Maker protocol",
     "url": "https://vote.makerdao.com",
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/94/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
-    "id": 106,
-    "name": "Morpho CompoundV2 Optimizer",
-    "description": "A dApp to manage your positions on Morpho CompoundV2 Optimizer",
-    "url": "https://compound.morpho.xyz",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/106/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
-    "id": 105,
-    "name": "Morpho AaveV2 Optimizer",
-    "description": "A dApp to manage your positions on Morpho AaveV2 Optimizer",
-    "url": "https://aave.morpho.xyz",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/105/icon.png",
     "chains": [
       1
     ]
@@ -495,16 +493,6 @@
     ]
   },
   {
-    "id": 122,
-    "name": "dump.services",
-    "description": "Dump your tokens like a pro",
-    "url": "https://dump.services/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/122/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
     "id": 181,
     "name": "Tezoro",
     "description": "Create a Digital Will - a smart contract that can transfer your assets to beneficiaries if something goes wrong.",
@@ -539,16 +527,6 @@
       1,
       8453,
       100
-    ]
-  },
-  {
-    "id": 142,
-    "name": "Pods Yield",
-    "description": "Earn more yield for your DAO treasury without risking the principal",
-    "url": "https://app.pods.finance",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/142/icon.png",
-    "chains": [
-      1
     ]
   },
   {
@@ -645,18 +623,6 @@
     ]
   },
   {
-    "id": 203,
-    "name": "Lagoon Finance",
-    "description": "Lagoon Finance brings DeFi to your fingertips with secure and risk-optimized yield from vaults managed by professional curators.",
-    "url": "https://app.lagoon.finance/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/857018a3-758e-4ad1-8d48-dd5f1aac8ab8/icon.png",
-    "chains": [
-      1,
-      8453,
-      42161
-    ]
-  },
-  {
     "id": 206,
     "name": "butterswap",
     "description": "1st ZK light-client cross-chain aggregator swap. Minimized ZK verification time & optimized gas fees. One-click exchanges btw popular chains & BTC ecosystem.",
@@ -669,6 +635,18 @@
       56,
       10,
       137
+    ]
+  },
+  {
+    "id": 203,
+    "name": "Lagoon Finance",
+    "description": "Lagoon Finance brings DeFi to your fingertips with secure and risk-optimized yield from vaults managed by professional curators.",
+    "url": "https://app.lagoon.finance/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/857018a3-758e-4ad1-8d48-dd5f1aac8ab8/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161
     ]
   },
   {
@@ -696,12 +674,39 @@
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/92/icon.png",
     "chains": [
       1,
+      8453,
       42161,
       43114,
       56,
       100,
       10,
-      137
+      137,
+      130,
+      146
+    ]
+  },
+  {
+    "id": 210,
+    "name": "Arrakis Pro",
+    "description": "DEX liquidity management for token issuers.",
+    "url": "https://app.arrakis.finance/pro",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/974fa12d-430e-4c56-8f61-e77582dece15/icon.png",
+    "chains": [
+      1,
+      8453,
+      11155111
+    ]
+  },
+  {
+    "id": 211,
+    "name": "Teller",
+    "description": "Borrow with long-tail tokens in your treasury. Loans are time-based. No margin call liquidations, simply repay on time.",
+    "url": "https://app.teller.org",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/e5a6da6d-c89b-408c-b7ee-74cbf2eb8eb4/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161
     ]
   },
   {
@@ -755,6 +760,28 @@
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/d1d96a08-ac00-4c23-b69b-c0c32a1d477a/icon.png",
     "chains": [
       137
+    ]
+  },
+  {
+    "id": 122,
+    "name": "dump.services",
+    "description": "Dump your tokens like a pro",
+    "url": "https://dump.services/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/122/icon.png",
+    "chains": [
+      1,
+      137
+    ]
+  },
+  {
+    "id": 142,
+    "name": "Pods Yield",
+    "description": "Earn more yield for your DAO treasury without risking the principal",
+    "url": "https://app.pods.finance",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/142/icon.png",
+    "chains": [
+      1,
+      8453
     ]
   }
 ]

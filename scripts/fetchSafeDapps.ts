@@ -14,6 +14,15 @@ import {
   avalanche,
   zora,
   celo,
+  gnosis,
+  ink,
+  pulsechain,
+  arbitrumSepolia,
+  soneium,
+  sonic,
+  sepolia,
+  baseSepolia,
+  monadTestnet,
 } from "viem/chains";
 
 // Configuration for custom dapps and disabled dapps
@@ -22,10 +31,23 @@ const customDappConfig = {
   disabled: [
     // === Updated chains in custom ===
     38, // Uniswap
+    88, // Revoke.cash
+    44, // Yearn
+    20, // Curve
+    196, // Sky.money
+    87, // Aura
+    135, // Drips
+    parseInt(`51${arbitrum.id}`), // Enzyme - Arbitrum
+    parseInt(`51${base.id}`), // Enzyme - Base
+    122, // Dump.services
+    142, // Pods Yield
 
     // === Safe Default apps ===
     29, // Transaction Builder
     11, // WalletConnect
+
+    // === Deprecated apps ===
+    89, // DustSweeper
 
     // === not supported in iframe ===
     129, // Bungee Exchange
@@ -139,6 +161,128 @@ const customDappConfig = {
         zora.id,
         celo.id,
       ],
+    },
+    {
+      id: 88,
+      name: "Revoke.cash",
+      description: "Manage and revoke your token allowances with Revoke.cash",
+      url: "https://revoke.cash/",
+      iconUrl:
+        "https://safe-transaction-assets.safe.global/safe_apps/88/icon.png",
+      chains: [
+        mainnet.id,
+        base.id,
+        arbitrum.id,
+        avalanche.id,
+        bsc.id,
+        gnosis.id,
+        ink.id,
+        optimism.id,
+        polygon.id,
+        unichain.id,
+        zora.id,
+        pulsechain.id,
+        soneium.id,
+        sonic.id,
+        sepolia.id,
+        arbitrumSepolia.id,
+        baseSepolia.id,
+        monadTestnet.id,
+      ],
+    },
+    {
+      id: 44,
+      name: "Yearn",
+      description: "The yield protocol for digital assets",
+      url: "https://yearn.fi",
+      iconUrl:
+        "https://safe-transaction-assets.safe.global/safe_apps/44/icon.png",
+      chains: [mainnet.id, arbitrum.id, base.id, polygon.id, sonic.id],
+    },
+    {
+      id: 20,
+      name: "Curve Finance",
+      description:
+        "Decentralized exchange liquidity pool designed for extremely efficient stablecoin trading and low-risk income for liquidity providers",
+      url: "https://www.curve.finance/",
+      iconUrl:
+        "https://safe-transaction-assets.safe.global/safe_apps/b979c596-ffd7-43ca-b732-4057479dd282/icon.png",
+      chains: [
+        mainnet.id,
+        base.id,
+        arbitrum.id,
+        avalanche.id,
+        bsc.id,
+        gnosis.id,
+        ink.id,
+        optimism.id,
+        polygon.id,
+        sonic.id,
+        arbitrumSepolia.id,
+      ],
+    },
+    {
+      id: 196,
+      name: "sky.money",
+      description: "Rewards, savings, upgrade, and trade",
+      url: "https://app.sky.money/",
+      iconUrl:
+        "https://safe-transaction-assets.safe.global/safe_apps/abf3c7f9-baa3-42bf-9782-d77433e22fc1/icon.png",
+      chains: [mainnet.id, arbitrum.id, base.id, optimism.id, unichain.id],
+    },
+    {
+      id: 87,
+      name: "Aura Finance",
+      description: "Boosting DeFi yield potential and governance power",
+      url: "https://app.aura.finance/",
+      iconUrl:
+        "https://safe-transaction-assets.safe.global/safe_apps/87/icon.png",
+      chains: [
+        mainnet.id,
+        arbitrum.id,
+        avalanche.id,
+        base.id,
+        gnosis.id,
+        optimism.id,
+        polygon.id,
+      ],
+    },
+    {
+      id: 135,
+      name: "Drips",
+      description: "Stream & Split any ERC-20 on Ethereum",
+      url: "https://www.drips.network/",
+      iconUrl:
+        "https://safe-transaction-assets.safe.global/safe_apps/135/icon.png",
+      chains: [mainnet.id, optimism.id],
+    },
+    {
+      id: 51,
+      name: "Enzyme Finance",
+      description: "Onchain Asset Management",
+      url: "https://app.enzyme.finance",
+      iconUrl:
+        "https://safe-transaction-assets.safe.global/safe_apps/51/icon.png",
+      chains: [arbitrum.id, base.id],
+    },
+    {
+      id: 122,
+      name: "dump.services",
+      description: "Dump your tokens like a pro",
+      url: "https://dump.services/",
+      iconUrl:
+        "https://safe-transaction-assets.safe.global/safe_apps/122/icon.png",
+      chains: [mainnet.id, polygon.id],
+    },
+    {
+      id: 142,
+      name: "Pods Yield",
+      description:
+        "Earn more yield for your DAO treasury without risking the principal",
+      url: "https://app.pods.finance",
+      iconUrl:
+        "https://safe-transaction-assets.safe.global/safe_apps/142/icon.png",
+      chains: [mainnet.id, base.id],
     },
   ] as SafeDappInfo[],
 
