@@ -44,13 +44,15 @@ import {
   polygon,
   unichain,
 } from "wagmi/chains";
-import { useAccount, usePublicClient, useSendCalls } from "wagmi";
+import { useAccount, usePublicClient, useSendCalls, useChainId } from "wagmi";
 import { type UseClientParameters } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { chainIdToImage } from "@/data/common";
 import axios from "axios";
 import { Address, erc20Abi, parseEther } from "viem";
 import { fetchContractAbi } from "@/utils";
+import { CopyIcon, ExternalLinkIcon } from "@chakra-ui/icons";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
 
 const katana = {
   id: 747474,
@@ -1032,6 +1034,8 @@ const SevenSevenZeroTwoBeat = () => {
       const hash = window.location.hash.substring(1);
       if (hash === "wall-of-shame") {
         setActiveTabIndex(1);
+      } else if (hash === "tools") {
+        setActiveTabIndex(2);
       } else {
         setActiveTabIndex(0);
       }
@@ -1056,6 +1060,8 @@ const SevenSevenZeroTwoBeat = () => {
       setActiveTabIndex(index);
       if (index === 1) {
         router.push(`${pathname}#wall-of-shame`);
+      } else if (index === 2) {
+        router.push(`${pathname}#tools`);
       } else {
         router.push(pathname);
       }
@@ -1075,6 +1081,7 @@ const SevenSevenZeroTwoBeat = () => {
   const client = usePublicClient();
   const { address } = useAccount();
   const { sendCalls } = useSendCalls();
+  const chainId = useChainId();
 
   useEffect(() => {
     if (!client || !address) {
@@ -1095,7 +1102,7 @@ const SevenSevenZeroTwoBeat = () => {
         }
       }
     })();
-  }, [client, address]);
+  }, [client, address, chainId]);
 
   const fetchSetAddressLabels = useCallback(async () => {
     setAddressLabels([]);
@@ -1114,7 +1121,7 @@ const SevenSevenZeroTwoBeat = () => {
     } catch {
       setAddressLabels([]);
     }
-  }, [address]);
+  }, [address, chainId]);
 
   const skeletonAddress = "0x1111222233334444000000000000000000000000";
 
@@ -1122,7 +1129,7 @@ const SevenSevenZeroTwoBeat = () => {
     if (address !== skeletonAddress) {
       fetchSetAddressLabels();
     }
-  }, [address, fetchSetAddressLabels]);
+  }, [address, chainId, fetchSetAddressLabels]);
 
   return (
     <Layout>
@@ -1230,7 +1237,7 @@ const SevenSevenZeroTwoBeat = () => {
                 fontSize={{ base: "sm", md: "md" }}
                 px={{ base: 3, md: 4 }}
               >
-                🔨 Tools
+                🛠️ Tools
               </Tab>
             </TabList>
 
@@ -1650,22 +1657,61 @@ const SevenSevenZeroTwoBeat = () => {
                 {/* Tools Content */}
 
                 <ConnectButton />
-                <Box>
-                  <Text
-                    fontSize={{ base: "md", md: "lg" }}
-                    color="whiteAlpha.700"
-                    mb={2}
-                  >
-                    {authData ? (
-                      `Auth Address: ${authData}`
-                    ) : (
-                      <VStack align="start" spacing={3} mt={2}>
-                        <Text
-                          fontSize={{ base: "md", md: "lg" }}
-                          color="whiteAlpha.700"
+
+                <Box
+                  borderWidth="1px"
+                  borderRadius="md"
+                  p={4}
+                  bg="blackAlpha.300"
+                  m={4}
+                  maxW="100%"
+                >
+                  {authData ? (
+                    <VStack align="start" spacing={2}>
+                      <Badge colorScheme="green" variant="solid" fontSize="sm">
+                        7702 Enabled
+                      </Badge>
+                      <Heading
+                        size={{ base: "md", md: "lg" }}
+                        mt={5}
+                        color="white"
+                      >
+                        Auth Address
+                      </Heading>
+                      <HStack>
+                        <Link
+                          href={`https://etherscan.io/address/${authData}`}
+                          isExternal
+                          color="blue.500"
+                          fontWeight="medium"
+                          fontSize="sm"
+                          _hover={{ textDecoration: "underline" }}
                         >
+                          <Text
+                            fontSize={{ base: "sm", md: "md" }}
+                            color="whiteAlpha.900"
+                            wordBreak="break-all"
+                          >
+                            {authData}
+                          </Text>
+                        </Link>
+                        <Link
+                          href={`https://etherscan.io/address/${authData}`}
+                          isExternal
+                          color="gray.500"
+                          fontSize="md"
+                          fontFamily="mono"
+                        >
+                          <ExternalLinkIcon mx="4px" boxSize={5} />
+                        </Link>
+                      </HStack>
+                    </VStack>
+                  ) : (
+                    <VStack align="start" spacing={3}>
+                      <HStack>
+                        <Badge colorScheme="red" variant="solid" fontSize="sm">
                           Not 7702
-                        </Text>
+                        </Badge>
                         <Button
                           onClick={() => {
                             if (!address) return;
@@ -1674,10 +1720,6 @@ const SevenSevenZeroTwoBeat = () => {
                                 {
                                   to: address,
                                   value: parseEther("0"),
-                                },
-                                {
-                                  // data: "0x",
-                                  to: address,
                                 },
                               ],
                             });
@@ -1688,25 +1730,11 @@ const SevenSevenZeroTwoBeat = () => {
                         >
                           Upgrade Account
                         </Button>
-                      </VStack>
-                    )}
-                  </Text>
-                  {addressLabels.length > 0 && (
-                    <HStack py="2">
-                      <Text fontSize={"xs"} opacity={0.6}>
-                        Tags:{" "}
+                      </HStack>
+                      <Text fontSize="sm" color="whiteAlpha.700">
+                        Upgrade your account to enable EIP-7702 features.
                       </Text>
-                      {addressLabels.map((label, index) => (
-                        <Tag
-                          key={index}
-                          size="sm"
-                          variant="solid"
-                          colorScheme="blue"
-                        >
-                          {label}
-                        </Tag>
-                      ))}
-                    </HStack>
+                    </VStack>
                   )}
                 </Box>
               </TabPanel>
