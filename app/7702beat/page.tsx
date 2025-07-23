@@ -1,17 +1,16 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Box,
   Heading,
   Text,
   VStack,
-  Tag,
   Divider,
   Table,
   Tbody,
   Tr,
-  Th,
   Td,
   useBreakpointValue,
   Center,
@@ -28,10 +27,22 @@ import {
   Tab,
   TabPanel,
   Badge,
+  Tag,
+  Spacer,
+  Icon,
+  Skeleton,
+  SkeletonText,
 } from "@chakra-ui/react";
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { FaXTwitter } from "react-icons/fa6";
+import { FiTool, FiShield, FiCheck, FiX, FiExternalLink } from "react-icons/fi";
 import { Layout } from "@/components/Layout";
-import { useRouter, usePathname } from "next/navigation";
+import {
+  useAccount,
+  usePublicClient,
+  useSendCalls,
+  useWaitForCallsStatus,
+} from "wagmi";
 import {
   mainnet,
   arbitrum,
@@ -44,7 +55,12 @@ import {
   polygon,
   unichain,
 } from "wagmi/chains";
+import { Address, parseEther } from "viem";
+import axios from "axios";
+import { ConnectButton } from "@/components/ConnectButton";
 import { chainIdToImage } from "@/data/common";
+import { fetchContractAbi } from "@/utils";
+import { InputField } from "@/components/InputField";
 
 const katana = {
   id: 747474,
@@ -81,6 +97,8 @@ const getFaviconUrl = (url: string) => {
 // Wall of Shame epoch timestamp - you can update this later
 const WALL_OF_SHAME_START_EPOCH = 1746621911;
 const SEPOLIA_PECTRA_START_EPOCH = 1741159740;
+
+const skeletonAddress = "0x1111222233334444000000000000000000000000";
 
 // All chains that support 7702
 const chains: Chain[] = [
@@ -1009,11 +1027,32 @@ const ShameAppCard = ({
 };
 
 const SevenSevenZeroTwoBeat = () => {
-  const isMobile = useBreakpointValue({ base: true, lg: false });
-  const [selectedChain, setSelectedChain] = useState<Chain | null>(null);
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
+
+  const isMobile = useBreakpointValue({ base: true, lg: false });
+
+  const client = usePublicClient();
+  const { address, chain } = useAccount();
+  const {
+    sendCalls,
+    data: sendCallsData,
+    isPending,
+    isError: isSendCallsError,
+  } = useSendCalls();
+
+  const {
+    data: waitForCallsStatusData,
+    isLoading: isWaitingForCalls,
+    isSuccess: isCallsSuccess,
+    isError: isCallsError,
+  } = useWaitForCallsStatus({ id: sendCallsData?.id });
+
+  const [selectedChain, setSelectedChain] = useState<Chain | null>(null);
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [authAddress, setAuthAddress] = useState<string | null>(null);
+  const [addressLabels, setAddressLabels] = useState<string[]>([]);
+  const [isAuthFetching, setIsAuthFetching] = useState(false);
 
   const handleChainClick = useCallback((chain: Chain) => {
     setSelectedChain((prevChain) =>
@@ -1031,6 +1070,8 @@ const SevenSevenZeroTwoBeat = () => {
       const hash = window.location.hash.substring(1);
       if (hash === "wall-of-shame") {
         setActiveTabIndex(1);
+      } else if (hash === "tools") {
+        setActiveTabIndex(2);
       } else {
         setActiveTabIndex(0);
       }
@@ -1055,6 +1096,8 @@ const SevenSevenZeroTwoBeat = () => {
       setActiveTabIndex(index);
       if (index === 1) {
         router.push(`${pathname}#wall-of-shame`);
+      } else if (index === 2) {
+        router.push(`${pathname}#tools`);
       } else {
         router.push(pathname);
       }
@@ -1070,6 +1113,91 @@ const SevenSevenZeroTwoBeat = () => {
   const filteredDapps = selectedChain
     ? dapps.filter((dapp) => supportsChain(dapp, selectedChain))
     : dapps;
+
+  const fetchAuthAddress = useCallback(async () => {
+    if (!client || !address || !chain?.id) {
+      setAuthAddress(null);
+      setIsAuthFetching(false);
+      return;
+    }
+
+    setIsAuthFetching(true);
+    try {
+      const addressCode = await client.getCode({
+        address,
+      });
+      if (addressCode) {
+        const is7702Enabled = addressCode.startsWith("0xef0100");
+        if (is7702Enabled) {
+          const auth = `0x${addressCode.split("0xef0100")[1]}`;
+          setAuthAddress(auth);
+        } else {
+          setAuthAddress(null);
+        }
+      } else {
+        setAuthAddress(null);
+      }
+    } catch (error) {
+      console.error("Error fetching auth address:", error);
+      setAuthAddress(null);
+    } finally {
+      setIsAuthFetching(false);
+    }
+  }, [client, address, chain?.id]);
+
+  useEffect(() => {
+    fetchAuthAddress();
+  }, [fetchAuthAddress]);
+
+  // Refetch auth address when transaction is confirmed
+  useEffect(() => {
+    if (isCallsSuccess) {
+      fetchAuthAddress();
+    }
+  }, [isCallsSuccess, fetchAuthAddress]);
+
+  const fetchSetAddressLabels = useCallback(async () => {
+    setAddressLabels([]);
+
+    try {
+      if (!client || !authAddress || !chain?.id) return;
+
+      try {
+        // try fetching the contract name if it's verified
+        const fetchedAbi = await fetchContractAbi({
+          address: authAddress,
+          chainId: chain.id,
+        });
+        if (fetchedAbi) {
+          setAddressLabels([fetchedAbi.name]);
+        }
+      } catch {
+        try {
+          const res = await axios.get(
+            `${
+              process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+                ? ""
+                : "https://swiss-knife.xyz"
+            }/api/labels/${authAddress}`
+          );
+          const data = res.data;
+          if (data.length > 0) {
+            setAddressLabels(data);
+          }
+        } catch {
+          setAddressLabels([]);
+        }
+      }
+    } catch {
+      setAddressLabels([]);
+    }
+  }, [client, authAddress, chain?.id]);
+
+  useEffect(() => {
+    if (address !== skeletonAddress) {
+      fetchSetAddressLabels();
+    }
+  }, [address, chain?.id, fetchSetAddressLabels]);
 
   return (
     <Layout>
@@ -1154,7 +1282,7 @@ const SevenSevenZeroTwoBeat = () => {
             index={activeTabIndex}
             onChange={handleTabChange}
           >
-            <TabList mb={{ base: 4, md: 8 }} justifyContent="center">
+            <TabList mb={{ base: 4, md: 4 }} justifyContent="center">
               <Tab
                 color="whiteAlpha.700"
                 _selected={{ color: "white", bg: "whiteAlpha.200" }}
@@ -1170,6 +1298,14 @@ const SevenSevenZeroTwoBeat = () => {
                 px={{ base: 3, md: 4 }}
               >
                 😡 Wall of Shame
+              </Tab>
+              <Tab
+                color="whiteAlpha.700"
+                _selected={{ color: "white", bg: "whiteAlpha.200" }}
+                fontSize={{ base: "sm", md: "md" }}
+                px={{ base: 3, md: 4 }}
+              >
+                🛠️ Tools
               </Tab>
             </TabList>
 
@@ -1578,6 +1714,301 @@ const SevenSevenZeroTwoBeat = () => {
                     </VStack>
                   </Box>
                 </VStack>
+              </TabPanel>
+
+              <TabPanel
+                px={{ base: 4, md: 6 }}
+                width="100%"
+                maxW="100%"
+                overflowX="hidden"
+              >
+                {/* Tools Content */}
+                <Box maxW="1400px" mx="auto">
+                  {/* Page Header */}
+                  <Box mb={8} textAlign="center">
+                    <HStack justify="center" spacing={3} mb={4}>
+                      <Icon as={FiTool} color="blue.400" boxSize={8} />
+                      <Heading
+                        size="xl"
+                        color="gray.100"
+                        fontWeight="bold"
+                        letterSpacing="tight"
+                      >
+                        7702 Tools
+                      </Heading>
+                    </HStack>
+                    <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
+                      Check your account&apos;s 7702 authorized address or
+                      trigger 7702 account upgrade.
+                    </Text>
+                  </Box>
+
+                  <Center mb={8}>
+                    <ConnectButton />
+                  </Center>
+
+                  {/* Account Status Section */}
+                  <Box
+                    p={4}
+                    bg="whiteAlpha.50"
+                    borderRadius="lg"
+                    border="1px solid"
+                    borderColor="whiteAlpha.200"
+                    maxW={address && authAddress ? "100%" : "800px"}
+                    mx="auto"
+                  >
+                    <VStack spacing={6} align="stretch">
+                      <HStack
+                        spacing={2}
+                        align="center"
+                        justify="space-between"
+                      >
+                        <HStack spacing={2}>
+                          {!isAuthFetching && (
+                            <Icon
+                              as={authAddress ? FiCheck : FiX}
+                              color={authAddress ? "green.400" : "red.400"}
+                              boxSize={6}
+                            />
+                          )}
+                          <Heading size="md" color="gray.300">
+                            Account Status
+                          </Heading>
+                        </HStack>
+                        {address && authAddress && (
+                          <Badge
+                            colorScheme="green"
+                            fontSize="sm"
+                            px={3}
+                            py={1}
+                            rounded="md"
+                          >
+                            7702 Enabled
+                          </Badge>
+                        )}
+                      </HStack>
+
+                      {address ? (
+                        isAuthFetching ? (
+                          <VStack spacing={4} align="stretch">
+                            {/* Loading State */}
+                            <HStack justify="space-between" align="center">
+                              <Skeleton height="32px" width="120px" />
+                              <Skeleton height="32px" width="140px" />
+                            </HStack>
+                            <Box>
+                              <VStack spacing={2} align="start">
+                                <HStack spacing={2}>
+                                  <Skeleton boxSize={4} />
+                                  <Skeleton height="16px" width="80px" />
+                                </HStack>
+                                <HStack spacing={2} w="full" align="center">
+                                  <Box flex="1" minW="0">
+                                    <Skeleton height="40px" width="100%" />
+                                  </Box>
+                                  <Skeleton boxSize="32px" />
+                                </HStack>
+                              </VStack>
+                            </Box>
+                            <Box>
+                              <SkeletonText mt="4" noOfLines={2} spacing="4" />
+                            </Box>
+                          </VStack>
+                        ) : authAddress ? (
+                          <VStack spacing={4} align="stretch">
+                            {/* Auth Address Input */}
+                            <Box>
+                              <VStack spacing={2} align="start">
+                                <HStack spacing={2}>
+                                  <Icon
+                                    as={FiShield}
+                                    color="blue.400"
+                                    boxSize={4}
+                                  />
+                                  <Text
+                                    color="gray.300"
+                                    fontWeight="medium"
+                                    fontSize="sm"
+                                  >
+                                    Auth Address
+                                  </Text>
+                                </HStack>
+                                <HStack spacing={2} w="full" align="center">
+                                  <Box flex="1" minW="0">
+                                    <InputField
+                                      placeholder="Auth address will appear here"
+                                      value={authAddress}
+                                      onChange={() => {}}
+                                      isReadOnly
+                                      cursor="text"
+                                      fontSize="md"
+                                      w="full"
+                                    />
+                                  </Box>
+                                  {chain?.blockExplorers?.default && (
+                                    <Button
+                                      as={Link}
+                                      href={`${chain.blockExplorers.default.url}/address/${authAddress}`}
+                                      isExternal
+                                      variant={"solid"}
+                                      size="sm"
+                                      p={2}
+                                      minW="auto"
+                                      flexShrink={0}
+                                      color="whiteAlpha.800"
+                                      _hover={{
+                                        bg: "whiteAlpha.300",
+                                      }}
+                                    >
+                                      <Icon as={FiExternalLink} boxSize={4} />
+                                    </Button>
+                                  )}
+                                </HStack>
+                              </VStack>
+                            </Box>
+
+                            {/* Tags */}
+                            {addressLabels.length > 0 && (
+                              <Box>
+                                <HStack spacing={2} mb={2}>
+                                  <Text
+                                    color="gray.400"
+                                    fontSize="sm"
+                                    fontWeight="medium"
+                                  >
+                                    Tags:
+                                  </Text>
+                                </HStack>
+                                <HStack spacing={2} flexWrap="wrap">
+                                  {addressLabels.map((label, index) => (
+                                    <Badge
+                                      key={index}
+                                      colorScheme="blue"
+                                      fontSize="xs"
+                                      px={2}
+                                      py={0.5}
+                                      rounded="md"
+                                    >
+                                      {label}
+                                    </Badge>
+                                  ))}
+                                </HStack>
+                              </Box>
+                            )}
+                          </VStack>
+                        ) : (
+                          <VStack spacing={4} align="stretch">
+                            {/* Status Badge */}
+                            <HStack justify="space-between" align="center">
+                              <Badge
+                                colorScheme="red"
+                                fontSize="sm"
+                                px={3}
+                                py={1}
+                                rounded="md"
+                              >
+                                7702 Not Enabled
+                              </Badge>
+                              <Button
+                                onClick={() => {
+                                  if (!address) return;
+                                  sendCalls({
+                                    calls: [
+                                      {
+                                        to: address,
+                                        value: parseEther("0"),
+                                      },
+                                    ],
+                                  });
+                                }}
+                                colorScheme="green"
+                                size="sm"
+                                isDisabled={
+                                  !address || isPending || isWaitingForCalls
+                                }
+                                isLoading={isPending || isWaitingForCalls}
+                                loadingText={
+                                  isPending
+                                    ? "Sending request..."
+                                    : "Confirming..."
+                                }
+                                leftIcon={<Icon as={FiShield} boxSize={4} />}
+                              >
+                                Upgrade Account
+                              </Button>
+                            </HStack>
+
+                            {/* Error Messages */}
+                            {(isSendCallsError || isCallsError) && (
+                              <Box
+                                p={4}
+                                bg="red.900"
+                                borderRadius="md"
+                                border="1px solid"
+                                borderColor="red.600"
+                              >
+                                <Text color="red.200" fontSize="sm">
+                                  Transaction failed. Please try again.
+                                </Text>
+                              </Box>
+                            )}
+
+                            {/* Success Message */}
+                            {isCallsSuccess && (
+                              <Box
+                                p={4}
+                                bg="green.900"
+                                borderRadius="md"
+                                border="1px solid"
+                                borderColor="green.600"
+                              >
+                                <Text color="green.200" fontSize="sm">
+                                  Account successfully upgraded! Refreshing
+                                  status...
+                                </Text>
+                              </Box>
+                            )}
+
+                            {/* Description */}
+                            <Box
+                              p={4}
+                              maxW="40rem"
+                              bg="whiteAlpha.100"
+                              borderRadius="md"
+                              border="1px solid"
+                              borderColor="whiteAlpha.200"
+                            >
+                              <Text color="gray.400" fontSize="sm">
+                                Your account is not currently upgraded to
+                                support EIP-7702. Click &quot;Upgrade
+                                Account&quot; to enable account abstraction
+                                features like transaction batching and
+                                delegation.
+                              </Text>
+                            </Box>
+                          </VStack>
+                        )
+                      ) : (
+                        <Box
+                          p={4}
+                          bg="whiteAlpha.100"
+                          borderRadius="md"
+                          border="1px solid"
+                          borderColor="whiteAlpha.200"
+                        >
+                          <Text
+                            color="gray.400"
+                            fontSize="sm"
+                            textAlign="center"
+                          >
+                            Please connect your wallet to check your
+                            account&apos;s 7702 status
+                          </Text>
+                        </Box>
+                      )}
+                    </VStack>
+                  </Box>
+                </Box>
               </TabPanel>
             </TabPanels>
           </Tabs>
