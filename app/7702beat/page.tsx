@@ -323,6 +323,12 @@ const dapps: SupportedApp[] = [
     ],
   },
   {
+    name: "DeFi Saver",
+    logoUrl: getFaviconUrl("https://defisaver.com/"),
+    siteUrl: "https://app.defisaver.com/exchange/swap",
+    supportedChainIds: [mainnet.id, arbitrum.id, base.id, optimism.id],
+  },
+  {
     name: "Ekubo",
     logoUrl: getFaviconUrl("https://evm.ekubo.org/"),
     siteUrl: "https://evm.ekubo.org/",
