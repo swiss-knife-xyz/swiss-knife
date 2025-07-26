@@ -190,21 +190,21 @@
     ]
   },
   {
-    "id": 14,
-    "name": "Lido Staking",
-    "description": "Lido is the liquid staking solution for Ethereum.",
-    "url": "https://stake.lido.fi/?ref=0x5afE11DBF44AB2D88162f687e01F8DD7a8A3EEEe",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/14/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
     "id": 178,
     "name": "Figment",
     "description": "Stake your ETH and get instant rewards. No claiming, no pooling. You're always in control of your funds.",
     "url": "https://dapp.figment.io/staking",
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/a29382ff-1699-4f47-834b-e5346ca324f7/icon.png",
+    "chains": [
+      1
+    ]
+  },
+  {
+    "id": 14,
+    "name": "Lido Staking",
+    "description": "Lido is the liquid staking solution for Ethereum.",
+    "url": "https://stake.lido.fi/?ref=0x5afE11DBF44AB2D88162f687e01F8DD7a8A3EEEe",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/14/icon.png",
     "chains": [
       1
     ]
@@ -227,11 +227,11 @@
     ]
   },
   {
-    "id": 49,
-    "name": "Zodiac",
-    "description": "The expansion pack for DAOs",
-    "url": "https://zodiac.gnosisguild.org/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/49/icon.png",
+    "id": 17,
+    "name": "1inch Network",
+    "description": "The most efficient defi aggregator",
+    "url": "https://app.1inch.io",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/17/icon.png",
     "chains": [
       1,
       8453,
@@ -241,9 +241,8 @@
       100,
       10,
       137,
-      146,
-      11155111,
-      84532
+      130,
+      146
     ]
   },
   {
@@ -334,11 +333,21 @@
     ]
   },
   {
-    "id": 17,
-    "name": "1inch Network",
-    "description": "The most efficient defi aggregator",
-    "url": "https://app.1inch.io",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/17/icon.png",
+    "id": 54,
+    "name": "Bancor Network",
+    "description": "Bancor Safe Staking",
+    "url": "https://app.bancor.network/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/54/icon.png",
+    "chains": [
+      1
+    ]
+  },
+  {
+    "id": 49,
+    "name": "Zodiac",
+    "description": "The expansion pack for DAOs",
+    "url": "https://zodiac.gnosisguild.org/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/49/icon.png",
     "chains": [
       1,
       8453,
@@ -347,17 +356,11 @@
       56,
       100,
       10,
-      137
-    ]
-  },
-  {
-    "id": 54,
-    "name": "Bancor Network",
-    "description": "Bancor Safe Staking",
-    "url": "https://app.bancor.network/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/54/icon.png",
-    "chains": [
-      1
+      137,
+      130,
+      146,
+      11155111,
+      84532
     ]
   },
   {
@@ -636,6 +639,22 @@
     ]
   },
   {
+    "id": 74,
+    "name": "CoW Swap",
+    "description": "CoW Swap finds the lowest prices from all decentralized exchanges and DEX aggregators & saves you more with p2p trading and protection from MEV",
+    "url": "https://swap.cow.fi",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/e0ecb7c3-93c1-4598-b9ee-c24d6a798b40/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      100,
+      137,
+      11155111
+    ]
+  },
+  {
     "id": 156,
     "name": "oSnap",
     "description": "oSnap is a DAO tool integrating with Snapshot for on-chain governance. It decentralizes processes, ensures quick decisions, and is secured by UMA.",
@@ -671,20 +690,6 @@
       56,
       100,
       137,
-      11155111
-    ]
-  },
-  {
-    "id": 74,
-    "name": "CoW Swap",
-    "description": "CoW Swap finds the lowest prices from all decentralized exchanges and DEX aggregators & saves you more with p2p trading and protection from MEV",
-    "url": "https://swap.cow.fi",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/e0ecb7c3-93c1-4598-b9ee-c24d6a798b40/icon.png",
-    "chains": [
-      1,
-      8453,
-      42161,
-      100,
       11155111
     ]
   },
@@ -753,16 +758,6 @@
     ]
   },
   {
-    "id": 106,
-    "name": "Morpho CompoundV2 Optimizer",
-    "description": "A dApp to manage your positions on Morpho CompoundV2 Optimizer",
-    "url": "https://compound.morpho.xyz",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/106/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
     "id": 31,
     "name": "Zerion",
     "description": "Zerion — Invest in DeFi from one place",
@@ -776,16 +771,6 @@
       100,
       10,
       137
-    ]
-  },
-  {
-    "id": 105,
-    "name": "Morpho AaveV2 Optimizer",
-    "description": "A dApp to manage your positions on Morpho AaveV2 Optimizer",
-    "url": "https://aave.morpho.xyz",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/105/icon.png",
-    "chains": [
-      1
     ]
   },
   {
@@ -961,16 +946,6 @@
     "description": "P2P.org provides secure non-custodial staking services for professional investors",
     "url": "https://eth.p2p.org",
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/130/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
-    "id": 157,
-    "name": "Morpho Aave V3-ETH Optimizer",
-    "description": "A dApp to manage your positions on Morpho AaveV3-ETH Optimizer",
-    "url": "https://aavev3.morpho.org/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/157/icon.png",
     "chains": [
       1
     ]
@@ -1251,19 +1226,22 @@
     ]
   },
   {
-    "id": 171,
-    "name": "Zodiac Roles",
-    "description": "Manage Safe roles & permissions with Zodiac Roles Modifier v2",
-    "url": "https://roles.gnosisguild.org/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/93100018-6688-41db-a1bd-b527c480b9c4/icon.png",
+    "id": 29,
+    "name": "Transaction Builder",
+    "description": "Compose custom contract interactions and batch them into a single transaction",
+    "url": "https://apps-portal.safe.global/tx-builder",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/29/icon.png",
     "chains": [
       1,
       8453,
       42161,
       43114,
+      56,
       100,
+      57073,
       10,
       137,
+      130,
       146,
       11155111,
       84532
@@ -1421,19 +1399,17 @@
     ]
   },
   {
-    "id": 29,
-    "name": "Transaction Builder",
-    "description": "Compose custom contract interactions and batch them into a single transaction",
-    "url": "https://apps-portal.safe.global/tx-builder",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/29/icon.png",
+    "id": 171,
+    "name": "Zodiac Roles",
+    "description": "Manage Safe roles & permissions with Zodiac Roles Modifier v2",
+    "url": "https://roles.gnosisguild.org/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/93100018-6688-41db-a1bd-b527c480b9c4/icon.png",
     "chains": [
       1,
       8453,
       42161,
       43114,
-      56,
       100,
-      57073,
       10,
       137,
       130,
@@ -1600,6 +1576,19 @@
     ]
   },
   {
+    "id": 165,
+    "name": "Morpho",
+    "description": "A dApp to manage your positions on Morpho.",
+    "url": "https://app.morpho.org/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/79369888-5343-4b1c-a06f-66f6ac73c193/icon.png",
+    "chains": [
+      1,
+      8453,
+      137,
+      130
+    ]
+  },
+  {
     "id": 33,
     "name": "CSV Airdrop",
     "description": "Upload your CSV transfer file to send arbitrarily many tokens of various amounts to a list of recipients.",
@@ -1644,33 +1633,6 @@
     ]
   },
   {
-    "id": 203,
-    "name": "Lagoon Finance",
-    "description": "Lagoon Finance brings DeFi to your fingertips with secure and risk-optimized yield from vaults managed by professional curators.",
-    "url": "https://app.lagoon.finance/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/857018a3-758e-4ad1-8d48-dd5f1aac8ab8/icon.png",
-    "chains": [
-      1,
-      8453,
-      42161
-    ]
-  },
-  {
-    "id": 205,
-    "name": "Venus Protocol",
-    "description": "Venus is a decentralized finance (DeFi) algorithmic money market protocol on EVM networks.",
-    "url": "https://app.venus.io/?utm_source=SafeWallet",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/f586f39e-71ac-4772-b988-2bde27edfdeb/icon.png",
-    "chains": [
-      1,
-      8453,
-      42161,
-      56,
-      10,
-      130
-    ]
-  },
-  {
     "id": 206,
     "name": "butterswap",
     "description": "1st ZK light-client cross-chain aggregator swap. Minimized ZK verification time & optimized gas fees. One-click exchanges btw popular chains & BTC ecosystem.",
@@ -1686,6 +1648,18 @@
     ]
   },
   {
+    "id": 203,
+    "name": "Lagoon Finance",
+    "description": "Lagoon Finance brings DeFi to your fingertips with secure and risk-optimized yield from vaults managed by professional curators.",
+    "url": "https://app.lagoon.finance/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/857018a3-758e-4ad1-8d48-dd5f1aac8ab8/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161
+    ]
+  },
+  {
     "id": 207,
     "name": "Pendle Finance",
     "description": "Pendle enables the permissionless tokenization and trading of yield, unlocking various strategies such as obtaining fixed yield, long crypto yields, or trade yields of any assets on Pendle.",
@@ -1698,6 +1672,21 @@
       56,
       10,
       146
+    ]
+  },
+  {
+    "id": 205,
+    "name": "Venus Protocol",
+    "description": "Venus is a decentralized finance (DeFi) algorithmic money market protocol on EVM networks.",
+    "url": "https://app.venus.io/?utm_source=SafeWallet",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/f586f39e-71ac-4772-b988-2bde27edfdeb/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      56,
+      10,
+      130
     ]
   },
   {
@@ -1737,25 +1726,15 @@
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/92/icon.png",
     "chains": [
       1,
+      8453,
       42161,
       43114,
       56,
       100,
       10,
-      137
-    ]
-  },
-  {
-    "id": 165,
-    "name": "Morpho",
-    "description": "A dApp to manage your positions on Morpho.",
-    "url": "https://app.morpho.org/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/79369888-5343-4b1c-a06f-66f6ac73c193/icon.png",
-    "chains": [
-      1,
-      8453,
       137,
-      130
+      130,
+      146
     ]
   },
   {
@@ -1773,6 +1752,30 @@
       100,
       10,
       137
+    ]
+  },
+  {
+    "id": 210,
+    "name": "Arrakis Pro",
+    "description": "DEX liquidity management for token issuers.",
+    "url": "https://app.arrakis.finance/pro",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/974fa12d-430e-4c56-8f61-e77582dece15/icon.png",
+    "chains": [
+      1,
+      8453,
+      11155111
+    ]
+  },
+  {
+    "id": 211,
+    "name": "Teller",
+    "description": "Borrow with long-tail tokens in your treasury. Loans are time-based. No margin call liquidations, simply repay on time.",
+    "url": "https://app.teller.org",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/e5a6da6d-c89b-408c-b7ee-74cbf2eb8eb4/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161
     ]
   },
   {
