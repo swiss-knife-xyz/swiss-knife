@@ -729,7 +729,7 @@ function AppStoreContent({
                   _hover={{ color: "white" }}
                   onClick={(e) => e.stopPropagation()}
                   mr={1}
-                  display={{ base: "none", sm: "inline-flex" }} 
+                  display={{ base: "none", sm: "inline-flex" }}
                 />
               </Tooltip>
               <FormLabel
@@ -737,9 +737,8 @@ function AppStoreContent({
                 mb="0"
                 color="white"
                 fontSize={{ base: "xs", sm: "sm" }}
-                display={{ base: "none", sm: "block" }} 
               >
-                Enable Swiss Knife decoder
+                Decoder
               </FormLabel>
               <Switch
                 id="auto-approve"
