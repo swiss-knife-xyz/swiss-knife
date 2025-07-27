@@ -528,7 +528,7 @@ export default function DSProxyPage() {
     <Box w="full" mt="-2rem">
       <Container
         mt="2rem"
-        maxW={"80%"}
+        maxW={{ base: "20rem", md: "80%" }}
         px={{ base: 3, sm: 4, md: 6 }}
         mx="auto"
       >

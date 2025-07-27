@@ -7,11 +7,19 @@ import {
   Container,
   Flex,
   Center,
+  useDisclosure,
   useBreakpointValue,
+  IconButton,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
+  Text,
 } from "@chakra-ui/react";
-import { useLocalStorage } from "usehooks-ts";
+import { HamburgerIcon } from "@chakra-ui/icons";
 import { Layout } from "@/components/Layout";
-// import { MainSidebar } from "@/components/MainSidebar";
 import { Sidebar, SidebarItem } from "@/components/Sidebar";
 import subdomains from "@/subdomains";
 
@@ -26,43 +34,52 @@ interface LayoutParams {
 }
 
 export const BaseLayout = ({ children }: LayoutParams) => {
-  const [isNavExpanded, setIsNavExpanded] = useLocalStorage(
-    "isNavExpanded",
-    false
-  );
-
-  const toggleNav = () => {
-    setIsNavExpanded(!isNavExpanded);
-  };
-
-  // Use breakpoint to determine if we're on mobile
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   return (
     <Layout>
       <HStack alignItems={"stretch"} h="full" w="full">
-        <Sidebar
-          heading="Wallet"
-          items={SidebarItems}
-          subdomain={subdomains.WALLET.base}
-        />
+        {/* Desktop Sidebar */}
+        {!isMobile && (
+          <Sidebar
+            heading="Wallet"
+            items={SidebarItems}
+            subdomain={subdomains.WALLET.base}
+          />
+        )}
+
         <Box flexGrow={1} overflow="hidden" width={"100%"}>
           <Flex
             direction={{ base: "column", md: "row" }}
             alignItems="flex-start"
           >
-            {/* On mobile, sidebar is conditionally rendered based on isNavExpanded */}
-            {/* {(!isMobile || isNavExpanded) && (
-            <MainSidebar isNavExpanded={isNavExpanded} toggleNav={toggleNav} />
-          )} */}
             <Flex flexDir="column" flexGrow={1} overflow="hidden" width="100%">
               <Box overflowX="hidden" flexGrow={1} width="100%">
                 <Container
-                  mt={{ base: 4, md: 8 }}
+                  mt={{ base: 0, md: 8 }}
                   maxW={{ base: "100%", md: "container.xl" }}
-                  px={{ base: 2, sm: 4, md: isNavExpanded ? 4 : 6 }}
+                  px={{ base: 2, sm: 4, md: 6 }}
                   width="100%"
                 >
+                  {/* Mobile Hamburger Menu */}
+                  {isMobile && (
+                    <Box mb={8} display="flex" justifyContent="flex-start">
+                      <HStack p={0} pr={2} bg="whiteAlpha.100" rounded="md">
+                        <IconButton
+                          aria-label="Open menu"
+                          icon={<HamburgerIcon />}
+                          variant="ghost"
+                          color="white"
+                          colorScheme="whiteAlpha"
+                          onClick={onOpen}
+                          size="xs"
+                        />
+                        <Text fontSize="xs">Wallet Tools</Text>
+                      </HStack>
+                    </Box>
+                  )}
+
                   <Flex
                     flexDir="column"
                     mt="0.5rem"
@@ -76,6 +93,30 @@ export const BaseLayout = ({ children }: LayoutParams) => {
             </Flex>
           </Flex>
         </Box>
+
+        {/* Mobile Drawer */}
+        {isMobile && (
+          <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
+            <DrawerOverlay backdropFilter="blur(5px)" />
+            <DrawerContent bg="bg.900" maxW="280px">
+              <DrawerCloseButton />
+              <DrawerHeader borderBottomWidth="1px" color="green.200">
+                💸 Wallet
+              </DrawerHeader>
+              <DrawerBody p={0}>
+                <Box onClick={onClose}>
+                  <Sidebar
+                    heading=""
+                    items={SidebarItems}
+                    subdomain={subdomains.WALLET.base}
+                    showBorders={false}
+                    showHeading={false}
+                  />
+                </Box>
+              </DrawerBody>
+            </DrawerContent>
+          </Drawer>
+        )}
       </HStack>
     </Layout>
   );

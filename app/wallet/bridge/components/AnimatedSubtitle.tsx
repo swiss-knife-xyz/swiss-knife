@@ -34,7 +34,7 @@ export const AnimatedSubtitle = () => {
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Responsive values
-  const fontSize = useBreakpointValue({ base: "lg", sm: "xl", md: "2xl" });
+  const fontSize = useBreakpointValue({ base: "sm", sm: "xl", md: "2xl" });
   const containerHeight = useBreakpointValue({
     base: "auto",
     md: "60px",
