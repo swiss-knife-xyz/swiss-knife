@@ -73,32 +73,38 @@ export const Sidebar = ({
   subdomain,
   exactPathMatch,
   isRelativePath,
+  showBorders = true,
+  showHeading = true,
 }: {
   heading: string;
   items: SidebarItem[];
   subdomain: string;
   exactPathMatch?: boolean;
   isRelativePath?: boolean;
+  showBorders?: boolean;
+  showHeading?: boolean;
 }) => {
   return (
     <Flex
       flex={1}
       flexDir={"column"}
-      py={"3rem"}
-      borderRight="1px"
-      borderColor={"whiteAlpha.400"}
+      py={showBorders ? "3rem" : "1rem"}
+      borderRight={showBorders ? "1px" : "none"}
+      borderColor={showBorders ? "whiteAlpha.400" : "transparent"}
     >
-      <Center
-        pb="1rem"
-        borderBottom="1px"
-        borderColor={"whiteAlpha.400"}
-        roundedLeft={"lg"}
-      >
-        <Heading size="lg" px="4" color={"green.200"}>
-          {heading}
-        </Heading>
-      </Center>
-      <Box mt="1rem">
+      {showHeading && heading && (
+        <Center
+          pb="1rem"
+          borderBottom={showBorders ? "1px" : "none"}
+          borderColor={showBorders ? "whiteAlpha.400" : "transparent"}
+          roundedLeft={"lg"}
+        >
+          <Heading size="lg" px="4" color={"green.200"}>
+            {heading}
+          </Heading>
+        </Center>
+      )}
+      <Box mt={showHeading && heading ? "1rem" : "0"}>
         {items.map((item) => (
           <SidebarItem
             key={item.name}

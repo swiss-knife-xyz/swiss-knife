@@ -600,40 +600,54 @@ export default function WalletBridgePage() {
       {/* Banner for Web3 App Store */}
       <Center>
         <Box
+          w="full"
           maxW={{ base: "100%", md: "80%" }}
           bg="blue.600"
           color="white"
-          py={3}
-          px={4}
+          py={{ base: 2, md: 3 }}
+          px={{ base: 1, md: 4 }}
           textAlign="center"
           borderBottomWidth={2}
           borderBottomColor="blue.700"
           rounded={"lg"}
         >
-          <Flex justifyContent="center" alignItems="center" gap={4}>
-            <Text fontWeight="semibold" fontSize="md">
+          <Flex
+            direction={{ base: "column", md: "row" }}
+            justifyContent="center"
+            alignItems="center"
+            gap={{ base: 3, md: 4 }}
+          >
+            <Text
+              fontWeight="semibold"
+              fontSize={{ base: "sm", md: "md" }}
+              lineHeight="1.2"
+            >
               🎉 New! Check out the Web3 App Store
             </Text>
             <Button
               as="a"
               href="https://apps.swiss-knife.xyz/"
-              size="sm"
+              size={{ base: "sm", md: "sm" }}
               bg="whiteAlpha.200"
               color="white"
               border="1px solid rgba(255, 255, 255, 0.3)"
               _hover={{
                 bg: "whiteAlpha.300",
               }}
+              _active={{
+                bg: "whiteAlpha.400",
+              }}
               display="inline-flex"
               alignItems="center"
               justifyContent="center"
               whiteSpace="nowrap"
-              minW="fit-content"
-              px={4}
-              py={2}
+              minW={{ base: "100px", md: "fit-content" }}
+              px={{ base: 2, md: 4 }}
+              py={{ base: 1, md: 2 }}
               borderRadius="md"
-              fontSize="sm"
+              fontSize={{ base: "xs", md: "sm" }}
               fontWeight="medium"
+              minH={{ base: "22px", md: "auto" }}
             >
               Explore Apps →
             </Button>
@@ -643,8 +657,8 @@ export default function WalletBridgePage() {
 
       <Container
         mt="2rem"
-        maxW={"80%"}
-        px={{ base: 3, sm: 4, md: 6 }}
+        maxW={{ base: "20rem", md: "80%" }}
+        px={{ base: 0, sm: 4, md: 6 }}
         mx="auto"
       >
         <Global

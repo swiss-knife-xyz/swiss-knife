@@ -1,25 +1,22 @@
 "use client";
 
 import { ReactNode } from "react";
-import { Box, Container, Flex, HStack } from "@chakra-ui/react";
-import { useLocalStorage } from "usehooks-ts";
+import {
+  Box,
+  Container,
+  Flex,
+  HStack,
+  useBreakpointValue,
+} from "@chakra-ui/react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-// import { MainSidebar } from "@/components/MainSidebar";
 
 interface LayoutParams {
   children: ReactNode;
 }
 
 export const Layout = ({ children }: LayoutParams) => {
-  const [isNavExpanded, setIsNavExpanded] = useLocalStorage(
-    "isNavExpanded",
-    false
-  );
-
-  const toggleNav = () => {
-    setIsNavExpanded(!isNavExpanded);
-  };
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   return (
     <Box display="flex" flexDir="column" minHeight="100vh">
@@ -29,18 +26,15 @@ export const Layout = ({ children }: LayoutParams) => {
           <Flex flexDir="column" flexGrow={1} overflow="hidden">
             <Navbar />
             <Box overflowX="auto" flexGrow={1}>
-              <Container
-                mt={12}
-                minW="max-content"
-                px={isNavExpanded ? 4 : -20}
-              >
+              <Container mt={isMobile ? 0 : 12} minW="max-content" px={-20}>
                 <Flex
                   flexDir="column"
                   mt="0.5rem"
                   p="4"
+                  pt={isMobile ? 0 : "4"}
                   border="1px"
                   borderColor="whiteAlpha.700"
-                  borderStyle="dotted"
+                  borderStyle={isMobile ? "none" : "dotted"}
                   rounded="lg"
                 >
                   {children}
