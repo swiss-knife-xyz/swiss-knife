@@ -23,7 +23,14 @@ import {
   Result,
   TransactionDescription,
 } from "ethers";
-import { encodeFunctionData, Hex, hexToBigInt } from "viem";
+import {
+  decodeAbiParameters,
+  decodeFunctionData,
+  encodeFunctionData,
+  Hex,
+  hexToBigInt,
+  parseAbi,
+} from "viem";
 
 export async function decodeWithAddress({
   calldata,
@@ -64,24 +71,28 @@ export async function decodeWithSelector({
   calldata: string;
 }): Promise<TransactionDescription | any | null> {
   try {
-    return await _decodeWithSelector(calldata);
+    return decode7821Execute(calldata);
   } catch {
     try {
-      return decodeSafeMultiSendTransactionsParam(calldata);
+      return await _decodeWithSelector(calldata);
     } catch {
       try {
-        return decodeUniversalRouterPath(calldata);
+        return decodeSafeMultiSendTransactionsParam(calldata);
       } catch {
         try {
-          return decodeABIEncodedData(calldata);
+          return decodeUniversalRouterPath(calldata);
         } catch {
           try {
-            return decodeUniversalRouterCommands(calldata);
+            return decodeABIEncodedData(calldata);
           } catch {
             try {
-              return decodeByGuessingFunctionFragment(calldata);
+              return decodeUniversalRouterCommands(calldata);
             } catch {
-              return null;
+              try {
+                return decodeByGuessingFunctionFragment(calldata);
+              } catch {
+                return null;
+              }
             }
           }
         }
@@ -117,6 +128,120 @@ const _decodeWithSelector = async (calldata: string) => {
       `Failed to find function interface for selector ${selector}`
     );
   }
+};
+
+const decode7821Execute = (calldata: string) => {
+  const selector = calldata.slice(0, 10);
+  if (selector !== "0xe9ae5c53") {
+    throw new Error("Failed to decode calldata as 7821Execute");
+  }
+
+  const decodedParams = decodeFunctionData({
+    abi: parseAbi([
+      "function execute(bytes32 mode, bytes calldata executionData) external",
+    ]),
+    data: calldata as Hex,
+  });
+  const mode = decodedParams.args[0];
+  const executionData = decodedParams.args[1];
+
+  const calls = decodeAbiParameters(
+    [
+      {
+        type: "tuple[]",
+        components: [
+          { name: "to", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "data", type: "bytes" },
+        ],
+      },
+    ],
+    executionData as Hex
+  )[0];
+
+  // Format transactions array for 7821Execute
+  // [to, value, data]
+  const txs = calls.map((call: any) => {
+    return [call.to, call.value.toString(), call.data];
+  });
+
+  const result = {
+    txType: "7821Execute",
+    name: "execute",
+    args: new Result(txs),
+    signature: "execute(bytes32,bytes)",
+    selector: selector,
+    value: BigInt(0),
+    fragment: {
+      name: "ERC-7821 execute",
+      type: "function",
+      stateMutability: "nonpayable",
+      inputs: [
+        {
+          name: "",
+          type: "tuple(uint256,address,uint256,uint256,bytes)[]",
+          baseType: "array",
+          arrayLength: -1,
+          arrayChildren: {
+            name: "",
+            type: "tuple(uint256,address,uint256,uint256,bytes)",
+            baseType: "tuple",
+            components: [
+              {
+                name: "operation",
+                type: "uint256",
+                baseType: "uint256",
+                indexed: null,
+                components: null,
+                arrayLength: null,
+                arrayChildren: null,
+              },
+              {
+                name: "to",
+                type: "address",
+                indexed: null,
+                components: null,
+                arrayLength: null,
+                arrayChildren: null,
+                baseType: "address",
+              },
+              {
+                name: "value",
+                type: "uint256",
+                indexed: null,
+                components: null,
+                arrayLength: null,
+                arrayChildren: null,
+                baseType: "uint256",
+              },
+              {
+                name: "dataLength",
+                type: "uint256",
+                indexed: null,
+                components: null,
+                arrayLength: null,
+                arrayChildren: null,
+                baseType: "uint256",
+              },
+              {
+                name: "data",
+                type: "bytes",
+                indexed: null,
+                components: null,
+                arrayLength: null,
+                arrayChildren: null,
+                baseType: "bytes",
+              },
+            ],
+          },
+        },
+      ],
+      outputs: [],
+    },
+  };
+
+  console.log({ decode7821Execute: result });
+  return result;
 };
 
 // multiSend function: https://etherscan.io/address/0x40a2accbd92bca938b02010e17a5b8929b49130d#code#F1#L21
@@ -196,23 +321,14 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
         inputs: [
           {
             name: "",
-            type: "tuple(uint256,address,uint256,uint256,bytes)[]",
+            type: "tuple(address,uint256,bytes)[]",
             baseType: "array",
             arrayLength: -1,
             arrayChildren: {
               name: "",
-              type: "tuple(uint256,address,uint256,uint256,bytes)",
+              type: "tuple(address,uint256,bytes)",
               baseType: "tuple",
               components: [
-                {
-                  name: "operation",
-                  type: "uint256",
-                  baseType: "uint256",
-                  indexed: null,
-                  components: null,
-                  arrayLength: null,
-                  arrayChildren: null,
-                },
                 {
                   name: "to",
                   type: "address",
@@ -224,15 +340,6 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
                 },
                 {
                   name: "value",
-                  type: "uint256",
-                  indexed: null,
-                  components: null,
-                  arrayLength: null,
-                  arrayChildren: null,
-                  baseType: "uint256",
-                },
-                {
-                  name: "dataLength",
                   type: "uint256",
                   indexed: null,
                   components: null,
@@ -633,7 +740,7 @@ export async function decodeRecursive({
 
   console.log({ parsedTransaction });
 
-  // separate decoding for SafeMultiSend, using the `to` address to decode individual the calldatas
+  // separate decoding for SafeMultiSend and 7821Execute, using the `to` address to decode individual the calldatas
   if (parsedTransaction) {
     if (parsedTransaction.txType === "safeMultiSend") {
       return {
@@ -689,6 +796,75 @@ export async function decodeRecursive({
                 BigInt(value),
                 calldata as Hex,
               ],
+            });
+
+            const fragment = FunctionFragment.from({
+              name: "tx",
+              type: "function",
+              stateMutability: "nonpayable",
+              inputs: [
+                {
+                  name: "encodedCalldata",
+                  type: "bytes",
+                },
+              ],
+              outputs: [],
+            });
+
+            return {
+              name: `tx #${i}`,
+              baseType: "bytes",
+              type: "bytes",
+              rawValue: `${to}, ${value}, ${calldata}`,
+              value: await decodeParamTypes({
+                input: fragment.inputs[0],
+                value: encodedCalldata,
+                address: to,
+                chainId,
+                encodedAbi,
+              }),
+            };
+          })
+        ),
+      };
+    } else if (parsedTransaction.txType === "7821Execute") {
+      return {
+        functionName: parsedTransaction.fragment.name,
+        signature: parsedTransaction.signature,
+        rawArgs: parsedTransaction.args,
+        args: await Promise.all(
+          parsedTransaction.args[0].map(async (tx: string[], i: number) => {
+            const to = tx[0];
+            const value = tx[1];
+            const calldata = tx[2];
+
+            // encode to and calldata into new calldata
+            const encodedAbi = [
+              {
+                name: "tx",
+                type: "function",
+                stateMutability: "nonpayable",
+                inputs: [
+                  {
+                    name: "to",
+                    type: "address",
+                  },
+                  {
+                    name: "value",
+                    type: "uint256",
+                  },
+                  {
+                    name: "calldata",
+                    type: "bytes",
+                  },
+                ],
+                outputs: [],
+              },
+            ] as const;
+            const encodedCalldata = await encodeFunctionData({
+              abi: encodedAbi,
+              functionName: "tx",
+              args: [to as Hex, BigInt(value), calldata as Hex],
             });
 
             const fragment = FunctionFragment.from({
