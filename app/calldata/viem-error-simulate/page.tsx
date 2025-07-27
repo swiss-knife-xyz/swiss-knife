@@ -18,6 +18,7 @@ import { c } from "@/data/common";
 import { DarkButton } from "@/components/DarkButton";
 import { ExternalLinkIcon } from "@chakra-ui/icons"; // Import the correct icon
 import { generateTenderlyUrl } from "@/utils";
+import { zeroAddress } from "viem";
 
 const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
   (k, i) => ({
@@ -40,7 +41,7 @@ const CalldataEncoder = () => {
     try {
       // Extract from address
       const fromMatch = text.match(/from:\s+(\w+)/);
-      const from = fromMatch ? fromMatch[1] : "";
+      const from = fromMatch ? fromMatch[1] : zeroAddress;
 
       // Extract to address
       const toMatch = text.match(/to:\s+(\w+)/);
