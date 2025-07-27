@@ -203,18 +203,20 @@ export default function WalletBridgePage() {
             position: "bottom-right",
           });
         } else {
-          // Reject the request
-          await walletKit.respondSessionRequest({
-            topic,
-            response: {
-              id,
-              jsonrpc: "2.0",
-              error: {
-                code: 4001,
-                message: "User rejected the request",
+          try {
+            // Reject the request
+            await walletKit.respondSessionRequest({
+              topic,
+              response: {
+                id,
+                jsonrpc: "2.0",
+                error: {
+                  code: 4001,
+                  message: "User rejected the request",
+                },
               },
-            },
-          });
+            });
+          } catch {}
 
           toast({
             title: "Request rejected",
