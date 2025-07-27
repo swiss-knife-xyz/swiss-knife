@@ -104,6 +104,11 @@ export async function decodeWithSelector({
 const _decodeWithSelector = async (calldata: string) => {
   const selector = calldata.slice(0, 10);
   console.log(`Decoding calldata with selector ${selector}`);
+
+  if (selector === "0x00000000") {
+    throw new Error("Skipping to decode calldata with selector 0x00000000");
+  }
+
   try {
     // tries to find function signature from openchain and 4bytes
     const fnInterface = await fetchFunctionInterface({ selector });
