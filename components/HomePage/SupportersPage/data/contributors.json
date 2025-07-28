@@ -5,8 +5,7 @@
       "avatar": "/avatars/vitalik.jpg",
       "amount": 15.2,
       "currency": "ETH",
-      "profileLink": "https://etherscan.io/address/vitalik.eth",
-      "isVerified": true
+      "profileLink": "https://etherscan.io/address/vitalik.eth"
     },
     {
       "rank": 2,
@@ -14,8 +13,7 @@
       "avatar": "/avatars/sassal.jpg",
       "amount": 12.8,
       "currency": "ETH",
-      "profileLink": "https://etherscan.io/address/sassal.eth",
-      "isVerified": true
+      "profileLink": "https://etherscan.io/address/sassal.eth"
     },
     {
       "rank": 3,
@@ -23,8 +21,7 @@
       "avatar": "/avatars/tayvano.jpg",
       "amount": 9.5,
       "currency": "ETH",
-      "profileLink": "https://etherscan.io/address/tayvano.eth",
-      "isVerified": true
+      "profileLink": "https://etherscan.io/address/tayvano.eth"
     },
     {
       "rank": 4,
@@ -40,8 +37,7 @@
       "avatar": "/avatars/loomdart.jpg",
       "amount": 6.8,
       "currency": "ETH",
-      "profileLink": "https://etherscan.io/address/loomdart.eth",
-      "isVerified": true
+      "profileLink": "https://etherscan.io/address/loomdart.eth"
     },
     {
       "rank": 6,
@@ -57,8 +53,7 @@
       "avatar": "/avatars/dapplion.jpg",
       "amount": 4.9,
       "currency": "ETH",
-      "profileLink": "https://etherscan.io/address/dapplion.eth",
-      "isVerified": true
+      "profileLink": "https://etherscan.io/address/dapplion.eth"
     },
     {
       "rank": 8,
@@ -74,8 +69,7 @@
       "avatar": "/avatars/punk6529.jpg",
       "amount": 4.2,
       "currency": "ETH",
-      "profileLink": "https://etherscan.io/address/punk6529.eth",
-      "isVerified": true
+      "profileLink": "https://etherscan.io/address/punk6529.eth"
     },
     {
       "rank": 10,
@@ -91,8 +85,7 @@
       "avatar": "/avatars/satoshi.jpg",
       "amount": 3.7,
       "currency": "ETH",
-      "profileLink": "https://etherscan.io/address/satoshi.eth",
-      "isVerified": true
+      "profileLink": "https://etherscan.io/address/satoshi.eth"
     },
     {
       "rank": 12,
@@ -108,8 +101,7 @@
       "avatar": "/avatars/bitcoiner.jpg",
       "amount": 3.2,
       "currency": "ETH",
-      "profileLink": "https://etherscan.io/address/bitcoiner.eth",
-      "isVerified": true
+      "profileLink": "https://etherscan.io/address/bitcoiner.eth"
     },
     {
       "rank": 14,
@@ -125,8 +117,7 @@
       "avatar": "/avatars/defiprime.jpg",
       "amount": 2.8,
       "currency": "ETH",
-      "profileLink": "https://etherscan.io/address/defiprime.eth",
-      "isVerified": true
+      "profileLink": "https://etherscan.io/address/defiprime.eth"
     },
     {
       "rank": 16,
@@ -142,8 +133,7 @@
       "avatar": "/avatars/cryptocobain.jpg",
       "amount": 2.4,
       "currency": "ETH",
-      "profileLink": "https://etherscan.io/address/cryptocobain.eth",
-      "isVerified": true
+      "profileLink": "https://etherscan.io/address/cryptocobain.eth"
     },
     {
       "rank": 18,
@@ -159,8 +149,7 @@
       "avatar": "/avatars/nftartist.jpg",
       "amount": 2.0,
       "currency": "ETH",
-      "profileLink": "https://etherscan.io/address/nftartist.eth",
-      "isVerified": true
+      "profileLink": "https://etherscan.io/address/nftartist.eth"
     },
     {
       "rank": 20,

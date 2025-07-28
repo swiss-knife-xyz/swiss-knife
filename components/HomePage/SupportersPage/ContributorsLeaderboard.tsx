@@ -1,3 +1,4 @@
+
 import { Box, Flex, Heading, Avatar, Text, VStack, HStack, Table, Thead, Tbody, Tr, Th, Td, Badge, Link, SimpleGrid, useBreakpointValue, IconButton } from "@chakra-ui/react";
 import { LeftDash } from "../ToolsGrid/ToolsGridHeading/LeftDash";
 import { RightDash } from "../ToolsGrid/ToolsGridHeading/RightDash";
@@ -35,8 +36,7 @@ const ContributorRow = ({ contributor }: { contributor: any }) => {
               size="sm" 
               src={contributor.avatar} 
               name={contributor.name}
-              border={contributor.isVerified ? "2px solid" : "none"}
-              borderColor={contributor.isVerified ? "blue.400" : "transparent"}
+              borderColor={"transparent"}
               mr={3}
             />
             <Text fontWeight="medium">{contributor.name}</Text>
