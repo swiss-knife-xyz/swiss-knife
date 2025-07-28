@@ -43,7 +43,7 @@
       "name": "Papa Wheelie",
       "handle": "@mrpapawheelie",
       "avatar": "https://pbs.twimg.com/profile_images/1234567890/rj.jpg",
-      "text": "Blockchain BALLS-DEEP DEV TOOLS I swear by (and you probably should too):\n🔪 SwissKnife → https://swiss-knife.xyz\\ <br>Decode calldata instantly + jump into any chain’s top contract tools. A must-have for sleuths and giga nerds with an obsession for swords and blockchain code.",
+      "text": "Blockchain BALLS-DEEP DEV TOOLS I swear by (and you probably should too):🔪 SwissKnife → https://swiss-knife.xyz\\ Decode calldata instantly + jump into any chain’s top contract tools. A must-have for sleuths and giga nerds with an obsession for swords and blockchain code.",
       "verified": true,
       "tweetUrl": "https://x.com/mrpapawheelie/status/1914828235915059344"
     },
@@ -62,29 +62,5 @@
       "text": "Thanks for your work on swiss-knife, it's daily for me.",
       "verified": true,
       "tweetUrl": "https://x.com/GabiDev98/status/1899013266350756173"
-    },
-    {
-        "name": "Papa Wheelie",
-        "handle": "@mrpapawheelie",
-        "avatar": "https://pbs.twimg.com/profile_images/1234567890/rj.jpg",
-        "text": "Blockchain BALLS-DEEP DEV TOOLS I swear by (and you probably should too):\n🔪 SwissKnife → https://swiss-knife.xyz\\ <br>Decode calldata instantly + jump into any chain’s top contract tools. A must-have for sleuths and giga nerds with an obsession for swords and blockchain code.",
-        "verified": true,
-        "tweetUrl": "https://x.com/mrpapawheelie/status/1914828235915059344"
-      },
-      {
-        "name": "noah.eth",
-        "handle": "@NoahMarconi",
-        "avatar": "https://pbs.twimg.com/profile_images/1234567890/mikael.jpg",
-        "text": "s/o to @apoorvlathey for swiss-knife.xyz makes life so much easier on multiple fronts",
-        "verified": true,
-        "tweetUrl": "https://x.com/NoahMarconi/status/1899581634254348580"
-      },
-      {
-        "name": "gabidev.eth",
-        "handle": "@GabiDev98",
-        "avatar": "https://pbs.twimg.com/profile_images/1234567890/razvan.jpg",
-        "text": "Thanks for your work on swiss-knife, it's daily for me.",
-        "verified": true,
-        "tweetUrl": "https://x.com/GabiDev98/status/1899013266350756173"
-      }
+    }
   ]
