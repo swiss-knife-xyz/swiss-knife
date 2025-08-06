@@ -1,5 +1,5 @@
 import { Address } from "viem";
-import { baseSepolia } from "viem/chains";
+import { baseSepolia, base } from "viem/chains";
 
 // Import shared constants from add-liquidity
 export {
@@ -23,6 +23,7 @@ export enum SwapLocalStorageKeys {
 // Universal Router contract addresses
 export const UniversalRouterAddress: Record<number, Address> = {
   [baseSepolia.id]: "0x492E6456D9528771018DeB9E87ef7750EF184104",
+  [base.id]: "0x6fF5693b99212Da76ad316178A184AB56D299b43",
 };
 
 // Default slippage in basis points (0.5% = 50 basis points)

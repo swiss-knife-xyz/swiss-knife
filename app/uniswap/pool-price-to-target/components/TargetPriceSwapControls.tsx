@@ -24,6 +24,8 @@ import { useLocalStorage } from "usehooks-ts";
 import { Address, zeroAddress } from "viem";
 import { PoolWithHookData } from "@/lib/uniswap/types";
 import { SwapLocalStorageKeys } from "../../swap/lib/constants";
+import { getPath } from "@/utils";
+import subdomains from "@/subdomains";
 
 interface TargetPriceSwapControlsProps {
   performOptimizedParallelSearch: () => Promise<void>;
@@ -173,7 +175,7 @@ export const TargetPriceSwapControls: React.FC<
     setSwapSlippage(priceImpact.toFixed(2));
 
     // Navigate to the swap page with hash fragment to scroll to swap interface
-    router.push("/uniswap/swap#swap");
+    router.push(`${getPath(subdomains.UNISWAP.base)}swap#swap`);
   };
 
   return (
