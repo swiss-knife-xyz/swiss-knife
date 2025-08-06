@@ -495,6 +495,18 @@ const dapps: SupportedApp[] = [
     filterSupportsAllChains: true,
   },
   {
+    name: "Sky.money",
+    logoUrl: getFaviconUrl("https://sky.money/"),
+    siteUrl: "https://sky.money/",
+    supportedChainIds: [
+      mainnet.id,
+      arbitrum.id,
+      base.id,
+      optimism.id,
+      unichain.id,
+    ],
+  },
+  {
     name: "Spark",
     logoUrl: getFaviconUrl("https://spark.fi/"),
     siteUrl: "https://spark.fi/",
