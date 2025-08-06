@@ -1,5 +1,5 @@
 import { Address } from "viem";
-import { baseSepolia } from "viem/chains";
+import { baseSepolia, base } from "viem/chains";
 
 // Shared pool configuration keys used across multiple components
 export enum PoolConfigLocalStorageKeys {
@@ -593,13 +593,16 @@ export const StateViewAbi = [
   },
 ] as const;
 
+// TODO: add more chains
 export const quoterAddress: Record<number, Address> = {
   // our unofficial quoter
   [baseSepolia.id]: "0xF0f351A4472b3F54A0232538969d1Ea6BaAFCfEE",
+  [base.id]: "0xad23E08D7F40e2844fF01A6d19D0e4a57381D6a6",
 };
 
 export const StateViewAddress: Record<number, Address> = {
   [baseSepolia.id]: "0x571291b572ed32ce6751a2Cb2486EbEe8DEfB9B4",
+  [base.id]: "0xA3c0c9b65baD0b08107Aa264b0f3dB444b867A71",
 };
 
 export interface PoolKey {
