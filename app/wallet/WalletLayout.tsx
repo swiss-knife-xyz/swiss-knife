@@ -65,15 +65,25 @@ export const BaseLayout = ({ children }: LayoutParams) => {
                   {/* Mobile Hamburger Menu */}
                   {isMobile && (
                     <Box mb={8} display="flex" justifyContent="flex-start">
-                      <HStack p={0} pr={2} bg="whiteAlpha.100" rounded="md">
+                      <HStack
+                        p={0}
+                        pr={2}
+                        bg="whiteAlpha.100"
+                        rounded="md"
+                        as="button"
+                        type="button"
+                        onClick={onOpen}
+                        _hover={{ bg: "whiteAlpha.200", cursor: "pointer" }}
+                        spacing={2}
+                      >
                         <IconButton
                           aria-label="Open menu"
                           icon={<HamburgerIcon />}
                           variant="ghost"
                           color="white"
                           colorScheme="whiteAlpha"
-                          onClick={onOpen}
                           size="xs"
+                          tabIndex={-1} 
                         />
                         <Text fontSize="xs">Wallet Tools</Text>
                       </HStack>
