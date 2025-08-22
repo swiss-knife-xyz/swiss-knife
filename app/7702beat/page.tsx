@@ -284,6 +284,17 @@ const wallets: SupportedApp[] = [
       tweet: "https://x.com/Uniswap/status/1933168423825035768",
     },
   },
+  {
+    name: "zWallet",
+    logoUrl:
+      "https://raw.githubusercontent.com/zammdefi/zWallet/refs/heads/main/extension/icon48.png",
+    siteUrl: "https://zwallets.eth.limo/",
+    supportedChainIds: [mainnet.id, base.id],
+    announcement: {
+      epochTimestamp: 1755698880,
+      tweet: "https://x.com/z0r0zzz/status/1958169302315729282",
+    },
+  },
 ];
 
 const dapps: SupportedApp[] = [
