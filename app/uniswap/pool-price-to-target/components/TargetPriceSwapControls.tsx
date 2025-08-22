@@ -18,12 +18,12 @@ import {
   FiArrowUp,
   FiExternalLink,
 } from "react-icons/fi";
-import { SearchResult } from "../hooks/useTargetPriceCalculator"; // Assuming SearchResult type is exported
+import { SearchResult } from "../hooks/useTargetPriceCalculator";
 import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { useLocalStorage } from "usehooks-ts";
 import { Address, zeroAddress } from "viem";
 import { PoolWithHookData } from "@/lib/uniswap/types";
-import { SwapLocalStorageKeys } from "../../swap/lib/constants";
+import { SwapLocalStorageKeys } from "../../lib/constants";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 

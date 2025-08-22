@@ -7,7 +7,7 @@ import {
   Center,
   Box,
 } from "@chakra-ui/react";
-import { isValidNumericInput } from "../lib/utils"; // Assuming this is where you have it
+import { isValidNumericInput } from "../lib/utils";
 
 interface PoolFormInputRowsProps {
   currency0: string;

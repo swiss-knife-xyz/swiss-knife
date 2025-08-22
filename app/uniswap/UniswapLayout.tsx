@@ -1,12 +1,13 @@
 "use client";
 
-import { HStack, Center } from "@chakra-ui/react";
+import { HStack, Box } from "@chakra-ui/react";
 import {
   FiBarChart,
   FiTarget,
   FiPlus,
   FiRefreshCw,
   FiZap,
+  FiUser,
 } from "react-icons/fi";
 import { Layout } from "@/components/Layout";
 import { Sidebar, SidebarItem } from "@/components/Sidebar";
@@ -38,6 +39,11 @@ const SidebarItems: SidebarItem[] = [
     path: "initialize-pool",
     icon: FiZap,
   },
+  {
+    name: "Positions",
+    path: "positions",
+    icon: FiUser,
+  },
 ];
 
 export const UniswapLayout = ({ children }: { children: React.ReactNode }) => {
@@ -49,9 +55,9 @@ export const UniswapLayout = ({ children }: { children: React.ReactNode }) => {
           items={SidebarItems}
           subdomain={subdomains.UNISWAP.base}
         />
-        <Center flexDir={"column"} w="full" flex={1}>
+        <Box w="full" flex={1} p={6}>
           {children}
-        </Center>
+        </Box>
       </HStack>
     </Layout>
   );

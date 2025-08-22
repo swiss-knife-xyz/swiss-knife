@@ -8,7 +8,7 @@ import {
   Input,
   Button,
 } from "@chakra-ui/react";
-import { isValidNumericInput } from "../lib/utils"; // Adjust path as needed
+import { isValidNumericInput } from "../lib/utils";
 
 interface PoolInitializationFormProps {
   isPoolInitialized?: boolean;

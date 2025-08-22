@@ -5,7 +5,7 @@ import {
   Permit2Address,
   Permit2Abi,
   UniV4PositionManagerAddress,
-} from "../lib/constants";
+} from "../../lib/constants";
 import { Chain } from "viem/chains";
 
 // Define the type for publicClient based on usePublicClient hook

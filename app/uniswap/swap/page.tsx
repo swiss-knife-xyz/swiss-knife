@@ -31,8 +31,8 @@ import { useCurrencyInfo } from "./hooks/useCurrencyInfo";
 // Import utilities and types
 import { PoolWithHookData } from "@/lib/uniswap/types";
 import { getAvailableCurrencies } from "./lib/utils";
-import { StateViewAddress, Permit2Address } from "./lib/constants";
-import { SwapLocalStorageKeys } from "./lib/constants";
+import { StateViewAddress, Permit2Address } from "../lib/constants";
+import { SwapLocalStorageKeys } from "../lib/constants";
 
 const SwapPage = () => {
   const { chain, address } = useAccount();

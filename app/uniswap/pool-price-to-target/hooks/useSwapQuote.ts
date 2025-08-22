@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSimulateContract } from "wagmi";
 import { Address, parseUnits, zeroAddress, Hex, Chain } from "viem";
-import { quoterAbi, quoterAddress } from "../lib/constants";
+import { quoterAbi, quoterAddress } from "../../lib/constants";
 
 interface UseSwapQuoteProps {
   currency0: string;

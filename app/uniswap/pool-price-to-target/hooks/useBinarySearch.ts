@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { Address, parseUnits, zeroAddress, Hex, formatUnits } from "viem";
 import { usePublicClient } from "wagmi";
-import { quoterAbi, quoterAddress, PoolKey } from "../lib/constants";
+import { quoterAbi, quoterAddress, PoolKey } from "../../lib/constants";
 import { sqrtPriceX96ToPrice } from "../lib/utils";
 
 interface UseBinarySearchProps {

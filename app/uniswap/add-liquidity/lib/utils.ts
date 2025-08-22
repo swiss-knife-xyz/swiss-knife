@@ -1,6 +1,6 @@
-import { Address, formatUnits, parseUnits } from "viem";
+import { Address, formatUnits } from "viem";
 import { TickMath } from "@uniswap/v3-sdk";
-import { MIN_TICK, MAX_TICK, Q96, Q192 } from "./constants";
+import { MIN_TICK, MAX_TICK, Q96 } from "../../lib/constants";
 
 export interface PoolKey {
   currency0: Address;

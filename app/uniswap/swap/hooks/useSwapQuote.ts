@@ -4,10 +4,7 @@ import { useAccount, useSimulateContract } from "wagmi";
 import { PoolWithHookData } from "@/lib/uniswap/types";
 import { getExactInputParams } from "@/lib/uniswap/quote";
 import { findRoutingPath } from "../lib/utils";
-import {
-  quoterAbi,
-  quoterAddress,
-} from "../../pool-price-to-target/lib/constants";
+import { quoterAbi, quoterAddress } from "../../lib/constants";
 
 interface UseSwapQuoteParams {
   fromCurrency: Address;

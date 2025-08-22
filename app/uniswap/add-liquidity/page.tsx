@@ -62,6 +62,7 @@ import { CurrentPoolPriceDisplay } from "../pool-price-to-target/components/Curr
 
 // Import constants
 import {
+  PoolConfigLocalStorageKeys,
   StateViewAddress,
   Permit2Address,
   UniV4PositionManagerAddress,
@@ -70,9 +71,8 @@ import {
   UniV4PM_MintPositionAbi,
   UniV4PM_SettlePairAbi,
   V4PMActions,
-} from "./lib/constants";
-import { PoolConfigLocalStorageKeys } from "../pool-price-to-target/lib/constants";
-import { AddLiquidityLocalStorageKeys } from "./lib/constants";
+  AddLiquidityLocalStorageKeys,
+} from "../lib/constants";
 
 // Import utility functions
 import {

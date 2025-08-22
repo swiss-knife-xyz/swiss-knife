@@ -20,7 +20,7 @@ import {
   Permit2Address,
   Permit2Abi,
   DEFAULT_SLIPPAGE_BPS,
-} from "../lib/constants";
+} from "../../lib/constants";
 import { slippageToBasiPoints } from "../lib/utils";
 
 interface UseSwapTransactionParams {

@@ -1,5 +1,5 @@
 import { concat, pad, toHex, keccak256 } from "viem";
-import { PoolKey } from "./constants";
+import { PoolKey } from "../../lib/constants";
 
 export const getPoolId = (poolKey: PoolKey) => {
   // Pack the data in the same order as Solidity struct

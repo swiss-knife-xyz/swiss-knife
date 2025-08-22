@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Address } from "viem";
 import { useReadContract } from "wagmi";
-import { StateViewAddress, StateViewAbi } from "../lib/constants"; // Assuming constants are in ../lib
+import { StateViewAddress, StateViewAbi } from "../../lib/constants";
 import { Chain } from "viem/chains";
 
 interface Slot0Data {

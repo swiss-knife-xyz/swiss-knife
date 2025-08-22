@@ -6,8 +6,8 @@ import { Address, Hex, parseUnits, formatUnits, zeroAddress } from "viem";
 import { usePublicClient } from "wagmi";
 import { multicall } from "@wagmi/core";
 import { config } from "@/app/providers"; // Import wagmi config
-import { quoterAbi, quoterAddress, PoolKey } from "../lib/constants"; // Assuming constants are here
-import { sqrtPriceX96ToPrice } from "../lib/utils"; // Assuming utils are here
+import { quoterAbi, quoterAddress, PoolKey } from "../../lib/constants";
+import { sqrtPriceX96ToPrice } from "../lib/utils";
 
 interface UseTargetPriceCalculatorProps {
   poolKey: PoolKey | null;

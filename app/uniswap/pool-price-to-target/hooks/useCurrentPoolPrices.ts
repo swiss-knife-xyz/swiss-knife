@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useReadContract } from "wagmi";
-import { StateViewAbi, StateViewAddress } from "../lib/constants"; // Adjusted path
-import { Chain, Hex } from "viem"; // Import Chain and Hex types
+import { StateViewAbi, StateViewAddress } from "../../lib/constants";
+import { Chain, Hex } from "viem";
 
 interface UseCurrentPoolPricesProps {
   poolId: Hex | null; // Changed from string to Hex

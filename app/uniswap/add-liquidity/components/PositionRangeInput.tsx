@@ -7,16 +7,13 @@ import {
   VStack,
   HStack,
   IconButton,
-  InputGroup,
-  InputLeftElement,
-  InputRightElement,
 } from "@chakra-ui/react";
 import { AddIcon, MinusIcon } from "@chakra-ui/icons";
 import {
   isValidNumericInput,
   priceRatioToTick,
   tickToPriceRatio,
-} from "../lib/utils"; // Adjust path, ADD priceRatioToTick, tickToPriceRatio
+} from "../lib/utils";
 
 interface PositionRangeInputProps {
   priceInputMode: boolean;

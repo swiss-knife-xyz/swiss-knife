@@ -1,6 +1,6 @@
 import { useLocalStorage } from "usehooks-ts";
 import { zeroHash } from "viem";
-import { PoolConfigLocalStorageKeys } from "../lib/constants";
+import { PoolConfigLocalStorageKeys } from "../../lib/constants";
 
 export function usePoolFormState() {
   const [currency0, setCurrency0] = useLocalStorage<string>(

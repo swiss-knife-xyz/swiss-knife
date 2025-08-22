@@ -1,7 +1,7 @@
 import { Box, Button, Center, Text, VStack } from "@chakra-ui/react";
 import { ConnectButton } from "@/components/ConnectButton";
 import { chainIdToChain } from "@/data/common";
-import { quoterAddress } from "../lib/constants";
+import { quoterAddress } from "../../lib/constants";
 
 interface ChainSwitchUIProps {
   chain?: { id: number; name?: string }; // Make name optional as it might not always be available

@@ -21,7 +21,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { FiTarget, FiTrendingUp } from "react-icons/fi";
 
 import { chainIdToChain } from "@/data/common";
-import { quoterAddress, PoolKey } from "./lib/constants";
+import { quoterAddress, PoolKey } from "../lib/constants";
 import { getPoolId, getSearchRangeTokenSymbol } from "./lib/utils";
 import { usePoolFormState } from "./hooks/usePoolFormState";
 import { useCurrencyInfo } from "./hooks/useCurrencyInfo";

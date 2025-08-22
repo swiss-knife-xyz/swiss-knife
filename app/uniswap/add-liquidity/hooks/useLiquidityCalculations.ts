@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { parseUnits, formatUnits } from "viem";
 import { TickMath } from "@uniswap/v3-sdk";
-import { Q96, Q192 } from "../lib/constants";
+import { Q96, Q192 } from "../../lib/constants";
 import { priceRatioToTick } from "../lib/utils";
 
 interface UseLiquidityCalculationsProps {
