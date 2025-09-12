@@ -197,7 +197,7 @@ const chains: Chain[] = [
   {
     id: endurance.id,
     name: "Endurance",
-    color: "purple.600",
+    color: "orange.400",
     abbreviation: "ACE",
     chainObj: endurance,
   },
