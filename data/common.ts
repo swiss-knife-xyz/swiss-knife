@@ -293,6 +293,7 @@ export const chainIdToImage = (() => {
     [sepolia.id]: `${basePath}/ethereum.svg`,
     [unichain.id]: `${basePath}/unichain.svg`,
     [zora.id]: `${basePath}/zora.svg`,
+    [648]: "https://raw.githubusercontent.com/fusionist-io/fusionist-web/main/public/favicon.ico", // Endurance
   };
 
   Object.keys(chainIdToChain).map((_chainId) => {
