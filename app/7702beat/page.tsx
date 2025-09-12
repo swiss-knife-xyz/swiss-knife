@@ -74,7 +74,7 @@ const endurance = {
   id: 648,
   name: "Endurance",
   iconUrl: "https://ace.fusionist.io/apple-touch-icon.png",
-  iconBackground: "blue.400",
+  iconBackground: "white.400",
   blockExplorers: {
     default: {
       name: "Endurance Explorer",
