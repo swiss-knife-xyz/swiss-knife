@@ -196,8 +196,9 @@ const wallets: SupportedApp[] = [
       bsc.id,
       gnosis.id,
       ink.id,
+      katana.id, // https://explorer.ambire.com/?chainId=747474&txnId=0xc7f0957c270dd47261c69228e72a4c689f9e1293a0def2bc06b9e2c7c45c0524
       optimism.id,
-      // polygon.id,
+      polygon.id,
       unichain.id,
     ],
     announcement: {
