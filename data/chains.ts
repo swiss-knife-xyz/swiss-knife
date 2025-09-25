@@ -23,6 +23,7 @@ import {
   zora,
   Chain,
 } from "wagmi/chains";
+import { plasma } from "./common";
 
 export const walletChains: readonly [Chain, ...Chain[]] = [
   // first chain is the default
@@ -38,6 +39,7 @@ export const walletChains: readonly [Chain, ...Chain[]] = [
   unichain,
   zora,
   // no icon
+  plasma,
   pulsechain,
   soneium,
   sonic,

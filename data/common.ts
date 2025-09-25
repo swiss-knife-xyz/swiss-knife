@@ -81,6 +81,31 @@ import {
 } from "viem/chains";
 import { _chains } from "./_chains";
 
+import { defineChain } from "viem";
+
+// === New chains ===
+// to avoid Upgrading viem + wagmi, as it results in breaking changes atm.
+export const plasma = defineChain({
+  id: 9745,
+  name: "Plasma",
+  nativeCurrency: {
+    name: "Plasma",
+    symbol: "XPL",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc.plasma.to"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "PlasmaScan",
+      url: "https://plasmascan.to",
+    },
+  },
+});
+
 export const CHAINLABEL_KEY = "$SK_CHAINLABEL";
 export const ADDRESS_KEY = "$SK_ADDRESS";
 export const TX_KEY = "$SK_TX";
@@ -150,6 +175,7 @@ export const c: { [name: string]: Chain } = {
   optimism,
   optimismGoerli,
   optimismSepolia,
+  plasma,
   polygon,
   polygonMumbai,
   polygonZkEvm,
