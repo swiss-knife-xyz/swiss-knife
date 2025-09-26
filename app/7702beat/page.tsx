@@ -296,6 +296,25 @@ const wallets: SupportedApp[] = [
       tweet: "https://x.com/z0r0zzz/status/1958169302315729282",
     },
   },
+  {
+    name: "NuFi",
+    logoUrl: getFaviconUrl("https://nu.fi"),
+    siteUrl: "https://nu.fi/",
+    supportedChainIds: [
+      mainnet.id,
+      arbitrum.id,
+      base.id,
+      berachain.id,
+      bsc.id,
+      optimism.id,
+      polygon.id,
+      unichain.id,
+    ],
+    announcement: {
+      epochTimestamp: 1753812000,
+      tweet: "https://x.com/nufiwallet/status/1950255004612202578",
+    },
+  },
 ];
 
 const dapps: SupportedApp[] = [
