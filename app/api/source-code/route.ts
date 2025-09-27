@@ -1,5 +1,6 @@
 import axios from "axios";
 import { sourceCodeRequestSchema } from "@/data/schemas";
+import { etherscanChains } from "@/data/common";
 
 export const OPTIONS = async (request: Request) => {
   return new Response(null, {
@@ -40,9 +41,23 @@ export const GET = async (request: Request) => {
   }
 
   try {
-    const res = await axios.get(
-      `https://api.etherscan.io/v2/api?apikey=${process.env.ETHERSCAN_API_KEY}&chainid=${chainId}&module=contract&action=getsourcecode&address=${address}`
+    // Find the chain in etherscanChains and check if it uses Routescan
+    const targetChainId = parseInt(chainId || "");
+    const chain = Object.values(etherscanChains).find(
+      (chain) => chain.id === targetChainId
     );
+    const isRoutescanChain = chain?.isRoutescan === true;
+
+    let apiUrl: string;
+    if (isRoutescanChain) {
+      // Use Routescan API for chains like Plasma
+      apiUrl = `https://api.routescan.io/v2/network/mainnet/evm/${chainId}/etherscan/api?module=contract&action=getsourcecode&address=${address}`;
+    } else {
+      // Use Etherscan API for supported chains
+      apiUrl = `https://api.etherscan.io/v2/api?apikey=${process.env.ETHERSCAN_API_KEY}&chainid=${chainId}&module=contract&action=getsourcecode&address=${address}`;
+    }
+
+    const res = await axios.get(apiUrl);
     return new Response(JSON.stringify(res.data), {
       headers: {
         "Content-Type": "application/json",

@@ -196,8 +196,11 @@ export const c: { [name: string]: Chain } = {
   zoraTestnet,
 };
 
+// Extended Chain type to include optional Routescan flag
+type ExtendedChain = Chain & { isRoutescan?: boolean };
+
 // source: https://docs.etherscan.io/etherscan-v2/getting-started/supported-chains
-export const etherscanChains: { [name: string]: Chain } = {
+export const etherscanChains: { [name: string]: ExtendedChain } = {
   mainnet,
   arbitrum,
   arbitrumNova,
@@ -235,6 +238,7 @@ export const etherscanChains: { [name: string]: Chain } = {
   opBNBTestnet,
   optimism,
   optimismSepolia,
+  plasma: { ...plasma, isRoutescan: true },
   polygon,
   polygonMumbai,
   polygonZkEvm,
