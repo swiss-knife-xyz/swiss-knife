@@ -1974,6 +1974,10 @@ const SevenSevenZeroTwoBeat = () => {
                                         to: address,
                                         value: parseEther("0"),
                                       },
+                                      {
+                                        to: address,
+                                        value: parseEther("0"),
+                                      },
                                     ],
                                   });
                                 }}
