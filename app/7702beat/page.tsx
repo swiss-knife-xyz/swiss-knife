@@ -51,6 +51,7 @@ import {
   base,
   berachain,
   bsc,
+  celo,
   gnosis,
   ink,
   optimism,
@@ -138,6 +139,13 @@ const chains: Chain[] = [
     color: "yellow.300",
     abbreviation: "BNB",
     chainObj: bsc,
+  },
+  {
+    id: celo.id,
+    name: "Celo",
+    color: "yellow.200",
+    abbreviation: "CELO",
+    chainObj: celo,
   },
   {
     id: gnosis.id,
@@ -574,10 +582,10 @@ const dapps: SupportedApp[] = [
       arbitrum.id,
       base.id,
       berachain.id,
+      celo.id,
       gnosis.id,
       optimism.id,
       unichain.id,
-      // TODO: also supports: celo
     ],
   },
   {
