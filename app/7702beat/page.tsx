@@ -440,6 +440,13 @@ const dapps: SupportedApp[] = [
     ],
   },
   {
+    name: "Infinit",
+    logoUrl: getFaviconUrl("https://app.infinit.tech/en"),
+    siteUrl: "https://app.infinit.tech/en",
+    supportedChainIds: [mainnet.id, arbitrum.id, base.id, bsc.id],
+    // NOTE: plasm & hyperEVM also supported
+  },
+  {
     name: "Jumper",
     logoUrl: getFaviconUrl("https://jumper.exchange/"),
     needsWhiteBg: true,
