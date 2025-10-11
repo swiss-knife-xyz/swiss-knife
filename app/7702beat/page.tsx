@@ -383,7 +383,14 @@ const dapps: SupportedApp[] = [
     name: "Ethena",
     logoUrl: getFaviconUrl("https://app.ethena.fi/"),
     siteUrl: "https://app.ethena.fi/",
-    supportedChainIds: [mainnet.id],
+    supportedChainIds: [
+      mainnet.id,
+      arbitrum.id,
+      base.id,
+      bsc.id,
+      berachain.id,
+      optimism.id,
+    ],
   },
   {
     name: "Euler",
@@ -414,6 +421,23 @@ const dapps: SupportedApp[] = [
     logoUrl: "https://evm.fundable.finance/favicon_io/favicon.ico",
     siteUrl: "https://evm.fundable.finance",
     supportedChainIds: [arbitrum.id, base.id, bsc.id, optimism.id],
+  },
+  {
+    name: "GlueX",
+    logoUrl: getFaviconUrl("https://dapp.gluex.xyz/"),
+    siteUrl: "https://dapp.gluex.xyz/",
+    supportedChainIds: [
+      mainnet.id,
+      arbitrum.id,
+      base.id,
+      berachain.id,
+      bsc.id,
+      gnosis.id,
+      optimism.id,
+      polygon.id,
+      unichain.id,
+      // NOTE: plasma & hyperEVM also supported
+    ],
   },
   {
     name: "Jumper",
@@ -478,6 +502,12 @@ const dapps: SupportedApp[] = [
     logoUrl: getFaviconUrl("https://pancakeswap.finance/"),
     siteUrl: "https://pancakeswap.finance/",
     supportedChainIds: [mainnet.id, arbitrum.id, base.id, bsc.id],
+  },
+  {
+    name: "PredictBase",
+    logoUrl: getFaviconUrl("https://predictbase.app/"),
+    siteUrl: "https://predictbase.app/",
+    supportedChainIds: [base.id],
   },
   {
     name: "PWN",
@@ -589,6 +619,18 @@ const dapps: SupportedApp[] = [
     ],
   },
   {
+    name: "Velodrome",
+    logoUrl: getFaviconUrl("https://velodrome.finance/"),
+    siteUrl: "https://velodrome.finance/",
+    supportedChainIds: [
+      celo.id,
+      ink.id,
+      optimism.id,
+      unichain.id,
+      // NOTE: sonium, lisk, superseed, mode, metal l2, swellchain, fraxtal also supported (source: https://velodrome.finance/dash?settings=favorite-chains)
+    ],
+  },
+  {
     name: "WalletConnect Staking",
     logoUrl: getFaviconUrl("https://staking.walletconnect.network/"),
     siteUrl: "https://staking.walletconnect.network/",
@@ -599,6 +641,12 @@ const dapps: SupportedApp[] = [
     logoUrl: "https://www.zamm.finance/zamm-logo.svg",
     siteUrl: "https://www.zamm.finance/",
     supportedChainIds: [mainnet.id],
+  },
+  {
+    name: "Zora",
+    logoUrl: getFaviconUrl("https://zora.co/"),
+    siteUrl: "https://zora.co/",
+    supportedChainIds: [base.id],
   },
 ];
 
