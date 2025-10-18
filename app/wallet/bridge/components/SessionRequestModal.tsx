@@ -66,6 +66,9 @@ interface SessionRequestModalProps {
   onReject: () => void;
   onChainSwitch: () => void;
   portalId?: string;
+  forceInclusionEnabled?: boolean;
+  onForceInclusionToggle?: (enabled: boolean) => void;
+  isOPStackTransaction?: boolean;
 }
 
 export default function SessionRequestModal({
@@ -84,6 +87,9 @@ export default function SessionRequestModal({
   onReject,
   onChainSwitch,
   portalId,
+  forceInclusionEnabled = false,
+  onForceInclusionToggle,
+  isOPStackTransaction = false,
 }: SessionRequestModalProps) {
   const { address: connectedAddress } = useAccount();
 
@@ -357,6 +363,74 @@ export default function SessionRequestModal({
                               ).toString()}
                             </Text>
                           </Flex>
+                        )}
+
+                        {/* Force Inclusion Toggle for OP Stack chains */}
+                        {isOPStackTransaction && onForceInclusionToggle && (
+                          <Box
+                            mt={3}
+                            p={3}
+                            bg="purple.900"
+                            borderRadius="md"
+                            borderWidth={1}
+                            borderColor="purple.500"
+                          >
+                            <Flex
+                              justifyContent="space-between"
+                              alignItems="center"
+                              flexDirection={{ base: "column", sm: "row" }}
+                              gap={2}
+                            >
+                              <Box flex={1}>
+                                <HStack mb={1}>
+                                  <Text
+                                    fontWeight="bold"
+                                    color="white"
+                                    fontSize={{ base: "sm", md: "md" }}
+                                  >
+                                    ⚡ Force Inclusion
+                                  </Text>
+                                  <Badge colorScheme="purple" fontSize="xs">
+                                    {chainIdToChain[
+                                      parseInt(
+                                        currentSessionRequest.params.chainId.split(
+                                          ":"
+                                        )[1]
+                                      )
+                                    ]?.name || "Unknown"}
+                                  </Badge>
+                                </HStack>
+                                <Text
+                                  color="whiteAlpha.700"
+                                  fontSize={{ base: "xs", md: "sm" }}
+                                >
+                                  Submit via L1 deposit to guarantee inclusion.
+                                  Takes 1-10 minutes.
+                                </Text>
+                              </Box>
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={forceInclusionEnabled}
+                                  onChange={(e) =>
+                                    onForceInclusionToggle(e.target.checked)
+                                  }
+                                  style={{
+                                    width: "20px",
+                                    height: "20px",
+                                    cursor: "pointer",
+                                  }}
+                                  disabled={pendingRequest}
+                                />
+                              </label>
+                            </Flex>
+                          </Box>
                         )}
                       </Box>
 
