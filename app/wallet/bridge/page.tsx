@@ -189,8 +189,6 @@ export default function WalletBridgePage() {
                     gas: txParams.gas ? BigInt(txParams.gas) : undefined,
                   });
 
-                console.log("depositArgs", depositArgs);
-
                 // Switch to L1 chain if needed
                 setForceInclusionProgress((prev) => ({
                   ...prev,
@@ -208,8 +206,6 @@ export default function WalletBridgePage() {
                   transport: http(),
                 }).extend(publicActionsL1());
 
-                // Get fresh wallet client for L1
-
                 // Submit to L1
                 setForceInclusionProgress((prev) => ({
                   ...prev,
@@ -225,12 +221,6 @@ export default function WalletBridgePage() {
                   l1Hash,
                   status: "waiting-l1",
                 }));
-
-                console.log(
-                  "waiting for l1 receipt",
-                  l1Hash,
-                  publicClientL1.chain.id
-                );
 
                 // Wait for L1 receipt
                 const l1Receipt =
