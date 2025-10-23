@@ -21,6 +21,7 @@ import {
   Skeleton,
   SkeletonText,
   Stack,
+  Switch,
   Tab,
   TabList,
   TabPanel,
@@ -408,27 +409,15 @@ export default function SessionRequestModal({
                                   Takes 1-10 minutes.
                                 </Text>
                               </Box>
-                              <label
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={forceInclusionEnabled}
-                                  onChange={(e) =>
-                                    onForceInclusionToggle(e.target.checked)
-                                  }
-                                  style={{
-                                    width: "20px",
-                                    height: "20px",
-                                    cursor: "pointer",
-                                  }}
-                                  disabled={pendingRequest}
-                                />
-                              </label>
+                              <Switch
+                                colorScheme="purple"
+                                size="lg"
+                                isChecked={forceInclusionEnabled}
+                                onChange={(e) =>
+                                  onForceInclusionToggle(e.target.checked)
+                                }
+                                isDisabled={pendingRequest}
+                              />
                             </Flex>
                           </Box>
                         )}

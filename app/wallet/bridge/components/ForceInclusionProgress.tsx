@@ -14,8 +14,9 @@ import {
   Text,
   VStack,
   Link,
+  Spinner,
 } from "@chakra-ui/react";
-import { CheckCircleIcon, SpinnerIcon } from "@chakra-ui/icons";
+import { CheckCircleIcon } from "@chakra-ui/icons";
 import { chainIdToChain } from "@/data/common";
 
 interface ForceInclusionProgressProps {
@@ -139,7 +140,7 @@ export default function ForceInclusionProgress({
                     ⚠️
                   </Box>
                 ) : (
-                  <SpinnerIcon className="spinner" boxSize={5} />
+                  <Spinner size="md" color="blue.300" />
                 )}
                 <Text fontWeight="bold" fontSize="lg">
                   {status === "error"
@@ -282,20 +283,6 @@ export default function ForceInclusionProgress({
           </Flex>
         </ModalFooter>
       </ModalContent>
-
-      <style jsx global>{`
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-        .spinner {
-          animation: spin 1s linear infinite;
-        }
-      `}</style>
     </Modal>
   );
 }

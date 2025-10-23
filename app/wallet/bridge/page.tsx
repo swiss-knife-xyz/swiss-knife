@@ -259,28 +259,34 @@ export default function WalletBridgePage() {
 
                 // Start elapsed time tracking
                 const startTime = Date.now();
-                const intervalId = setInterval(() => {
-                  setForceInclusionProgress((prev) => ({
-                    ...prev,
-                    elapsedTime: Math.floor((Date.now() - startTime) / 1000),
-                  }));
-                }, 1000);
+                let intervalId: NodeJS.Timeout | null = null;
 
-                // Wait for L2 confirmation (with timeout)
                 try {
+                  intervalId = setInterval(() => {
+                    setForceInclusionProgress((prev) => ({
+                      ...prev,
+                      elapsedTime: Math.floor((Date.now() - startTime) / 1000),
+                    }));
+                  }, 1000);
+
+                  // Wait for L2 confirmation (with timeout)
                   await publicClientL2.waitForTransactionReceipt({
                     hash: l2Hash,
                     timeout: 10 * 60_000, // 10 minutes
                   });
 
                   clearInterval(intervalId);
+                  intervalId = null;
 
                   setForceInclusionProgress((prev) => ({
                     ...prev,
                     status: "complete",
                   }));
                 } catch (error) {
-                  clearInterval(intervalId);
+                  if (intervalId) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                  }
                   // If timeout or error, still consider it success since L2 hash is valid
                   console.warn("L2 receipt timeout or error:", error);
                   setForceInclusionProgress((prev) => ({
@@ -290,10 +296,12 @@ export default function WalletBridgePage() {
                 }
               } catch (error) {
                 console.error("Force inclusion error:", error);
+                const errorMessage =
+                  error instanceof Error ? error.message : String(error);
                 setForceInclusionProgress((prev) => ({
                   ...prev,
                   status: "error",
-                  error: String(error),
+                  error: errorMessage,
                 }));
                 throw error;
               }
@@ -422,13 +430,16 @@ export default function WalletBridgePage() {
           });
         }
 
-        // Close the modal
+        // Close the modal and reset state
         onSessionRequestClose();
+        setCurrentSessionRequest(null);
+        setForceInclusionEnabled(false);
       } catch (error) {
         console.error("Error handling session request:", error);
         setPendingRequest(false);
         setIsSwitchingChain(false);
         setNeedsChainSwitch(false);
+        setForceInclusionEnabled(false);
         setTargetChainId(null);
 
         // Extract a more user-friendly error message using Viem's error handling
@@ -499,6 +510,9 @@ export default function WalletBridgePage() {
 
   // Custom close handler for session request modal
   const handleSessionRequestClose = useCallback(() => {
+    // Reset force inclusion state when closing modal
+    setForceInclusionEnabled(false);
+
     // If there's an active request, reject it when closing the modal
     if (
       currentSessionRequest &&

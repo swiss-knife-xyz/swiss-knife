@@ -13,8 +13,10 @@ export function getL1ChainForL2(l2ChainId: number): number | null {
     const portal = chain.contracts?.portal as {
       [sourceId: number]: { address: string };
     };
-    const firstPortal = parseInt(Object.keys(portal)[0]);
-    return firstPortal;
+    const portalKeys = Object.keys(portal);
+    if (portalKeys.length === 0) return null;
+    const firstPortal = parseInt(portalKeys[0], 10);
+    return isNaN(firstPortal) ? null : firstPortal;
   }
   return null;
 }
