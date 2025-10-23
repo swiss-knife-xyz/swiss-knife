@@ -17,7 +17,9 @@ export const colors = {
 };
 
 const fonts = {
-  brand: "Poppins",
+  brand: "var(--font-poppins), Poppins, sans-serif",
+  body: "var(--font-poppins), Poppins, sans-serif",
+  heading: "var(--font-poppins), Poppins, sans-serif",
 };
 
 const config: ThemeConfig = {
@@ -34,7 +36,7 @@ const theme = extendTheme({
       body: {
         bg: "bg.900",
         color: "white",
-        fontFamily: "Poppins",
+        fontFamily: "var(--font-poppins), Poppins, sans-serif",
       },
     },
   },
