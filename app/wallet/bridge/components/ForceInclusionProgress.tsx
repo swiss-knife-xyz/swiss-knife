@@ -224,6 +224,12 @@ export default function ForceInclusionProgress({
                 const isCurrent = index === currentStepIndex;
                 const isPending = index > currentStepIndex;
 
+                // Show elapsed time for L2 confirmation step when complete
+                const showElapsedTime =
+                  step.key === "waiting-l2" &&
+                  isComplete &&
+                  elapsedTime !== undefined;
+
                 return (
                   <HStack key={step.key} spacing={3}>
                     <Box
@@ -255,6 +261,16 @@ export default function ForceInclusionProgress({
                       fontWeight={isCurrent ? "bold" : "normal"}
                     >
                       {step.label}
+                      {showElapsedTime && (
+                        <Text
+                          as="span"
+                          color="whiteAlpha.600"
+                          fontWeight="normal"
+                          ml={2}
+                        >
+                          ({formatTime(elapsedTime)})
+                        </Text>
+                      )}
                     </Text>
                   </HStack>
                 );

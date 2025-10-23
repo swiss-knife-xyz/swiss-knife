@@ -181,12 +181,20 @@ export default function WalletBridgePage() {
                   status: "building",
                 }));
 
+                // Build deposit transaction - always provide gas to avoid estimation
+                // This is crucial for force inclusion - we don't want to depend on the sequencer
+                // Use provided gas or a generous default that should work for most transactions
+                const gasLimit = txParams.gas
+                  ? BigInt(txParams.gas)
+                  : BigInt(8_000_000);
+
                 const depositArgs =
                   await publicClientL2.buildDepositTransaction({
                     mint: txParams.value ? BigInt(txParams.value) : 0n,
                     to: txParams.to as `0x${string}`,
                     data: (txParams.data as `0x${string}`) || "0x",
-                    gas: txParams.gas ? BigInt(txParams.gas) : undefined,
+                    gas: gasLimit,
+                    account: address as `0x${string}`,
                   });
 
                 // Switch to L1 chain if needed
@@ -284,12 +292,18 @@ export default function WalletBridgePage() {
                     timeout: 10 * 60_000, // 10 minutes
                   });
 
+                  // Capture final elapsed time before clearing interval
+                  const finalElapsedTime = Math.floor(
+                    (Date.now() - startTime) / 1000
+                  );
+
                   clearInterval(intervalId);
                   intervalId = null;
 
                   setForceInclusionProgress((prev) => ({
                     ...prev,
                     status: "complete",
+                    elapsedTime: finalElapsedTime,
                   }));
                 } catch (error) {
                   if (intervalId) {
@@ -297,10 +311,12 @@ export default function WalletBridgePage() {
                     intervalId = null;
                   }
                   // If timeout or error, still consider it success since L2 hash is valid
+                  // Preserve the elapsed time at timeout
                   console.warn("L2 receipt timeout or error:", error);
                   setForceInclusionProgress((prev) => ({
                     ...prev,
                     status: "complete",
+                    // Keep the existing elapsedTime from prev
                   }));
                 }
               } catch (error) {
