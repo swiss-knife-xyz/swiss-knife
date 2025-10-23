@@ -123,6 +123,9 @@ export default function WalletBridgePage() {
     l2ChainId?: number;
     elapsedTime?: number;
     depositArgs?: any;
+    gasLimit?: bigint;
+    isGasEditable?: boolean;
+    gasEstimationFailed?: boolean;
   }>({
     isOpen: false,
     status: "building",
@@ -182,12 +185,42 @@ export default function WalletBridgePage() {
                   status: "building",
                 }));
 
-                // Build deposit transaction - always provide gas to avoid estimation
-                // This is crucial for force inclusion - we don't want to depend on the sequencer
-                // Use provided gas or a generous default that should work for most transactions
-                const gasLimit = txParams.gas
-                  ? BigInt(txParams.gas)
-                  : BigInt(8_000_000);
+                // Determine gas limit with proper estimation
+                let gasLimit: bigint;
+                let gasEstimationFailed = false;
+
+                if (txParams.gas) {
+                  // Use provided gas if available
+                  gasLimit = BigInt(txParams.gas);
+                } else {
+                  // Try to estimate gas with 10% buffer
+                  try {
+                    const estimatedGas = await publicClientL2.estimateGas({
+                      account: address as `0x${string}`,
+                      to: txParams.to as `0x${string}`,
+                      value: txParams.value ? BigInt(txParams.value) : 0n,
+                      data: (txParams.data as `0x${string}`) || "0x",
+                    });
+                    // Add 10% buffer to estimated gas
+                    gasLimit = (estimatedGas * BigInt(110)) / BigInt(100);
+                  } catch (error) {
+                    console.warn(
+                      "Gas estimation failed, using fallback:",
+                      error
+                    );
+                    // Use 8M as fallback but mark as editable
+                    gasLimit = BigInt(8_000_000);
+                    gasEstimationFailed = true;
+                  }
+                }
+
+                // Update state with gas info
+                setForceInclusionProgress((prev) => ({
+                  ...prev,
+                  gasLimit,
+                  isGasEditable: gasEstimationFailed,
+                  gasEstimationFailed,
+                }));
 
                 const depositArgs =
                   await publicClientL2.buildDepositTransaction({
@@ -1125,6 +1158,54 @@ export default function WalletBridgePage() {
     toast,
   ]);
 
+  // Handler for updating gas limit
+  const handleGasLimitUpdate = useCallback(
+    async (newGasLimit: bigint) => {
+      const { l2ChainId } = forceInclusionProgress;
+      const txParams = currentSessionRequest?.params.request.params[0];
+
+      if (!l2ChainId || !txParams || !address) {
+        console.error("Missing data for gas limit update");
+        return;
+      }
+
+      try {
+        // Rebuild deposit transaction with new gas limit
+        const l2Chain = chainIdToChain[l2ChainId];
+        const publicClientL2 = createPublicClient({
+          chain: l2Chain,
+          transport: http(),
+        }).extend(publicActionsL2());
+
+        const depositArgs = await publicClientL2.buildDepositTransaction({
+          mint: txParams.value ? BigInt(txParams.value) : 0n,
+          to: txParams.to as `0x${string}`,
+          data: (txParams.data as `0x${string}`) || "0x",
+          gas: newGasLimit,
+          account: address as `0x${string}`,
+        });
+
+        // Update state with new gas limit and deposit args
+        setForceInclusionProgress((prev) => ({
+          ...prev,
+          gasLimit: newGasLimit,
+          depositArgs,
+        }));
+      } catch (error) {
+        console.error("Error rebuilding deposit transaction:", error);
+        toast({
+          title: "Error updating gas limit",
+          description: "Failed to rebuild transaction with new gas limit",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "bottom-right",
+        });
+      }
+    },
+    [forceInclusionProgress, currentSessionRequest, address, toast]
+  );
+
   // Handler for closing force inclusion modal with rejection
   const handleForceInclusionClose = useCallback(async () => {
     const isError = forceInclusionProgress.status === "error";
@@ -1426,8 +1507,12 @@ export default function WalletBridgePage() {
           status={forceInclusionProgress.status}
           error={forceInclusionProgress.error}
           elapsedTime={forceInclusionProgress.elapsedTime}
+          gasLimit={forceInclusionProgress.gasLimit}
+          isGasEditable={forceInclusionProgress.isGasEditable}
+          gasEstimationFailed={forceInclusionProgress.gasEstimationFailed}
           onReturnEarly={handleEarlyReturn}
           onRetry={handleForceInclusionRetry}
+          onGasLimitUpdate={handleGasLimitUpdate}
         />
       </Container>
     </Box>

@@ -1,9 +1,11 @@
+import React from "react";
 import {
   Box,
   Button,
   Flex,
   HStack,
   IconButton,
+  Input,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -39,6 +41,10 @@ interface ForceInclusionProgressProps {
   onReturnEarly?: () => void;
   onRetry?: () => void;
   elapsedTime?: number;
+  gasLimit?: bigint;
+  isGasEditable?: boolean;
+  gasEstimationFailed?: boolean;
+  onGasLimitUpdate?: (newGasLimit: bigint) => void;
 }
 
 export default function ForceInclusionProgress({
@@ -53,9 +59,25 @@ export default function ForceInclusionProgress({
   onReturnEarly,
   onRetry,
   elapsedTime,
+  gasLimit,
+  isGasEditable,
+  gasEstimationFailed,
+  onGasLimitUpdate,
 }: ForceInclusionProgressProps) {
   const l1Chain = chainIdToChain[l1ChainId];
   const l2Chain = chainIdToChain[l2ChainId];
+
+  // Local state for gas limit input
+  const [localGasLimit, setLocalGasLimit] = React.useState<string>(
+    gasLimit ? gasLimit.toString() : ""
+  );
+
+  // Update local state when gasLimit prop changes
+  React.useEffect(() => {
+    if (gasLimit) {
+      setLocalGasLimit(gasLimit.toString());
+    }
+  }, [gasLimit]);
 
   const steps = [
     { key: "building", label: "Building deposit transaction" },
@@ -164,6 +186,65 @@ export default function ForceInclusionProgress({
                         "Processing..."}
                   </Text>
                 </HStack>
+              </Box>
+            )}
+
+            {/* Gas Limit Input */}
+            {isGasEditable && gasEstimationFailed && status === "building" && (
+              <Box
+                p={4}
+                bg="yellow.900"
+                borderRadius="md"
+                borderWidth={1}
+                borderColor="yellow.500"
+              >
+                <VStack align="stretch" spacing={3}>
+                  <HStack>
+                    <Box color="yellow.300" fontSize="xl">
+                      ⚠️
+                    </Box>
+                    <Text fontWeight="bold" fontSize="sm" color="white">
+                      Gas Estimation Failed
+                    </Text>
+                  </HStack>
+                  <Text fontSize="xs" color="yellow.200">
+                    Could not estimate gas on L2. Using 8M gas limit fallback.
+                    Please review and adjust if needed before proceeding.
+                  </Text>
+                  <HStack>
+                    <Input
+                      value={localGasLimit}
+                      onChange={(e) => setLocalGasLimit(e.target.value)}
+                      placeholder="Gas limit"
+                      size="sm"
+                      type="text"
+                      bg="whiteAlpha.200"
+                      borderColor="yellow.500"
+                      _hover={{ borderColor: "yellow.400" }}
+                      _focus={{
+                        borderColor: "yellow.400",
+                        boxShadow: "0 0 0 1px var(--chakra-colors-yellow-400)",
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      colorScheme="yellow"
+                      onClick={() => {
+                        try {
+                          const newGas = BigInt(localGasLimit);
+                          if (newGas > 0 && onGasLimitUpdate) {
+                            onGasLimitUpdate(newGas);
+                          }
+                        } catch (error) {
+                          console.error("Invalid gas limit:", error);
+                        }
+                      }}
+                      isDisabled={!localGasLimit || localGasLimit === "0"}
+                    >
+                      Update
+                    </Button>
+                  </HStack>
+                </VStack>
               </Box>
             )}
 
