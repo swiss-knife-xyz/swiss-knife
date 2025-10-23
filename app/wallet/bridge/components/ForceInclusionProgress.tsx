@@ -1,0 +1,288 @@
+import {
+  Box,
+  Button,
+  Flex,
+  HStack,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  Progress,
+  Text,
+  VStack,
+  Link,
+  Spinner,
+} from "@chakra-ui/react";
+import { CheckCircleIcon } from "@chakra-ui/icons";
+import { chainIdToChain } from "@/data/common";
+
+interface ForceInclusionProgressProps {
+  isOpen: boolean;
+  onClose: () => void;
+  l1ChainId: number;
+  l2ChainId: number;
+  l1Hash?: string;
+  l2Hash?: string;
+  status:
+    | "building"
+    | "submitting"
+    | "waiting-l1"
+    | "waiting-l2"
+    | "complete"
+    | "error";
+  error?: string;
+  onReturnEarly?: () => void;
+  elapsedTime?: number;
+}
+
+export default function ForceInclusionProgress({
+  isOpen,
+  onClose,
+  l1ChainId,
+  l2ChainId,
+  l1Hash,
+  l2Hash,
+  status,
+  error,
+  onReturnEarly,
+  elapsedTime,
+}: ForceInclusionProgressProps) {
+  const l1Chain = chainIdToChain[l1ChainId];
+  const l2Chain = chainIdToChain[l2ChainId];
+
+  const steps = [
+    { key: "building", label: "Building deposit transaction" },
+    { key: "submitting", label: "Submitting to L1" },
+    { key: "waiting-l1", label: "Waiting for L1 confirmation" },
+    { key: "waiting-l2", label: "Waiting for L2 confirmation" },
+    { key: "complete", label: "Complete" },
+  ];
+
+  const currentStepIndex = steps.findIndex((s) => s.key === status);
+  const progress =
+    status === "error" ? 0 : ((currentStepIndex + 1) / steps.length) * 100;
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const getExplorerUrl = (chainId: number, hash: string) => {
+    const chain = chainIdToChain[chainId];
+    if (!chain?.blockExplorers?.default?.url) return null;
+    return `${chain.blockExplorers.default.url}/tx/${hash}`;
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      isCentered
+      size={{ base: "sm", md: "lg" }}
+      closeOnOverlayClick={status === "complete" || status === "error"}
+      closeOnEsc={status === "complete" || status === "error"}
+    >
+      <ModalOverlay bg="none" backdropFilter="auto" backdropBlur="5px" />
+      <ModalContent bg="bg.900" color="white">
+        <ModalHeader borderBottomWidth="1px" borderColor="whiteAlpha.200">
+          Force Inclusion Progress
+        </ModalHeader>
+        {(status === "complete" || status === "error") && <ModalCloseButton />}
+
+        <ModalBody py={6}>
+          <VStack spacing={6} align="stretch">
+            {/* Progress Bar */}
+            <Box>
+              <Progress
+                value={progress}
+                colorScheme={
+                  status === "error"
+                    ? "red"
+                    : status === "complete"
+                    ? "green"
+                    : "blue"
+                }
+                size="sm"
+                borderRadius="full"
+                isIndeterminate={status !== "complete" && status !== "error"}
+              />
+            </Box>
+
+            {/* Current Status */}
+            <Box
+              p={4}
+              bg={
+                status === "error"
+                  ? "red.900"
+                  : status === "complete"
+                  ? "green.900"
+                  : "blue.900"
+              }
+              borderRadius="md"
+              borderWidth={1}
+              borderColor={
+                status === "error"
+                  ? "red.500"
+                  : status === "complete"
+                  ? "green.500"
+                  : "blue.500"
+              }
+            >
+              <HStack>
+                {status === "complete" ? (
+                  <CheckCircleIcon color="green.300" boxSize={5} />
+                ) : status === "error" ? (
+                  <Box color="red.300" fontSize="xl">
+                    ⚠️
+                  </Box>
+                ) : (
+                  <Spinner size="md" color="blue.300" />
+                )}
+                <Text fontWeight="bold" fontSize="lg">
+                  {status === "error"
+                    ? "Error"
+                    : status === "complete"
+                    ? "Transaction Complete"
+                    : steps.find((s) => s.key === status)?.label ||
+                      "Processing..."}
+                </Text>
+              </HStack>
+            </Box>
+
+            {/* Error Message */}
+            {error && (
+              <Box
+                p={3}
+                bg="red.900"
+                borderRadius="md"
+                borderWidth={1}
+                borderColor="red.500"
+              >
+                <Text fontSize="sm" color="red.200">
+                  {error}
+                </Text>
+              </Box>
+            )}
+
+            {/* Transaction Hashes */}
+            <VStack spacing={3} align="stretch">
+              {l1Hash && (
+                <Box p={3} bg="whiteAlpha.100" borderRadius="md">
+                  <Text fontSize="sm" fontWeight="bold" mb={1}>
+                    L1 Transaction ({l1Chain?.name || `Chain ${l1ChainId}`}):
+                  </Text>
+                  <Link
+                    href={getExplorerUrl(l1ChainId, l1Hash) || "#"}
+                    isExternal
+                    color="blue.300"
+                    fontSize="sm"
+                    wordBreak="break-all"
+                  >
+                    {l1Hash}
+                  </Link>
+                </Box>
+              )}
+
+              {l2Hash && (
+                <Box p={3} bg="whiteAlpha.100" borderRadius="md">
+                  <Text fontSize="sm" fontWeight="bold" mb={1}>
+                    L2 Transaction ({l2Chain?.name || `Chain ${l2ChainId}`}):
+                  </Text>
+                  <Link
+                    href={getExplorerUrl(l2ChainId, l2Hash) || "#"}
+                    isExternal
+                    color="blue.300"
+                    fontSize="sm"
+                    wordBreak="break-all"
+                  >
+                    {l2Hash}
+                  </Link>
+                </Box>
+              )}
+            </VStack>
+
+            {/* Elapsed Time */}
+            {elapsedTime !== undefined && status === "waiting-l2" && (
+              <Box textAlign="center">
+                <Text fontSize="sm" color="whiteAlpha.700">
+                  Elapsed time: {formatTime(elapsedTime)}
+                </Text>
+                <Text fontSize="xs" color="whiteAlpha.500" mt={1}>
+                  L2 confirmation can take up to 10 minutes
+                </Text>
+              </Box>
+            )}
+
+            {/* Steps List */}
+            <VStack spacing={2} align="stretch">
+              {steps.map((step, index) => {
+                const isComplete = index < currentStepIndex;
+                const isCurrent = index === currentStepIndex;
+                const isPending = index > currentStepIndex;
+
+                return (
+                  <HStack key={step.key} spacing={3}>
+                    <Box
+                      w={6}
+                      h={6}
+                      borderRadius="full"
+                      bg={
+                        isComplete
+                          ? "green.500"
+                          : isCurrent
+                          ? "blue.500"
+                          : "whiteAlpha.300"
+                      }
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                    >
+                      {isComplete ? (
+                        <CheckCircleIcon color="white" boxSize={4} />
+                      ) : (
+                        <Text color="white" fontSize="xs" fontWeight="bold">
+                          {index + 1}
+                        </Text>
+                      )}
+                    </Box>
+                    <Text
+                      fontSize="sm"
+                      color={isPending ? "whiteAlpha.500" : "white"}
+                      fontWeight={isCurrent ? "bold" : "normal"}
+                    >
+                      {step.label}
+                    </Text>
+                  </HStack>
+                );
+              })}
+            </VStack>
+          </VStack>
+        </ModalBody>
+
+        <ModalFooter borderTopWidth="1px" borderColor="whiteAlpha.200">
+          <Flex w="100%" justifyContent="space-between">
+            {status === "waiting-l2" && onReturnEarly && (
+              <Button
+                colorScheme="orange"
+                variant="outline"
+                onClick={onReturnEarly}
+                size="sm"
+              >
+                Return L2 Hash Now
+              </Button>
+            )}
+            {(status === "complete" || status === "error") && (
+              <Button colorScheme="blue" onClick={onClose} ml="auto">
+                Close
+              </Button>
+            )}
+          </Flex>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+}

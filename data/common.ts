@@ -113,7 +113,6 @@ export const TX_KEY = "$SK_TX";
 export const c: { [name: string]: Chain } = {
   mainnet: {
     ...mainnet,
-    rpcUrls: { default: { http: ["https://rpc.ankr.com/eth"] } }, // add custom rpcs. cloudflare doesn't support publicClient.getTransaction
   },
   sepolia: {
     ...sepolia,
