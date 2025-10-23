@@ -3,6 +3,7 @@ import {
   Button,
   Flex,
   HStack,
+  IconButton,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -12,11 +13,12 @@ import {
   ModalOverlay,
   Progress,
   Text,
+  Tooltip,
   VStack,
   Link,
   Spinner,
 } from "@chakra-ui/react";
-import { CheckCircleIcon } from "@chakra-ui/icons";
+import { CheckCircleIcon, RepeatIcon } from "@chakra-ui/icons";
 import { chainIdToChain } from "@/data/common";
 
 interface ForceInclusionProgressProps {
@@ -35,6 +37,7 @@ interface ForceInclusionProgressProps {
     | "error";
   error?: string;
   onReturnEarly?: () => void;
+  onRetry?: () => void;
   elapsedTime?: number;
 }
 
@@ -48,6 +51,7 @@ export default function ForceInclusionProgress({
   status,
   error,
   onReturnEarly,
+  onRetry,
   elapsedTime,
 }: ForceInclusionProgressProps) {
   const l1Chain = chainIdToChain[l1ChainId];
@@ -113,58 +117,53 @@ export default function ForceInclusionProgress({
             </Box>
 
             {/* Current Status */}
-            <Box
-              p={4}
-              bg={
-                status === "error"
-                  ? "red.900"
-                  : status === "complete"
-                  ? "green.900"
-                  : "blue.900"
-              }
-              borderRadius="md"
-              borderWidth={1}
-              borderColor={
-                status === "error"
-                  ? "red.500"
-                  : status === "complete"
-                  ? "green.500"
-                  : "blue.500"
-              }
-            >
-              <HStack>
-                {status === "complete" ? (
-                  <CheckCircleIcon color="green.300" boxSize={5} />
-                ) : status === "error" ? (
-                  <Box color="red.300" fontSize="xl">
-                    ⚠️
-                  </Box>
-                ) : (
-                  <Spinner size="md" color="blue.300" />
-                )}
-                <Text fontWeight="bold" fontSize="lg">
-                  {status === "error"
-                    ? "Error"
-                    : status === "complete"
-                    ? "Transaction Complete"
-                    : steps.find((s) => s.key === status)?.label ||
-                      "Processing..."}
-                </Text>
-              </HStack>
-            </Box>
-
-            {/* Error Message */}
-            {error && (
+            {status === "error" ? (
+              /* Error State - Combined Display */
               <Box
-                p={3}
+                p={4}
                 bg="red.900"
                 borderRadius="md"
                 borderWidth={1}
                 borderColor="red.500"
               >
-                <Text fontSize="sm" color="red.200">
-                  {error}
-                </Text>
+                <VStack align="stretch" spacing={2}>
+                  <HStack>
+                    <Box color="red.300" fontSize="xl">
+                      ⚠️
+                    </Box>
+                    <Text fontWeight="bold" fontSize="lg" color="white">
+                      Error
+                    </Text>
+                  </HStack>
+                  {error && (
+                    <Text fontSize="sm" color="red.200" mt={2}>
+                      {error}
+                    </Text>
+                  )}
+                </VStack>
+              </Box>
+            ) : (
+              /* Normal Status Display */
+              <Box
+                p={4}
+                bg={status === "complete" ? "green.900" : "blue.900"}
+                borderRadius="md"
+                borderWidth={1}
+                borderColor={status === "complete" ? "green.500" : "blue.500"}
+              >
+                <HStack>
+                  {status === "complete" ? (
+                    <CheckCircleIcon color="green.300" boxSize={5} />
+                  ) : (
+                    <Spinner size="md" color="blue.300" />
+                  )}
+                  <Text fontWeight="bold" fontSize="lg">
+                    {status === "complete"
+                      ? "Transaction Complete"
+                      : steps.find((s) => s.key === status)?.label ||
+                        "Processing..."}
+                  </Text>
+                </HStack>
               </Box>
             )}
 
@@ -230,48 +229,78 @@ export default function ForceInclusionProgress({
                   isComplete &&
                   elapsedTime !== undefined;
 
+                // Show retry button for "submitting" step on error
+                const showRetryButton =
+                  step.key === "submitting" && status === "error" && onRetry;
+
+                // Highlight text for submitting step on error
+                const highlightText =
+                  step.key === "submitting" && status === "error";
+
                 return (
-                  <HStack key={step.key} spacing={3}>
-                    <Box
-                      w={6}
-                      h={6}
-                      borderRadius="full"
-                      bg={
-                        isComplete
-                          ? "green.500"
-                          : isCurrent
-                          ? "blue.500"
-                          : "whiteAlpha.300"
-                      }
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                    >
-                      {isComplete ? (
-                        <CheckCircleIcon color="white" boxSize={4} />
-                      ) : (
-                        <Text color="white" fontSize="xs" fontWeight="bold">
-                          {index + 1}
-                        </Text>
-                      )}
-                    </Box>
-                    <Text
-                      fontSize="sm"
-                      color={isPending ? "whiteAlpha.500" : "white"}
-                      fontWeight={isCurrent ? "bold" : "normal"}
-                    >
-                      {step.label}
-                      {showElapsedTime && (
-                        <Text
-                          as="span"
-                          color="whiteAlpha.600"
-                          fontWeight="normal"
-                          ml={2}
-                        >
-                          ({formatTime(elapsedTime)})
-                        </Text>
-                      )}
-                    </Text>
+                  <HStack key={step.key} spacing={3} justify="space-between">
+                    <HStack spacing={3}>
+                      <Box
+                        w={6}
+                        h={6}
+                        borderRadius="full"
+                        bg={
+                          isComplete
+                            ? "green.500"
+                            : isCurrent
+                            ? "blue.500"
+                            : "whiteAlpha.300"
+                        }
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                      >
+                        {isComplete ? (
+                          <CheckCircleIcon color="white" boxSize={4} />
+                        ) : (
+                          <Text color="white" fontSize="xs" fontWeight="bold">
+                            {index + 1}
+                          </Text>
+                        )}
+                      </Box>
+                      <Text
+                        fontSize="sm"
+                        color={
+                          highlightText
+                            ? "white"
+                            : isPending
+                            ? "whiteAlpha.500"
+                            : "white"
+                        }
+                        fontWeight={
+                          isCurrent || highlightText ? "bold" : "normal"
+                        }
+                      >
+                        {step.label}
+                        {showElapsedTime && (
+                          <Text
+                            as="span"
+                            color="whiteAlpha.600"
+                            fontWeight="normal"
+                            ml={2}
+                          >
+                            ({formatTime(elapsedTime)})
+                          </Text>
+                        )}
+                      </Text>
+                    </HStack>
+                    {showRetryButton && (
+                      <Button
+                        leftIcon={<RepeatIcon />}
+                        size="xs"
+                        colorScheme="blue"
+                        onClick={onRetry}
+                        autoFocus
+                        fontSize="xs"
+                      >
+                        Retry
+                      </Button>
+                    )}
                   </HStack>
                 );
               })}
@@ -280,7 +309,7 @@ export default function ForceInclusionProgress({
         </ModalBody>
 
         <ModalFooter borderTopWidth="1px" borderColor="whiteAlpha.200">
-          <Flex w="100%" justifyContent="space-between">
+          <Flex w="100%" justifyContent="space-between" gap={3}>
             {status === "waiting-l2" && onReturnEarly && (
               <Button
                 colorScheme="orange"
@@ -292,7 +321,12 @@ export default function ForceInclusionProgress({
               </Button>
             )}
             {(status === "complete" || status === "error") && (
-              <Button colorScheme="blue" onClick={onClose} ml="auto">
+              <Button
+                colorScheme={status === "error" ? "red" : "blue"}
+                onClick={onClose}
+                ml="auto"
+                size="sm"
+              >
                 Close
               </Button>
             )}
