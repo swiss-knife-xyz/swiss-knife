@@ -228,16 +228,6 @@ export default function WalletBridgePage() {
                     hash: l1Hash,
                   });
 
-                // Switch back to L2 chain (silently)
-                if (chainId !== l2ChainId) {
-                  try {
-                    await switchChainAsync({ chainId: l2ChainId });
-                  } catch (error) {
-                    console.warn("Failed to switch back to L2 chain:", error);
-                    // Don't fail the whole process if chain switch fails
-                  }
-                }
-
                 // Get L2 hash
                 const [l2Hash] = getL2TransactionHashes(l1Receipt);
 
@@ -245,6 +235,25 @@ export default function WalletBridgePage() {
                   throw new Error(
                     "Could not extract L2 transaction hash from L1 receipt"
                   );
+                }
+
+                // Switch back to L2 chain automatically
+                try {
+                  await switchChainAsync({ chainId: l2ChainId });
+                  await walletClient.switchChain({ id: l2ChainId });
+                } catch (error) {
+                  console.warn("Failed to switch back to L2 chain:", error);
+                  toast({
+                    title: "Chain Switch",
+                    description: `Please manually switch back to ${
+                      chainIdToChain[l2ChainId]?.name || "L2"
+                    } in your wallet`,
+                    status: "warning",
+                    duration: 7000,
+                    isClosable: true,
+                    position: "bottom-right",
+                  });
+                  // Don't fail the whole process if chain switch fails
                 }
 
                 // Update with L2 hash and move to waiting-l2 status
@@ -504,7 +513,6 @@ export default function WalletBridgePage() {
       switchChainAsync,
       onSessionRequestClose,
       forceInclusionEnabled,
-      chainId,
     ]
   );
 
