@@ -17,7 +17,6 @@ export const Footer = () => {
   return (
     <Box
       flexShrink={0}
-      mt="6rem"
       bg={"blackAlpha.500"}
       color={"gray.200"}
       borderTop={"solid"}
