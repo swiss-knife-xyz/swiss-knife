@@ -67,6 +67,10 @@ const subdomains = {
     base: "apps",
     paths: [],
   },
+  COMPILER: {
+    base: "compiler",
+    paths: [],
+  },
 };
 
 module.exports = subdomains;

@@ -21,7 +21,7 @@ export const BaseLayout = ({ children }: LayoutParams) => {
       {/* Navbar is always at the top */}
       <Navbar />
 
-      <Box flexGrow={1} overflow="hidden">
+      <Box flexGrow={1} overflow="hidden" mb="6rem">
         <Flex direction={{ base: "column", md: "row" }} alignItems="flex-start">
           {/* On mobile, sidebar is conditionally rendered based on isNavExpanded */}
           {/* {(!isMobile || isNavExpanded) && (
