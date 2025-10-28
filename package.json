@@ -23,6 +23,7 @@
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@impersonator/iframe": "^0.3.1",
+    "@number-flow/react": "^0.5.10",
     "@openchainxyz/abi-guesser": "^1.0.2",
     "@rainbow-me/rainbowkit": "^2.2.4",
     "@reown/walletkit": "^1.2.1",
