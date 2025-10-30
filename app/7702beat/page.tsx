@@ -64,6 +64,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { chainIdToImage } from "@/data/common";
 import { fetchContractAbi } from "@/utils";
 import { InputField } from "@/components/InputField";
+import NumberFlow from "@number-flow/react";
 
 const katana = {
   id: 747474,
@@ -438,6 +439,13 @@ const dapps: SupportedApp[] = [
       unichain.id,
       // NOTE: plasma & hyperEVM also supported
     ],
+  },
+  {
+    name: "Infinit",
+    logoUrl: getFaviconUrl("https://app.infinit.tech/en"),
+    siteUrl: "https://app.infinit.tech/en",
+    supportedChainIds: [mainnet.id, arbitrum.id, base.id, bsc.id],
+    // NOTE: plasm & hyperEVM also supported
   },
   {
     name: "Jumper",
@@ -965,8 +973,18 @@ Check the full list: https://swiss-knife.xyz/7702beat#wall-of-shame`;
 
 // Timer component for Wall of Shame
 const WallOfShameTimer = () => {
-  const [timeElapsed, setTimeElapsed] = useState("");
-  const [sepoliaTimeElapsed, setSepoliaTimeElapsed] = useState("");
+  const [mainnetTime, setMainnetTime] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+  const [sepoliaTime, setSepoliaTime] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
 
   useEffect(() => {
     const updateTimer = () => {
@@ -978,11 +996,7 @@ const WallOfShameTimer = () => {
       const hours = Math.floor((elapsed % 86400) / 3600);
       const minutes = Math.floor((elapsed % 3600) / 60);
       const seconds = elapsed % 60;
-      setTimeElapsed(
-        `${days}d ${hours.toString().padStart(2, "0")}h ${minutes
-          .toString()
-          .padStart(2, "0")}m ${seconds.toString().padStart(2, "0")}s`
-      );
+      setMainnetTime({ days, hours, minutes, seconds });
 
       // Sepolia timer
       const sepoliaElapsed = now - SEPOLIA_PECTRA_START_EPOCH;
@@ -990,13 +1004,12 @@ const WallOfShameTimer = () => {
       const sepoliaHours = Math.floor((sepoliaElapsed % 86400) / 3600);
       const sepoliaMinutes = Math.floor((sepoliaElapsed % 3600) / 60);
       const sepoliaSeconds = sepoliaElapsed % 60;
-      setSepoliaTimeElapsed(
-        `${sepoliaDays}d ${sepoliaHours
-          .toString()
-          .padStart(2, "0")}h ${sepoliaMinutes
-          .toString()
-          .padStart(2, "0")}m ${sepoliaSeconds.toString().padStart(2, "0")}s`
-      );
+      setSepoliaTime({
+        days: sepoliaDays,
+        hours: sepoliaHours,
+        minutes: sepoliaMinutes,
+        seconds: sepoliaSeconds,
+      });
     };
 
     updateTimer();
@@ -1025,7 +1038,22 @@ const WallOfShameTimer = () => {
           whiteSpace="nowrap"
           maxW="100%"
         >
-          {timeElapsed}
+          <NumberFlow value={mainnetTime.days} />d{" "}
+          <NumberFlow
+            value={mainnetTime.hours}
+            format={{ minimumIntegerDigits: 2 }}
+          />
+          h{" "}
+          <NumberFlow
+            value={mainnetTime.minutes}
+            format={{ minimumIntegerDigits: 2 }}
+          />
+          m{" "}
+          <NumberFlow
+            value={mainnetTime.seconds}
+            format={{ minimumIntegerDigits: 2 }}
+          />
+          s
         </Text>
       </Box>
 
@@ -1043,7 +1071,22 @@ const WallOfShameTimer = () => {
           whiteSpace="nowrap"
           maxW="100%"
         >
-          {sepoliaTimeElapsed}
+          <NumberFlow value={sepoliaTime.days} />d{" "}
+          <NumberFlow
+            value={sepoliaTime.hours}
+            format={{ minimumIntegerDigits: 2 }}
+          />
+          h{" "}
+          <NumberFlow
+            value={sepoliaTime.minutes}
+            format={{ minimumIntegerDigits: 2 }}
+          />
+          m{" "}
+          <NumberFlow
+            value={sepoliaTime.seconds}
+            format={{ minimumIntegerDigits: 2 }}
+          />
+          s
         </Text>
       </Box>
     </VStack>

@@ -21,6 +21,13 @@ import frameSdk, { Context } from "@farcaster/frame-sdk";
 import { useAccount, useWalletClient, useChainId, useSwitchChain } from "wagmi";
 import { base } from "viem/chains";
 import { buildApprovedNamespaces } from "@walletconnect/utils";
+import { createPublicClient, http } from "viem";
+import {
+  publicActionsL1,
+  publicActionsL2,
+  walletActionsL1,
+  getL2TransactionHashes,
+} from "viem/op-stack";
 import { ConnectButton } from "@/components/ConnectButton/ConnectButton";
 import { walletChains } from "@/app/providers";
 import { chainIdToChain } from "@/data/common";
@@ -38,7 +45,9 @@ import WalletKitEventHandler from "./components/WalletKitEventHandler";
 import ChainNotifier from "./components/ChainNotifier";
 import AutoPasteHandler from "./components/AutoPasteHandler";
 import { AnimatedSubtitle } from "./components/AnimatedSubtitle";
+import ForceInclusionProgress from "./components/ForceInclusionProgress";
 import { filterActiveSessions } from "./utils";
+import { isOPStackChain, getL1ChainForL2 } from "./opstack-utils";
 
 export default function WalletBridgePage() {
   const toast = useToast();
@@ -93,6 +102,35 @@ export default function WalletBridgePage() {
   const [needsChainSwitch, setNeedsChainSwitch] = useState<boolean>(false);
   const [targetChainId, setTargetChainId] = useState<number | null>(null);
 
+  // Force inclusion state
+  const [forceInclusionEnabled, setForceInclusionEnabled] =
+    useState<boolean>(false);
+  const [isOPStackTransaction, setIsOPStackTransaction] =
+    useState<boolean>(false);
+  const [forceInclusionProgress, setForceInclusionProgress] = useState<{
+    isOpen: boolean;
+    status:
+      | "building"
+      | "submitting"
+      | "waiting-l1"
+      | "waiting-l2"
+      | "complete"
+      | "error";
+    l1Hash?: string;
+    l2Hash?: string;
+    error?: string;
+    l1ChainId?: number;
+    l2ChainId?: number;
+    elapsedTime?: number;
+    depositArgs?: any;
+    gasLimit?: bigint;
+    isGasEditable?: boolean;
+    gasEstimationFailed?: boolean;
+  }>({
+    isOpen: false,
+    status: "building",
+  });
+
   // Handle session request (like eth_sendTransaction)
   const handleSessionRequest = useCallback(
     async (approve: boolean) => {
@@ -111,16 +149,271 @@ export default function WalletBridgePage() {
           if (request.method === "eth_sendTransaction") {
             const txParams = request.params[0];
 
-            // Send transaction using wagmi wallet client
-            const hash = await walletClient.sendTransaction({
-              account: address as `0x${string}`,
-              to: txParams.to as `0x${string}`,
-              value: txParams.value ? BigInt(txParams.value) : undefined,
-              data: txParams.data as `0x${string}` | undefined,
-              gas: txParams.gas ? BigInt(txParams.gas) : undefined,
-            });
+            // Extract chain ID
+            const chainIdStr = params.chainId.split(":")[1];
+            const l2ChainId = parseInt(chainIdStr);
 
-            result = hash;
+            // Check if force inclusion is enabled for OP Stack chains
+            if (forceInclusionEnabled && isOPStackChain(l2ChainId)) {
+              // Close the request modal
+              onSessionRequestClose();
+
+              // Open force inclusion progress modal
+              const l1ChainId = getL1ChainForL2(l2ChainId);
+              if (!l1ChainId) {
+                throw new Error("Could not determine L1 chain for this L2");
+              }
+
+              setForceInclusionProgress({
+                isOpen: true,
+                status: "building",
+                l1ChainId,
+                l2ChainId,
+              });
+
+              try {
+                // Create L2 public client
+                const l2Chain = chainIdToChain[l2ChainId];
+                const publicClientL2 = createPublicClient({
+                  chain: l2Chain,
+                  transport: http(),
+                }).extend(publicActionsL2());
+
+                // Build deposit transaction
+                setForceInclusionProgress((prev) => ({
+                  ...prev,
+                  status: "building",
+                }));
+
+                // Determine gas limit with proper estimation
+                let gasLimit: bigint;
+                let gasEstimationFailed = false;
+
+                if (txParams.gas) {
+                  // Use provided gas if available
+                  gasLimit = BigInt(txParams.gas);
+                } else {
+                  // Try to estimate gas with 10% buffer
+                  try {
+                    const estimatedGas = await publicClientL2.estimateGas({
+                      account: address as `0x${string}`,
+                      to: txParams.to as `0x${string}`,
+                      value: txParams.value ? BigInt(txParams.value) : 0n,
+                      data: (txParams.data as `0x${string}`) || "0x",
+                    });
+                    // Add 10% buffer to estimated gas
+                    gasLimit = (estimatedGas * BigInt(110)) / BigInt(100);
+                  } catch (error) {
+                    console.warn(
+                      "Gas estimation failed, using fallback:",
+                      error
+                    );
+                    // Use 8M as fallback but mark as editable
+                    gasLimit = BigInt(8_000_000);
+                    gasEstimationFailed = true;
+                  }
+                }
+
+                // Update state with gas info
+                setForceInclusionProgress((prev) => ({
+                  ...prev,
+                  gasLimit,
+                  isGasEditable: gasEstimationFailed,
+                  gasEstimationFailed,
+                }));
+
+                const depositArgs =
+                  await publicClientL2.buildDepositTransaction({
+                    mint: txParams.value ? BigInt(txParams.value) : 0n,
+                    to: txParams.to as `0x${string}`,
+                    data: (txParams.data as `0x${string}`) || "0x",
+                    gas: gasLimit,
+                    account: address as `0x${string}`,
+                  });
+
+                // Save deposit args for potential retry
+                setForceInclusionProgress((prev) => ({
+                  ...prev,
+                  depositArgs,
+                }));
+
+                // Switch to L1 chain if needed
+                setForceInclusionProgress((prev) => ({
+                  ...prev,
+                  status: "submitting",
+                }));
+
+                // Do both
+                await switchChainAsync({ chainId: l1ChainId });
+                await walletClient.switchChain({ id: l1ChainId });
+
+                // Create L1 wallet client
+                const l1Chain = chainIdToChain[l1ChainId];
+                const publicClientL1 = createPublicClient({
+                  chain: l1Chain,
+                  transport: http(),
+                }).extend(publicActionsL1());
+
+                // Submit to L1
+                setForceInclusionProgress((prev) => ({
+                  ...prev,
+                  status: "submitting",
+                }));
+
+                const l1Hash = await walletClient
+                  .extend(walletActionsL1())
+                  .depositTransaction({ ...depositArgs, chain: l1Chain });
+
+                setForceInclusionProgress((prev) => ({
+                  ...prev,
+                  l1Hash,
+                  status: "waiting-l1",
+                }));
+
+                // Wait for L1 receipt
+                const l1Receipt =
+                  await publicClientL1.waitForTransactionReceipt({
+                    hash: l1Hash,
+                  });
+
+                // Get L2 hash
+                const [l2Hash] = getL2TransactionHashes(l1Receipt);
+
+                if (!l2Hash) {
+                  throw new Error(
+                    "Could not extract L2 transaction hash from L1 receipt"
+                  );
+                }
+
+                // Switch back to L2 chain automatically
+                try {
+                  await switchChainAsync({ chainId: l2ChainId });
+                  await walletClient.switchChain({ id: l2ChainId });
+                } catch (error) {
+                  console.warn("Failed to switch back to L2 chain:", error);
+                  toast({
+                    title: "Chain Switch",
+                    description: `Please manually switch back to ${
+                      chainIdToChain[l2ChainId]?.name || "L2"
+                    } in your wallet`,
+                    status: "warning",
+                    duration: 7000,
+                    isClosable: true,
+                    position: "bottom-right",
+                  });
+                  // Don't fail the whole process if chain switch fails
+                }
+
+                // Update with L2 hash and move to waiting-l2 status
+                setForceInclusionProgress((prev) => ({
+                  ...prev,
+                  l2Hash,
+                  status: "waiting-l2",
+                }));
+
+                // Store result for early return option
+                result = l2Hash;
+
+                // Start elapsed time tracking
+                const startTime = Date.now();
+                let intervalId: NodeJS.Timeout | null = null;
+
+                try {
+                  intervalId = setInterval(() => {
+                    setForceInclusionProgress((prev) => ({
+                      ...prev,
+                      elapsedTime: Math.floor((Date.now() - startTime) / 1000),
+                    }));
+                  }, 1000);
+
+                  // Wait for L2 confirmation (with timeout)
+                  await publicClientL2.waitForTransactionReceipt({
+                    hash: l2Hash,
+                    timeout: 10 * 60_000, // 10 minutes
+                  });
+
+                  // Capture final elapsed time before clearing interval
+                  const finalElapsedTime = Math.floor(
+                    (Date.now() - startTime) / 1000
+                  );
+
+                  clearInterval(intervalId);
+                  intervalId = null;
+
+                  setForceInclusionProgress((prev) => ({
+                    ...prev,
+                    status: "complete",
+                    elapsedTime: finalElapsedTime,
+                  }));
+                } catch (error) {
+                  if (intervalId) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                  }
+                  // If timeout or error, still consider it success since L2 hash is valid
+                  // Preserve the elapsed time at timeout
+                  console.warn("L2 receipt timeout or error:", error);
+                  setForceInclusionProgress((prev) => ({
+                    ...prev,
+                    status: "complete",
+                    // Keep the existing elapsedTime from prev
+                  }));
+                }
+              } catch (error) {
+                console.error("Force inclusion error:", error);
+
+                // Extract concise error message using viem's error handling
+                let errorMessage = "An unknown error occurred";
+                if (error && typeof error === "object") {
+                  try {
+                    // Try to extract the most user-friendly error message
+                    const viemError = error as any;
+                    if (viemError.walk) {
+                      const specificError = viemError.walk(
+                        (err: any) => err?.shortMessage || err?.message
+                      );
+                      if (specificError) {
+                        errorMessage =
+                          specificError.shortMessage ||
+                          specificError.message ||
+                          String(specificError);
+                      }
+                    } else if (viemError.shortMessage) {
+                      errorMessage = viemError.shortMessage;
+                    } else if (viemError.message) {
+                      errorMessage = viemError.message;
+                    }
+
+                    // Clean up common prefixes
+                    errorMessage = errorMessage
+                      .replace(/^(Error:|ContractFunctionRevertedError:)/, "")
+                      .trim();
+                  } catch (walkError) {
+                    console.error("Error extracting error message:", walkError);
+                  }
+                }
+
+                setForceInclusionProgress((prev) => ({
+                  ...prev,
+                  status: "error",
+                  error: errorMessage,
+                }));
+
+                // Don't throw - we want to handle this gracefully
+                return;
+              }
+            } else {
+              // Normal transaction (not force inclusion)
+              const hash = await walletClient.sendTransaction({
+                account: address as `0x${string}`,
+                to: txParams.to as `0x${string}`,
+                value: txParams.value ? BigInt(txParams.value) : undefined,
+                data: txParams.data as `0x${string}` | undefined,
+                gas: txParams.gas ? BigInt(txParams.gas) : undefined,
+              });
+
+              result = hash;
+            }
           } else if (
             request.method === "personal_sign" ||
             request.method === "eth_sign"
@@ -138,7 +431,14 @@ export default function WalletBridgePage() {
             request.method === "eth_signTypedData_v4"
           ) {
             // Handle typed data signing
-            const typedData = request.params[1]; // The typed data is usually the second parameter
+            const typedDataRaw = request.params[1]; // The typed data is usually the second parameter
+
+            // Parse JSON if it's a string
+            const typedData =
+              typeof typedDataRaw === "string"
+                ? JSON.parse(typedDataRaw)
+                : typedDataRaw;
+
             const signature = await walletClient.signTypedData({
               account: address as `0x${string}`,
               domain: typedData.domain,
@@ -227,13 +527,16 @@ export default function WalletBridgePage() {
           });
         }
 
-        // Close the modal
+        // Close the modal and reset state
         onSessionRequestClose();
+        setCurrentSessionRequest(null);
+        setForceInclusionEnabled(false);
       } catch (error) {
         console.error("Error handling session request:", error);
         setPendingRequest(false);
         setIsSwitchingChain(false);
         setNeedsChainSwitch(false);
+        setForceInclusionEnabled(false);
         setTargetChainId(null);
 
         // Extract a more user-friendly error message using Viem's error handling
@@ -297,11 +600,15 @@ export default function WalletBridgePage() {
       toast,
       switchChainAsync,
       onSessionRequestClose,
+      forceInclusionEnabled,
     ]
   );
 
   // Custom close handler for session request modal
   const handleSessionRequestClose = useCallback(() => {
+    // Reset force inclusion state when closing modal
+    setForceInclusionEnabled(false);
+
     // If there's an active request, reject it when closing the modal
     if (
       currentSessionRequest &&
@@ -591,11 +898,375 @@ export default function WalletBridgePage() {
 
       setNeedsChainSwitch(requiresChainSwitch);
       setTargetChainId(requiresChainSwitch ? requestedChainId : null);
+
+      // Check if this is an OP Stack transaction
+      setIsOPStackTransaction(
+        request.method === "eth_sendTransaction" &&
+          isOPStackChain(requestedChainId)
+      );
     } else {
       setNeedsChainSwitch(false);
       setTargetChainId(null);
+      setIsOPStackTransaction(false);
     }
   }, [currentSessionRequest, chainId]);
+
+  // Handler for early return of L2 hash
+  const handleEarlyReturn = useCallback(async () => {
+    if (!walletKit || !currentSessionRequest || !forceInclusionProgress.l2Hash)
+      return;
+
+    try {
+      const { id, topic } = currentSessionRequest;
+      const result = forceInclusionProgress.l2Hash;
+
+      // Respond to the request with L2 hash
+      await walletKit.respondSessionRequest({
+        topic,
+        response: {
+          id,
+          jsonrpc: "2.0",
+          result,
+        },
+      });
+
+      toast({
+        title: "L2 Hash Returned",
+        description:
+          "Transaction hash sent to dApp. L2 confirmation will continue in background.",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+
+      // Keep progress modal open but allow closing
+      setForceInclusionProgress((prev) => ({
+        ...prev,
+        isOpen: true,
+      }));
+    } catch (error) {
+      console.error("Error returning early:", error);
+      toast({
+        title: "Error",
+        description: "Failed to return transaction hash to dApp",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+    }
+  }, [walletKit, currentSessionRequest, forceInclusionProgress.l2Hash, toast]);
+
+  // Handler for retrying force inclusion after error
+  const handleForceInclusionRetry = useCallback(async () => {
+    const { depositArgs, l1ChainId, l2ChainId } = forceInclusionProgress;
+
+    if (
+      !depositArgs ||
+      !l1ChainId ||
+      !l2ChainId ||
+      !walletClient ||
+      !walletKit ||
+      !currentSessionRequest
+    ) {
+      console.error("Missing data for retry");
+      return;
+    }
+
+    try {
+      // Reset to submitting status
+      setForceInclusionProgress((prev) => ({
+        ...prev,
+        status: "submitting",
+        error: undefined,
+      }));
+
+      // Create L1 and L2 clients
+      const l1Chain = chainIdToChain[l1ChainId];
+      const l2Chain = chainIdToChain[l2ChainId];
+      const publicClientL1 = createPublicClient({
+        chain: l1Chain,
+        transport: http(),
+      }).extend(publicActionsL1());
+      const publicClientL2 = createPublicClient({
+        chain: l2Chain,
+        transport: http(),
+      }).extend(publicActionsL2());
+
+      // Ensure we're on L1 chain
+      await switchChainAsync({ chainId: l1ChainId });
+      await walletClient.switchChain({ id: l1ChainId });
+
+      // Submit to L1
+      const l1Hash = await walletClient
+        .extend(walletActionsL1())
+        .depositTransaction({ ...depositArgs, chain: l1Chain });
+
+      setForceInclusionProgress((prev) => ({
+        ...prev,
+        l1Hash,
+        status: "waiting-l1",
+      }));
+
+      // Wait for L1 receipt
+      const l1Receipt = await publicClientL1.waitForTransactionReceipt({
+        hash: l1Hash,
+      });
+
+      // Get L2 hash
+      const [l2Hash] = getL2TransactionHashes(l1Receipt);
+
+      if (!l2Hash) {
+        throw new Error(
+          "Could not extract L2 transaction hash from L1 receipt"
+        );
+      }
+
+      // Switch back to L2 chain automatically
+      try {
+        await switchChainAsync({ chainId: l2ChainId });
+        await walletClient.switchChain({ id: l2ChainId });
+      } catch (error) {
+        console.warn("Failed to switch back to L2 chain:", error);
+        toast({
+          title: "Chain Switch",
+          description: `Please manually switch back to ${
+            chainIdToChain[l2ChainId]?.name || "L2"
+          } in your wallet`,
+          status: "warning",
+          duration: 7000,
+          isClosable: true,
+          position: "bottom-right",
+        });
+      }
+
+      // Update with L2 hash and move to waiting-l2 status
+      setForceInclusionProgress((prev) => ({
+        ...prev,
+        l2Hash,
+        status: "waiting-l2",
+      }));
+
+      // Store result for potential early return
+      const result = l2Hash;
+
+      // Start elapsed time tracking
+      const startTime = Date.now();
+      let intervalId: NodeJS.Timeout | null = null;
+
+      try {
+        intervalId = setInterval(() => {
+          setForceInclusionProgress((prev) => ({
+            ...prev,
+            elapsedTime: Math.floor((Date.now() - startTime) / 1000),
+          }));
+        }, 1000);
+
+        // Wait for L2 confirmation (with timeout)
+        await publicClientL2.waitForTransactionReceipt({
+          hash: l2Hash,
+          timeout: 10 * 60_000, // 10 minutes
+        });
+
+        // Capture final elapsed time before clearing interval
+        const finalElapsedTime = Math.floor((Date.now() - startTime) / 1000);
+
+        clearInterval(intervalId);
+        intervalId = null;
+
+        setForceInclusionProgress((prev) => ({
+          ...prev,
+          status: "complete",
+          elapsedTime: finalElapsedTime,
+        }));
+      } catch (error) {
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+        // If timeout or error, still consider it success since L2 hash is valid
+        console.warn("L2 receipt timeout or error:", error);
+        setForceInclusionProgress((prev) => ({
+          ...prev,
+          status: "complete",
+        }));
+      }
+
+      // Respond to WalletConnect request
+      const { id, topic } = currentSessionRequest;
+      await walletKit.respondSessionRequest({
+        topic,
+        response: {
+          id,
+          jsonrpc: "2.0",
+          result,
+        },
+      });
+
+      toast({
+        title: "Transaction complete",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom-right",
+      });
+    } catch (error) {
+      console.error("Retry force inclusion error:", error);
+
+      // Extract concise error message
+      let errorMessage = "An unknown error occurred";
+      if (error && typeof error === "object") {
+        try {
+          const viemError = error as any;
+          if (viemError.walk) {
+            const specificError = viemError.walk(
+              (err: any) => err?.shortMessage || err?.message
+            );
+            if (specificError) {
+              errorMessage =
+                specificError.shortMessage ||
+                specificError.message ||
+                String(specificError);
+            }
+          } else if (viemError.shortMessage) {
+            errorMessage = viemError.shortMessage;
+          } else if (viemError.message) {
+            errorMessage = viemError.message;
+          }
+
+          errorMessage = errorMessage
+            .replace(/^(Error:|ContractFunctionRevertedError:)/, "")
+            .trim();
+        } catch (walkError) {
+          console.error("Error extracting error message:", walkError);
+        }
+      }
+
+      setForceInclusionProgress((prev) => ({
+        ...prev,
+        status: "error",
+        error: errorMessage,
+      }));
+    }
+  }, [
+    forceInclusionProgress,
+    walletClient,
+    walletKit,
+    currentSessionRequest,
+    switchChainAsync,
+    toast,
+  ]);
+
+  // Handler for updating gas limit
+  const handleGasLimitUpdate = useCallback(
+    async (newGasLimit: bigint) => {
+      const { l2ChainId } = forceInclusionProgress;
+      const txParams = currentSessionRequest?.params.request.params[0];
+
+      if (!l2ChainId || !txParams || !address) {
+        console.error("Missing data for gas limit update");
+        return;
+      }
+
+      try {
+        // Rebuild deposit transaction with new gas limit
+        const l2Chain = chainIdToChain[l2ChainId];
+        const publicClientL2 = createPublicClient({
+          chain: l2Chain,
+          transport: http(),
+        }).extend(publicActionsL2());
+
+        const depositArgs = await publicClientL2.buildDepositTransaction({
+          mint: txParams.value ? BigInt(txParams.value) : 0n,
+          to: txParams.to as `0x${string}`,
+          data: (txParams.data as `0x${string}`) || "0x",
+          gas: newGasLimit,
+          account: address as `0x${string}`,
+        });
+
+        // Update state with new gas limit and deposit args
+        setForceInclusionProgress((prev) => ({
+          ...prev,
+          gasLimit: newGasLimit,
+          depositArgs,
+        }));
+      } catch (error) {
+        console.error("Error rebuilding deposit transaction:", error);
+        toast({
+          title: "Error updating gas limit",
+          description: "Failed to rebuild transaction with new gas limit",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "bottom-right",
+        });
+      }
+    },
+    [forceInclusionProgress, currentSessionRequest, address, toast]
+  );
+
+  // Handler for closing force inclusion modal with rejection
+  const handleForceInclusionClose = useCallback(async () => {
+    const isError = forceInclusionProgress.status === "error";
+    const l2ChainId = forceInclusionProgress.l2ChainId;
+
+    // Switch back to L2 chain if we're in error state and have the chain ID
+    if (isError && l2ChainId && walletClient) {
+      try {
+        await switchChainAsync({ chainId: l2ChainId });
+        await walletClient.switchChain({ id: l2ChainId });
+      } catch (error) {
+        console.warn("Failed to switch back to L2 chain:", error);
+        // Don't block the flow if chain switch fails
+      }
+    }
+
+    // Close the modal
+    setForceInclusionProgress((prev) => ({ ...prev, isOpen: false }));
+
+    // If there was an error and we haven't sent a response yet, reject the request
+    if (isError && walletKit && currentSessionRequest) {
+      try {
+        const { id, topic } = currentSessionRequest;
+        await walletKit.respondSessionRequest({
+          topic,
+          response: {
+            id,
+            jsonrpc: "2.0",
+            error: {
+              code: 4001,
+              message: "User rejected the request",
+            },
+          },
+        });
+
+        toast({
+          title: "Request rejected",
+          status: "info",
+          duration: 3000,
+          isClosable: true,
+          position: "bottom-right",
+        });
+
+        // Clean up state
+        setCurrentSessionRequest(null);
+        setForceInclusionEnabled(false);
+        onSessionRequestClose();
+      } catch (error) {
+        console.error("Error rejecting request:", error);
+      }
+    }
+  }, [
+    forceInclusionProgress.status,
+    forceInclusionProgress.l2ChainId,
+    walletKit,
+    walletClient,
+    currentSessionRequest,
+    switchChainAsync,
+    toast,
+    onSessionRequestClose,
+  ]);
 
   return (
     <Box w="full" mt="-2rem">
@@ -820,6 +1491,28 @@ export default function WalletBridgePage() {
           onApprove={() => handleSessionRequest(true)}
           onReject={() => handleSessionRequest(false)}
           onChainSwitch={handleChainSwitch}
+          forceInclusionEnabled={forceInclusionEnabled}
+          onForceInclusionToggle={setForceInclusionEnabled}
+          isOPStackTransaction={isOPStackTransaction}
+        />
+
+        {/* Force Inclusion Progress Modal */}
+        <ForceInclusionProgress
+          isOpen={forceInclusionProgress.isOpen}
+          onClose={handleForceInclusionClose}
+          l1ChainId={forceInclusionProgress.l1ChainId || 1}
+          l2ChainId={forceInclusionProgress.l2ChainId || 1}
+          l1Hash={forceInclusionProgress.l1Hash}
+          l2Hash={forceInclusionProgress.l2Hash}
+          status={forceInclusionProgress.status}
+          error={forceInclusionProgress.error}
+          elapsedTime={forceInclusionProgress.elapsedTime}
+          gasLimit={forceInclusionProgress.gasLimit}
+          isGasEditable={forceInclusionProgress.isGasEditable}
+          gasEstimationFailed={forceInclusionProgress.gasEstimationFailed}
+          onReturnEarly={handleEarlyReturn}
+          onRetry={handleForceInclusionRetry}
+          onGasLimitUpdate={handleGasLimitUpdate}
         />
       </Container>
     </Box>
