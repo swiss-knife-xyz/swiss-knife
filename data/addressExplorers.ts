@@ -531,6 +531,18 @@ export const addressExplorers: ExplorersData = {
       [c.sonic.id]: "",
     },
   },
+  Sourcify: {
+    urlLayout: `https://repo.sourcify.dev/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
+    // Supports all EVM chains
+    chainIdToLabel: (() => {
+      let res: ExplorerData["chainIdToLabel"] = {};
+      Object.values(c).map((val) => {
+        res[val.id] = val.id.toString();
+      });
+      return res;
+    })(),
+    forContracts: true,
+  },
   Tenderly: {
     urlLayout: `https://dashboard.tenderly.co/contract/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
     chainIdToLabel: {

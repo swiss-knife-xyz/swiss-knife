@@ -621,12 +621,12 @@ export async function fetchFunctionInterface({
 }: {
   selector: string;
 }): Promise<string | null> {
-  const openChainData = await fetchFunctionFromOpenchain({ selector });
+  const sourcifyData = await fetchFunctionFromSourcify({ selector });
 
   let result: string | null = null;
   // giving priority to openchain data because it filters spam like: `mintEfficientN2M_001Z5BWH` for 0x00000000
-  if (openChainData) {
-    result = openChainData[0].name;
+  if (sourcifyData) {
+    result = sourcifyData[0].name;
   } else {
     const fourByteData = await fetchFunctionFrom4Bytes({ selector });
     if (fourByteData) {
@@ -637,10 +637,10 @@ export async function fetchFunctionInterface({
   return result;
 }
 
-async function fetchFunctionFromOpenchain({ selector }: { selector: string }) {
+async function fetchFunctionFromSourcify({ selector }: { selector: string }) {
   try {
     const requestUrl = new URL(
-      "https://api.openchain.xyz/signature-database/v1/lookup"
+      "https://api.4byte.sourcify.dev/signature-database/v1/lookup"
     );
     requestUrl.searchParams.append("function", selector);
     const response = await fetch(requestUrl);
@@ -648,7 +648,7 @@ async function fetchFunctionFromOpenchain({ selector }: { selector: string }) {
     const parsedData = fetchFunctionInterfaceOpenApiSchema.parse(data);
     if (!parsedData.ok) {
       throw new Error(
-        `Openchain API failed to find function interface with selector ${selector}`
+        `Sourcify 4byte API failed to find function interface with selector ${selector}`
       );
     }
     return parsedData.result.function[selector];
