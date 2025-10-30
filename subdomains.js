@@ -67,9 +67,9 @@ const subdomains = {
     base: "apps",
     paths: [],
   },
-  COMPILER: {
-    base: "compiler",
-    paths: [],
+  SOLIDITY: {
+    base: "solidity",
+    paths: ["compiler"],
   },
 };
 
