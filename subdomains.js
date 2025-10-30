@@ -67,6 +67,10 @@ const subdomains = {
     base: "apps",
     paths: [],
   },
+  SOLIDITY: {
+    base: "solidity",
+    paths: ["compiler"],
+  },
 };
 
 module.exports = subdomains;
