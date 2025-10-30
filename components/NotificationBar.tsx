@@ -11,7 +11,7 @@ import {
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 
 export const NotificationBar = () => {
-  const fontSize = useBreakpointValue({ base: "xs", sm: "sm", md: "md" });
+  const fontSize = useBreakpointValue({ base: "xs", sm: "sm", md: "xs" });
   const padding = useBreakpointValue({ base: 2, sm: 2, md: 3 });
 
   return process.env.NEXT_PUBLIC_GITCOIN_GRANTS_ACTIVE === "true" ? (
@@ -54,10 +54,10 @@ export const NotificationBar = () => {
               },
             }}
           >
-            <Text fontSize={fontSize}>Support on</Text>
+            <Text fontSize={fontSize}>Donate on</Text>
 
             <HStack ml={-0.5} fontWeight="bold">
-              <Text fontSize={fontSize}>Gitcoin Grants</Text>
+              <Text fontSize={fontSize}>Giveth</Text>
               <ExternalLinkIcon fontSize={fontSize} />
             </HStack>
           </HStack>
