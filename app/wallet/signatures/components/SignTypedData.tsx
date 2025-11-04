@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { Flex, Text } from "@chakra-ui/react";
-import { JsonTextArea } from "@/components/JsonTextArea";
 import LoadingButton from "./LoadingButton";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount, useSignTypedData } from "wagmi";
+import { Editor } from "@monaco-editor/react";
 
 type SignTypedDataProps = {
   typedData: string;
@@ -64,8 +64,8 @@ export const SignTypedData = ({
     }
   }, [typedData, placeholder]);
 
-  const handleTypedDataChange = (value: string) => {
-    setTypedData(value);
+  const handleTypedDataChange = (value: string | undefined) => {
+    setTypedData(value ?? "");
   };
 
   const handleSign = async () => {
@@ -83,12 +83,18 @@ export const SignTypedData = ({
 
   return (
     <>
-      <JsonTextArea
+      <Editor
+        height="300px"
+        theme="vs-dark"
+        defaultLanguage="json"
         value={typedData}
         onChange={handleTypedDataChange}
-        height={"300px"}
-        placeholder={displayPlaceholderString}
-        onPasteCallback={onPasteCallback}
+        options={{
+          minimap: { enabled: false },
+          fontSize: 14,
+          scrollBeyondLastLine: false,
+          automaticLayout: true,
+        }}
       />
       {jsonParseError && (
         <Text color="red.500" mt={2} fontSize="sm">
