@@ -7,9 +7,9 @@ const subdomains = {
     base: "explorer",
     paths: ["address", "tx"],
   },
-  CONVERTER: {
+CONVERTER: {
     base: "converter",
-    paths: ["eth", "hexadecimal", "keccak256", "padding", "address-checksum"],
+    paths: ["eth", "hexadecimal", "keccak256", "padding", "address-checksum", "create2"],
   },
   CONSTANTS: {
     base: "constants",
