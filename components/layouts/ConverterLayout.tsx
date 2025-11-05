@@ -11,6 +11,7 @@ const SidebarItems: SidebarItem[] = [
   { name: "Keccak256", path: "keccak256" },
   { name: "Padding", path: "padding" },
   { name: "Address checksum", path: "address-checksum" },
+  { name: "CREATE2", path: "create2" },
 ];
 
 export const ConverterLayout = ({
