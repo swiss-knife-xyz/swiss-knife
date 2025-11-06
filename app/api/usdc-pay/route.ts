@@ -24,14 +24,22 @@ function getCorsHeaders(origin: string | null) {
     "http://localhost:3000",
   ];
 
-  const corsOrigin =
-    origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  // Also allow any subdomain of swiss-knife.xyz
+  const isAllowedSubdomain =
+    origin &&
+    (allowedOrigins.includes(origin) ||
+      /^https:\/\/[\w-]+\.swiss-knife\.xyz$/.test(origin));
+
+  const corsOrigin = isAllowedSubdomain ? origin : "https://swiss-knife.xyz";
 
   return {
     "Access-Control-Allow-Origin": corsOrigin,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, x-payment, Authorization",
-    "Access-Control-Expose-Headers": "X-Facilitator-Url, X-Payment-Response",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "Content-Type, Authorization, X-Payment, x-payment, X-Requested-With, Accept, Origin",
+    "Access-Control-Expose-Headers":
+      "X-Facilitator-Url, X-Payment-Response, Content-Type",
+    "Access-Control-Max-Age": "86400", // Cache preflight for 24 hours
   };
 }
 
@@ -47,7 +55,9 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const corsHeaders = getCorsHeaders(request.headers.get("origin"));
+  // Get CORS headers first, before any potential errors
+  const origin = request.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
 
   try {
     // Get payment data from X-PAYMENT header
@@ -114,6 +124,36 @@ export async function POST(request: NextRequest) {
 
     // If no payment data, return 402 Payment Required
     if (!paymentData) {
+      const headers = new Headers();
+
+      // Set CORS headers
+      headers.set(
+        "Access-Control-Allow-Origin",
+        corsHeaders["Access-Control-Allow-Origin"]
+      );
+      headers.set(
+        "Access-Control-Allow-Methods",
+        corsHeaders["Access-Control-Allow-Methods"]
+      );
+      headers.set(
+        "Access-Control-Allow-Headers",
+        corsHeaders["Access-Control-Allow-Headers"]
+      );
+      headers.set(
+        "Access-Control-Expose-Headers",
+        corsHeaders["Access-Control-Expose-Headers"]
+      );
+      headers.set(
+        "Access-Control-Max-Age",
+        corsHeaders["Access-Control-Max-Age"]
+      );
+
+      // Set content type
+      headers.set("Content-Type", "application/json");
+
+      // Set x402 specific header
+      headers.set("X-Facilitator-Url", LOCAL_FACILITATOR_URL);
+
       return NextResponse.json(
         {
           x402Version: 1,
@@ -121,14 +161,7 @@ export async function POST(request: NextRequest) {
           errorMessage: "Payment required to process USDC transfer",
           accepts: [paymentRequirements],
         },
-        {
-          status: 402,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "X-Facilitator-Url": LOCAL_FACILITATOR_URL, // Point to our proxy with EIP-712 details
-          },
-        }
+        { status: 402, headers }
       );
     }
 
@@ -196,7 +229,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return success
+    // Return success with explicit headers
+    const headers = new Headers();
+
+    // Set CORS headers
+    headers.set(
+      "Access-Control-Allow-Origin",
+      corsHeaders["Access-Control-Allow-Origin"]
+    );
+    headers.set(
+      "Access-Control-Allow-Methods",
+      corsHeaders["Access-Control-Allow-Methods"]
+    );
+    headers.set(
+      "Access-Control-Allow-Headers",
+      corsHeaders["Access-Control-Allow-Headers"]
+    );
+    headers.set(
+      "Access-Control-Expose-Headers",
+      corsHeaders["Access-Control-Expose-Headers"]
+    );
+    headers.set(
+      "Access-Control-Max-Age",
+      corsHeaders["Access-Control-Max-Age"]
+    );
+
+    // Set content type
+    headers.set("Content-Type", "application/json");
+
+    // Set x402 payment response header
+    headers.set(
+      "X-Payment-Response",
+      Buffer.from(
+        JSON.stringify({
+          success: true,
+          transaction: settleResult.transaction,
+          network: networkName,
+          payer: verifyResult.payer,
+        })
+      ).toString("base64")
+    );
+
     return NextResponse.json(
       {
         success: true,
@@ -204,21 +277,7 @@ export async function POST(request: NextRequest) {
         transaction: settleResult.transaction,
         network: networkName,
       },
-      {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "X-Payment-Response": Buffer.from(
-            JSON.stringify({
-              success: true,
-              transaction: settleResult.transaction,
-              network: networkName,
-              payer: verifyResult.payer,
-            })
-          ).toString("base64"),
-        },
-      }
+      { status: 200, headers }
     );
   } catch (error) {
     console.error("Error processing payment:", error);
