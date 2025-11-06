@@ -1,0 +1,18 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjE0MjQxLCJ0eXBlIjoiY3VzdG9keSIsImtleSI6IjB4OTRmRDU1RjlkRWJmRTNBMjgwNTM4MjMzNDEyM0ExNUZjMmVBYjI3NSJ9",
+    "payload": "eyJkb21haW4iOiJ1c2RjLXBheS5zd2lzcy1rbmlmZS54eXoifQ",
+    "signature": "T+5kSQDaUqOYbGO9y8XLQQ28t3lvLiFkcqeO07ccLLckSRvsJoI//gRfF7d69UHVyk1PYvFW5td9nrMf5m82bRs="
+  },
+  "frame": {
+    "version": "1",
+    "name": "USDC Pay",
+    "iconUrl": "https://swiss-knife.xyz/icon.png",
+    "homeUrl": "https://usdc-pay.swiss-knife.xyz",
+    "imageUrl": "https://swiss-knife.xyz/og/usdc-pay.png",
+    "buttonTitle": "USDC Pay",
+    "splashImageUrl": "https://swiss-knife.xyz/splashImage.png",
+    "splashBackgroundColor": "#101010",
+    "webhookUrl": "https://swiss-knife.xyz/api/webhook"
+  }
+}
