@@ -25,6 +25,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { base, baseSepolia } from "wagmi/chains";
 import { baseURL } from "@/config";
 import { useAccount, useReadContract, useWalletClient } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { formatUnits } from "viem";
 import { getEnsAddress, getEnsAvatar } from "@/utils";
 import debounce from "lodash/debounce";
@@ -46,6 +47,7 @@ const USDCPay = () => {
 
   const { address: walletAddress, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
+  const { openConnectModal } = useConnectModal();
   const toast = useToast();
   const [address, setAddress] = useQueryState<string>(
     "to",
@@ -969,7 +971,7 @@ const USDCPay = () => {
 
             {/* Pay Button */}
             <Button
-              onClick={handlePay}
+              onClick={!isConnected ? openConnectModal : handlePay}
               w="100%"
               h={{ base: "12", md: "14" }}
               bg={showSuccess ? "green.500" : "blue.500"}
@@ -987,21 +989,22 @@ const USDCPay = () => {
               }}
               isDisabled={
                 showSuccess ||
-                !isConnected ||
-                !address ||
-                amount === "0" ||
-                amount === "" ||
-                isResolving ||
-                resolutionFailed ||
-                // For ENS/Farcaster, need resolved address
-                ((address.includes(".eth") ||
-                  (isFarcasterUsername(address) && address.startsWith("@"))) &&
-                  !resolvedAddress) ||
-                // For direct hex addresses, just check format
-                (address.startsWith("0x") && address.length !== 42) ||
-                isProcessingPayment ||
-                // Check if amount exceeds balance
-                (isConnected && parseFloat(amount) > parseFloat(usdcBalance))
+                (isConnected &&
+                  (!address ||
+                    amount === "0" ||
+                    amount === "" ||
+                    isResolving ||
+                    resolutionFailed ||
+                    // For ENS/Farcaster, need resolved address
+                    ((address.includes(".eth") ||
+                      (isFarcasterUsername(address) &&
+                        address.startsWith("@"))) &&
+                      !resolvedAddress) ||
+                    // For direct hex addresses, just check format
+                    (address.startsWith("0x") && address.length !== 42) ||
+                    isProcessingPayment ||
+                    // Check if amount exceeds balance
+                    parseFloat(amount) > parseFloat(usdcBalance)))
               }
               isLoading={isProcessingPayment}
               loadingText="Processing..."
@@ -1012,14 +1015,15 @@ const USDCPay = () => {
                   <Text>✓</Text>
                   <Text>Success</Text>
                 </HStack>
+              ) : !isConnected ? (
+                "Connect Wallet"
               ) : resolutionFailed ? (
                 "Invalid address"
               ) : isResolving ? (
                 "Resolving..."
               ) : isProcessingPayment ? (
                 "Processing..."
-              ) : isConnected &&
-                parseFloat(amount) > parseFloat(usdcBalance) ? (
+              ) : parseFloat(amount) > parseFloat(usdcBalance) ? (
                 "Insufficient Balance"
               ) : (
                 "Pay"
