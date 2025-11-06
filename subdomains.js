@@ -71,6 +71,10 @@ const subdomains = {
     base: "solidity",
     paths: ["compiler"],
   },
+  USDC_PAY: {
+    base: "usdc-pay",
+    paths: [],
+  },
 };
 
 module.exports = subdomains;

@@ -40,7 +40,6 @@ import {
   slicedText,
   startHexWith0x,
 } from "@/utils";
-import { ABIFunction } from "@shazow/whatsabi/lib.types/abi";
 import { StorageSlot } from "../fnParams/StorageSlot";
 import { RawCalldata } from "../fnParams/RawCalldata";
 import subdomains from "@/subdomains";
