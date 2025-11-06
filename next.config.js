@@ -20,9 +20,9 @@ const nextConfig = {
           source: "/icon.png",
           destination: "/icon.png",
         },
-        // set up subdomains
+        // set up subdomains (exclude api routes from subdomain rewrites)
         ...Object.values(subdomains).map((subdomain) => ({
-          source: "/:path((?!_next|chainIcons|external|icon.png|worker).*)", // Exclude static assets and worker from subdomain rewrites
+          source: "/:path((?!_next|api|chainIcons|external|icon.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
           has: [
             {
               type: "host",

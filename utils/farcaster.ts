@@ -1,9 +1,8 @@
 import axios from "axios";
 import { NeynarUser } from "@/types/neynar";
-import { baseURL } from "@/config";
 
 const internalClient = axios.create({
-  baseURL: `${baseURL}api`,
+  baseURL: "/api",
   headers: {
     "Content-Type": "application/json",
   },

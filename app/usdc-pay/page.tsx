@@ -417,7 +417,7 @@ const USDCPay = () => {
 
       // Make request to the payment-gated API
       const response = await axiosInstance.post(
-        `${baseURL}api/usdc-pay`,
+        "/api/usdc-pay",
         {
           to: targetAddress,
           amount: amount,

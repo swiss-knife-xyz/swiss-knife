@@ -9,10 +9,16 @@ import { USDC_ADDRESSES, USDC_DECIMALS } from "@/data/tokens";
  */
 
 // Use our own facilitator proxy that includes proper EIP-712 details
-const LOCAL_FACILITATOR_URL =
-  process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-    ? "http://localhost:3000/api/facilitator"
-    : "https://swiss-knife.xyz/api/facilitator";
+// Using relative URL so it works on both main domain and subdomains
+const getLocalFacilitatorUrl = (request: NextRequest) => {
+  if (process.env.NEXT_PUBLIC_DEVELOPMENT === "true") {
+    return "http://localhost:3000/api/facilitator";
+  }
+  // Get the host from the request to build the facilitator URL
+  const host = request.headers.get("host") || "swiss-knife.xyz";
+  const protocol = host.includes("localhost") ? "http" : "https";
+  return `${protocol}://${host}/api/facilitator`;
+};
 
 const PAYAI_FACILITATOR_ADDRESS = "0xc6699d2aada6c36dfea5c248dd70f9cb0235cb63";
 
@@ -58,6 +64,9 @@ export async function POST(request: NextRequest) {
   // Get CORS headers first, before any potential errors
   const origin = request.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
+
+  // Get the facilitator URL for this request
+  const localFacilitatorUrl = getLocalFacilitatorUrl(request);
 
   try {
     // Get payment data from X-PAYMENT header
@@ -152,7 +161,7 @@ export async function POST(request: NextRequest) {
       headers.set("Content-Type", "application/json");
 
       // Set x402 specific header
-      headers.set("X-Facilitator-Url", LOCAL_FACILITATOR_URL);
+      headers.set("X-Facilitator-Url", localFacilitatorUrl);
 
       return NextResponse.json(
         {
@@ -178,7 +187,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Use our local facilitator proxy which forwards to PayAI
-    const verifyResponse = await fetch(`${LOCAL_FACILITATOR_URL}/verify`, {
+    const verifyResponse = await fetch(`${localFacilitatorUrl}/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(verifyPayload),
@@ -203,7 +212,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Settle payment via our facilitator proxy
-    const settleResponse = await fetch(`${LOCAL_FACILITATOR_URL}/settle`, {
+    const settleResponse = await fetch(`${localFacilitatorUrl}/settle`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
