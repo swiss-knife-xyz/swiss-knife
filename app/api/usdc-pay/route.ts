@@ -16,7 +16,39 @@ const LOCAL_FACILITATOR_URL =
 
 const PAYAI_FACILITATOR_ADDRESS = "0xc6699d2aada6c36dfea5c248dd70f9cb0235cb63";
 
+// Helper function to add CORS headers
+function getCorsHeaders(origin: string | null) {
+  const allowedOrigins = [
+    "https://swiss-knife.xyz",
+    "https://usdc-pay.swiss-knife.xyz",
+    "http://localhost:3000",
+  ];
+
+  const corsOrigin =
+    origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+
+  return {
+    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, x-payment, Authorization",
+    "Access-Control-Expose-Headers": "X-Facilitator-Url, X-Payment-Response",
+  };
+}
+
+// Handle OPTIONS preflight request
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json(
+    {},
+    {
+      status: 200,
+      headers: getCorsHeaders(request.headers.get("origin")),
+    }
+  );
+}
+
 export async function POST(request: NextRequest) {
+  const corsHeaders = getCorsHeaders(request.headers.get("origin"));
+
   try {
     // Get payment data from X-PAYMENT header
     const paymentData = request.headers.get("x-payment");
@@ -29,7 +61,7 @@ export async function POST(request: NextRequest) {
     if (!to || !amount) {
       return NextResponse.json(
         { error: "Missing required parameters: to, amount" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -46,7 +78,7 @@ export async function POST(request: NextRequest) {
     if (isNaN(amountFloat) || amountFloat <= 0) {
       return NextResponse.json(
         { error: "Invalid amount. Must be a positive number." },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -92,9 +124,9 @@ export async function POST(request: NextRequest) {
         {
           status: 402,
           headers: {
+            ...corsHeaders,
             "Content-Type": "application/json",
             "X-Facilitator-Url": LOCAL_FACILITATOR_URL, // Point to our proxy with EIP-712 details
-            "Access-Control-Expose-Headers": "X-Facilitator-Url", // Make sure client can read it
           },
         }
       );
@@ -132,7 +164,7 @@ export async function POST(request: NextRequest) {
         },
         {
           status: 402,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -160,7 +192,7 @@ export async function POST(request: NextRequest) {
             settleResult.errorReason ||
             "Unknown error",
         },
-        { status: 500 }
+        { status: 500, headers: corsHeaders }
       );
     }
 
@@ -175,6 +207,7 @@ export async function POST(request: NextRequest) {
       {
         status: 200,
         headers: {
+          ...corsHeaders,
           "Content-Type": "application/json",
           "X-Payment-Response": Buffer.from(
             JSON.stringify({
@@ -194,7 +227,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to process payment",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

@@ -29,7 +29,37 @@ neynarClient.interceptors.response.use(
   }
 );
 
+// Helper function to add CORS headers
+function getCorsHeaders(origin: string | null) {
+  const allowedOrigins = [
+    "https://swiss-knife.xyz",
+    "https://usdc-pay.swiss-knife.xyz",
+    "http://localhost:3000",
+  ];
+
+  const corsOrigin =
+    origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+
+  return {
+    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+}
+
+// Handle OPTIONS preflight request
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json(
+    {},
+    {
+      status: 200,
+      headers: getCorsHeaders(request.headers.get("origin")),
+    }
+  );
+}
+
 export async function GET(request: NextRequest) {
+  const corsHeaders = getCorsHeaders(request.headers.get("origin"));
   try {
     const { searchParams } = new URL(request.url);
     const username = searchParams.get("username");
@@ -37,7 +67,7 @@ export async function GET(request: NextRequest) {
     if (!username) {
       return NextResponse.json(
         { error: "Username parameter is required" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -51,7 +81,7 @@ export async function GET(request: NextRequest) {
     );
 
     const user = response.data.users?.[0] || null;
-    return NextResponse.json(user);
+    return NextResponse.json(user, { headers: corsHeaders });
   } catch (error) {
     console.error("Neynar user API error:", error);
 
@@ -59,7 +89,7 @@ export async function GET(request: NextRequest) {
       if (error.response?.status === 401) {
         return NextResponse.json(
           { error: "Authentication failed. Please check API configuration." },
-          { status: 401 }
+          { status: 401, headers: corsHeaders }
         );
       }
       if (error.response?.status) {
@@ -67,14 +97,14 @@ export async function GET(request: NextRequest) {
           {
             error: `API Error ${error.response.status}: ${error.response.statusText}`,
           },
-          { status: error.response.status }
+          { status: error.response.status, headers: corsHeaders }
         );
       }
     }
 
     return NextResponse.json(
       { error: "Failed to fetch user data" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
