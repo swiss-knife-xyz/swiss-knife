@@ -36,6 +36,7 @@ import { USDC_ADDRESSES, USDC_ABI, USDC_DECIMALS } from "@/data/tokens";
 import { farcasterApi, isFarcasterUsername } from "@/utils/farcaster";
 import { NeynarUser } from "@/types/neynar";
 import { useDebounce } from "@/hooks/useDebounce";
+import frameSdk, { Context } from "@farcaster/frame-sdk";
 
 const USDCPay = () => {
   const searchParams = useSearchParams();
@@ -61,6 +62,12 @@ const USDCPay = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const successTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // State for Frame
+  const [isFrameSDKLoaded, setIsFrameSDKLoaded] = useState(false);
+  const [frameContext, setFrameContext] = useState<Context.FrameContext | null>(
+    null
+  );
 
   // ENS/Basename/Farcaster resolution state
   const [ensName, setEnsName] = useState("");
@@ -326,6 +333,24 @@ const USDCPay = () => {
       }
     };
   }, []);
+
+  // Initialize Frame SDK
+  useEffect(() => {
+    const load = async () => {
+      const _frameContext = await frameSdk.context;
+      setFrameContext(_frameContext);
+
+      frameSdk.actions.ready().then(() => {
+        if (!_frameContext.client.added) {
+          frameSdk.actions.addFrame();
+        }
+      });
+    };
+    if (frameSdk && !isFrameSDKLoaded) {
+      setIsFrameSDKLoaded(true);
+      load();
+    }
+  }, [isFrameSDKLoaded]);
 
   const clearSuccessState = () => {
     if (showSuccess) {
