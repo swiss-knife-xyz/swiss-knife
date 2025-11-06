@@ -77,6 +77,7 @@
     "usehooks-ts": "^3.1.0",
     "viem": "^2.30.4",
     "wagmi": "^2.15.4",
+    "x402-axios": "^0.7.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
