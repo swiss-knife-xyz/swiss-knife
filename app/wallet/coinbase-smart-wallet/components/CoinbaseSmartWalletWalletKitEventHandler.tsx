@@ -58,14 +58,14 @@ export default function CoinbaseSmartWalletWalletKitEventHandler({
       console.log("Optional namespaces:", proposal.params.optionalNamespaces);
       setCurrentSessionProposal(proposal);
 
-      // Auto-approve the session proposal using DS Proxy address instead of wagmi address
+      // Auto-approve the session proposal using Coinbase Smart Wallet address instead of wagmi address
       if (walletKit && address && coinbaseSmartWalletAddress) {
         // We'll call this in a setTimeout to ensure the state is updated
         setTimeout(async () => {
           try {
             // Get the supported chains from walletChains
             const chains = walletChains.map((chain) => `eip155:${chain.id}`);
-            // Use DS Proxy address instead of wagmi address
+            // Use Coinbase Smart Wallet address instead of wagmi address
             const accounts = chains.map(
               (chain) => `${chain}:${coinbaseSmartWalletAddress}`
             );
@@ -91,7 +91,7 @@ export default function CoinbaseSmartWalletWalletKitEventHandler({
             });
 
             console.log(
-              "Auto-approving session with DS Proxy namespaces:",
+              "Auto-approving session with Coinbase Smart Wallet namespaces:",
               namespaces
             );
 
@@ -105,7 +105,7 @@ export default function CoinbaseSmartWalletWalletKitEventHandler({
             setActiveSessions(filterActiveSessions(Object.values(sessions)));
 
             toast({
-              title: "Dapp connected to DS Proxy",
+              title: "Dapp connected to Coinbase Smart Wallet",
               status: "success",
               duration: 3000,
               isClosable: true,
@@ -128,7 +128,7 @@ export default function CoinbaseSmartWalletWalletKitEventHandler({
           }
         }, 100);
       } else {
-        // If wallet is not connected, address is not available, or DS Proxy address is not provided, open the modal for manual approval
+        // If wallet is not connected, address is not available, or Coinbase Smart Wallet address is not provided, open the modal for manual approval
         onSessionProposalOpen();
       }
     };
