@@ -17,7 +17,7 @@ import { walletChains } from "@/app/providers";
 interface CoinbaseSmartWalletWalletKitEventHandlerProps {
   walletKit: WalletKitInstance | null;
   address: string | undefined;
-  dsProxyAddress: string;
+  coinbaseSmartWalletAddress: string;
   setCurrentSessionProposal: (proposal: SessionProposal | null) => void;
   setCurrentSessionRequest: (request: SessionRequest | null) => void;
   setDecodedTxData: (data: any) => void;
@@ -31,7 +31,7 @@ interface CoinbaseSmartWalletWalletKitEventHandlerProps {
 export default function CoinbaseSmartWalletWalletKitEventHandler({
   walletKit,
   address,
-  dsProxyAddress,
+  coinbaseSmartWalletAddress,
   setCurrentSessionProposal,
   setCurrentSessionRequest,
   setDecodedTxData,
@@ -59,7 +59,7 @@ export default function CoinbaseSmartWalletWalletKitEventHandler({
       setCurrentSessionProposal(proposal);
 
       // Auto-approve the session proposal using DS Proxy address instead of wagmi address
-      if (walletKit && address && dsProxyAddress) {
+      if (walletKit && address && coinbaseSmartWalletAddress) {
         // We'll call this in a setTimeout to ensure the state is updated
         setTimeout(async () => {
           try {
@@ -67,7 +67,7 @@ export default function CoinbaseSmartWalletWalletKitEventHandler({
             const chains = walletChains.map((chain) => `eip155:${chain.id}`);
             // Use DS Proxy address instead of wagmi address
             const accounts = chains.map(
-              (chain) => `${chain}:${dsProxyAddress}`
+              (chain) => `${chain}:${coinbaseSmartWalletAddress}`
             );
 
             const namespaces = buildApprovedNamespaces({
@@ -274,7 +274,7 @@ export default function CoinbaseSmartWalletWalletKitEventHandler({
   }, [
     walletKit,
     address,
-    dsProxyAddress,
+    coinbaseSmartWalletAddress,
     setCurrentSessionProposal,
     setCurrentSessionRequest,
     setDecodedTxData,
