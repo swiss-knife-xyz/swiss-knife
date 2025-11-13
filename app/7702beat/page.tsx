@@ -72,6 +72,19 @@ const katana = {
   iconBackground: "blue.400",
 };
 
+const endurance = {
+  id: 648,
+  name: "Endurance",
+  iconUrl: "https://ace.fusionist.io/apple-touch-icon.png",
+  iconBackground: "white.400",
+  blockExplorers: {
+    default: {
+      name: "Endurance Explorer",
+      url: "https://explorer-endurance.fusionist.io",
+    },
+  },
+};
+
 interface Chain {
   id: number;
   name: string;
@@ -189,6 +202,13 @@ const chains: Chain[] = [
     color: "pink.400",
     abbreviation: "UNI",
     chainObj: unichain,
+  },
+  {
+    id: endurance.id,
+    name: "Endurance",
+    color: "orange.400",
+    abbreviation: "ACE",
+    chainObj: endurance,
   },
 ];
 
