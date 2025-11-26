@@ -309,6 +309,25 @@ export const CalldataDecoderPage = ({
   };
 
   const FromABIBody = () => {
+    const handleAbiChange = (value: string | undefined) => {
+      const newValue = value || "";
+
+      // Try to prettify if it's valid JSON
+      try {
+        const parsed = JSON.parse(newValue);
+        const prettified = JSON.stringify(parsed, null, 2);
+        // Only update if the prettified version is different
+        if (prettified !== newValue) {
+          setAbi(prettified);
+          return;
+        }
+      } catch (e) {
+        // Not valid JSON or already formatted, just set as is
+      }
+
+      setAbi(newValue);
+    };
+
     return (
       <Tr>
         <Td colSpan={2}>
@@ -320,7 +339,7 @@ export const CalldataDecoderPage = ({
                   theme="vs-dark"
                   defaultLanguage="json"
                   value={abi}
-                  onChange={(value) => setAbi(value || "")}
+                  onChange={handleAbiChange}
                   height={"250px"}
                   options={{
                     minimap: { enabled: false },
