@@ -237,10 +237,36 @@ export const StringParam = ({
                 <CopyToClipboard textToCopy={value ?? ""} size="xs" />
               </HStack>
               <Editor
-                height="100%"
+                height="300px"
                 theme="vs-dark"
                 defaultLanguage="json"
                 value={displayValue}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                }}
+              />
+            </Box>
+          );
+        } else if (isUrlImageOrJson?.isJson && urlContent) {
+          // Raw JSON from URL
+          const formattedUrlContent = JSON.stringify(urlContent, null, 4);
+          return (
+            <Box>
+              <HStack mb={1}>
+                <Spacer />
+                <CopyToClipboard
+                  textToCopy={formattedUrlContent ?? ""}
+                  size="xs"
+                />
+              </HStack>
+              <Editor
+                height="300px"
+                theme="vs-dark"
+                defaultLanguage="json"
+                value={formattedUrlContent}
                 options={{
                   minimap: { enabled: false },
                   fontSize: 14,
@@ -274,7 +300,11 @@ export const StringParam = ({
   } else if (isImage) {
     richTabs = ["Image", "Raw SVG"];
   } else if (isUrl) {
-    richTabs = ["Fetched URL", "Raw URL"];
+    if (isUrlImageOrJson?.isJson) {
+      richTabs = ["Rich Output", "Raw JSON"];
+    } else {
+      richTabs = ["Fetched URL", "Raw URL"];
+    }
   }
 
   useEffect(() => {
