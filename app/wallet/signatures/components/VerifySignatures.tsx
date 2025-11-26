@@ -10,7 +10,7 @@ import {
   Alert,
   AlertIcon,
 } from "@chakra-ui/react";
-import { JsonTextArea } from "@/components/JsonTextArea";
+import { Editor } from "@monaco-editor/react";
 
 export default function VerifySignatures() {
   const [address, setAddress] = useState("");
@@ -22,8 +22,8 @@ export default function VerifySignatures() {
     error?: string;
   } | null>(null);
 
-  const handleMessageChange = (value: string) => {
-    setMessage(value);
+  const handleMessageChange = (value: string | undefined) => {
+    setMessage(value ?? "");
     setVerificationResult(null);
   };
 
@@ -122,11 +122,18 @@ export default function VerifySignatures() {
 
       <Grid gap={1}>
         <Text fontWeight="bold">Message or Typed Data</Text>
-        <JsonTextArea
+        <Editor
+          height="300px"
+          theme="vs-dark"
+          defaultLanguage="json"
           value={message}
           onChange={handleMessageChange}
-          height="200px"
-          language="json"
+          options={{
+            minimap: { enabled: false },
+            fontSize: 14,
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+          }}
         />
       </Grid>
 

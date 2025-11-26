@@ -43,13 +43,13 @@ import {
   networkOptions,
 } from "@/data/common";
 import { resolveERC3770Address, startHexWith0x } from "@/utils";
+import { Editor } from "@monaco-editor/react";
 
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
 import { renderParams } from "@/components/renderParams";
 import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
-import { JsonTextArea } from "@/components/JsonTextArea";
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { decodeRecursive } from "@/lib/decoder";
@@ -309,18 +309,44 @@ export const CalldataDecoderPage = ({
   };
 
   const FromABIBody = () => {
+    const handleAbiChange = (value: string | undefined) => {
+      const newValue = value || "";
+
+      // Try to prettify if it's valid JSON
+      try {
+        const parsed = JSON.parse(newValue);
+        const prettified = JSON.stringify(parsed, null, 2);
+        // Only update if the prettified version is different
+        if (prettified !== newValue) {
+          setAbi(prettified);
+          return;
+        }
+      } catch (e) {
+        // Not valid JSON or already formatted, just set as is
+      }
+
+      setAbi(newValue);
+    };
+
     return (
       <Tr>
         <Td colSpan={2}>
           <Center>
-            <Center w={"20rem"}>
+            <Center width={"100%"}>
               <FormControl>
                 <FormLabel>Input ABI</FormLabel>
-                <JsonTextArea
+                <Editor
+                  theme="vs-dark"
+                  defaultLanguage="json"
                   value={abi}
-                  setValue={setAbi}
-                  placeholder="JSON ABI"
-                  ariaLabel="json abi"
+                  onChange={handleAbiChange}
+                  height={"250px"}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                  }}
                 />
               </FormControl>
             </Center>
@@ -401,12 +427,19 @@ export const CalldataDecoderPage = ({
                       </Center>
                     </HStack>
                     <Collapse in={isOpen} animateOpacity>
-                      <JsonTextArea
+                      <Editor
+                        theme="vs-dark"
+                        defaultLanguage="json"
                         value={abi}
-                        setValue={setAbi}
-                        placeholder="JSON ABI"
-                        ariaLabel="json abi"
-                        readOnly
+                        onChange={(value) => setAbi(value || "")}
+                        height={"250px"}
+                        options={{
+                          readOnly: true,
+                          minimap: { enabled: false },
+                          fontSize: 14,
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                        }}
                       />
                     </Collapse>
                   </FormControl>
