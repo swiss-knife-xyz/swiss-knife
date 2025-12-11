@@ -85,6 +85,19 @@ const endurance = {
   },
 };
 
+const zircuit = {
+  id: 48900,
+  name: "Zircuit",
+  iconUrl: "/chainIcons/zircuit.svg",
+  iconBackground: "transparent",
+  blockExplorers: {
+    default: {
+      name: "Zircuit Explorer",
+      url: "https://explorer.zircuit.com",
+    },
+  },
+};
+
 interface Chain {
   id: number;
   name: string;
@@ -210,6 +223,13 @@ const chains: Chain[] = [
     abbreviation: "ACE",
     chainObj: endurance,
   },
+  {
+    id: zircuit.id,
+    name: "Zircuit",
+    color: "green.400",
+    abbreviation: "ZRC",
+    chainObj: zircuit,
+  },
 ];
 
 const wallets: SupportedApp[] = [
@@ -249,6 +269,7 @@ const wallets: SupportedApp[] = [
       optimism.id,
       // polygon.id,
       unichain.id,
+      zircuit.id,
     ],
     announcement: {
       epochTimestamp: 1746028260,
@@ -482,6 +503,7 @@ const dapps: SupportedApp[] = [
       optimism.id,
       polygon.id,
       unichain.id,
+      zircuit.id,
     ],
   },
   {
@@ -565,6 +587,7 @@ const dapps: SupportedApp[] = [
       optimism.id,
       polygon.id,
       unichain.id,
+      zircuit.id,
     ],
   },
   {
