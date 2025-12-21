@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import {
+  Suspense,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -38,7 +45,7 @@ import { NeynarUser } from "@/types/neynar";
 import { useDebounce } from "@/hooks/useDebounce";
 import frameSdk, { Context } from "@farcaster/frame-sdk";
 
-const USDCPay = () => {
+function USDCPayContent() {
   const searchParams = useSearchParams();
   const isTestnet = searchParams.get("testnet") === "true";
   const selectedChain = isTestnet ? baseSepolia : base;
@@ -1059,6 +1066,12 @@ const USDCPay = () => {
       </Container>
     </Box>
   );
-};
+}
 
-export default USDCPay;
+export default function USDCPay() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <USDCPayContent />
+    </Suspense>
+  );
+}

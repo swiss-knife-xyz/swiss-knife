@@ -38,7 +38,7 @@ const nextConfig = {
     return [
       {
         source: "/discord",
-        destination: process.env.DISCORD_URL,
+        destination: process.env.DISCORD_URL || "https://discord.com",
         permanent: true,
       },
     ];
@@ -57,9 +57,6 @@ const nextConfig = {
   },
   compiler: {
     styledComponents: true,
-  },
-  experimental: {
-    windowHistorySupport: true,
   },
 };
 

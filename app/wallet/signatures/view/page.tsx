@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { verifyMessage, verifyTypedData, Address } from "viem";
 import { useAccount, useSignMessage, useSignTypedData } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
@@ -66,7 +66,7 @@ const decodeDataFromUrl = (
 
 const explorerBaseUrl = "https://etherscan.io/address/";
 
-export default function SignatureView() {
+function SignatureViewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { address: connectedAddress, isConnected } = useAccount();
@@ -301,10 +301,10 @@ export default function SignatureView() {
   const signButtonText = !isConnected
     ? "Connect Wallet"
     : canSignAgain
-    ? signatureData?.type === "message"
-      ? "Sign Message"
-      : "Sign Typed Data"
-    : "Already Signed";
+      ? signatureData?.type === "message"
+        ? "Sign Message"
+        : "Sign Typed Data"
+      : "Already Signed";
   const isSignButtonLoading = isSigningMessage || isSigningTypedData;
 
   return (
@@ -834,5 +834,13 @@ export default function SignatureView() {
         </Flex>
       )}
     </VStack>
+  );
+}
+
+export default function SignatureView() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignatureViewContent />
+    </Suspense>
   );
 }

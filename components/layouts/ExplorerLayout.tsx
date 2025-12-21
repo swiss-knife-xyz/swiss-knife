@@ -3,7 +3,7 @@
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import NLink from "next/link";
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, Suspense, useState, useEffect } from "react";
 import {
   Center,
   Heading,
@@ -49,7 +49,7 @@ const isValidTransaction = (tx: string) => {
   return /^0x([A-Fa-f0-9]{64})$/.test(tx);
 };
 
-export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
+function ExplorerLayoutContent({ children }: { children: ReactNode }) {
   const segments = useSelectedLayoutSegments();
   const router = useRouter();
   const pathname = usePathname();
@@ -365,5 +365,13 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
         </Center>
       </HStack>
     </Layout>
+  );
+}
+
+export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ExplorerLayoutContent>{children}</ExplorerLayoutContent>
+    </Suspense>
   );
 };

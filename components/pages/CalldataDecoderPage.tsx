@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import {
   Heading,
   Table,
@@ -54,11 +54,7 @@ import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { decodeRecursive } from "@/lib/decoder";
 
-export const CalldataDecoderPage = ({
-  headerText,
-}: {
-  headerText?: string;
-}) => {
+function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const toast = useToast();
   const searchParams = useSearchParams();
 
@@ -621,5 +617,17 @@ export const CalldataDecoderPage = ({
         </Box>
       )}
     </Box>
+  );
+}
+
+export const CalldataDecoderPage = ({
+  headerText,
+}: {
+  headerText?: string;
+}) => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CalldataDecoderPageContent headerText={headerText} />
+    </Suspense>
   );
 };
