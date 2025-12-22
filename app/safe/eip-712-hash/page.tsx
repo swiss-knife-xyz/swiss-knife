@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import {
   Box,
   Heading,
@@ -61,7 +61,7 @@ function computeEip712Hash(json: TypedDataInput): HashResult {
   };
 }
 
-export default function SevenOneTwoHash() {
+function SevenOneTwoHashContent() {
   const [jsonData, setJsonData] = useQueryState<string>(
     "json",
     parseAsString.withDefault("")
@@ -309,5 +309,13 @@ export default function SevenOneTwoHash() {
         )}
       </Box>
     </VStack>
+  );
+}
+
+export default function SevenOneTwoHash() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SevenOneTwoHashContent />
+    </Suspense>
   );
 }

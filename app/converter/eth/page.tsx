@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import {
   Heading,
   Table,
@@ -24,7 +24,7 @@ import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
 import { useLocalStorage } from "usehooks-ts";
 
-const ETHUnitConverter = () => {
+function ETHUnitConverterContent() {
   const searchParams = useSearchParams();
   const weiFromUrl = searchParams.get("wei");
 
@@ -256,6 +256,12 @@ const ETHUnitConverter = () => {
       </Table>
     </>
   );
-};
+}
 
-export default ETHUnitConverter;
+export default function ETHUnitConverter() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ETHUnitConverterContent />
+    </Suspense>
+  );
+}

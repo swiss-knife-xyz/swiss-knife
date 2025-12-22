@@ -1,7 +1,13 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, {
+  Suspense,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
 import {
   Container,
   FormControl,
@@ -51,7 +57,7 @@ import { decodeRecursive } from "@/lib/decoder";
 import { renderParams } from "@/components/renderParams";
 import { config } from "@/app/providers";
 
-const SendTx = () => {
+function SendTxContent() {
   const { data: walletClient } = useWalletClient();
   const { chain } = useAccount();
   const { switchChain } = useSwitchChain();
@@ -527,6 +533,12 @@ const SendTx = () => {
       </Container>
     </>
   );
-};
+}
 
-export default SendTx;
+export default function SendTx() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SendTxContent />
+    </Suspense>
+  );
+}

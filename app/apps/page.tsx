@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Box,
@@ -1388,16 +1388,18 @@ export default function WalletBridgeAppsPage() {
       signMessage={handleSignMessage}
       signTypedData={handleSignTypedData}
     >
-      <AppStoreContent
-        chainId={chainId}
-        address={address}
-        walletClient={walletClient}
-        switchChainAsync={switchChainAsync}
-        toast={toast}
-        iframeRequestHandlers={iframeRequestHandlers}
-        skipDecoder={skipDecoder}
-        setSkipDecoder={setSkipDecoder}
-      />
+      <Suspense fallback={<div>Loading...</div>}>
+        <AppStoreContent
+          chainId={chainId}
+          address={address}
+          walletClient={walletClient}
+          switchChainAsync={switchChainAsync}
+          toast={toast}
+          iframeRequestHandlers={iframeRequestHandlers}
+          skipDecoder={skipDecoder}
+          setSkipDecoder={setSkipDecoder}
+        />
+      </Suspense>
     </ImpersonatorIframeProvider>
   );
 }
