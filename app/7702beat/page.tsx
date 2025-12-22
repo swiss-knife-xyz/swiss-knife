@@ -2281,7 +2281,12 @@ const SevenSevenZeroTwoBeat = () => {
                                 colorScheme="green"
                                 size="sm"
                                 isDisabled={
-                                  !address || isPending || isWaitingForCalls
+                                  !address ||
+                                  isPending ||
+                                  isWaitingForCalls ||
+                                  !availableCapabilities ||
+                                  Object.keys(availableCapabilities).length ===
+                                    0
                                 }
                                 isLoading={isPending || isWaitingForCalls}
                                 loadingText={
@@ -2329,18 +2334,16 @@ const SevenSevenZeroTwoBeat = () => {
                             {/* Description */}
                             <Box
                               p={4}
-                              maxW="40rem"
                               bg="whiteAlpha.100"
                               borderRadius="md"
                               border="1px solid"
                               borderColor="whiteAlpha.200"
                             >
                               <Text color="gray.400" fontSize="sm">
-                                Your account is not currently upgraded to
-                                support EIP-7702. Click &quot;Upgrade
-                                Account&quot; to enable account abstraction
-                                features like transaction batching and
-                                delegation.
+                                {!availableCapabilities ||
+                                Object.keys(availableCapabilities).length === 0
+                                  ? "Your wallet doesn't support any capabilities on this chain. Please try switching to a different chain or use a wallet that supports EIP-5792."
+                                  : 'Your account is not currently upgraded to support EIP-7702. Click "Upgrade Account" to enable account abstraction features like transaction batching and delegation.'}
                               </Text>
                             </Box>
                           </VStack>
