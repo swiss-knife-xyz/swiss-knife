@@ -78,6 +78,7 @@ import {
   Chain,
   unichain,
   ink,
+  worldchain,
 } from "viem/chains";
 import { _chains } from "./_chains";
 
@@ -85,6 +86,7 @@ import { defineChain } from "viem";
 
 // === New chains ===
 // to avoid Upgrading viem + wagmi, as it results in breaking changes atm.
+// source: https://github.com/wevm/viem/tree/main/src/chains/definitions
 export const plasma = defineChain({
   id: 9745,
   name: "Plasma",
@@ -102,6 +104,40 @@ export const plasma = defineChain({
     default: {
       name: "PlasmaScan",
       url: "https://plasmascan.to",
+    },
+  },
+});
+export const monad = defineChain({
+  id: 143,
+  name: "Monad",
+  blockTime: 400,
+  nativeCurrency: {
+    name: "Monad",
+    symbol: "MON",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc.monad.xyz", "https://rpc1.monad.xyz"],
+      webSocket: ["wss://rpc.monad.xyz", "wss://rpc1.monad.xyz"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "MonadVision",
+      url: "https://monadvision.com",
+    },
+    monadscan: {
+      name: "Monadscan",
+      url: "https://monadscan.com",
+      apiUrl: "https://api.monadscan.com/api",
+    },
+  },
+  testnet: false,
+  contracts: {
+    multicall3: {
+      address: "0xcA11bde05977b3631167028862bE2a173976CA11",
+      blockCreated: 9248132,
     },
   },
 });
@@ -165,6 +201,7 @@ export const c: { [name: string]: Chain } = {
   mantaTestnet,
   mantle,
   metis,
+  monad,
   moonbaseAlpha,
   moonbeam,
   moonriver,
@@ -189,6 +226,7 @@ export const c: { [name: string]: Chain } = {
   wanchain,
   wemix,
   wemixTestnet,
+  worldchain,
   zkSync,
   zkSyncSepoliaTestnet,
   zora,
@@ -317,21 +355,22 @@ export const chainIdToImage = (() => {
     [goerli.id]: `${basePath}/ethereum.svg`,
     [ink.id]: `${basePath}/ink.svg`,
     [mainnet.id]: `${basePath}/ethereum.svg`,
+    [monad.id]: `${basePath}/monad.svg`,
     [optimism.id]: `${basePath}/optimism.svg`,
     [polygon.id]: `${basePath}/polygon.svg`,
     [sepolia.id]: `${basePath}/ethereum.svg`,
     [unichain.id]: `${basePath}/unichain.svg`,
-    [zora.id]: `${basePath}/zora.svg`,
+    [worldchain.id]: `${basePath}/worldchain.svg`,
     [48900]: `${basePath}/zircuit.svg`, // Zircuit
+    [zora.id]: `${basePath}/zora.svg`,
   };
 
   Object.keys(chainIdToChain).map((_chainId) => {
     const chainId = Number(_chainId);
 
     if (!res[chainId]) {
-      res[
-        chainId
-      ] = `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=${chainIdToChain[chainId].blockExplorers?.default.url}`;
+      res[chainId] =
+        `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=${chainIdToChain[chainId].blockExplorers?.default.url}`;
     }
   });
 

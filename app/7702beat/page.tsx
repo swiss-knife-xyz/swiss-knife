@@ -57,7 +57,9 @@ import {
   optimism,
   polygon,
   unichain,
+  worldchain,
 } from "wagmi/chains";
+import { monad } from "@/data/common";
 import {
   Address,
   parseEther,
@@ -74,12 +76,6 @@ import { fetchContractAbi } from "@/utils";
 import { InputField } from "@/components/InputField";
 import NumberFlow from "@number-flow/react";
 
-const katana = {
-  id: 747474,
-  iconUrl: "https://katana.network/meta/favicon-96x96.png",
-  iconBackground: "blue.400",
-};
-
 const endurance = {
   id: 648,
   name: "Endurance",
@@ -91,6 +87,12 @@ const endurance = {
       url: "https://explorer-endurance.fusionist.io",
     },
   },
+};
+
+const katana = {
+  id: 747474,
+  iconUrl: "https://katana.network/meta/favicon-96x96.png",
+  iconBackground: "blue.400",
 };
 
 const zircuit = {
@@ -281,6 +283,16 @@ const chains: SupportedChain[] = [
     chainObj: katana,
   },
   {
+    id: monad.id,
+    name: "Monad",
+    color: "purple.400",
+    abbreviation: "MON",
+    chainObj: {
+      ...monad,
+      iconBackground: "white",
+    },
+  },
+  {
     id: optimism.id,
     name: "Optimism",
     color: "red.300",
@@ -300,6 +312,13 @@ const chains: SupportedChain[] = [
     color: "pink.400",
     abbreviation: "UNI",
     chainObj: unichain,
+  },
+  {
+    id: worldchain.id,
+    name: "Worldchain",
+    color: "white",
+    abbreviation: "World",
+    chainObj: worldchain,
   },
   {
     id: zircuit.id,
