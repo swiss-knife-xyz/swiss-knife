@@ -433,17 +433,6 @@ const wallets: SupportedApp[] = [
     },
   },
   {
-    name: "zWallet",
-    logoUrl:
-      "https://raw.githubusercontent.com/zammdefi/zWallet/refs/heads/main/extension/icon48.png",
-    siteUrl: "https://zwallets.eth.limo/",
-    supportedChainIds: [mainnet.id, base.id],
-    announcement: {
-      epochTimestamp: 1755698880,
-      tweet: "https://x.com/z0r0zzz/status/1958169302315729282",
-    },
-  },
-  {
     name: "NuFi",
     logoUrl: getFaviconUrl("https://nu.fi"),
     siteUrl: "https://nu.fi/",
@@ -460,6 +449,28 @@ const wallets: SupportedApp[] = [
     announcement: {
       epochTimestamp: 1753812000,
       tweet: "https://x.com/nufiwallet/status/1950255004612202578",
+    },
+  },
+  {
+    name: "zWallet",
+    logoUrl:
+      "https://raw.githubusercontent.com/zammdefi/zWallet/refs/heads/main/extension/icon48.png",
+    siteUrl: "https://zwallets.eth.limo/",
+    supportedChainIds: [mainnet.id, base.id],
+    announcement: {
+      epochTimestamp: 1755698880,
+      tweet: "https://x.com/z0r0zzz/status/1958169302315729282",
+    },
+  },
+  {
+    name: "Rewardy Wallet",
+    logoUrl: "https://www.rewardywallet.com/meta/favicon_64.png",
+    siteUrl: "https://www.rewardywallet.com/en",
+    supportedChainIds: [mainnet.id, base.id],
+    announcement: {
+      epochTimestamp: 1764979200,
+      tweet:
+        "https://cointelegraph.com/press-releases/rewardy-unveils-erc-7702-based-wallet-delivering-smart-ux-without-changing-wallet-addresses",
     },
   },
 ];
