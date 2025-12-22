@@ -322,6 +322,7 @@ export const chainIdToImage = (() => {
     [sepolia.id]: `${basePath}/ethereum.svg`,
     [unichain.id]: `${basePath}/unichain.svg`,
     [zora.id]: `${basePath}/zora.svg`,
+    [48900]: `${basePath}/zircuit.svg`, // Zircuit
   };
 
   Object.keys(chainIdToChain).map((_chainId) => {
