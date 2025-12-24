@@ -306,6 +306,15 @@ const customDappConfig = {
         unichain.id,
       ],
     },
+    {
+      id: 1337,
+      name: "Ethereum Follow Protocol",
+      description:
+        "The onchain social graph protocol for Ethereum accounts",
+      url: "https://efp.app",
+      iconUrl: "https://metadata.ens.domains/mainnet/avatar/efp.eth",
+      chains: [mainnet.id, optimism.id, base.id],
+    },
   ] as SafeDappInfo[],
 
   dappsPriority: [

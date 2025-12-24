@@ -783,5 +783,17 @@
       1,
       8453
     ]
+  },
+  {
+    "id": 1337,
+    "name": "Ethereum Follow Protocol",
+    "description": "The onchain social graph protocol for Ethereum accounts",
+    "url": "https://efp.app",
+    "iconUrl": "https://metadata.ens.domains/mainnet/avatar/efp.eth",
+    "chains": [
+      1,
+      10,
+      8453
+    ]
   }
 ]
