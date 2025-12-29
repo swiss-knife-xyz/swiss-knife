@@ -309,8 +309,7 @@ const customDappConfig = {
     {
       id: 1337,
       name: "Ethereum Follow Protocol",
-      description:
-        "The onchain social graph protocol for Ethereum accounts",
+      description: "The onchain social graph protocol for Ethereum accounts",
       url: "https://efp.app",
       iconUrl: "https://metadata.ens.domains/mainnet/avatar/efp.eth",
       chains: [mainnet.id, optimism.id, base.id],
@@ -381,7 +380,20 @@ function transformDappInfo(
 async function fetchDappsForChain(chainId: number): Promise<SafeDappInfo[]> {
   try {
     const response = await axios.get<SafeApiResponse[]>(
-      `https://safe-client.safe.global/v1/chains/${chainId}/safe-apps`
+      `https://safe-client.safe.global/v1/chains/${chainId}/safe-apps`,
+      {
+        params: {
+          clientUrl: "https://app.safe.global",
+        },
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Origin: "https://app.safe.global",
+          Referer: "https://app.safe.global/",
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        },
+      }
     );
     return response.data.map((dapp) => transformDappInfo(dapp, chainId));
   } catch (error) {
