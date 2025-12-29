@@ -307,7 +307,7 @@ const customDappConfig = {
       ],
     },
     {
-      id: 1337,
+      id: 1767000293,
       name: "Ethereum Follow Protocol",
       description: "The onchain social graph protocol for Ethereum accounts",
       url: "https://efp.app",
