@@ -117,6 +117,7 @@
       8453,
       42161,
       43114,
+      56,
       100,
       137,
       11155111
@@ -363,36 +364,26 @@
     ]
   },
   {
-    "id": 163,
-    "name": "MilkmApp",
-    "description": "UI for Milkman orders",
-    "url": "https://cow-tools-bleu-fi.vercel.app",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/163/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
-    "id": 166,
-    "name": "Unistake Pro",
-    "description": "Unistake Pro is a staking app built on Stakewise's v3 Staking Vault architecture. The UI offers a simple interface to allow users to stake ETH with Blockscape's Stakewise vault.",
-    "url": "https://unistake.blockscape.network",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/166/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
-    "id": 56,
-    "name": "InsurAce",
-    "description": "Entry to the products and services InsurAce provides to secure your DeFi journey.",
-    "url": "https://app.insurace.io",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/56/icon.png",
+    "id": 185,
+    "name": "CoW Stop Loss App",
+    "description": "UI for creating and managing stop loss orders on CoW Protocol",
+    "url": "https://www.stoploss.bleu.builders",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/e0331b2c-94ab-4e7a-9b9d-5014a4fa48d5/icon.png",
     "chains": [
       1,
-      43114,
-      56,
-      137
+      42161,
+      100,
+      11155111
+    ]
+  },
+  {
+    "id": 96,
+    "name": "Nexus Mutual",
+    "description": "The insurance alternative for crypto and more.",
+    "url": "https://app.nexusmutual.io",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/96/icon.png",
+    "chains": [
+      1
     ]
   },
   {
@@ -411,46 +402,16 @@
     ]
   },
   {
-    "id": 167,
-    "name": "Nexus Mutual v2",
-    "description": "The Crypto Insurance Alternative",
-    "url": "https://v2.nexusmutual.io",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/167/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
-    "id": 94,
-    "name": "Maker Governance Portal",
-    "description": "Vote with or delegate your MKR tokens to help protect the integrity of the Maker protocol",
-    "url": "https://vote.makerdao.com",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/94/icon.png",
-    "chains": [
-      1
-    ]
-  },
-  {
-    "id": 97,
-    "name": "Timeless Finance",
-    "description": "Timeless is a yield market protocol that lets you boost, hedge, and trade yield",
-    "url": "https://timelessfi.com",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/97/icon.png",
+    "id": 137,
+    "name": "Envelop",
+    "description": "Cross-chain multi-tool protocol providing true value to your NFT",
+    "url": "https://app.envelop.is/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/137/icon.png",
     "chains": [
       1,
       42161,
-      10,
+      56,
       137
-    ]
-  },
-  {
-    "id": 96,
-    "name": "Nexus Mutual",
-    "description": "The insurance alternative for crypto and more.",
-    "url": "https://app.nexusmutual.io",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/96/icon.png",
-    "chains": [
-      1
     ]
   },
   {
@@ -470,26 +431,67 @@
     ]
   },
   {
-    "id": 137,
-    "name": "Envelop",
-    "description": "Cross-chain multi-tool protocol providing true value to your NFT",
-    "url": "https://app.envelop.is/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/137/icon.png",
+    "id": 167,
+    "name": "Nexus Mutual v2",
+    "description": "The Crypto Insurance Alternative",
+    "url": "https://v2.nexusmutual.io",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/167/icon.png",
     "chains": [
-      1,
-      42161,
-      56,
-      137
+      1
     ]
   },
   {
-    "id": 117,
-    "name": "LSD Networks dApp",
-    "description": "Stake a validator with 4 ETH. Start an LSD network in 60 seconds. Unique yield with fungible derivatives. Empowering home stakers.",
-    "url": "https://lsd.joinstakehouse.com",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/117/icon.png",
+    "id": 145,
+    "name": "Multisight",
+    "description": "An analytics tool for evaluating the response activity of multisignature wallets",
+    "url": "https://multisight.app",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/8921ffe9-8fe0-40c0-935e-76056a22b6a8/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      100,
+      10,
+      137,
+      11155111,
+      84532
+    ]
+  },
+  {
+    "id": 163,
+    "name": "MilkmApp",
+    "description": "UI for Milkman orders",
+    "url": "https://cow-tools-bleu-fi.vercel.app",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/163/icon.png",
     "chains": [
       1
+    ]
+  },
+  {
+    "id": 211,
+    "name": "Teller",
+    "description": "Borrow with long-tail tokens in your treasury. Loans are time-based. No margin call liquidations, simply repay on time.",
+    "url": "https://app.teller.org",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/e5a6da6d-c89b-408c-b7ee-74cbf2eb8eb4/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161
+    ]
+  },
+  {
+    "id": 56,
+    "name": "InsurAce",
+    "description": "Entry to the products and services InsurAce provides to secure your DeFi journey.",
+    "url": "https://app.insurace.io",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/56/icon.png",
+    "chains": [
+      1,
+      43114,
+      56,
+      137
     ]
   },
   {
@@ -518,57 +520,20 @@
     ]
   },
   {
-    "id": 187,
-    "name": "Hyperdrive One",
-    "description": "Get yield, your way. Access fixed and variable yields at your control with Hyperdrive.",
-    "url": "https://app.hyperdrive.box/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/9aa4b5f3-d5cc-442b-8fbf-40fbe125bdd7/icon.png",
-    "chains": [
-      1,
-      8453,
-      100
-    ]
-  },
-  {
-    "id": 185,
-    "name": "CoW Stop Loss App",
-    "description": "UI for creating and managing stop loss orders on CoW Protocol",
-    "url": "https://www.stoploss.bleu.builders",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/e0331b2c-94ab-4e7a-9b9d-5014a4fa48d5/icon.png",
-    "chains": [
-      1,
-      42161,
-      100,
-      11155111
-    ]
-  },
-  {
-    "id": 145,
-    "name": "Multisight",
-    "description": "An analytics tool for evaluating the response activity of multisignature wallets",
-    "url": "https://multisight.app",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/8921ffe9-8fe0-40c0-935e-76056a22b6a8/icon.png",
+    "id": 202,
+    "name": "StakeKit",
+    "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
+    "url": "https://safe.stakek.it/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
     "chains": [
       1,
       8453,
       42161,
       43114,
       56,
-      100,
       10,
       137,
-      11155111,
-      84532
-    ]
-  },
-  {
-    "id": 194,
-    "name": "DYAD Stablecoin",
-    "description": "DYAD Stablecoin Protocol",
-    "url": "https://app.dyadstable.xyz/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/ccf1a1c1-3257-417b-9a16-fe52c6387e02/icon.png",
-    "chains": [
-      1
+      146
     ]
   },
   {
@@ -590,17 +555,13 @@
     ]
   },
   {
-    "id": 200,
-    "name": "Balancer Pool Creator",
-    "description": "Create and initialize a variety of liquidity pool types with Balancer protocol",
-    "url": "https://pool-creator.balancer.fi/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/c78ecd51-196c-4470-8b85-7f3f58982b26/icon.png",
+    "id": 94,
+    "name": "Maker Governance Portal",
+    "description": "Vote with or delegate your MKR tokens to help protect the integrity of the Maker protocol",
+    "url": "https://vote.makerdao.com",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/94/icon.png",
     "chains": [
-      1,
-      8453,
-      42161,
-      100,
-      11155111
+      1
     ]
   },
   {
@@ -623,18 +584,48 @@
     ]
   },
   {
-    "id": 206,
-    "name": "butterswap",
-    "description": "1st ZK light-client cross-chain aggregator swap. Minimized ZK verification time & optimized gas fees. One-click exchanges btw popular chains & BTC ecosystem.",
-    "url": "https://www.butterswap.io/?utm_source=SafeWallet&referrer=safe",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/797a6a3f-4b06-4fb3-97f3-ef044dba8100/icon.png",
+    "id": 117,
+    "name": "LSD Networks dApp",
+    "description": "Stake a validator with 4 ETH. Start an LSD network in 60 seconds. Unique yield with fungible derivatives. Empowering home stakers.",
+    "url": "https://lsd.joinstakehouse.com",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/117/icon.png",
+    "chains": [
+      1
+    ]
+  },
+  {
+    "id": 97,
+    "name": "Timeless Finance",
+    "description": "Timeless is a yield market protocol that lets you boost, hedge, and trade yield",
+    "url": "https://timelessfi.com",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/97/icon.png",
+    "chains": [
+      1,
+      42161,
+      10,
+      137
+    ]
+  },
+  {
+    "id": 187,
+    "name": "Hyperdrive One",
+    "description": "Get yield, your way. Access fixed and variable yields at your control with Hyperdrive.",
+    "url": "https://app.hyperdrive.box/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/9aa4b5f3-d5cc-442b-8fbf-40fbe125bdd7/icon.png",
     "chains": [
       1,
       8453,
-      42161,
-      56,
-      10,
-      137
+      100
+    ]
+  },
+  {
+    "id": 194,
+    "name": "DYAD Stablecoin",
+    "description": "DYAD Stablecoin Protocol",
+    "url": "https://app.dyadstable.xyz/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/ccf1a1c1-3257-417b-9a16-fe52c6387e02/icon.png",
+    "chains": [
+      1
     ]
   },
   {
@@ -650,20 +641,17 @@
     ]
   },
   {
-    "id": 202,
-    "name": "StakeKit",
-    "description": "StakeKit is the world's most powerful yield platform. Covering more than 400+ yield opportunities, StakeKit aggregates all yields across all chains and across all major DeFi providers in one place.",
-    "url": "https://safe.stakek.it/",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/af4fdc2e-5872-441d-8a68-bf890932157f/icon.png",
+    "id": 200,
+    "name": "Balancer Pool Creator",
+    "description": "Create and initialize a variety of liquidity pool types with Balancer protocol",
+    "url": "https://pool-creator.balancer.fi/",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/c78ecd51-196c-4470-8b85-7f3f58982b26/icon.png",
     "chains": [
       1,
       8453,
       42161,
-      43114,
-      56,
-      10,
-      137,
-      146
+      100,
+      11155111
     ]
   },
   {
@@ -686,6 +674,31 @@
     ]
   },
   {
+    "id": 206,
+    "name": "butterswap",
+    "description": "1st ZK light-client cross-chain aggregator swap. Minimized ZK verification time & optimized gas fees. One-click exchanges btw popular chains & BTC ecosystem.",
+    "url": "https://www.butterswap.io/?utm_source=SafeWallet&referrer=safe",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/797a6a3f-4b06-4fb3-97f3-ef044dba8100/icon.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      56,
+      10,
+      137
+    ]
+  },
+  {
+    "id": 166,
+    "name": "Unistake Pro",
+    "description": "Unistake Pro is a staking app built on Stakewise's v3 Staking Vault architecture. The UI offers a simple interface to allow users to stake ETH with Blockscape's Stakewise vault.",
+    "url": "https://unistake.blockscape.network",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/166/icon.png",
+    "chains": [
+      1
+    ]
+  },
+  {
     "id": 210,
     "name": "Arrakis Pro",
     "description": "DEX liquidity management for token issuers.",
@@ -694,27 +707,18 @@
     "chains": [
       1,
       8453,
+      42161,
+      56,
+      9745,
       11155111
-    ]
-  },
-  {
-    "id": 211,
-    "name": "Teller",
-    "description": "Borrow with long-tail tokens in your treasury. Loans are time-based. No margin call liquidations, simply repay on time.",
-    "url": "https://app.teller.org",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/e5a6da6d-c89b-408c-b7ee-74cbf2eb8eb4/icon.png",
-    "chains": [
-      1,
-      8453,
-      42161
     ]
   },
   {
     "id": 107,
     "name": "Toros",
-    "description": "On-chain tokenized derivatives products",
+    "description": "Leverage with protections",
     "url": "https://toros.finance",
-    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/107/icon.png",
+    "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/69fba186-1711-4430-a7bf-67e1939d5bde/icon.png",
     "chains": [
       8453,
       42161,
@@ -781,6 +785,38 @@
     "iconUrl": "https://safe-transaction-assets.safe.global/safe_apps/142/icon.png",
     "chains": [
       1,
+      8453
+    ]
+  },
+  {
+    "id": 1753279954,
+    "name": "DefiLlama Swap ",
+    "description": "LlamaSwap looks for the best route for your trade among a variety of Dex Aggregators, guaranteeing you the best execution prices in DeFi.",
+    "url": "https://swap.defillama.com/",
+    "iconUrl": "https://swap.defillama.com/_next/static/media/loader.268d236d.png",
+    "chains": [
+      1,
+      8453,
+      42161,
+      43114,
+      56,
+      42220,
+      100,
+      10,
+      137,
+      146,
+      130
+    ]
+  },
+  {
+    "id": 1767000293,
+    "name": "Ethereum Follow Protocol",
+    "description": "The onchain social graph protocol for Ethereum accounts",
+    "url": "https://efp.app",
+    "iconUrl": "https://metadata.ens.domains/mainnet/avatar/efp.eth",
+    "chains": [
+      1,
+      10,
       8453
     ]
   }
