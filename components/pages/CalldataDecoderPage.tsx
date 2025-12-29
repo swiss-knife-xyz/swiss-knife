@@ -35,7 +35,7 @@ import {
   useQueryState,
 } from "next-usequerystate";
 import { createPublicClient, http, Hex, Chain, stringify } from "viem";
-import { DecodeRecursiveResult, SelectedOptionState } from "@/types";
+import { DecodeRecursiveResult, SelectedOptionState , DecodeEventResult } from "@/types";
 import {
   c,
   chainIdToChain,
@@ -52,7 +52,7 @@ import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-import { decodeRecursive } from "@/lib/decoder";
+import { decodeEvents, decodeRecursive } from "@/lib/decoder";
 
 function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const toast = useToast();
@@ -78,6 +78,9 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const [result, setResult] = useState<DecodeRecursiveResult>();
   const [isLoading, setIsLoading] = useState(false);
   const [pasted, setPasted] = useState(false);
+  const [decodedEvents, setDecodedEvents] = useState<Array<{ eventName: string; args: any }> | null>(null);
+  const [isEventsLoading, setIsEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState<string | null>(null);
 
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
 
@@ -220,7 +223,11 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   };
 
   const decodeFromTx = async (_fromTxInput?: string, _chainId?: number) => {
+    console.log("decodeFromTx called");
     setIsLoading(true);
+    setIsEventsLoading(true);
+    setDecodedEvents(null);
+    setEventsError(null);
 
     const __fromTxInput = _fromTxInput || fromTxInput;
 
@@ -236,36 +243,30 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
         txHash = __fromTxInput;
 
         if (!txShowSelectNetwork) {
-          // if tx hash is provided, but chainId is not, then show select network
           setTxShowSelectNetwork(true);
-
-          // if chainId not provided (from URL)
           if (!_chainId) {
             setIsLoading(false);
+            setIsEventsLoading(false);
+            console.log("decodeFromTx early return: network not selected");
             return;
           }
         }
       } else {
         txHash = __fromTxInput.split("/").pop()!;
-
         const chainKey = Object.keys(c).filter((chainKey) => {
           const chain = c[chainKey as keyof typeof c] as Chain;
-
-          // using "null" instead of "" because __fromTxInput.split("/") contains ""
           let explorerDomainDefault = "null";
           let explorerDomainEtherscan = "null";
           if (chain.blockExplorers) {
             explorerDomainDefault = chain.blockExplorers.default.url
               .split("//")
               .pop()!;
-
             if (chain.blockExplorers.etherscan) {
               explorerDomainEtherscan = chain.blockExplorers.etherscan.url
                 .split("//")
                 .pop()!;
             }
           }
-
           return (
             __fromTxInput
               .split("/")
@@ -288,13 +289,37 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       const transaction = await publicClient.getTransaction({
         hash: txHash as Hex,
       });
+      const txReceipt = await publicClient.getTransactionReceipt({
+        hash: txHash as Hex,
+      });
+
       decode({
         _calldata: transaction.input,
         _address: transaction.to!,
         _chainId: chain.id,
       });
+
+      try {
+        console.log("decodeEvents about to be called");
+        // Pass logs with address field for multi-contract decoding
+        const events = await decodeEvents({
+          logs: txReceipt.logs.map(log => ({
+            topics: log.topics,
+            data: log.data,
+          })),
+          chainId: chain.id,
+          address: transaction.to!,
+        });
+        console.log({ DECODED_EVENTS: events });
+        setDecodedEvents(events);
+      } catch (e: any) {
+        setEventsError(e.message || 'Failed to decode events');
+      } finally {
+        setIsEventsLoading(false);
+      }
     } catch {
       setIsLoading(false);
+      setIsEventsLoading(false);
       toast({
         title: "Can't fetch transaction",
         status: "error",
@@ -616,9 +641,69 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
           </Stack>
         </Box>
       )}
+
+      {/* Decoded Events Section */}
+      {selectedTabIndex === 3 && (
+        <DecodedEventsView
+          events={decodedEvents || []}
+          chainId={chainId}
+        />
+      )}
     </Box>
   );
 }
+
+type DecodedEventsViewProps = {
+  events: DecodeEventResult[];
+  chainId: number;
+};
+
+function DecodedEventsView({ events, chainId }: DecodedEventsViewProps) {
+  if (!events || events.length === 0) return null;
+
+  return (
+    <Stack mt={8} spacing={6} minW="80%">
+      {events.map((event, idx) => {
+        if (!event) return null;
+
+        return (
+          <Box key={idx}>
+            {/* Header */}
+            <HStack mb={2}>
+              <Box>
+                <Box fontSize="xs" color="whiteAlpha.600">
+                  event
+                </Box>
+                <Box fontWeight="bold">{event.eventName}</Box>
+              </Box>
+
+              <Spacer />
+
+              <CopyToClipboard
+                textToCopy={event.signature}
+                labelText="Copy signature"
+              />
+            </HStack>
+
+            {/* Params — EXACT same UI as calldata */}
+            <Stack
+              p={4}
+              spacing={4}
+              minW="40rem"
+              bg="whiteAlpha.50"
+              rounded="lg"
+            >
+              {event.args.map((arg, i) =>
+                renderParams(i, arg, chainId)
+              )}
+            </Stack>
+          </Box>
+        );
+      })}
+    </Stack>
+  );
+}
+
 
 export const CalldataDecoderPage = ({
   headerText,
