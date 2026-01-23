@@ -992,8 +992,7 @@ export async function decodeEvents({
       const fragment = decodedEvent.fragment;
 
       const args = await Promise.all(
-      
-  fragment.inputs.map(async (input, i) => {
+        fragment.inputs.map(async (input, i) => {
           const rawValue = decodedEvent.args[i];
 
           return {
