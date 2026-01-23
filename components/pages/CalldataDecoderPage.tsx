@@ -78,7 +78,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const [result, setResult] = useState<DecodeRecursiveResult>();
   const [isLoading, setIsLoading] = useState(false);
   const [pasted, setPasted] = useState(false);
-  const [decodedEvents, setDecodedEvents] = useState<Array<{ eventName: string; args: any }> | null>(null);
+  const [decodedEvents, setDecodedEvents] = useState<DecodeEventResult[] | null>(null);
   const [isEventsLoading, setIsEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState<string | null>(null);
 
