@@ -439,11 +439,34 @@ export default function WalletBridgePage() {
                 ? JSON.parse(typedDataRaw)
                 : typedDataRaw;
 
+            // Infer primaryType if not provided (some dApps don't include it)
+            let primaryType = typedData.primaryType;
+            if (!primaryType && typedData.types) {
+              const typeNames = Object.keys(typedData.types).filter(
+                (t) => t !== "EIP712Domain"
+              );
+              if (typeNames.length === 1) {
+                primaryType = typeNames[0];
+              } else if (typeNames.length > 1 && typedData.message) {
+                // Try to find the type that matches the message structure
+                primaryType =
+                  typeNames.find((typeName) => {
+                    const typeFields = typedData.types[typeName];
+                    return typeFields?.every(
+                      (field: { name: string }) => field.name in typedData.message
+                    );
+                  }) || typeNames[0];
+              }
+            }
+
+            // Remove EIP712Domain from types (viem adds it internally)
+            const { EIP712Domain, ...typesWithoutDomain } = typedData.types || {};
+
             const signature = await walletClient.signTypedData({
               account: address as `0x${string}`,
               domain: typedData.domain,
-              types: typedData.types,
-              primaryType: typedData.primaryType,
+              types: typesWithoutDomain,
+              primaryType: primaryType,
               message: typedData.message,
             });
 
@@ -886,15 +909,12 @@ export default function WalletBridgePage() {
       const requestedChainId = parseInt(requestedChainIdStr);
 
       // Check if we need to switch chains for this request
+      // Note: Only transactions require chain switching. Message signing operations
+      // (personal_sign, eth_sign, eth_signTypedData*) are chain-agnostic.
       const requiresChainSwitch =
         chainId !== requestedChainId &&
         (request.method === "eth_sendTransaction" ||
-          request.method === "eth_signTransaction" ||
-          request.method === "eth_sign" ||
-          request.method === "personal_sign" ||
-          request.method === "eth_signTypedData" ||
-          request.method === "eth_signTypedData_v3" ||
-          request.method === "eth_signTypedData_v4");
+          request.method === "eth_signTransaction");
 
       setNeedsChainSwitch(requiresChainSwitch);
       setTargetChainId(requiresChainSwitch ? requestedChainId : null);

@@ -44,9 +44,29 @@ export const formatTypedData = (typedData: any) => {
     const data =
       typeof typedData === "string" ? JSON.parse(typedData) : typedData;
 
+    // Infer primaryType if not provided (some dApps don't include it)
+    let primaryType = data.primaryType;
+    if (!primaryType && data.types) {
+      const typeNames = Object.keys(data.types).filter(
+        (t) => t !== "EIP712Domain"
+      );
+      if (typeNames.length === 1) {
+        primaryType = typeNames[0];
+      } else if (typeNames.length > 1 && data.message) {
+        // Try to find the type that matches the message structure
+        primaryType =
+          typeNames.find((typeName) => {
+            const typeFields = data.types[typeName];
+            return typeFields?.every(
+              (field: { name: string }) => field.name in data.message
+            );
+          }) || typeNames[0];
+      }
+    }
+
     return {
       domain: data.domain,
-      primaryType: data.primaryType,
+      primaryType: primaryType,
       types: data.types,
       message: data.message,
     };
