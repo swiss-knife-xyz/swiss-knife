@@ -296,7 +296,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
 
       try {
         console.log("decodeEvents about to be called");
-        // Pass logs with address field for multi-contract decoding
+        // Decode events from the target contract only
         const events = await decodeEvents({
           logs: txReceipt.logs.map(log => ({
             topics: log.topics,
