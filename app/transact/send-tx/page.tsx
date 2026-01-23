@@ -203,8 +203,14 @@ function SendTxContent() {
   }, [searchParams]);
 
   useEffect(() => {
+    // Only show chain mismatch toast if:
+    // 1. URL has been parsed (isUrlParsed)
+    // 2. A chainId was explicitly passed via URL (chainIdFromURLOnLoad is defined)
+    // 3. Wallet chain doesn't match the URL chain
+    // 4. User hasn't already satisfied the requirement
     if (
       chain &&
+      isUrlParsed &&
       chainIdFromURLOnLoad &&
       chain.id !== chainIdFromURLOnLoad &&
       !hasEverMatchedUrlChain
@@ -236,7 +242,7 @@ function SendTxContent() {
 
       setChainIdMismatch(true);
     }
-  }, [chain, chainIdFromURLOnLoad, switchChain, hasEverMatchedUrlChain]);
+  }, [chain, chainIdFromURLOnLoad, switchChain, hasEverMatchedUrlChain, isUrlParsed]);
 
   useEffect(() => {
     if (chain && isUrlParsed) {
