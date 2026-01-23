@@ -35,6 +35,7 @@ import {
   Avatar,
   Spinner,
   Tooltip,
+  Image,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
@@ -42,7 +43,7 @@ import {
   parseAsString,
   useQueryState,
 } from "next-usequerystate";
-import { parseEther, formatEther, isAddress, stringify } from "viem";
+import { parseEther, formatEther, isAddress, stringify, zeroAddress } from "viem";
 import { normalize } from "viem/ens";
 import { useWalletClient, useAccount, useSwitchChain } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
@@ -59,6 +60,7 @@ import {
   getNameAvatar,
   isResolvableName,
   slicedText,
+  generateTenderlyUrl,
 } from "@/utils";
 import debounce from "lodash/debounce";
 import { DarkButton } from "@/components/DarkButton";
@@ -69,7 +71,7 @@ import { config } from "@/app/providers";
 
 function SendTxContent() {
   const { data: walletClient } = useWalletClient();
-  const { chain } = useAccount();
+  const { chain, address: connectedAddress } = useAccount();
   const { switchChain } = useSwitchChain();
 
   const toast = useToast();
@@ -655,13 +657,45 @@ function SendTxContent() {
             />
           </Box>
           <Center>
-            <DarkButton
-              onClick={() => sendTx()}
-              isDisabled={!walletClient || chainIdMismatch}
-              isLoading={isLoading}
-            >
-              Send Tx
-            </DarkButton>
+            <HStack spacing={3}>
+              <Button
+                variant="outline"
+                size="sm"
+                borderColor="whiteAlpha.300"
+                onClick={() => {
+                  const targetAddress = resolvedAddress || to || "";
+                  const url = generateTenderlyUrl(
+                    {
+                      from: connectedAddress || zeroAddress,
+                      to: targetAddress,
+                      value: parseEther(ethValue ?? "0").toString(),
+                      data: startHexWith0x(calldata) || "0x",
+                    },
+                    chainId
+                  );
+                  window.open(url, "_blank");
+                }}
+              >
+                <HStack spacing={1}>
+                  <Image
+                    src="/external/tenderly-favicon.ico"
+                    alt="Tenderly"
+                    w={4}
+                    h={4}
+                  />
+                  <Text fontSize="sm" color="whiteAlpha.700">
+                    Simulate
+                  </Text>
+                </HStack>
+              </Button>
+              <DarkButton
+                onClick={() => sendTx()}
+                isDisabled={!walletClient || chainIdMismatch}
+                isLoading={isLoading}
+              >
+                Send Tx
+              </DarkButton>
+            </HStack>
           </Center>
         </VStack>
       </Container>
