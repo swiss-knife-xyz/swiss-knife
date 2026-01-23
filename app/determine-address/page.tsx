@@ -1,12 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Heading, Table, Tbody, Tr, Td, Textarea, Box } from "@chakra-ui/react";
-import { getContractAddress, Hex, toBytes, isHex } from "viem";
+import { useEffect, useState, useCallback } from "react";
+import {
+  Heading,
+  Table,
+  Tbody,
+  Tr,
+  Td,
+  Textarea,
+  Box,
+  HStack,
+  Text,
+  Spacer,
+  Avatar,
+  Spinner,
+} from "@chakra-ui/react";
+import { getContractAddress, Hex, toBytes, isHex, isAddress } from "viem";
 import { Layout } from "@/components/Layout";
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
 import TabsSelector from "@/components/Tabs/TabsSelector";
+import { getEnsAddress, getEnsName, getEnsAvatar, slicedText } from "@/utils";
+import debounce from "lodash/debounce";
 
 type OpcodeMode = "CREATE" | "CREATE2";
 
@@ -25,15 +40,93 @@ const DetermineContractAddress = () => {
   // Output
   const [contractAddress, setContractAddress] = useState<string>("");
 
+  // ENS resolution state
+  const [ensName, setEnsName] = useState("");
+  const [ensAvatar, setEnsAvatar] = useState("");
+  const [resolvedAddress, setResolvedAddress] = useState("");
+  const [isResolvingEns, setIsResolvingEns] = useState(false);
+  const [lastResolvedValue, setLastResolvedValue] = useState("");
+
+  // Debounced ENS resolution
+  const resolveEns = useCallback(
+    debounce(async (val: string) => {
+      if (!val || val === lastResolvedValue) return;
+
+      try {
+        if (val.includes(".")) {
+          // Looks like an ENS name
+          setIsResolvingEns(true);
+          const address = await getEnsAddress(val);
+          if (address) {
+            setResolvedAddress(address);
+            setEnsName(val);
+            setLastResolvedValue(val);
+          } else {
+            setEnsName("");
+            setResolvedAddress("");
+          }
+        } else if (isAddress(val)) {
+          // It's an address, try to get reverse ENS
+          setIsResolvingEns(true);
+          setResolvedAddress(val);
+          try {
+            const name = await getEnsName(val);
+            if (name) {
+              setEnsName(name);
+            } else {
+              setEnsName("");
+            }
+          } catch {
+            setEnsName("");
+          }
+          setLastResolvedValue(val);
+        } else {
+          setEnsName("");
+          setResolvedAddress("");
+        }
+      } catch (error) {
+        console.error("Error resolving ENS:", error);
+        setEnsName("");
+        setResolvedAddress("");
+      } finally {
+        setIsResolvingEns(false);
+      }
+    }, 500),
+    [lastResolvedValue]
+  );
+
+  // Resolve ENS when deployerAddress changes
+  useEffect(() => {
+    if (deployerAddress && deployerAddress !== lastResolvedValue) {
+      resolveEns(deployerAddress);
+    } else if (!deployerAddress) {
+      setEnsName("");
+      setResolvedAddress("");
+      setLastResolvedValue("");
+    }
+  }, [deployerAddress, resolveEns, lastResolvedValue]);
+
+  // Fetch ENS avatar when ensName changes
+  useEffect(() => {
+    if (ensName) {
+      getEnsAvatar(ensName).then((avatar) => {
+        setEnsAvatar(avatar || "");
+      });
+    } else {
+      setEnsAvatar("");
+    }
+  }, [ensName]);
+
   // Calculate address for CREATE
   useEffect(() => {
     if (mode !== "CREATE") return;
 
-    if (deployerAddress && nonce) {
+    const addressToUse = resolvedAddress || deployerAddress;
+    if (addressToUse && isAddress(addressToUse) && nonce) {
       try {
         setContractAddress(
           getContractAddress({
-            from: deployerAddress as Hex,
+            from: addressToUse as Hex,
             nonce: BigInt(nonce),
           })
         );
@@ -43,20 +136,21 @@ const DetermineContractAddress = () => {
     } else {
       setContractAddress("");
     }
-  }, [mode, deployerAddress, nonce]);
+  }, [mode, deployerAddress, resolvedAddress, nonce]);
 
   // Calculate address for CREATE2
   useEffect(() => {
     if (mode !== "CREATE2") return;
 
-    if (deployerAddress && bytecode && salt) {
+    const addressToUse = resolvedAddress || deployerAddress;
+    if (addressToUse && isAddress(addressToUse) && bytecode && salt) {
       try {
         // Determine salt format - if it's a hex string, use as-is, otherwise convert to bytes
         const saltValue = isHex(salt) ? (salt as Hex) : toBytes(salt);
 
         setContractAddress(
           getContractAddress({
-            from: deployerAddress as Hex,
+            from: addressToUse as Hex,
             opcode: "CREATE2",
             bytecode: bytecode as Hex,
             salt: saltValue,
@@ -68,7 +162,7 @@ const DetermineContractAddress = () => {
     } else {
       setContractAddress("");
     }
-  }, [mode, deployerAddress, bytecode, salt]);
+  }, [mode, deployerAddress, resolvedAddress, bytecode, salt]);
 
   // Clear output when switching modes
   useEffect(() => {
@@ -91,14 +185,40 @@ const DetermineContractAddress = () => {
           <Tr>
             <Label>Deployer</Label>
             <Td>
-              <InputField
-                autoFocus
-                placeholder="address"
-                value={deployerAddress}
-                onChange={(e) => {
-                  setDeployerAddress(e.target.value);
-                }}
-              />
+              <Box>
+                <HStack mb={2}>
+                  <Spacer />
+                  {isResolvingEns && <Spinner size="xs" />}
+                  {ensName && !isResolvingEns && (
+                    <HStack px={2} bg="whiteAlpha.200" rounded="md">
+                      {ensAvatar && (
+                        <Avatar
+                          src={ensAvatar}
+                          w="1.2rem"
+                          h="1.2rem"
+                          ignoreFallback
+                        />
+                      )}
+                      <Text fontSize="sm">{ensName}</Text>
+                    </HStack>
+                  )}
+                  {resolvedAddress &&
+                    !isResolvingEns &&
+                    resolvedAddress !== deployerAddress && (
+                      <Text fontSize="xs" color="whiteAlpha.600">
+                        {slicedText(resolvedAddress)}
+                      </Text>
+                    )}
+                </HStack>
+                <InputField
+                  autoFocus
+                  placeholder="address or ENS"
+                  value={deployerAddress}
+                  onChange={(e) => {
+                    setDeployerAddress(e.target.value.trim());
+                  }}
+                />
+              </Box>
             </Td>
           </Tr>
 
