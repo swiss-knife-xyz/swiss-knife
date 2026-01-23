@@ -1,3 +1,49 @@
+/**
+ * =============================================================================
+ * CALLDATA DECODER
+ * =============================================================================
+ *
+ * This module provides comprehensive Ethereum calldata decoding capabilities.
+ * It can decode function calls, event logs, and nested data structures.
+ *
+ * ## Architecture Overview
+ *
+ * The decoder uses a multi-strategy approach to decode calldata:
+ *
+ * 1. **ABI-based decoding** (most reliable)
+ *    - Uses contract's verified ABI from block explorers
+ *    - Provides accurate function names and parameter types
+ *
+ * 2. **Selector-based decoding** (fallback)
+ *    - Looks up function signature from 4byte.directory or Sourcify
+ *    - Works when ABI is unavailable but selector is known
+ *
+ * 3. **Heuristic decoding** (last resort, TOP-LEVEL ONLY)
+ *    - Tries to guess the encoding structure
+ *    - Can produce false positives, so only used for top-level calldata
+ *
+ * ## Recursive Decoding & Depth Tracking
+ *
+ * The decoder recursively decodes nested `bytes` parameters, which may contain
+ * additional calldata (e.g., Safe multicall, ERC-7821 execute batches).
+ *
+ * **IMPORTANT**: The `_depth` parameter tracks recursion level:
+ * - `_depth = 0`: Top-level calldata (use all decoders including heuristics)
+ * - `_depth > 0`: Nested bytes (skip heuristic decoders to prevent false positives)
+ *
+ * This prevents infinite loops where heuristic decoders incorrectly match
+ * arbitrary bytes and produce more bytes to decode endlessly.
+ *
+ * ## Supported Special Formats
+ *
+ * - Safe MultiSend transactions (packed bytes format)
+ * - ERC-7821 execute batches
+ * - Uniswap Universal Router paths and commands
+ * - Generic ABI-encoded data
+ *
+ * =============================================================================
+ */
+
 import {
   FetchContractAbiResponse,
   fetchContractAbiResponseSchema,
@@ -34,62 +80,132 @@ import {
   parseAbi,
 } from "viem";
 
+// =============================================================================
+// PRIMARY DECODING FUNCTIONS
+// =============================================================================
+
+/**
+ * Decodes calldata using a contract's verified ABI fetched from block explorers.
+ *
+ * This is the preferred decoding method when the contract address and chain are known,
+ * as it provides the most accurate results with proper function names and parameter types.
+ *
+ * @param calldata - The hex-encoded calldata to decode
+ * @param address - The contract address (used to fetch ABI from explorers)
+ * @param chainId - The chain ID where the contract is deployed
+ * @param _depth - Recursion depth (0 = top-level, >0 = nested bytes)
+ * @returns Decoded transaction description or null if decoding fails
+ */
 export async function decodeWithAddress({
   calldata,
   address,
   chainId,
+  _depth = 0,
 }: {
   calldata: string;
   address: string;
   chainId: number;
+  _depth?: number;
 }): Promise<TransactionDescription | null> {
   console.log(`Decoding calldata with address ${address} on chain ${chainId}`);
   try {
+    // Step 1: Fetch the contract's verified ABI from block explorers
     const fetchedAbi = await fetchContractAbi({
       address,
       chainId,
     });
+
+    // Step 2: Try to decode using the fetched ABI
     const decodedFromAbi = decodeWithABI({
       abi: fetchedAbi.abi,
       calldata,
     });
+
     if (decodedFromAbi) {
       return decodedFromAbi;
     }
+
+    // Step 3: If ABI decode fails (e.g., proxy with different implementation),
+    // fall back to selector-based decoding
     console.log(
       `Failed to decode calldata with ABI for contract ${address} on chain ${chainId}, decoding with selector`
     );
-    const decodedWithSelector = await decodeWithSelector({ calldata });
+    const decodedWithSelector = await decodeWithSelector({ calldata, _depth });
     return decodedWithSelector;
   } catch (error) {
-    // fallback to decoding with selector
-    return decodeWithSelector({ calldata });
+    // If ABI fetch fails entirely, fall back to selector-based decoding
+    return decodeWithSelector({ calldata, _depth });
   }
 }
 
+/**
+ * Decodes calldata by trying multiple decoding strategies in order of reliability.
+ *
+ * ## Decoding Strategy Order:
+ *
+ * ### Always Tried (require specific patterns/selectors):
+ * 1. ERC-7821 Execute - requires selector 0xe9ae5c53
+ * 2. Selector lookup from 4byte/Sourcify - requires matching function signature
+ *
+ * ### Only for Top-Level (skipped when _depth > 0):
+ * These "aggressive" decoders can match arbitrary bytes and cause false positives:
+ * 3. Safe MultiSend transactions - parses packed transaction format
+ * 4. Universal Router path - parses swap path format
+ * 5. ABI-encoded data guessing - uses heuristics
+ * 6. Universal Router commands - parses command bytes
+ * 7. Function fragment guessing - uses heuristics
+ *
+ * @param calldata - The hex-encoded calldata to decode
+ * @param _depth - Recursion depth (0 = top-level, >0 = nested bytes)
+ * @returns Decoded transaction or null if all strategies fail
+ */
 export async function decodeWithSelector({
   calldata,
+  _depth = 0,
 }: {
   calldata: string;
+  _depth?: number;
 }): Promise<TransactionDescription | any | null> {
+  // For nested bytes (depth > 0), only try decoders that require specific selectors.
+  // Skip aggressive fallback decoders that can match arbitrary bytes and cause:
+  // 1. False positive decodes (random bytes interpreted as valid calldata)
+  // 2. Infinite recursion (decoded "calldata" has more bytes that get decoded)
+  const isNestedDecode = _depth > 0;
+
+  // Strategy 1: ERC-7821 Execute (requires specific selector 0xe9ae5c53)
   try {
     return decode7821Execute(calldata);
   } catch {
+    // Strategy 2: Selector lookup from signature databases
     try {
       return await _decodeWithSelector(calldata);
     } catch {
+      // =================================================================
+      // AGGRESSIVE FALLBACK DECODERS - Only for top-level calldata
+      // These can match arbitrary bytes and must be skipped for nested
+      // decoding to prevent false positives and infinite recursion.
+      // =================================================================
+      if (isNestedDecode) {
+        return null;
+      }
+
+      // Strategy 3: Safe MultiSend packed transaction format
       try {
         return decodeSafeMultiSendTransactionsParam(calldata);
       } catch {
+        // Strategy 4: Uniswap Universal Router swap path
         try {
           return decodeUniversalRouterPath(calldata);
         } catch {
+          // Strategy 5: Heuristic ABI-encoded data guessing
           try {
             return decodeABIEncodedData(calldata);
           } catch {
+            // Strategy 6: Universal Router command bytes
             try {
               return decodeUniversalRouterCommands(calldata);
             } catch {
+              // Strategy 7: Heuristic function fragment guessing
               try {
                 return decodeByGuessingFunctionFragment(calldata);
               } catch {
@@ -103,21 +219,32 @@ export async function decodeWithSelector({
   }
 }
 
+/**
+ * Decodes calldata by looking up the function selector in signature databases.
+ *
+ * Uses Sourcify's 4byte API (preferred) and 4byte.directory as fallback
+ * to find the function signature matching the selector.
+ *
+ * @param calldata - The hex-encoded calldata (must start with 4-byte selector)
+ * @returns Decoded transaction or throws if selector not found
+ */
 const _decodeWithSelector = async (calldata: string) => {
-  const selector = calldata.slice(0, 10);
+  const selector = calldata.slice(0, 10); // "0x" + 4 bytes = 10 chars
   console.log(`Decoding calldata with selector ${selector}`);
 
+  // Skip the null selector to avoid spam results
   if (selector === "0x00000000") {
     throw new Error("Skipping to decode calldata with selector 0x00000000");
   }
 
   try {
-    // tries to find function signature from openchain and 4bytes
+    // Look up function signature from signature databases
     const fnInterface = await fetchFunctionInterface({ selector });
     if (!fnInterface) {
       throw new Error("");
     }
-    // decodes calldata with all possible function signatures
+
+    // Try to decode with the found signature
     const decodedTransactions = decodeAllPossibilities({
       functionSignatures: [fnInterface],
       calldata,
@@ -137,6 +264,21 @@ const _decodeWithSelector = async (calldata: string) => {
   }
 };
 
+// =============================================================================
+// SPECIAL FORMAT DECODERS
+// =============================================================================
+
+/**
+ * Decodes ERC-7821 execute() calldata.
+ *
+ * ERC-7821 is a standard for minimal batch executor interface.
+ * Selector: 0xe9ae5c53
+ * Signature: execute(bytes32 mode, bytes calldata executionData)
+ *
+ * The executionData contains an array of (to, value, data) tuples.
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-7821
+ */
 const decode7821Execute = (calldata: string) => {
   const selector = calldata.slice(0, 10);
   if (selector !== "0xe9ae5c53") {
@@ -152,6 +294,7 @@ const decode7821Execute = (calldata: string) => {
   const mode = decodedParams.args[0];
   const executionData = decodedParams.args[1];
 
+  // Decode the executionData as an array of call tuples
   const calls = decodeAbiParameters(
     [
       {
@@ -166,8 +309,7 @@ const decode7821Execute = (calldata: string) => {
     executionData as Hex
   )[0];
 
-  // Format transactions array for 7821Execute
-  // [to, value, data]
+  // Format transactions array: [to, value, data]
   const txs = calls.map((call: any) => {
     return [call.to, call.value.toString(), call.data];
   });
@@ -251,26 +393,44 @@ const decode7821Execute = (calldata: string) => {
   return result;
 };
 
-// multiSend function: https://etherscan.io/address/0x40a2accbd92bca938b02010e17a5b8929b49130d#code#F1#L21
+/**
+ * Decodes Safe MultiSend transactions parameter.
+ *
+ * Safe's MultiSend contract uses a packed encoding format (not standard ABI):
+ * - operation: uint8 (1 byte) - 0=CALL, 1=DELEGATECALL
+ * - to: address (20 bytes)
+ * - value: uint256 (32 bytes)
+ * - dataLength: uint256 (32 bytes)
+ * - data: bytes (dataLength bytes)
+ *
+ * Multiple transactions are packed sequentially without padding.
+ *
+ * @see https://github.com/safe-global/safe-contracts/blob/main/contracts/libraries/MultiSend.sol
+ *
+ * ⚠️ WARNING: This is an "aggressive" decoder that can match arbitrary bytes.
+ * Only use for top-level calldata, not nested bytes.
+ */
 const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
   console.log("Attempting to decode as SafeMultiSend transactions param");
 
   try {
-    // remove initial "0x"
+    // Remove "0x" prefix for easier byte manipulation
     const transactionsParam = bytes.slice(2);
 
     const txs: any[] = [];
 
     let i = 0;
     for (; i < transactionsParam.length; ) {
-      const operationEnd = i + 1 * 2; // uint8
+      // Parse operation (1 byte = 2 hex chars)
+      const operationEnd = i + 1 * 2;
       const operation = transactionsParam.slice(i, operationEnd);
       if (operation === "")
         throw new Error(
           "Failed to decode operation in SafeMultiSend transactions param"
         );
 
-      const toEnd = operationEnd + 20 * 2; // address
+      // Parse to address (20 bytes = 40 hex chars)
+      const toEnd = operationEnd + 20 * 2;
       const _to = transactionsParam.slice(operationEnd, toEnd);
       if (_to === "")
         throw new Error(
@@ -278,7 +438,8 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
         );
       const to = "0x" + _to;
 
-      const valueEnd = toEnd + 32 * 2; // uint256
+      // Parse value (32 bytes = 64 hex chars)
+      const valueEnd = toEnd + 32 * 2;
       const _value = transactionsParam.slice(toEnd, valueEnd);
       if (_value === "")
         throw new Error(
@@ -286,7 +447,8 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
         );
       const value = hexToBigInt(startHexWith0x(_value)).toString();
 
-      const dataLengthEnd = valueEnd + 32 * 2; // uint256
+      // Parse dataLength (32 bytes = 64 hex chars)
+      const dataLengthEnd = valueEnd + 32 * 2;
       const _dataLength = transactionsParam.slice(valueEnd, dataLengthEnd);
       if (_dataLength === "")
         throw new Error(
@@ -294,6 +456,7 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
         );
       const dataLength = hexToBigInt(startHexWith0x(_dataLength)).toString();
 
+      // Parse data (dataLength bytes)
       const dataEnd = dataLengthEnd + parseInt(dataLength) * 2;
       const _data = transactionsParam.slice(dataLengthEnd, dataEnd);
       if (parseInt(dataLength) !== 0 && _data === "")
@@ -306,9 +469,11 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
 
       i = dataEnd;
     }
+
     console.log({ txs, i, transactionsParamLength: transactionsParam.length });
+
+    // Validate that we consumed exactly all bytes
     if (i == 0 || i !== transactionsParam.length) {
-      // for cases where the calldata is not encoded safe multisend
       throw new Error(
         `Failed to decode calldata as SafeMultiSend transactions param`
       );
@@ -380,6 +545,15 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
   }
 };
 
+/**
+ * Decodes calldata by guessing the function fragment structure using heuristics.
+ *
+ * Uses the @openchainxyz/abi-guesser library to analyze the calldata structure
+ * and infer the parameter types.
+ *
+ * ⚠️ WARNING: This is an "aggressive" decoder that can match arbitrary bytes.
+ * Only use for top-level calldata, not nested bytes.
+ */
 const decodeByGuessingFunctionFragment = (calldata: string) => {
   const selector = calldata.slice(0, 10);
   try {
@@ -415,6 +589,15 @@ const decodeByGuessingFunctionFragment = (calldata: string) => {
   }
 };
 
+/**
+ * Decodes ABI-encoded data by guessing the parameter types.
+ *
+ * Uses the @openchainxyz/abi-guesser library to analyze the encoding structure.
+ * Useful for decoding abi.encode() or abi.encodePacked() output.
+ *
+ * ⚠️ WARNING: This is an "aggressive" decoder that can match arbitrary bytes.
+ * Only use for top-level calldata, not nested bytes.
+ */
 const decodeABIEncodedData = (calldata: string) => {
   const selector = calldata.slice(0, 10);
 
@@ -426,10 +609,12 @@ const decodeABIEncodedData = (calldata: string) => {
     }
     const abiCoder = AbiCoder.defaultAbiCoder();
     const decoded = abiCoder.decode(paramTypes, calldata);
+
+    // Edge case: decoder sometimes returns the original calldata unchanged
     if (decoded.length === 1 && decoded[0] === calldata) {
-      // handling edge case where abiCoder.decode returns the same calldata
       throw new Error("Failed to decode ABI encoded data");
     }
+
     const result = {
       name: "",
       args: decoded,
@@ -438,7 +623,7 @@ const decodeABIEncodedData = (calldata: string) => {
       value: BigInt(0),
       fragment: FunctionFragment.from({
         inputs: paramTypes,
-        name: "__abi_decoded__", // can't set name = "" here
+        name: "__abi_decoded__", // Placeholder name (can't be empty string)
         outputs: [],
         type: "function",
         stateMutability: "nonpayable",
@@ -454,22 +639,34 @@ const decodeABIEncodedData = (calldata: string) => {
   }
 };
 
+/**
+ * Decodes Uniswap Universal Router swap path.
+ *
+ * Path format: tokenA (20 bytes) + fee (3 bytes) + tokenB (20 bytes)
+ * Total: 43 bytes = 86 hex chars
+ *
+ * ⚠️ WARNING: This is an "aggressive" decoder that can match arbitrary bytes
+ * of the exact length. Only use for top-level calldata, not nested bytes.
+ */
 const decodeUniversalRouterPath = (calldata: string) => {
   try {
-    // remove initial "0x"
-    const path = calldata.slice(2);
+    const path = calldata.slice(2); // Remove "0x"
 
-    const tokenAEnd = 20 * 2; // address
+    // Parse tokenA (20 bytes = 40 hex chars)
+    const tokenAEnd = 20 * 2;
     const tokenA = "0x" + path.slice(0, tokenAEnd);
 
-    const feeEnd = tokenAEnd + 3 * 2; // uint24
+    // Parse fee (3 bytes = 6 hex chars)
+    const feeEnd = tokenAEnd + 3 * 2;
     const fee = hexToBigInt(
       startHexWith0x(path.slice(tokenAEnd, feeEnd))
     ).toString();
 
-    const tokenBEnd = feeEnd + 20 * 2; // address
+    // Parse tokenB (20 bytes = 40 hex chars)
+    const tokenBEnd = feeEnd + 20 * 2;
     const tokenB = "0x" + path.slice(feeEnd, tokenBEnd);
 
+    // Validate exact length match
     if (tokenBEnd !== path.length) {
       throw new Error("Failed to decode calldata as UniversalRouter path");
     }
@@ -526,7 +723,18 @@ const decodeUniversalRouterPath = (calldata: string) => {
   }
 };
 
+/**
+ * Decodes Uniswap Universal Router command bytes.
+ *
+ * Each byte represents a specific command type in the Universal Router.
+ * All bytes must be valid command identifiers for decoding to succeed.
+ *
+ * ⚠️ WARNING: This decoder validates each byte against known commands,
+ * but short byte sequences might accidentally match. Only use for
+ * top-level calldata, not nested bytes.
+ */
 const decodeUniversalRouterCommands = (calldata: string) => {
+  // Mapping of command byte to human-readable name
   const commandByteToString: { [command: string]: string } = {
     "00": "V3_SWAP_EXACT_IN",
     "01": "V3_SWAP_EXACT_OUT",
@@ -562,8 +770,7 @@ const decodeUniversalRouterCommands = (calldata: string) => {
   };
 
   try {
-    // remove initial "0x"
-    const commandsBytes = calldata.slice(2);
+    const commandsBytes = calldata.slice(2); // Remove "0x"
 
     let commands: string[] = [];
     for (let i = 0; i < commandsBytes.length; i += 2) {
@@ -618,18 +825,32 @@ const decodeUniversalRouterCommands = (calldata: string) => {
   }
 };
 
+// =============================================================================
+// FUNCTION SIGNATURE LOOKUP
+// =============================================================================
+
+/**
+ * Fetches function signature from signature databases given a 4-byte selector.
+ *
+ * Tries Sourcify's database first (higher quality, filters spam),
+ * then falls back to 4byte.directory.
+ *
+ * @param selector - The 4-byte function selector (e.g., "0x12345678")
+ * @returns Function signature string or null if not found
+ */
 export async function fetchFunctionInterface({
   selector,
 }: {
   selector: string;
 }): Promise<string | null> {
+  // Try Sourcify first (preferred - filters spam signatures)
   const sourcifyData = await fetchFunctionFromSourcify({ selector });
 
   let result: string | null = null;
-  // giving priority to openchain data because it filters spam like: `mintEfficientN2M_001Z5BWH` for 0x00000000
   if (sourcifyData) {
     result = sourcifyData[0].name;
   } else {
+    // Fallback to 4byte.directory
     const fourByteData = await fetchFunctionFrom4Bytes({ selector });
     if (fourByteData) {
       result = fourByteData[0].text_signature;
@@ -639,6 +860,9 @@ export async function fetchFunctionInterface({
   return result;
 }
 
+/**
+ * Fetches function signature from Sourcify's 4byte API.
+ */
 async function fetchFunctionFromSourcify({ selector }: { selector: string }) {
   try {
     const requestUrl = new URL(
@@ -660,6 +884,9 @@ async function fetchFunctionFromSourcify({ selector }: { selector: string }) {
   }
 }
 
+/**
+ * Fetches function signature from 4byte.directory.
+ */
 async function fetchFunctionFrom4Bytes({ selector }: { selector: string }) {
   try {
     const requestUrl = new URL(
@@ -681,6 +908,17 @@ async function fetchFunctionFrom4Bytes({ selector }: { selector: string }) {
   }
 }
 
+// =============================================================================
+// ABI-BASED DECODING UTILITIES
+// =============================================================================
+
+/**
+ * Tries to decode calldata with multiple function signatures.
+ *
+ * @param functionSignatures - Array of function signatures to try
+ * @param calldata - The calldata to decode
+ * @returns Array of successful decode results
+ */
 function decodeAllPossibilities({
   functionSignatures,
   calldata,
@@ -709,6 +947,15 @@ function decodeAllPossibilities({
   return results;
 }
 
+/**
+ * Decodes calldata using a provided ABI.
+ *
+ * This is the most reliable decoding method when the exact ABI is known.
+ *
+ * @param abi - The contract ABI (can be full ABI or just the function definition)
+ * @param calldata - The hex-encoded calldata
+ * @returns Decoded transaction description or null
+ */
 export function decodeWithABI({
   abi,
   calldata,
@@ -721,6 +968,14 @@ export function decodeWithABI({
   return parsedTransaction;
 }
 
+/**
+ * Decodes event log data using a provided ABI.
+ *
+ * @param abi - The contract ABI containing event definitions
+ * @param topics - Array of log topics (first is event signature hash)
+ * @param data - The log data (non-indexed parameters)
+ * @returns Decoded log description or null
+ */
 export function decodeEventWithABI({
   abi,
   topics,
@@ -739,34 +994,67 @@ export function decodeEventWithABI({
   }
 }
 
+// =============================================================================
+// RECURSIVE DECODING (Main Entry Point)
+// =============================================================================
+
+/**
+ * Recursively decodes calldata, including nested bytes parameters.
+ *
+ * This is the main entry point for the decoder. It:
+ * 1. Decodes the top-level function call
+ * 2. Recursively decodes any `bytes` parameters that might contain calldata
+ * 3. Handles special formats (Safe MultiSend, ERC-7821) with their nested calls
+ *
+ * ## Depth Tracking
+ *
+ * The `_depth` parameter is crucial for preventing infinite loops:
+ * - At depth 0 (top-level): All decoding strategies are available
+ * - At depth > 0 (nested): Heuristic decoders are skipped to prevent false positives
+ *
+ * @param calldata - The hex-encoded calldata to decode
+ * @param address - Optional contract address for ABI lookup
+ * @param chainId - Optional chain ID for ABI lookup
+ * @param abi - Optional ABI to use directly (skips lookup)
+ * @param encodedAbi - Optional encoded ABI for special formats
+ * @param _depth - Current recursion depth (default 0, do not set manually)
+ * @returns Decoded result with function name, signature, and decoded arguments
+ */
 export async function decodeRecursive({
   calldata,
   address,
   chainId,
   abi,
   encodedAbi,
+  _depth = 0,
 }: {
   calldata: string;
   address?: string;
   chainId?: number;
   abi?: any;
   encodedAbi?: any;
+  _depth?: number;
 }): Promise<DecodeRecursiveResult> {
+  // Step 1: Decode the function call using the best available method
   let parsedTransaction: ParsedTransaction | null;
+
   if (encodedAbi) {
+    // Use the provided encoded ABI (for special formats like SafeMultiSend)
     parsedTransaction = decodeWithABI({ abi: encodedAbi, calldata });
   } else if (abi) {
+    // Use the provided ABI directly
     parsedTransaction = decodeWithABI({ abi, calldata });
   } else if (address && chainId) {
-    parsedTransaction = await decodeWithAddress({ calldata, address, chainId });
+    // Fetch ABI from explorers and decode
+    parsedTransaction = await decodeWithAddress({ calldata, address, chainId, _depth });
   } else {
-    parsedTransaction = await decodeWithSelector({ calldata });
+    // Fall back to selector-based decoding
+    parsedTransaction = await decodeWithSelector({ calldata, _depth });
   }
 
-  console.log({ parsedTransaction });
-
-  // separate decoding for SafeMultiSend and 7821Execute, using the `to` address to decode individual the calldatas
+  // Step 2: Process the decoded result and recursively decode nested bytes
   if (parsedTransaction) {
+    // Special handling for Safe MultiSend - decode each inner transaction
     if (parsedTransaction.txType === "safeMultiSend") {
       return {
         functionName: parsedTransaction.fragment.name,
@@ -779,39 +1067,29 @@ export async function decodeRecursive({
             const value = tx[2];
             const calldata = tx[4];
 
+            // Map operation codes to human-readable names
             const operationIdToName: { [key: number]: string } = {
               0: "CALL",
               1: "DELEGATECALL",
               2: "CREATE",
             };
 
-            // encode to and calldata into new calldata
+            // Re-encode the transaction for recursive decoding
             const encodedAbi = [
               {
                 name: "tx",
                 type: "function",
                 stateMutability: "nonpayable",
                 inputs: [
-                  {
-                    name: "OperationType",
-                    type: "string",
-                  },
-                  {
-                    name: "to",
-                    type: "address",
-                  },
-                  {
-                    name: "value",
-                    type: "uint256",
-                  },
-                  {
-                    name: "calldata",
-                    type: "bytes",
-                  },
+                  { name: "OperationType", type: "string" },
+                  { name: "to", type: "address" },
+                  { name: "value", type: "uint256" },
+                  { name: "calldata", type: "bytes" },
                 ],
                 outputs: [],
               },
             ] as const;
+
             const encodedCalldata = await encodeFunctionData({
               abi: encodedAbi,
               functionName: "tx",
@@ -827,12 +1105,7 @@ export async function decodeRecursive({
               name: "tx",
               type: "function",
               stateMutability: "nonpayable",
-              inputs: [
-                {
-                  name: "encodedCalldata",
-                  type: "bytes",
-                },
-              ],
+              inputs: [{ name: "encodedCalldata", type: "bytes" }],
               outputs: [],
             });
 
@@ -847,12 +1120,16 @@ export async function decodeRecursive({
                 address: to,
                 chainId,
                 encodedAbi,
+                _depth,
               }),
             };
           })
         ),
       };
-    } else if (parsedTransaction.txType === "7821Execute") {
+    }
+
+    // Special handling for ERC-7821 Execute - decode each inner transaction
+    else if (parsedTransaction.txType === "7821Execute") {
       return {
         functionName: parsedTransaction.fragment.name,
         signature: parsedTransaction.signature,
@@ -863,29 +1140,21 @@ export async function decodeRecursive({
             const value = tx[1];
             const calldata = tx[2];
 
-            // encode to and calldata into new calldata
+            // Re-encode the transaction for recursive decoding
             const encodedAbi = [
               {
                 name: "tx",
                 type: "function",
                 stateMutability: "nonpayable",
                 inputs: [
-                  {
-                    name: "to",
-                    type: "address",
-                  },
-                  {
-                    name: "value",
-                    type: "uint256",
-                  },
-                  {
-                    name: "calldata",
-                    type: "bytes",
-                  },
+                  { name: "to", type: "address" },
+                  { name: "value", type: "uint256" },
+                  { name: "calldata", type: "bytes" },
                 ],
                 outputs: [],
               },
             ] as const;
+
             const encodedCalldata = await encodeFunctionData({
               abi: encodedAbi,
               functionName: "tx",
@@ -896,12 +1165,7 @@ export async function decodeRecursive({
               name: "tx",
               type: "function",
               stateMutability: "nonpayable",
-              inputs: [
-                {
-                  name: "encodedCalldata",
-                  type: "bytes",
-                },
-              ],
+              inputs: [{ name: "encodedCalldata", type: "bytes" }],
               outputs: [],
             });
 
@@ -916,12 +1180,16 @@ export async function decodeRecursive({
                 address: to,
                 chainId,
                 encodedAbi,
+                _depth,
               }),
             };
           })
         ),
       };
-    } else {
+    }
+
+    // Standard function call - recursively decode each parameter
+    else {
       return {
         functionName: parsedTransaction.fragment.name,
         signature: parsedTransaction.signature,
@@ -941,6 +1209,7 @@ export async function decodeRecursive({
                 address,
                 chainId,
                 abi,
+                _depth,
               }),
             };
           })
@@ -952,12 +1221,19 @@ export async function decodeRecursive({
   }
 }
 
+// =============================================================================
+// EVENT LOG DECODING
+// =============================================================================
+
 /**
- * Decodes Ethereum event logs for a contract on a given chain.
- * @param logs - Array of log objects ({ topics, data })
- * @param chainId - Chain ID
- * @param address - Contract address
- * @returns Array of decoded event objects (eventName, args)
+ * Decodes Ethereum event logs for a contract.
+ *
+ * Fetches the contract's ABI and decodes all matching event logs.
+ *
+ * @param logs - Array of log objects with topics and data
+ * @param chainId - Chain ID where the contract is deployed
+ * @param address - Contract address for ABI lookup
+ * @returns Array of decoded event objects
  */
 export async function decodeEvents({
   logs,
@@ -991,6 +1267,7 @@ export async function decodeEvents({
 
       const fragment = decodedEvent.fragment;
 
+      // Recursively decode event parameters
       const args = await Promise.all(
         fragment.inputs.map(async (input, i) => {
           const rawValue = decodedEvent.args[i];
@@ -1010,6 +1287,7 @@ export async function decodeEvents({
           };
         })
       );
+
       decodedEvents.push({
         eventName: decodedEvent.name,
         signature: decodedEvent.signature,
@@ -1024,6 +1302,25 @@ export async function decodeEvents({
   return decodedEvents;
 }
 
+// =============================================================================
+// PARAMETER TYPE DECODERS
+// =============================================================================
+
+/**
+ * Recursively decodes a function parameter based on its type.
+ *
+ * Handles all Solidity types:
+ * - Primitives: int/uint (formatted as string), address, bool, string
+ * - Complex: bytes (recursively decoded), tuple, array
+ *
+ * @param input - The parameter type definition from ABI
+ * @param value - The decoded value to process
+ * @param address - Contract address for nested calldata decoding
+ * @param chainId - Chain ID for nested calldata decoding
+ * @param abi - ABI for nested calldata decoding
+ * @param encodedAbi - Encoded ABI for special formats
+ * @param _depth - Current recursion depth
+ */
 const decodeParamTypes = async ({
   input,
   value,
@@ -1031,6 +1328,7 @@ const decodeParamTypes = async ({
   chainId,
   abi,
   encodedAbi,
+  _depth = 0,
 }: {
   input: ParamType;
   value: any;
@@ -1038,65 +1336,96 @@ const decodeParamTypes = async ({
   chainId?: number;
   abi?: any;
   encodedAbi?: any;
+  _depth?: number;
 }): Promise<DecodeParamTypesResult> => {
+  // Integer types (int8-256, uint8-256) - format as string for display
   if (input.baseType.includes("int")) {
-    // covers uint
     return BigInt(value).toString();
-  } else if (input.baseType === "address") {
+  }
+
+  // Address type - return as-is
+  else if (input.baseType === "address") {
     return value;
-  } else if (input.baseType.includes("bytes")) {
-    return await decodeBytesParam({ value, address, chainId, abi, encodedAbi });
-  } else if (input.baseType === "tuple") {
-    return await decodeTupleParam({ input, value, address, chainId, abi });
-  } else if (input.baseType === "array") {
-    return await decodeArrayParam({ value, input, address, chainId, abi });
-  } else {
+  }
+
+  // Bytes types (bytes, bytes1-32) - try to decode as nested calldata
+  else if (input.baseType.includes("bytes")) {
+    return await decodeBytesParam({ value, address, chainId, abi, encodedAbi, _depth });
+  }
+
+  // Tuple type - recursively decode each component
+  else if (input.baseType === "tuple") {
+    return await decodeTupleParam({ input, value, address, chainId, abi, _depth });
+  }
+
+  // Array type - recursively decode each element
+  else if (input.baseType === "array") {
+    return await decodeArrayParam({ value, input, address, chainId, abi, _depth });
+  }
+
+  // Other types (bool, string, etc.) - return as-is
+  else {
     return value;
   }
 };
 
+/**
+ * Decodes a bytes parameter by attempting to decode it as nested calldata.
+ *
+ * This is where recursive decoding happens - bytes parameters might contain
+ * additional function calls that need to be decoded.
+ *
+ * @param value - The bytes value (hex string)
+ * @param _depth - Current recursion depth (incremented for nested decode)
+ */
 const decodeBytesParam = async ({
   value,
   address,
   chainId,
   abi,
   encodedAbi,
+  _depth = 0,
 }: {
   value: any;
   address?: string;
   chainId?: number;
   abi?: any;
   encodedAbi?: any;
+  _depth?: number;
 }): Promise<DecodeBytesParamResult> => {
-  console.log("decoding bytes param", {
-    callData: value,
-    address,
-    chainId,
-    abi,
-  });
   return {
+    // Attempt to decode the bytes as calldata, incrementing depth
     decoded: await decodeRecursive({
       calldata: value,
       address,
       chainId,
       abi,
       encodedAbi,
+      _depth: _depth + 1, // Increment depth for nested decoding
     }),
   };
 };
 
+/**
+ * Decodes a tuple parameter by recursively decoding each component.
+ *
+ * @param input - The tuple type definition with components
+ * @param value - The decoded tuple value (array of component values)
+ */
 const decodeTupleParam = async ({
   input,
   value,
   address,
   chainId,
   abi,
+  _depth = 0,
 }: {
   input: ParamType;
   value: any;
   address?: string;
   chainId?: number;
   abi?: any;
+  _depth?: number;
 }): Promise<DecodeTupleParamResult> => {
   if (!input.components) {
     return null;
@@ -1105,6 +1434,7 @@ const decodeTupleParam = async ({
     return null;
   }
 
+  // Decode each component of the tuple
   return await Promise.all(
     input.components.map(async (component, i) => {
       return {
@@ -1118,28 +1448,39 @@ const decodeTupleParam = async ({
           address,
           chainId,
           abi,
+          _depth,
         }),
       };
     })
   );
 };
 
+/**
+ * Decodes an array parameter by recursively decoding each element.
+ *
+ * @param input - The array type definition with arrayChildren
+ * @param value - The decoded array value
+ */
 const decodeArrayParam = async ({
   value,
   input,
   address,
   chainId,
   abi,
+  _depth = 0,
 }: {
   value: any;
   input: ParamType;
   address?: string;
   chainId?: number;
   abi?: any;
+  _depth?: number;
 }): Promise<DecodeArrayParamResult> => {
   if (!Array.isArray(value) || value.length === 0) {
     return [];
   }
+
+  // Decode each element of the array
   return await Promise.all(
     value.map(async (v: any) => {
       return {
@@ -1153,6 +1494,7 @@ const decodeArrayParam = async ({
           address,
           chainId,
           abi,
+          _depth,
         }),
       };
     })
