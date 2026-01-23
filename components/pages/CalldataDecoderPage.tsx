@@ -81,6 +81,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const [decodedEvents, setDecodedEvents] = useState<DecodeEventResult[] | null>(null);
 
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+  const [resultTabIndex, setResultTabIndex] = useState(0); // 0 = Calldata, 1 = Events
 
   const [abi, setAbi] = useState<any>();
 
@@ -135,6 +136,8 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       setCalldata(null);
       setContractAddress(null);
     }
+    // Reset result tab when switching main tabs
+    setResultTabIndex(0);
   }, [selectedTabIndex]);
 
   useEffect(() => {
@@ -224,6 +227,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     console.log("decodeFromTx called");
     setIsLoading(true);
     setDecodedEvents(null);
+    setResultTabIndex(0); // Reset to Calldata tab for new decode
 
     const __fromTxInput = _fromTxInput || fromTxInput;
 
@@ -595,7 +599,17 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
           </Tr>
         </Tbody>
       </Table>
-      {result && (
+      {/* Result Tabs for "from Tx" mode */}
+      {selectedTabIndex === 3 && (result || (decodedEvents && decodedEvents.length > 0)) && (
+        <TabsSelector
+          tabs={["Calldata", `Events${decodedEvents?.length ? ` (${decodedEvents.length})` : ""}`]}
+          selectedTabIndex={resultTabIndex}
+          setSelectedTabIndex={setResultTabIndex}
+        />
+      )}
+
+      {/* Calldata Result - show directly for non-Tx modes, or when Calldata tab selected for Tx mode */}
+      {result && (selectedTabIndex !== 3 || resultTabIndex === 0) && (
         <Box minW={"80%"}>
           {result.functionName && result.functionName !== "__abi_decoded__" ? (
             <HStack>
@@ -634,8 +648,8 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
         </Box>
       )}
 
-      {/* Decoded Events Section */}
-      {selectedTabIndex === 3 && (
+      {/* Decoded Events Section - only show when Events tab selected in Tx mode */}
+      {selectedTabIndex === 3 && resultTabIndex === 1 && (
         <DecodedEventsView
           events={decodedEvents || []}
           chainId={chainId}
