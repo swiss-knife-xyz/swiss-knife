@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import {
   Heading,
   Text,
@@ -25,7 +25,7 @@ import { FiDollarSign, FiHash } from "react-icons/fi";
 import { useLocalStorage } from "usehooks-ts";
 import { InputField } from "@/components/InputField";
 
-const ETHUnitConverter = () => {
+function ETHUnitConverterContent() {
   const searchParams = useSearchParams();
   const weiFromUrl = searchParams.get("wei");
 
@@ -370,6 +370,12 @@ const ETHUnitConverter = () => {
       </Box>
     </Box>
   );
-};
+}
 
-export default ETHUnitConverter;
+export default function ETHUnitConverter() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ETHUnitConverterContent />
+    </Suspense>
+  );
+}

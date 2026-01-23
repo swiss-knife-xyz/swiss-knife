@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import {
   Box,
   Heading,
@@ -21,9 +21,9 @@ import {
 } from "@chakra-ui/react";
 import { hashTypedData, hashStruct } from "viem";
 import { TypedDataEncoder } from "ethers";
-import { JsonTextArea } from "@/components/JsonTextArea";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { parseAsString, useQueryState } from "next-usequerystate";
+import { Editor } from "@monaco-editor/react";
 
 type TypedDataInput = {
   domain: Record<string, any>;
@@ -61,7 +61,7 @@ function computeEip712Hash(json: TypedDataInput): HashResult {
   };
 }
 
-export default function SevenOneTwoHash() {
+function SevenOneTwoHashContent() {
   const [jsonData, setJsonData] = useQueryState<string>(
     "json",
     parseAsString.withDefault("")
@@ -195,20 +195,26 @@ export default function SevenOneTwoHash() {
             endColor="whiteAlpha.300"
             borderRadius="md"
           >
-            <JsonTextArea
+            <Editor
+              height="300px"
+              defaultLanguage="json"
+              theme="vs-dark"
               value={input}
               onChange={(value) => {
-                setInput(value);
+                if (value !== undefined) {
+                  setInput(value);
+                }
                 // Clear URL if input is empty
                 if (!value) {
                   setJsonData("");
                 }
               }}
-              readOnly={false}
-              ariaLabel="EIP-712 typed data JSON"
-              h="300px"
-              onPasteCallback={handlePastedJson}
-              placeholder={examplePlaceholderJSON}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+              }}
             />
           </Skeleton>
         </Box>
@@ -303,5 +309,13 @@ export default function SevenOneTwoHash() {
         )}
       </Box>
     </VStack>
+  );
+}
+
+export default function SevenOneTwoHash() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SevenOneTwoHashContent />
+    </Suspense>
   );
 }

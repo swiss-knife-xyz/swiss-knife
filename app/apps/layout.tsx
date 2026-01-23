@@ -1,6 +1,7 @@
 import { getMetadata } from "@/utils";
 import { Metadata } from "next";
 import { headers } from "next/headers";
+import { AppsLayout as AppsLayoutC } from "./components/AppsLayout";
 
 const _metadataInfo = {
   title: "Web3 App Store | ETH.sh",
@@ -61,7 +62,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const AppsLayout = ({ children }: { children: React.ReactNode }) => {
-  return <>{children}</>;
+  return <AppsLayoutC>{children}</AppsLayoutC>;
 };
 
 export default AppsLayout;

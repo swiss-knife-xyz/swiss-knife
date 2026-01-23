@@ -7,7 +7,7 @@ import {
 } from "next/navigation";
 import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import NLink from "next/link";
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, Suspense, useState, useEffect } from "react";
 import {
   Center,
   Heading,
@@ -53,7 +53,7 @@ const isValidTransaction = (tx: string) => {
   return /^0x([A-Fa-f0-9]{64})$/.test(tx);
 };
 
-export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
+function ExplorerLayoutContent({ children }: { children: ReactNode }) {
   const segments = useSelectedLayoutSegments();
   const router = useTopLoaderRouter();
   const pathname = usePathname();
@@ -233,23 +233,6 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
           />
         )}
         <Center flexDir={"column"} mt="5">
-          <Breadcrumb
-            separator={<ChevronRightIcon color="gray.400" fontSize="sm" />}
-            fontSize="sm"
-            ml={6}
-          >
-            <BreadcrumbItem>
-              <BreadcrumbLink
-                as={NLink}
-                href={getPath(
-                  subdomains.EXPLORER.base,
-                  subdomains.EXPLORER.isRelativePath
-                )}
-              >
-                Explorer
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-          </Breadcrumb>
           <Heading fontSize={"4xl"}>
             <NLink
               href={getPath(
@@ -383,5 +366,13 @@ export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
         </Center>
       </HStack>
     </Layout>
+  );
+}
+
+export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ExplorerLayoutContent>{children}</ExplorerLayoutContent>
+    </Suspense>
   );
 };

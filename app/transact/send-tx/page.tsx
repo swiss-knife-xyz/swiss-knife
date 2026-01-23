@@ -1,7 +1,13 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, {
+  Suspense,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
 import {
   Container,
   FormControl,
@@ -51,7 +57,7 @@ import { decodeRecursive } from "@/lib/decoder";
 import { renderParams } from "@/components/renderParams";
 import { config } from "@/app/providers";
 
-const SendTx = () => {
+function SendTxContent() {
   const { data: walletClient } = useWalletClient();
   const { chain } = useAccount();
   const { switchChain } = useSwitchChain();
@@ -76,8 +82,11 @@ const SendTx = () => {
     "chainId",
     parseAsInteger.withDefault(1)
   );
-  const [chainIdFromURLOnLoad, setChainIdFromURLOnLoad] =
-    useState<number>(chainId);
+  const [chainIdFromURLOnLoad, setChainIdFromURLOnLoad] = useState<
+    number | undefined
+  >(undefined);
+  const [hasEverMatchedUrlChain, setHasEverMatchedUrlChain] = useState(false);
+  const [isUrlParsed, setIsUrlParsed] = useState(false);
 
   const [selectedEthFormatOption, setSelectedEthFormatOption] =
     useState<ETHSelectedOptionState>({
@@ -93,10 +102,45 @@ const SendTx = () => {
   const [decoded, setDecoded] = useState<any>();
 
   useEffect(() => {
-    if (chain && chainIdFromURLOnLoad && chain.id !== chainIdFromURLOnLoad) {
+    const chainIdFromURL = searchParams.get("chainId");
+    if (chainIdFromURL) {
+      setChainIdFromURLOnLoad(parseInt(chainIdFromURL));
+      setHasEverMatchedUrlChain(false); // Reset flag for new URL requirement
+    } else {
+      // No chainId in URL - clear all restrictions
+      setChainIdFromURLOnLoad(undefined);
+      setHasEverMatchedUrlChain(true);
+      setChainIdMismatch(false);
+    }
+    setIsUrlParsed(true); // Mark URL parsing as complete
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (
+      chain &&
+      chainIdFromURLOnLoad &&
+      chain.id !== chainIdFromURLOnLoad &&
+      !hasEverMatchedUrlChain
+    ) {
       toastIdRef.current = toast({
         title: "Wallet's Network should match the chainId passed via URL",
-        description: `Switch network to ${chainIdToChain[chainIdFromURLOnLoad]?.name} to continue`,
+        description: (
+          <VStack spacing={2} align="start">
+            <Text fontSize="sm" color="gray.800">
+              Switch to{" "}
+              <Text as="span" fontWeight="bold" color="gray.900">
+                {chainIdToChain[chainIdFromURLOnLoad]?.name}
+              </Text>{" "}
+              to continue
+            </Text>
+            <DarkButton
+              size="sm"
+              onClick={() => switchChain({ chainId: chainIdFromURLOnLoad })}
+            >
+              Switch Network
+            </DarkButton>
+          </VStack>
+        ),
         status: "error",
         position: "bottom-right",
         duration: null,
@@ -104,28 +148,40 @@ const SendTx = () => {
       });
 
       setChainIdMismatch(true);
-      switchChain({ chainId: chainIdFromURLOnLoad });
     }
-  }, [chainIdFromURLOnLoad, switchChain]);
+  }, [chain, chainIdFromURLOnLoad, switchChain, hasEverMatchedUrlChain]);
 
   useEffect(() => {
-    if (chain) {
+    if (chain && isUrlParsed) {
       if (chainIdFromURLOnLoad) {
         if (chain.id === chainIdFromURLOnLoad) {
           onChainIdMatched();
+        } else if (hasEverMatchedUrlChain) {
+          // User has satisfied URL requirement and is now free to switch chains
+          setChainIdMismatch(false);
+          setChainId(chain.id);
         }
+        // Don't update URL when there's a pending requirement and user hasn't matched yet
       } else {
+        // In normal mode, always sync URL with wallet chain
         setChainId(chain.id);
       }
     }
-  }, [chain]);
+  }, [
+    chain,
+    searchParams,
+    chainIdFromURLOnLoad,
+    hasEverMatchedUrlChain,
+    isUrlParsed,
+  ]);
 
   const onChainIdMatched = () => {
     if (toastIdRef.current) {
       toast.close(toastIdRef.current);
     }
     setChainIdMismatch(false);
-    setChainIdFromURLOnLoad(0);
+    setChainIdFromURLOnLoad(undefined);
+    setHasEverMatchedUrlChain(true);
   };
 
   const resolveAddress = async (addressOrEns: string) => {
@@ -477,6 +533,12 @@ const SendTx = () => {
       </Container>
     </>
   );
-};
+}
 
-export default SendTx;
+export default function SendTx() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SendTxContent />
+    </Suspense>
+  );
+}

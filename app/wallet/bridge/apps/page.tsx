@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { useSearchParams } from "next/navigation";
 import {
@@ -52,7 +52,7 @@ import { decodeRecursive } from "@/lib/decoder";
 import { decodeSignMessage, formatTypedData, isValidUrl } from "../utils";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { AppGridItem, FavoriteAppGridItem } from "./components/AppGridItem";
+import { AppGridItem, FavoriteAppGridItem } from "@/app/apps/components/AppGridItem";
 import { swap } from "@/utils";
 import { safeDapps } from "@/data/safe/dapps";
 import frameSdk, { Context } from "@farcaster/frame-sdk";
@@ -939,7 +939,7 @@ function AppStoreContent({
 
         <Center flexDir={"column"} gap={2}>
           <Heading size="xl" color="white" width="100%" textAlign="center">
-            🏪 Web3 App Store
+            Web3 App Store
           </Heading>
           <Text color="whiteAlpha.800" fontSize="lg" fontStyle={"italic"}>
             Your Web3 Operating System
@@ -1399,16 +1399,18 @@ export default function WalletBridgeAppsPage() {
       signMessage={handleSignMessage}
       signTypedData={handleSignTypedData}
     >
-      <AppStoreContent
-        chainId={chainId}
-        address={address}
-        walletClient={walletClient}
-        switchChainAsync={switchChainAsync}
-        toast={toast}
-        iframeRequestHandlers={iframeRequestHandlers}
-        skipDecoder={skipDecoder}
-        setSkipDecoder={setSkipDecoder}
-      />
+      <Suspense fallback={<div>Loading...</div>}>
+        <AppStoreContent
+          chainId={chainId}
+          address={address}
+          walletClient={walletClient}
+          switchChainAsync={switchChainAsync}
+          toast={toast}
+          iframeRequestHandlers={iframeRequestHandlers}
+          skipDecoder={skipDecoder}
+          setSkipDecoder={setSkipDecoder}
+        />
+      </Suspense>
     </ImpersonatorIframeProvider>
   );
 }

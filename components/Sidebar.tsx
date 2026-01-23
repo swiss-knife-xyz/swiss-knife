@@ -89,12 +89,16 @@ export const Sidebar = ({
   subdomain,
   exactPathMatch,
   isRelativePath,
+  showBorders = true,
+  showHeading = true,
 }: {
   heading: string;
   items: SidebarItem[];
   subdomain: string;
   exactPathMatch?: boolean;
   isRelativePath?: boolean;
+  showBorders?: boolean;
+  showHeading?: boolean;
 }) => {
   return (
     <Flex w="220px" flexDir={"column"} py={"2rem"} minH="100vh">

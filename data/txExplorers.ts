@@ -10,6 +10,23 @@ export const txExplorers: ExplorersData = {
       [c.arbitrumSepolia.id]: "sepolia.",
     },
   },
+  Arkham: {
+    urlLayout: `https://intel.arkm.com/explorer/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+      [c.arbitrum.id]: "",
+      [c.avalanche.id]: "",
+      [c.base.id]: "",
+      [c.blast.id]: "",
+      [c.bsc.id]: "",
+      [c.linea.id]: "",
+      [c.manta.id]: "",
+      [c.mantle.id]: "",
+      [c.optimism.id]: "",
+      [c.polygon.id]: "",
+      [c.sonic.id]: "",
+    },
+  },
   Basescan: {
     urlLayout: `https://${CHAINLABEL_KEY}basescan.org/tx/${TX_KEY}`,
     chainIdToLabel: {
@@ -138,19 +155,6 @@ export const txExplorers: ExplorersData = {
     },
     faviconUrl: "https://ftmscan.com/assets/generic/html/favicon-light.ico",
     faviconWhite: true,
-  },
-  Openchain: {
-    urlLayout: `https://openchain.xyz/trace/${CHAINLABEL_KEY}/${TX_KEY}`,
-    chainIdToLabel: {
-      [c.mainnet.id]: "ethereum",
-      [c.arbitrum.id]: "arbitrum",
-      [c.avalanche.id]: "avalanche",
-      [c.bsc.id]: "binance",
-      [c.cronos.id]: "cronos",
-      [c.fantom.id]: "fantom",
-      [c.optimism.id]: "optimism",
-      [c.polygon.id]: "polygon",
-    },
   },
   OptimismScan: {
     urlLayout: `https://${CHAINLABEL_KEY}etherscan.io/tx/${TX_KEY}`,

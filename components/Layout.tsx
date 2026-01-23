@@ -5,7 +5,6 @@ import { Box, Container, Flex, HStack, FlexProps } from "@chakra-ui/react";
 import { useLocalStorage } from "usehooks-ts";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-// import { MainSidebar } from "@/components/MainSidebar";
 
 interface LayoutParams extends FlexProps {
   children: ReactNode;

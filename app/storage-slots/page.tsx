@@ -19,6 +19,8 @@ import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { c, chainIdToChain } from "@/data/common";
+import { encodePacked, keccak256 } from "viem";
+import { storageKey } from "porto/_dist/core/internal/preCalls";
 
 const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
   (k, i) => ({
@@ -78,26 +80,134 @@ const EIP1967Select = ({
 };
 
 const StorageSlotInput = ({
-  storageSlot,
   setStorageSlot,
 }: {
   storageSlot?: string;
   setStorageSlot: (value: string) => void;
 }) => {
+  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+  const [localStorageSlot, setLocalStorageSlot] = useState<string>("");
+  const [mappingStorageSlot, setMappingStorageSlot] = useState<string>("");
+  const [mappingKey, setMappingKey] = useState<string>("");
+  const [arrayStorageSlot, setArrayStorageSlot] = useState<string>("");
+  const [arrayIndex, setArrayIndex] = useState<string>("");
+  useEffect(() => {
+    if (selectedTabIndex === 0 && localStorageSlot) {
+      setStorageSlot(localStorageSlot);
+    } else if (selectedTabIndex === 1 && mappingStorageSlot && mappingKey) {
+      const storageSlot = keccak256(
+        encodePacked(
+          ["uint256", "uint256"],
+          [BigInt(mappingKey), BigInt(mappingStorageSlot)]
+        )
+      );
+      setStorageSlot(storageSlot);
+    } else if (selectedTabIndex === 2 && arrayIndex && arrayStorageSlot) {
+      const storageSlot =
+        BigInt(
+          keccak256(encodePacked(["uint256"], [BigInt(arrayStorageSlot)]))
+        ) + BigInt(arrayIndex);
+      setStorageSlot("0x" + storageSlot.toString(16));
+    } else {
+      setStorageSlot("");
+    }
+  }, [
+    selectedTabIndex,
+    mappingKey,
+    mappingStorageSlot,
+    arrayIndex,
+    arrayStorageSlot,
+    localStorageSlot,
+    setStorageSlot,
+  ]);
   return (
-    <Container mt={10}>
-      <FormControl>
-        <FormLabel>Enter storage slot:</FormLabel>
-        <Input
-          autoComplete="off"
-          value={storageSlot}
-          onChange={(e) => {
-            setStorageSlot(e.target.value);
-          }}
-          bg={"blackAlpha.300"}
-          placeholder="123 or 0xabc123..."
-        />
-      </FormControl>
+    <Container>
+      <TabsSelector
+        tabs={["Raw", "Mapping", "Array"]}
+        selectedTabIndex={selectedTabIndex}
+        setSelectedTabIndex={setSelectedTabIndex}
+        mb={10}
+      />
+      {(() => {
+        switch (selectedTabIndex) {
+          case 0:
+            return (
+              <FormControl>
+                <FormLabel>Enter storage slot:</FormLabel>
+                <Input
+                  autoComplete="off"
+                  value={localStorageSlot}
+                  onChange={(e) => {
+                    setLocalStorageSlot(e.target.value);
+                  }}
+                  bg={"blackAlpha.300"}
+                  placeholder="123 or 0xabc123..."
+                />
+              </FormControl>
+            );
+          case 1:
+            return (
+              <FormControl>
+                <FormLabel>Enter storage slot of the mapping:</FormLabel>
+                <Input
+                  autoComplete="off"
+                  value={mappingStorageSlot}
+                  onChange={(e) => {
+                    setMappingStorageSlot(e.target.value);
+                  }}
+                  bg={"blackAlpha.300"}
+                  placeholder="123 or 0xabc123..."
+                />
+                <Center>
+                  <HStack fontWeight={"bold"}>
+                    <Txt colorScheme="orange" str={`myMapping[`} />
+                    <Input
+                      autoComplete="off"
+                      value={mappingKey}
+                      onChange={(e) => {
+                        setMappingKey(e.target.value);
+                      }}
+                      bg={"blackAlpha.300"}
+                      placeholder="123 or 0xabc123..."
+                    />
+                    <Txt colorScheme="orange" str={`]`} />
+                  </HStack>
+                </Center>
+              </FormControl>
+            );
+          case 2:
+            return (
+              <FormControl>
+                <FormLabel>Enter storage slot of the array:</FormLabel>
+                <Input
+                  autoComplete="off"
+                  value={arrayStorageSlot}
+                  onChange={(e) => {
+                    setArrayStorageSlot(e.target.value);
+                  }}
+                  bg={"blackAlpha.300"}
+                  placeholder="123 or 0xabc123..."
+                />
+                <Center>
+                  <HStack maxWidth={"50%"} fontWeight={"bold"}>
+                    <Txt colorScheme="blue" str={`myArray[`} />
+                    <Input
+                      type="number"
+                      autoComplete="off"
+                      value={arrayIndex}
+                      onChange={(e) => {
+                        setArrayIndex(e.target.value);
+                      }}
+                      bg={"blackAlpha.300"}
+                      placeholder="123"
+                    />
+                    <Txt colorScheme="blue" str={`]`} />
+                  </HStack>
+                </Center>
+              </FormControl>
+            );
+        }
+      })()}
     </Container>
   );
 };

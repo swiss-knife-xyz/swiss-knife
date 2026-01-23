@@ -19,13 +19,13 @@ import {
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import axios from "axios";
 import { decodeBase64, isBigInt, isValidJSON, resolveIPFS } from "@/utils";
-import { JsonTextArea } from "../JsonTextArea";
 import TabsSelector from "../Tabs/TabsSelector";
 import { CopyToClipboard } from "../CopyToClipboard";
 import { ResizableImage } from "../ResizableImage";
 import { motion } from "framer-motion";
 import { isAddress } from "viem";
 import { renderParamTypes } from "../renderParams";
+import { Editor } from "@monaco-editor/react";
 
 interface Params {
   value: string | null;
@@ -236,16 +236,43 @@ export const StringParam = ({
                 <Spacer />
                 <CopyToClipboard textToCopy={value ?? ""} size="xs" />
               </HStack>
-              <JsonTextArea
+              <Editor
+                height="300px"
+                theme="vs-dark"
+                defaultLanguage="json"
                 value={displayValue}
-                setValue={() => {}}
-                placeholder="JSON"
-                ariaLabel="json"
-                h="100%"
-                canResize
-                autoMaxWidth
-                maxW={"50rem"}
-                language={isImage ? "xml" : "json"}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                }}
+              />
+            </Box>
+          );
+        } else if (isUrlImageOrJson?.isJson && urlContent) {
+          // Raw JSON from URL
+          const formattedUrlContent = JSON.stringify(urlContent, null, 4);
+          return (
+            <Box>
+              <HStack mb={1}>
+                <Spacer />
+                <CopyToClipboard
+                  textToCopy={formattedUrlContent ?? ""}
+                  size="xs"
+                />
+              </HStack>
+              <Editor
+                height="300px"
+                theme="vs-dark"
+                defaultLanguage="json"
+                value={formattedUrlContent}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                }}
               />
             </Box>
           );
@@ -273,7 +300,11 @@ export const StringParam = ({
   } else if (isImage) {
     richTabs = ["Image", "Raw SVG"];
   } else if (isUrl) {
-    richTabs = ["Fetched URL", "Raw URL"];
+    if (isUrlImageOrJson?.isJson) {
+      richTabs = ["Rich Output", "Raw JSON"];
+    } else {
+      richTabs = ["Fetched URL", "Raw URL"];
+    }
   }
 
   useEffect(() => {

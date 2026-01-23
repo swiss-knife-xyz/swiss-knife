@@ -24,6 +24,8 @@
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@impersonator/iframe": "^0.3.1",
+    "@monaco-editor/react": "^4.7.0",
+    "@number-flow/react": "^0.5.10",
     "@openchainxyz/abi-guesser": "^1.0.2",
     "@rainbow-me/rainbowkit": "^2.2.4",
     "@reown/walletkit": "^1.2.1",
@@ -61,9 +63,10 @@
     "highlightjs-solidity": "^2.0.6",
     "lodash": "^4.17.21",
     "mongoose": "^8.7.3",
-    "next": "14.0.3",
+    "next": "14.2.35",
     "next-usequerystate": "^1.20.0",
     "ox": "^0.7.2",
+    "porto": "^0.0.29",
     "react": "18.2.0",
     "react-code-blocks": "^0.1.6",
     "react-dnd": "^16.0.1",
@@ -76,6 +79,7 @@
     "usehooks-ts": "^3.1.0",
     "viem": "^2.30.4",
     "wagmi": "^2.15.4",
+    "x402-axios": "^0.7.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -85,6 +89,7 @@
     "@types/lodash": "^4.17.13",
     "isEqual": "link:@types/lodash/isEqual",
     "pino-pretty": "^10.3.1",
+    "prettier": "^3.6.2",
     "tsx": "^4.19.4"
   },
   "packageManager": "pnpm@9.12.0+sha512.4abf725084d7bcbafbd728bfc7bee61f2f791f977fd87542b3579dcb23504d170d46337945e4c66485cd12d588a0c0e570ed9c477e7ccdd8507cf05f3f92eaca"

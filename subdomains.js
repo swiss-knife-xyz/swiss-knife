@@ -49,7 +49,7 @@ const subdomains = {
   },
   WALLET: {
     base: "wallet",
-    paths: ["bridge"],
+    paths: ["bridge", "ds-proxy", "signatures"],
   },
   ENS: {
     base: "ens",
@@ -58,11 +58,22 @@ const subdomains = {
   "7702BEAT": {
     base: "7702beat",
     paths: [],
-    isRelativePath: true,
   },
   SAFE: {
     base: "safe",
     paths: ["calldata-decoder", "eip-712-hash"],
+  },
+  APPS: {
+    base: "apps",
+    paths: [],
+  },
+  SOLIDITY: {
+    base: "solidity",
+    paths: ["compiler"],
+  },
+  USDC_PAY: {
+    base: "usdc-pay",
+    paths: [],
   },
 };
 

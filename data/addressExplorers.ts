@@ -59,6 +59,23 @@ export const addressExplorers: ExplorersData = {
       [c.arbitrumSepolia.id]: "sepolia.",
     },
   },
+  Arkham: {
+    urlLayout: `https://intel.arkm.com/explorer/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+      [c.arbitrum.id]: "",
+      [c.avalanche.id]: "",
+      [c.base.id]: "",
+      [c.blast.id]: "",
+      [c.bsc.id]: "",
+      [c.linea.id]: "",
+      [c.manta.id]: "",
+      [c.mantle.id]: "",
+      [c.optimism.id]: "",
+      [c.polygon.id]: "",
+      [c.sonic.id]: "",
+    },
+  },
   Basescan: {
     urlLayout: `https://${CHAINLABEL_KEY}basescan.org/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
@@ -525,6 +542,18 @@ export const addressExplorers: ExplorersData = {
     chainIdToLabel: {
       [c.sonic.id]: "",
     },
+  },
+  Sourcify: {
+    urlLayout: `https://repo.sourcify.dev/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
+    // Supports all EVM chains
+    chainIdToLabel: (() => {
+      let res: ExplorerData["chainIdToLabel"] = {};
+      Object.values(c).map((val) => {
+        res[val.id] = val.id.toString();
+      });
+      return res;
+    })(),
+    forContracts: true,
   },
   Tenderly: {
     forContracts: true,

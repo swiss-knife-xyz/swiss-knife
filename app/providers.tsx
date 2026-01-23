@@ -13,6 +13,7 @@ import {
   darkTheme,
   connectorsForWallets,
 } from "@rainbow-me/rainbowkit";
+import { porto } from "porto/wagmi";
 
 import {
   metaMaskWallet,
@@ -69,7 +70,7 @@ const connectors = connectorsForWallets(
 );
 
 export const config = createConfig({
-  connectors: [frameConnector(), ...connectors],
+  connectors: [frameConnector(), ...connectors, porto()],
   chains: walletChains,
   transports: walletChains.reduce<Record<number, ReturnType<typeof http>>>(
     (transport, chain) => {

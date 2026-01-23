@@ -123,7 +123,7 @@ export const Footer = () => {
                 mb={4}
                 textAlign={{ base: "center", sm: "left" }}
               >
-                🏆 Popular Tools
+                Popular Tools
               </Heading>
               <Flex
                 direction="column"

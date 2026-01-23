@@ -10,11 +10,11 @@ import {
   base,
   baseGoerli,
   baseSepolia,
+  berachain,
   bitTorrent,
   bitTorrentTestnet,
-  // TODO: upgrade package and add these chains:
-  // blast,
-  // blastTestnet,
+  blast,
+  blastSepolia,
   boba,
   bsc,
   bscTestnet,
@@ -30,6 +30,8 @@ import {
   fantom,
   fantomTestnet,
   filecoin,
+  fraxtal,
+  fraxtalTestnet,
   fuse,
   gnosis,
   goerli,
@@ -76,8 +78,69 @@ import {
   Chain,
   unichain,
   ink,
+  worldchain,
 } from "viem/chains";
 import { _chains } from "./_chains";
+
+import { defineChain } from "viem";
+
+// === New chains ===
+// to avoid Upgrading viem + wagmi, as it results in breaking changes atm.
+// source: https://github.com/wevm/viem/tree/main/src/chains/definitions
+export const plasma = defineChain({
+  id: 9745,
+  name: "Plasma",
+  nativeCurrency: {
+    name: "Plasma",
+    symbol: "XPL",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc.plasma.to"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "PlasmaScan",
+      url: "https://plasmascan.to",
+    },
+  },
+});
+export const monad = defineChain({
+  id: 143,
+  name: "Monad",
+  blockTime: 400,
+  nativeCurrency: {
+    name: "Monad",
+    symbol: "MON",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc.monad.xyz", "https://rpc1.monad.xyz"],
+      webSocket: ["wss://rpc.monad.xyz", "wss://rpc1.monad.xyz"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "MonadVision",
+      url: "https://monadvision.com",
+    },
+    monadscan: {
+      name: "Monadscan",
+      url: "https://monadscan.com",
+      apiUrl: "https://api.monadscan.com/api",
+    },
+  },
+  testnet: false,
+  contracts: {
+    multicall3: {
+      address: "0xcA11bde05977b3631167028862bE2a173976CA11",
+      blockCreated: 9248132,
+    },
+  },
+});
 
 export const CHAINLABEL_KEY = "$SK_CHAINLABEL";
 export const ADDRESS_KEY = "$SK_ADDRESS";
@@ -86,7 +149,6 @@ export const TX_KEY = "$SK_TX";
 export const c: { [name: string]: Chain } = {
   mainnet: {
     ...mainnet,
-    rpcUrls: { default: { http: ["https://rpc.ankr.com/eth"] } }, // add custom rpcs. cloudflare doesn't support publicClient.getTransaction
   },
   sepolia: {
     ...sepolia,
@@ -102,8 +164,11 @@ export const c: { [name: string]: Chain } = {
   base,
   baseGoerli,
   baseSepolia,
+  berachain,
   bitTorrent,
   bitTorrentTestnet,
+  blast,
+  blastSepolia,
   boba,
   bsc,
   bscTestnet,
@@ -119,6 +184,8 @@ export const c: { [name: string]: Chain } = {
   fantom,
   fantomTestnet,
   filecoin,
+  fraxtal,
+  fraxtalTestnet,
   fuse,
   gnosis,
   goerli,
@@ -134,6 +201,7 @@ export const c: { [name: string]: Chain } = {
   mantaTestnet,
   mantle,
   metis,
+  monad,
   moonbaseAlpha,
   moonbeam,
   moonriver,
@@ -143,6 +211,7 @@ export const c: { [name: string]: Chain } = {
   optimism,
   optimismGoerli,
   optimismSepolia,
+  plasma,
   polygon,
   polygonMumbai,
   polygonZkEvm,
@@ -157,14 +226,18 @@ export const c: { [name: string]: Chain } = {
   wanchain,
   wemix,
   wemixTestnet,
+  worldchain,
   zkSync,
   zkSyncSepoliaTestnet,
   zora,
   zoraTestnet,
 };
 
+// Extended Chain type to include optional Routescan flag
+type ExtendedChain = Chain & { isRoutescan?: boolean };
+
 // source: https://docs.etherscan.io/etherscan-v2/getting-started/supported-chains
-export const etherscanChains: { [name: string]: Chain } = {
+export const etherscanChains: { [name: string]: ExtendedChain } = {
   mainnet,
   arbitrum,
   arbitrumNova,
@@ -175,9 +248,8 @@ export const etherscanChains: { [name: string]: Chain } = {
   baseSepolia,
   bitTorrent,
   bitTorrentTestnet,
-  // TODO: upgrade package and add these chains:
-  // blast,
-  // blastTestnet,
+  blast,
+  blastSepolia,
   bsc,
   bscTestnet,
   celo,
@@ -186,8 +258,8 @@ export const etherscanChains: { [name: string]: Chain } = {
   cronosTestnet,
   fantom,
   fantomTestnet,
-  // frax,
-  // fraxTestnet,
+  fraxtal,
+  fraxtalTestnet,
   gnosis,
   holesky,
   kroma,
@@ -195,7 +267,7 @@ export const etherscanChains: { [name: string]: Chain } = {
   linea,
   lineaTestnet,
   mantle,
-  mantaTestnet,
+  manta,
   moonbeam,
   moonriver,
   moonbaseAlpha,
@@ -203,6 +275,7 @@ export const etherscanChains: { [name: string]: Chain } = {
   opBNBTestnet,
   optimism,
   optimismSepolia,
+  plasma: { ...plasma, isRoutescan: true },
   polygon,
   polygonMumbai,
   polygonZkEvm,
@@ -276,15 +349,19 @@ export const chainIdToImage = (() => {
     [arbitrum.id]: `${basePath}/arbitrum.svg`,
     [avalanche.id]: `${basePath}/avalanche.svg`,
     [base.id]: `${basePath}/base.svg`,
+    [berachain.id]: `${basePath}/berachain.svg`,
     [bsc.id]: `${basePath}/bsc.svg`,
     [cronos.id]: `${basePath}/cronos.svg`,
     [goerli.id]: `${basePath}/ethereum.svg`,
     [ink.id]: `${basePath}/ink.svg`,
     [mainnet.id]: `${basePath}/ethereum.svg`,
+    [monad.id]: `${basePath}/monad.svg`,
     [optimism.id]: `${basePath}/optimism.svg`,
     [polygon.id]: `${basePath}/polygon.svg`,
     [sepolia.id]: `${basePath}/ethereum.svg`,
     [unichain.id]: `${basePath}/unichain.svg`,
+    [worldchain.id]: `${basePath}/worldchain.svg`,
+    [48900]: `${basePath}/zircuit.svg`, // Zircuit
     [zora.id]: `${basePath}/zora.svg`,
   };
 
@@ -292,9 +369,8 @@ export const chainIdToImage = (() => {
     const chainId = Number(_chainId);
 
     if (!res[chainId]) {
-      res[
-        chainId
-      ] = `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=${chainIdToChain[chainId].blockExplorers?.default.url}`;
+      res[chainId] =
+        `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=${chainIdToChain[chainId].blockExplorers?.default.url}`;
     }
   });
 

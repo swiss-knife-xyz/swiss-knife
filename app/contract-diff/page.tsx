@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   Heading,
   Table,
@@ -136,8 +136,8 @@ const ContractCode = ({
                 selectedTabIndex === 0
                   ? oldCode
                   : selectedTabIndex === 1
-                  ? diffCode
-                  : newCode
+                    ? diffCode
+                    : newCode
               }
             />
           </HStack>
@@ -146,8 +146,8 @@ const ContractCode = ({
               selectedTabIndex === 0
                 ? oldCode
                 : selectedTabIndex === 1
-                ? diffCode
-                : newCode
+                  ? diffCode
+                  : newCode
             }
             readOnly={true}
             h="50rem"
@@ -159,7 +159,7 @@ const ContractCode = ({
   );
 };
 
-const ContractDiff = () => {
+function ContractDiffContent() {
   const searchParams = useSearchParams();
   const contractOldFromUrl = searchParams.get("contractOld");
   const contractNewFromUrl = searchParams.get("contractNew");
@@ -394,6 +394,12 @@ const ContractDiff = () => {
       </Table>
     </Layout>
   );
-};
+}
 
-export default ContractDiff;
+export default function ContractDiff() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ContractDiffContent />
+    </Suspense>
+  );
+}
