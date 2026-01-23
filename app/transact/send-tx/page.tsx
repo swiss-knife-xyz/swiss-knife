@@ -24,6 +24,7 @@ import {
   ToastId,
   Link,
   Button,
+  IconButton,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -381,13 +382,26 @@ function SendTxContent() {
         <VStack spacing={5}>
           <FormControl>
             <FormLabel>To Address</FormLabel>
-            <InputField
-              placeholder="address or ens. Leave blank to deploy contract"
-              value={to}
-              onChange={(e) => {
-                setTo(e.target.value);
-              }}
-            />
+            <HStack>
+              <InputField
+                placeholder="address or ens. Leave blank to deploy contract"
+                value={to}
+                onChange={(e) => {
+                  setTo(e.target.value);
+                }}
+              />
+              {to && chain?.blockExplorers?.default?.url && (
+                <IconButton
+                  as={Link}
+                  href={`${chain.blockExplorers.default.url}/address/${to}`}
+                  isExternal
+                  aria-label="View on explorer"
+                  icon={<ExternalLinkIcon />}
+                  size="sm"
+                  variant="ghost"
+                />
+              )}
+            </HStack>
           </FormControl>
           <FormControl mt="1rem">
             <FormLabel>
