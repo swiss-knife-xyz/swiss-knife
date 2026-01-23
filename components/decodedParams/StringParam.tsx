@@ -316,16 +316,17 @@ export const StringParam = ({
           let _urlContent = res.data;
           setUrlContent(_urlContent);
           try {
+            const stringified = JSON.stringify(_urlContent);
+            // Check for valid JSON object or array
             if (
               !(
-                JSON.stringify(_urlContent).startsWith("{") &&
-                JSON.stringify(_urlContent).endsWith("}")
+                (stringified.startsWith("{") && stringified.endsWith("}")) ||
+                (stringified.startsWith("[") && stringified.endsWith("]"))
               )
             ) {
               throw new Error("Invalid JSON");
             }
 
-            _urlContent = JSON.parse(JSON.stringify(_urlContent));
             setIsUrlImageOrJson({
               isJson: true,
             });
