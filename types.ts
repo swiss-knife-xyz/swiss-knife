@@ -87,7 +87,7 @@ export type DecodeEventResult = {
   eventName: string;
   signature: string;
   args: Arg[];
-} | null;
+};
 
 export type HighlightedText = {
   text: string;

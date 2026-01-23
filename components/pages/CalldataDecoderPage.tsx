@@ -655,10 +655,7 @@ function DecodedEventsView({ events, chainId }: DecodedEventsViewProps) {
 
   return (
     <Stack mt={8} spacing={6} minW="80%">
-      {events.map((event, idx) => {
-        if (!event) return null;
-
-        return (
+      {events.map((event, idx) => (
           <Box key={idx}>
             {/* Header */}
             <HStack mb={2}>
@@ -690,8 +687,7 @@ function DecodedEventsView({ events, chainId }: DecodedEventsViewProps) {
               )}
             </Stack>
           </Box>
-        );
-      })}
+        ))}
     </Stack>
   );
 }
