@@ -32,6 +32,8 @@ import {
   ModalCloseButton,
   ModalBody,
   Stack,
+  Avatar,
+  Spinner,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
@@ -51,7 +53,12 @@ import {
   ETHSelectedOptionState,
   publicClient,
   startHexWith0x,
+  getEnsAddress,
+  getEnsName,
+  getEnsAvatar,
+  slicedText,
 } from "@/utils";
+import debounce from "lodash/debounce";
 import { DarkButton } from "@/components/DarkButton";
 import { chainIdToChain } from "@/data/common";
 import { decodeRecursive } from "@/lib/decoder";
@@ -101,6 +108,83 @@ function SendTxContent() {
   const [isDecodeModalOpen, setIsDecodeModalOpen] = useState(false);
   const [isDecoding, setIsDecoding] = useState(false);
   const [decoded, setDecoded] = useState<any>();
+
+  // ENS resolution state
+  const [ensName, setEnsName] = useState("");
+  const [ensAvatar, setEnsAvatar] = useState("");
+  const [resolvedAddress, setResolvedAddress] = useState("");
+  const [isResolvingEns, setIsResolvingEns] = useState(false);
+  const [lastResolvedValue, setLastResolvedValue] = useState("");
+
+  // Debounced ENS resolution
+  const resolveEns = useCallback(
+    debounce(async (val: string) => {
+      if (!val || val === lastResolvedValue) return;
+      
+      try {
+        if (val.includes(".")) {
+          // Looks like an ENS name
+          setIsResolvingEns(true);
+          const address = await getEnsAddress(val);
+          if (address) {
+            setResolvedAddress(address);
+            setEnsName(val);
+            setLastResolvedValue(val);
+          } else {
+            setEnsName("");
+            setResolvedAddress("");
+          }
+        } else if (isAddress(val)) {
+          // It's an address, try to get reverse ENS
+          setIsResolvingEns(true);
+          setResolvedAddress(val);
+          try {
+            const name = await getEnsName(val);
+            if (name) {
+              setEnsName(name);
+            } else {
+              setEnsName("");
+            }
+          } catch {
+            setEnsName("");
+          }
+          setLastResolvedValue(val);
+        } else {
+          setEnsName("");
+          setResolvedAddress("");
+        }
+      } catch (error) {
+        console.error("Error resolving ENS:", error);
+        setEnsName("");
+        setResolvedAddress("");
+      } finally {
+        setIsResolvingEns(false);
+      }
+    }, 500),
+    [lastResolvedValue]
+  );
+
+  // Resolve ENS when "to" changes
+  useEffect(() => {
+    if (to && to !== lastResolvedValue) {
+      resolveEns(to);
+    } else if (!to) {
+      setEnsName("");
+      setResolvedAddress("");
+      setLastResolvedValue("");
+    }
+  }, [to, resolveEns, lastResolvedValue]);
+
+  // Fetch ENS avatar when ensName changes
+  useEffect(() => {
+    if (ensName) {
+      getEnsAvatar(ensName).then((avatar) => {
+        setEnsAvatar(avatar || "");
+      });
+    } else {
+      setEnsAvatar("");
+    }
+  }, [ensName]);
 
   useEffect(() => {
     const chainIdFromURL = searchParams.get("chainId");
@@ -259,17 +343,19 @@ function SendTxContent() {
           isClosable: true,
         });
       } else {
-        const resolvedTo = await resolveAddress(to);
+        // Use already-resolved address if available, otherwise resolve now
+        const resolvedTo = resolvedAddress || (await resolveAddress(to));
 
         if (!resolvedTo) {
           toast({
-            title: "Invalid address",
+            title: "Invalid address or ENS name",
             status: "error",
             position: "bottom-right",
             duration: 5_000,
             isClosable: true,
           });
 
+          setIsLoading(false);
           return;
         }
 
@@ -381,27 +467,48 @@ function SendTxContent() {
       <Container pb="3rem">
         <VStack spacing={5}>
           <FormControl>
-            <FormLabel>To Address</FormLabel>
-            <HStack>
-              <InputField
-                placeholder="address or ens. Leave blank to deploy contract"
-                value={to}
-                onChange={(e) => {
-                  setTo(e.target.value);
-                }}
-              />
-              {to && chain?.blockExplorers?.default?.url && (
-                <IconButton
-                  as={Link}
-                  href={`${chain.blockExplorers.default.url}/address/${to}`}
-                  isExternal
-                  aria-label="View on explorer"
-                  icon={<ExternalLinkIcon />}
-                  size="sm"
-                  variant="ghost"
-                />
+            <HStack mb={2}>
+              <FormLabel mb={0}>To Address</FormLabel>
+              <Spacer />
+              {isResolvingEns && <Spinner size="xs" />}
+              {ensName && !isResolvingEns && (
+                <HStack px={2} bg="whiteAlpha.200" rounded="md">
+                  {ensAvatar && (
+                    <Avatar
+                      src={ensAvatar}
+                      w="1.2rem"
+                      h="1.2rem"
+                      ignoreFallback
+                    />
+                  )}
+                  <Text fontSize="sm">{ensName}</Text>
+                </HStack>
               )}
+              {resolvedAddress && !isResolvingEns && resolvedAddress !== to && (
+                <Text fontSize="xs" color="whiteAlpha.600">
+                  {slicedText(resolvedAddress)}
+                </Text>
+              )}
+              {(resolvedAddress || isAddress(to ?? "")) &&
+                chain?.blockExplorers?.default?.url && (
+                  <IconButton
+                    as={Link}
+                    href={`${chain.blockExplorers.default.url}/address/${resolvedAddress || to}`}
+                    isExternal
+                    aria-label="View on explorer"
+                    icon={<ExternalLinkIcon />}
+                    size="xs"
+                    variant="ghost"
+                  />
+                )}
             </HStack>
+            <InputField
+              placeholder="address or ens. Leave blank to deploy contract"
+              value={to}
+              onChange={(e) => {
+                setTo(e.target.value.trim());
+              }}
+            />
           </FormControl>
           <FormControl mt="1rem">
             <FormLabel>
