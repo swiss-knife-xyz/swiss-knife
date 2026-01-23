@@ -723,15 +723,20 @@ export function decodeWithABI({
 
 export function decodeEventWithABI({
   abi,
-  topics, 
-  data,}: {
+  topics,
+  data,
+}: {
   abi: InterfaceAbi;
   topics: string[];
   data: string;
-  }): LogDescription | null {
-  const abiInterface = new Interface(abi);
-  const parsedEvent = abiInterface.parseLog({ topics, data });
-  return parsedEvent;
+}): LogDescription | null {
+  try {
+    const abiInterface = new Interface(abi);
+    const parsedEvent = abiInterface.parseLog({ topics, data });
+    return parsedEvent;
+  } catch {
+    return null;
+  }
 }
 
 export async function decodeRecursive({
