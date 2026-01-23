@@ -32,6 +32,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBook } from "@fortawesome/free-solid-svg-icons";
 import { isAddress } from "viem";
+import { useLocalStorage } from "usehooks-ts";
 import {
   getPath,
   slicedText,
@@ -45,6 +46,15 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { AddressBook } from "@/components/AddressBook";
 import axios from "axios";
 import { Sidebar, SidebarItem } from "../Sidebar";
+
+export interface RecentSearch {
+  input: string;
+  type: "address" | "tx";
+  timestamp: number;
+}
+
+export const RECENT_SEARCHES_KEY = "explorer-recent-searches";
+const MAX_RECENT_SEARCHES = 3;
 
 const isValidTransaction = (tx: string) => {
   return /^0x([A-Fa-f0-9]{64})$/.test(tx);
@@ -68,11 +78,33 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [addressLabels, setAddressLabels] = useState<string[]>([]);
 
+  const [recentSearches, setRecentSearches] = useLocalStorage<RecentSearch[]>(
+    RECENT_SEARCHES_KEY,
+    []
+  );
+
   const {
     isOpen: isAddressBookOpen,
     onOpen: openAddressBook,
     onClose: closeAddressBook,
   } = useDisclosure();
+
+  const addRecentSearch = (input: string, type: "address" | "tx") => {
+    const newSearch: RecentSearch = {
+      input,
+      type,
+      timestamp: Date.now(),
+    };
+
+    setRecentSearches((prev) => {
+      // Remove duplicate if exists
+      const filtered = prev.filter(
+        (s) => s.input.toLowerCase() !== input.toLowerCase()
+      );
+      // Add new search at the beginning and keep only MAX_RECENT_SEARCHES
+      return [newSearch, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+    });
+  };
 
   const handleSearch = async (_userInput?: string) => {
     setIsLoading(true);
@@ -83,6 +115,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
 
     if (__userInput) {
       if (isValidTransaction(__userInput)) {
+        addRecentSearch(__userInput, "tx");
         const newUrl = `${getPath(
           subdomains.EXPLORER.base,
           subdomains.EXPLORER.isRelativePath
@@ -96,6 +129,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
           }, 300);
         }
       } else if (isAddress(__userInput)) {
+        addRecentSearch(__userInput, "address");
         let newUrl: string;
 
         if (!pathname.includes("/contract")) {
@@ -129,6 +163,8 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
         try {
           const ensResolvedAddress = await resolveNameToAddress(__userInput);
           if (ensResolvedAddress) {
+            // Save the ENS name as the search input for better UX
+            addRecentSearch(__userInput, "address");
             setResolvedAddress(ensResolvedAddress);
             const newUrl = `${getPath(
               subdomains.EXPLORER.base,
