@@ -17,7 +17,7 @@ const subdomainToLabel = {
   [subdomains.STORAGE_SLOTS.base]: "Storage Slots",
   [subdomains.UNISWAP.base]: "Uniswap V3",
   [subdomains.CHARACTER_COUNTER.base]: "Character Counter",
-  [subdomains.CONTRACT_ADDRESS.base]: "Contract Address",
+  [subdomains.DETERMINE_ADDRESS.base]: "Determine Address",
   [subdomains.CONTRACT_DIFF.base]: "Contract Diff",
   [subdomains.FOUNDRY.base]: "Foundry",
   [subdomains.WALLET.base]: "Wallet",

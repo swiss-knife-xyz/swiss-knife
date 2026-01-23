@@ -18,7 +18,7 @@ All your EVM tools in one place: https://swiss-knife.xyz/
 7. [Storage-Slots](https://storage-slots.swiss-knife.xyz/): Query EIP-1967 slots or custom storage slot value of any contract.
 8. [Uniswap](https://uniswap.swiss-knife.xyz/tick-to-price): Calculator to convert UniswapV3 tick to price for any token pair addresses.
 9. [Character Counter](https://character-counter.swiss-knife.xyz/): Count the length of the input string. Also allows to select on the input text to only get the character count for the selection.
-10. [Contract Address](https://contract-address.swiss-knife.xyz/): Determine the contract address which will get deployed by an address at a particular nonce.
+10. [Determine Address](https://determine-address.swiss-knife.xyz/): Determine the contract address using CREATE or CREATE2 opcode.
 11. [Contract Diff](https://contract-diff.swiss-knife.xyz/): Compare verified contract source code across different chains.
 12. [Foundry](https://foundry.swiss-knife.xyz/forge-stack-tracer-ui): Visualize forge test stack traces in a collapsible, easy-to-navigate UI.
 13. [Wallet](https://wallet.swiss-knife.xyz/): Suite of wallet tools:
