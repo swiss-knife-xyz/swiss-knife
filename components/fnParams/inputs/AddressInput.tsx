@@ -13,9 +13,10 @@ import {
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   fetchContractAbi,
-  getEnsAddress,
-  getEnsAvatar,
-  getEnsName,
+  resolveNameToAddress,
+  resolveAddressToName,
+  getNameAvatar,
+  isResolvableName,
   getPath,
   slicedText,
 } from "@/utils";
@@ -71,9 +72,10 @@ export const AddressInput = ({
       setErrorResolving(false);
       console.log({ val });
       try {
-        if (val.includes(".eth")) {
+        // Check if it's a resolvable name (ENS, Basename, etc.)
+        if (isResolvableName(val)) {
           setIsResolving(true);
-          const address = await getEnsAddress(val);
+          const address = await resolveNameToAddress(val);
           if (address) {
             setResolvedAddress(address);
             setEnsName(val);
@@ -82,11 +84,12 @@ export const AddressInput = ({
             } as any);
             setLastResolvedValue(address);
           } else {
-            throw new Error("ENS resolution failed");
+            throw new Error("Name resolution failed");
           }
         } else if (val.length === 42) {
+          // It's an address, try reverse resolution
           try {
-            const name = await getEnsName(val);
+            const name = await resolveAddressToName(val);
             if (name) {
               setEnsName(name);
               setResolvedAddress(val);
@@ -107,7 +110,7 @@ export const AddressInput = ({
           setLastResolvedValue("");
         }
       } catch (error) {
-        console.error("Error resolving ENS:", error);
+        console.error("Error resolving name:", error);
         setErrorResolving(true);
         setEnsName("");
         setResolvedAddress("");
@@ -185,7 +188,7 @@ export const AddressInput = ({
 
   useEffect(() => {
     if (ensName) {
-      getEnsAvatar(ensName).then((avatar) => {
+      getNameAvatar(ensName).then((avatar) => {
         setEnsAvatar(avatar || "");
       });
     } else {

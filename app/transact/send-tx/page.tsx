@@ -34,6 +34,7 @@ import {
   Stack,
   Avatar,
   Spinner,
+  Tooltip,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
@@ -53,9 +54,10 @@ import {
   ETHSelectedOptionState,
   publicClient,
   startHexWith0x,
-  getEnsAddress,
-  getEnsName,
-  getEnsAvatar,
+  resolveNameToAddress,
+  resolveAddressToName,
+  getNameAvatar,
+  isResolvableName,
   slicedText,
 } from "@/utils";
 import debounce from "lodash/debounce";
@@ -116,16 +118,16 @@ function SendTxContent() {
   const [isResolvingEns, setIsResolvingEns] = useState(false);
   const [lastResolvedValue, setLastResolvedValue] = useState("");
 
-  // Debounced ENS resolution
+  // Debounced name resolution (ENS, Basename, etc.)
   const resolveEns = useCallback(
     debounce(async (val: string) => {
       if (!val || val === lastResolvedValue) return;
       
       try {
-        if (val.includes(".")) {
-          // Looks like an ENS name
+        if (isResolvableName(val)) {
+          // Looks like a name (ENS, Basename, etc.)
           setIsResolvingEns(true);
-          const address = await getEnsAddress(val);
+          const address = await resolveNameToAddress(val);
           if (address) {
             setResolvedAddress(address);
             setEnsName(val);
@@ -135,11 +137,11 @@ function SendTxContent() {
             setResolvedAddress("");
           }
         } else if (isAddress(val)) {
-          // It's an address, try to get reverse ENS
+          // It's an address, try to get reverse resolution
           setIsResolvingEns(true);
           setResolvedAddress(val);
           try {
-            const name = await getEnsName(val);
+            const name = await resolveAddressToName(val);
             if (name) {
               setEnsName(name);
             } else {
@@ -154,7 +156,7 @@ function SendTxContent() {
           setResolvedAddress("");
         }
       } catch (error) {
-        console.error("Error resolving ENS:", error);
+        console.error("Error resolving name:", error);
         setEnsName("");
         setResolvedAddress("");
       } finally {
@@ -175,10 +177,10 @@ function SendTxContent() {
     }
   }, [to, resolveEns, lastResolvedValue]);
 
-  // Fetch ENS avatar when ensName changes
+  // Fetch avatar when ensName changes
   useEffect(() => {
     if (ensName) {
-      getEnsAvatar(ensName).then((avatar) => {
+      getNameAvatar(ensName).then((avatar) => {
         setEnsAvatar(avatar || "");
       });
     } else {
@@ -485,9 +487,14 @@ function SendTxContent() {
                 </HStack>
               )}
               {resolvedAddress && !isResolvingEns && resolvedAddress !== to && (
-                <Text fontSize="xs" color="whiteAlpha.600">
-                  {slicedText(resolvedAddress)}
-                </Text>
+                <HStack spacing={1}>
+                  <Tooltip label={resolvedAddress} placement="top">
+                    <Text fontSize="xs" color="whiteAlpha.600" cursor="default">
+                      {slicedText(resolvedAddress)}
+                    </Text>
+                  </Tooltip>
+                  <CopyToClipboard textToCopy={resolvedAddress} size="xs" />
+                </HStack>
               )}
               {(resolvedAddress || isAddress(to ?? "")) &&
                 chain?.blockExplorers?.default?.url && (

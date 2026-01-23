@@ -34,7 +34,7 @@ import { baseURL } from "@/config";
 import { useAccount, useReadContract, useWalletClient } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { formatUnits } from "viem";
-import { getEnsAddress, getEnsAvatar } from "@/utils";
+import { resolveNameToAddress, getNameAvatar, isResolvableName } from "@/utils";
 import debounce from "lodash/debounce";
 import axios from "axios";
 // @ts-ignore - x402-axios has dual package exports which may cause TS resolution issues
@@ -134,14 +134,14 @@ function USDCPayContent() {
         }
 
         // Check if it's an ENS or Basename
-        if (val.includes(".eth")) {
+        if (isResolvableName(val)) {
           setIsResolving(true);
           setIsLoadingAvatar(true);
           setResolutionFailed(false);
           setFarcasterUsername("");
           setFarcasterAvatar("");
           try {
-            const resolvedAddr = await getEnsAddress(val);
+            const resolvedAddr = await resolveNameToAddress(val);
             if (resolvedAddr) {
               setResolvedAddress(resolvedAddr);
               setEnsName(val);
@@ -155,7 +155,7 @@ function USDCPayContent() {
               setResolutionFailed(true);
             }
           } catch (error) {
-            console.error("Error resolving ENS:", error);
+            console.error("Error resolving name:", error);
             setResolvedAddress("");
             setEnsName("");
             setEnsAvatar("");
@@ -235,11 +235,11 @@ function USDCPayContent() {
     []
   );
 
-  // Fetch ENS avatar when ensName changes
+  // Fetch avatar when ensName changes
   useEffect(() => {
     if (ensName) {
       // isLoadingAvatar is already set to true by resolveEns
-      getEnsAvatar(ensName).then((avatarUrl) => {
+      getNameAvatar(ensName).then((avatarUrl) => {
         if (avatarUrl) {
           // Preload the image before setting it
           const img = document.createElement("img");
@@ -1027,8 +1027,8 @@ function USDCPayContent() {
                     amount === "" ||
                     isResolving ||
                     resolutionFailed ||
-                    // For ENS/Farcaster, need resolved address
-                    ((address.includes(".eth") ||
+                    // For ENS/Basename/Farcaster, need resolved address
+                    ((isResolvableName(address) ||
                       (isFarcasterUsername(address) &&
                         address.startsWith("@"))) &&
                       !resolvedAddress) ||

@@ -32,7 +32,7 @@ import {
   Code,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon, CopyIcon } from "@chakra-ui/icons";
-import { publicClient, getEnsName, fetchContractAbi } from "@/utils";
+import { publicClient, resolveAddressToName, fetchContractAbi } from "@/utils";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 import axios from "axios";
 import { normalize } from "viem/ens";
@@ -211,8 +211,8 @@ const ENSHistory = () => {
 
           setIsLoading(true);
           try {
-            // Try to get ENS name
-            const name = await getEnsName(address);
+            // Try to get ENS name or Basename
+            const name = await resolveAddressToName(address);
             setResolvedEnsName(name);
 
             // If no ENS name, try to fetch labels or contract name

@@ -22,6 +22,7 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
+  Tooltip,
 } from "@chakra-ui/react";
 import {
   ExternalLinkIcon,
@@ -34,9 +35,9 @@ import { isAddress } from "viem";
 import {
   getPath,
   slicedText,
-  getEnsAddress,
-  getEnsAvatar,
-  getEnsName,
+  resolveNameToAddress,
+  getNameAvatar,
+  resolveAddressToName,
 } from "@/utils";
 import subdomains from "@/subdomains";
 import { Layout } from "@/components/Layout";
@@ -117,7 +118,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
           }, 300);
         }
 
-        getEnsName(__userInput).then((res) => {
+        resolveAddressToName(__userInput).then((res) => {
           if (res) {
             setResolvedEnsName(res);
           } else {
@@ -126,7 +127,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
         });
       } else {
         try {
-          const ensResolvedAddress = await getEnsAddress(__userInput);
+          const ensResolvedAddress = await resolveNameToAddress(__userInput);
           if (ensResolvedAddress) {
             setResolvedAddress(ensResolvedAddress);
             const newUrl = `${getPath(
@@ -204,7 +205,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (resolvedEnsName) {
-      getEnsAvatar(resolvedEnsName).then((res) => {
+      getNameAvatar(resolvedEnsName).then((res) => {
         if (res) {
           setResolvedEnsAvatar(res);
         } else {
@@ -330,11 +331,13 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                 {resolvedEnsAvatar ? (
                   <Avatar src={resolvedEnsAvatar} w={"2rem"} h={"2rem"} />
                 ) : null}
-                <Text>
-                  {resolvedAddress
-                    ? slicedText(resolvedAddress)
-                    : resolvedEnsName}
-                </Text>
+                <Tooltip label={resolvedAddress || resolvedEnsName} placement="top">
+                  <Text cursor="default">
+                    {resolvedAddress
+                      ? slicedText(resolvedAddress)
+                      : resolvedEnsName}
+                  </Text>
+                </Tooltip>
                 {resolvedAddress ? (
                   <CopyToClipboard textToCopy={resolvedAddress} />
                 ) : (

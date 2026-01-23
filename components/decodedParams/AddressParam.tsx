@@ -13,7 +13,7 @@ import {
   Link,
   Skeleton,
 } from "@chakra-ui/react";
-import { getEnsName, getEnsAvatar, getPath, fetchContractAbi } from "@/utils";
+import { resolveAddressToName, getNameAvatar, getPath, fetchContractAbi } from "@/utils";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
 import subdomains from "@/subdomains";
@@ -99,7 +99,7 @@ export const AddressParam = ({
 
   useEffect(() => {
     if (address !== skeletonAddress) {
-      getEnsName(address).then((res) => {
+      resolveAddressToName(address).then((res) => {
         if (res) {
           setEnsName(res);
           setShowEns(true);
@@ -116,7 +116,7 @@ export const AddressParam = ({
 
   useEffect(() => {
     if (ensName) {
-      getEnsAvatar(ensName).then((res) => {
+      getNameAvatar(ensName).then((res) => {
         if (res) {
           setEnsAvatar(res);
         }
@@ -191,7 +191,7 @@ export const AddressParam = ({
               px={4}
               py={5}
             >
-              {showEns ? "Address" : "ENS"}
+              {showEns ? "Address" : "Name"}
             </Button>
           ) : null}
           <InputGroup>

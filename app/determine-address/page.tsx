@@ -14,13 +14,15 @@ import {
   Spacer,
   Avatar,
   Spinner,
+  Tooltip,
 } from "@chakra-ui/react";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { getContractAddress, Hex, toBytes, isHex, isAddress } from "viem";
 import { Layout } from "@/components/Layout";
 import { InputField } from "@/components/InputField";
 import { Label } from "@/components/Label";
 import TabsSelector from "@/components/Tabs/TabsSelector";
-import { getEnsAddress, getEnsName, getEnsAvatar, slicedText } from "@/utils";
+import { resolveNameToAddress, resolveAddressToName, getNameAvatar, isResolvableName, slicedText } from "@/utils";
 import debounce from "lodash/debounce";
 
 type OpcodeMode = "CREATE" | "CREATE2";
@@ -47,16 +49,16 @@ const DetermineContractAddress = () => {
   const [isResolvingEns, setIsResolvingEns] = useState(false);
   const [lastResolvedValue, setLastResolvedValue] = useState("");
 
-  // Debounced ENS resolution
+  // Debounced name resolution (ENS, Basename, etc.)
   const resolveEns = useCallback(
     debounce(async (val: string) => {
       if (!val || val === lastResolvedValue) return;
 
       try {
-        if (val.includes(".")) {
-          // Looks like an ENS name
+        if (isResolvableName(val)) {
+          // Looks like a name (ENS, Basename, etc.)
           setIsResolvingEns(true);
-          const address = await getEnsAddress(val);
+          const address = await resolveNameToAddress(val);
           if (address) {
             setResolvedAddress(address);
             setEnsName(val);
@@ -66,11 +68,11 @@ const DetermineContractAddress = () => {
             setResolvedAddress("");
           }
         } else if (isAddress(val)) {
-          // It's an address, try to get reverse ENS
+          // It's an address, try to get reverse resolution
           setIsResolvingEns(true);
           setResolvedAddress(val);
           try {
-            const name = await getEnsName(val);
+            const name = await resolveAddressToName(val);
             if (name) {
               setEnsName(name);
             } else {
@@ -85,7 +87,7 @@ const DetermineContractAddress = () => {
           setResolvedAddress("");
         }
       } catch (error) {
-        console.error("Error resolving ENS:", error);
+        console.error("Error resolving name:", error);
         setEnsName("");
         setResolvedAddress("");
       } finally {
@@ -106,10 +108,10 @@ const DetermineContractAddress = () => {
     }
   }, [deployerAddress, resolveEns, lastResolvedValue]);
 
-  // Fetch ENS avatar when ensName changes
+  // Fetch avatar when ensName changes
   useEffect(() => {
     if (ensName) {
-      getEnsAvatar(ensName).then((avatar) => {
+      getNameAvatar(ensName).then((avatar) => {
         setEnsAvatar(avatar || "");
       });
     } else {
@@ -205,9 +207,14 @@ const DetermineContractAddress = () => {
                   {resolvedAddress &&
                     !isResolvingEns &&
                     resolvedAddress !== deployerAddress && (
-                      <Text fontSize="xs" color="whiteAlpha.600">
-                        {slicedText(resolvedAddress)}
-                      </Text>
+                      <HStack spacing={1}>
+                        <Tooltip label={resolvedAddress} placement="top">
+                          <Text fontSize="xs" color="whiteAlpha.600" cursor="default">
+                            {slicedText(resolvedAddress)}
+                          </Text>
+                        </Tooltip>
+                        <CopyToClipboard textToCopy={resolvedAddress} size="xs" />
+                      </HStack>
                     )}
                 </HStack>
                 <InputField
