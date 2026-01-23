@@ -79,8 +79,6 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const [pasted, setPasted] = useState(false);
   const [decodedEvents, setDecodedEvents] = useState<DecodeEventResult[] | null>(null);
-  const [isEventsLoading, setIsEventsLoading] = useState(false);
-  const [eventsError, setEventsError] = useState<string | null>(null);
 
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
 
@@ -225,9 +223,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const decodeFromTx = async (_fromTxInput?: string, _chainId?: number) => {
     console.log("decodeFromTx called");
     setIsLoading(true);
-    setIsEventsLoading(true);
     setDecodedEvents(null);
-    setEventsError(null);
 
     const __fromTxInput = _fromTxInput || fromTxInput;
 
@@ -246,7 +242,6 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
           setTxShowSelectNetwork(true);
           if (!_chainId) {
             setIsLoading(false);
-            setIsEventsLoading(false);
             console.log("decodeFromTx early return: network not selected");
             return;
           }
@@ -313,13 +308,10 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
         console.log({ DECODED_EVENTS: events });
         setDecodedEvents(events);
       } catch (e: any) {
-        setEventsError(e.message || 'Failed to decode events');
-      } finally {
-        setIsEventsLoading(false);
+        console.log("Failed to decode events:", e.message);
       }
     } catch {
       setIsLoading(false);
-      setIsEventsLoading(false);
       toast({
         title: "Can't fetch transaction",
         status: "error",
