@@ -668,41 +668,91 @@ function DecodedEventsView({ events, chainId }: DecodedEventsViewProps) {
   if (!events || events.length === 0) return null;
 
   return (
-    <Stack mt={8} spacing={6} minW="80%">
+    <Stack mt={4} spacing={4} minW="80%">
       {events.map((event, idx) => (
-          <Box key={idx}>
-            {/* Header */}
-            <HStack mb={2}>
-              <Box>
-                <Box fontSize="xs" color="whiteAlpha.600">
-                  event
-                </Box>
-                <Box fontWeight="bold">{event.eventName}</Box>
-              </Box>
-
-              <Spacer />
-
-              <CopyToClipboard
-                textToCopy={event.signature}
-                labelText="Copy signature"
-              />
-            </HStack>
-
-            {/* Params — EXACT same UI as calldata */}
-            <Stack
-              p={4}
-              spacing={4}
-              minW="40rem"
-              bg="whiteAlpha.50"
-              rounded="lg"
-            >
-              {event.args.map((arg, i) =>
-                renderParams(i, arg, chainId)
-              )}
-            </Stack>
-          </Box>
-        ))}
+        <EventItem
+          key={idx}
+          event={event}
+          index={idx}
+          chainId={chainId}
+        />
+      ))}
     </Stack>
+  );
+}
+
+type EventItemProps = {
+  event: DecodeEventResult;
+  index: number;
+  chainId: number;
+};
+
+function EventItem({ event, index, chainId }: EventItemProps) {
+  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: index === 0 });
+
+  return (
+    <Box
+      border="1px solid"
+      borderColor="whiteAlpha.200"
+      rounded="lg"
+      overflow="hidden"
+    >
+      {/* Collapsible Header */}
+      <HStack
+        p={3}
+        bg="whiteAlpha.100"
+        cursor="pointer"
+        onClick={onToggle}
+        _hover={{ bg: "whiteAlpha.200" }}
+      >
+        <HStack spacing={3}>
+          <Box
+            fontSize="xs"
+            color="whiteAlpha.600"
+            bg="whiteAlpha.200"
+            px={2}
+            py={0.5}
+            rounded="md"
+          >
+            #{index + 1}
+          </Box>
+          <Box>
+            <Box fontSize="xs" color="whiteAlpha.600">
+              event
+            </Box>
+            <Box fontWeight="bold">{event.eventName}</Box>
+          </Box>
+        </HStack>
+
+        <Spacer />
+
+        <HStack spacing={2}>
+          <Box onClick={(e) => e.stopPropagation()}>
+            <CopyToClipboard
+              textToCopy={event.signature}
+              labelText="Copy signature"
+            />
+          </Box>
+          <Text fontSize="xl" fontWeight="bold">
+            {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+          </Text>
+        </HStack>
+      </HStack>
+
+      {/* Collapsible Content */}
+      <Collapse in={isOpen} animateOpacity>
+        <Stack
+          p={4}
+          spacing={4}
+          minW="40rem"
+          bg="whiteAlpha.50"
+        >
+          {event.args.map((arg, i) =>
+            renderParams(i, arg, chainId)
+          )}
+        </Stack>
+      </Collapse>
+    </Box>
   );
 }
 
