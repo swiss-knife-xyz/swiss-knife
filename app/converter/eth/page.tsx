@@ -16,6 +16,7 @@ import { parseAsString, useQueryState } from "next-usequerystate";
 import {
   parseEther,
   parseGwei,
+  parseUnits,
   formatEther,
   formatGwei,
   formatUnits,
@@ -78,7 +79,7 @@ function ETHUnitConverterContent() {
       if (exceptUnit !== "gwei") setGwei(formatGwei(BigInt(inWei)));
       if (exceptUnit !== "eth") setEth(formatEther(BigInt(inWei)));
       if (exceptUnit !== "unit") {
-        const unitValue = formatUnits(BigInt(inWei), 18 - exponent);
+        const unitValue = formatUnits(BigInt(inWei), exponent);
         setUnit(unitValue);
       }
       if (exceptUnit !== "usd") {
@@ -107,7 +108,7 @@ function ETHUnitConverterContent() {
 
   const recalculateUnit = () => {
     if (wei) {
-      const unitValue = formatUnits(BigInt(wei), 18 - exponent);
+      const unitValue = formatUnits(BigInt(wei), exponent);
       setUnit(unitValue);
     }
   };
@@ -199,9 +200,7 @@ function ETHUnitConverterContent() {
                 value={unit}
                 onChange={(e) =>
                   handleOnChange(e, "unit", (value) =>
-                    parseEther(
-                      (parseFloat(value) / 10 ** exponent).toString()
-                    ).toString()
+                    parseUnits(value, exponent).toString()
                   )
                 }
               />
