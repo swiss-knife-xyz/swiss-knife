@@ -90,4 +90,20 @@ export const subdomainToInfo = {
     description:
       "Stats about 7702 adoption across EVM chains, Wallets and Dapps",
   },
+  [subdomains.APPS.base]: {
+    emoji: "🏪",
+    label: "Web3 App Store",
+    description:
+      "Access any dapp with the power of ETH.sh decoder as middleware",
+  },
+  [subdomains.SOLIDITY.base]: {
+    emoji: "📜",
+    label: "Solidity",
+    description: "Compile Solidity contracts directly in your browser",
+  },
+  [subdomains.USDC_PAY.base]: {
+    emoji: "💵",
+    label: "USDC Pay",
+    description: "Create shareable payment links for USDC transfers",
+  },
 };
