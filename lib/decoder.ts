@@ -10,6 +10,7 @@ import {
   DecodeParamTypesResult,
   DecodeRecursiveResult,
   DecodeTupleParamResult,
+  DecodeEventResult,
   ParsedTransaction,
 } from "@/types";
 import { fetchContractAbi, startHexWith0x } from "@/utils";
@@ -22,6 +23,7 @@ import {
   ParamType,
   Result,
   TransactionDescription,
+  LogDescription,
 } from "ethers";
 import {
   decodeAbiParameters,
@@ -719,6 +721,24 @@ export function decodeWithABI({
   return parsedTransaction;
 }
 
+export function decodeEventWithABI({
+  abi,
+  topics,
+  data,
+}: {
+  abi: InterfaceAbi;
+  topics: string[];
+  data: string;
+}): LogDescription | null {
+  try {
+    const abiInterface = new Interface(abi);
+    const parsedEvent = abiInterface.parseLog({ topics, data });
+    return parsedEvent;
+  } catch {
+    return null;
+  }
+}
+
 export async function decodeRecursive({
   calldata,
   address,
@@ -930,6 +950,78 @@ export async function decodeRecursive({
   } else {
     return null;
   }
+}
+
+/**
+ * Decodes Ethereum event logs for a contract on a given chain.
+ * @param logs - Array of log objects ({ topics, data })
+ * @param chainId - Chain ID
+ * @param address - Contract address
+ * @returns Array of decoded event objects (eventName, args)
+ */
+export async function decodeEvents({
+  logs,
+  chainId,
+  address,
+}: {
+  logs: Array<{ topics: string[]; data: string }>;
+  chainId: number;
+  address: string;
+}): Promise<DecodeEventResult[]> {
+  let fetchedAbi;
+
+  try {
+    fetchedAbi = await fetchContractAbi({ address, chainId });
+  } catch (error) {
+    console.log("Failed to fetch contract ABI:", error);
+    return [];
+  }
+
+  const decodedEvents: DecodeEventResult[] = [];
+
+  for (const log of logs) {
+    try {
+      const decodedEvent = decodeEventWithABI({
+        abi: fetchedAbi.abi,
+        topics: log.topics,
+        data: log.data,
+      });
+
+      if (!decodedEvent) continue;
+
+      const fragment = decodedEvent.fragment;
+
+      const args = await Promise.all(
+        fragment.inputs.map(async (input, i) => {
+          const rawValue = decodedEvent.args[i];
+
+          return {
+            name: input.name,
+            baseType: input.baseType,
+            type: input.type,
+            rawValue,
+            value: await decodeParamTypes({
+              input,
+              value: rawValue,
+              address,
+              chainId,
+              abi: fetchedAbi.abi,
+            }),
+          };
+        })
+      );
+      decodedEvents.push({
+        eventName: decodedEvent.name,
+        signature: decodedEvent.signature,
+        args,
+      });
+    } catch (error) {
+      console.log("Failed to decode event log:", error);
+      continue;
+    }
+  }
+
+  return decodedEvents;
 }
 
 const decodeParamTypes = async ({
