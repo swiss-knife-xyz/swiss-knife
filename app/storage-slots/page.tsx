@@ -29,7 +29,7 @@ import { c, chainIdToChain } from "@/data/common";
 import { Address, encodePacked, keccak256, createPublicClient, http, erc20Abi } from "viem";
 import { resolveAddressToName, getNameAvatar } from "@/lib/nameResolution";
 import { fetchContractAbi } from "@/utils";
-import axios from "axios";
+import { fetchAddressLabels } from "@/utils/addressLabels";
 
 const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
   (k, i) => ({
@@ -387,15 +387,9 @@ const AddressValue = ({
 
       // Fallback to labels API
       try {
-        const res = await axios.get(
-          `${
-            process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-              ? ""
-              : "https://swiss-knife.xyz"
-          }/api/labels/${address}?chainId=${chainId}`
-        );
-        if (res.data.length > 0) {
-          setLabels(res.data);
+        const labels = await fetchAddressLabels(address, chainId);
+        if (labels.length > 0) {
+          setLabels(labels);
         }
       } catch {}
     } catch {}

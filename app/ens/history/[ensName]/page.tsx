@@ -34,7 +34,7 @@ import {
 import { ExternalLinkIcon, CopyIcon } from "@chakra-ui/icons";
 import { publicClient, resolveAddressToName, fetchContractAbi } from "@/utils";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
-import axios from "axios";
+import { fetchAddressLabels } from "@/utils/addressLabels";
 import { normalize } from "viem/ens";
 import contentHash from "content-hash";
 import { encodePacked, erc721Abi, keccak256, labelhash } from "viem";
@@ -221,16 +221,9 @@ const ENSHistory = () => {
 
               // First try to fetch labels from API
               try {
-                const res = await axios.get(
-                  `${
-                    process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-                      ? ""
-                      : "https://swiss-knife.xyz"
-                  }/api/labels/${address}?chainId=1`
-                );
-                const data = res.data;
-                if (data.length > 0) {
-                  setAddressLabels([data[0]]);
+                const labels = await fetchAddressLabels(address, 1);
+                if (labels.length > 0) {
+                  setAddressLabels([labels[0]]);
                   labelsFound = true;
                 }
               } catch (error) {

@@ -14,8 +14,8 @@ import {
   Skeleton,
 } from "@chakra-ui/react";
 import { resolveAddressToName, getNameAvatar, getPath, fetchContractAbi } from "@/utils";
+import { fetchAddressLabels } from "@/utils/addressLabels";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-import axios from "axios";
 import subdomains from "@/subdomains";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { motion } from "framer-motion";
@@ -80,16 +80,9 @@ export const AddressParam = ({
       }
     } catch {
       try {
-        const res = await axios.get(
-          `${
-            process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-              ? ""
-              : "https://swiss-knife.xyz"
-          }/api/labels/${address}`
-        );
-        const data = res.data;
-        if (data.length > 0) {
-          setAddressLabels(data);
+        const labels = await fetchAddressLabels(address, chainId);
+        if (labels.length > 0) {
+          setAddressLabels(labels);
         }
       } catch {
         setAddressLabels([]);

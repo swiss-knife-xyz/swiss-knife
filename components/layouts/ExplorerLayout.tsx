@@ -44,7 +44,7 @@ import subdomains from "@/subdomains";
 import { Layout } from "@/components/Layout";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { AddressBook } from "@/components/AddressBook";
-import axios from "axios";
+import { fetchAddressLabels } from "@/utils/addressLabels";
 import { Sidebar, SidebarItem } from "../Sidebar";
 
 export interface RecentSearch {
@@ -193,16 +193,9 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
 
   const fetchSetAddressLabel = async () => {
     try {
-      const res = await axios.get(
-        `${
-          process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-            ? ""
-            : "https://swiss-knife.xyz"
-        }/api/labels/${userInput}`
-      );
-      const data = res.data;
-      if (data.length > 0) {
-        setAddressLabels(data);
+      const labels = await fetchAddressLabels(userInput);
+      if (labels.length > 0) {
+        setAddressLabels(labels);
       } else {
         setAddressLabels([]);
       }

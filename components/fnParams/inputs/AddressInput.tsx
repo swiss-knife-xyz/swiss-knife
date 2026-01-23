@@ -28,7 +28,7 @@ import debounce from "lodash/debounce";
 import { motion, AnimatePresence } from "framer-motion";
 import { InputField } from "@/components/InputField";
 import { Address, createPublicClient, http, zeroAddress, erc20Abi } from "viem";
-import axios from "axios";
+import { fetchAddressLabels } from "@/utils/addressLabels";
 import { chainIdToChain } from "@/data/common";
 
 interface InputFieldProps extends InputProps {
@@ -155,16 +155,9 @@ export const AddressInput = ({
         }
       } catch {
         try {
-          const res = await axios.get(
-            `${
-              process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-                ? ""
-                : "https://swiss-knife.xyz"
-            }/api/labels/${val}`
-          );
-          const data = res.data;
-          if (data.length > 0) {
-            setAddressLabels(data);
+          const labels = await fetchAddressLabels(val, chainId);
+          if (labels.length > 0) {
+            setAddressLabels(labels);
           }
         } catch {
           setAddressLabels([]);

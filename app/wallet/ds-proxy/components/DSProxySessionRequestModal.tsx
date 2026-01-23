@@ -54,7 +54,7 @@ import {
 import { renderParams } from "@/components/renderParams";
 import { chainIdToChain } from "@/data/common";
 import { useCallback, useEffect, useState } from "react";
-import axios from "axios";
+import { fetchAddressLabels } from "@/utils/addressLabels";
 import { fetchContractAbi, generateTenderlyUrl } from "@/utils";
 import { BsArrowsAngleExpand, BsArrowsAngleContract } from "react-icons/bs";
 import { DS_PROXY_ABI } from "../abi/DSProxy";
@@ -189,16 +189,9 @@ export default function DSProxySessionRequestModal({
         }
       } catch {
         try {
-          const res = await axios.get(
-            `${
-              process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-                ? ""
-                : "https://swiss-knife.xyz"
-            }/api/labels/${address}`
-          );
-          const data = res.data;
-          if (data.length > 0) {
-            setAddressLabels(data);
+          const labels = await fetchAddressLabels(address);
+          if (labels.length > 0) {
+            setAddressLabels(labels);
           }
         } catch {
           setAddressLabels([]);
