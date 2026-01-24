@@ -48,6 +48,7 @@ import { Editor } from "@monaco-editor/react";
 
 import { InputField } from "@/components/InputField";
 import { renderParams } from "@/components/renderParams";
+import { TreeView } from "@/components/decodedParams/TreeView";
 import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { DarkSelect } from "@/components/DarkSelect";
@@ -81,6 +82,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const [decodedEvents, setDecodedEvents] = useState<
     DecodeEventResult[] | null
   >(null);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
 
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   const [resultTabIndex, setResultTabIndex] = useState(0); // 0 = Calldata, 1 = Events
@@ -229,6 +231,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     console.log("decodeFromTx called");
     setIsLoading(true);
     setDecodedEvents(null);
+    setIsLoadingEvents(false);
     setResultTabIndex(0); // Reset to Calldata tab for new decode
 
     const __fromTxInput = _fromTxInput || fromTxInput;
@@ -290,34 +293,45 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       const transaction = await publicClient.getTransaction({
         hash: txHash as Hex,
       });
-      const txReceipt = await publicClient.getTransactionReceipt({
-        hash: txHash as Hex,
-      });
-
+      
+      // Start decoding calldata first (priority)
       decode({
         _calldata: transaction.input,
         _address: transaction.to!,
         _chainId: chain.id,
       });
 
-      try {
-        console.log("decodeEvents about to be called");
-        // Decode events from the target contract only
-        const events = await decodeEvents({
-          logs: txReceipt.logs.map((log) => ({
-            topics: log.topics,
-            data: log.data,
-          })),
-          chainId: chain.id,
-          address: transaction.to!,
-        });
-        console.log({ DECODED_EVENTS: events });
-        setDecodedEvents(events);
-      } catch (e: any) {
-        console.log("Failed to decode events:", e.message);
-      }
+      // Decode events in the background (non-blocking)
+      setIsLoadingEvents(true);
+      publicClient.getTransactionReceipt({
+        hash: txHash as Hex,
+      }).then(async (txReceipt) => {
+        try {
+          console.log("decodeEvents about to be called (background)");
+          const events = await decodeEvents({
+            logs: txReceipt.logs.map((log) => ({
+              topics: log.topics,
+              data: log.data,
+            })),
+            chainId: chain.id,
+            address: transaction.to!,
+          });
+          console.log({ DECODED_EVENTS: events });
+          setDecodedEvents(events);
+        } catch (e: any) {
+          console.log("Failed to decode events:", e.message);
+          setDecodedEvents([]);
+        } finally {
+          setIsLoadingEvents(false);
+        }
+      }).catch((e) => {
+        console.log("Failed to get tx receipt:", e.message);
+        setDecodedEvents([]);
+        setIsLoadingEvents(false);
+      });
     } catch {
       setIsLoading(false);
+      setIsLoadingEvents(false);
       toast({
         title: "Can't fetch transaction",
         status: "error",
@@ -709,73 +723,82 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       </VStack>
 
       {/* Result Tabs for "from Tx" mode */}
-      {selectedTabIndex === 3 &&
-        (result || (decodedEvents && decodedEvents.length > 0)) && (
-          <Box mb={4}>
-            <TabsSelector
-              tabs={[
-                "Calldata",
-                `Events${decodedEvents?.length ? ` (${decodedEvents.length})` : ""}`,
-              ]}
-              selectedTabIndex={resultTabIndex}
-              setSelectedTabIndex={setResultTabIndex}
-            />
-          </Box>
-        )}
+      {selectedTabIndex === 3 && result && (
+        <Box mb={4}>
+          <TabsSelector
+            tabs={[
+              "Calldata",
+              isLoadingEvents
+                ? "Events (...)"
+                : `Events (${decodedEvents?.length ?? 0})`,
+            ]}
+            selectedTabIndex={resultTabIndex}
+            setSelectedTabIndex={setResultTabIndex}
+          />
+        </Box>
+      )}
 
       {/* Calldata Result - show directly for non-Tx modes, or when Calldata tab selected for Tx mode */}
       {result && (selectedTabIndex !== 3 || resultTabIndex === 0) && (
         <Box maxW="800px" mx="auto">
-          {result.functionName && result.functionName !== "__abi_decoded__" && (
-            <HStack
-              p={4}
-              bg="whiteAlpha.100"
-              borderRadius="lg"
-              border="1px solid"
-              borderColor="whiteAlpha.200"
-              mb={4}
-            >
-              <Box>
-                <Text fontSize="xs" color="gray.500">
-                  function
-                </Text>
-                <Text color="gray.100" fontWeight="medium">
-                  {result.functionName}
-                </Text>
-              </Box>
-              <Spacer />
-              <CopyToClipboard
-                textToCopy={JSON.stringify(
-                  {
-                    function: result.signature,
-                    params: JSON.parse(stringify(result.rawArgs)),
-                  },
-                  undefined,
-                  2
-                )}
-                labelText="Copy params"
-              />
-            </HStack>
-          )}
-          <Stack
+          {/* Copy params button - outside the box */}
+          <HStack mb={2} justify="flex-end">
+            <CopyToClipboard
+              textToCopy={JSON.stringify(
+                {
+                  function: result.signature,
+                  params: JSON.parse(stringify(result.rawArgs)),
+                },
+                undefined,
+                2
+              )}
+              labelText="Copy params"
+            />
+          </HStack>
+          <Box
             p={4}
-            spacing={4}
             bg="whiteAlpha.50"
             borderRadius="lg"
             border="1px solid"
             borderColor="whiteAlpha.200"
+            data-tree-wrapper="true"
           >
-            {result.args.map((arg, i: number) => {
-              return renderParams(i, arg, chainId);
-            })}
-          </Stack>
+            <TreeView
+              args={result.args}
+              chainId={chainId}
+              functionName={result.functionName}
+            />
+          </Box>
         </Box>
       )}
 
       {/* Decoded Events Section - only show when Events tab selected in Tx mode */}
       {selectedTabIndex === 3 && resultTabIndex === 1 && (
         <Box maxW="800px" mx="auto">
-          <DecodedEventsView events={decodedEvents || []} chainId={chainId} />
+          {isLoadingEvents ? (
+            <Box p={6} bg="whiteAlpha.50" borderRadius="lg" border="1px solid" borderColor="whiteAlpha.200">
+              <HStack spacing={3}>
+                <Box
+                  w={4}
+                  h={4}
+                  borderRadius="full"
+                  border="2px solid"
+                  borderColor="blue.400"
+                  borderTopColor="transparent"
+                  animation="spin 1s linear infinite"
+                  sx={{
+                    "@keyframes spin": {
+                      "0%": { transform: "rotate(0deg)" },
+                      "100%": { transform: "rotate(360deg)" },
+                    },
+                  }}
+                />
+                <Text color="whiteAlpha.700">Decoding events...</Text>
+              </HStack>
+            </Box>
+          ) : (
+            <DecodedEventsView events={decodedEvents || []} chainId={chainId} />
+          )}
         </Box>
       )}
     </Box>
@@ -788,7 +811,15 @@ type DecodedEventsViewProps = {
 };
 
 function DecodedEventsView({ events, chainId }: DecodedEventsViewProps) {
-  if (!events || events.length === 0) return null;
+  if (!events || events.length === 0) {
+    return (
+      <Box p={6} bg="whiteAlpha.50" borderRadius="lg" border="1px solid" borderColor="whiteAlpha.200">
+        <Text color="whiteAlpha.500" textAlign="center">
+          No events found for this transaction
+        </Text>
+      </Box>
+    );
+  }
 
   return (
     <Stack spacing={4}>
@@ -859,9 +890,9 @@ function EventItem({ event, index, chainId }: EventItemProps) {
 
       {/* Collapsible Content */}
       <Collapse in={isOpen} animateOpacity>
-        <Stack p={4} spacing={4} bg="whiteAlpha.50">
-          {event.args.map((arg, i) => renderParams(i, arg, chainId))}
-        </Stack>
+        <Box p={4} bg="whiteAlpha.50" data-tree-wrapper="true">
+          <TreeView args={event.args} chainId={chainId} />
+        </Box>
       </Collapse>
     </Box>
   );

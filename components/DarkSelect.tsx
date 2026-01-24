@@ -67,7 +67,6 @@ export const DarkSelect = ({
   const commonChakraStyles = {
     container: (provided: any) => ({
       ...provided,
-      bg: "whiteAlpha.50",
       color: "white",
     }),
     control: (provided: any, state: any) => ({
@@ -75,7 +74,9 @@ export const DarkSelect = ({
       bg: "whiteAlpha.50",
       borderColor: state.isFocused ? "blue.400" : "whiteAlpha.200",
       borderRadius: "lg",
-      boxShadow: state.isFocused ? "0 0 0 1px var(--chakra-colors-blue-400)" : "none",
+      boxShadow: state.isFocused
+        ? "0 0 0 1px var(--chakra-colors-blue-400)"
+        : "none",
       _hover: {
         borderColor: "whiteAlpha.400",
       },

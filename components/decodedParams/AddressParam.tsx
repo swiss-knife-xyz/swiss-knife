@@ -193,7 +193,16 @@ export const AddressParam = ({
                 <Avatar src={ensAvatar} w={"1.2rem"} h={"1.2rem"} />
               </InputLeftElement>
             ) : null}
-            <Input value={value} isReadOnly />
+            <Input
+              value={value}
+              isReadOnly
+              bg="whiteAlpha.50"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+              borderRadius="lg"
+              _hover={{ borderColor: "whiteAlpha.400" }}
+              color="white"
+            />
             <InputRightElement pr={1}>
               <CopyToClipboard textToCopy={value ?? ""} />
             </InputRightElement>
