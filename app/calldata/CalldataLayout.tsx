@@ -21,7 +21,7 @@ export const CalldataLayout = ({ children }: { children: React.ReactNode }) => {
           items={SidebarItems}
           subdomain={subdomains.CALLDATA.base}
         />
-        <Center flexDir={"column"} w="full">
+        <Center flexDir={"column"} w="full" alignItems="stretch" justifyContent="flex-start" pt={6}>
           {children}
         </Center>
       </HStack>

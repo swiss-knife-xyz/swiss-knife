@@ -148,13 +148,10 @@ export const txExplorers: ExplorersData = {
     },
   },
   FTMscan: {
-    urlLayout: `https://${CHAINLABEL_KEY}ftmscan.com/tx/${TX_KEY}`,
+    urlLayout: `https://explorer.fantom.network/transactions/${TX_KEY}`,
     chainIdToLabel: {
       [c.fantom.id]: "",
-      [c.fantomTestnet.id]: "testnet.",
     },
-    faviconUrl: "https://ftmscan.com/assets/generic/html/favicon-light.ico",
-    faviconWhite: true,
   },
   OptimismScan: {
     urlLayout: `https://${CHAINLABEL_KEY}etherscan.io/tx/${TX_KEY}`,

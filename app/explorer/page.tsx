@@ -6,13 +6,16 @@ import {
   Stack,
   Box,
   Center,
-  Container,
   Heading,
   VStack,
+  HStack,
   Text,
   Link,
+  Icon,
+  Badge,
 } from "@chakra-ui/react";
 import { useLocalStorage } from "usehooks-ts";
+import { FiClock, FiFileText, FiCode, FiArrowRight } from "react-icons/fi";
 import {
   RecentSearch,
   RECENT_SEARCHES_KEY,
@@ -22,10 +25,12 @@ const Card = ({
   title,
   description,
   url,
+  icon,
 }: {
   title: string;
   description: string;
   url: string;
+  icon: React.ElementType;
 }) => {
   return (
     <Link
@@ -33,37 +38,45 @@ const Card = ({
       _hover={{
         textDecor: "none",
       }}
+      flex={1}
+      maxW={{ base: "full", md: "300px" }}
     >
       <Box
-        flex={1}
-        border="1px"
-        borderColor="blue.300"
-        rounded="1rem"
-        cursor={"pointer"}
+        w="full"
+        p={5}
+        border="1px solid"
+        borderColor="whiteAlpha.200"
+        borderRadius="lg"
+        cursor="pointer"
+        bg="whiteAlpha.50"
         _hover={{
-          border: "2px",
-          borderColor: "blue.500",
-          bg: "whiteAlpha.50",
+          borderColor: "blue.400",
+          bg: "whiteAlpha.100",
+          transform: "translateY(-2px)",
         }}
+        transition="all 0.2s ease"
       >
-        <Center py={6} px={6}>
-          <VStack>
-            <Heading
-              as="h2"
-              fontWeight="semibold"
-              fontSize={"lg"}
-              whiteSpace="nowrap" // Prevent word from breaking
-              pb="3"
-              borderBottom={"1px"}
-              borderColor={"whiteAlpha.400"}
-            >
-              {title}
-            </Heading>
-            <Text pt="1" textAlign="center" color={"cyan.100"} fontSize={"sm"}>
-              ({description})
-            </Text>
-          </VStack>
-        </Center>
+        <VStack spacing={3} align="center">
+          <Icon as={icon} color="blue.400" boxSize={6} />
+          <Heading
+            as="h2"
+            fontWeight="semibold"
+            fontSize="md"
+            color="gray.100"
+            textAlign="center"
+          >
+            {title}
+          </Heading>
+          <Badge
+            colorScheme="blue"
+            fontSize="xs"
+            px={2}
+            py={0.5}
+            borderRadius="md"
+          >
+            {description}
+          </Badge>
+        </VStack>
       </Box>
     </Link>
   );
@@ -84,37 +97,50 @@ const RecentSearchCard = ({ search }: { search: RecentSearch }) => {
       _hover={{
         textDecor: "none",
       }}
+      flex={1}
+      maxW={{ base: "full", md: "250px" }}
     >
       <Box
-        flex={1}
-        border="1px"
-        borderColor="green.400"
-        rounded="1rem"
-        cursor={"pointer"}
+        w="full"
+        p={4}
+        border="1px solid"
+        borderColor="whiteAlpha.200"
+        borderRadius="lg"
+        cursor="pointer"
+        bg="whiteAlpha.50"
         _hover={{
-          border: "2px",
-          borderColor: "green.500",
-          bg: "whiteAlpha.50",
+          borderColor: "green.400",
+          bg: "whiteAlpha.100",
+          transform: "translateY(-2px)",
         }}
+        transition="all 0.2s ease"
       >
-        <Center py={4} px={4}>
-          <VStack>
-            <Heading
-              as="h2"
-              fontWeight="semibold"
-              fontSize={"md"}
-              pb="2"
-              borderBottom={"1px"}
-              borderColor={"whiteAlpha.400"}
+        <VStack spacing={2} align="center">
+          <HStack spacing={2}>
+            <Icon
+              as={search.type === "tx" ? FiFileText : FiCode}
+              color="green.400"
+              boxSize={4}
+            />
+            <Text
+              fontWeight="medium"
+              fontSize="sm"
+              color="gray.100"
               title={search.input}
             >
               {displayTitle}
-            </Heading>
-            <Text pt="1" textAlign="center" color={"green.200"} fontSize={"sm"}>
-              ({search.type})
             </Text>
-          </VStack>
-        </Center>
+          </HStack>
+          <Badge
+            colorScheme="green"
+            fontSize="xs"
+            px={2}
+            py={0.5}
+            borderRadius="md"
+          >
+            {search.type}
+          </Badge>
+        </VStack>
       </Box>
     </Link>
   );
@@ -127,50 +153,80 @@ const Explorer = () => {
   );
 
   return (
-    <>
-      <Container mt={10} pb={10} alignItems="center">
-        {recentSearches.length > 0 && (
-          <>
-            <Text>Recent searches:</Text>
+    <VStack mt={6} spacing={8} w="full" maxW="800px" mx="auto" px={4}>
+      {/* Recent Searches Section */}
+      {recentSearches.length > 0 && (
+        <Box
+          w="full"
+          p={5}
+          bg="whiteAlpha.30"
+          borderRadius="lg"
+          border="1px solid"
+          borderColor="whiteAlpha.100"
+        >
+          <VStack spacing={4} align="stretch">
+            <HStack spacing={2} justify="center">
+              <Icon as={FiClock} color="green.400" boxSize={5} />
+              <Heading size="sm" color="gray.300">
+                Recent Searches
+              </Heading>
+            </HStack>
             <Stack
-              mt={2}
-              mb={6}
               direction={{ base: "column", md: "row" }}
-              alignItems={{ base: "center", md: "stretch" }}
-              spacing={5}
-              justifyContent="flex-start"
+              alignItems="stretch"
+              spacing={4}
+              justifyContent="center"
             >
-              {recentSearches.map((search, i) => (
+              {recentSearches.map((search) => (
                 <RecentSearchCard key={search.timestamp} search={search} />
               ))}
             </Stack>
-          </>
-        )}
-        <Text>or try these out:</Text>
-        <Stack
-          mt={2}
-          direction={{ base: "column", md: "row" }}
-          alignItems={{ base: "center", md: "stretch" }}
-          spacing={5}
-          justifyContent="space-between"
-        >
-          <Card
-            title="UniV3 Position Manager"
-            description="contract"
-            url={`${getPath(
-              subdomains.EXPLORER.base
-            )}address/0xC36442b4a4522E871399CD717aBDD847Ab11FE88`}
-          />
-          <Card
-            title="Seaport MatchOrders"
-            description="tx"
-            url={`${getPath(
-              subdomains.EXPLORER.base
-            )}tx/0x242810fae4b8279dfeb728ccf29b575e792bc575e7c48461495cae3d7846a821`}
-          />
-        </Stack>
-      </Container>
-    </>
+          </VStack>
+        </Box>
+      )}
+
+      {/* Example Searches Section */}
+      <Box
+        w="full"
+        p={5}
+        bg="whiteAlpha.30"
+        borderRadius="lg"
+        border="1px solid"
+        borderColor="whiteAlpha.100"
+      >
+        <VStack spacing={4} align="stretch">
+          <HStack spacing={2} justify="center">
+            <Icon as={FiArrowRight} color="blue.400" boxSize={5} />
+            <Heading size="sm" color="gray.300">
+              Try These Examples
+            </Heading>
+          </HStack>
+          <Stack
+            direction={{ base: "column", md: "row" }}
+            alignItems="stretch"
+            spacing={4}
+            justifyContent="center"
+          >
+            <Card
+              title="UniV3 Position Manager"
+              description="contract"
+              icon={FiCode}
+              url={`${getPath(
+                subdomains.EXPLORER.base
+              )}address/0xC36442b4a4522E871399CD717aBDD847Ab11FE88`}
+            />
+            <Card
+              title="Seaport MatchOrders"
+              description="tx"
+              icon={FiFileText}
+              url={`${getPath(
+                subdomains.EXPLORER.base
+              )}tx/0x242810fae4b8279dfeb728ccf29b575e792bc575e7c48461495cae3d7846a821`}
+            />
+          </Stack>
+        </VStack>
+      </Box>
+    </VStack>
   );
 };
 

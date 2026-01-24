@@ -33,7 +33,6 @@ import { formatUnits } from "viem";
 
 const SUPPORTED_CHAINS = [base.id, baseSepolia.id];
 
-// FIXME: improve positions page
 const PositionsPage = () => {
   const { address: userAddress, isConnected } = useAccount();
   const chainId = useChainId();
@@ -108,56 +107,42 @@ const PositionsPage = () => {
     : null;
 
   return (
-    <Box
-      p={6}
-      bg="rgba(0, 0, 0, 0.05)"
-      backdropFilter="blur(5px)"
-      borderRadius="xl"
-      border="1px solid"
-      borderColor="whiteAlpha.50"
-      maxW="1400px"
-      mx="auto"
-      w="full"
-    >
-      {/* Page Header */}
-      <Box mb={8} textAlign="center">
-        <HStack justify="center" spacing={3} mb={4}>
-          <Icon as={FiUser} color="blue.400" boxSize={8} />
-          <Heading
-            size="xl"
-            color="gray.100"
-            fontWeight="bold"
-            letterSpacing="tight"
-          >
-            Uniswap V4 Positions
-          </Heading>
-        </HStack>
-        <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
-          View and manage your Uniswap V4 liquidity positions
-        </Text>
-      </Box>
-
-      <Flex w="100%" mb={6}>
+    <Box maxW="900px" mx="auto" w="full">
+      {/* Header with Connect Button */}
+      <Flex mb={6} align="center">
+        <Box>
+          <HStack spacing={3} mb={2}>
+            <Icon as={FiUser} color="blue.400" boxSize={6} />
+            <Heading
+              size="lg"
+              color="gray.100"
+              fontWeight="bold"
+              letterSpacing="tight"
+            >
+              Uniswap V4 Positions
+            </Heading>
+          </HStack>
+          <Text color="gray.400" fontSize="md">
+            View and manage your Uniswap V4 liquidity positions
+          </Text>
+        </Box>
         <Spacer />
         <ConnectButton />
       </Flex>
 
       {/* Connection Check */}
       {!isConnected && (
-        <Alert status="warning" bg="orange.900" borderColor="orange.400" mb={6}>
+        <Alert status="warning" bg="orange.900" borderRadius="lg" mb={5}>
           <AlertIcon color="orange.400" />
           <AlertDescription color="orange.100">
             Please connect your wallet to view and manage positions.
           </AlertDescription>
-          <Box ml="auto">
-            <ConnectButton />
-          </Box>
         </Alert>
       )}
 
       {/* Chain Support Check */}
       {isConnected && !isChainSupported && (
-        <Alert status="error" bg="red.900" borderColor="red.400" mb={6}>
+        <Alert status="error" bg="red.900" borderRadius="lg" mb={5}>
           <AlertIcon color="red.400" />
           <AlertDescription color="red.100">
             This chain is not supported. Please switch to Base or Base Sepolia.
@@ -165,68 +150,61 @@ const PositionsPage = () => {
         </Alert>
       )}
 
-      <VStack spacing={8} align="stretch">
+      <VStack spacing={5} align="stretch">
         {/* Token ID Input Section */}
         <Box
-          p={6}
+          p={5}
           bg="whiteAlpha.50"
           borderRadius="lg"
           border="1px solid"
           borderColor="whiteAlpha.200"
         >
-          <VStack spacing={4} align="stretch">
-            <Heading size="md" color="gray.300">
-              Position Lookup
-            </Heading>
+          <Text color="gray.300" fontSize="sm" fontWeight="medium" mb={3}>
+            Position Lookup
+          </Text>
 
-            <HStack spacing={4}>
-              <Box flex={1}>
-                <InputField
-                  placeholder="Enter position token ID (e.g., 123)"
-                  value={tokenId}
-                  onChange={handleTokenIdChange}
-                  autoFocus
-                />
-              </Box>
-              <Button
-                colorScheme="blue"
-                onClick={handleFetchPosition}
-                isLoading={isFetchingPosition}
-                loadingText="Fetching..."
-                isDisabled={
-                  !tokenId.trim() || !isConnected || !isChainSupported
-                }
-                leftIcon={<Icon as={FiExternalLink} />}
-              >
-                Fetch Position
-              </Button>
-            </HStack>
+          <HStack spacing={3}>
+            <Box flex={1}>
+              <InputField
+                placeholder="Enter position token ID (e.g., 123)"
+                value={tokenId}
+                onChange={handleTokenIdChange}
+                autoFocus
+              />
+            </Box>
+            <Button
+              colorScheme="blue"
+              onClick={handleFetchPosition}
+              isLoading={isFetchingPosition}
+              loadingText="Fetching..."
+              isDisabled={!tokenId.trim() || !isConnected || !isChainSupported}
+            >
+              Fetch Position
+            </Button>
+          </HStack>
 
-            {fetchError && (
-              <Alert status="error" bg="red.900" borderColor="red.400">
-                <AlertIcon color="red.400" />
-                <AlertDescription color="red.100">
-                  {fetchError}
-                </AlertDescription>
-              </Alert>
-            )}
-          </VStack>
+          {fetchError && (
+            <Alert status="error" bg="red.900" borderRadius="md" mt={3}>
+              <AlertIcon color="red.400" />
+              <AlertDescription color="red.100">{fetchError}</AlertDescription>
+            </Alert>
+          )}
         </Box>
 
         {/* Position Details */}
         {positionDetails && (
           <Box
-            p={6}
+            p={5}
             bg="whiteAlpha.50"
             borderRadius="lg"
             border="1px solid"
             borderColor="whiteAlpha.200"
           >
-            <VStack spacing={6} align="stretch">
+            <VStack spacing={5} align="stretch">
               <HStack justify="space-between" align="center">
-                <Heading size="md" color="gray.300">
+                <Text color="gray.300" fontSize="sm" fontWeight="medium">
                   Position Details
-                </Heading>
+                </Text>
                 {!isUserOwner && (
                   <Badge colorScheme="orange" fontSize="sm">
                     Not Owner
@@ -598,16 +576,18 @@ const PositionsPage = () => {
         {/* Loading State */}
         {isFetchingPosition && (
           <Box
-            p={6}
+            p={5}
             bg="whiteAlpha.50"
             borderRadius="lg"
             border="1px solid"
             borderColor="whiteAlpha.200"
             textAlign="center"
           >
-            <VStack spacing={4}>
+            <VStack spacing={3}>
               <Spinner size="lg" color="blue.400" />
-              <Text color="gray.300">Fetching position details...</Text>
+              <Text color="gray.400" fontSize="sm">
+                Fetching position details...
+              </Text>
             </VStack>
           </Box>
         )}

@@ -63,7 +63,6 @@ const Padding = () => {
       borderColor="whiteAlpha.50"
       maxW="1400px"
       mx="auto"
-      minW="45rem"
     >
       {/* Page Header */}
       <Box mb={8} textAlign="center">
@@ -95,7 +94,7 @@ const Padding = () => {
             border="1px solid"
             borderColor="whiteAlpha.200"
           >
-            <Box minW="140px">
+            <Box minW="120px">
               <VStack spacing={1} align="start">
                 <HStack spacing={2}>
                   <Icon as={FiHash} color="blue.400" boxSize={4} />
@@ -128,7 +127,7 @@ const Padding = () => {
             border="1px solid"
             borderColor="whiteAlpha.200"
           >
-            <Box w="140px">
+            <Box minW="120px">
               <VStack spacing={1} align="start">
                 <HStack spacing={2}>
                   <Icon as={FiAlignLeft} color="blue.400" boxSize={4} />
@@ -161,7 +160,7 @@ const Padding = () => {
             border="1px solid"
             borderColor="whiteAlpha.200"
           >
-            <Box w="140px">
+            <Box minW="120px">
               <VStack spacing={1} align="start">
                 <HStack spacing={2}>
                   <Icon as={FiAlignRight} color="blue.400" boxSize={4} />

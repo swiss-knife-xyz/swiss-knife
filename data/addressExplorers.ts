@@ -333,13 +333,10 @@ export const addressExplorers: ExplorersData = {
     },
   },
   FTMScan: {
-    urlLayout: `https://${CHAINLABEL_KEY}ftmscan.com/address/${ADDRESS_KEY}`,
+    urlLayout: `https://explorer.fantom.network/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.fantom.id]: "",
-      [c.fantomTestnet.id]: "testnet.",
     },
-    faviconUrl: "https://ftmscan.com/assets/generic/html/favicon-light.ico",
-    faviconWhite: true,
   },
   GnosisScan: {
     urlLayout: `https://gnosisscan.io/address/${ADDRESS_KEY}`,

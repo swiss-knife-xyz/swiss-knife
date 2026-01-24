@@ -330,7 +330,6 @@ const TickToPrice = () => {
           border="1px solid"
           borderColor="whiteAlpha.200"
           mb={6}
-          minW="50rem"
         >
           <VStack spacing={6} align="stretch">
             <HStack spacing={2} align="center">

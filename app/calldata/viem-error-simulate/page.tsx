@@ -4,24 +4,26 @@ import React, { useState } from "react";
 import {
   Heading,
   Box,
-  Flex,
+  VStack,
   Textarea,
   Alert,
   AlertDescription,
   HStack,
   Link,
+  Text,
+  Icon,
+  Button,
 } from "@chakra-ui/react";
 import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 import { mainnet } from "viem/chains";
 import { c } from "@/data/common";
-import { DarkButton } from "@/components/DarkButton";
-import { ExternalLinkIcon } from "@chakra-ui/icons"; // Import the correct icon
 import { generateTenderlyUrl } from "@/utils";
 import { zeroAddress } from "viem";
+import { FiPlay, FiGlobe, FiAlertCircle, FiExternalLink } from "react-icons/fi";
 
 const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
-  (k, i) => ({
+  (k) => ({
     label: c[k].name,
     value: c[k].id,
   })
@@ -91,28 +93,87 @@ const ViemErrorSimulate = () => {
   };
 
   return (
-    <Flex flexDir={"column"} alignItems={"center"} w="100%" px="4rem" pb="2rem">
-      <Heading color={"custom.pale"}>Viem Error Simulate</Heading>
-      <Box mt="2rem" minW="20rem">
-        <DarkSelect
-          boxProps={{
-            w: "100%",
-            mt: "2",
-          }}
-          selectedOption={selectedNetworkOption}
-          setSelectedOption={setSelectedNetworkOption}
-          options={networkOptions}
-        />
+    <Box
+      p={6}
+      bg="rgba(0, 0, 0, 0.05)"
+      backdropFilter="blur(5px)"
+      borderRadius="xl"
+      border="1px solid"
+      borderColor="whiteAlpha.50"
+      maxW="1400px"
+      mx="auto"
+    >
+      {/* Page Header */}
+      <Box mb={8} textAlign="center">
+        <HStack justify="center" spacing={3} mb={4}>
+          <Icon as={FiPlay} color="blue.400" boxSize={8} />
+          <Heading
+            size="xl"
+            color="gray.100"
+            fontWeight="bold"
+            letterSpacing="tight"
+          >
+            Viem Error Simulate
+          </Heading>
+        </HStack>
+        <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
+          Paste a viem contract error to simulate the failed transaction on
+          Tenderly.
+        </Text>
       </Box>
-      <Box mt="1rem">
-        <Box>Paste your viem contract error here...</Box>
-        <Textarea
-          w="30rem"
-          maxWidth="100%"
-          height="250px"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={`Example:
+
+      {/* Main Content */}
+      <Box w="full" maxW="800px" mx="auto">
+        <VStack spacing={4} align="stretch">
+          {/* Network Selection */}
+          <HStack
+            spacing={4}
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <Box minW="120px">
+              <HStack spacing={2}>
+                <Icon as={FiGlobe} color="blue.400" boxSize={4} />
+                <Text color="gray.300" fontWeight="medium">
+                  Network
+                </Text>
+              </HStack>
+            </Box>
+            <Box flex={1}>
+              <DarkSelect
+                boxProps={{
+                  w: "100%",
+                }}
+                selectedOption={selectedNetworkOption}
+                setSelectedOption={setSelectedNetworkOption}
+                options={networkOptions}
+              />
+            </Box>
+          </HStack>
+
+          {/* Error Input */}
+          <Box
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <HStack spacing={2} mb={3}>
+              <Icon as={FiAlertCircle} color="blue.400" boxSize={4} />
+              <Text color="gray.300" fontWeight="medium">
+                Viem Error
+              </Text>
+            </HStack>
+            <Textarea
+              w="100%"
+              height="250px"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={`Example:
 
 Error
 Execution reverted for an unknown reason.
@@ -121,34 +182,74 @@ Raw Call Arguments:
   from:   0xabc00...
   to:     0xfff00...
   value:  0.123 ETH
-  data:   0x860f81c4000...
-`}
-          resize="none"
-          data-gramm="false"
-        />
-      </Box>
-      <DarkButton mt="1rem" onClick={handleSimulate}>
-        Simulate on Tenderly
-      </DarkButton>
-      {error && (
-        <Alert status="error" variant="subtle" mt="1rem">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+  data:   0x860f81c4000...`}
+              resize="none"
+              data-gramm="false"
+              bg="whiteAlpha.50"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+              _hover={{ borderColor: "whiteAlpha.300" }}
+              _focus={{
+                borderColor: "blue.400",
+                boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
+              }}
+              color="gray.100"
+              _placeholder={{ color: "gray.500" }}
+              fontSize="sm"
+              fontFamily="mono"
+            />
+          </Box>
 
-      {tenderlyUrl && (
-        <Alert bg="blue.400" variant="subtle" mt="1rem" rounded={"lg"}>
-          <AlertDescription>
-            <HStack>
-              <Link href={tenderlyUrl} textDecor={"underline"} isExternal>
-                Open Tenderly Simulation
-              </Link>
-              <ExternalLinkIcon />
-            </HStack>
-          </AlertDescription>
-        </Alert>
-      )}
-    </Flex>
+          {/* Simulate Button */}
+          <Button
+            colorScheme="blue"
+            size="lg"
+            onClick={handleSimulate}
+            leftIcon={<Icon as={FiExternalLink} boxSize={4} />}
+          >
+            Simulate on Tenderly
+          </Button>
+
+          {/* Error Alert */}
+          {error && (
+            <Alert
+              status="error"
+              variant="subtle"
+              borderRadius="lg"
+              bg="red.900"
+              border="1px solid"
+              borderColor="red.600"
+            >
+              <AlertDescription color="red.200">{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Success Link */}
+          {tenderlyUrl && (
+            <Box
+              p={4}
+              bg="whiteAlpha.100"
+              borderRadius="lg"
+              border="1px solid"
+              borderColor="blue.400"
+            >
+              <HStack justify="center">
+                <Link
+                  href={tenderlyUrl}
+                  color="blue.300"
+                  fontWeight="medium"
+                  isExternal
+                  _hover={{ color: "blue.200", textDecoration: "underline" }}
+                >
+                  Open Tenderly Simulation
+                </Link>
+                <Icon as={FiExternalLink} color="blue.300" boxSize={4} />
+              </HStack>
+            </Box>
+          )}
+        </VStack>
+      </Box>
+    </Box>
   );
 };
 

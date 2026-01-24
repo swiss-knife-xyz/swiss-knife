@@ -9,9 +9,6 @@ import React, {
   useCallback,
 } from "react";
 import {
-  Container,
-  FormControl,
-  FormLabel,
   HStack,
   Heading,
   VStack,
@@ -19,7 +16,6 @@ import {
   Box,
   Textarea,
   Spacer,
-  Center,
   useToast,
   ToastId,
   Link,
@@ -36,8 +32,15 @@ import {
   Spinner,
   Tooltip,
   Image,
+  Icon,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
+import {
+  FiSend,
+  FiUser,
+  FiCode,
+  FiDollarSign,
+} from "react-icons/fi";
 import {
   parseAsInteger,
   parseAsString,
@@ -470,19 +473,49 @@ function SendTxContent() {
   }, [calldata, to, chainId]);
 
   return (
-    <>
-      <Heading mb="2rem" color={"custom.pale"}>
-        Send Transaction
-      </Heading>
-      <Container pb="3rem">
-        <VStack spacing={5}>
-          <FormControl>
-            <HStack mb={2}>
-              <FormLabel mb={0}>To Address</FormLabel>
+    <Box
+      p={6}
+      bg="rgba(0, 0, 0, 0.05)"
+      backdropFilter="blur(5px)"
+      borderRadius="xl"
+      border="1px solid"
+      borderColor="whiteAlpha.50"
+      maxW="800px"
+      w="full"
+      mx="auto"
+    >
+      {/* Page Header */}
+      <Box mb={8} textAlign="center">
+        <HStack justify="center" spacing={3} mb={4}>
+          <Icon as={FiSend} color="blue.400" boxSize={8} />
+          <Heading size="xl" color="gray.100" fontWeight="bold" letterSpacing="tight">
+            Send Transaction
+          </Heading>
+        </HStack>
+        <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
+          Send a transaction or deploy a contract with custom calldata
+        </Text>
+      </Box>
+
+      <VStack spacing={6} align="stretch">
+        {/* To Address Section */}
+        <Box
+          p={4}
+          bg="whiteAlpha.50"
+          borderRadius="lg"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+        >
+          <VStack spacing={4} align="stretch">
+            <HStack spacing={2} align="center">
+              <Icon as={FiUser} color="blue.400" boxSize={5} />
+              <Text color="gray.300" fontWeight="medium">
+                To Address
+              </Text>
               <Spacer />
-              {isResolvingEns && <Spinner size="xs" />}
+              {isResolvingEns && <Spinner size="xs" color="blue.400" />}
               {ensName && !isResolvingEns && (
-                <HStack px={2} bg="whiteAlpha.200" rounded="md">
+                <HStack px={2} py={1} bg="whiteAlpha.100" rounded="md">
                   {ensAvatar && (
                     <Avatar
                       src={ensAvatar}
@@ -491,13 +524,13 @@ function SendTxContent() {
                       ignoreFallback
                     />
                   )}
-                  <Text fontSize="sm">{ensName}</Text>
+                  <Text fontSize="sm" color="gray.200">{ensName}</Text>
                 </HStack>
               )}
               {resolvedAddress && !isResolvingEns && resolvedAddress !== to && (
                 <HStack spacing={1}>
                   <Tooltip label={resolvedAddress} placement="top">
-                    <Text fontSize="xs" color="whiteAlpha.600" cursor="default">
+                    <Text fontSize="xs" color="gray.500" cursor="default">
                       {slicedText(resolvedAddress)}
                     </Text>
                   </Tooltip>
@@ -514,131 +547,172 @@ function SendTxContent() {
                     icon={<ExternalLinkIcon />}
                     size="xs"
                     variant="ghost"
+                    color="gray.400"
+                    _hover={{ color: "blue.400" }}
                   />
                 )}
             </HStack>
             <InputField
-              placeholder="address or ens. Leave blank to deploy contract"
+              placeholder="Address or ENS name. Leave blank to deploy contract"
               value={to}
               onChange={(e) => {
                 setTo(e.target.value.trim());
               }}
             />
-          </FormControl>
-          <FormControl mt="1rem">
-            <FormLabel>
-              <HStack>
-                <Text>Data</Text>
-                <Spacer />
-                <HStack>
-                  <Button
-                    size={"sm"}
-                    onClick={() => decode()}
-                    isLoading={isDecoding}
-                  >
-                    Decode
-                  </Button>
-                  <CopyToClipboard textToCopy={calldata ?? ""} size={"xs"} />
-                </HStack>
-                <Modal
-                  isOpen={isDecodeModalOpen}
-                  onClose={() => setIsDecodeModalOpen(false)}
-                  isCentered
+          </VStack>
+        </Box>
+
+        {/* Calldata Section */}
+        <Box
+          p={4}
+          bg="whiteAlpha.50"
+          borderRadius="lg"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+        >
+          <VStack spacing={4} align="stretch">
+            <HStack spacing={2} align="center">
+              <Icon as={FiCode} color="blue.400" boxSize={5} />
+              <Text color="gray.300" fontWeight="medium">
+                Calldata
+              </Text>
+              <Spacer />
+              <HStack spacing={2}>
+                <Button
+                  size="sm"
+                  colorScheme="blue"
+                  variant="ghost"
+                  onClick={() => decode()}
+                  isLoading={isDecoding}
                 >
-                  <ModalOverlay
-                    bg="none"
-                    backdropFilter="auto"
-                    backdropBlur="5px"
-                  />
-                  <ModalContent
-                    minW={{
-                      base: 0,
-                      sm: "30rem",
-                      md: "40rem",
-                    }}
-                    pb="6"
-                    bg="bg.900"
-                  >
-                    <ModalHeader>Decoded</ModalHeader>
-                    <ModalCloseButton />
-                    <ModalBody>
-                      {decoded && (
-                        <Box minW={"80%"}>
-                          {decoded.functionName &&
-                          decoded.functionName !== "__abi_decoded__" ? (
-                            <HStack>
-                              <Box>
-                                <Box fontSize={"xs"} color={"whiteAlpha.600"}>
-                                  function
-                                </Box>
-                                <Box>{decoded.functionName}</Box>
-                              </Box>
-                              <Spacer />
-                              <CopyToClipboard
-                                textToCopy={JSON.stringify(
-                                  {
-                                    function: decoded.signature,
-                                    params: JSON.parse(
-                                      stringify(decoded.rawArgs)
-                                    ),
-                                  },
-                                  undefined,
-                                  2
-                                )}
-                                labelText={"Copy params"}
-                              />
-                            </HStack>
-                          ) : null}
-                          <Stack
-                            mt={2}
-                            p={4}
-                            spacing={4}
-                            bg={"whiteAlpha.50"}
-                            rounded={"lg"}
-                          >
-                            {decoded.args.map((arg: any, i: number) => {
-                              return renderParams(i, arg, chainId);
-                            })}
-                          </Stack>
-                        </Box>
-                      )}
-                    </ModalBody>
-                  </ModalContent>
-                </Modal>
+                  Decode
+                </Button>
+                <CopyToClipboard textToCopy={calldata ?? ""} size="xs" />
               </HStack>
-            </FormLabel>
+            </HStack>
             <Textarea
-              placeholder="calldata"
+              placeholder="Enter calldata (hex)"
               value={calldata}
               onChange={(e) => {
                 setCalldata(e.target.value);
               }}
               spellCheck={false}
               data-gramm="false"
+              minH="120px"
+              bg="whiteAlpha.50"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+              _hover={{ borderColor: "whiteAlpha.300" }}
+              _focus={{
+                borderColor: "blue.400",
+                boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
+              }}
+              color="gray.100"
+              _placeholder={{ color: "gray.500" }}
+              fontSize="sm"
+              fontFamily="mono"
             />
-          </FormControl>
-          <Box w="full">
-            <Box mb="0.5rem">
-              <HStack>
-                <Text>Value in</Text>
-                <DarkSelect
-                  boxProps={{
-                    w: "8rem",
-                  }}
-                  selectedOption={selectedEthFormatOption}
-                  setSelectedOption={(value) =>
-                    setSelectedEthFormatOption(value as ETHSelectedOptionState)
-                  }
-                  options={ethFormatOptions.map((str) => ({
-                    label: str,
-                    value: str,
-                  }))}
-                />
-              </HStack>
-            </Box>
+          </VStack>
+        </Box>
+
+        {/* Decode Modal */}
+        <Modal
+          isOpen={isDecodeModalOpen}
+          onClose={() => setIsDecodeModalOpen(false)}
+          isCentered
+        >
+          <ModalOverlay
+            bg="none"
+            backdropFilter="auto"
+            backdropBlur="5px"
+          />
+          <ModalContent
+            minW={{
+              base: 0,
+              sm: "30rem",
+              md: "40rem",
+            }}
+            pb="6"
+            bg="bg.900"
+          >
+            <ModalHeader color="gray.100">Decoded Calldata</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              {decoded && (
+                <Box minW={"80%"}>
+                  {decoded.functionName &&
+                  decoded.functionName !== "__abi_decoded__" ? (
+                    <HStack>
+                      <Box>
+                        <Text fontSize="xs" color="gray.500">
+                          function
+                        </Text>
+                        <Text color="gray.100">{decoded.functionName}</Text>
+                      </Box>
+                      <Spacer />
+                      <CopyToClipboard
+                        textToCopy={JSON.stringify(
+                          {
+                            function: decoded.signature,
+                            params: JSON.parse(
+                              stringify(decoded.rawArgs)
+                            ),
+                          },
+                          undefined,
+                          2
+                        )}
+                        labelText={"Copy params"}
+                      />
+                    </HStack>
+                  ) : null}
+                  <Stack
+                    mt={2}
+                    p={4}
+                    spacing={4}
+                    bg={"whiteAlpha.50"}
+                    rounded={"lg"}
+                  >
+                    {decoded.args.map((arg: any, i: number) => {
+                      return renderParams(i, arg, chainId);
+                    })}
+                  </Stack>
+                </Box>
+              )}
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+
+        {/* Value Section */}
+        <Box
+          p={4}
+          bg="whiteAlpha.50"
+          borderRadius="lg"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+        >
+          <VStack spacing={4} align="stretch">
+            <HStack spacing={2} align="center">
+              <Icon as={FiDollarSign} color="blue.400" boxSize={5} />
+              <Text color="gray.300" fontWeight="medium">
+                Value
+              </Text>
+              <DarkSelect
+                boxProps={{
+                  w: "7rem",
+                }}
+                selectedOption={selectedEthFormatOption}
+                setSelectedOption={(value) =>
+                  setSelectedEthFormatOption(value as ETHSelectedOptionState)
+                }
+                options={ethFormatOptions.map((str) => ({
+                  label: str,
+                  value: str,
+                }))}
+              />
+            </HStack>
             <InputField
               type="number"
-              placeholder="value"
+              placeholder="Enter value to send"
               value={
                 selectedEthFormatOption?.value === "ETH"
                   ? ethValue
@@ -655,51 +729,58 @@ function SendTxContent() {
                 }
               }}
             />
-          </Box>
-          <Center>
-            <HStack spacing={3}>
-              <Button
-                variant="outline"
-                size="sm"
-                borderColor="whiteAlpha.300"
-                onClick={() => {
-                  const targetAddress = resolvedAddress || to || "";
-                  const url = generateTenderlyUrl(
-                    {
-                      from: connectedAddress || zeroAddress,
-                      to: targetAddress,
-                      value: parseEther(ethValue ?? "0").toString(),
-                      data: startHexWith0x(calldata) || "0x",
-                    },
-                    chainId
-                  );
-                  window.open(url, "_blank");
-                }}
-              >
-                <HStack spacing={1}>
-                  <Image
-                    src="/external/tenderly-favicon.ico"
-                    alt="Tenderly"
-                    w={4}
-                    h={4}
-                  />
-                  <Text fontSize="sm" color="whiteAlpha.700">
-                    Simulate
-                  </Text>
-                </HStack>
-              </Button>
-              <DarkButton
-                onClick={() => sendTx()}
-                isDisabled={!walletClient || chainIdMismatch}
-                isLoading={isLoading}
-              >
-                Send Tx
-              </DarkButton>
+          </VStack>
+        </Box>
+
+        {/* Action Buttons */}
+        <HStack spacing={4} justify="center" pt={2}>
+          <Button
+            variant="outline"
+            size="md"
+            borderColor="whiteAlpha.300"
+            _hover={{ 
+              borderColor: "whiteAlpha.400",
+              bg: "whiteAlpha.100"
+            }}
+            onClick={() => {
+              const targetAddress = resolvedAddress || to || "";
+              const url = generateTenderlyUrl(
+                {
+                  from: connectedAddress || zeroAddress,
+                  to: targetAddress,
+                  value: parseEther(ethValue ?? "0").toString(),
+                  data: startHexWith0x(calldata) || "0x",
+                },
+                chainId
+              );
+              window.open(url, "_blank");
+            }}
+          >
+            <HStack spacing={2}>
+              <Image
+                src="/external/tenderly-favicon.ico"
+                alt="Tenderly"
+                w={4}
+                h={4}
+              />
+              <Text color="gray.300">
+                Simulate
+              </Text>
             </HStack>
-          </Center>
-        </VStack>
-      </Container>
-    </>
+          </Button>
+          <Button
+            colorScheme="blue"
+            size="md"
+            leftIcon={<Icon as={FiSend} boxSize={4} />}
+            onClick={() => sendTx()}
+            isDisabled={!walletClient || chainIdMismatch}
+            isLoading={isLoading}
+          >
+            Send Transaction
+          </Button>
+        </HStack>
+      </VStack>
+    </Box>
   );
 }
 

@@ -17,13 +17,14 @@ export const TransactLayout = ({ children }: { children: React.ReactNode }) => {
           items={SidebarItems}
           subdomain={subdomains.TRANSACT.base}
         />
-        <Center flexDir={"column"} w="full">
-          <Flex w="100%" mb="3rem">
-            <Spacer />
+        <Flex flexDir="column" w="full" pt={4} px={4}>
+          <Flex w="full" justify="flex-end" mb={6}>
             <ConnectButton />
           </Flex>
-          {children}
-        </Center>
+          <Center w="full">
+            {children}
+          </Center>
+        </Flex>
       </HStack>
     </Layout>
   );

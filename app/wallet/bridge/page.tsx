@@ -1289,7 +1289,7 @@ export default function WalletBridgePage() {
   ]);
 
   return (
-    <Box w="full" mt="-2rem">
+    <Box w="full">
       {/* Banner for Web3 App Store */}
       <Center>
         <Box
@@ -1349,9 +1349,9 @@ export default function WalletBridgePage() {
       </Center>
 
       <Container
-        mt="2rem"
-        maxW={{ base: "20rem", md: "80%" }}
-        px={{ base: 0, sm: 4, md: 6 }}
+        mt={8}
+        maxW="1400px"
+        px={{ base: 4, sm: 4, md: 6 }}
         mx="auto"
       >
         <Global

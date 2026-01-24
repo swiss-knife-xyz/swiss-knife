@@ -230,54 +230,44 @@ export default function WalletSignatures() {
   };
 
   return (
-    <VStack
-      spacing={10}
-      align="stretch"
-      maxW={{ base: "100%", md: "900px" }}
-      mx="auto"
-      minW={"40rem"}
-      width="100%"
-      px={{ base: 2, md: 4 }}
-    >
-      <VStack gap={2}>
-        {isConnected && (
-          <HStack w="100%" mb={2}>
-            <Spacer /> <ConnectButton hideChain />
-          </HStack>
-        )}
-        <Box position="relative" width="100%" overflow="hidden">
-          <SignMessage
-            messageText={messageToSign}
-            setMessageText={setMessageToSign}
-            onSign={(signature) =>
-              handleSignature(signature, "message", { message: messageToSign })
-            }
-          />
-        </Box>
-        <Center flexDirection="column" my={4}>
-          <Text>OR</Text>
-        </Center>
-        <Box position="relative" width="100%" overflow="hidden">
-          <SignTypedData
-            typedData={typedDataInput}
-            setTypedData={handleTypedDataInputChange}
-            placeholder={exampleTypedDataJSON}
-            onSign={(signature, signedDataObject) =>
-              handleSignature(signature, "typed_data", {
-                typedDataRaw:
-                  rawTypedDataString && rawTypedDataString.trim() !== ""
-                    ? rawTypedDataString
-                    : DEFAULT_EXAMPLE_MINIFIED,
-                typedDataObject:
-                  rawTypedDataString && rawTypedDataString.trim() !== ""
-                    ? signedDataObject
-                    : exampleTypedDataJSON,
-              })
-            }
-            onPasteCallback={handlePastedJson}
-          />
-        </Box>
-      </VStack>
+    <VStack spacing={5} align="stretch" w="full">
+      {isConnected && (
+        <HStack w="full" justify="flex-end">
+          <ConnectButton hideChain />
+        </HStack>
+      )}
+      <Box>
+        <SignMessage
+          messageText={messageToSign}
+          setMessageText={setMessageToSign}
+          onSign={(signature) =>
+            handleSignature(signature, "message", { message: messageToSign })
+          }
+        />
+      </Box>
+      <Center py={2}>
+        <Text color="gray.500" fontSize="sm">OR</Text>
+      </Center>
+      <Box>
+        <SignTypedData
+          typedData={typedDataInput}
+          setTypedData={handleTypedDataInputChange}
+          placeholder={exampleTypedDataJSON}
+          onSign={(signature, signedDataObject) =>
+            handleSignature(signature, "typed_data", {
+              typedDataRaw:
+                rawTypedDataString && rawTypedDataString.trim() !== ""
+                  ? rawTypedDataString
+                  : DEFAULT_EXAMPLE_MINIFIED,
+              typedDataObject:
+                rawTypedDataString && rawTypedDataString.trim() !== ""
+                  ? signedDataObject
+                  : exampleTypedDataJSON,
+            })
+          }
+          onPasteCallback={handlePastedJson}
+        />
+      </Box>
     </VStack>
   );
 }

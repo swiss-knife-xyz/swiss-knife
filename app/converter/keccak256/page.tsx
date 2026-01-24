@@ -41,7 +41,6 @@ const Keccak256 = () => {
       borderColor="whiteAlpha.50"
       maxW="1400px"
       mx="auto"
-      minW="45rem"
     >
       {/* Page Header */}
       <Box mb={8} textAlign="center">

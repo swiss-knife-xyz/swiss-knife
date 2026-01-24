@@ -4,6 +4,18 @@ require("dotenv/config");
 
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
+        protocol: "http",
+        hostname: "**",
+      },
+    ],
+  },
   rewrites() {
     return {
       beforeFiles: [
@@ -23,7 +35,8 @@ const nextConfig = {
         // set up subdomains (exclude api routes, static assets and worker from subdomain rewrites)
         ...Object.values(subdomains).flatMap((subdomain) => [
           {
-            source: "/:path((?!_next|api|chainIcons|external|icon.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
+            source:
+              "/:path((?!_next|api|chainIcons|external|icon.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
             has: [
               {
                 type: "host",
