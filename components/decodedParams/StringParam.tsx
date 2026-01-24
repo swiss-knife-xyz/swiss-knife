@@ -68,7 +68,8 @@ export const StringParam = ({
     const _value = isBase64Encoded ? base64!.content : value;
     const parsedValue = JSON.parse(_value);
     displayValue = JSON.stringify(parsedValue, null, 4);
-    if (displayValue === "null" || !isValidJSON(_value)) {
+    // Don't show decoded JSON for null, empty arrays, or invalid JSON
+    if (displayValue === "null" || displayValue === "[]" || !isValidJSON(_value)) {
       throw new Error("Invalid JSON");
     }
     isJson = true;
