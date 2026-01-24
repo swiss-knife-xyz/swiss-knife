@@ -18,9 +18,13 @@
  *    - Looks up function signature from 4byte.directory or Sourcify
  *    - Works when ABI is unavailable but selector is known
  *
- * 3. **Heuristic decoding** (last resort, TOP-LEVEL ONLY)
+ * 3. **Heuristic decoding** (fallback, TOP-LEVEL ONLY)
  *    - Tries to guess the encoding structure
  *    - Can produce false positives, so only used for top-level calldata
+ *
+ * 4. **UTF-8 text decoding** (final fallback, TOP-LEVEL ONLY)
+ *    - Interprets hex bytes as UTF-8 encoded text message
+ *    - Validates that result contains mostly printable characters
  *
  * ## Recursive Decoding & Depth Tracking
  *
@@ -77,6 +81,7 @@ import {
   encodeFunctionData,
   Hex,
   hexToBigInt,
+  hexToString,
   parseAbi,
 } from "viem";
 
@@ -154,6 +159,7 @@ export async function decodeWithAddress({
  * 5. ABI-encoded data guessing - uses heuristics
  * 6. Universal Router commands - parses command bytes
  * 7. Function fragment guessing - uses heuristics
+ * 8. UTF-8 text message - interprets hex as text (final fallback)
  *
  * @param calldata - The hex-encoded calldata to decode
  * @param _depth - Recursion depth (0 = top-level, >0 = nested bytes)
@@ -205,12 +211,18 @@ export async function decodeWithSelector({
             try {
               return decodeUniversalRouterCommands(calldata);
             } catch {
-              // Strategy 7: Heuristic function fragment guessing
-              try {
-                return decodeByGuessingFunctionFragment(calldata);
-              } catch {
-                return null;
-              }
+                // Strategy 7: Heuristic function fragment guessing
+                try {
+                  return decodeByGuessingFunctionFragment(calldata);
+                } catch {
+                  // Strategy 8: UTF-8 text message (final fallback)
+                  // Interpret the hex bytes as a UTF-8 encoded text message
+                  try {
+                    return decodeAsUtf8Text(calldata);
+                  } catch {
+                    return null;
+                  }
+                }
             }
           }
         }
@@ -822,6 +834,105 @@ const decodeUniversalRouterCommands = (calldata: string) => {
   } catch (error) {
     console.error(error);
     throw new Error(`Failed to decode calldata as UniversalRouter path`);
+  }
+};
+
+/**
+ * Decodes hex bytes as a UTF-8 text message.
+ *
+ * This is the final fallback decoder for calldata that might simply be
+ * a text message encoded as hex bytes (e.g., "gm UniV4!" -> 0x676d20556e69563421).
+ *
+ * Validation criteria:
+ * - Must be at least 1 byte
+ * - Must successfully decode as UTF-8
+ * - Must contain primarily printable ASCII characters (letters, numbers, punctuation, spaces)
+ * - Must not be mostly control characters or binary data
+ *
+ * ⚠️ WARNING: This is the last-resort "aggressive" decoder.
+ * Only use for top-level calldata, not nested bytes.
+ */
+const decodeAsUtf8Text = (calldata: string) => {
+  try {
+    // Remove "0x" prefix and ensure we have content
+    const hexData = calldata.startsWith("0x") ? calldata : `0x${calldata}`;
+
+    if (hexData.length < 4) {
+      // Need at least 1 byte (0x + 2 hex chars)
+      throw new Error("Calldata too short to be a text message");
+    }
+
+    // Decode hex to string
+    const text = hexToString(hexData as Hex);
+
+    if (!text || text.length === 0) {
+      throw new Error("Empty text after decoding");
+    }
+
+    // Validate that the result looks like readable text
+    // Count printable ASCII characters (space to tilde, plus common extended chars)
+    // Also allow newlines, tabs, and common UTF-8 characters
+    const printableCount = [...text].filter((char) => {
+      const code = char.charCodeAt(0);
+      // Printable ASCII (32-126), tab (9), newline (10), carriage return (13)
+      // Also allow common UTF-8 characters (code > 127 but valid unicode)
+      return (
+        (code >= 32 && code <= 126) ||
+        code === 9 ||
+        code === 10 ||
+        code === 13 ||
+        code > 127
+      );
+    }).length;
+
+    const printableRatio = printableCount / text.length;
+
+    // Require at least 80% printable characters to consider it valid text
+    if (printableRatio < 0.8) {
+      throw new Error(
+        `Low printable character ratio (${(printableRatio * 100).toFixed(1)}%)`
+      );
+    }
+
+    // Also reject if it contains null bytes (common in binary data)
+    if (text.includes("\0")) {
+      throw new Error("Contains null bytes - likely binary data");
+    }
+
+    console.log(`Decoded as UTF-8 text: "${text}"`);
+
+    const result = {
+      txType: "utf8TextMessage",
+      name: "UTF-8 Text Message",
+      args: new Result(text),
+      signature: "text(string)",
+      selector: "",
+      value: BigInt(0),
+      fragment: {
+        name: "UTF-8 Text Message",
+        type: "function",
+        stateMutability: "nonpayable",
+        inputs: [
+          {
+            name: "text",
+            type: "string",
+            indexed: null,
+            components: null,
+            arrayLength: null,
+            arrayChildren: null,
+            baseType: "string",
+            _isParamType: true,
+          },
+        ],
+        outputs: [],
+      },
+    };
+
+    console.log({ decodeAsUtf8Text: result });
+    return result;
+  } catch (error) {
+    console.error(error);
+    throw new Error(`Failed to decode calldata as UTF-8 text message`);
   }
 };
 
