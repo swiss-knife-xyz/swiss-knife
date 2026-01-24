@@ -309,6 +309,10 @@ export const StringParam = ({
   }
 
   useEffect(() => {
+    // Reset URL-related state when value changes
+    setUrlContent(null);
+    setIsUrlImageOrJson(null);
+
     if (isUrl) {
       // Check if the URL returns an image or JSON
       axios
@@ -342,7 +346,7 @@ export const StringParam = ({
         })
         .catch(() => {});
     }
-  }, [isUrl]);
+  }, [isUrl, value]);
 
   useEffect(() => {
     if (!showSkeleton) {
