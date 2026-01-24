@@ -370,7 +370,7 @@ function SendTxContent() {
         }
 
         const hash = await walletClient.sendTransaction({
-          to: resolvedTo,
+          to: resolvedTo as `0x${string}`,
           data: hexCalldata,
           value: parseEther(ethValue ?? "0"),
         });

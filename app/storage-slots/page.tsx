@@ -358,7 +358,7 @@ const AddressValue = ({
 
   const explorerUrl = chainIdToChain[chainId]?.blockExplorers?.default?.url;
 
-  const fetchAddressLabels = useCallback(async () => {
+  const fetchAndSetLabels = useCallback(async () => {
     try {
       const client = createPublicClient({
         chain: chainIdToChain[chainId],
@@ -413,8 +413,8 @@ const AddressValue = ({
     });
 
     // Fetch labels
-    fetchAddressLabels().finally(() => setIsLoading(false));
-  }, [address, chainId, fetchAddressLabels]);
+    fetchAndSetLabels().finally(() => setIsLoading(false));
+  }, [address, chainId, fetchAndSetLabels]);
 
   return (
     <HStack gap={2} flexWrap="wrap" justify="flex-end" flex={1}>

@@ -157,7 +157,7 @@ export default function DSProxySessionRequestModal({
     [executorAddress, dsProxyAddress]
   );
 
-  const fetchAddressLabels = useCallback(
+  const fetchAndSetAddressLabels = useCallback(
     async (address: string, chainId: number) => {
       setAddressLabels([]);
 
@@ -189,7 +189,7 @@ export default function DSProxySessionRequestModal({
         }
       } catch {
         try {
-          const labels = await fetchAddressLabels(address);
+          const labels = await fetchAddressLabels(address, chainId);
           if (labels.length > 0) {
             setAddressLabels(labels);
           }
@@ -212,13 +212,13 @@ export default function DSProxySessionRequestModal({
       const chainId = chainIdStr ? parseInt(chainIdStr) : null;
 
       if (chainId) {
-        fetchAddressLabels(
+        fetchAndSetAddressLabels(
           currentSessionRequest.params.request.params[0].to,
           chainId
         );
       }
     }
-  }, [currentSessionRequest, fetchAddressLabels]);
+  }, [currentSessionRequest, fetchAndSetAddressLabels]);
 
   // DS Proxy-specific approve function
   const onApprove = useCallback(async () => {

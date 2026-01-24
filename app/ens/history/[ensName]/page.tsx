@@ -35,6 +35,7 @@ import { ExternalLinkIcon, CopyIcon } from "@chakra-ui/icons";
 import { publicClient, resolveAddressToName, fetchContractAbi } from "@/utils";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 import { fetchAddressLabels } from "@/utils/addressLabels";
+import axios from "axios";
 import { normalize } from "viem/ens";
 import contentHash from "content-hash";
 import { encodePacked, erc721Abi, keccak256, labelhash } from "viem";
