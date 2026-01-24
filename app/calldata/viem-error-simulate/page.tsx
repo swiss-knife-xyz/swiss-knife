@@ -17,17 +17,17 @@ import {
 import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 import { mainnet } from "viem/chains";
-import { c } from "@/data/common";
+import { c, chainIdToImage } from "@/data/common";
 import { generateTenderlyUrl } from "@/utils";
 import { zeroAddress } from "viem";
 import { FiPlay, FiGlobe, FiAlertCircle, FiExternalLink } from "react-icons/fi";
 
-const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
-  (k) => ({
+const networkOptions: { label: string; value: number; image: string }[] =
+  Object.keys(c).map((k) => ({
     label: c[k].name,
     value: c[k].id,
-  })
-);
+    image: chainIdToImage[c[k].id],
+  }));
 
 const ViemErrorSimulate = () => {
   const [selectedNetworkOption, setSelectedNetworkOption] =

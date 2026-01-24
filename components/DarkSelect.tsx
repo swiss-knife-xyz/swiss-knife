@@ -1,11 +1,14 @@
 import { useEffect, useState, useRef, useId, useCallback } from "react";
-import { Box, BoxProps } from "@chakra-ui/react";
+import { Box, BoxProps, HStack, Image } from "@chakra-ui/react";
 import {
   Select as RSelect,
   CreatableSelect,
   OptionsOrGroups,
   GroupBase,
   SingleValue,
+  chakraComponents,
+  OptionProps,
+  SingleValueProps,
 } from "chakra-react-select";
 import { SelectedOption, SelectedOptionState } from "@/types";
 
@@ -138,6 +141,45 @@ export const DarkSelect = ({
 
   const SelectComponent = isCreatable ? CreatableSelect : RSelect;
 
+  const customComponents = {
+    Option: (props: OptionProps<SelectedOption, false>) => (
+      <chakraComponents.Option {...props}>
+        <HStack spacing={2}>
+          {props.data.image && (
+            <Image
+              src={props.data.image}
+              alt={props.data.label}
+              w="1.25rem"
+              h="1.25rem"
+              bg="white"
+              rounded="full"
+              flexShrink={0}
+            />
+          )}
+          <span>{props.data.label}</span>
+        </HStack>
+      </chakraComponents.Option>
+    ),
+    SingleValue: (props: SingleValueProps<SelectedOption, false>) => (
+      <chakraComponents.SingleValue {...props}>
+        <HStack spacing={2}>
+          {props.data.image && (
+            <Image
+              src={props.data.image}
+              alt={props.data.label}
+              w="1.25rem"
+              h="1.25rem"
+              bg="white"
+              rounded="full"
+              flexShrink={0}
+            />
+          )}
+          <span>{props.data.label}</span>
+        </HStack>
+      </chakraComponents.SingleValue>
+    ),
+  };
+
   return (
     <Box cursor="pointer" pos="relative" overflow="visible" {...boxProps}>
       <SelectComponent
@@ -169,6 +211,7 @@ export const DarkSelect = ({
         menuPosition="fixed"
         onKeyDown={handleKeyDown}
         isDisabled={disableMouseNavigation}
+        components={customComponents}
       />
     </Box>
   );

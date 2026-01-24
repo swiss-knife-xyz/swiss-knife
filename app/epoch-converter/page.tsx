@@ -22,16 +22,16 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 import { DarkButton } from "@/components/DarkButton";
-import { c, chainIdToChain } from "@/data/common";
+import { c, chainIdToChain, chainIdToImage } from "@/data/common";
 
 const timeOptions = ["minutes", "hours", "days"];
 
-const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
-  (k, i) => ({
+const networkOptions: { label: string; value: number; image: string }[] =
+  Object.keys(c).map((k, i) => ({
     label: c[k].name,
     value: c[k].id,
-  })
-);
+    image: chainIdToImage[c[k].id],
+  }));
 
 const Epoch = () => {
   const [timestamp, setTimestamp] = useState<number>(

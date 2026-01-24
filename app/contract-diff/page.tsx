@@ -23,7 +23,7 @@ import {
 } from "next-usequerystate";
 import { diffLines } from "diff";
 import { FiGitBranch, FiFile, FiChevronRight } from "react-icons/fi";
-import { etherscanChains, chainIdToChain } from "@/data/common";
+import { etherscanChains, chainIdToChain, chainIdToImage } from "@/data/common";
 import { getSourceCode } from "@/utils";
 import { Layout } from "@/components/Layout";
 import { InputField } from "@/components/InputField";
@@ -34,12 +34,12 @@ import { base, mainnet } from "viem/chains";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 
-const networkOptions: { label: string; value: number }[] = Object.keys(
-  etherscanChains
-).map((k, i) => ({
-  label: etherscanChains[k].name,
-  value: etherscanChains[k].id,
-}));
+const networkOptions: { label: string; value: number; image: string }[] =
+  Object.keys(etherscanChains).map((k, i) => ({
+    label: etherscanChains[k].name,
+    value: etherscanChains[k].id,
+    image: chainIdToImage[etherscanChains[k].id],
+  }));
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_BASE_MAINNET = "0x4200000000000000000000000000000000000006";

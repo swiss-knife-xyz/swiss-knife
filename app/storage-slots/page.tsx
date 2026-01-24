@@ -29,18 +29,18 @@ import { InputField } from "@/components/InputField";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { SelectedOptionState } from "@/types";
 import TabsSelector from "@/components/Tabs/TabsSelector";
-import { c, chainIdToChain } from "@/data/common";
+import { c, chainIdToChain, chainIdToImage } from "@/data/common";
 import { Address, encodePacked, keccak256, createPublicClient, http, erc20Abi } from "viem";
 import { resolveAddressToName, getNameAvatar } from "@/lib/nameResolution";
 import { fetchContractAbi } from "@/utils";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 
-const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
-  (k, i) => ({
+const networkOptions: { label: string; value: number; image: string }[] =
+  Object.keys(c).map((k, i) => ({
     label: c[k].name,
     value: c[k].id,
-  })
-);
+    image: chainIdToImage[c[k].id],
+  }));
 
 const EIP1967Options = ["implementation", "admin", "beacon", "rollback"];
 
