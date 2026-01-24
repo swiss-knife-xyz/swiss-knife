@@ -55,10 +55,10 @@ const SidebarItem = ({
           isActive
             ? "whiteAlpha.200"
             : isHovered
-            ? "whiteAlpha.100"
-            : "transparent"
+              ? "whiteAlpha.100"
+              : "transparent"
         }
-        color={isActive ? "blue.200" : isHovered ? "gray.200" : "gray.400"}
+        color={isActive ? "white" : isHovered ? "gray.200" : "gray.400"}
         fontWeight={isActive ? "semibold" : "medium"}
         borderLeft="3px solid"
         borderLeftColor={isActive ? "blue.400" : "transparent"}
@@ -111,7 +111,7 @@ export const Sidebar = ({
         >
           <Heading
             size="md"
-            bgGradient="linear(to-r, #60A5FA, #34D399)"
+            bgGradient="linear(to-r, white, white)"
             bgClip="text"
             fontWeight="bold"
             textAlign="center"

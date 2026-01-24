@@ -21,14 +21,19 @@ export const Layout = ({ children, ...props }: LayoutParams) => {
   };
 
   return (
-    <Box display="flex" flexDir="column" minHeight="100vh">
+    <Box display="flex" flexDir="column" minHeight="100vh" bg="bg.base">
       <Box flexGrow={1} overflow="hidden">
         <HStack alignItems="flex-start" spacing={0}>
-          {/* <MainSidebar isNavExpanded={isNavExpanded} toggleNav={toggleNav} /> */}
           <Flex flexDir="column" flexGrow={1} overflow="hidden">
             <Navbar />
             <Box overflowX="auto" flexGrow={1}>
-              <Container mt={8} minW="max-content" px={6} maxW="full">
+              <Container
+                mt={8}
+                minW="max-content"
+                px={{ base: 4, md: 6 }}
+                maxW="container.xl"
+                {...props}
+              >
                 {children}
               </Container>
             </Box>

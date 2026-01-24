@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Box, Container, SimpleGrid } from "@chakra-ui/react";
 import { ToolsGridHeading } from "./ToolsGridHeading";
 import { subdomainToInfo } from "@/data/subdomainToInfo";

@@ -4,9 +4,8 @@ import {
   InputRightElement,
   InputProps,
   InputLeftElement,
-  Button,
 } from "@chakra-ui/react";
-import { WarningIcon } from "@chakra-ui/icons";
+import { AlertCircle } from "lucide-react";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 
 interface InputFieldProps extends InputProps {
@@ -22,11 +21,11 @@ export const InputField = ({
   value,
   onChange,
   isInvalid,
-  InputLeftElement,
+  InputLeftElement: LeftElement,
   ...rest
 }: InputFieldProps) => (
   <InputGroup>
-    {InputLeftElement}
+    {LeftElement}
     <Input
       type={type ?? "text"}
       placeholder={placeholder}
@@ -36,25 +35,29 @@ export const InputField = ({
       pr="3rem"
       bg="whiteAlpha.50"
       border="1px solid"
-      borderColor={isInvalid ? "red.400" : "whiteAlpha.200"}
-      _hover={{ borderColor: isInvalid ? "red.300" : "whiteAlpha.300" }}
+      borderColor={isInvalid ? "red.500" : "whiteAlpha.200"}
+      borderRadius="lg"
+      _hover={{
+        borderColor: isInvalid ? "red.500" : "whiteAlpha.400",
+      }}
       _focus={{
-        borderColor: isInvalid ? "red.400" : "blue.400",
+        borderColor: isInvalid ? "red.500" : "blue.400",
         boxShadow: isInvalid
-          ? "0 0 0 1px var(--chakra-colors-red-400)"
+          ? "0 0 0 1px var(--chakra-colors-red-500)"
           : "0 0 0 1px var(--chakra-colors-blue-400)",
       }}
-      color="gray.100"
-      _placeholder={{ color: "gray.500" }}
-      fontSize="lg"
+      color="white"
+      _placeholder={{ color: "whiteAlpha.500" }}
+      fontSize="md"
       py={3}
+      transition="all 0.2s"
       {...rest}
     />
-    <InputRightElement pr={1}>
+    <InputRightElement pr={1} h="full">
       {!isInvalid ? (
         <CopyToClipboard textToCopy={value ?? ""} />
       ) : (
-        <WarningIcon color={"red.300"} />
+        <AlertCircle size={18} color="var(--chakra-colors-red-400)" />
       )}
     </InputRightElement>
   </InputGroup>

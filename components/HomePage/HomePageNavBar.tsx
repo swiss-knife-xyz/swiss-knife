@@ -46,16 +46,16 @@ export const HomePageNavBar = () => {
 
       <HStack spacing={{ base: 4, md: 6 }}>
         <ChakraLink href="/discord" isExternal>
-          <FontAwesomeIcon icon={faDiscord} size="lg" />
+          <FontAwesomeIcon icon={faDiscord} size="lg" color="white" />
         </ChakraLink>
         <ChakraLink href="https://twitter.com/swissknifexyz" isExternal>
-          <FontAwesomeIcon icon={faTwitter} size="lg" />
+          <FontAwesomeIcon icon={faTwitter} size="lg" color="white" />
         </ChakraLink>
         <ChakraLink
           href="https://github.com/swiss-knife-xyz/swiss-knife"
           isExternal
         >
-          <FontAwesomeIcon icon={faGithub} size="lg" />
+          <FontAwesomeIcon icon={faGithub} size="lg" color="white" />
         </ChakraLink>
       </HStack>
     </Flex>

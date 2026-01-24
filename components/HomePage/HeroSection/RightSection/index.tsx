@@ -17,12 +17,11 @@ export const RightSection = () => {
     >
       <Heading
         as="h1"
-        size={{ base: "2xl", md: "3xl" }}
+        size={{ base: "3xl", md: "4xl" }}
+        fontWeight="extrabold"
         color="white"
         lineHeight="1.2"
         mb={{ base: 4, md: 6 }}
-        bgGradient="linear(to-r, white, custom.base)"
-        bgClip="text"
       >
         All your EVM tools
         <br />

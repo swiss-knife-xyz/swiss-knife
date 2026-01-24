@@ -16,8 +16,6 @@ export const ToolsGridHeading = () => {
         size={{ base: "lg", md: "xl" }}
         color="white"
         textAlign="center"
-        bgGradient="linear(to-r, white, custom.base)"
-        bgClip="text"
       >
         Explore Our Tools
       </Heading>

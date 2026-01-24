@@ -1,621 +1,506 @@
-# ETH.sh UI Styling Guide
+# ETH.sh Design System & Styling Guide
 
-This document outlines the design language and styling conventions used throughout the ETH.sh application, particularly for the Uniswap tools section.
+This document outlines the design system, tokens, and styling conventions used throughout the ETH.sh application.
 
-## 🎨 Design Philosophy
+## Design Philosophy
 
-Our design follows a **modern, minimalist approach** with:
+Our design follows a **professional, enterprise-grade approach** inspired by Tenderly, Linear, Vercel, and Stripe:
 
-- Clean glass-morphism effects
-- Subtle color palettes that don't compete with functionality
-- Professional typography with excellent readability
-- Consistent spacing and visual hierarchy
-- Dark theme optimization
-- **Accessible copy functionality** for all output values
+1. **Clarity Over Cleverness** - Every element serves a functional purpose
+2. **Trustworthy by Design** - Visual stability that inspires confidence for blockchain operations
+3. **Developer-First** - Optimized for keyboard workflows, monospace for code/data
+4. **Progressive Disclosure** - Essential controls visible, advanced options accessible
+5. **Respectful of Attention** - Minimal visual noise, purposeful color and animation
 
-## 🧘 Simplicity & User Experience Principles
+---
 
-### **When to Keep It Simple**
+## Dual Theme Approach
 
-**Prioritize simplicity over visual complexity** - especially for utility tools like converters:
+ETH.sh uses two distinct visual styles:
 
-- **One input per line** for converter tools (ETH units, hex conversion, etc.)
-- **Single color scheme** within individual tools to avoid cognitive overload
-- **Minimal sectioning** - don't break simple workflows into complex sections
-- **Linear flow** - users should be able to scan vertically without jumping between sections
+### Homepage (Red Theme)
+- Matches the ETH.sh logo branding
+- Uses `custom.base` (#e84142) as the primary accent
+- Glass-morphism effects and gradient text
+- Emojis for tool icons
 
-### **Simple vs. Complex Layouts**
+### Tool Pages (Professional Blue Theme)
+- Professional, enterprise-grade appearance
+- Uses `primary.500` (#3B82F6) as the primary accent
+- Clean, minimal styling with subtle borders
+- Lucide icons for UI elements
+
+---
+
+## Typography
+
+### Font Stack
 
 ```typescript
-// ✅ GOOD: Simple converter layout
-<VStack spacing={4}>
-  <InputRow label="Wei" value={wei} onChange={...} />
-  <InputRow label="Gwei" value={gwei} onChange={...} />
-  <InputRow label="Ether" value={eth} onChange={...} />
-</VStack>
+// Primary font (headings and body)
+fontFamily: "var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, sans-serif"
 
-// ❌ AVOID: Over-sectioned converter
-<Box section="Base Units">
-  <Grid columns={2}>
-    <Input wei /> <Input gwei />
-  </Grid>
+// Monospace font (code, addresses, hashes)
+fontFamily: "var(--font-jetbrains-mono), 'JetBrains Mono', 'Fira Code', Consolas, monospace"
+```
+
+### Type Scale
+
+| Role | Size | Line Height | Weight | Letter Spacing |
+|------|------|-------------|--------|----------------|
+| Display | 48px | 56px | 700 | -0.02em |
+| Heading 1 | 32px | 40px | 600 | -0.02em |
+| Heading 2 | 24px | 32px | 600 | -0.01em |
+| Heading 3 | 20px | 28px | 600 | -0.01em |
+| Heading 4 | 16px | 24px | 600 | 0em |
+| Body Large | 16px | 24px | 400 | 0em |
+| Body | 14px | 20px | 400 | 0em |
+| Body Small | 12px | 16px | 400 | 0em |
+| Caption | 11px | 14px | 500 | 0.02em |
+| Code | 13px | 20px | 400 | 0em |
+
+### Usage in Chakra
+
+```typescript
+// Use textStyles for consistent typography
+<Text textStyle="h1">Heading</Text>
+<Text textStyle="body">Body text</Text>
+<Text textStyle="code" fontFamily="mono">0x1234...</Text>
+```
+
+---
+
+## Color System
+
+### Design Tokens (from `/style/tokens.ts`)
+
+#### Background Colors
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `bg.base` | `#0A0A0B` | Main page background |
+| `bg.subtle` | `#111113` | Card backgrounds, elevated surfaces |
+| `bg.muted` | `#18181B` | Secondary backgrounds |
+| `bg.emphasis` | `#27272A` | Hover states, active states |
+
+#### Text Colors
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `text.primary` | `#FAFAFA` | Primary text, headings |
+| `text.secondary` | `#A1A1AA` | Secondary text, labels |
+| `text.tertiary` | `#71717A` | Placeholder, disabled text |
+
+#### Border Colors
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `border.subtle` | `rgba(255,255,255,0.06)` | Subtle divisions |
+| `border.default` | `rgba(255,255,255,0.10)` | Standard borders |
+| `border.strong` | `rgba(255,255,255,0.16)` | Emphasized borders |
+
+#### Primary Brand (Tool Pages)
+
+```typescript
+primary: {
+  400: "#60A5FA",  // Light blue - links, highlights
+  500: "#3B82F6",  // Main brand color
+  600: "#2563EB",  // Hover states
+  700: "#1D4ED8",  // Active states
+}
+```
+
+#### Homepage Brand
+
+```typescript
+custom: {
+  base: "#e84142",  // Original red - homepage branding
+}
+```
+
+#### Status Colors
+
+| Status | Background | Border | Text |
+|--------|------------|--------|------|
+| Success | `rgba(34,197,94,0.10)` | `rgba(34,197,94,0.30)` | `#4ADE80` |
+| Warning | `rgba(251,191,36,0.10)` | `rgba(251,191,36,0.30)` | `#FBBF24` |
+| Error | `rgba(239,68,68,0.10)` | `rgba(239,68,68,0.30)` | `#F87171` |
+| Info | `rgba(59,130,246,0.10)` | `rgba(59,130,246,0.30)` | `#60A5FA` |
+
+### Usage Examples
+
+```typescript
+// Tool page components
+<Box bg="bg.subtle" borderColor="border.default">
+  <Text color="text.primary">Primary text</Text>
+  <Text color="text.secondary">Secondary text</Text>
+  <Button variant="primary">Action</Button>
 </Box>
-<Box section="Custom Units">...</Box>
-<Box section="Primary Units">...</Box>
+
+// Homepage components (use original colors)
+<Button bg="custom.base" _hover={{ bg: "red.600" }}>
+  Explore Tools
+</Button>
 ```
 
-### **Color Consistency Within Tools**
+---
 
-- **Single accent color per tool** - typically `blue.400`
-- **Reserve multiple colors** for tools with distinct functional areas (like Uniswap tools with different token pairs)
-- **Consistent theming** - all icons, focus states, and accents should match
+## Nested Components & Color Compatibility
 
-### **When Complex Layouts Are Appropriate**
+### The `whiteAlpha` System
 
-Use sectioned layouts for tools that have **genuinely different functional areas**:
+For components that can be nested inside other containers (like decoded params, expandable sections, etc.), use `whiteAlpha` colors instead of the opaque `bg.*` tokens. This ensures visual compatibility regardless of the parent background.
 
-- Multi-step configuration processes
-- Tools with distinct input/output phases
-- Complex tools with multiple distinct workflows
-- Dashboard-style interfaces with different data types
+### When to Use `whiteAlpha` vs `bg.*` Tokens
 
-## 🎯 Color Palette
+| Context | Use | Example |
+|---------|-----|---------|
+| Page-level backgrounds | `bg.base`, `bg.subtle` | Layout, Navbar, Footer |
+| Top-level cards/sections | `bg.subtle`, `bg.muted` | Main content cards |
+| **Nested/embedded components** | `whiteAlpha.*` | Tabs inside params, nested cards |
+| **Interactive elements in containers** | `whiteAlpha.*` | Buttons, tabs in expandable sections |
 
-### Primary Text Colors
-
-```typescript
-// Primary headings and important text
-color = "gray.100";
-
-// Secondary text and labels
-color = "gray.300";
-
-// Subtle text, descriptions, and placeholders
-color = "gray.400";
-
-// Very subtle text and disabled states
-color = "gray.500";
-```
-
-### Accent Colors
+### Correct Pattern for Nested Components
 
 ```typescript
-// Primary accent (matches logo heritage)
-color = "blue.400"; // For primary icons and buttons
-
-// Secondary accents for different tool sections
-color = "orange.400"; // Target/goal-related features
-color = "green.400"; // Success states and liquidity
-color = "purple.400"; // Configuration and settings
-color = "red.400"; // Errors and warnings
-```
-
-### Background Colors
-
-```typescript
-// Main page containers
-bg = "rgba(0, 0, 0, 0.05)";
-backdropFilter = "blur(5px)";
-
-// Component sections
-bg = "whiteAlpha.50"; // Standard component background
-bg = "whiteAlpha.30"; // Slightly more prominent sections
-bg = "whiteAlpha.100"; // Input hover states and active elements
-
-// Borders
-borderColor = "whiteAlpha.50"; // Subtle page borders
-borderColor = "whiteAlpha.100"; // Component borders
-borderColor = "whiteAlpha.200"; // More defined borders
-```
-
-## 📝 Typography
-
-### Page Headings
-
-```typescript
-<Heading size="xl" color="gray.100" fontWeight="bold" letterSpacing="tight">
-  Page Title
-</Heading>
-```
-
-### Section Headings
-
-```typescript
-<Heading size="md" color="gray.300">
-  Section Title
-</Heading>
-```
-
-### Descriptive Text
-
-```typescript
-<Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
-  Description text
-</Text>
-```
-
-### Labels and Form Text
-
-```typescript
-<Text color="gray.400" fontSize="sm" fontWeight="medium">
-  Field Label
-</Text>
-```
-
-## 🏗️ Layout Patterns
-
-### Simple Converter Pattern
-
-```typescript
-<Box w="full" maxW="800px" mx="auto">
-  <VStack spacing={4} align="stretch">
-    <HStack spacing={4} p={4} bg="whiteAlpha.50" borderRadius="lg">
-      <Box minW="120px">
-        <VStack spacing={1} align="start">
-          <HStack spacing={2}>
-            <Icon as={IconComponent} color="blue.400" boxSize={4} />
-            <Text color="gray.300" fontWeight="medium">
-              {label}
-            </Text>
-          </HStack>
-          {badge && <Badge>{badge}</Badge>}
-        </VStack>
-      </Box>
-      <Box flex={1}>
-        <Input /* ... standard input styling ... */ />
-      </Box>
-      {rightElement && <Box>{rightElement}</Box>}
-    </HStack>
-    {/* Repeat for each conversion unit */}
-  </VStack>
+// ❌ WRONG: Using opaque bg.* colors in nested components
+// This creates jarring contrast when inside whiteAlpha containers
+<Box bg="whiteAlpha.50" rounded="lg">
+  <TabsSelector ... /> // If tabs use bg.base, they look wrong
 </Box>
-```
 
-### Page Container
-
-```typescript
-<Box
-  p={6}
-  bg="rgba(0, 0, 0, 0.05)"
-  backdropFilter="blur(5px)"
-  borderRadius="xl"
-  border="1px solid"
-  borderColor="whiteAlpha.50"
-  maxW="1400px" // Prevents stretching on wide screens
-  mx="auto"
->
-  {/* Page content */}
-</Box>
-```
-
-### Page Header Pattern
-
-```typescript
-<Box mb={8} textAlign="center">
-  <HStack justify="center" spacing={3} mb={4}>
-    <Icon as={IconComponent} color="blue.400" boxSize={8} />
-    <Heading size="xl" color="gray.100" fontWeight="bold" letterSpacing="tight">
-      Page Title
-    </Heading>
+// ✅ CORRECT: Using whiteAlpha for nested components
+<Box bg="whiteAlpha.50" rounded="lg">
+  <HStack bg="whiteAlpha.100" rounded="lg">
+    <Box bg={isSelected ? "whiteAlpha.200" : "transparent"}>
+      Tab content
+    </Box>
   </HStack>
-  <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
-    Clear, concise description of the tool's purpose
-  </Text>
 </Box>
 ```
 
-### Component Section
+### `whiteAlpha` Scale Reference
+
+| Token | Opacity | Usage |
+|-------|---------|-------|
+| `whiteAlpha.50` | 4% | Subtle container backgrounds |
+| `whiteAlpha.100` | 6% | Secondary container backgrounds |
+| `whiteAlpha.200` | 8% | Active/selected states in nested components |
+| `whiteAlpha.300` | 16% | Hover states, borders |
+| `whiteAlpha.400` | 24% | Emphasized elements |
+| `whiteAlpha.700` | 64% | Secondary text in nested contexts |
+
+### Key Rules
+
+1. **Never use `bg.base` or `bg.subtle` inside `whiteAlpha` containers** - the opaque dark colors create visual disconnects
+2. **Tabs, buttons, and interactive elements inside expandable sections** should use `whiteAlpha` variants
+3. **Text colors in nested components**: Use `white` and `whiteAlpha.700` instead of `text.primary` and `text.secondary`
+4. **Borders in nested contexts**: Use `whiteAlpha.300` instead of `border.default`
+
+### Component Examples
 
 ```typescript
-<Box
-  p={4}
-  bg="whiteAlpha.50"
-  borderRadius="lg"
-  border="1px solid"
-  borderColor="whiteAlpha.200"
->
-  <VStack spacing={6} align="stretch">
-    {/* Section header */}
-    <HStack spacing={2} align="center">
-      <Icon as={SectionIcon} color="purple.400" boxSize={6} />
-      <Heading size="md" color="gray.300">
-        Section Title
-      </Heading>
-    </HStack>
+// Tabs inside a nested container (like decoded params)
+<HStack bg="whiteAlpha.100" rounded="lg" p={1}>
+  <Box
+    bg={isSelected ? "whiteAlpha.200" : "transparent"}
+    color={isSelected ? "white" : "whiteAlpha.700"}
+    _hover={{ bg: "whiteAlpha.100", color: "white" }}
+  >
+    Tab Label
+  </Box>
+</HStack>
 
-    {/* Section content */}
-  </VStack>
-</Box>
+// Nested card/section
+<Stack bg="whiteAlpha.50" rounded="lg" p={4}>
+  <Text color="white">Primary content</Text>
+  <Text color="whiteAlpha.700">Secondary content</Text>
+  <Box borderColor="whiteAlpha.300" borderWidth="1px">
+    Bordered content
+  </Box>
+</Stack>
 ```
 
-## 🔤 Icon Usage
+---
 
-### Icon Sizing
-
-```typescript
-// Page header icons
-boxSize={8}
-
-// Section header icons
-boxSize={6}
-
-// Small UI icons
-boxSize={4}
-
-// Inline icons
-boxSize={3}
-```
-
-### Icon Colors by Context
-
-```typescript
-// Tool identification
-color = "blue.400"; // Charts, data tools
-color = "orange.400"; // Target/goal tools
-color = "green.400"; // Liquidity/money tools
-color = "purple.400"; // Configuration tools
-
-// UI states
-color = "gray.400"; // Neutral/inactive
-color = "gray.500"; // Disabled
-color = "red.400"; // Errors
-color = "green.400"; // Success
-```
-
-## 📏 Spacing System
-
-### Standard Spacing
-
-```typescript
-// Page-level spacing
-p={6}           // Page container padding
-mb={8}          // Page header bottom margin
-px={8}          // Page content horizontal padding
-
-// Component-level spacing
-p={4}           // Component container padding
-spacing={6}     // Major element spacing
-spacing={4}     // Standard element spacing
-spacing={3}     // Compact element spacing
-spacing={2}     // Tight element spacing
-
-// Dividers
-my={4}          // Standard divider margin
-my={6}          // Larger section breaks
-```
-
-### Layout Constraints
-
-```typescript
-maxW = "1400px"; // Page container max width
-maxW = "600px"; // Description text max width
-maxW = "800px"; // Simple converter max width
-maxW = "400px"; // Form input max width (centered)
-```
-
-## 🎭 Component Patterns
-
-### Input Fields
-
-```typescript
-<Input
-  bg="whiteAlpha.50"
-  border="1px solid"
-  borderColor="whiteAlpha.200"
-  _hover={{ borderColor: "whiteAlpha.300" }}
-  _focus={{
-    borderColor: "blue.400",
-    boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
-  }}
-  color="gray.100"
-  _placeholder={{ color: "gray.500" }}
-  // ... other props
-/>
-```
+## Component Patterns
 
 ### Buttons
 
 ```typescript
-// Primary actions
-<Button
-  colorScheme="blue"
-  leftIcon={<Icon as={ActionIcon} boxSize={4} />}
->
-  Action Text
+// Primary button (tool pages)
+<Button variant="primary">
+  Primary Action
 </Button>
 
-// Secondary actions
-<Button
-  colorScheme="gray"
-  variant="ghost"
-  size="sm"
->
+// Secondary button
+<Button variant="secondary">
   Secondary Action
 </Button>
+
+// Ghost button
+<Button variant="ghost">
+  Subtle Action
+</Button>
+
+// Homepage red button
+<Button bg="custom.base" color="white" _hover={{ bg: "red.600" }}>
+  Explore Tools
+</Button>
 ```
 
-### Status Badges
+### Input Fields
 
-```typescript
-<Badge
-  colorScheme="green" // or "orange", "red", "purple" based on state
-  fontSize="xs"
-  px={2}
-  py={0.5}
-  rounded="md"
->
-  Status Text
-</Badge>
-```
-
-### Cards/Information Display
-
-```typescript
-<Box
-  p={4}
-  bg="whiteAlpha.100"
-  borderRadius="md"
-  border="1px solid"
-  borderColor="whiteAlpha.200"
->
-  <VStack spacing={3}>{/* Card content */}</VStack>
-</Box>
-```
-
-## 🎪 Interactive States
-
-### Hover Effects
-
-```typescript
-// Subtle hover for clickable elements
-_hover={{
-  bg: "whiteAlpha.100",
-  transform: "translateY(-1px)", // Optional lift effect
-}}
-
-// Input hover
-_hover={{ borderColor: "whiteAlpha.300" }}
-```
-
-### Active States
-
-```typescript
-// Active navigation items
-bg = "whiteAlpha.200";
-color = "blue.200";
-borderLeft = "3px solid";
-borderLeftColor = "blue.400";
-```
-
-### Focus States
-
-```typescript
-_focus={{
-  borderColor: "blue.400",
-  boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
-}}
-```
-
-## 🎯 Sidebar Styling
-
-### Sidebar Container
-
-```typescript
-<Flex w="220px" flexDir="column" py="2rem" minH="100vh">
-  {/* Seamless background - no borders or backgrounds */}
-</Flex>
-```
-
-### Sidebar Items
-
-```typescript
-<Flex
-  align="center"
-  p="3"
-  mx="2"
-  borderRadius="lg"
-  cursor="pointer"
-  transition="all 0.2s ease"
-  borderLeft="3px solid"
-  borderLeftColor={isActive ? "blue.400" : "transparent"}
-  _hover={{ transform: "translateX(2px)" }}
->
-  <Icon as={itemIcon} mr={3} fontSize="md" />
-  <Box fontSize="sm" whiteSpace="nowrap">
-    {name}
-  </Box>
-</Flex>
-```
-
-## 📱 Responsive Considerations
-
-### Grid Layouts
-
-```typescript
-<Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={6}>
-  {/* Responsive grid items */}
-</Grid>
-```
-
-### Mobile Adaptations
-
-- Use consistent spacing scales that work on mobile
-- Ensure touch targets are adequately sized
-- Test icon sizes for readability on small screens
-
-## ⚡ Performance Guidelines
-
-### Backdrop Filters
-
-- Use sparingly for main containers only
-- Prefer `blur(5px)` for subtle effects
-- Avoid on frequently re-rendered components
-
-### Color Usage
-
-- Leverage Chakra's color tokens for consistency
-- Use rgba colors for transparency effects
-- Maintain sufficient contrast ratios
-
-## 📋 Copy Functionality
-
-### **Always Include Copy Buttons**
-
-For converter tools and any input fields, **always include copy buttons** to enhance user experience:
-
-- **All input fields** should have copy functionality for consistency
-- **All output/readonly fields** should have copy functionality
-- **Calculated results** should be easily copyable
-- **Hash outputs** and **address results** are prime candidates for copy buttons
-- Use our standardized `InputField` component for consistency throughout the page
-
-### **Copy Button Styling**
-
-```typescript
-// Copy buttons should be subtle but accessible
-<InputRightElement pr={1}>
-  <CopyToClipboard textToCopy={value ?? ""} />
-</InputRightElement>
-```
-
-### **When to Include Copy Buttons**
-
-- ✅ **All input fields** (users can copy what they've typed)
-- ✅ **All converter outputs** (hex results, hash outputs, padded values)
-- ✅ **Generated addresses** and **checksummed addresses**
-- ✅ **Calculation results** from Uniswap tools
-- ✅ **Any readonly/computed fields**
-- ✅ **Configuration inputs** (settings, parameters)
-- 🎯 **Use InputField for ALL fields** to maintain visual and functional consistency
-
-### Input Fields with Copy Functionality
-
-Use the `InputField` component for **all input fields** for consistent styling and copy functionality:
+Always use the `InputField` component for consistent styling and copy functionality:
 
 ```typescript
 import { InputField } from "@/components/InputField";
 
-// For ALL fields - both input and output
 <InputField
-  placeholder="Enter or view value here"
+  placeholder="Enter value"
   value={value}
   onChange={handleChange}
-  isReadOnly={isOutput} // Only set for computed results
-  cursor={isOutput ? "text" : undefined}
-  autoFocus={isPrimaryInput}
-/>;
-
-// No longer recommended - use InputField instead
-// <Input ... />
+  isInvalid={hasError}
+/>
 ```
 
-### Standard Input Styling
+Input styling is handled automatically:
+- Background: `bg.subtle`
+- Border: `border.default`, hover: `border.strong`
+- Focus: `primary.500` border with ring
+- Error: `error.solid` border with ring
 
-All input styling is now handled by the `InputField` component automatically:
+### Cards
 
 ```typescript
-// Standard input props are now built into InputField
-// No need to specify these manually:
-// bg="whiteAlpha.50"
-// border="1px solid"
-// borderColor="whiteAlpha.200"
-// _hover={{ borderColor: "whiteAlpha.300" }}
-// _focus={{ borderColor: "blue.400", boxShadow: "..." }}
-// color="gray.100"
-// _placeholder={{ color: "gray.500" }}
-// fontSize="lg"
-// py={3}
+import { Card } from "@/components/Card";
+
+// Elevated card (default)
+<Card>Content</Card>
+
+// Interactive card
+<Card variant="interactive">Clickable content</Card>
+
+// Outline card
+<Card variant="outline">Outlined content</Card>
 ```
 
-## 🔄 Consistency Rules
-
-1. **Always use the established color palette** - don't introduce new colors without updating this guide
-2. **Maintain spacing consistency** - use the defined spacing scale
-3. **Icon sizing should match context** - page headers get larger icons than inline elements
-4. **Glass-morphism effects are for containers only** - not individual components
-5. **Max widths prevent content stretching** - always constrain wide layouts
-6. **Seamless sidebars** - no backgrounds or borders that create visual disconnects
-7. **Prioritize simplicity** - use single-column layouts for simple workflows
-8. **One color per simple tool** - avoid cognitive overload with multiple accent colors
-9. **Copy functionality is essential** - use InputField component for ALL fields
-10. **Consistent input styling** - use InputField for all input and output fields
-11. **Visual consistency** - every field should have the same interaction patterns
-
-## 🎯 Converter Page Pattern
-
-### Complete Converter Input Row
+### Tabs
 
 ```typescript
-<HStack
-  spacing={4}
-  p={4}
-  bg="whiteAlpha.50" // or "whiteAlpha.100" for highlighted rows
-  borderRadius="lg"
-  border="1px solid"
-  borderColor="whiteAlpha.200"
->
-  <Box minW="120px">
-    <VStack spacing={1} align="start">
-      <HStack spacing={2}>
-        <Icon as={IconComponent} color="blue.400" boxSize={4} />
-        <Text color="gray.300" fontWeight="medium">
-          {label}
-        </Text>
-      </HStack>
-      {badge && (
-        <Badge colorScheme="blue" fontSize="xs" px={2} py={0.5}>
-          {badge}
-        </Badge>
-      )}
-    </VStack>
-  </Box>
-  <Box flex={1}>
-    {isOutput ? (
-      <InputField
-        placeholder={`${label} will appear here`}
-        value={value}
-        onChange={() => {}}
-        isReadOnly
-        cursor="text"
-        // ...standard input props
-      />
-    ) : (
-      <Input
-        placeholder={`Enter ${label.toLowerCase()}`}
-        value={value}
-        onChange={handleChange}
-        autoFocus={isPrimary}
-        // ...standard input props
-      />
-    )}
-  </Box>
-  {rightElement && <Box>{rightElement}</Box>}
-</HStack>
+import TabsSelector from "@/components/Tabs/TabsSelector";
+
+<TabsSelector
+  tabs={["Tab 1", "Tab 2", "Tab 3"]}
+  selectedTabIndex={selectedIndex}
+  setSelectedTabIndex={setSelectedIndex}
+/>
 ```
 
-## 🎨 Tools-Specific Conventions
+### Select
 
-### Simple Converters (ETH, Hex, etc.)
+```typescript
+import { DarkSelect } from "@/components/DarkSelect";
 
-- **Layout**: Single-column with one input per line
-- **Color**: Consistent `blue.400` throughout
-- **Pattern**: Label + Input + Optional Right Element
-- **Width**: `maxW="800px"` for optimal readability
+<DarkSelect
+  placeholder="Select option"
+  options={options}
+  selectedOption={selected}
+  setSelectedOption={setSelected}
+/>
+```
 
-### Tick to Price
+---
 
-- **Icon**: `FiBarChart` in `blue.400`
-- **Focus**: Data conversion and readability
+## Layout System
 
-### Pool Price to Target
+### Container Widths
 
-- **Icon**: `FiTarget` in `orange.400`
-- **Focus**: Goal-oriented actions and targeting
+| Token | Width | Usage |
+|-------|-------|-------|
+| `container.sm` | 640px | Narrow content |
+| `container.md` | 768px | Standard tools |
+| `container.lg` | 1024px | Wide tools |
+| `container.xl` | 1280px | Homepage, grids |
 
-### Add Liquidity
+### Spacing Scale
 
-- **Icon**: `FiDroplet` in `blue.400`
-- **Focus**: Liquidity provision and financial actions
+```
+4px, 8px, 12px, 16px, 20px, 24px, 32px, 40px, 48px, 64px, 80px, 96px
+```
+
+### Page Layout Pattern
+
+```typescript
+// Tool pages use the Layout component
+import { Layout } from "@/components/Layout";
+
+<Layout>
+  <Box maxW="container.lg" mx="auto">
+    {/* Page content */}
+  </Box>
+</Layout>
+```
+
+### Standard Page Header
+
+```typescript
+<Box mb={8} textAlign="center">
+  <Heading size="xl" color="text.primary" mb={4}>
+    Page Title
+  </Heading>
+  <Text color="text.secondary" maxW="600px" mx="auto">
+    Clear, concise description
+  </Text>
+</Box>
+```
+
+---
+
+## Icons
+
+### Library: Lucide React
+
+```typescript
+import { Code2, Search, ArrowLeftRight } from "lucide-react";
+```
+
+### Icon Sizes
+
+| Token | Size | Usage |
+|-------|------|-------|
+| `sm` | 16px | Buttons, inputs |
+| `md` | 20px | List items |
+| `lg` | 24px | Section headers |
+| `xl` | 32px | Page headers |
+
+### Icon Colors
+
+```typescript
+// Tool pages - use primary blue
+<Icon as={Code2} size={20} color="var(--chakra-colors-primary-400)" />
+
+// Navbar/Footer - use text.secondary
+<Github size={22} color="var(--chakra-colors-text-secondary)" />
+```
+
+---
+
+## Animation & Motion
+
+### Timing
+
+| Duration | Usage |
+|----------|-------|
+| 100ms | Button states, toggles |
+| 200ms | Standard transitions |
+| 300ms | Panel transitions |
+| 500ms | Page transitions |
+
+### Standard Hover Effect
+
+```typescript
+_hover={{
+  transform: "translateY(-2px)",
+  boxShadow: "lg",
+  borderColor: "primary.500",
+}}
+transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+```
+
+---
+
+## Simplicity Principles
+
+### When to Keep It Simple
+
+- **One input per line** for converter tools
+- **Single color scheme** within individual tools
+- **Minimal sectioning** - don't break simple workflows
+- **Linear flow** - users should scan vertically
+
+### When Complex Layouts Are Appropriate
+
+- Multi-step configuration processes
+- Tools with distinct input/output phases
+- Dashboard-style interfaces with different data types
+
+---
+
+## Copy Functionality
+
+### Always Include Copy Buttons
+
+- All input fields should have copy functionality
+- All output/readonly fields should have copy functionality
+- Hash outputs and address results are prime candidates
+- Use the `InputField` component for consistency
+
+```typescript
+// InputField includes copy button automatically
+<InputField
+  placeholder="Result"
+  value={result}
+  onChange={() => {}}
+  isReadOnly
+/>
+```
+
+---
+
+## Accessibility
+
+### Requirements (WCAG 2.1 AA)
+
+- **Contrast:** 4.5:1 minimum for text
+- **Focus:** Visible 2px primary-500 outline
+- **Keyboard:** All elements focusable, logical tab order
+- **Motion:** Respect `prefers-reduced-motion`
+- **Forms:** Labels linked, errors announced
+
+### Focus States
+
+```typescript
+_focusVisible={{
+  outline: "none",
+  boxShadow: "0 0 0 3px rgba(59,130,246,0.4)",
+}}
+```
+
+---
+
+## File Reference
+
+| File | Purpose |
+|------|---------|
+| `/style/tokens.ts` | Design tokens (colors, typography, spacing) |
+| `/style/theme.ts` | Chakra UI theme configuration |
+| `/app/IndexLayout.tsx` | Font loading (Inter, JetBrains Mono) |
+| `/components/InputField.tsx` | Standard input with copy functionality |
+| `/components/DarkButton.tsx` | Button component |
+| `/components/DarkSelect.tsx` | Select dropdown |
+| `/components/Card.tsx` | Card component |
+| `/components/Tabs/` | Tab components |
+| `/components/Layout.tsx` | Main layout wrapper |
+| `/components/Navbar.tsx` | Navigation bar |
+| `/components/Footer.tsx` | Footer |
+
+---
+
+## Migration from Old Styles
+
+If updating old components, use these mappings:
+
+| Old | New |
+|-----|-----|
+| `bg="bg.900"` | `bg="bg.base"` |
+| `bg="whiteAlpha.50"` | `bg="bg.subtle"` |
+| `bg="whiteAlpha.100"` | `bg="bg.muted"` |
+| `borderColor="whiteAlpha.200"` | `borderColor="border.default"` |
+| `color="gray.100"` | `color="text.primary"` |
+| `color="gray.300"` | `color="text.secondary"` |
+| `color="gray.400"` / `gray.500"` | `color="text.tertiary"` |
+| `color="blue.400"` | `color="primary.400"` |
 
 ---
 

@@ -10,9 +10,7 @@ import {
   Button,
   Image,
 } from "@chakra-ui/react";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faDiscord } from "@fortawesome/free-brands-svg-icons";
+import { ExternalLink, MessageCircle } from "lucide-react";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 
@@ -20,17 +18,17 @@ export const Footer = () => {
   return (
     <Box
       mt={10}
-      bg="bg.900"
-      py={{ base: 8, md: 10 }}
+      bg="bg.base"
+      py={{ base: 10, md: 12 }}
       borderTop="1px"
-      borderColor="whiteAlpha.200"
+      borderColor="border.subtle"
     >
       <Container maxW="container.xl" px={{ base: 4, md: 6 }}>
         <Flex
           direction={{ base: "column", md: "row" }}
           justify="space-between"
           align={{ base: "center", md: "flex-start" }}
-          gap={{ base: 6, md: 8 }}
+          gap={{ base: 8, md: 10 }}
         >
           {/* Logo and Description */}
           <Flex
@@ -40,28 +38,28 @@ export const Footer = () => {
             align={{ base: "center", md: "flex-start" }}
             textAlign={{ base: "center", md: "left" }}
           >
-            <HStack spacing={4} mb={4}>
+            <HStack spacing={3} mb={4}>
               <Image
                 src="/icon.png"
                 alt="ETH.sh"
                 boxSize="2.5rem"
-                rounded={"md"}
+                rounded="md"
               />
-              <Heading fontWeight="bold" fontSize="2xl" color="white">
+              <Heading fontWeight="semibold" fontSize="2xl" color="text.primary">
                 ETH.sh
               </Heading>
             </HStack>
-            <Text color="gray.400" fontSize="sm">
+            <Text color="text.secondary" fontSize="sm" lineHeight="tall">
               ETH.sh is a comprehensive suite of tools for Ethereum developers
               and users, designed to simplify blockchain interactions & making
               the EVM human-friendly.
             </Text>
           </Flex>
 
-          {/* Quick Links, Popular Tools, and Newsletter in a grid for mobile */}
+          {/* Quick Links, Popular Tools, and Newsletter in a grid */}
           <SimpleGrid
             columns={{ base: 1, sm: 3 }}
-            spacing={8}
+            spacing={{ base: 6, md: 10 }}
             width={{ base: "100%", md: "auto" }}
           >
             {/* Quick Links */}
@@ -69,8 +67,9 @@ export const Footer = () => {
               <Heading
                 as="h4"
                 size="sm"
-                color="white"
+                color="text.primary"
                 mb={4}
+                fontWeight="semibold"
                 textAlign={{ base: "center", sm: "left" }}
               >
                 Quick Links
@@ -82,34 +81,51 @@ export const Footer = () => {
               >
                 <ChakraLink
                   href="#all-tools"
-                  color="gray.400"
-                  _hover={{ color: "custom.base" }}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
                 >
                   All Tools
                 </ChakraLink>
                 <ChakraLink
                   href="https://github.com/swiss-knife-xyz/swiss-knife"
                   isExternal
-                  color="gray.400"
-                  _hover={{ color: "custom.base" }}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
                 >
-                  GitHub <ExternalLinkIcon mx="2px" />
+                  GitHub <ExternalLink size={12} />
                 </ChakraLink>
                 <ChakraLink
                   href="/discord"
                   isExternal
-                  color="gray.400"
-                  _hover={{ color: "custom.base" }}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
                 >
-                  Discord <ExternalLinkIcon mx="2px" />
+                  Discord <ExternalLink size={12} />
                 </ChakraLink>
                 <ChakraLink
                   href="https://twitter.com/swissknifexyz"
                   isExternal
-                  color="gray.400"
-                  _hover={{ color: "custom.base" }}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
                 >
-                  Twitter <ExternalLinkIcon mx="2px" />
+                  Twitter <ExternalLink size={12} />
                 </ChakraLink>
               </Flex>
             </Box>
@@ -119,8 +135,9 @@ export const Footer = () => {
               <Heading
                 as="h4"
                 size="sm"
-                color="white"
+                color="text.primary"
                 mb={4}
+                fontWeight="semibold"
                 textAlign={{ base: "center", sm: "left" }}
               >
                 Popular Tools
@@ -132,48 +149,57 @@ export const Footer = () => {
               >
                 <ChakraLink
                   href={`${getPath(subdomains.CALLDATA.base)}decoder`}
-                  color="gray.400"
-                  _hover={{ color: "custom.base" }}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
                 >
                   Calldata Decoder
                 </ChakraLink>
                 <ChakraLink
                   href={`${getPath(subdomains.CONVERTER.base)}`}
-                  color="gray.400"
-                  _hover={{ color: "custom.base" }}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
                 >
                   Unit Converter
                 </ChakraLink>
                 <ChakraLink
                   href={`${getPath(subdomains.EXPLORER.base)}`}
-                  color="gray.400"
-                  _hover={{ color: "custom.base" }}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
                 >
                   Blockchain Explorer
                 </ChakraLink>
                 <ChakraLink
                   href={`${getPath(subdomains.TRANSACT.base)}`}
-                  color="gray.400"
-                  _hover={{ color: "custom.base" }}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
                 >
                   Transaction Tools
                 </ChakraLink>
               </Flex>
             </Box>
 
-            {/* Newsletter Signup */}
+            {/* Community */}
             <Box>
               <Heading
                 as="h4"
                 size="sm"
-                color="white"
+                color="text.primary"
                 mb={4}
+                fontWeight="semibold"
                 textAlign={{ base: "center", sm: "left" }}
               >
                 Stay Updated
               </Heading>
               <Text
-                color="gray.400"
+                color="text.secondary"
                 fontSize="sm"
                 mb={4}
                 textAlign={{ base: "center", sm: "left" }}
@@ -186,10 +212,11 @@ export const Footer = () => {
                   bg="custom.base"
                   color="white"
                   _hover={{ bg: "red.600" }}
-                  borderRadius="md"
-                  leftIcon={<FontAwesomeIcon icon={faDiscord} size="lg" />}
+                  leftIcon={<MessageCircle size={18} />}
                   as="a"
                   href="/discord"
+                  borderRadius="lg"
+                  fontWeight="medium"
                 >
                   Join Discord
                 </Button>
@@ -197,47 +224,6 @@ export const Footer = () => {
             </Box>
           </SimpleGrid>
         </Flex>
-
-        {/* Copyright */}
-        {/* <Flex
-            direction={{ base: "column", md: "row" }}
-            justify="space-between"
-            align="center"
-            mt={{ base: 8, md: 12 }}
-            pt={{ base: 4, md: 6 }}
-            borderTop="1px"
-            borderColor="whiteAlpha.200"
-          >
-            <Text color="gray.500" fontSize="sm" textAlign="center">
-              © {new Date().getFullYear()} ETH.sh. All rights reserved.
-            </Text>
-            <HStack spacing={{ base: 4, md: 6 }} mt={{ base: 4, md: 0 }}>
-              <ChakraLink
-                href="/discord"
-                isExternal
-                color="gray.400"
-                _hover={{ color: "white" }}
-              >
-                <FontAwesomeIcon icon={faDiscord} size="lg" />
-              </ChakraLink>
-              <ChakraLink
-                href="https://twitter.com/swissknifexyz"
-                isExternal
-                color="gray.400"
-                _hover={{ color: "white" }}
-              >
-                <FontAwesomeIcon icon={faTwitter} size="lg" />
-              </ChakraLink>
-              <ChakraLink
-                href="https://github.com/swiss-knife-xyz/swiss-knife"
-                isExternal
-                color="gray.400"
-                _hover={{ color: "white" }}
-              >
-                <FontAwesomeIcon icon={faGithub} size="lg" />
-              </ChakraLink>
-            </HStack>
-          </Flex> */}
       </Container>
     </Box>
   );

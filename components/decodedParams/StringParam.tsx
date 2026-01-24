@@ -69,7 +69,11 @@ export const StringParam = ({
     const parsedValue = JSON.parse(_value);
     displayValue = JSON.stringify(parsedValue, null, 4);
     // Don't show decoded JSON for null, empty arrays, or invalid JSON
-    if (displayValue === "null" || displayValue === "[]" || !isValidJSON(_value)) {
+    if (
+      displayValue === "null" ||
+      displayValue === "[]" ||
+      !isValidJSON(_value)
+    ) {
       throw new Error("Invalid JSON");
     }
     isJson = true;
@@ -102,12 +106,23 @@ export const StringParam = ({
           </HStack>
         </HStack>
         <Textarea
+          className="scroll"
           value={value}
           isReadOnly
-          resize={"both"}
+          resize={"vertical"}
           rows={2}
           placeholder=""
           w="full"
+          bg="whiteAlpha.50"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+          borderRadius="lg"
+          color="white"
+          _hover={{ borderColor: "whiteAlpha.400" }}
+          _focus={{
+            borderColor: "blue.400",
+            boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
+          }}
         />
       </Box>
     ) : (
