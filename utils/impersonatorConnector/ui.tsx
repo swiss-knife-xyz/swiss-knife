@@ -28,7 +28,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faWallet } from "@fortawesome/free-solid-svg-icons";
 import { type Address, isAddress, getAddress } from "viem";
 import { useAccount } from "wagmi";
-import { getEnsAddress } from "@/utils";
+import { resolveNameToAddress, isResolvableName } from "@/utils";
 import {
   getStoredImpersonatorAddress,
   getStoredImpersonatorENS,
@@ -76,10 +76,8 @@ export const ImpersonatorModal = ({
 
   const validateAddress = (address: string): boolean => {
     if (!address.trim()) return true; // Empty is valid (will show error on submit)
-    // Accept valid addresses or potential ENS names (ending with .eth or containing dots)
-    return (
-      isAddress(address) || address.includes(".") || address.endsWith(".eth")
-    );
+    // Accept valid addresses or potential resolvable names (ENS, Basename, etc.)
+    return isAddress(address) || isResolvableName(address);
   };
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,7 +98,7 @@ export const ImpersonatorModal = ({
       toast({
         title: "Address Required",
         description:
-          "Please enter an Ethereum address or ENS name to impersonate.",
+          "Please enter an Ethereum address or name to impersonate.",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -117,20 +115,20 @@ export const ImpersonatorModal = ({
         // Direct address input
         resolvedAddress = getAddress(addressInput);
       } else {
-        // Try to resolve as ENS name
+        // Try to resolve as ENS or Basename
         try {
-          const ensResolvedAddress = await getEnsAddress(addressInput);
-          if (ensResolvedAddress) {
-            resolvedAddress = ensResolvedAddress;
-            // Store the original ENS input if it's a valid ENS name
-            if (addressInput.includes(".") || addressInput.endsWith(".eth")) {
+          const nameResolvedAddress = await resolveNameToAddress(addressInput);
+          if (nameResolvedAddress) {
+            resolvedAddress = nameResolvedAddress;
+            // Store the original name input if it's a resolvable name
+            if (isResolvableName(addressInput)) {
               ensName = addressInput;
             }
           } else {
             setIsValidAddress(false);
             toast({
               title: "Invalid Input",
-              description: "Please enter a valid Ethereum address or ENS name.",
+              description: "Please enter a valid Ethereum address or name.",
               status: "error",
               duration: 3000,
               isClosable: true,
@@ -141,7 +139,7 @@ export const ImpersonatorModal = ({
           setIsValidAddress(false);
           toast({
             title: "Invalid Input",
-            description: "Please enter a valid Ethereum address or ENS name.",
+            description: "Please enter a valid Ethereum address or name.",
             status: "error",
             duration: 3000,
             isClosable: true,
@@ -254,7 +252,7 @@ export const ImpersonatorModal = ({
                 </Text>
                 <InputGroup>
                   <Input
-                    placeholder="0x... or ENS name"
+                    placeholder="0x... or name (ENS, Basename)"
                     value={addressInput}
                     onChange={handleAddressChange}
                     onKeyPress={handleKeyPress}
@@ -265,7 +263,7 @@ export const ImpersonatorModal = ({
                 </InputGroup>
                 {!isValidAddress && (
                   <Text color="red.400" fontSize="xs">
-                    Please enter a valid Ethereum address or ENS name
+                    Please enter a valid Ethereum address or name
                   </Text>
                 )}
               </VStack>

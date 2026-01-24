@@ -68,7 +68,8 @@ export const StringParam = ({
     const _value = isBase64Encoded ? base64!.content : value;
     const parsedValue = JSON.parse(_value);
     displayValue = JSON.stringify(parsedValue, null, 4);
-    if (displayValue === "null" || !isValidJSON(_value)) {
+    // Don't show decoded JSON for null, empty arrays, or invalid JSON
+    if (displayValue === "null" || displayValue === "[]" || !isValidJSON(_value)) {
       throw new Error("Invalid JSON");
     }
     isJson = true;
@@ -308,6 +309,10 @@ export const StringParam = ({
   }
 
   useEffect(() => {
+    // Reset URL-related state when value changes
+    setUrlContent(null);
+    setIsUrlImageOrJson(null);
+
     if (isUrl) {
       // Check if the URL returns an image or JSON
       axios
@@ -316,16 +321,17 @@ export const StringParam = ({
           let _urlContent = res.data;
           setUrlContent(_urlContent);
           try {
+            const stringified = JSON.stringify(_urlContent);
+            // Check for valid JSON object or array
             if (
               !(
-                JSON.stringify(_urlContent).startsWith("{") &&
-                JSON.stringify(_urlContent).endsWith("}")
+                (stringified.startsWith("{") && stringified.endsWith("}")) ||
+                (stringified.startsWith("[") && stringified.endsWith("]"))
               )
             ) {
               throw new Error("Invalid JSON");
             }
 
-            _urlContent = JSON.parse(JSON.stringify(_urlContent));
             setIsUrlImageOrJson({
               isJson: true,
             });
@@ -340,7 +346,7 @@ export const StringParam = ({
         })
         .catch(() => {});
     }
-  }, [isUrl]);
+  }, [isUrl, value]);
 
   useEffect(() => {
     if (!showSkeleton) {

@@ -83,6 +83,12 @@ export type DecodeRecursiveResult = {
   args: Arg[];
 } | null;
 
+export type DecodeEventResult = {
+  eventName: string;
+  signature: string;
+  args: Arg[];
+};
+
 export type HighlightedText = {
   text: string;
   isHighlighted: boolean;

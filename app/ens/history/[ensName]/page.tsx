@@ -32,8 +32,9 @@ import {
   Code,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon, CopyIcon } from "@chakra-ui/icons";
-import { publicClient, getEnsName, fetchContractAbi } from "@/utils";
+import { publicClient, resolveAddressToName, fetchContractAbi } from "@/utils";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
+import { fetchAddressLabels } from "@/utils/addressLabels";
 import axios from "axios";
 import { normalize } from "viem/ens";
 import contentHash from "content-hash";
@@ -211,8 +212,8 @@ const ENSHistory = () => {
 
           setIsLoading(true);
           try {
-            // Try to get ENS name
-            const name = await getEnsName(address);
+            // Try to get ENS name or Basename
+            const name = await resolveAddressToName(address);
             setResolvedEnsName(name);
 
             // If no ENS name, try to fetch labels or contract name
@@ -221,16 +222,9 @@ const ENSHistory = () => {
 
               // First try to fetch labels from API
               try {
-                const res = await axios.get(
-                  `${
-                    process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-                      ? ""
-                      : "https://eth.sh"
-                  }/api/labels/${address}?chainId=1`
-                );
-                const data = res.data;
-                if (data.length > 0) {
-                  setAddressLabels([data[0]]);
+                const labels = await fetchAddressLabels(address, 1);
+                if (labels.length > 0) {
+                  setAddressLabels([labels[0]]);
                   labelsFound = true;
                 }
               } catch (error) {

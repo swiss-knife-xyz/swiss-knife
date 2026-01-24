@@ -1,7 +1,7 @@
 "use client";
 
 import subdomains from "@/subdomains";
-import { getPath } from "@/utils";
+import { getPath, slicedText } from "@/utils";
 import {
   Stack,
   Box,
@@ -12,6 +12,11 @@ import {
   Text,
   Link,
 } from "@chakra-ui/react";
+import { useLocalStorage } from "usehooks-ts";
+import {
+  RecentSearch,
+  RECENT_SEARCHES_KEY,
+} from "@/app/explorer/ExplorerLayout";
 
 const Card = ({
   title,
@@ -64,10 +69,83 @@ const Card = ({
   );
 };
 
+const RecentSearchCard = ({ search }: { search: RecentSearch }) => {
+  const isLongInput = search.input.length > 20;
+  const displayTitle = isLongInput ? slicedText(search.input) : search.input;
+
+  const url =
+    search.type === "tx"
+      ? `${getPath(subdomains.EXPLORER.base)}tx/${search.input}`
+      : `${getPath(subdomains.EXPLORER.base)}address/${search.input}`;
+
+  return (
+    <Link
+      href={url}
+      _hover={{
+        textDecor: "none",
+      }}
+    >
+      <Box
+        flex={1}
+        border="1px"
+        borderColor="green.400"
+        rounded="1rem"
+        cursor={"pointer"}
+        _hover={{
+          border: "2px",
+          borderColor: "green.500",
+          bg: "whiteAlpha.50",
+        }}
+      >
+        <Center py={4} px={4}>
+          <VStack>
+            <Heading
+              as="h2"
+              fontWeight="semibold"
+              fontSize={"md"}
+              pb="2"
+              borderBottom={"1px"}
+              borderColor={"whiteAlpha.400"}
+              title={search.input}
+            >
+              {displayTitle}
+            </Heading>
+            <Text pt="1" textAlign="center" color={"green.200"} fontSize={"sm"}>
+              ({search.type})
+            </Text>
+          </VStack>
+        </Center>
+      </Box>
+    </Link>
+  );
+};
+
 const Explorer = () => {
+  const [recentSearches] = useLocalStorage<RecentSearch[]>(
+    RECENT_SEARCHES_KEY,
+    []
+  );
+
   return (
     <>
       <Container mt={10} pb={10} alignItems="center">
+        {recentSearches.length > 0 && (
+          <>
+            <Text>Recent searches:</Text>
+            <Stack
+              mt={2}
+              mb={6}
+              direction={{ base: "column", md: "row" }}
+              alignItems={{ base: "center", md: "stretch" }}
+              spacing={5}
+              justifyContent="flex-start"
+            >
+              {recentSearches.map((search, i) => (
+                <RecentSearchCard key={search.timestamp} search={search} />
+              ))}
+            </Stack>
+          </>
+        )}
         <Text>or try these out:</Text>
         <Stack
           mt={2}

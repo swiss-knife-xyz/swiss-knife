@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Heading,
   Box,
@@ -12,15 +12,24 @@ import {
   Center,
   HStack,
   Button,
+  Link,
+  Tag,
+  Avatar,
+  Spinner,
+  IconButton,
+  Tooltip,
 } from "@chakra-ui/react";
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { ethers } from "ethers";
 import { Layout } from "@/components/Layout";
 import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { c, chainIdToChain } from "@/data/common";
-import { encodePacked, keccak256 } from "viem";
-import { storageKey } from "porto/_dist/core/internal/preCalls";
+import { Address, encodePacked, keccak256, createPublicClient, http, erc20Abi } from "viem";
+import { resolveAddressToName, getNameAvatar } from "@/lib/nameResolution";
+import { fetchContractAbi } from "@/utils";
+import { fetchAddressLabels } from "@/utils/addressLabels";
 
 const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
   (k, i) => ({
@@ -81,9 +90,11 @@ const EIP1967Select = ({
 
 const StorageSlotInput = ({
   setStorageSlot,
+  setSlotRange,
 }: {
   storageSlot?: string;
   setStorageSlot: (value: string) => void;
+  setSlotRange: (value: { start: string; end: string } | null) => void;
 }) => {
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   const [localStorageSlot, setLocalStorageSlot] = useState<string>("");
@@ -91,7 +102,15 @@ const StorageSlotInput = ({
   const [mappingKey, setMappingKey] = useState<string>("");
   const [arrayStorageSlot, setArrayStorageSlot] = useState<string>("");
   const [arrayIndex, setArrayIndex] = useState<string>("");
+  const [rangeStart, setRangeStart] = useState<string>("");
+  const [rangeEnd, setRangeEnd] = useState<string>("");
+
   useEffect(() => {
+    // Clear range when not in range mode
+    if (selectedTabIndex !== 3) {
+      setSlotRange(null);
+    }
+
     if (selectedTabIndex === 0 && localStorageSlot) {
       setStorageSlot(localStorageSlot);
     } else if (selectedTabIndex === 1 && mappingStorageSlot && mappingKey) {
@@ -108,6 +127,9 @@ const StorageSlotInput = ({
           keccak256(encodePacked(["uint256"], [BigInt(arrayStorageSlot)]))
         ) + BigInt(arrayIndex);
       setStorageSlot("0x" + storageSlot.toString(16));
+    } else if (selectedTabIndex === 3 && rangeStart && rangeEnd) {
+      setSlotRange({ start: rangeStart, end: rangeEnd });
+      setStorageSlot(""); // Clear single slot when in range mode
     } else {
       setStorageSlot("");
     }
@@ -118,12 +140,15 @@ const StorageSlotInput = ({
     arrayIndex,
     arrayStorageSlot,
     localStorageSlot,
+    rangeStart,
+    rangeEnd,
     setStorageSlot,
+    setSlotRange,
   ]);
   return (
     <Container>
       <TabsSelector
-        tabs={["Raw", "Mapping", "Array"]}
+        tabs={["Raw", "Mapping", "Array", "Range"]}
         selectedTabIndex={selectedTabIndex}
         setSelectedTabIndex={setSelectedTabIndex}
         mb={10}
@@ -206,6 +231,38 @@ const StorageSlotInput = ({
                 </Center>
               </FormControl>
             );
+          case 3:
+            return (
+              <FormControl>
+                <FormLabel>Enter storage slot range:</FormLabel>
+                <HStack>
+                  <Input
+                    autoComplete="off"
+                    value={rangeStart}
+                    onChange={(e) => {
+                      setRangeStart(e.target.value);
+                    }}
+                    bg={"blackAlpha.300"}
+                    placeholder="Start slot (e.g., 0)"
+                  />
+                  <Text color="whiteAlpha.700" fontWeight="bold">
+                    to
+                  </Text>
+                  <Input
+                    autoComplete="off"
+                    value={rangeEnd}
+                    onChange={(e) => {
+                      setRangeEnd(e.target.value);
+                    }}
+                    bg={"blackAlpha.300"}
+                    placeholder="End slot (e.g., 9)"
+                  />
+                </HStack>
+                <Text mt={2} fontSize="sm" color="whiteAlpha.600">
+                  Fetches all storage values from start to end slot (inclusive)
+                </Text>
+              </FormControl>
+            );
         }
       })()}
     </Container>
@@ -243,73 +300,382 @@ const Query = ({ query }: { query: () => {} }) => {
 };
 
 const formatOptions = ["hex", "address", "uint256", "bool", "int256"];
+
+const formatValue = (value: string, format: string): string => {
+  if (format === "hex") {
+    return value;
+  }
+  try {
+    return ethers.AbiCoder.defaultAbiCoder()
+      .decode([format], value)[0]
+      .toString();
+  } catch {
+    return value;
+  }
+};
+
+// Auto-detect the most appropriate format for a storage value
+const detectFormat = (value: string): string => {
+  // All zeros = likely uninitialized, show as hex
+  if (value === "0x" + "0".repeat(64)) {
+    return "hex";
+  }
+
+  // Check if it looks like a boolean (0 or 1)
+  const numValue = BigInt(value);
+  if (numValue === BigInt(0) || numValue === BigInt(1)) {
+    return "bool";
+  }
+
+  // Check if it looks like an address (has 24 leading zero bytes = 48 hex chars after 0x)
+  // Addresses are 20 bytes, stored right-aligned in 32 bytes
+  if (value.substring(2, 26) === "0".repeat(24) && value.substring(26) !== "0".repeat(40)) {
+    return "address";
+  }
+
+  // Check if it's a small number (fits in reasonable uint range and has many leading zeros)
+  const leadingZeros = value.substring(2).match(/^0*/)?.[0].length || 0;
+  if (leadingZeros >= 32) {
+    return "uint256";
+  }
+
+  // Default to hex for complex values
+  return "hex";
+};
+
+// Component to display address with ENS, tags, and explorer link
+const AddressValue = ({
+  address,
+  chainId,
+}: {
+  address: string;
+  chainId: number;
+}) => {
+  const [ensName, setEnsName] = useState<string | null>(null);
+  const [ensAvatar, setEnsAvatar] = useState<string | null>(null);
+  const [labels, setLabels] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const explorerUrl = chainIdToChain[chainId]?.blockExplorers?.default?.url;
+
+  const fetchAndSetLabels = useCallback(async () => {
+    try {
+      const client = createPublicClient({
+        chain: chainIdToChain[chainId],
+        transport: http(),
+      });
+
+      // Try fetching the contract symbol() if it's a token
+      try {
+        const symbol = await client.readContract({
+          address: address as Address,
+          abi: erc20Abi,
+          functionName: "symbol",
+        });
+        setLabels([symbol]);
+        return;
+      } catch {
+        // Try fetching verified contract name
+        try {
+          const fetchedAbi = await fetchContractAbi({ address, chainId });
+          if (fetchedAbi?.name) {
+            setLabels([fetchedAbi.name]);
+            return;
+          }
+        } catch {}
+      }
+
+      // Fallback to labels API
+      try {
+        const labels = await fetchAddressLabels(address, chainId);
+        if (labels.length > 0) {
+          setLabels(labels);
+        }
+      } catch {}
+    } catch {}
+  }, [address, chainId]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setEnsName(null);
+    setEnsAvatar(null);
+    setLabels([]);
+
+    // Fetch ENS name
+    resolveAddressToName(address).then((name) => {
+      if (name) {
+        setEnsName(name);
+        // Fetch avatar
+        getNameAvatar(name).then((avatar) => {
+          if (avatar) setEnsAvatar(avatar);
+        });
+      }
+    });
+
+    // Fetch labels
+    fetchAndSetLabels().finally(() => setIsLoading(false));
+  }, [address, chainId, fetchAndSetLabels]);
+
+  return (
+    <HStack gap={2} flexWrap="wrap" justify="flex-end" flex={1}>
+      {isLoading && <Spinner size="xs" />}
+      {labels.length > 0 && (
+        <HStack gap={1} flexWrap="wrap">
+          {labels.map((label, idx) => (
+            <Tag key={idx} size="sm" colorScheme="blue" variant="solid">
+              {label}
+            </Tag>
+          ))}
+        </HStack>
+      )}
+      {ensName && (
+        <HStack
+          bg="whiteAlpha.200"
+          px={2}
+          py={1}
+          borderRadius="md"
+          gap={1}
+        >
+          {ensAvatar && <Avatar src={ensAvatar} size="2xs" />}
+          <Text fontSize="sm" color="purple.300">
+            {ensName}
+          </Text>
+        </HStack>
+      )}
+      <Text fontFamily="mono" fontSize="sm">
+        {address}
+      </Text>
+      {explorerUrl && (
+        <Tooltip label="View on explorer" placement="top">
+          <IconButton
+            as={Link}
+            href={`${explorerUrl}/address/${address}`}
+            isExternal
+            aria-label="View on explorer"
+            icon={<ExternalLinkIcon />}
+            size="xs"
+            variant="ghost"
+            colorScheme="blue"
+          />
+        </Tooltip>
+      )}
+    </HStack>
+  );
+};
+
 const Result = ({
   result,
+  chainId,
 }: {
   result: {
     value?: string;
     storageSlot?: string;
     error?: string;
   };
+  chainId: number;
 }) => {
+  // Auto-detect format when result changes
+  const autoDetectedFormat = result.value ? detectFormat(result.value) : "hex";
+  
   const [selectedFormatOption, setSelectedFormatOption] =
     useState<SelectedOptionState>({
-      label: formatOptions[0],
-      value: formatOptions[0],
+      label: autoDetectedFormat,
+      value: autoDetectedFormat,
     });
-  const [formattedResult, setFormattedResult] = useState<string>();
 
+  // Update selected format when result changes (new query)
   useEffect(() => {
     if (result.value) {
-      if (selectedFormatOption?.value === "hex") {
-        setFormattedResult(result.value);
-      } else {
-        setFormattedResult(
-          ethers.AbiCoder.defaultAbiCoder()
-            .decode([selectedFormatOption!.value.toString()], result.value)[0]
-            .toString()
-        );
-      }
+      const detected = detectFormat(result.value);
+      setSelectedFormatOption({
+        label: detected,
+        value: detected,
+      });
     }
-  }, [selectedFormatOption, result]);
+  }, [result.value]);
+
+  const activeFormat = selectedFormatOption?.value?.toString() || "hex";
+  const formattedAddress = activeFormat === "address" && result.value
+    ? formatValue(result.value, "address")
+    : null;
 
   return (
-    <Container mt={4} minW={"50%"}>
-      <Box>
-        {!result.error ? (
-          <>
-            <HStack>
-              <Heading fontSize={"3xl"} color="whiteAlpha.800">
-                Result
-              </Heading>
-              <DarkSelect
-                boxProps={{
-                  w: "10rem",
-                }}
-                isCreatable
-                selectedOption={selectedFormatOption}
-                setSelectedOption={setSelectedFormatOption}
-                options={formatOptions.map((str) => ({
-                  label: str,
-                  value: str,
-                }))}
-              />
-            </HStack>
-            <HStack mt={4}>
-              <Text color="whiteAlpha.700">Value:</Text>
-              <Text mt={2}>{formattedResult}</Text>
+    <Box mt={4} mx="auto" w="full" maxW="1200px" px={4}>
+      {!result.error ? (
+        <>
+          <HStack mb={4}>
+            <Heading fontSize={"3xl"} color="whiteAlpha.800">
+              Result
+            </Heading>
+            <DarkSelect
+              boxProps={{
+                w: "130px",
+                minW: "130px",
+              }}
+              selectedOption={selectedFormatOption}
+              setSelectedOption={setSelectedFormatOption}
+              options={formatOptions.map((str) => ({
+                label: str,
+                value: str,
+              }))}
+            />
+          </HStack>
+          <Box
+            p={4}
+            bg="blackAlpha.400"
+            borderRadius="md"
+            border="1px solid"
+            borderColor="whiteAlpha.300"
+          >
+            <HStack flexWrap="wrap" gap={2}>
+              <Text color="whiteAlpha.700" flexShrink={0}>Value:</Text>
+              {activeFormat === "address" && formattedAddress ? (
+                <AddressValue address={formattedAddress} chainId={chainId} />
+              ) : (
+                <Text fontFamily="mono" wordBreak="break-all">
+                  {result.value ? formatValue(result.value, activeFormat) : ""}
+                </Text>
+              )}
             </HStack>
 
-            <Box mt={2}>
+            <Box mt={4}>
               <Text color="whiteAlpha.700">At storage slot:</Text>
-              <Text>{result.storageSlot}</Text>
+              <Text fontFamily="mono">{result.storageSlot}</Text>
             </Box>
-          </>
+          </Box>
+        </>
+      ) : (
+        <Text>Error: {result.error}</Text>
+      )}
+    </Box>
+  );
+};
+
+const RangeResultRow = ({
+  item,
+  globalFormat,
+  chainId,
+}: {
+  item: { slot: string; value: string };
+  globalFormat: string | null;
+  chainId: number;
+}) => {
+  const autoDetectedFormat = detectFormat(item.value);
+  const [selectedFormat, setSelectedFormat] = useState<SelectedOptionState>({
+    label: autoDetectedFormat,
+    value: autoDetectedFormat,
+  });
+
+  // Use global format if set, otherwise use per-row format
+  const activeFormat = globalFormat || selectedFormat?.value?.toString() || "hex";
+
+  // Get the formatted address value when format is "address"
+  const formattedAddress = activeFormat === "address" 
+    ? formatValue(item.value, "address") 
+    : null;
+
+  return (
+    <Box p={3} mb={2} bg="blackAlpha.400" borderRadius="md" _last={{ mb: 0 }}>
+      <HStack justify="space-between" flexWrap="nowrap" gap={4}>
+        <HStack flexShrink={0}>
+          <Text color="whiteAlpha.700" fontSize="sm" whiteSpace="nowrap">
+            Slot {item.slot}:
+          </Text>
+          {!globalFormat && (
+            <DarkSelect
+              boxProps={{
+                w: "130px",
+                minW: "130px",
+              }}
+              selectedOption={selectedFormat}
+              setSelectedOption={setSelectedFormat}
+              options={formatOptions.map((str) => ({
+                label: str,
+                value: str,
+              }))}
+            />
+          )}
+        </HStack>
+        {activeFormat === "address" && formattedAddress ? (
+          <AddressValue address={formattedAddress} chainId={chainId} />
         ) : (
-          <Text>Error: {result.error}</Text>
+          <Text fontFamily="mono" fontSize="sm" wordBreak="break-all" flex={1} textAlign="right">
+            {formatValue(item.value, activeFormat)}
+          </Text>
         )}
-      </Box>
-    </Container>
+      </HStack>
+    </Box>
+  );
+};
+
+const RangeResult = ({
+  results,
+  chainId,
+}: {
+  results: {
+    values?: { slot: string; value: string }[];
+    error?: string;
+  };
+  chainId: number;
+}) => {
+  const [globalFormatOption, setGlobalFormatOption] =
+    useState<SelectedOptionState | null>(null);
+
+  const globalFormatOptions = [
+    { label: "Auto (per slot)", value: "" },
+    ...formatOptions.map((str) => ({ label: str, value: str })),
+  ];
+
+  return (
+    <Box mt={4} mx="auto" w="full" maxW="1200px" px={4}>
+      {!results.error ? (
+        <>
+          <HStack mb={4} flexWrap="wrap" gap={3}>
+            <Heading fontSize={"3xl"} color="whiteAlpha.800">
+              Results
+            </Heading>
+            <HStack>
+              <Text fontSize="sm" color="whiteAlpha.600" whiteSpace="nowrap">
+                Format all:
+              </Text>
+              <DarkSelect
+                boxProps={{
+                  w: "180px",
+                  minW: "180px",
+                }}
+                selectedOption={globalFormatOption || { label: "Auto (per slot)", value: "" }}
+                setSelectedOption={(opt) => {
+                  setGlobalFormatOption(opt?.value ? opt : null);
+                }}
+                options={globalFormatOptions}
+              />
+            </HStack>
+          </HStack>
+          <Box
+            maxH="500px"
+            overflowY="auto"
+            border="1px solid"
+            borderColor="whiteAlpha.300"
+            borderRadius="md"
+            p={3}
+          >
+            {results.values?.map((item, index) => (
+              <RangeResultRow
+                key={index}
+                item={item}
+                globalFormat={globalFormatOption?.value?.toString() || null}
+                chainId={chainId}
+              />
+            ))}
+          </Box>
+          <Text mt={2} fontSize="sm" color="whiteAlpha.600">
+            {results.values?.length} slot(s) fetched
+          </Text>
+        </>
+      ) : (
+        <Text>Error: {results.error}</Text>
+      )}
+    </Box>
   );
 };
 
@@ -325,9 +691,17 @@ const StorageSlots = () => {
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>(networkOptions[0]);
   const [storageSlot, setStorageSlot] = useState<string>();
+  const [slotRange, setSlotRange] = useState<{
+    start: string;
+    end: string;
+  } | null>(null);
   const [result, setResult] = useState<{
     value?: string;
     storageSlot?: string;
+    error?: string;
+  }>();
+  const [rangeResults, setRangeResults] = useState<{
+    values?: { slot: string; value: string }[];
     error?: string;
   }>();
 
@@ -335,6 +709,7 @@ const StorageSlots = () => {
     // validate address
     if (!ethers.isAddress(address)) {
       setResult({ error: "Address is invalid" });
+      setRangeResults(undefined);
       return;
     }
 
@@ -343,6 +718,55 @@ const StorageSlots = () => {
         parseInt(selectedNetworkOption!.value.toString())
       ]?.rpcUrls.default.http[0]
     );
+
+    // Handle range query
+    if (slotRange) {
+      setResult(undefined);
+      try {
+        const startSlot = BigInt(slotRange.start);
+        const endSlot = BigInt(slotRange.end);
+
+        if (endSlot < startSlot) {
+          setRangeResults({ error: "End slot must be >= start slot" });
+          return;
+        }
+
+        const values: { slot: string; value: string }[] = [];
+        const CHUNK_SIZE = 50; // Process 50 slots at a time to avoid overwhelming RPC
+
+        // Create array of all slots to fetch
+        const slots: bigint[] = [];
+        for (let slot = startSlot; slot <= endSlot; slot++) {
+          slots.push(slot);
+        }
+
+        // Process in chunks
+        for (let i = 0; i < slots.length; i += CHUNK_SIZE) {
+          const chunk = slots.slice(i, i + CHUNK_SIZE);
+          const chunkPromises = chunk.map((slot) => {
+            const slotHex = "0x" + slot.toString(16);
+            return provider.getStorage(address, slotHex).then((value) => ({
+              slot: slot.toString(),
+              value,
+            }));
+          });
+
+          const chunkResults = await Promise.all(chunkPromises);
+          values.push(...chunkResults);
+        }
+
+        // Sort by slot number (already in order but ensures correctness)
+        values.sort((a, b) => Number(BigInt(a.slot) - BigInt(b.slot)));
+
+        setRangeResults({ values });
+      } catch (e) {
+        setRangeResults({ error: "Invalid slot range entered" });
+      }
+      return;
+    }
+
+    // Handle single slot query
+    setRangeResults(undefined);
     let _storageSlot =
       selectedTabIndex === 0
         ? getEIP1967StorageSlot(selectedEIP1967Slot!.value.toString())
@@ -430,12 +854,24 @@ const StorageSlots = () => {
                 <StorageSlotInput
                   storageSlot={storageSlot}
                   setStorageSlot={setStorageSlot}
+                  setSlotRange={setSlotRange}
                 />
               );
           }
         })()}
         <Query query={query} />
-        {(result?.value || result?.error) && <Result result={result} />}
+        {(result?.value || result?.error) && (
+          <Result
+            result={result}
+            chainId={parseInt(selectedNetworkOption!.value.toString())}
+          />
+        )}
+        {(rangeResults?.values || rangeResults?.error) && (
+          <RangeResult
+            results={rangeResults}
+            chainId={parseInt(selectedNetworkOption!.value.toString())}
+          />
+        )}
       </Box>
     </Layout>
   );

@@ -54,7 +54,7 @@ import {
 import { renderParams } from "@/components/renderParams";
 import { chainIdToChain } from "@/data/common";
 import { useCallback, useEffect, useState } from "react";
-import axios from "axios";
+import { fetchAddressLabels } from "@/utils/addressLabels";
 import { fetchContractAbi, generateTenderlyUrl } from "@/utils";
 import { BsArrowsAngleExpand, BsArrowsAngleContract } from "react-icons/bs";
 import { DS_PROXY_ABI } from "../abi/DSProxy";
@@ -157,7 +157,7 @@ export default function DSProxySessionRequestModal({
     [executorAddress, dsProxyAddress]
   );
 
-  const fetchAddressLabels = useCallback(
+  const fetchAndSetAddressLabels = useCallback(
     async (address: string, chainId: number) => {
       setAddressLabels([]);
 
@@ -189,16 +189,9 @@ export default function DSProxySessionRequestModal({
         }
       } catch {
         try {
-          const res = await axios.get(
-            `${
-              process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-                ? ""
-                : "https://swiss-knife.xyz"
-            }/api/labels/${address}`
-          );
-          const data = res.data;
-          if (data.length > 0) {
-            setAddressLabels(data);
+          const labels = await fetchAddressLabels(address, chainId);
+          if (labels.length > 0) {
+            setAddressLabels(labels);
           }
         } catch {
           setAddressLabels([]);
@@ -219,13 +212,13 @@ export default function DSProxySessionRequestModal({
       const chainId = chainIdStr ? parseInt(chainIdStr) : null;
 
       if (chainId) {
-        fetchAddressLabels(
+        fetchAndSetAddressLabels(
           currentSessionRequest.params.request.params[0].to,
           chainId
         );
       }
     }
-  }, [currentSessionRequest, fetchAddressLabels]);
+  }, [currentSessionRequest, fetchAndSetAddressLabels]);
 
   // DS Proxy-specific approve function
   const onApprove = useCallback(async () => {

@@ -8,7 +8,6 @@ import {
   PublicClient,
 } from "viem";
 import { mainnet } from "viem/chains";
-import { normalize } from "viem/ens";
 import {
   ADDRESS_KEY,
   CHAINLABEL_KEY,
@@ -23,6 +22,32 @@ import {
   EVMParameter,
 } from "@/types";
 import { formatEther, formatUnits } from "viem";
+
+// Re-export name resolution functions from the new unified lib
+export {
+  // Core resolution functions
+  resolveNameToAddress,
+  resolveAddressToName,
+  getNameAvatar,
+  // Legacy ENS functions (for backward compatibility)
+  getEnsAddress,
+  getEnsName,
+  getEnsAvatar,
+  // Basename-specific functions
+  getBasename,
+  getBasenameAvatar,
+  getBasenameTextRecord,
+  BasenameTextRecordKeys,
+  // Helper functions
+  isResolvableName,
+  isBasename,
+  // Constants
+  BASENAME_L2_RESOLVER_ADDRESS,
+  BASE_CHAIN_ID,
+  // Clients (for direct access if needed)
+  mainnetClient,
+  baseClient,
+} from "@/lib/nameResolution";
 
 export const getPath = (subdomain: string, isRelativePath: boolean = false) => {
   if (subdomain.length === 0) {
@@ -77,28 +102,11 @@ export const getMetadata = (_metadata: {
   return metadata;
 };
 
+// Keep publicClient export for backward compatibility (same as mainnetClient)
 export const publicClient = createPublicClient({
   chain: mainnet,
   transport: http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL),
 });
-
-export const getEnsAddress = async (name: string) => {
-  return await publicClient.getEnsAddress({
-    name: normalize(name),
-  });
-};
-
-export const getEnsName = async (address: string) => {
-  return await publicClient.getEnsName({
-    address: address as Hex,
-  });
-};
-
-export const getEnsAvatar = async (ensName: string) => {
-  return await publicClient.getEnsAvatar({
-    name: normalize(ensName),
-  });
-};
 
 export const generateUrl = (
   urlLayout: string,

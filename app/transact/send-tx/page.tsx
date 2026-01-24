@@ -24,6 +24,7 @@ import {
   ToastId,
   Link,
   Button,
+  IconButton,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -31,6 +32,10 @@ import {
   ModalCloseButton,
   ModalBody,
   Stack,
+  Avatar,
+  Spinner,
+  Tooltip,
+  Image,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
@@ -38,7 +43,7 @@ import {
   parseAsString,
   useQueryState,
 } from "next-usequerystate";
-import { parseEther, formatEther, isAddress, stringify } from "viem";
+import { parseEther, formatEther, isAddress, stringify, zeroAddress } from "viem";
 import { normalize } from "viem/ens";
 import { useWalletClient, useAccount, useSwitchChain } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
@@ -50,7 +55,14 @@ import {
   ETHSelectedOptionState,
   publicClient,
   startHexWith0x,
+  resolveNameToAddress,
+  resolveAddressToName,
+  getNameAvatar,
+  isResolvableName,
+  slicedText,
+  generateTenderlyUrl,
 } from "@/utils";
+import debounce from "lodash/debounce";
 import { DarkButton } from "@/components/DarkButton";
 import { chainIdToChain } from "@/data/common";
 import { decodeRecursive } from "@/lib/decoder";
@@ -59,7 +71,7 @@ import { config } from "@/app/providers";
 
 function SendTxContent() {
   const { data: walletClient } = useWalletClient();
-  const { chain } = useAccount();
+  const { chain, address: connectedAddress } = useAccount();
   const { switchChain } = useSwitchChain();
 
   const toast = useToast();
@@ -101,6 +113,83 @@ function SendTxContent() {
   const [isDecoding, setIsDecoding] = useState(false);
   const [decoded, setDecoded] = useState<any>();
 
+  // ENS resolution state
+  const [ensName, setEnsName] = useState("");
+  const [ensAvatar, setEnsAvatar] = useState("");
+  const [resolvedAddress, setResolvedAddress] = useState("");
+  const [isResolvingEns, setIsResolvingEns] = useState(false);
+  const [lastResolvedValue, setLastResolvedValue] = useState("");
+
+  // Debounced name resolution (ENS, Basename, etc.)
+  const resolveEns = useCallback(
+    debounce(async (val: string) => {
+      if (!val || val === lastResolvedValue) return;
+      
+      try {
+        if (isResolvableName(val)) {
+          // Looks like a name (ENS, Basename, etc.)
+          setIsResolvingEns(true);
+          const address = await resolveNameToAddress(val);
+          if (address) {
+            setResolvedAddress(address);
+            setEnsName(val);
+            setLastResolvedValue(val);
+          } else {
+            setEnsName("");
+            setResolvedAddress("");
+          }
+        } else if (isAddress(val)) {
+          // It's an address, try to get reverse resolution
+          setIsResolvingEns(true);
+          setResolvedAddress(val);
+          try {
+            const name = await resolveAddressToName(val);
+            if (name) {
+              setEnsName(name);
+            } else {
+              setEnsName("");
+            }
+          } catch {
+            setEnsName("");
+          }
+          setLastResolvedValue(val);
+        } else {
+          setEnsName("");
+          setResolvedAddress("");
+        }
+      } catch (error) {
+        console.error("Error resolving name:", error);
+        setEnsName("");
+        setResolvedAddress("");
+      } finally {
+        setIsResolvingEns(false);
+      }
+    }, 500),
+    [lastResolvedValue]
+  );
+
+  // Resolve ENS when "to" changes
+  useEffect(() => {
+    if (to && to !== lastResolvedValue) {
+      resolveEns(to);
+    } else if (!to) {
+      setEnsName("");
+      setResolvedAddress("");
+      setLastResolvedValue("");
+    }
+  }, [to, resolveEns, lastResolvedValue]);
+
+  // Fetch avatar when ensName changes
+  useEffect(() => {
+    if (ensName) {
+      getNameAvatar(ensName).then((avatar) => {
+        setEnsAvatar(avatar || "");
+      });
+    } else {
+      setEnsAvatar("");
+    }
+  }, [ensName]);
+
   useEffect(() => {
     const chainIdFromURL = searchParams.get("chainId");
     if (chainIdFromURL) {
@@ -116,8 +205,14 @@ function SendTxContent() {
   }, [searchParams]);
 
   useEffect(() => {
+    // Only show chain mismatch toast if:
+    // 1. URL has been parsed (isUrlParsed)
+    // 2. A chainId was explicitly passed via URL (chainIdFromURLOnLoad is defined)
+    // 3. Wallet chain doesn't match the URL chain
+    // 4. User hasn't already satisfied the requirement
     if (
       chain &&
+      isUrlParsed &&
       chainIdFromURLOnLoad &&
       chain.id !== chainIdFromURLOnLoad &&
       !hasEverMatchedUrlChain
@@ -149,7 +244,7 @@ function SendTxContent() {
 
       setChainIdMismatch(true);
     }
-  }, [chain, chainIdFromURLOnLoad, switchChain, hasEverMatchedUrlChain]);
+  }, [chain, chainIdFromURLOnLoad, switchChain, hasEverMatchedUrlChain, isUrlParsed]);
 
   useEffect(() => {
     if (chain && isUrlParsed) {
@@ -258,22 +353,24 @@ function SendTxContent() {
           isClosable: true,
         });
       } else {
-        const resolvedTo = await resolveAddress(to);
+        // Use already-resolved address if available, otherwise resolve now
+        const resolvedTo = resolvedAddress || (await resolveAddress(to));
 
         if (!resolvedTo) {
           toast({
-            title: "Invalid address",
+            title: "Invalid address or ENS name",
             status: "error",
             position: "bottom-right",
             duration: 5_000,
             isClosable: true,
           });
 
+          setIsLoading(false);
           return;
         }
 
         const hash = await walletClient.sendTransaction({
-          to: resolvedTo,
+          to: resolvedTo as `0x${string}`,
           data: hexCalldata,
           value: parseEther(ethValue ?? "0"),
         });
@@ -380,12 +477,51 @@ function SendTxContent() {
       <Container pb="3rem">
         <VStack spacing={5}>
           <FormControl>
-            <FormLabel>To Address</FormLabel>
+            <HStack mb={2}>
+              <FormLabel mb={0}>To Address</FormLabel>
+              <Spacer />
+              {isResolvingEns && <Spinner size="xs" />}
+              {ensName && !isResolvingEns && (
+                <HStack px={2} bg="whiteAlpha.200" rounded="md">
+                  {ensAvatar && (
+                    <Avatar
+                      src={ensAvatar}
+                      w="1.2rem"
+                      h="1.2rem"
+                      ignoreFallback
+                    />
+                  )}
+                  <Text fontSize="sm">{ensName}</Text>
+                </HStack>
+              )}
+              {resolvedAddress && !isResolvingEns && resolvedAddress !== to && (
+                <HStack spacing={1}>
+                  <Tooltip label={resolvedAddress} placement="top">
+                    <Text fontSize="xs" color="whiteAlpha.600" cursor="default">
+                      {slicedText(resolvedAddress)}
+                    </Text>
+                  </Tooltip>
+                  <CopyToClipboard textToCopy={resolvedAddress} size="xs" />
+                </HStack>
+              )}
+              {(resolvedAddress || isAddress(to ?? "")) &&
+                chain?.blockExplorers?.default?.url && (
+                  <IconButton
+                    as={Link}
+                    href={`${chain.blockExplorers.default.url}/address/${resolvedAddress || to}`}
+                    isExternal
+                    aria-label="View on explorer"
+                    icon={<ExternalLinkIcon />}
+                    size="xs"
+                    variant="ghost"
+                  />
+                )}
+            </HStack>
             <InputField
               placeholder="address or ens. Leave blank to deploy contract"
               value={to}
               onChange={(e) => {
-                setTo(e.target.value);
+                setTo(e.target.value.trim());
               }}
             />
           </FormControl>
@@ -521,13 +657,45 @@ function SendTxContent() {
             />
           </Box>
           <Center>
-            <DarkButton
-              onClick={() => sendTx()}
-              isDisabled={!walletClient || chainIdMismatch}
-              isLoading={isLoading}
-            >
-              Send Tx
-            </DarkButton>
+            <HStack spacing={3}>
+              <Button
+                variant="outline"
+                size="sm"
+                borderColor="whiteAlpha.300"
+                onClick={() => {
+                  const targetAddress = resolvedAddress || to || "";
+                  const url = generateTenderlyUrl(
+                    {
+                      from: connectedAddress || zeroAddress,
+                      to: targetAddress,
+                      value: parseEther(ethValue ?? "0").toString(),
+                      data: startHexWith0x(calldata) || "0x",
+                    },
+                    chainId
+                  );
+                  window.open(url, "_blank");
+                }}
+              >
+                <HStack spacing={1}>
+                  <Image
+                    src="/external/tenderly-favicon.ico"
+                    alt="Tenderly"
+                    w={4}
+                    h={4}
+                  />
+                  <Text fontSize="sm" color="whiteAlpha.700">
+                    Simulate
+                  </Text>
+                </HStack>
+              </Button>
+              <DarkButton
+                onClick={() => sendTx()}
+                isDisabled={!walletClient || chainIdMismatch}
+                isLoading={isLoading}
+              >
+                Send Tx
+              </DarkButton>
+            </HStack>
           </Center>
         </VStack>
       </Container>

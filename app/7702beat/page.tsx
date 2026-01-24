@@ -69,7 +69,7 @@ import {
   PublicClient,
   Chain,
 } from "viem";
-import axios from "axios";
+import { fetchAddressLabels } from "@/utils/addressLabels";
 import { ConnectButton } from "@/components/ConnectButton";
 import { chainIdToImage } from "@/data/common";
 import { fetchContractAbi } from "@/utils";
@@ -1491,16 +1491,9 @@ const SevenSevenZeroTwoBeat = () => {
         }
       } catch {
         try {
-          const res = await axios.get(
-            `${
-              process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-                ? ""
-                : "https://swiss-knife.xyz"
-            }/api/labels/${authAddress}`
-          );
-          const data = res.data;
-          if (data.length > 0) {
-            setAddressLabels(data);
+          const labels = await fetchAddressLabels(authAddress, chain?.id);
+          if (labels.length > 0) {
+            setAddressLabels(labels);
           }
         } catch {
           setAddressLabels([]);

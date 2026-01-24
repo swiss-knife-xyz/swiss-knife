@@ -53,10 +53,10 @@ export const subdomainToInfo = {
     label: "Character Counter",
     description: "Count characters in any string or substring",
   },
-  [subdomains.CONTRACT_ADDRESS.base]: {
+  [subdomains.DETERMINE_ADDRESS.base]: {
     emoji: "📝",
-    label: "Contract Address",
-    description: "Calculate contract address for a given deployer and nonce",
+    label: "Determine Address",
+    description: "Calculate contract address using CREATE or CREATE2 opcode",
   },
   [subdomains.CONTRACT_DIFF.base]: {
     emoji: "⚖️",
