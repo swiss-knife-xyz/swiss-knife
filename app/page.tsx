@@ -5,6 +5,7 @@ import { HomePageNavBar } from "@/components/HomePage/HomePageNavBar";
 import { HeroSection } from "@/components/HomePage/HeroSection";
 import { ToolsGrid } from "@/components/HomePage/ToolsGrid";
 import { Footer } from "@/components/Footer";
+import { TestimonialSection } from "@/components/HomePage/TestimonialSection/Index";
 
 const Home = () => {
   return (
@@ -12,6 +13,7 @@ const Home = () => {
       <HomePageNavBar />
       <HeroSection />
       <ToolsGrid />
+      <TestimonialSection />
       <Footer />
     </Box>
   );
