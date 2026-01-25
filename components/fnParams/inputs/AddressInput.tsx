@@ -30,6 +30,7 @@ import { InputField } from "@/components/InputField";
 import { Address, createPublicClient, http, zeroAddress, erc20Abi } from "viem";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import { chainIdToChain } from "@/data/common";
+import { AddressBookButton } from "@/components/AddressBook";
 
 interface InputFieldProps extends InputProps {
   chainId: number;
@@ -318,6 +319,13 @@ export const AddressInput = ({
 
         <HStack my={2}>
           <Spacer />
+          <AddressBookButton
+            onSelect={(address: string) => {
+              onChange({
+                target: { value: address },
+              } as any);
+            }}
+          />
           <Button
             onClick={() => {
               onChange({

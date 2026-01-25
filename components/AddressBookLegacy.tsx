@@ -1,3 +1,10 @@
+/**
+ * @deprecated This component is deprecated and will be removed in a future version.
+ * Use the global address book context instead:
+ * - Import { useAddressBook } from "@/hooks/useAddressBook"
+ * - Use openDrawer() to open the address book drawer
+ * - Use openSelector(callback) to select an address
+ */
 import { useState, useEffect } from "react";
 import {
   Modal,

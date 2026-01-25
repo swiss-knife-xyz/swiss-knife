@@ -19,18 +19,22 @@ import {
   HStack,
   VStack,
   Text,
-  useDisclosure,
   Avatar,
   Link,
   Tag,
   Tooltip,
   Icon,
+  IconButton,
 } from "@chakra-ui/react";
 import {
   ExternalLinkIcon,
   SearchIcon,
+  EditIcon,
+  AddIcon,
 } from "@chakra-ui/icons";
 import { FiSearch, FiExternalLink, FiBook } from "react-icons/fi";
+import { BookOpen } from "lucide-react";
+import { AddressLabelModal } from "@/components/AddressBook";
 import { isAddress } from "viem";
 import { useLocalStorage } from "usehooks-ts";
 import {
@@ -43,9 +47,9 @@ import {
 import subdomains from "@/subdomains";
 import { Layout } from "@/components/Layout";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-import { AddressBook } from "@/components/AddressBook";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import { Sidebar, SidebarItem } from "@/components/Sidebar";
+import { useAddressBook } from "@/hooks/useAddressBook";
 
 export interface RecentSearch {
   input: string;
@@ -83,11 +87,9 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
     []
   );
 
-  const {
-    isOpen: isAddressBookOpen,
-    onOpen: openAddressBook,
-    onClose: closeAddressBook,
-  } = useDisclosure();
+  const { openSelector, getLabel, isReady: isAddressBookReady } = useAddressBook();
+  const addressBookLabel = isAddressBookReady && userInput ? getLabel(userInput) : null;
+  const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
 
   const addRecentSearch = (input: string, type: "address" | "tx") => {
     const newSearch: RecentSearch = {
@@ -382,29 +384,23 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                       </Tooltip>
                     )}
                   {pathname.includes("/address/") && (
-                    <>
-                      <Tooltip label="Address Book" placement="top">
-                        <Button
-                          onClick={openAddressBook}
-                          colorScheme="gray"
-                          variant="outline"
-                          borderColor="whiteAlpha.200"
-                          _hover={{
-                            bg: "whiteAlpha.100",
-                            borderColor: "whiteAlpha.300",
-                          }}
-                        >
-                          <Icon as={FiBook} />
-                        </Button>
-                      </Tooltip>
-                      <AddressBook
-                        isAddressBookOpen={isAddressBookOpen}
-                        closeAddressBook={closeAddressBook}
-                        showAddress={userInput}
-                        setAddress={setUserInput}
-                        handleSearch={handleSearch}
-                      />
-                    </>
+                    <Tooltip label="Select from Address Book" placement="top">
+                      <Button
+                        onClick={() => openSelector((address) => {
+                          setUserInput(address);
+                          handleSearch(address);
+                        })}
+                        colorScheme="gray"
+                        variant="outline"
+                        borderColor="whiteAlpha.200"
+                        _hover={{
+                          bg: "whiteAlpha.100",
+                          borderColor: "whiteAlpha.300",
+                        }}
+                      >
+                        <Icon as={FiBook} />
+                      </Button>
+                    </Tooltip>
                   )}
                 </HStack>
 
@@ -442,8 +438,8 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                   </Box>
                 )}
 
-                {/* Address Labels */}
-                {addressLabels.length > 0 && (
+                {/* Address Book Label and Tags */}
+                {pathname.includes("/address/") && (
                   <HStack
                     p={3}
                     border="1px solid"
@@ -453,19 +449,65 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                     flexWrap="wrap"
                     gap={2}
                   >
-                    <Text fontSize="sm" color="gray.400">
-                      Tags:
-                    </Text>
-                    {addressLabels.map((label, index) => (
-                      <Tag
-                        key={index}
-                        size="sm"
-                        variant="solid"
-                        colorScheme="blue"
-                      >
-                        {label}
-                      </Tag>
-                    ))}
+                    {addressBookLabel ? (
+                      <>
+                        <BookOpen size={16} color="gray" />
+                        <Tag
+                          size="sm"
+                          variant="solid"
+                          colorScheme="purple"
+                        >
+                          {addressBookLabel}
+                        </Tag>
+                        <Tooltip label="Edit Label" placement="top">
+                          <IconButton
+                            aria-label="Edit label"
+                            icon={<EditIcon />}
+                            size="xs"
+                            variant="ghost"
+                            color="whiteAlpha.600"
+                            _hover={{ color: "white" }}
+                            onClick={() => setIsLabelModalOpen(true)}
+                          />
+                        </Tooltip>
+                      </>
+                    ) : (
+                      isAddressBookReady && userInput && (
+                        <Tooltip label="Save to Address Book" placement="top">
+                          <IconButton
+                            aria-label="Save to address book"
+                            icon={
+                              <HStack spacing={0.5}>
+                                <BookOpen size={12} />
+                                <AddIcon boxSize={2} />
+                              </HStack>
+                            }
+                            size="xs"
+                            variant="ghost"
+                            color="whiteAlpha.400"
+                            _hover={{ color: "white", bg: "whiteAlpha.200" }}
+                            onClick={() => setIsLabelModalOpen(true)}
+                          />
+                        </Tooltip>
+                      )
+                    )}
+                    {addressLabels.length > 0 && (
+                      <>
+                        <Text fontSize="sm" color="gray.400" ml={addressBookLabel ? 2 : 0}>
+                          Tags:
+                        </Text>
+                        {addressLabels.map((label, index) => (
+                          <Tag
+                            key={index}
+                            size="sm"
+                            variant="solid"
+                            colorScheme="blue"
+                          >
+                            {label}
+                          </Tag>
+                        ))}
+                      </>
+                    )}
                   </HStack>
                 )}
               </VStack>
@@ -476,6 +518,17 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
           </Box>
         </Center>
       </HStack>
+
+      {/* Address Label Modal for save/edit */}
+      {userInput && (
+        <AddressLabelModal
+          isOpen={isLabelModalOpen}
+          onClose={() => setIsLabelModalOpen(false)}
+          address={userInput}
+          existingLabel={addressBookLabel}
+          defaultLabel={resolvedEnsName || ""}
+        />
+      )}
     </Layout>
   );
 }

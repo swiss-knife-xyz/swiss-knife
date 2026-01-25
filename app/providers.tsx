@@ -29,6 +29,11 @@ import {
   ImpersonatorFloatingButton,
 } from "@/utils/impersonatorConnector";
 import { walletChains } from "@/data/chains";
+import { AddressBookProvider } from "@/contexts/AddressBookContext";
+import {
+  AddressBookDrawer,
+  AddressBookSelector,
+} from "@/components/AddressBook";
 export { walletChains };
 
 const appName = "ETH.sh";
@@ -101,9 +106,13 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
         <WagmiProvider config={config}>
           <QueryClientProvider client={queryClient}>
             <RainbowKitProvider theme={darkTheme()} modalSize={"compact"}>
-              {children}
-              <ModalComponent />
-              <ImpersonatorFloatingButton />
+              <AddressBookProvider>
+                {children}
+                <ModalComponent />
+                <ImpersonatorFloatingButton />
+                <AddressBookDrawer />
+                <AddressBookSelector />
+              </AddressBookProvider>
             </RainbowKitProvider>
           </QueryClientProvider>
         </WagmiProvider>

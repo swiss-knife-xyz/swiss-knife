@@ -21,12 +21,14 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
+  Tooltip,
 } from "@chakra-ui/react";
-import { Menu, Github } from "lucide-react";
+import { Menu, Github, BookOpen } from "lucide-react";
 import { baseURL } from "@/config";
 import subdomains from "@/subdomains";
 import { getPath } from "@/utils";
 import { NotificationBar } from "./NotificationBar";
+import { useAddressBook } from "@/hooks/useAddressBook";
 
 export const Navbar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -36,6 +38,7 @@ export const Navbar = () => {
     onClose: onMenuClose,
   } = useDisclosure();
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const { openDrawer } = useAddressBook();
 
   return (
     <VStack w="100%" spacing={0}>
@@ -85,6 +88,19 @@ export const Navbar = () => {
           >
             <Github size={isMobile ? 20 : 22} />
           </ChakraLink>
+
+          {/* Address Book */}
+          <Tooltip label="Address Book" placement="bottom">
+            <IconButton
+              aria-label="Open address book"
+              icon={<BookOpen size={isMobile ? 18 : 20} />}
+              variant="ghost"
+              color="text.secondary"
+              _hover={{ color: "text.primary", bg: "bg.emphasis" }}
+              onClick={openDrawer}
+              size="md"
+            />
+          </Tooltip>
 
           <IconButton
             aria-label="Open menu"
