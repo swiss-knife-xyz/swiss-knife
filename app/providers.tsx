@@ -4,6 +4,7 @@ import { ChakraProvider } from "@chakra-ui/react";
 import theme from "@/style/theme";
 import "@rainbow-me/rainbowkit/styles.css";
 import { AppProgressProvider as ProgressProvider } from "@bprogress/next";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, WagmiProvider, createConfig } from "wagmi";
@@ -107,7 +108,9 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
           <QueryClientProvider client={queryClient}>
             <RainbowKitProvider theme={darkTheme()} modalSize={"compact"}>
               <AddressBookProvider>
-                {children}
+                <NuqsAdapter>
+                  {children}
+                </NuqsAdapter>
                 <ModalComponent />
                 <ImpersonatorFloatingButton />
                 <AddressBookDrawer />

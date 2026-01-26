@@ -30,7 +30,7 @@ import {
   parseAsInteger,
   parseAsString,
   useQueryState,
-} from "next-usequerystate";
+} from "nuqs";
 import { createPublicClient, http, Hex, Chain, stringify } from "viem";
 import {
   DecodeRecursiveResult,

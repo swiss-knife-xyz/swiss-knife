@@ -407,7 +407,7 @@ function isDescendantOf(nodeId: string, parentId: string): boolean {
 function useStickyScroll() {
   const { scrollContainerRef, setVisibleStickyHeaders, expandedNodes } =
     useTreeContext();
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | undefined>(undefined);
 
   const updateStickyHeaders = useCallback(() => {
     const container = scrollContainerRef.current;

@@ -44,7 +44,7 @@ type TreeContextType = {
   registerStickyNode: (meta: StickyNodeMeta) => void;
   unregisterStickyNode: (nodeId: string) => void;
   stickyNodes: Map<string, StickyNodeMeta>;
-  scrollContainerRef: RefObject<HTMLDivElement>;
+  scrollContainerRef: RefObject<HTMLDivElement | null>;
   visibleStickyHeaders: StickyNodeMeta[];
   setVisibleStickyHeaders: (headers: StickyNodeMeta[]) => void;
 };

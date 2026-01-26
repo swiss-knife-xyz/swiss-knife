@@ -45,7 +45,7 @@ import {
   parseAsInteger,
   parseAsString,
   useQueryState,
-} from "next-usequerystate";
+} from "nuqs";
 import { parseEther, formatEther, isAddress, stringify, zeroAddress } from "viem";
 import { normalize } from "viem/ens";
 import { useWalletClient, useAccount, useSwitchChain } from "wagmi";
@@ -78,7 +78,7 @@ function SendTxContent() {
   const { switchChain } = useSwitchChain();
 
   const toast = useToast();
-  const toastIdRef = useRef<ToastId>();
+  const toastIdRef = useRef<ToastId | undefined>(undefined);
   const searchParams = useSearchParams();
 
   const [to, setTo] = useQueryState<string>(

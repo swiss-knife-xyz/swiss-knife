@@ -15,7 +15,7 @@ import {
 import { hashTypedData, hashStruct } from "viem";
 import { TypedDataEncoder } from "ethers";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-import { parseAsString, useQueryState } from "next-usequerystate";
+import { parseAsString, useQueryState } from "nuqs";
 import { Editor } from "@monaco-editor/react";
 
 type TypedDataInput = {

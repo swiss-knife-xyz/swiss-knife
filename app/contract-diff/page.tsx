@@ -20,7 +20,7 @@ import {
   parseAsInteger,
   parseAsString,
   useQueryState,
-} from "next-usequerystate";
+} from "nuqs";
 import { diffLines } from "diff";
 import { FiGitBranch, FiFile, FiChevronRight } from "react-icons/fi";
 import { etherscanChains, chainIdToChain, chainIdToImage } from "@/data/common";

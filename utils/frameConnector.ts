@@ -5,19 +5,30 @@ import { ChainNotConfiguredError, createConnector } from "wagmi";
 frameConnector.type = "frameConnector" as const;
 
 export function frameConnector() {
-  let connected = true;
+  let connected = false;
 
-  return createConnector<typeof sdk.wallet.ethProvider>((config) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createConnector<any>((config) => ({
     id: "farcaster",
     name: "Farcaster Wallet",
     type: frameConnector.type,
 
     async setup() {
-      this.connect({ chainId: config.chains[0].id });
+      // Only attempt to connect if we're in a frame context
+      const provider = await this.getProvider();
+      if (provider) {
+        this.connect({ chainId: config.chains[0].id });
+      }
     },
+    // @ts-expect-error - wagmi connector type mismatch with withCapabilities generic
     async connect({ chainId } = {}) {
       try {
-        const provider = await this.getProvider();
+        const provider = await this.getProvider() as typeof sdk.wallet.ethProvider | undefined;
+        if (!provider) {
+          connected = false;
+          return { accounts: [] as readonly `0x${string}`[], chainId: chainId || config.chains[0].id };
+        }
+
         const accounts = await provider.request({
           method: "eth_requestAccounts",
         });
@@ -31,28 +42,30 @@ export function frameConnector() {
         connected = true;
 
         return {
-          accounts: accounts.map((x) => getAddress(x)),
+          accounts: accounts.map((x: string) => getAddress(x)) as readonly `0x${string}`[],
           chainId: currentChainId,
         };
       } catch (error) {
         connected = false;
         console.error("Error connecting to Frame:", error);
-        return { accounts: [], chainId: 0 };
+        return { accounts: [] as readonly `0x${string}`[], chainId: chainId || config.chains[0].id };
       }
     },
     async disconnect() {
       connected = false;
     },
     async getAccounts() {
-      if (!connected) throw new Error("Not connected");
-      const provider = await this.getProvider();
+      if (!connected) return [];
+      const provider = await this.getProvider() as typeof sdk.wallet.ethProvider | undefined;
+      if (!provider) return [];
       const accounts = await provider.request({
         method: "eth_requestAccounts",
       });
-      return accounts.map((x) => getAddress(x));
+      return accounts.map((x: string) => getAddress(x));
     },
     async getChainId() {
-      const provider = await this.getProvider();
+      const provider = await this.getProvider() as typeof sdk.wallet.ethProvider | undefined;
+      if (!provider) return config.chains[0].id;
       const hexChainId = await provider.request({ method: "eth_chainId" });
       return fromHex(hexChainId, "number");
     },
@@ -64,22 +77,24 @@ export function frameConnector() {
       const accounts = await this.getAccounts();
       return !!accounts.length;
     },
-    async switchChain({ chainId }) {
-      const provider = await this.getProvider();
-      const chain = config.chains.find((x) => x.id === chainId);
+    async switchChain({ chainId }: { chainId: number }) {
+      const provider = await this.getProvider() as typeof sdk.wallet.ethProvider | undefined;
+      const chain = config.chains.find((x: { id: number }) => x.id === chainId);
       if (!chain) throw new SwitchChainError(new ChainNotConfiguredError());
 
-      await provider.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: numberToHex(chainId) }],
-      });
+      if (provider) {
+        await provider.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: numberToHex(chainId) }],
+        });
+      }
       return chain;
     },
-    onAccountsChanged(accounts) {
+    onAccountsChanged(accounts: string[]) {
       if (accounts.length === 0) this.onDisconnect();
       else
         config.emitter.emit("change", {
-          accounts: accounts.map((x) => getAddress(x)),
+          accounts: accounts.map((x: string) => getAddress(x)),
         });
     },
     onChainChanged(chain) {

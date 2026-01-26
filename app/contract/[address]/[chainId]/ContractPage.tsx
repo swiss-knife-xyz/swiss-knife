@@ -26,7 +26,7 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
-import { parseAsInteger, useQueryState } from "next-usequerystate";
+import { parseAsInteger, useQueryState } from "nuqs";
 import { JsonFragment } from "ethers";
 import { Address, PublicClient, createPublicClient, http } from "viem";
 import { whatsabi } from "@shazow/whatsabi";
@@ -40,7 +40,6 @@ import {
   slicedText,
   startHexWith0x,
 } from "@/utils";
-import { ABIFunction } from "@shazow/whatsabi/lib.types/abi";
 import { StorageSlot } from "@/components/fnParams/StorageSlot";
 import { RawCalldata } from "@/components/fnParams/RawCalldata";
 import subdomains from "@/subdomains";
@@ -399,7 +398,7 @@ const ReadWriteSection = ({
         )}
         {client &&
           functions?.map((func, index) => (
-            <Box key={index} ref={(el) => (functionRefs.current[index] = el)}>
+            <Box key={index} ref={(el) => { functionRefs.current[index] = el; }}>
               {type === "read" ? (
                 <ReadWriteFunction
                   key={index}

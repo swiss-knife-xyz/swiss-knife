@@ -24,7 +24,7 @@ interface SwapQuoteFormProps {
   fetchQuoteResult: () => void;
   isQuoteLoading: boolean;
   quoteDisabled: boolean;
-  swapAmountRef?: React.RefObject<HTMLDivElement>;
+  swapAmountRef?: React.RefObject<HTMLElement | null>;
 }
 
 export const SwapQuoteForm: React.FC<SwapQuoteFormProps> = ({
@@ -42,7 +42,7 @@ export const SwapQuoteForm: React.FC<SwapQuoteFormProps> = ({
   return (
     <VStack spacing={4} align="stretch" minW="40rem">
       {/* Swap Amount Section */}
-      <Box ref={swapAmountRef}>
+      <Box ref={swapAmountRef as React.RefObject<HTMLDivElement>}>
         <Text color="gray.400" mb={2}>
           Swap Amount:
         </Text>

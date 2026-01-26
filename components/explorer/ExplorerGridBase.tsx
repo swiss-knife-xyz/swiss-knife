@@ -25,7 +25,7 @@ import {
 } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
 import { FiSearch, FiFilter } from "react-icons/fi";
-import { parseAsBoolean, useQueryState } from "next-usequerystate";
+import { parseAsBoolean, useQueryState } from "nuqs";
 import { useLocalStorage } from "usehooks-ts";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";

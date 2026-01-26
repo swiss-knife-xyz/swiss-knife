@@ -88,7 +88,7 @@ const PoolPriceToTarget = () => {
   );
 
   // Add ref for scroll target
-  const swapAmountRef = useRef<HTMLTableRowElement>(null);
+  const swapAmountRef = useRef<HTMLElement | null>(null);
 
   const poolKey: PoolKey = {
     currency0: currency0 as Address,

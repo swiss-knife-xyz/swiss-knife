@@ -4,6 +4,8 @@ require("dotenv/config");
 
 const nextConfig = {
   reactStrictMode: true,
+  // Enable Turbopack with empty config (webpack config still applies when needed)
+  turbopack: {},
   images: {
     remotePatterns: [
       {

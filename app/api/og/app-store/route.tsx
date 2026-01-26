@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     let logoDataUrl: string | null = null;
     try {
       const logoResponse = await fetch(
-        new URL("/public/splashImage.png", import.meta.url)
+        new URL("../../../../public/splashImage.png", import.meta.url)
       );
       if (!logoResponse.ok) {
         throw new Error(`Failed to fetch logo: ${logoResponse.statusText}`);

@@ -11,7 +11,7 @@ const _metadataInfo = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const headersList = headers();
+  const headersList = await headers();
   const fullUrl = headersList.get("x-url-with-params");
   const url = fullUrl ? new URL(fullUrl) : null;
   const urlParam = url?.searchParams.get("url");

@@ -8,20 +8,21 @@ import { Chain, createPublicClient, Hex, http } from "viem";
 import { c, chainIdToChain } from "@/data/common";
 
 interface PageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata({
   searchParams,
 }: PageProps): Promise<Metadata> {
+  const params = await searchParams;
   let title = "ETH Calldata Decoder | ETH.sh";
 
-  let calldata = searchParams.calldata as string | undefined;
-  let tx = searchParams.tx as string | undefined;
+  let calldata = params.calldata as string | undefined;
+  let tx = params.tx as string | undefined;
 
   // add function name to the title if possible
   if (tx) {
-    let chainId = searchParams.chainId as string | undefined;
+    let chainId = params.chainId as string | undefined;
     let chain: Chain;
 
     try {
