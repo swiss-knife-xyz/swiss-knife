@@ -34,7 +34,7 @@ const ExampleCard = ({
 }) => {
   return (
     <Link
-      href={`${getPath(subdomains.CONTRACT.base)}${address}/${chainId}`}
+      href={`${getPath(subdomains.CONTRACT.base)}${chainId}/${address}`}
       _hover={{ textDecor: "none" }}
       flex={1}
       maxW={{ base: "full", md: "300px" }}
@@ -102,7 +102,7 @@ const ContractPage = () => {
     }
 
     router.push(
-      `${getPath(subdomains.CONTRACT.base)}${finalAddress}/${finalChainId}`
+      `${getPath(subdomains.CONTRACT.base)}${finalChainId}/${finalAddress}`
     );
   };
 

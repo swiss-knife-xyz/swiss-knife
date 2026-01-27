@@ -1001,7 +1001,7 @@ export const ContractPage = ({
         router.push(
           `${getPath(
             subdomains.EXPLORER.base
-          )}contract/${address}/${newChainId}`
+          )}contract/${newChainId}/${address}`
         );
       }
 
@@ -1110,7 +1110,7 @@ export const ContractPage = ({
                   <Link
                     href={`${getPath(
                       subdomains.EXPLORER.base
-                    )}contract/${implementationAddress}/${chainId}`}
+                    )}contract/${chainId}/${implementationAddress}`}
                     fontWeight="semibold"
                     color="primary.400"
                     fontSize="sm"
@@ -1211,7 +1211,7 @@ export const ContractPage = ({
     const trimmedAddress = addressInput.trim();
     if (trimmedAddress && trimmedAddress !== address) {
       router.push(
-        `${getPath(subdomains.CONTRACT.base)}${trimmedAddress}/${chainId}`
+        `${getPath(subdomains.CONTRACT.base)}${chainId}/${trimmedAddress}`
       );
     }
   };

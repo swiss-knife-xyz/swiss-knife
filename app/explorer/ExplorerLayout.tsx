@@ -70,7 +70,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const userInputFromUrl = segments[1] ?? segments[0];
+  const userInputFromUrl = segments[0] === "contract" ? segments[2] : (segments[1] ?? segments[0]);
 
   const [userInput, setUserInput] = useState<string>(userInputFromUrl);
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
@@ -143,7 +143,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
           newUrl = `${getPath(
             subdomains.EXPLORER.base,
             subdomains.EXPLORER.isRelativePath
-          )}contract/${__userInput}/${segments[2]}`;
+          )}contract/${segments[1]}/${__userInput}`;
         }
         if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
           router.push(newUrl);
@@ -172,7 +172,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
               subdomains.EXPLORER.base,
               subdomains.EXPLORER.isRelativePath
             )}address/${ensResolvedAddress}${
-              pathname.includes("/contract") ? `/contract/${segments[2]}` : ""
+              pathname.includes("/contract") ? `/contract/${segments[1]}` : ""
             }`;
             if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
               router.push(newUrl);

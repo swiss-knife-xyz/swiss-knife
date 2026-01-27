@@ -6,5 +6,5 @@ export default function ExplorerContractPage({
 }: {
   params: { address: string; chainId: string };
 }) {
-  redirect(`${getPath("contract")}${params.address}/${params.chainId}`);
+  redirect(`${getPath("contract")}${params.chainId}/${params.address}`);
 }

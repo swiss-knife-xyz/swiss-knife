@@ -7,7 +7,7 @@ import { Search, Files } from "lucide-react";
 import { FileExplorerTree } from "./FileExplorerTree";
 import { CodeEditorTabs } from "./CodeEditorTabs";
 import { SearchPanel } from "./SearchPanel";
-import { buildFileTree, findTargetFile, getLanguageForFile } from "./utils";
+import { buildFileTree, findTargetFile, getLanguageForFile, detectLanguageFromContent } from "./utils";
 import { FileNode, TabData, SourceCodeExplorerProps, SearchOptions } from "./types";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
@@ -286,10 +286,14 @@ export function SourceCodeExplorer({
     return activeFileDiff.newCode;
   }, [activeTab, activeFileDiff, diffViewMode, processedDiff]);
 
-  // Get language for current file
+  // Get language for current file (falls back to content-based detection)
   const language = useMemo(() => {
     if (!activeTab) return "sol";
-    return getLanguageForFile(activeTab.name);
+    const lang = getLanguageForFile(activeTab.name);
+    if (lang === "plaintext" && activeTab.content) {
+      return detectLanguageFromContent(activeTab.content);
+    }
+    return lang;
   }, [activeTab]);
 
   // Compute search highlight decorations for the current editor content

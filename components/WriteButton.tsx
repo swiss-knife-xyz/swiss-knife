@@ -46,16 +46,13 @@ export const WriteButton = ({
       chain &&
       chain.id !== chainId);
 
-  const bgColor = showWrongNetwork ? "red.400" : "bg.muted";
-  const borderColor = showWrongNetwork ? "red.400" : "border.strong";
-
   return (
     <HStack
-      bg={bgColor}
+      bg="bg.muted"
       rounded="lg"
       spacing={0}
       border="1px solid"
-      borderColor={borderColor}
+      borderColor="border.strong"
     >
       {showWrongNetwork ? (
         <ConnectButton expectedChainId={chainId} hideAccount transparentWrongNetwork />
@@ -87,12 +84,12 @@ export const WriteButton = ({
           icon={<ChevronDownIcon />}
           variant="ghost"
           size={"xs"}
-          color={showWrongNetwork ? "red.900" : "text.secondary"}
+          color="text.secondary"
           borderLeftWidth="1px"
-          borderLeftColor={borderColor}
+          borderLeftColor="border.strong"
           borderLeftRadius={0}
-          _hover={{ bg: showWrongNetwork ? "blackAlpha.200" : "whiteAlpha.100" }}
-          _active={{ bg: showWrongNetwork ? "blackAlpha.300" : "whiteAlpha.200" }}
+          _hover={{ bg: "whiteAlpha.100" }}
+          _active={{ bg: "whiteAlpha.200" }}
         />
         <MenuList
           bg="bg.subtle"

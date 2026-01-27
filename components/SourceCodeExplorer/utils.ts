@@ -190,3 +190,31 @@ export function getLanguageForFile(filename: string): string {
       return "plaintext";
   }
 }
+
+/**
+ * Detect language from source code content when file extension is unavailable.
+ * Checks for Solidity or Vyper patterns in the code.
+ */
+export function detectLanguageFromContent(content: string): string {
+  const trimmed = content.trimStart();
+  // Solidity: starts with pragma solidity, or contains contract/interface/library declarations
+  if (
+    /^\/\/\s*SPDX-License-Identifier/m.test(trimmed) ||
+    /^\s*pragma\s+solidity/m.test(trimmed) ||
+    /^\s*(?:abstract\s+)?contract\s+\w+/m.test(trimmed) ||
+    /^\s*interface\s+\w+/m.test(trimmed) ||
+    /^\s*library\s+\w+/m.test(trimmed)
+  ) {
+    return "sol";
+  }
+  // Vyper: uses @external, @internal decorators or version pragma
+  if (
+    /^#\s*@version/m.test(trimmed) ||
+    /^\s*@external/m.test(trimmed) ||
+    /^\s*@internal/m.test(trimmed) ||
+    /^#\s*pragma\s+version/m.test(trimmed)
+  ) {
+    return "python";
+  }
+  return "plaintext";
+}
