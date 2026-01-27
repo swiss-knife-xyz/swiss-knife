@@ -40,6 +40,9 @@ type TreeContextType = {
   allNodeIds: string[];
   focusedNodeId: string | null;
   setFocusedNodeId: (nodeId: string | null) => void;
+  // Hover state for tree connector lines (shared across siblings)
+  hoveredParentId: string | null;
+  setHoveredParentId: (nodeId: string | null) => void;
   // Sticky header support
   registerStickyNode: (meta: StickyNodeMeta) => void;
   unregisterStickyNode: (nodeId: string) => void;
@@ -189,7 +192,7 @@ export function TreeProvider({ children, args, functionName }: TreeProviderProps
         } else if (arg.baseType.includes("bytes") && arg.value) {
           const bytesValue = arg.value as DecodeBytesParamResult;
           if (bytesValue.decoded?.args) {
-            processArgs(bytesValue.decoded.args, nodeId, depth + 1);
+            processArgs(bytesValue.decoded.args, `${nodeId}.decoded`, depth + 1);
           }
         }
       });
@@ -218,6 +221,7 @@ export function TreeProvider({ children, args, functionName }: TreeProviderProps
   );
 
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+  const [hoveredParentId, setHoveredParentId] = useState<string | null>(null);
   const focusTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const setFocusWithTimeout = useCallback((nodeId: string | null) => {
@@ -277,6 +281,8 @@ export function TreeProvider({ children, args, functionName }: TreeProviderProps
       allNodeIds,
       focusedNodeId,
       setFocusedNodeId,
+      hoveredParentId,
+      setHoveredParentId,
       // Sticky header support
       registerStickyNode,
       unregisterStickyNode,
@@ -294,6 +300,7 @@ export function TreeProvider({ children, args, functionName }: TreeProviderProps
       registerNode,
       allNodeIds,
       focusedNodeId,
+      hoveredParentId,
       registerStickyNode,
       unregisterStickyNode,
       visibleStickyHeaders,

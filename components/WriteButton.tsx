@@ -40,13 +40,25 @@ export const WriteButton = ({
   setWriteButtonType: (writeButtonType: WriteButtonType) => void;
   setIsError: (isError: boolean) => void;
 }) => {
+  const showWrongNetwork =
+    (!userAddress && writeButtonType === WriteButtonType.Write) ||
+    (writeButtonType !== WriteButtonType.SimulateOnTenderly &&
+      chain &&
+      chain.id !== chainId);
+
+  const bgColor = showWrongNetwork ? "red.400" : "bg.muted";
+  const borderColor = showWrongNetwork ? "red.400" : "border.strong";
+
   return (
-    <HStack bg={!isError ? "blue.200" : "red.200"} rounded="lg" spacing={0}>
-      {(!userAddress && writeButtonType === WriteButtonType.Write) ||
-      (writeButtonType !== WriteButtonType.SimulateOnTenderly &&
-        chain &&
-        chain.id !== chainId) ? (
-        <ConnectButton expectedChainId={chainId} hideAccount />
+    <HStack
+      bg={bgColor}
+      rounded="lg"
+      spacing={0}
+      border="1px solid"
+      borderColor={borderColor}
+    >
+      {showWrongNetwork ? (
+        <ConnectButton expectedChainId={chainId} hideAccount transparentWrongNetwork />
       ) : (
         <Button
           px={4}
@@ -61,7 +73,9 @@ export const WriteButton = ({
           isLoading={loading}
           size={"sm"}
           title={"write"}
-          colorScheme={!isError ? "blue" : "red"}
+          variant="ghost"
+          color={!isError ? "text.primary" : "red.300"}
+          _hover={{ bg: "whiteAlpha.100" }}
         >
           {writeButtonType}
         </Button>
@@ -71,17 +85,26 @@ export const WriteButton = ({
           as={IconButton}
           aria-label="Options"
           icon={<ChevronDownIcon />}
-          variant="outline"
+          variant="ghost"
           size={"xs"}
-          color="blue.800"
-          borderLeftColor="blue.800"
+          color={showWrongNetwork ? "red.900" : "text.secondary"}
+          borderLeftWidth="1px"
+          borderLeftColor={borderColor}
           borderLeftRadius={0}
+          _hover={{ bg: showWrongNetwork ? "blackAlpha.200" : "whiteAlpha.100" }}
+          _active={{ bg: showWrongNetwork ? "blackAlpha.300" : "whiteAlpha.200" }}
         />
-        <MenuList bg="gray.800">
+        <MenuList
+          bg="bg.subtle"
+          borderColor="border.default"
+          boxShadow="lg"
+          rounded="lg"
+          py={1}
+        >
           <MenuItem
-            color="white"
-            bg="gray.800"
-            _hover={{ bg: "gray.700" }}
+            color="text.primary"
+            bg="transparent"
+            _hover={{ bg: "bg.emphasis" }}
             onClick={() => {
               setWriteButtonType(WriteButtonType.Write);
               setIsError(false);
@@ -90,9 +113,9 @@ export const WriteButton = ({
             Write
           </MenuItem>
           <MenuItem
-            color="white"
-            bg="gray.800"
-            _hover={{ bg: "gray.700" }}
+            color="text.primary"
+            bg="transparent"
+            _hover={{ bg: "bg.emphasis" }}
             onClick={() => {
               setWriteButtonType(WriteButtonType.CallAsViewFn);
               setIsError(false);
@@ -101,9 +124,9 @@ export const WriteButton = ({
             Call as View Fn
           </MenuItem>
           <MenuItem
-            color="white"
-            bg="gray.800"
-            _hover={{ bg: "gray.700" }}
+            color="text.primary"
+            bg="transparent"
+            _hover={{ bg: "bg.emphasis" }}
             onClick={() => {
               setWriteButtonType(WriteButtonType.SimulateOnTenderly);
               setIsError(false);

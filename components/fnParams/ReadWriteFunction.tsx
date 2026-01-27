@@ -271,55 +271,75 @@ export const ReadWriteFunction = ({
       const abi = [_func] as unknown as Abi;
       const args = inputs?.map((input, i) => inputsState[i]);
 
+      const maxRetries = 3;
       try {
-        if (!isAbiDecoded) {
-          const result = await client.readContract({
-            address: address as Hex,
-            abi,
-            functionName,
-            args,
-          });
-          setRes(result);
-        } else {
-          const result = await client.call({
-            to: address as Hex,
-            data: encodeFunctionData({
-              abi,
-              functionName,
-              args,
-            }),
-            value: BigInt(payableETH),
-          });
-          console.log({
-            result,
-            abi,
-            functionName,
-            args,
-            outputs,
-            isAbiDecoded,
-          });
-          setRes(result.data);
-        }
-      } catch (e: any) {
-        console.error(e);
-        setIsError(true);
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            if (!isAbiDecoded) {
+              const result = await client.readContract({
+                address: address as Hex,
+                abi,
+                functionName,
+                args,
+              });
+              setRes(result);
+            } else {
+              const result = await client.call({
+                to: address as Hex,
+                data: encodeFunctionData({
+                  abi,
+                  functionName,
+                  args,
+                }),
+                value: BigInt(payableETH),
+              });
+              console.log({
+                result,
+                abi,
+                functionName,
+                args,
+                outputs,
+                isAbiDecoded,
+              });
+              setRes(result.data);
+            }
+            // Success - break out of retry loop
+            break;
+          } catch (e: any) {
+            // Check if this is a 429 rate limit error and we can retry
+            const is429 =
+              e?.cause?.message?.includes("429") ||
+              e?.message?.includes("429") ||
+              e?.cause?.message?.includes("rate limit") ||
+              e?.message?.includes("rate limit");
 
-        setRes(null);
+            if (is429 && attempt < maxRetries) {
+              // Exponential backoff: 1s, 2s, 4s
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * Math.pow(2, attempt))
+              );
+              continue;
+            }
 
-        if (e instanceof ContractFunctionExecutionError) {
-          // extract the error message
-          const errorMessage = e.cause?.message || e.message;
-          setErrorMsg(
-            getContractError(e, {
-              docsPath: "",
-              address: address as Hex,
-              abi,
-              functionName,
-              args,
-            }).shortMessage
-          );
-        } else {
-          setErrorMsg("An unknown error occurred");
+            console.error(e);
+            setIsError(true);
+            setRes(null);
+
+            if (e instanceof ContractFunctionExecutionError) {
+              setErrorMsg(
+                getContractError(e, {
+                  docsPath: "",
+                  address: address as Hex,
+                  abi,
+                  functionName,
+                  args,
+                }).shortMessage
+              );
+            } else {
+              setErrorMsg("An unknown error occurred");
+            }
+            break;
+          }
         }
       } finally {
         setLoading(false);
@@ -603,8 +623,13 @@ export const ReadWriteFunction = ({
 
   useEffect(() => {
     // if there are no inputs, then auto fetch the value
+    // stagger calls by 150ms per function to avoid RPC rate limits (429)
     if (type === "read" && (!inputs || (inputs && inputs.length === 0))) {
-      readFunction();
+      const delay = index * 150;
+      const timer = setTimeout(() => {
+        readFunction();
+      }, delay);
+      return () => clearTimeout(timer);
     }
   }, []);
 

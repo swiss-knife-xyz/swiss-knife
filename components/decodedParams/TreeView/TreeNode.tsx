@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { Box, HStack, Text, Collapse, Link } from "@chakra-ui/react";
 import {
   ChevronDownIcon,
@@ -30,12 +30,13 @@ import { TreeBytesParam } from "./TreeBytesParam";
 
 // Helper to get parent node ID for collapsing from tree lines
 function getParentNodeId(nodeId: string, depth: number): string | null {
-  // Handle decoded paths like "0.decoded.1" -> parent is the bytes node "0"
-  if (nodeId.includes(".decoded.")) {
-    const basePath = nodeId.split(".decoded.")[0];
-    return basePath;
+  // Check if this is a decoded child (ends with ".decoded.N")
+  const decodedMatch = nodeId.match(/^(.+)\.decoded\.\d+$/);
+  if (decodedMatch) {
+    return decodedMatch[1];
   }
 
+  // Regular child (ends with ".N")
   const lastDotIndex = nodeId.lastIndexOf(".");
   if (lastDotIndex === -1) {
     // Top-level node like "0", "1" - parent is "root" if depth > 0 (has function root)
@@ -69,6 +70,8 @@ export function TreeNode({
     toggleNode,
     registerNode,
     focusedNodeId,
+    hoveredParentId,
+    setHoveredParentId,
     registerStickyNode,
     unregisterStickyNode,
   } = useTreeContext();
@@ -76,7 +79,6 @@ export function TreeNode({
   const hasChildNodes = hasChildren(arg);
   const childCount = getChildrenCount(arg);
   const headerRef = useRef<HTMLDivElement>(null);
-  const [isLineHovered, setIsLineHovered] = useState(false);
 
   // Get parent node ID for collapsing via tree lines
   const parentNodeId = getParentNodeId(nodeId, depth);
@@ -173,7 +175,7 @@ export function TreeNode({
       return <IntParam value={arg.value} />;
     }
     if (arg.baseType === "address") {
-      return <AddressParam address={arg.value} chainId={chainId} />;
+      return <AddressParam address={arg.value} chainId={chainId} name={arg.name} />;
     }
     if (arg.baseType.includes("bytes")) {
       return (
@@ -331,7 +333,8 @@ export function TreeNode({
     return typeLabel ? `(${typeLabel})` : "";
   };
 
-  // Line color based on hover state
+  // Line color based on shared hover state (all siblings highlight together)
+  const isLineHovered = parentNodeId !== null && hoveredParentId === parentNodeId;
   const lineColor = isLineHovered ? "blue.400" : "whiteAlpha.200";
 
   return (
@@ -353,8 +356,8 @@ export function TreeNode({
             width="20px"
             cursor="pointer"
             zIndex={1}
-            onMouseEnter={() => setIsLineHovered(true)}
-            onMouseLeave={() => setIsLineHovered(false)}
+            onMouseEnter={() => setHoveredParentId(parentNodeId)}
+            onMouseLeave={() => setHoveredParentId(null)}
             onClick={handleLineClick}
             title="Click to toggle parent"
             _before={{
@@ -376,8 +379,8 @@ export function TreeNode({
             height="24px"
             cursor="pointer"
             zIndex={1}
-            onMouseEnter={() => setIsLineHovered(true)}
-            onMouseLeave={() => setIsLineHovered(false)}
+            onMouseEnter={() => setHoveredParentId(parentNodeId)}
+            onMouseLeave={() => setHoveredParentId(null)}
             onClick={handleLineClick}
             title="Click to toggle parent"
             _before={{
@@ -506,8 +509,8 @@ export function TreeNode({
       {/* Leaf value (shown below header for non-expandable nodes) */}
       {!hasChildNodes && (
         <Box pl={6} pb={1}>
-          {/* Show parameter name prominently for leaf nodes */}
-          {arg.name && (
+          {/* Show parameter name prominently for leaf nodes (address handles its own name inline with tags) */}
+          {arg.name && arg.baseType !== "address" && (
             <Text fontSize="md" fontWeight="medium" color="white" mb={1}>
               {arg.name}
             </Text>

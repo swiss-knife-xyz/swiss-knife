@@ -46,21 +46,39 @@ export const TreeBytesParam = ({ arg: _arg, chainId }: Params) => {
   const [binary, setBinary] = useState<string>("0");
   const [text, setText] = useState<string>("");
 
-  useEffect(() => {
-    if (arg.rawValue) {
-      const hexStartWith0x = startHexWith0x(arg.rawValue);
-      setDecimal(
-        hexToBigInt(hexStartWith0x === "0x" ? "0x0" : hexStartWith0x).toString()
-      );
-      setBinary(
-        bigInt(
-          arg.rawValue.startsWith("0x") ? arg.rawValue.slice(2) : arg.rawValue,
-          16
-        ).toString(2)
-      );
-      setText(hexToString(startHexWith0x(arg.rawValue)));
-    }
+  // Check if the rawValue is a valid hex string (some special decoders like
+  // SafeMultiSend set rawValue to a summary string, not hex)
+  const isValidHex = useMemo(() => {
+    if (!arg.rawValue) return false;
+    const stripped = arg.rawValue.startsWith("0x")
+      ? arg.rawValue.slice(2)
+      : arg.rawValue;
+    return /^[0-9a-fA-F]*$/.test(stripped);
   }, [arg.rawValue]);
+
+  useEffect(() => {
+    if (arg.rawValue && isValidHex) {
+      try {
+        const hexStartWith0x = startHexWith0x(arg.rawValue);
+        setDecimal(
+          hexToBigInt(
+            hexStartWith0x === "0x" ? "0x0" : hexStartWith0x
+          ).toString()
+        );
+        setBinary(
+          bigInt(
+            arg.rawValue.startsWith("0x")
+              ? arg.rawValue.slice(2)
+              : arg.rawValue,
+            16
+          ).toString(2)
+        );
+        setText(hexToString(startHexWith0x(arg.rawValue)));
+      } catch {
+        // rawValue is not convertible — keep defaults
+      }
+    }
+  }, [arg.rawValue, isValidHex]);
 
   const getDisplayValue = () => {
     switch (selectedFormat?.value) {
@@ -87,17 +105,19 @@ export const TreeBytesParam = ({ arg: _arg, chainId }: Params) => {
           onChange={() => {}}
         />
       </Box>
-      <Box flexShrink={0}>
-        <DarkSelect
-          boxProps={{
-            minW: "7rem",
-            fontSize: "xs",
-          }}
-          selectedOption={selectedFormat}
-          setSelectedOption={setSelectedFormat}
-          options={formatOptions}
-        />
-      </Box>
+      {isValidHex && (
+        <Box flexShrink={0}>
+          <DarkSelect
+            boxProps={{
+              minW: "7rem",
+              fontSize: "xs",
+            }}
+            selectedOption={selectedFormat}
+            setSelectedOption={setSelectedFormat}
+            options={formatOptions}
+          />
+        </Box>
+      )}
     </Flex>
   );
 };

@@ -29,9 +29,21 @@ export function frameConnector() {
           return { accounts: [] as readonly `0x${string}`[], chainId: chainId || config.chains[0].id };
         }
 
-        const accounts = await provider.request({
-          method: "eth_requestAccounts",
-        });
+        let accounts: readonly string[];
+        try {
+          accounts = await provider.request({
+            method: "eth_requestAccounts",
+          });
+        } catch (requestError) {
+          // Provider request failed - likely not in a Frame context or SDK not ready
+          connected = false;
+          return { accounts: [] as readonly `0x${string}`[], chainId: chainId || config.chains[0].id };
+        }
+
+        if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+          connected = false;
+          return { accounts: [] as readonly `0x${string}`[], chainId: chainId || config.chains[0].id };
+        }
 
         let currentChainId = await this.getChainId();
         if (chainId && currentChainId !== chainId) {
@@ -58,16 +70,26 @@ export function frameConnector() {
       if (!connected) return [];
       const provider = await this.getProvider() as typeof sdk.wallet.ethProvider | undefined;
       if (!provider) return [];
-      const accounts = await provider.request({
-        method: "eth_requestAccounts",
-      });
-      return accounts.map((x: string) => getAddress(x));
+      try {
+        const accounts = await provider.request({
+          method: "eth_requestAccounts",
+        });
+        if (!accounts || !Array.isArray(accounts)) return [];
+        return accounts.map((x: string) => getAddress(x));
+      } catch {
+        return [];
+      }
     },
     async getChainId() {
       const provider = await this.getProvider() as typeof sdk.wallet.ethProvider | undefined;
       if (!provider) return config.chains[0].id;
-      const hexChainId = await provider.request({ method: "eth_chainId" });
-      return fromHex(hexChainId, "number");
+      try {
+        const hexChainId = await provider.request({ method: "eth_chainId" });
+        if (!hexChainId) return config.chains[0].id;
+        return fromHex(hexChainId, "number");
+      } catch {
+        return config.chains[0].id;
+      }
     },
     async isAuthorized() {
       if (!connected) {

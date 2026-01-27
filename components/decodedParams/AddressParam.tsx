@@ -32,6 +32,7 @@ interface Params {
   address: any;
   showLink?: boolean;
   chainId?: number;
+  name?: string;
 }
 
 const skeletonAddress = "0x1111222233334444000000000000000000000000";
@@ -42,6 +43,7 @@ export const AddressParam = ({
   address: _address,
   showLink,
   chainId,
+  name,
 }: Params) => {
   const showSkeleton = _address === null || _address === undefined;
   const address = !showSkeleton ? _address : skeletonAddress;
@@ -226,31 +228,29 @@ export const AddressParam = ({
       transition={{ duration: 0.5 }}
     >
       <Box>
-        {/* Tags row - only show if there are tags */}
-        {addressLabels.length > 0 && (
-          <HStack py="2" flexWrap="wrap" gap={1}>
-            <Text fontSize={"xs"} opacity={0.6}>
-              Tags:{" "}
-            </Text>
-            {addressLabels.map((label, index) => (
-              <Tag key={index} size="sm" variant="solid" colorScheme="blue">
-                {label}
-              </Tag>
-            ))}
+        {/* Name + Tags row */}
+        {(name || addressLabels.length > 0) && (
+          <HStack mb={1} flexWrap="wrap" gap={1} alignItems="baseline">
+            {name && (
+              <Text fontSize="md" fontWeight="medium" color="white">
+                {name}
+              </Text>
+            )}
+            {addressLabels.length > 0 && (
+              <>
+                <Text fontSize={"xs"} opacity={0.6}>
+                  Tags:{" "}
+                </Text>
+                {addressLabels.map((label, index) => (
+                  <Tag key={index} size="sm" variant="solid" colorScheme="blue">
+                    {label}
+                  </Tag>
+                ))}
+              </>
+            )}
           </HStack>
         )}
         <HStack>
-          {/* Toggle button - only show if there are multiple display modes */}
-          {availableModes.length > 1 && (
-            <Button
-              onClick={cycleDisplayMode}
-              size={"xs"}
-              px={4}
-              py={5}
-            >
-              {getToggleButtonText()}
-            </Button>
-          )}
           {/* Save to address book button - on left side when not saved */}
           {!addressBookLabel && isAddressBookReady && (
             <Tooltip label="Save to Address Book" placement="top">
@@ -271,14 +271,27 @@ export const AddressParam = ({
             </Tooltip>
           )}
           <InputGroup>
-            {/* Show book icon when displaying label, or avatar when showing ENS */}
-            {isShowingLabel ? (
-              <InputLeftElement>
-                <BookOpen size={16} color="#9F7AEA" />
-              </InputLeftElement>
-            ) : displayMode === "ens" && ensAvatar ? (
-              <InputLeftElement>
-                <Avatar src={ensAvatar} w={"1.2rem"} h={"1.2rem"} />
+            {/* Toggle button + icon inside input */}
+            {(availableModes.length > 1 || isShowingLabel || (displayMode === "ens" && ensAvatar)) ? (
+              <InputLeftElement width="auto" h="full" pl={2}>
+                <HStack spacing={2}>
+                  {availableModes.length > 1 && (
+                    <Button
+                      onClick={cycleDisplayMode}
+                      size="xs"
+                      px="2"
+                      h="5"
+                    >
+                      {getToggleButtonText()}
+                    </Button>
+                  )}
+                  {isShowingLabel && (
+                    <BookOpen size={16} color="#9F7AEA" />
+                  )}
+                  {displayMode === "ens" && ensAvatar && (
+                    <Avatar src={ensAvatar} w={"1.2rem"} h={"1.2rem"} />
+                  )}
+                </HStack>
               </InputLeftElement>
             ) : null}
             <Input
@@ -290,7 +303,15 @@ export const AddressParam = ({
               borderRadius="lg"
               _hover={{ borderColor: isShowingLabel ? "purple.400" : "whiteAlpha.400" }}
               color={isShowingLabel ? "purple.100" : "white"}
-              pl={isShowingLabel || (displayMode === "ens" && ensAvatar) ? 10 : 4}
+              pl={
+                availableModes.length > 1 && (isShowingLabel || (displayMode === "ens" && ensAvatar))
+                  ? "6.5rem"
+                  : availableModes.length > 1
+                  ? "5rem"
+                  : (isShowingLabel || (displayMode === "ens" && ensAvatar))
+                  ? 10
+                  : 4
+              }
             />
             <InputRightElement pr={1}>
               <CopyToClipboard textToCopy={copyValue ?? ""} />

@@ -5,6 +5,7 @@ import { Layout } from "@/components/Layout";
 import { ContractPage as ContractP } from "./ContractPage";
 import { generateMetadata as layoutGenerateMetadata } from "./layout";
 import { Box, Heading } from "@chakra-ui/react";
+import NextLink from "next/link";
 
 interface PageProps {
   params: Promise<{ address: string; chainId: string }>;
@@ -53,9 +54,13 @@ const ContractPage = async ({
   const { address, chainId } = await params;
   return (
     <Layout>
-      <Heading mb={4} color={"custom.pale"}>
-        Contract Explorer
-      </Heading>
+      <Box w="full" maxW="70rem" mx="auto">
+        <NextLink href="/contract">
+          <Heading mb={4} color={"custom.pale"} _hover={{ opacity: 0.8 }} cursor="pointer">
+            Contract Explorer
+          </Heading>
+        </NextLink>
+      </Box>
       <ContractP
         params={{
           address,

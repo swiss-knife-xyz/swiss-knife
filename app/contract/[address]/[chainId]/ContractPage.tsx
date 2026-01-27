@@ -1,7 +1,7 @@
 "use client";
 
 import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { DarkSelect } from "@/components/DarkSelect";
 import {
   ExtendedJsonFragmentType,
@@ -18,6 +18,7 @@ import {
   Collapse,
   Grid,
   HStack,
+  Icon,
   IconButton,
   Input,
   InputGroup,
@@ -27,15 +28,13 @@ import {
   Skeleton,
   Spacer,
   Spinner,
-  Tag,
   Text,
   Tooltip,
   VStack,
 } from "@chakra-ui/react";
-import { AddIcon, ChevronDownIcon, ChevronUpIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
-import { BookOpen } from "lucide-react";
+import { ChevronDownIcon, ChevronUpIcon, CloseIcon } from "@chakra-ui/icons";
 import { useAddressBook } from "@/hooks/useAddressBook";
-import { AddressLabelModal } from "@/components/AddressBook";
+import { AddressBookInlineButton } from "@/components/AddressBook";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { JsonFragment } from "ethers";
 import { Address, PublicClient, createPublicClient, http } from "viem";
@@ -59,7 +58,9 @@ import { DarkButton } from "@/components/DarkButton";
 import { processContractBytecode } from "@/utils/index";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { Editor } from "@monaco-editor/react";
-import { Code, FileText } from "lucide-react";
+import { Code, Download, ExternalLink, FileText, Maximize2, Minimize2 } from "lucide-react";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { SourceCodeExplorer } from "@/components/SourceCodeExplorer";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -84,19 +85,39 @@ type AbiType = {
 
 type SourceCodeType = Record<string, string> | undefined;
 
-// Small toggle button for ABI & Source Code
-const AbiSourceCodeToggle = ({
-  isExpanded,
-  onToggle,
-}: {
+// Context for ABI section expanded state - prevents parent re-renders
+const AbiExpandedContext = createContext<{
   isExpanded: boolean;
-  onToggle: () => void;
-}) => {
+  setIsExpanded: (value: boolean) => void;
+} | null>(null);
+
+/**
+ * Provider component that manages ABI expanded state.
+ * Wrap both the toggle button and content with this provider.
+ */
+const AbiExpandedProvider = ({ children }: { children: React.ReactNode }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  return (
+    <AbiExpandedContext.Provider value={{ isExpanded, setIsExpanded }}>
+      {children}
+    </AbiExpandedContext.Provider>
+  );
+};
+
+/**
+ * Toggle button for ABI & Source Code section.
+ * Must be used inside AbiExpandedProvider.
+ */
+const AbiSourceCodeToggle = () => {
+  const context = useContext(AbiExpandedContext);
+  if (!context) return null;
+  const { isExpanded, setIsExpanded } = context;
+
   return (
     <Button
       size="sm"
       variant="outline"
-      onClick={onToggle}
+      onClick={() => setIsExpanded(!isExpanded)}
       color="text.secondary"
       borderColor="whiteAlpha.300"
       bg="whiteAlpha.50"
@@ -106,14 +127,17 @@ const AbiSourceCodeToggle = ({
       px={3}
       h={7}
       fontSize="xs"
-      ml={4}
     >
       ABI & Source Code
     </Button>
   );
 };
 
-// Component to display ABI and Source Code content
+/**
+ * Content component for ABI & Source Code section.
+ * Must be used inside AbiExpandedProvider.
+ * Always mounted but hidden via CSS to avoid Monaco Editor re-initialization lag.
+ */
 const AbiSourceCodeContent = ({
   abi,
   proxyAbi,
@@ -124,7 +148,6 @@ const AbiSourceCodeContent = ({
   implementationAddress,
   isAbiDecoded,
   isLoadingSourceCode,
-  isExpanded,
 }: {
   abi: AbiType | null;
   proxyAbi: AbiType | null;
@@ -135,14 +158,29 @@ const AbiSourceCodeContent = ({
   implementationAddress: string | null;
   isAbiDecoded: boolean;
   isLoadingSourceCode: boolean;
-  isExpanded: boolean;
 }) => {
-  // 0 = ABI, 1 = Source Code
+  const context = useContext(AbiExpandedContext);
+  const isExpanded = context?.isExpanded ?? false;
+
+  // 0 = Source Code, 1 = ABI
   const [contentTabIndex, setContentTabIndex] = useState(0);
   // 0 = Implementation, 1 = Proxy (only shown for proxy contracts)
   const [contractTabIndex, setContractTabIndex] = useState(0);
-  // For source code with multiple files
-  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Escape key exits fullscreen; lock body scroll while fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFullscreen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [isFullscreen]);
 
   const isProxy = implementationAddress !== null;
 
@@ -158,22 +196,6 @@ const AbiSourceCodeContent = ({
     return contractTabIndex === 0 ? implementationSourceCode : proxySourceCode;
   }, [isProxy, contractTabIndex, sourceCode, implementationSourceCode, proxySourceCode]);
 
-  const sourceCodeFiles = useMemo(() => {
-    if (!currentSourceCode) return [];
-    return Object.keys(currentSourceCode);
-  }, [currentSourceCode]);
-
-  const sourceCodeContent = useMemo(() => {
-    if (!currentSourceCode || sourceCodeFiles.length === 0) return "";
-    const file = sourceCodeFiles[selectedFileIndex] || sourceCodeFiles[0];
-    return currentSourceCode[file] || "";
-  }, [currentSourceCode, sourceCodeFiles, selectedFileIndex]);
-
-  // Reset file selection when source code changes
-  useEffect(() => {
-    setSelectedFileIndex(0);
-  }, [currentSourceCode]);
-
   const abiContent = useMemo(() => {
     if (!currentAbi) return "";
     try {
@@ -183,20 +205,49 @@ const AbiSourceCodeContent = ({
     }
   }, [currentAbi]);
 
-  if (!abi || !isExpanded) return null;
+  const sourceFileEntries = useMemo(() => {
+    if (!currentSourceCode) return [];
+    return Object.entries(currentSourceCode);
+  }, [currentSourceCode]);
+
+  const handleDownloadZip = useCallback(async () => {
+    const JSZip = (await import("jszip")).default;
+    const zip = new JSZip();
+    for (const [filePath, content] of sourceFileEntries) {
+      zip.file(filePath, content);
+    }
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${currentAbi?.name || "source-code"}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [sourceFileEntries, currentAbi?.name]);
+
+  if (!abi) return null;
 
   return (
     <Box
-      mb={4}
-      border="1px solid"
+      display={isExpanded ? "flex" : "none"}
+      flexDirection="column"
+      mb={isFullscreen ? 0 : 4}
+      border={isFullscreen ? "none" : "1px solid"}
       borderColor="whiteAlpha.200"
-      borderRadius="lg"
+      borderRadius={isFullscreen ? 0 : "lg"}
       overflow="hidden"
       bg="bg.subtle"
       p={3}
+      position={isFullscreen ? "fixed" : "relative"}
+      inset={isFullscreen ? 0 : undefined}
+      zIndex={isFullscreen ? 1400 : undefined}
+      h={isFullscreen ? "100vh" : undefined}
+      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
     >
       {/* Compact tabs row */}
-      <HStack spacing={4} mb={3} flexWrap="wrap">
+      <HStack spacing={4} mb={3} flexWrap="wrap" flexShrink={0}>
         {/* Contract tabs for proxy */}
         {isProxy && (
           <TabsSelector
@@ -209,108 +260,122 @@ const AbiSourceCodeContent = ({
 
         {/* Content tabs */}
         <TabsSelector
-          tabs={["ABI", "Source Code"]}
+          tabs={["Source Code", "ABI"]}
           selectedTabIndex={contentTabIndex}
           setSelectedTabIndex={setContentTabIndex}
           mt={0}
         />
+
+        <Spacer />
+
+        {/* Copy / Download action buttons */}
+        {abiContent && (
+          <CopyToClipboard textToCopy={abiContent} labelText="Copy ABI" />
+        )}
+        {contentTabIndex === 0 && !isLoadingSourceCode && sourceFileEntries.length === 1 && (
+          <CopyToClipboard textToCopy={sourceFileEntries[0][1]} labelText="Copy Code" />
+        )}
+        {contentTabIndex === 0 && !isLoadingSourceCode && sourceFileEntries.length > 1 && (
+          <Button
+            size="sm"
+            variant="ghost"
+            color="whiteAlpha.700"
+            _hover={{ color: "white", bg: "whiteAlpha.200" }}
+            onClick={handleDownloadZip}
+            leftIcon={<Download size={16} />}
+          >
+            Download Zip
+          </Button>
+        )}
+
+        {/* Fullscreen toggle */}
+        <Tooltip label={isFullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen"} placement="bottom" hasArrow>
+          <IconButton
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            icon={<Icon as={isFullscreen ? Minimize2 : Maximize2} boxSize={4} />}
+            size="sm"
+            variant="ghost"
+            color="text.tertiary"
+            _hover={{ color: "text.primary", bg: "whiteAlpha.200" }}
+            onClick={() => setIsFullscreen((prev) => !prev)}
+          />
+        </Tooltip>
       </HStack>
 
       {/* Content */}
-      {contentTabIndex === 0 ? (
-        // ABI View
-        <Box>
-          {isAbiDecoded && !isProxy ? (
-            <Alert status="info" mb={3} rounded="lg" fontSize="sm">
-              <AlertIcon />
-              ABI reconstructed from bytecode (contract not verified)
-            </Alert>
-          ) : null}
-          <Box
-            border="1px solid"
-            borderColor="whiteAlpha.200"
-            borderRadius="lg"
-            overflow="hidden"
-          >
-            <Editor
-              theme="vs-dark"
-              defaultLanguage="json"
-              value={abiContent}
-              height="350px"
-              options={{
-                readOnly: true,
-                minimap: { enabled: false },
-                fontSize: 13,
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                wordWrap: "on",
-              }}
-            />
-          </Box>
-        </Box>
-      ) : (
-          // Source Code View
-          <Box>
+      <Box flex={isFullscreen ? 1 : undefined} overflow={isFullscreen ? "hidden" : undefined}>
+        {contentTabIndex === 0 ? (
+          // Source Code View - VS Code-like file explorer
+          <Box h={isFullscreen ? "100%" : undefined}>
             {isLoadingSourceCode ? (
               <HStack justify="center" py={8}>
                 <Spinner size="sm" />
                 <Text color="text.secondary">Loading source code...</Text>
               </HStack>
-            ) : !currentSourceCode || sourceCodeFiles.length === 0 ? (
+            ) : !currentSourceCode || Object.keys(currentSourceCode).length === 0 ? (
               <Text color="text.secondary" fontSize="sm" py={2}>
                 Source code not available (contract may not be verified)
               </Text>
             ) : (
-              <VStack spacing={3} align="stretch">
-                {/* File selector for multiple files */}
-                {sourceCodeFiles.length > 1 && (
-                  <Box>
-                    <Text color="text.secondary" fontSize="sm" mb={2}>
-                      File ({sourceCodeFiles.length} files)
-                    </Text>
-                    <DarkSelect
-                      placeholder="Select file"
-                      options={sourceCodeFiles.map((file, idx) => ({
-                        label: file,
-                        value: idx,
-                      }))}
-                      selectedOption={{
-                        label: sourceCodeFiles[selectedFileIndex],
-                        value: selectedFileIndex,
-                      }}
-                      setSelectedOption={(option) => {
-                        if (option) {
-                          setSelectedFileIndex(option.value as number);
-                        }
-                      }}
-                    />
-                  </Box>
-                )}
-                <Box
-                  border="1px solid"
-                  borderColor="whiteAlpha.200"
-                  borderRadius="lg"
-                  overflow="hidden"
-                >
-                  <Editor
-                    theme="vs-dark"
-                    defaultLanguage="solidity"
-                    value={sourceCodeContent}
-                    height="400px"
-                    options={{
-                      readOnly: true,
-                      minimap: { enabled: false },
-                      fontSize: 13,
-                      scrollBeyondLastLine: false,
-                      automaticLayout: true,
-                      wordWrap: "on",
-                    }}
-                  />
-                </Box>
-              </VStack>
+              <Box
+                border="1px solid"
+                borderColor="whiteAlpha.200"
+                borderRadius="lg"
+                overflow="hidden"
+                h={isFullscreen ? "100%" : undefined}
+              >
+                <SourceCodeExplorer
+                  sourceCode={currentSourceCode}
+                  contractName={currentAbi?.name}
+                  isFullscreen={isFullscreen}
+                />
+              </Box>
             )}
           </Box>
+        ) : (
+          // ABI View
+          <Box h={isFullscreen ? "100%" : undefined} display="flex" flexDirection="column">
+            {isAbiDecoded && !isProxy ? (
+              <Alert status="info" mb={3} rounded="lg" fontSize="sm" flexShrink={0}>
+                <AlertIcon />
+                ABI reconstructed from bytecode (contract not verified)
+              </Alert>
+            ) : null}
+            <Box
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+              borderRadius="lg"
+              overflow="hidden"
+              flex={isFullscreen ? 1 : undefined}
+            >
+              <Editor
+                theme="vs-dark"
+                defaultLanguage="json"
+                value={abiContent}
+                height={isFullscreen ? "100%" : "400px"}
+                options={{
+                  readOnly: true,
+                  minimap: { enabled: true },
+                  fontSize: 13,
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  wordWrap: "on",
+                  lineNumbers: "on",
+                  folding: true,
+                  renderLineHighlight: "all",
+                  scrollbar: {
+                    useShadows: false,
+                    vertical: "visible",
+                    horizontal: "visible",
+                    verticalScrollbarSize: 12,
+                    horizontalScrollbarSize: 12,
+                  },
+                }}
+              />
+            </Box>
+          </Box>
         )}
+      </Box>
     </Box>
   );
 };
@@ -747,7 +812,6 @@ export const ContractPage = ({
   // Address Book integration
   const { getLabel, isReady: isAddressBookReady } = useAddressBook();
   const addressBookLabel = isAddressBookReady ? getLabel(address) : null;
-  const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
 
   // Check if contract name is a real name or just a truncated address
   const isRealContractName = useMemo(() => {
@@ -762,7 +826,6 @@ export const ContractPage = ({
   const [proxySourceCode, setProxySourceCode] = useState<SourceCodeType>(undefined);
   const [implementationSourceCode, setImplementationSourceCode] = useState<SourceCodeType>(undefined);
   const [isLoadingSourceCode, setIsLoadingSourceCode] = useState<boolean>(false);
-  const [isAbiExpanded, setIsAbiExpanded] = useState<boolean>(false);
 
   const fetchSetAbi = useCallback(async () => {
     if (!evmole) return;
@@ -1015,120 +1078,8 @@ export const ContractPage = ({
   const renderFunctions = () => {
     return (
       abi && (
-        <Box mt="1rem">
-          {isAbiDecoded && (
-            <Alert status="info" mb={"1rem"} rounded={"lg"}>
-              <AlertIcon />
-              Contract not verified, used whatsabi & evmole to determine
-              functions
-            </Alert>
-          )}
-          <Alert status="warning" mb={"1rem"} rounded={"lg"}>
-            <AlertIcon />
-            Tool is in beta, please verify connected chain and calldata before
-            sending transactions
-          </Alert>
-          {implementationAddress && (
-            <Alert status="info" mb={"1rem"} rounded={"lg"}>
-              <AlertIcon />
-              This is a Proxy Contract for implementation:
-              <Link
-                ml="0.2rem"
-                href={`${getPath(
-                  subdomains.EXPLORER.base
-                )}contract/${implementationAddress}/${chainId}`}
-                fontWeight="bold"
-                isExternal
-              >
-                {implementationAddress}
-              </Link>
-            </Alert>
-          )}
-          {abi.name.length > 0 && (
-            <HStack>
-              <HStack
-                position="sticky"
-                top="0"
-                zIndex={1}
-                p={2}
-                boxShadow="md"
-                bg="bg.900"
-                spacing={3}
-              >
-                <Text>
-                  Contract Name: <b>{abi.name}</b>
-                </Text>
-                {/* Address Book Label */}
-                {addressBookLabel ? (
-                  <HStack spacing={1}>
-                    <Tag size="sm" variant="solid" colorScheme="purple">
-                      {addressBookLabel}
-                    </Tag>
-                    <Tooltip label="Edit Label" placement="top">
-                      <IconButton
-                        aria-label="Edit label"
-                        icon={<EditIcon />}
-                        size="xs"
-                        variant="ghost"
-                        color="whiteAlpha.600"
-                        _hover={{ color: "white" }}
-                        onClick={() => setIsLabelModalOpen(true)}
-                      />
-                    </Tooltip>
-                  </HStack>
-                ) : (
-                  isAddressBookReady && (
-                    <Tooltip label="Save to Address Book" placement="top">
-                      <IconButton
-                        aria-label="Save to address book"
-                        icon={
-                          <HStack spacing={0.5}>
-                            <BookOpen size={12} />
-                            <AddIcon boxSize={2} />
-                          </HStack>
-                        }
-                        size="xs"
-                        variant="ghost"
-                        color="whiteAlpha.400"
-                        _hover={{ color: "white", bg: "whiteAlpha.200" }}
-                        onClick={() => setIsLabelModalOpen(true)}
-                      />
-                    </Tooltip>
-                  )
-                )}
-                {/* ABI & Source Code Toggle */}
-                <AbiSourceCodeToggle
-                  isExpanded={isAbiExpanded}
-                  onToggle={() => setIsAbiExpanded(!isAbiExpanded)}
-                />
-              </HStack>
-              <Spacer />
-              <ConnectButton expectedChainId={chainId} />
-            </HStack>
-          )}
-          {implementationAddress && (
-            <HStack p={2}>
-              <Box fontStyle="italic">Interacting as</Box>
-              <DarkSelect
-                boxProps={{
-                  w: "15rem",
-                }}
-                selectedOption={{
-                  label: isInteractingAsProxy ? "Proxy" : "Contract",
-                  value: isInteractingAsProxy ? "proxy" : "Contract",
-                }}
-                setSelectedOption={(option) => {
-                  if (option) {
-                    const isProxy = option.value === "proxy";
-                    setAbi(isProxy ? implementationAbi : proxyAbi);
-                    setIsInteractingAsProxy(isProxy);
-                  }
-                }}
-                options={proxyOptions}
-              />
-            </HStack>
-          )}
-          {/* ABI & Source Code Content */}
+        <Box mt={4} w="full" maxW="70rem" mx="auto">
+          {/* ABI & Source Code Content - above alerts */}
           <AbiSourceCodeContent
             abi={abi}
             proxyAbi={proxyAbi}
@@ -1139,9 +1090,91 @@ export const ContractPage = ({
             implementationAddress={implementationAddress}
             isAbiDecoded={isAbiDecoded}
             isLoadingSourceCode={isLoadingSourceCode}
-            isExpanded={isAbiExpanded}
           />
-          <Grid templateColumns="repeat(2, 1fr)" gap={6} mt={2}>
+
+          {/* Alerts - proxy first, then beta warning */}
+          <VStack spacing={3} align="stretch" mb={4}>
+            {implementationAddress && (
+              <Alert
+                status="info"
+                rounded="lg"
+                bg="rgba(59,130,246,0.08)"
+                borderWidth="1px"
+                borderColor="rgba(59,130,246,0.20)"
+              >
+                <AlertIcon color="primary.400" />
+                <HStack spacing={1} flexWrap="wrap" flex={1}>
+                  <Text color="text.secondary" fontSize="sm">
+                    This is a Proxy Contract for implementation:
+                  </Text>
+                  <Link
+                    href={`${getPath(
+                      subdomains.EXPLORER.base
+                    )}contract/${implementationAddress}/${chainId}`}
+                    fontWeight="semibold"
+                    color="primary.400"
+                    fontSize="sm"
+                    fontFamily="mono"
+                    _hover={{ color: "primary.300" }}
+                    isExternal
+                  >
+                    <HStack spacing={1} display="inline-flex" align="center">
+                      <Text>{implementationAddress}</Text>
+                      <ExternalLink size={12} />
+                    </HStack>
+                  </Link>
+                </HStack>
+                <HStack spacing={2} ml={2}>
+                  <Text color="text.primary" fontSize="sm">Interact as</Text>
+                  <DarkSelect
+                    boxProps={{
+                      minW: "120px",
+                    }}
+                    selectedOption={{
+                      label: isInteractingAsProxy ? "Proxy" : "Contract",
+                      value: isInteractingAsProxy ? "proxy" : "Contract",
+                    }}
+                    setSelectedOption={(option) => {
+                      if (option) {
+                        const isProxy = option.value === "proxy";
+                        setAbi(isProxy ? implementationAbi : proxyAbi);
+                        setIsInteractingAsProxy(isProxy);
+                      }
+                    }}
+                    options={proxyOptions}
+                  />
+                </HStack>
+              </Alert>
+            )}
+            <Alert
+              status="warning"
+              rounded="lg"
+              bg="rgba(251,191,36,0.08)"
+              borderWidth="1px"
+              borderColor="rgba(251,191,36,0.20)"
+            >
+              <AlertIcon color="yellow.400" />
+              <Text color="text.secondary" fontSize="sm">
+                Tool is in beta, please verify connected chain and calldata before sending transactions
+              </Text>
+            </Alert>
+            {isAbiDecoded && (
+              <Alert
+                status="info"
+                rounded="lg"
+                bg="rgba(59,130,246,0.08)"
+                borderWidth="1px"
+                borderColor="rgba(59,130,246,0.20)"
+              >
+                <AlertIcon color="primary.400" />
+                <Text color="text.secondary" fontSize="sm">
+                  Contract not verified, used whatsabi & evmole to determine functions
+                </Text>
+              </Alert>
+            )}
+          </VStack>
+
+          <Grid templateColumns="repeat(2, 1fr)" gap={6}>
             <ReadWriteSection
               type="read"
               abi={abi}
@@ -1190,62 +1223,107 @@ export const ContractPage = ({
   };
 
   return (
-    <Box flexDir={"column"} minW={abi ? "60rem" : "40rem"}>
-      <Center flexDir={"column"}>
-        {/* Address Input and Chain Selector */}
-        <VStack spacing={4} mb={4}>
-          <InputGroup w="26rem">
-            <Input
-              placeholder="Contract Address (0x...)"
-              value={addressInput}
-              onChange={(e) => setAddressInput(e.target.value)}
-              onKeyDown={handleAddressKeyDown}
-              onBlur={handleAddressSubmit}
-              fontFamily="mono"
-              fontSize="sm"
-              bg="whiteAlpha.50"
-              border="1px solid"
-              borderColor="whiteAlpha.200"
-              _hover={{ borderColor: "whiteAlpha.400" }}
-              _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)" }}
-            />
-          </InputGroup>
-          <DarkSelect
-            boxProps={{
-              w: "20rem",
-            }}
-            selectedOption={selectedNetworkOption}
-            setSelectedOption={setSelectedNetworkOption}
-            options={networkOptions}
-          />
-        </VStack>
+    <AbiExpandedProvider>
+      <Box flexDir={"column"} minW={abi ? "60rem" : "40rem"}>
+        <Center flexDir={"column"}>
+          {/* Contract Header Card */}
+          <Box
+            w="full"
+            maxW="70rem"
+          bg="bg.subtle"
+          border="1px solid"
+          borderColor="border.default"
+          borderRadius="xl"
+          p={5}
+          mb={4}
+        >
+          {/* Top row: Address and Chain */}
+          <HStack spacing={4} mb={4} flexWrap={{ base: "wrap", md: "nowrap" }}>
+            <Box flex={1} minW="280px">
+              <HStack spacing={2} mb={1.5} align="center">
+                <Text color="text.tertiary" fontSize="xs" fontWeight="medium" textTransform="uppercase" letterSpacing="0.05em">
+                  Contract Address
+                </Text>
+                {/* Address Book Button - self-contained to avoid parent re-renders */}
+                <AddressBookInlineButton
+                  address={address}
+                  existingLabel={addressBookLabel}
+                  defaultLabel={isRealContractName ? abi?.name : ""}
+                  isReady={isAddressBookReady}
+                />
+              </HStack>
+              <InputGroup>
+                <Input
+                  placeholder="0x..."
+                  value={addressInput}
+                  onChange={(e) => setAddressInput(e.target.value)}
+                  onKeyDown={handleAddressKeyDown}
+                  onBlur={handleAddressSubmit}
+                  fontFamily="mono"
+                  fontSize="sm"
+                  bg="bg.muted"
+                  border="1px solid"
+                  borderColor="border.default"
+                  _hover={{ borderColor: "border.strong" }}
+                  _focus={{ borderColor: "primary.500", boxShadow: "0 0 0 1px var(--chakra-colors-primary-500)" }}
+                />
+              </InputGroup>
+            </Box>
+            <Box minW="200px" maxW="240px">
+              <Text color="text.tertiary" fontSize="xs" fontWeight="medium" mb={1.5} textTransform="uppercase" letterSpacing="0.05em">
+                Network
+              </Text>
+              <DarkSelect
+                selectedOption={selectedNetworkOption}
+                setSelectedOption={setSelectedNetworkOption}
+                options={networkOptions}
+              />
+            </Box>
+          </HStack>
+
+          {/* Contract Info Row - Only show when ABI is loaded */}
+          {abi && abi.name.length > 0 && (
+            <>
+              <Box h="1px" bg="border.default" mb={4} />
+              <HStack spacing={4} flexWrap="wrap" justify="space-between" align="center">
+                {/* Left side: Contract name + proxy selector */}
+                <HStack spacing={3} flexWrap="wrap">
+                  <HStack spacing={2}>
+                    <Text color="text.secondary" fontSize="sm">Contract:</Text>
+                    <Text color="text.primary" fontWeight="semibold" fontSize="sm">{abi.name}</Text>
+                  </HStack>
+                </HStack>
+
+                {/* Center: ABI & Source Code Toggle */}
+                <AbiSourceCodeToggle />
+
+                {/* Right side: Connect button */}
+                <ConnectButton expectedChainId={chainId} />
+              </HStack>
+            </>
+          )}
+        </Box>
         {isFetchingAbi && (
           <Box w="full" maxW="70rem" mt={4}>
-            {/* Contract name skeleton */}
-            <HStack p={2} mb={4}>
-              <HStack spacing={3}>
-                <Skeleton height="20px" width="120px" />
-                <Skeleton height="24px" width="180px" borderRadius="md" />
-                <Skeleton height="28px" width="140px" borderRadius="md" />
-              </HStack>
-              <Spacer />
-              <Skeleton height="36px" width="140px" borderRadius="md" />
-            </HStack>
+            {/* Alerts skeleton */}
+            <VStack spacing={3} align="stretch" mb={4}>
+              <Skeleton height="48px" borderRadius="lg" />
+            </VStack>
 
             {/* Read/Write sections skeleton */}
             <Grid templateColumns="repeat(2, 1fr)" gap={6}>
               {/* Read section skeleton */}
               <Box>
-                <Box p={2} bg="bg.900" rounded="lg" mb={2}>
-                  <HStack justify="space-between" mb={2}>
+                <Box p={3} bg="bg.muted" rounded="lg" mb={3} border="1px solid" borderColor="border.default">
+                  <HStack justify="space-between" mb={3}>
                     <Skeleton height="20px" width="100px" />
                     <Skeleton height="32px" width="100px" borderRadius="md" />
                   </HStack>
                   <Skeleton height="40px" width="70%" mx="auto" borderRadius="md" />
                 </Box>
-                <VStack spacing={3} p={2}>
+                <VStack spacing={3}>
                   {[1, 2, 3, 4].map((i) => (
-                    <Box key={i} w="full" p={3} bg="whiteAlpha.50" rounded="lg" border="1px solid" borderColor="whiteAlpha.100">
+                    <Box key={i} w="full" p={3} bg="bg.subtle" rounded="lg" border="1px solid" borderColor="border.default">
                       <HStack justify="space-between">
                         <Skeleton height="18px" width={`${80 + i * 20}px`} />
                         <Skeleton height="24px" width="24px" borderRadius="md" />
@@ -1257,16 +1335,16 @@ export const ContractPage = ({
 
               {/* Write section skeleton */}
               <Box>
-                <Box p={2} bg="bg.900" rounded="lg" mb={2}>
-                  <HStack justify="space-between" mb={2}>
+                <Box p={3} bg="bg.muted" rounded="lg" mb={3} border="1px solid" borderColor="border.default">
+                  <HStack justify="space-between" mb={3}>
                     <Skeleton height="20px" width="100px" />
                     <Skeleton height="32px" width="100px" borderRadius="md" />
                   </HStack>
                   <Skeleton height="40px" width="70%" mx="auto" borderRadius="md" />
                 </Box>
-                <VStack spacing={3} p={2}>
+                <VStack spacing={3}>
                   {[1, 2, 3, 4].map((i) => (
-                    <Box key={i} w="full" p={3} bg="whiteAlpha.50" rounded="lg" border="1px solid" borderColor="whiteAlpha.100">
+                    <Box key={i} w="full" p={3} bg="bg.subtle" rounded="lg" border="1px solid" borderColor="border.default">
                       <HStack justify="space-between">
                         <Skeleton height="18px" width={`${100 + i * 15}px`} />
                         <Skeleton height="24px" width="24px" borderRadius="md" />
@@ -1279,21 +1357,22 @@ export const ContractPage = ({
           </Box>
         )}
         {unableToFetchAbi && (
-          <HStack mt={2} color="red.300">
-            <Box>Unable to Fetch ABI for this address</Box>
-          </HStack>
+          <Box
+            mt={4}
+            p={4}
+            bg="rgba(239,68,68,0.08)"
+            border="1px solid"
+            borderColor="rgba(239,68,68,0.20)"
+            borderRadius="lg"
+          >
+            <Text color="red.300" fontSize="sm">
+              Unable to fetch ABI for this address. The contract may not exist or the network may be unavailable.
+            </Text>
+          </Box>
         )}
-      </Center>
-      {renderFunctions()}
-
-      {/* Address Label Modal for save/edit */}
-      <AddressLabelModal
-        isOpen={isLabelModalOpen}
-        onClose={() => setIsLabelModalOpen(false)}
-        address={address}
-        existingLabel={addressBookLabel}
-        defaultLabel={isRealContractName ? abi?.name || "" : ""}
-      />
-    </Box>
+        </Center>
+        {renderFunctions()}
+      </Box>
+    </AbiExpandedProvider>
   );
 };

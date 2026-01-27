@@ -35,10 +35,12 @@ export const DarkSelect = ({
     null
   );
   const [menuIsOpen, setMenuIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const selectRef = useRef<any>(null);
   const uniqueId = useId();
 
   useEffect(() => {
+    setIsMounted(true);
     if (typeof document !== "undefined") {
       setMenuPortalTarget(document.body);
     }
@@ -179,6 +181,32 @@ export const DarkSelect = ({
       </chakraComponents.SingleValue>
     ),
   };
+
+  // Prevent hydration mismatch by not rendering select on server
+  if (!isMounted) {
+    return (
+      <Box
+        cursor="pointer"
+        pos="relative"
+        overflow="visible"
+        {...boxProps}
+      >
+        <Box
+          bg="whiteAlpha.50"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+          borderRadius="lg"
+          h="40px"
+          px={4}
+          display="flex"
+          alignItems="center"
+          color="whiteAlpha.500"
+        >
+          {placeholder || "Select..."}
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box cursor="pointer" pos="relative" overflow="visible" {...boxProps}>
