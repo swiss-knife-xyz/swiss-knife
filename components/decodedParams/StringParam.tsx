@@ -246,6 +246,8 @@ export const StringParam = ({
       } else {
         // Raw JSON / SVG
         if (isJson || isImage) {
+          const lineCount = (displayValue?.split("\n").length ?? 1) + 1;
+          const editorHeight = `${Math.min(500, Math.max(80, lineCount * 19 + 10))}px`;
           return (
             <Box>
               <HStack mb={1}>
@@ -253,7 +255,7 @@ export const StringParam = ({
                 <CopyToClipboard textToCopy={value ?? ""} size="xs" />
               </HStack>
               <Editor
-                height="300px"
+                height={editorHeight}
                 theme="vs-dark"
                 defaultLanguage="json"
                 value={displayValue}
@@ -269,6 +271,8 @@ export const StringParam = ({
         } else if (isUrlImageOrJson?.isJson && urlContent) {
           // Raw JSON from URL
           const formattedUrlContent = JSON.stringify(urlContent, null, 4);
+          const lineCount = (formattedUrlContent?.split("\n").length ?? 1) + 1;
+          const editorHeight = `${Math.min(500, Math.max(80, lineCount * 19 + 10))}px`;
           return (
             <Box>
               <HStack mb={1}>
@@ -279,7 +283,7 @@ export const StringParam = ({
                 />
               </HStack>
               <Editor
-                height="300px"
+                height={editorHeight}
                 theme="vs-dark"
                 defaultLanguage="json"
                 value={formattedUrlContent}

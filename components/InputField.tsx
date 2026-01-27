@@ -29,7 +29,7 @@ export const InputField = ({
     <Input
       type={type ?? "text"}
       placeholder={placeholder}
-      value={value}
+      value={value ?? ""}
       onChange={onChange}
       isInvalid={isInvalid}
       pr="3rem"

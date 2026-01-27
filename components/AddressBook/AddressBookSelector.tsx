@@ -18,7 +18,7 @@ import {
   InputLeftElement,
 } from "@chakra-ui/react";
 import { Search, BookOpen } from "lucide-react";
-import { useAddressBook } from "@/hooks/useAddressBook";
+import { useAddressBookSelectorContext } from "@/contexts/AddressBookContext";
 import { slicedText } from "@/utils";
 
 export function AddressBookSelector() {
@@ -28,7 +28,7 @@ export function AddressBookSelector() {
     closeSelector,
     onAddressSelect,
     isLoading,
-  } = useAddressBook();
+  } = useAddressBookSelectorContext();
 
   const [searchQuery, setSearchQuery] = useState("");
 

@@ -13,7 +13,8 @@ import { getStorageHub } from "@/lib/addressBook/storageHub";
 import type { SavedAddressInfo, AddressBookState } from "@/types/addressBook";
 import { slicedText } from "@/utils";
 
-interface AddressBookContextValue extends AddressBookState {
+// Data context: addresses, CRUD, labels, drawer, openSelector (stable callback)
+interface AddressBookDataContextValue extends AddressBookState {
   // CRUD operations
   addAddress: (address: string, label: string) => Promise<void>;
   removeAddress: (address: string) => Promise<void>;
@@ -28,14 +29,23 @@ interface AddressBookContextValue extends AddressBookState {
   openDrawer: () => void;
   closeDrawer: () => void;
 
-  // Selector state
-  isSelectorOpen: boolean;
+  // Selector trigger (stable callback — does not change when selector opens)
   openSelector: (onSelect: (address: string) => void) => void;
-  closeSelector: () => void;
-  onAddressSelect: ((address: string) => void) | null;
 }
 
-const AddressBookContext = createContext<AddressBookContextValue | null>(null);
+// Selector UI context: only consumed by AddressBookSelector modal
+export interface AddressBookSelectorContextValue {
+  isSelectorOpen: boolean;
+  closeSelector: () => void;
+  onAddressSelect: ((address: string) => void) | null;
+  addresses: SavedAddressInfo[];
+  isLoading: boolean;
+}
+
+const AddressBookDataContext =
+  createContext<AddressBookDataContextValue | null>(null);
+const AddressBookSelectorContext =
+  createContext<AddressBookSelectorContextValue | null>(null);
 
 export function AddressBookProvider({
   children,
@@ -174,34 +184,77 @@ export function AddressBookProvider({
     setOnAddressSelect(null);
   }, []);
 
-  const value: AddressBookContextValue = {
-    ...state,
-    addAddress,
-    removeAddress,
-    updateAddress,
-    getLabel,
-    getLabelOrSliced,
-    isDrawerOpen,
-    openDrawer,
-    closeDrawer,
-    isSelectorOpen,
-    openSelector,
-    closeSelector,
-    onAddressSelect,
-  };
+  // Memoize data context — only changes when addresses/drawer state changes,
+  // NOT when selector opens/closes
+  const dataValue = useMemo<AddressBookDataContextValue>(
+    () => ({
+      ...state,
+      addAddress,
+      removeAddress,
+      updateAddress,
+      getLabel,
+      getLabelOrSliced,
+      isDrawerOpen,
+      openDrawer,
+      closeDrawer,
+      openSelector,
+    }),
+    [
+      state,
+      addAddress,
+      removeAddress,
+      updateAddress,
+      getLabel,
+      getLabelOrSliced,
+      isDrawerOpen,
+      openDrawer,
+      closeDrawer,
+      openSelector,
+    ]
+  );
+
+  // Memoize selector context — only consumed by AddressBookSelector
+  const selectorValue = useMemo<AddressBookSelectorContextValue>(
+    () => ({
+      isSelectorOpen,
+      closeSelector,
+      onAddressSelect,
+      addresses: state.addresses,
+      isLoading: state.isLoading,
+    }),
+    [
+      isSelectorOpen,
+      closeSelector,
+      onAddressSelect,
+      state.addresses,
+      state.isLoading,
+    ]
+  );
 
   return (
-    <AddressBookContext.Provider value={value}>
-      {children}
-    </AddressBookContext.Provider>
+    <AddressBookDataContext.Provider value={dataValue}>
+      <AddressBookSelectorContext.Provider value={selectorValue}>
+        {children}
+      </AddressBookSelectorContext.Provider>
+    </AddressBookDataContext.Provider>
   );
 }
 
-export function useAddressBookContext(): AddressBookContextValue {
-  const context = useContext(AddressBookContext);
+export function useAddressBookContext(): AddressBookDataContextValue {
+  const context = useContext(AddressBookDataContext);
   if (!context) {
     throw new Error(
       "useAddressBookContext must be used within AddressBookProvider"
+    );
+  }
+  return context;
+}
+
+export function useAddressBookSelectorContext(): AddressBookSelectorContextValue {
+  const context = useContext(AddressBookSelectorContext);
+  if (!context) {
+    throw new Error(
+      "useAddressBookSelectorContext must be used within AddressBookProvider"
     );
   }
   return context;
