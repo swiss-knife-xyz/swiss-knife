@@ -3,6 +3,10 @@ const subdomains = {
     base: "calldata",
     paths: ["decoder"],
   },
+  CONTRACT: {
+    base: "contract",
+    paths: [],
+  },
   EXPLORER: {
     base: "explorer",
     paths: ["address", "tx"],

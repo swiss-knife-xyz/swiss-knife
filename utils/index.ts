@@ -524,7 +524,9 @@ export const parseEVMoleInputTypes = (argsString: string): EVMParameter[] => {
   const trimmed = argsString.trim();
   if (trimmed === "" || trimmed === "()") return [];
 
-  return [parseType(trimmed)];
+  // Split top-level components and parse each one
+  const components = splitComponents(trimmed);
+  return components.map((comp, idx) => parseType(comp, idx));
 };
 
 export const processContractBytecode = async ({

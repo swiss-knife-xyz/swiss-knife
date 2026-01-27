@@ -7,13 +7,14 @@ import { generateMetadata as layoutGenerateMetadata } from "./layout";
 import { Box, Heading } from "@chakra-ui/react";
 
 interface PageProps {
-  params: { address: string; chainId: number };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ address: string; chainId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata({
-  params: { address, chainId },
+  params,
 }: PageProps): Promise<Metadata> {
+  const { address, chainId } = await params;
   let title = `Contract ${address} | ETH.sh`;
 
   // add contract name to the title if possible
@@ -21,7 +22,7 @@ export async function generateMetadata({
   try {
     const fetchedAbi = await fetchContractAbi({
       address,
-      chainId,
+      chainId: parseInt(chainId),
     });
     contractName = fetchedAbi?.name;
   } catch {}
@@ -30,7 +31,9 @@ export async function generateMetadata({
     title = `${contractName} - ${address} | ETH.sh`;
   }
 
-  const layoutMetadata = await layoutGenerateMetadata({ params: { address } });
+  const layoutMetadata = await layoutGenerateMetadata({
+    params: Promise.resolve({ address }),
+  });
 
   return getMetadata({
     title,
@@ -39,14 +42,15 @@ export async function generateMetadata({
   });
 }
 
-const ContractPage = ({
+const ContractPage = async ({
   params,
 }: {
-  params: {
+  params: Promise<{
     address: string;
     chainId: string;
-  };
+  }>;
 }) => {
+  const { address, chainId } = await params;
   return (
     <Layout>
       <Heading mb={4} color={"custom.pale"}>
@@ -54,8 +58,8 @@ const ContractPage = ({
       </Heading>
       <ContractP
         params={{
-          address: params.address,
-          chainId: parseInt(params.chainId),
+          address,
+          chainId: parseInt(chainId),
         }}
       />
     </Layout>

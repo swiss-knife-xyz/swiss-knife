@@ -7,6 +7,12 @@ export const subdomainToInfo = {
     description:
       "Decode calldata into human-readable format without needing contract ABI",
   },
+  [subdomains.CONTRACT.base]: {
+    emoji: "📄",
+    label: "Contract Explorer",
+    description:
+      "Interact with any smart contract - read & write functions, storage slots, and raw calldata",
+  },
   [subdomains.APPS.base]: {
     emoji: "🏪",
     label: "Web3 App Store",

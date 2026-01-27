@@ -1,10 +1,11 @@
 import { getMetadata } from "@/utils";
 
 export async function generateMetadata({
-  params: { address },
+  params,
 }: {
-  params: { address: string };
+  params: Promise<{ address: string }>;
 }) {
+  const { address } = await params;
   return getMetadata({
     title: `Contract ${address} | ETH.sh`,
     description:

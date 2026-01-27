@@ -15,17 +15,27 @@ import {
   Box,
   Button,
   Center,
+  Collapse,
   Grid,
   HStack,
+  IconButton,
   Input,
   InputGroup,
   InputRightElement,
   Link,
   Select,
+  Skeleton,
   Spacer,
   Spinner,
+  Tag,
+  Text,
+  Tooltip,
+  VStack,
 } from "@chakra-ui/react";
-import { CloseIcon } from "@chakra-ui/icons";
+import { AddIcon, ChevronDownIcon, ChevronUpIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
+import { BookOpen } from "lucide-react";
+import { useAddressBook } from "@/hooks/useAddressBook";
+import { AddressLabelModal } from "@/components/AddressBook";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { JsonFragment } from "ethers";
 import { Address, PublicClient, createPublicClient, http } from "viem";
@@ -37,6 +47,7 @@ import {
   fetchContractAbiRaw,
   getImplementationFromBytecodeIfProxy,
   getPath,
+  getSourceCode,
   slicedText,
   startHexWith0x,
 } from "@/utils";
@@ -46,6 +57,9 @@ import subdomains from "@/subdomains";
 import { fetchFunctionInterface } from "@/lib/decoder";
 import { DarkButton } from "@/components/DarkButton";
 import { processContractBytecode } from "@/utils/index";
+import TabsSelector from "@/components/Tabs/TabsSelector";
+import { Editor } from "@monaco-editor/react";
+import { Code, FileText } from "lucide-react";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -66,6 +80,239 @@ const useDebouncedValue = (value: any, delay: number) => {
 type AbiType = {
   abi: JsonFragment[];
   name: string;
+};
+
+type SourceCodeType = Record<string, string> | undefined;
+
+// Small toggle button for ABI & Source Code
+const AbiSourceCodeToggle = ({
+  isExpanded,
+  onToggle,
+}: {
+  isExpanded: boolean;
+  onToggle: () => void;
+}) => {
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={onToggle}
+      color="text.secondary"
+      borderColor="whiteAlpha.300"
+      bg="whiteAlpha.50"
+      _hover={{ color: "text.primary", bg: "whiteAlpha.100", borderColor: "whiteAlpha.400" }}
+      leftIcon={<Code size={14} />}
+      rightIcon={isExpanded ? <ChevronUpIcon boxSize={4} /> : <ChevronDownIcon boxSize={4} />}
+      px={3}
+      h={7}
+      fontSize="xs"
+      ml={4}
+    >
+      ABI & Source Code
+    </Button>
+  );
+};
+
+// Component to display ABI and Source Code content
+const AbiSourceCodeContent = ({
+  abi,
+  proxyAbi,
+  implementationAbi,
+  sourceCode,
+  proxySourceCode,
+  implementationSourceCode,
+  implementationAddress,
+  isAbiDecoded,
+  isLoadingSourceCode,
+  isExpanded,
+}: {
+  abi: AbiType | null;
+  proxyAbi: AbiType | null;
+  implementationAbi: AbiType | null;
+  sourceCode: SourceCodeType;
+  proxySourceCode: SourceCodeType;
+  implementationSourceCode: SourceCodeType;
+  implementationAddress: string | null;
+  isAbiDecoded: boolean;
+  isLoadingSourceCode: boolean;
+  isExpanded: boolean;
+}) => {
+  // 0 = ABI, 1 = Source Code
+  const [contentTabIndex, setContentTabIndex] = useState(0);
+  // 0 = Implementation, 1 = Proxy (only shown for proxy contracts)
+  const [contractTabIndex, setContractTabIndex] = useState(0);
+  // For source code with multiple files
+  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+
+  const isProxy = implementationAddress !== null;
+
+  // Get the current ABI to display based on selected contract tab
+  const currentAbi = useMemo(() => {
+    if (!isProxy) return abi;
+    return contractTabIndex === 0 ? implementationAbi : proxyAbi;
+  }, [isProxy, contractTabIndex, abi, implementationAbi, proxyAbi]);
+
+  // Get the current source code based on selected contract tab
+  const currentSourceCode = useMemo(() => {
+    if (!isProxy) return sourceCode;
+    return contractTabIndex === 0 ? implementationSourceCode : proxySourceCode;
+  }, [isProxy, contractTabIndex, sourceCode, implementationSourceCode, proxySourceCode]);
+
+  const sourceCodeFiles = useMemo(() => {
+    if (!currentSourceCode) return [];
+    return Object.keys(currentSourceCode);
+  }, [currentSourceCode]);
+
+  const sourceCodeContent = useMemo(() => {
+    if (!currentSourceCode || sourceCodeFiles.length === 0) return "";
+    const file = sourceCodeFiles[selectedFileIndex] || sourceCodeFiles[0];
+    return currentSourceCode[file] || "";
+  }, [currentSourceCode, sourceCodeFiles, selectedFileIndex]);
+
+  // Reset file selection when source code changes
+  useEffect(() => {
+    setSelectedFileIndex(0);
+  }, [currentSourceCode]);
+
+  const abiContent = useMemo(() => {
+    if (!currentAbi) return "";
+    try {
+      return JSON.stringify(currentAbi.abi, null, 2);
+    } catch {
+      return "";
+    }
+  }, [currentAbi]);
+
+  if (!abi || !isExpanded) return null;
+
+  return (
+    <Box
+      mb={4}
+      border="1px solid"
+      borderColor="whiteAlpha.200"
+      borderRadius="lg"
+      overflow="hidden"
+      bg="bg.subtle"
+      p={3}
+    >
+      {/* Compact tabs row */}
+      <HStack spacing={4} mb={3} flexWrap="wrap">
+        {/* Contract tabs for proxy */}
+        {isProxy && (
+          <TabsSelector
+            tabs={["Implementation", "Proxy"]}
+            selectedTabIndex={contractTabIndex}
+            setSelectedTabIndex={setContractTabIndex}
+            mt={0}
+          />
+        )}
+
+        {/* Content tabs */}
+        <TabsSelector
+          tabs={["ABI", "Source Code"]}
+          selectedTabIndex={contentTabIndex}
+          setSelectedTabIndex={setContentTabIndex}
+          mt={0}
+        />
+      </HStack>
+
+      {/* Content */}
+      {contentTabIndex === 0 ? (
+        // ABI View
+        <Box>
+          {isAbiDecoded && !isProxy ? (
+            <Alert status="info" mb={3} rounded="lg" fontSize="sm">
+              <AlertIcon />
+              ABI reconstructed from bytecode (contract not verified)
+            </Alert>
+          ) : null}
+          <Box
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+            borderRadius="lg"
+            overflow="hidden"
+          >
+            <Editor
+              theme="vs-dark"
+              defaultLanguage="json"
+              value={abiContent}
+              height="350px"
+              options={{
+                readOnly: true,
+                minimap: { enabled: false },
+                fontSize: 13,
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                wordWrap: "on",
+              }}
+            />
+          </Box>
+        </Box>
+      ) : (
+          // Source Code View
+          <Box>
+            {isLoadingSourceCode ? (
+              <HStack justify="center" py={8}>
+                <Spinner size="sm" />
+                <Text color="text.secondary">Loading source code...</Text>
+              </HStack>
+            ) : !currentSourceCode || sourceCodeFiles.length === 0 ? (
+              <Text color="text.secondary" fontSize="sm" py={2}>
+                Source code not available (contract may not be verified)
+              </Text>
+            ) : (
+              <VStack spacing={3} align="stretch">
+                {/* File selector for multiple files */}
+                {sourceCodeFiles.length > 1 && (
+                  <Box>
+                    <Text color="text.secondary" fontSize="sm" mb={2}>
+                      File ({sourceCodeFiles.length} files)
+                    </Text>
+                    <DarkSelect
+                      placeholder="Select file"
+                      options={sourceCodeFiles.map((file, idx) => ({
+                        label: file,
+                        value: idx,
+                      }))}
+                      selectedOption={{
+                        label: sourceCodeFiles[selectedFileIndex],
+                        value: selectedFileIndex,
+                      }}
+                      setSelectedOption={(option) => {
+                        if (option) {
+                          setSelectedFileIndex(option.value as number);
+                        }
+                      }}
+                    />
+                  </Box>
+                )}
+                <Box
+                  border="1px solid"
+                  borderColor="whiteAlpha.200"
+                  borderRadius="lg"
+                  overflow="hidden"
+                >
+                  <Editor
+                    theme="vs-dark"
+                    defaultLanguage="solidity"
+                    value={sourceCodeContent}
+                    height="400px"
+                    options={{
+                      readOnly: true,
+                      minimap: { enabled: false },
+                      fontSize: 13,
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                      wordWrap: "on",
+                    }}
+                  />
+                </Box>
+              </VStack>
+            )}
+          </Box>
+        )}
+    </Box>
+  );
 };
 
 const ReadWriteSection = ({
@@ -452,9 +699,11 @@ export const ContractPage = ({
 }) => {
   const router = useTopLoaderRouter();
 
-  const networkOptionsIndex = networkOptions.findIndex(
-    (option) => option.value === chainId
-  );
+  // Find network option, default to first option (mainnet) if not found
+  const getNetworkOption = useCallback(() => {
+    const index = networkOptions.findIndex((option) => option.value === chainId);
+    return index >= 0 ? networkOptions[index] : networkOptions[0];
+  }, [chainId]);
 
   // dynamic imports
   const [evmole, setEvmole] = useState<any>(null);
@@ -467,8 +716,17 @@ export const ContractPage = ({
 
   // state
   const [selectedNetworkOption, setSelectedNetworkOption] =
-    useState<SelectedOptionState>(networkOptions[networkOptionsIndex]);
-  const [client, setClient] = useState<PublicClient | null>(null);
+    useState<SelectedOptionState>(() => getNetworkOption());
+  const [client, setClient] = useState<PublicClient | null>(() => {
+    // Initialize client immediately with chainId from props
+    if (chainIdToChain[chainId]) {
+      return createPublicClient({
+        chain: chainIdToChain[chainId],
+        transport: http(),
+      });
+    }
+    return null;
+  });
 
   const [abi, setAbi] = useState<AbiType | null>(null);
   const [isAbiDecoded, setIsAbiDecoded] = useState<boolean>(false);
@@ -485,7 +743,26 @@ export const ContractPage = ({
     useState<boolean>(false);
 
   const [readFunctions, setReadFunctions] = useState<JsonFragment[]>([]);
+
+  // Address Book integration
+  const { getLabel, isReady: isAddressBookReady } = useAddressBook();
+  const addressBookLabel = isAddressBookReady ? getLabel(address) : null;
+  const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
+
+  // Check if contract name is a real name or just a truncated address
+  const isRealContractName = useMemo(() => {
+    if (!abi?.name) return false;
+    // If name contains "..." it's likely a truncated address (from slicedText)
+    return !abi.name.includes("...");
+  }, [abi?.name]);
   const [writeFunctions, setWriteFunctions] = useState<JsonFragment[]>([]);
+
+  // Source code state
+  const [sourceCode, setSourceCode] = useState<SourceCodeType>(undefined);
+  const [proxySourceCode, setProxySourceCode] = useState<SourceCodeType>(undefined);
+  const [implementationSourceCode, setImplementationSourceCode] = useState<SourceCodeType>(undefined);
+  const [isLoadingSourceCode, setIsLoadingSourceCode] = useState<boolean>(false);
+  const [isAbiExpanded, setIsAbiExpanded] = useState<boolean>(false);
 
   const fetchSetAbi = useCallback(async () => {
     if (!evmole) return;
@@ -631,12 +908,32 @@ export const ContractPage = ({
     }
   }, [address, chainId, evmole]);
 
+  // Track the current chainId to avoid unnecessary client updates
+  const currentChainIdRef = useRef<number>(chainId);
+
+  // Sync selectedNetworkOption when chainId prop changes (e.g., navigation)
+  useEffect(() => {
+    const newOption = getNetworkOption();
+    setSelectedNetworkOption(newOption);
+    // Also update client when chainId changes from props
+    if (chainIdToChain[chainId] && chainId !== currentChainIdRef.current) {
+      currentChainIdRef.current = chainId;
+      setClient(
+        createPublicClient({
+          chain: chainIdToChain[chainId],
+          transport: http(),
+        })
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chainId]);
+
   // Set chainId and client when network option changes
   useEffect(() => {
     if (selectedNetworkOption) {
       const newChainId = parseInt(selectedNetworkOption.value.toString());
 
-      // Only push new route if chainId actually changed
+      // Only push new route and update client if chainId actually changed
       if (newChainId !== chainId) {
         router.push(
           `${getPath(
@@ -645,12 +942,16 @@ export const ContractPage = ({
         );
       }
 
-      setClient(
-        createPublicClient({
-          chain: chainIdToChain[newChainId],
-          transport: http(),
-        })
-      );
+      // Only create new client if chainId actually changed
+      if (newChainId !== currentChainIdRef.current) {
+        currentChainIdRef.current = newChainId;
+        setClient(
+          createPublicClient({
+            chain: chainIdToChain[newChainId],
+            transport: http(),
+          })
+        );
+      }
     }
   }, [selectedNetworkOption, chainId, router, address]);
 
@@ -658,6 +959,35 @@ export const ContractPage = ({
   useEffect(() => {
     fetchSetAbi();
   }, [address, chainId, fetchSetAbi]);
+
+  // Fetch source code when address, chainId, or implementationAddress changes
+  useEffect(() => {
+    const fetchSourceCodes = async () => {
+      setIsLoadingSourceCode(true);
+      setSourceCode(undefined);
+      setProxySourceCode(undefined);
+      setImplementationSourceCode(undefined);
+
+      try {
+        // Fetch main contract source code
+        const mainSource = await getSourceCode(chainId, address);
+        setSourceCode(mainSource);
+        setProxySourceCode(mainSource);
+
+        // If there's an implementation address, fetch its source code too
+        if (implementationAddress) {
+          const implSource = await getSourceCode(chainId, implementationAddress);
+          setImplementationSourceCode(implSource);
+        }
+      } catch (error) {
+        console.error("Error fetching source code:", error);
+      } finally {
+        setIsLoadingSourceCode(false);
+      }
+    };
+
+    fetchSourceCodes();
+  }, [address, chainId, implementationAddress]);
 
   // Set functions from abi
   useEffect(() => {
@@ -716,16 +1046,62 @@ export const ContractPage = ({
           )}
           {abi.name.length > 0 && (
             <HStack>
-              <Box
+              <HStack
                 position="sticky"
                 top="0"
                 zIndex={1}
                 p={2}
                 boxShadow="md"
                 bg="bg.900"
+                spacing={3}
               >
-                Contract Name: <b>{abi.name}</b>
-              </Box>
+                <Text>
+                  Contract Name: <b>{abi.name}</b>
+                </Text>
+                {/* Address Book Label */}
+                {addressBookLabel ? (
+                  <HStack spacing={1}>
+                    <Tag size="sm" variant="solid" colorScheme="purple">
+                      {addressBookLabel}
+                    </Tag>
+                    <Tooltip label="Edit Label" placement="top">
+                      <IconButton
+                        aria-label="Edit label"
+                        icon={<EditIcon />}
+                        size="xs"
+                        variant="ghost"
+                        color="whiteAlpha.600"
+                        _hover={{ color: "white" }}
+                        onClick={() => setIsLabelModalOpen(true)}
+                      />
+                    </Tooltip>
+                  </HStack>
+                ) : (
+                  isAddressBookReady && (
+                    <Tooltip label="Save to Address Book" placement="top">
+                      <IconButton
+                        aria-label="Save to address book"
+                        icon={
+                          <HStack spacing={0.5}>
+                            <BookOpen size={12} />
+                            <AddIcon boxSize={2} />
+                          </HStack>
+                        }
+                        size="xs"
+                        variant="ghost"
+                        color="whiteAlpha.400"
+                        _hover={{ color: "white", bg: "whiteAlpha.200" }}
+                        onClick={() => setIsLabelModalOpen(true)}
+                      />
+                    </Tooltip>
+                  )
+                )}
+                {/* ABI & Source Code Toggle */}
+                <AbiSourceCodeToggle
+                  isExpanded={isAbiExpanded}
+                  onToggle={() => setIsAbiExpanded(!isAbiExpanded)}
+                />
+              </HStack>
               <Spacer />
               <ConnectButton expectedChainId={chainId} />
             </HStack>
@@ -752,7 +1128,20 @@ export const ContractPage = ({
               />
             </HStack>
           )}
-          <Grid templateColumns="repeat(2, 1fr)" gap={6} mt={5}>
+          {/* ABI & Source Code Content */}
+          <AbiSourceCodeContent
+            abi={abi}
+            proxyAbi={proxyAbi}
+            implementationAbi={implementationAbi}
+            sourceCode={sourceCode}
+            proxySourceCode={proxySourceCode}
+            implementationSourceCode={implementationSourceCode}
+            implementationAddress={implementationAddress}
+            isAbiDecoded={isAbiDecoded}
+            isLoadingSourceCode={isLoadingSourceCode}
+            isExpanded={isAbiExpanded}
+          />
+          <Grid templateColumns="repeat(2, 1fr)" gap={6} mt={2}>
             <ReadWriteSection
               type="read"
               abi={abi}
@@ -777,30 +1166,134 @@ export const ContractPage = ({
     );
   };
 
+  // State for address input
+  const [addressInput, setAddressInput] = useState(address);
+
+  // Sync address input when address prop changes (e.g., navigation)
+  useEffect(() => {
+    setAddressInput(address);
+  }, [address]);
+
+  const handleAddressSubmit = () => {
+    const trimmedAddress = addressInput.trim();
+    if (trimmedAddress && trimmedAddress !== address) {
+      router.push(
+        `${getPath(subdomains.CONTRACT.base)}${trimmedAddress}/${chainId}`
+      );
+    }
+  };
+
+  const handleAddressKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleAddressSubmit();
+    }
+  };
+
   return (
     <Box flexDir={"column"} minW={abi ? "60rem" : "40rem"}>
       <Center flexDir={"column"}>
-        <DarkSelect
-          boxProps={{
-            w: "20rem",
-          }}
-          selectedOption={selectedNetworkOption}
-          setSelectedOption={setSelectedNetworkOption}
-          options={networkOptions}
-        />
+        {/* Address Input and Chain Selector */}
+        <VStack spacing={4} mb={4}>
+          <InputGroup w="26rem">
+            <Input
+              placeholder="Contract Address (0x...)"
+              value={addressInput}
+              onChange={(e) => setAddressInput(e.target.value)}
+              onKeyDown={handleAddressKeyDown}
+              onBlur={handleAddressSubmit}
+              fontFamily="mono"
+              fontSize="sm"
+              bg="whiteAlpha.50"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+              _hover={{ borderColor: "whiteAlpha.400" }}
+              _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)" }}
+            />
+          </InputGroup>
+          <DarkSelect
+            boxProps={{
+              w: "20rem",
+            }}
+            selectedOption={selectedNetworkOption}
+            setSelectedOption={setSelectedNetworkOption}
+            options={networkOptions}
+          />
+        </VStack>
         {isFetchingAbi && (
-          <HStack mt={5}>
-            <Box>Fetching ABI...</Box>
-            <Spinner />
-          </HStack>
+          <Box w="full" maxW="70rem" mt={4}>
+            {/* Contract name skeleton */}
+            <HStack p={2} mb={4}>
+              <HStack spacing={3}>
+                <Skeleton height="20px" width="120px" />
+                <Skeleton height="24px" width="180px" borderRadius="md" />
+                <Skeleton height="28px" width="140px" borderRadius="md" />
+              </HStack>
+              <Spacer />
+              <Skeleton height="36px" width="140px" borderRadius="md" />
+            </HStack>
+
+            {/* Read/Write sections skeleton */}
+            <Grid templateColumns="repeat(2, 1fr)" gap={6}>
+              {/* Read section skeleton */}
+              <Box>
+                <Box p={2} bg="bg.900" rounded="lg" mb={2}>
+                  <HStack justify="space-between" mb={2}>
+                    <Skeleton height="20px" width="100px" />
+                    <Skeleton height="32px" width="100px" borderRadius="md" />
+                  </HStack>
+                  <Skeleton height="40px" width="70%" mx="auto" borderRadius="md" />
+                </Box>
+                <VStack spacing={3} p={2}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <Box key={i} w="full" p={3} bg="whiteAlpha.50" rounded="lg" border="1px solid" borderColor="whiteAlpha.100">
+                      <HStack justify="space-between">
+                        <Skeleton height="18px" width={`${80 + i * 20}px`} />
+                        <Skeleton height="24px" width="24px" borderRadius="md" />
+                      </HStack>
+                    </Box>
+                  ))}
+                </VStack>
+              </Box>
+
+              {/* Write section skeleton */}
+              <Box>
+                <Box p={2} bg="bg.900" rounded="lg" mb={2}>
+                  <HStack justify="space-between" mb={2}>
+                    <Skeleton height="20px" width="100px" />
+                    <Skeleton height="32px" width="100px" borderRadius="md" />
+                  </HStack>
+                  <Skeleton height="40px" width="70%" mx="auto" borderRadius="md" />
+                </Box>
+                <VStack spacing={3} p={2}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <Box key={i} w="full" p={3} bg="whiteAlpha.50" rounded="lg" border="1px solid" borderColor="whiteAlpha.100">
+                      <HStack justify="space-between">
+                        <Skeleton height="18px" width={`${100 + i * 15}px`} />
+                        <Skeleton height="24px" width="24px" borderRadius="md" />
+                      </HStack>
+                    </Box>
+                  ))}
+                </VStack>
+              </Box>
+            </Grid>
+          </Box>
         )}
         {unableToFetchAbi && (
-          <HStack mt={5} color="red.300">
+          <HStack mt={2} color="red.300">
             <Box>Unable to Fetch ABI for this address</Box>
           </HStack>
         )}
       </Center>
       {renderFunctions()}
+
+      {/* Address Label Modal for save/edit */}
+      <AddressLabelModal
+        isOpen={isLabelModalOpen}
+        onClose={() => setIsLabelModalOpen(false)}
+        address={address}
+        existingLabel={addressBookLabel}
+        defaultLabel={isRealContractName ? abi?.name || "" : ""}
+      />
     </Box>
   );
 };
