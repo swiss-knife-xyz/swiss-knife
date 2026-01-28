@@ -45,7 +45,10 @@ export const baseClient = createPublicClient({
 export const isResolvableName = (value: string): boolean => {
   if (!value || value.length === 0) return false;
   // Must contain a dot and not start with 0x (address)
-  return value.includes(".") && !value.toLowerCase().startsWith("0x");
+  if (!value.includes(".") || value.toLowerCase().startsWith("0x")) return false;
+  // Ensure no empty labels (leading/trailing dots, consecutive dots)
+  const labels = value.split(".");
+  return labels.every((label) => label.length > 0);
 };
 
 /**
@@ -103,8 +106,7 @@ export const resolveNameToAddress = async (
       name: normalize(name),
     });
     return address;
-  } catch (error) {
-    console.error("Error resolving name to address:", error);
+  } catch {
     return null;
   }
 };

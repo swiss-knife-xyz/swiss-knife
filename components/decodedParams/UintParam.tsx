@@ -7,7 +7,7 @@ import {
   Text,
   Box,
   Flex,
-  Portal,
+  Tag,
 } from "@chakra-ui/react";
 import { ethFormatOptions, convertTo, ETHSelectedOptionState } from "@/utils";
 import { InputField } from "../InputField";
@@ -64,6 +64,8 @@ export const UintParam = ({ value: _value }: Params) => {
   const isNumericFormat = numericFormats.includes(
     selectedEthFormatOption?.value
   );
+  const hasCompactNotation =
+    isNumericFormat && formatCompact(conversionValue) !== conversionValue;
 
   return showSkeleton ? (
     <HStack w="full">
@@ -101,25 +103,22 @@ export const UintParam = ({ value: _value }: Params) => {
               InputLeftElement={
                 <>
                   {unixSelected && (
-                    <InputLeftElement>
+                    <InputLeftElement width="auto" h="full" pl={2}>
                       <Button
-                        px="1rem"
-                        ml="1rem"
                         size="xs"
+                        px="2"
+                        h="5"
                         onClick={() => setShowLocalTime((prev) => !prev)}
                       >
                         {showLocalTime ? "Local" : "UTC"}
                       </Button>
                     </InputLeftElement>
                   )}
-                  {isNumericFormat && (
-                    <InputLeftElement>
+                  {hasCompactNotation && (
+                    <InputLeftElement width="auto" h="full" pl={2}>
                       <Button
                         size="xs"
-                        minW="14"
                         px="2"
-                        py="4"
-                        ml="1.5rem"
                         h="5"
                         onClick={() => setShowFormatted((prev) => !prev)}
                       >
@@ -134,11 +133,11 @@ export const UintParam = ({ value: _value }: Params) => {
                   ? showLocalTime
                     ? new Date(Number(value) * 1_000).toString()
                     : conversionValue
-                  : isNumericFormat && showFormatted
+                  : hasCompactNotation && showFormatted
                   ? formatWithCommas(conversionValue)
                   : conversionValue
               }
-              pl={unixSelected || isNumericFormat ? "5rem" : undefined}
+              pl={unixSelected || hasCompactNotation ? "5rem" : undefined}
               placeholder=""
               isReadOnly
               onChange={() => {}}
@@ -177,16 +176,24 @@ export const UintParam = ({ value: _value }: Params) => {
             />
           </Box>
         </Flex>
-        {isNumericFormat && showFormatted && (
-          <Text
-            fontSize="xs"
-            color="whiteAlpha.700"
-            ml={unixSelected || isNumericFormat ? "5rem" : 0}
-            mt={1}
-          >
-            ({formatCompact(conversionValue)})
-          </Text>
-        )}
+        {hasCompactNotation && showFormatted && (() => {
+          const compact = formatCompact(conversionValue);
+          // Only show compact notation when it actually simplifies (K, M, B suffix)
+          if (compact === conversionValue) return null;
+          return (
+            <Box ml={unixSelected || hasCompactNotation ? "5rem" : 0} mt={1}>
+              <Tag
+                size="sm"
+                variant="subtle"
+                colorScheme="blue"
+                fontFamily="mono"
+                fontSize="xs"
+              >
+                {compact}
+              </Tag>
+            </Box>
+          );
+        })()}
       </Box>
     </motion.div>
   );

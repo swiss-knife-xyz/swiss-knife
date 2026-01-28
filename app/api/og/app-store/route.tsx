@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
-const DEFAULT_OG_IMAGE = "https://swiss-knife.xyz/og/web3-app-store.png";
+const DEFAULT_OG_IMAGE = "https://eth.sh/og/web3-app-store.png";
 
 async function fetchAndConvertToDataUrl(
   imageUrl: string
@@ -99,11 +99,11 @@ export async function GET(req: NextRequest) {
       new URL("../../../../assets/Poppins-Bold.ttf", import.meta.url)
     ).then((res) => res.arrayBuffer());
 
-    // Try to load the Swiss-Knife logo
+    // Try to load the logo
     let logoDataUrl: string | null = null;
     try {
       const logoResponse = await fetch(
-        new URL("/public/splashImage.png", import.meta.url)
+        new URL("../../../../public/splashImage.png", import.meta.url)
       );
       if (!logoResponse.ok) {
         throw new Error(`Failed to fetch logo: ${logoResponse.statusText}`);
@@ -191,7 +191,7 @@ export async function GET(req: NextRequest) {
             {logoDataUrl && (
               <img
                 src={logoDataUrl}
-                alt="Swiss-Knife Logo"
+                alt="Logo"
                 style={{
                   width: "100px",
                   height: "100px",
@@ -216,7 +216,7 @@ export async function GET(req: NextRequest) {
                   letterSpacing: "-0.02em",
                 }}
               >
-                Swiss-Knife Wallet
+                ETH.sh Wallet
               </span>
               <span
                 style={{

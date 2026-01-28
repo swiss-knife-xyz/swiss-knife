@@ -113,12 +113,12 @@ const ENSHistory = () => {
   // Update page title when component loads or ensName changes
   useEffect(() => {
     if (ensName) {
-      document.title = `${ensName} - ENS History | Swiss-Knife.xyz`;
+      document.title = `${ensName} - ENS History | ETH.sh`;
     }
 
     // Cleanup function to reset title when navigating away
     return () => {
-      document.title = "ENS History | Swiss-Knife.xyz";
+      document.title = "ENS History | ETH.sh";
     };
   }, [ensName]);
 

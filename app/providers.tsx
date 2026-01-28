@@ -3,13 +3,16 @@
 import { ChakraProvider } from "@chakra-ui/react";
 import theme from "@/style/theme";
 import "@rainbow-me/rainbowkit/styles.css";
+import { AppProgressProvider as ProgressProvider } from "@bprogress/next";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, WagmiProvider, createConfig } from "wagmi";
 import {
-  connectorsForWallets,
+  getDefaultConfig,
   RainbowKitProvider,
   darkTheme,
+  connectorsForWallets,
 } from "@rainbow-me/rainbowkit";
 import { porto } from "porto/wagmi";
 
@@ -27,9 +30,14 @@ import {
   ImpersonatorFloatingButton,
 } from "@/utils/impersonatorConnector";
 import { walletChains } from "@/data/chains";
+import { AddressBookProvider } from "@/contexts/AddressBookContext";
+import {
+  AddressBookDrawer,
+  AddressBookSelector,
+} from "@/components/AddressBook";
 export { walletChains };
 
-const appName = "Swiss-Knife.xyz";
+const appName = "ETH.sh";
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;
 
 // Create a global variable to store the modal opener function
@@ -89,16 +97,29 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
   globalOpenImpersonatorModal = openModal;
 
   return (
-    <ChakraProvider theme={theme}>
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider theme={darkTheme()} modalSize={"compact"}>
-            {children}
-            <ModalComponent />
-            <ImpersonatorFloatingButton />
-          </RainbowKitProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
-    </ChakraProvider>
+    <ProgressProvider
+      height="2px"
+      color="#e84142"
+      options={{ showSpinner: false }}
+      shallowRouting
+    >
+      <ChakraProvider theme={theme}>
+        <WagmiProvider config={config}>
+          <QueryClientProvider client={queryClient}>
+            <RainbowKitProvider theme={darkTheme()} modalSize={"compact"}>
+              <AddressBookProvider>
+                <NuqsAdapter>
+                  {children}
+                </NuqsAdapter>
+                <ModalComponent />
+                <ImpersonatorFloatingButton />
+                <AddressBookDrawer />
+                <AddressBookSelector />
+              </AddressBookProvider>
+            </RainbowKitProvider>
+          </QueryClientProvider>
+        </WagmiProvider>
+      </ChakraProvider>
+    </ProgressProvider>
   );
 };

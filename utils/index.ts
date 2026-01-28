@@ -53,24 +53,22 @@ export const getPath = (subdomain: string, isRelativePath: boolean = false) => {
   if (subdomain.length === 0) {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? "/"
-      : "https://swiss-knife.xyz/";
+      : "https://eth.sh/";
   }
 
   if (isRelativePath) {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? `/${subdomain}/`
-      : `https://swiss-knife.xyz/${subdomain}/`;
+      : `https://eth.sh/${subdomain}/`;
   } else {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? `/${subdomain}/`
-      : `https://${subdomain}.swiss-knife.xyz/`;
+      : `https://${subdomain}.eth.sh/`;
   }
 };
 
 export const apiBasePath =
-  process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-    ? ""
-    : "https://swiss-knife.xyz";
+  process.env.NEXT_PUBLIC_DEVELOPMENT === "true" ? "" : "https://eth.sh";
 
 export const getMetadata = (_metadata: {
   title: string;
@@ -78,6 +76,11 @@ export const getMetadata = (_metadata: {
   images: string;
 }) => {
   const metadata: Metadata = {
+    metadataBase: new URL(
+      process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+        ? "http://localhost:3000"
+        : "https://eth.sh"
+    ),
     title: _metadata.title,
     description: _metadata.description,
     twitter: {
@@ -387,6 +390,13 @@ export const fetchContractAbiRaw = async ({
   const data: ContractResponse = await res.json();
   const { ABI, ContractName, Implementation } = data.result[0];
 
+  const parseAbi = (abiStr: string): InterfaceAbi => {
+    if (!abiStr || !abiStr.trim().startsWith("[")) {
+      throw new Error(abiStr || "No ABI returned");
+    }
+    return JSON.parse(abiStr);
+  };
+
   if (Implementation.length > 0) {
     const res = await fetch(
       `${apiBasePath}/api/source-code?address=${Implementation}&chainId=${chainId}`
@@ -396,16 +406,16 @@ export const fetchContractAbiRaw = async ({
     const { ABI: implAbi, ContractName: implName } = implData.result[0];
 
     return {
-      abi: JSON.parse(ABI),
+      abi: parseAbi(ABI),
       name: ContractName,
       implementation: {
         address: Implementation,
-        abi: JSON.parse(implAbi),
+        abi: parseAbi(implAbi),
         name: implName,
       },
     };
   } else {
-    return { abi: JSON.parse(ABI), name: ContractName };
+    return { abi: parseAbi(ABI), name: ContractName };
   }
 };
 
@@ -521,7 +531,9 @@ export const parseEVMoleInputTypes = (argsString: string): EVMParameter[] => {
   const trimmed = argsString.trim();
   if (trimmed === "" || trimmed === "()") return [];
 
-  return [parseType(trimmed)];
+  // Split top-level components and parse each one
+  const components = splitComponents(trimmed);
+  return components.map((comp, idx) => parseType(comp, idx));
 };
 
 export const processContractBytecode = async ({

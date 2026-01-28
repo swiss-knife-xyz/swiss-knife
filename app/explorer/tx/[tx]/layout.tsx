@@ -6,10 +6,10 @@ export async function generateMetadata({
   params: { tx: string };
 }) {
   return getMetadata({
-    title: `Transaction ${tx} | Swiss-Knife.xyz`,
+    title: `Transaction ${tx} | ETH.sh`,
     description:
       "Quickly view any address/ens or transaction across ALL EVM explorers, in just a click!",
-    images: `https://swiss-knife.xyz/api/og?explorerType=${"tx"}&value=${tx}`,
+    images: `https://eth.sh/api/og?explorerType=${"tx"}&value=${tx}`,
   });
 }
 

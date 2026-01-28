@@ -6,13 +6,6 @@ import {
   Heading,
   Text,
   VStack,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  Center,
   Flex,
   Button,
   Alert,
@@ -22,7 +15,7 @@ import {
 import { hashTypedData, hashStruct } from "viem";
 import { TypedDataEncoder } from "ethers";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-import { parseAsString, useQueryState } from "next-usequerystate";
+import { parseAsString, useQueryState } from "nuqs";
 import { Editor } from "@monaco-editor/react";
 
 type TypedDataInput = {
@@ -159,36 +152,34 @@ function SevenOneTwoHashContent() {
   };
 
   return (
-    <VStack
-      spacing={10}
-      align="stretch"
-      maxW={{ base: "100%", md: "900px" }}
-      mx="auto"
-      minW={"40rem"}
-      width="100%"
-      px={{ base: 2, md: 4 }}
-    >
-      <Center flexDirection="column" pt={4}>
-        <Heading as="h1" size="xl" mb={3} textAlign="center" color="white">
+    <Box maxW="800px" mx="auto" w="full">
+      {/* Page Header */}
+      <Box textAlign="center" mb={6}>
+        <Heading size="lg" color="gray.100" fontWeight="bold" letterSpacing="tight">
           EIP-712 Hash Visualizer
         </Heading>
-
-        <Text
-          fontSize="lg"
-          textAlign="center"
-          color="whiteAlpha.900"
-          maxW="700px"
-        >
+        <Text color="gray.400" fontSize="md" mt={2}>
           Tool to verify and hash EIP-712 typed data
         </Text>
-      </Center>
+      </Box>
 
-      <Box>
-        <Flex mb={5} justifyContent="space-between" alignItems="center">
-          <Text>Paste your JSON below</Text>
+      <Box
+        p={5}
+        bg="whiteAlpha.50"
+        borderRadius="lg"
+        border="1px solid"
+        borderColor="whiteAlpha.200"
+      >
+        <Flex mb={3} justifyContent="space-between" alignItems="center">
+          <Text color="gray.300" fontSize="sm">Paste your JSON below</Text>
           <CopyToClipboard textToCopy={input} size="sm" />
         </Flex>
-        <Box position="relative" width="100%" overflow="hidden">
+        <Box
+          borderRadius="md"
+          overflow="hidden"
+          border="1px solid"
+          borderColor="whiteAlpha.300"
+        >
           <Skeleton
             isLoaded={!isLoading}
             startColor="whiteAlpha.100"
@@ -196,7 +187,7 @@ function SevenOneTwoHashContent() {
             borderRadius="md"
           >
             <Editor
-              height="300px"
+              height="220px"
               defaultLanguage="json"
               theme="vs-dark"
               value={input}
@@ -211,14 +202,17 @@ function SevenOneTwoHashContent() {
               }}
               options={{
                 minimap: { enabled: false },
-                fontSize: 14,
+                fontSize: 13,
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
+                lineNumbers: "off",
+                folding: false,
+                padding: { top: 8, bottom: 8 },
               }}
             />
           </Skeleton>
         </Box>
-        <Flex my={5} justifyContent="space-between" alignItems="center">
+        <Flex mt={4} justifyContent="space-between" alignItems="center">
           <Box>
             {!input && (
               <Button
@@ -230,85 +224,71 @@ function SevenOneTwoHashContent() {
                   setError(null);
                   setJsonData(JSON.stringify(parsed));
                 }}
-                colorScheme="gray"
+                variant="outline"
+                size="sm"
+                borderColor="whiteAlpha.300"
               >
                 Example
               </Button>
             )}
           </Box>
-          <Button onClick={handleVerify} colorScheme="blue">
+          <Button onClick={handleVerify} colorScheme="blue" size="sm">
             Verify
           </Button>
         </Flex>
-
-        {error && (
-          <Alert status="error" mb={4}>
-            <AlertIcon />
-            {error}
-          </Alert>
-        )}
-        {result && (
-          <Box mt={8}>
-            <Heading size="md" color="white" mb={3}>
-              Resulting Hashes
-            </Heading>
-            <Box
-              border="1px"
-              borderColor="whiteAlpha.300"
-              borderRadius="lg"
-              overflow="hidden"
-            >
-              <Table variant="simple" color="white">
-                <Thead>
-                  <Tr>
-                    <Th>Type</Th>
-                    <Th>Hash</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  <Tr>
-                    <Td>EIP-712 Hash</Td>
-                    <Td fontFamily="mono">
-                      <Flex alignItems="center" gap={2}>
-                        {result.eip712Hash}
-                        <CopyToClipboard
-                          textToCopy={result.eip712Hash}
-                          size="xs"
-                        />
-                      </Flex>
-                    </Td>
-                  </Tr>
-                  <Tr>
-                    <Td>Domain Hash</Td>
-                    <Td fontFamily="mono">
-                      <Flex alignItems="center" gap={2}>
-                        {result.domainHash}
-                        <CopyToClipboard
-                          textToCopy={result.domainHash}
-                          size="xs"
-                        />
-                      </Flex>
-                    </Td>
-                  </Tr>
-                  <Tr>
-                    <Td>Message Hash</Td>
-                    <Td fontFamily="mono">
-                      <Flex alignItems="center" gap={2}>
-                        {result.messageHash}
-                        <CopyToClipboard
-                          textToCopy={result.messageHash}
-                          size="xs"
-                        />
-                      </Flex>
-                    </Td>
-                  </Tr>
-                </Tbody>
-              </Table>
-            </Box>
-          </Box>
-        )}
       </Box>
-    </VStack>
+
+      {error && (
+        <Alert status="error" mt={4} borderRadius="md" bg="red.900">
+          <AlertIcon color="red.400" />
+          <Text color="red.100" fontSize="sm">{error}</Text>
+        </Alert>
+      )}
+
+      {result && (
+        <Box
+          mt={5}
+          p={5}
+          bg="whiteAlpha.50"
+          borderRadius="lg"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+        >
+          <Text color="gray.300" fontSize="sm" fontWeight="medium" mb={3}>
+            Resulting Hashes
+          </Text>
+          <VStack spacing={3} align="stretch">
+            <Box p={3} bg="whiteAlpha.100" borderRadius="md">
+              <Text color="gray.400" fontSize="xs" mb={1}>EIP-712 Hash</Text>
+              <Flex alignItems="center" gap={2}>
+                <Text fontFamily="mono" fontSize="sm" color="gray.100" wordBreak="break-all">
+                  {result.eip712Hash}
+                </Text>
+                <CopyToClipboard textToCopy={result.eip712Hash} size="xs" />
+              </Flex>
+            </Box>
+            <Box p={3} bg="whiteAlpha.100" borderRadius="md">
+              <Text color="gray.400" fontSize="xs" mb={1}>Domain Hash</Text>
+              <Flex alignItems="center" gap={2}>
+                <Text fontFamily="mono" fontSize="sm" color="gray.100" wordBreak="break-all">
+                  {result.domainHash}
+                </Text>
+                <CopyToClipboard textToCopy={result.domainHash} size="xs" />
+              </Flex>
+            </Box>
+            <Box p={3} bg="whiteAlpha.100" borderRadius="md">
+              <Text color="gray.400" fontSize="xs" mb={1}>Message Hash</Text>
+              <Flex alignItems="center" gap={2}>
+                <Text fontFamily="mono" fontSize="sm" color="gray.100" wordBreak="break-all">
+                  {result.messageHash}
+                </Text>
+                <CopyToClipboard textToCopy={result.messageHash} size="xs" />
+              </Flex>
+            </Box>
+          </VStack>
+        </Box>
+      )}
+    </Box>
   );
 }
 

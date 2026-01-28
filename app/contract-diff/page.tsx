@@ -1,58 +1,53 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState, useMemo } from "react";
 import {
   Heading,
-  Table,
-  Tbody,
-  Tr,
-  Td,
-  Select,
+  Text,
   Button,
-  Collapse,
-  Center,
   useToast,
   Box,
   HStack,
-  Stack,
-  Spacer,
+  VStack,
+  Icon,
+  Grid,
+  GridItem,
+  IconButton,
+  Tooltip,
+  Portal,
 } from "@chakra-ui/react";
 import {
   parseAsInteger,
   parseAsString,
   useQueryState,
-} from "next-usequerystate";
+} from "nuqs";
 import { diffLines } from "diff";
-import { etherscanChains, chainIdToChain } from "@/data/common";
+import { FiGitBranch, FiFile } from "react-icons/fi";
+import { Maximize2, Minimize2 } from "lucide-react";
+import { etherscanChains, chainIdToChain, chainIdToImage } from "@/data/common";
 import { getSourceCode } from "@/utils";
 import { Layout } from "@/components/Layout";
 import { InputField } from "@/components/InputField";
-import { Label } from "@/components/Label";
-import { SolidityTextArea } from "@/components/SolidityTextArea";
 import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 import { base, mainnet } from "viem/chains";
-import { ChevronRightIcon } from "@chakra-ui/icons";
-import TabsSelector from "@/components/Tabs/TabsSelector";
-import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { SourceCodeExplorer } from "@/components/SourceCodeExplorer";
+import { DiffFileData } from "@/components/SourceCodeExplorer/types";
 
-const networkOptions: { label: string; value: number }[] = Object.keys(
-  etherscanChains
-).map((k, i) => ({
-  label: etherscanChains[k].name,
-  value: etherscanChains[k].id,
-}));
+const networkOptions: { label: string; value: number; image: string }[] =
+  Object.keys(etherscanChains).map((k, i) => ({
+    label: etherscanChains[k].name,
+    value: etherscanChains[k].id,
+    image: chainIdToImage[etherscanChains[k].id],
+  }));
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_BASE_MAINNET = "0x4200000000000000000000000000000000000006";
 
 const getColoredOutput = (
   sourceCodes: Record<string, string>[]
-): Record<
-  string,
-  { oldCode: string; diffCode: string; newCode: string; changesCount: number }
-> => {
+): Record<string, DiffFileData> => {
   if (sourceCodes.length < 2) return {};
 
   const contracts = Object.keys(sourceCodes[0]);
@@ -65,17 +60,18 @@ const getColoredOutput = (
 
       // Mark lines with special characters that we can replace with CSS classes
       let diffCode = "";
-      let changes = 0;
+      let linesAdded = 0;
+      let linesRemoved = 0;
 
       diff.forEach((part) => {
         const lines = part.value.split("\n").filter((line) => line.length > 0);
         lines.forEach((line, idx) => {
           if (part.added) {
             diffCode += `+→${line}\n`;
-            changes++;
+            linesAdded++;
           } else if (part.removed) {
             diffCode += `-→${line}\n`;
-            changes++;
+            linesRemoved++;
           } else {
             diffCode += `${line}\n`;
           }
@@ -87,122 +83,88 @@ const getColoredOutput = (
           oldCode,
           diffCode,
           newCode,
-          changesCount: changes,
+          changesCount: linesAdded + linesRemoved,
+          linesAdded,
+          linesRemoved,
         },
       };
     })
     .reduce((acc, obj) => ({ ...acc, ...obj }), {});
 };
 
-const ContractCodeOptions = ["Old", "Diff", "New"];
-
-const ContractCode = ({
-  oldCode,
-  diffCode,
-  newCode,
-  changesCount,
-}: {
-  oldCode: string;
-  diffCode: string;
-  newCode: string;
-  changesCount: number;
-}) => {
-  const [selectedTabIndex, setSelectedTabIndex] = useState(1); // default to diff
-
-  return (
-    <Center>
-      {changesCount === 0 ? (
-        <SolidityTextArea
-          value={diffCode}
-          readOnly={true}
-          h="50rem"
-          resize={"vertical"}
-        />
-      ) : (
-        <Stack>
-          <HStack fontSize={"sm"}>
-            <Spacer />
-            <Box pl={10}>
-              <TabsSelector
-                mt={0}
-                tabs={ContractCodeOptions}
-                selectedTabIndex={selectedTabIndex}
-                setSelectedTabIndex={setSelectedTabIndex}
-              />
-            </Box>
-            <Spacer />
-            <CopyToClipboard
-              textToCopy={
-                selectedTabIndex === 0
-                  ? oldCode
-                  : selectedTabIndex === 1
-                    ? diffCode
-                    : newCode
-              }
-            />
-          </HStack>
-          <SolidityTextArea
-            value={
-              selectedTabIndex === 0
-                ? oldCode
-                : selectedTabIndex === 1
-                  ? diffCode
-                  : newCode
-            }
-            readOnly={true}
-            h="50rem"
-            resize={"vertical"}
-          />
-        </Stack>
-      )}
-    </Center>
-  );
-};
-
 function ContractDiffContent() {
   const searchParams = useSearchParams();
   const contractOldFromUrl = searchParams.get("contractOld");
   const contractNewFromUrl = searchParams.get("contractNew");
-  const chainIdOldFromUrl = searchParams.get("chainIdOld");
-  const chainIdNewFromUrl = searchParams.get("chainIdNew");
   const [contractOld, setContractOld] = useQueryState<string>(
     "contractOld",
-    parseAsString.withDefault(contractOldFromUrl || WETH_MAINNET)
+    parseAsString.withDefault(WETH_MAINNET)
   );
   const [contractNew, setContractNew] = useQueryState<string>(
     "contractNew",
-    parseAsString.withDefault(contractNewFromUrl || WETH_BASE_MAINNET)
+    parseAsString.withDefault(WETH_BASE_MAINNET)
   );
   const [chainIdOld, setChainIdOld] = useQueryState<number>(
     "chainIdOld",
-    parseAsInteger.withDefault(
-      chainIdOldFromUrl ? parseInt(chainIdOldFromUrl) : mainnet.id
-    )
+    parseAsInteger.withDefault(mainnet.id)
   );
   const [chainIdNew, setChainIdNew] = useQueryState<number>(
     "chainIdNew",
-    parseAsInteger.withDefault(
-      chainIdNewFromUrl ? parseInt(chainIdNewFromUrl) : base.id
-    )
+    parseAsInteger.withDefault(base.id)
   );
 
-  const [selectedNetworkOldOption, setSelectedNetworkOldOption] =
-    useState<SelectedOptionState>({
-      label: chainIdToChain[chainIdOld].name,
+  // Derive select options directly from URL state (single source of truth)
+  const selectedNetworkOldOption = useMemo<SelectedOptionState>(
+    () => ({
+      label: chainIdToChain[chainIdOld]?.name ?? "Unknown",
       value: chainIdOld,
-    });
-  const [selectedNetworkNewOption, setSelectedNetworkNewOption] =
-    useState<SelectedOptionState>({
-      label: chainIdToChain[chainIdNew].name,
+      image: chainIdToImage[chainIdOld],
+    }),
+    [chainIdOld]
+  );
+  const selectedNetworkNewOption = useMemo<SelectedOptionState>(
+    () => ({
+      label: chainIdToChain[chainIdNew]?.name ?? "Unknown",
       value: chainIdNew,
-    });
+      image: chainIdToImage[chainIdNew],
+    }),
+    [chainIdNew]
+  );
+
+  // Update URL state directly when user changes dropdown
+  const handleNetworkOldChange = useCallback(
+    (option: SelectedOptionState) => {
+      if (option) setChainIdOld(Number(option.value));
+    },
+    [setChainIdOld]
+  );
+  const handleNetworkNewChange = useCallback(
+    (option: SelectedOptionState) => {
+      if (option) setChainIdNew(Number(option.value));
+    },
+    [setChainIdNew]
+  );
 
   const toast = useToast();
 
   const [sourceCodes, setSourceCodes] = useState<Record<string, string>[]>([]);
-  const [isOpen, setIsOpen] = useState<Record<string, boolean>>({});
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Escape key exits fullscreen; lock body scroll while fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFullscreen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [isFullscreen]);
 
   const contracts = [contractOld, contractNew];
 
@@ -232,8 +194,20 @@ function ContractDiffContent() {
     setIsLoading(false);
   };
 
-  const contractsDiff = getColoredOutput(sourceCodes);
+  const contractsDiff = useMemo(
+    () => getColoredOutput(sourceCodes),
+    [sourceCodes]
+  );
 
+  // Build sourceCode for SourceCodeExplorer from the old contract's source
+  const explorerSourceCode = useMemo(() => {
+    if (sourceCodes.length < 2) return undefined;
+    return sourceCodes[0];
+  }, [sourceCodes]);
+
+  // Auto-diff if all params are present in the URL
+  const chainIdOldFromUrl = searchParams.get("chainIdOld");
+  const chainIdNewFromUrl = searchParams.get("chainIdNew");
   useEffect(() => {
     if (
       contractOldFromUrl &&
@@ -245,153 +219,183 @@ function ContractDiffContent() {
     }
   }, []);
 
-  // Set default contracts in the url
-  useEffect(() => {
-    if (!contractOldFromUrl && !contractNewFromUrl) {
-      setContractOld(WETH_MAINNET);
-      setContractNew(WETH_BASE_MAINNET);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (selectedNetworkOldOption) {
-      setChainIdOld(Number(selectedNetworkOldOption.value));
-    }
-  }, [selectedNetworkOldOption]);
-
-  useEffect(() => {
-    if (selectedNetworkNewOption) {
-      setChainIdNew(Number(selectedNetworkNewOption.value));
-    }
-  }, [selectedNetworkNewOption]);
-
   return (
-    <Layout>
-      <Heading color={"custom.pale"}>Contract Diff</Heading>
-      <Table mt={"3rem"} variant={"unstyled"} w="60rem">
-        <Tbody>
-          <Tr>
-            <Label>Contract Old</Label>
-            <Label>Contract New</Label>
-          </Tr>
-          <Tr>
-            <Td>
-              <InputField
-                autoFocus
-                placeholder="address"
-                value={contractOld}
-                onChange={(e) => {
-                  setContractOld(e.target.value);
-                }}
-              />
-            </Td>
-            <Td>
-              <InputField
-                autoFocus
-                placeholder="address"
-                value={contractNew}
-                onChange={(e) => {
-                  setContractNew(e.target.value);
-                }}
-              />
-            </Td>
-          </Tr>
-          <Tr>
-            <Td>
-              <DarkSelect
-                boxProps={{
-                  w: "100%",
-                  mt: "2",
-                }}
-                selectedOption={selectedNetworkOldOption}
-                setSelectedOption={setSelectedNetworkOldOption}
-                options={networkOptions}
-              />
-            </Td>
-            <Td>
-              <DarkSelect
-                boxProps={{
-                  w: "100%",
-                  mt: "2",
-                }}
-                selectedOption={selectedNetworkNewOption}
-                setSelectedOption={setSelectedNetworkNewOption}
-                options={networkOptions}
-              />
-            </Td>
-          </Tr>
-          <Tr>
-            <Td colSpan={2}>
-              <Center mt={2}>
-                <Button onClick={diffContracts} isLoading={isLoading}>
-                  {"Contract Diff"}
-                </Button>
-              </Center>
-            </Td>
-          </Tr>
-          <Tr>
-            <Td colSpan={2} maxWidth={1}>
-              {Object.entries(contractsDiff).map(
-                (
-                  [contract, { oldCode, diffCode, newCode, changesCount }],
-                  i
-                ) => {
-                  const isOpenCollapse =
-                    isOpen[contract] === undefined
-                      ? changesCount > 0
-                      : isOpen[contract];
+    <Layout maxW="container.2xl">
+      <Box
+        p={6}
+        bg="rgba(0, 0, 0, 0.05)"
+        backdropFilter="blur(5px)"
+        borderRadius="xl"
+        border="1px solid"
+        borderColor="whiteAlpha.50"
+        maxW="container.2xl"
+        mx="auto"
+        w="full"
+      >
+        {/* Page Header */}
+        <Box mb={8} textAlign="center">
+          <HStack justify="center" spacing={3} mb={4}>
+            <Icon as={FiGitBranch} color="blue.400" boxSize={8} />
+            <Heading
+              size="xl"
+              color="gray.100"
+              fontWeight="bold"
+              letterSpacing="tight"
+            >
+              Contract Diff
+            </Heading>
+          </HStack>
+          <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
+            Compare source code between two verified contracts across any
+            supported network.
+          </Text>
+        </Box>
 
-                  return (
-                    <Box key={i} mt={4}>
-                      <Button
-                        mb={2}
-                        w="full"
-                        justifyContent="flex-start"
-                        onClick={() =>
-                          setIsOpen({ ...isOpen, [contract]: !isOpenCollapse })
-                        }
-                      >
-                        <HStack>
-                          <Box>
-                            <HStack>
-                              <ChevronRightIcon
-                                sx={{
-                                  transform: isOpenCollapse
-                                    ? "rotate(90deg)"
-                                    : "rotate(0deg)",
-                                  transition: "transform 0.3s ease",
-                                }}
-                              />
-                              <Box>{contract}</Box>
-                            </HStack>
-                          </Box>
-                          <Box
-                            color={
-                              changesCount > 0 ? undefined : "whiteAlpha.600"
-                            }
-                            fontSize={changesCount > 0 ? "md" : "xs"}
-                            fontWeight={changesCount > 0 ? "bold" : "normal"}
-                          >
-                            ({changesCount} changes)
-                          </Box>
-                        </HStack>
-                      </Button>
-                      <Collapse in={isOpenCollapse} animateOpacity>
-                        <ContractCode
-                          oldCode={oldCode}
-                          diffCode={diffCode}
-                          newCode={newCode}
-                          changesCount={changesCount}
-                        />
-                      </Collapse>
-                    </Box>
-                  );
-                }
-              )}
-            </Td>
-          </Tr>
-        </Tbody>
-      </Table>
+        {/* Contract Inputs Section */}
+        <Box w="full" maxW="1000px" mx="auto">
+          <VStack spacing={6} align="stretch">
+            {/* Input Grid */}
+            <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={4}>
+              {/* Old Contract */}
+              <GridItem>
+                <Box
+                  p={4}
+                  bg="whiteAlpha.50"
+                  borderRadius="lg"
+                  border="1px solid"
+                  borderColor="whiteAlpha.200"
+                >
+                  <VStack spacing={4} align="stretch">
+                    <HStack spacing={2}>
+                      <Icon as={FiFile} color="blue.400" boxSize={5} />
+                      <Text color="gray.300" fontWeight="medium" fontSize="md">
+                        Old Contract
+                      </Text>
+                    </HStack>
+                    <InputField
+                      autoFocus
+                      placeholder="Contract address"
+                      value={contractOld}
+                      onChange={(e) => {
+                        setContractOld(e.target.value);
+                      }}
+                    />
+                    <DarkSelect
+                      boxProps={{
+                        w: "100%",
+                      }}
+                      selectedOption={selectedNetworkOldOption}
+                      setSelectedOption={handleNetworkOldChange}
+                      options={networkOptions}
+                    />
+                  </VStack>
+                </Box>
+              </GridItem>
+
+              {/* New Contract */}
+              <GridItem>
+                <Box
+                  p={4}
+                  bg="whiteAlpha.50"
+                  borderRadius="lg"
+                  border="1px solid"
+                  borderColor="whiteAlpha.200"
+                >
+                  <VStack spacing={4} align="stretch">
+                    <HStack spacing={2}>
+                      <Icon as={FiFile} color="blue.400" boxSize={5} />
+                      <Text color="gray.300" fontWeight="medium" fontSize="md">
+                        New Contract
+                      </Text>
+                    </HStack>
+                    <InputField
+                      placeholder="Contract address"
+                      value={contractNew}
+                      onChange={(e) => {
+                        setContractNew(e.target.value);
+                      }}
+                    />
+                    <DarkSelect
+                      boxProps={{
+                        w: "100%",
+                      }}
+                      selectedOption={selectedNetworkNewOption}
+                      setSelectedOption={handleNetworkNewChange}
+                      options={networkOptions}
+                    />
+                  </VStack>
+                </Box>
+              </GridItem>
+            </Grid>
+
+            {/* Diff Button */}
+            <Box textAlign="center">
+              <Button
+                colorScheme="blue"
+                size="lg"
+                onClick={diffContracts}
+                isLoading={isLoading}
+                leftIcon={<Icon as={FiGitBranch} boxSize={5} />}
+              >
+                Compare Contracts
+              </Button>
+            </Box>
+
+          </VStack>
+        </Box>
+
+        {/* Results Section - full width */}
+        {explorerSourceCode && Object.keys(contractsDiff).length > 0 && (() => {
+          const resultsContent = (
+            <Box
+              mt={isFullscreen ? 0 : 6}
+              border={isFullscreen ? "none" : "1px solid"}
+              borderColor="whiteAlpha.200"
+              borderRadius={isFullscreen ? 0 : "lg"}
+              overflow="hidden"
+              position={isFullscreen ? "fixed" : "relative"}
+              inset={isFullscreen ? 0 : undefined}
+              zIndex={isFullscreen ? 1400 : undefined}
+              h={isFullscreen ? "100vh" : undefined}
+              bg={isFullscreen ? "bg.900" : undefined}
+              display="flex"
+              flexDirection="column"
+            >
+              {/* Fullscreen toolbar */}
+              <HStack
+                px={3}
+                py={1}
+                borderBottom="1px solid"
+                borderColor="whiteAlpha.100"
+                bg="whiteAlpha.50"
+                justify="flex-end"
+                flexShrink={0}
+              >
+                <Tooltip label={isFullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen"} placement="bottom" hasArrow>
+                  <IconButton
+                    aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                    icon={<Icon as={isFullscreen ? Minimize2 : Maximize2} boxSize={4} />}
+                    size="sm"
+                    variant="ghost"
+                    color="text.tertiary"
+                    _hover={{ color: "text.primary", bg: "whiteAlpha.200" }}
+                    onClick={() => setIsFullscreen((prev) => !prev)}
+                  />
+                </Tooltip>
+              </HStack>
+              <Box flex={1} overflow="hidden">
+                <SourceCodeExplorer
+                  sourceCode={explorerSourceCode}
+                  diffData={contractsDiff}
+                  initialHeight={700}
+                  isFullscreen={isFullscreen}
+                />
+              </Box>
+            </Box>
+          );
+          return isFullscreen ? <Portal>{resultsContent}</Portal> : resultsContent;
+        })()}
+      </Box>
     </Layout>
   );
 }

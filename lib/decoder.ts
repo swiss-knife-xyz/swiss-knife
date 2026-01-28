@@ -85,6 +85,12 @@ import {
   parseAbi,
 } from "viem";
 
+/**
+ * Maximum recursion depth for nested calldata decoding.
+ * Prevents runaway recursion from pathological inputs (e.g., deeply nested multiSend).
+ */
+const MAX_DECODE_DEPTH = 10;
+
 // =============================================================================
 // PRIMARY DECODING FUNCTIONS
 // =============================================================================
@@ -112,7 +118,6 @@ export async function decodeWithAddress({
   chainId: number;
   _depth?: number;
 }): Promise<TransactionDescription | null> {
-  console.log(`Decoding calldata with address ${address} on chain ${chainId}`);
   try {
     // Step 1: Fetch the contract's verified ABI from block explorers
     const fetchedAbi = await fetchContractAbi({
@@ -132,9 +137,6 @@ export async function decodeWithAddress({
 
     // Step 3: If ABI decode fails (e.g., proxy with different implementation),
     // fall back to selector-based decoding
-    console.log(
-      `Failed to decode calldata with ABI for contract ${address} on chain ${chainId}, decoding with selector`
-    );
     const decodedWithSelector = await decodeWithSelector({ calldata, _depth });
     return decodedWithSelector;
   } catch (error) {
@@ -152,9 +154,11 @@ export async function decodeWithAddress({
  * 1. ERC-7821 Execute - requires selector 0xe9ae5c53
  * 2. Selector lookup from 4byte/Sourcify - requires matching function signature
  *
+ * ### Structurally validated (used at any depth):
+ * 3. Safe MultiSend transactions - parses packed transaction format (strict validation)
+ *
  * ### Only for Top-Level (skipped when _depth > 0):
  * These "aggressive" decoders can match arbitrary bytes and cause false positives:
- * 3. Safe MultiSend transactions - parses packed transaction format
  * 4. Universal Router path - parses swap path format
  * 5. ABI-encoded data guessing - uses heuristics
  * 6. Universal Router commands - parses command bytes
@@ -172,8 +176,9 @@ export async function decodeWithSelector({
   calldata: string;
   _depth?: number;
 }): Promise<TransactionDescription | any | null> {
-  // For nested bytes (depth > 0), only try decoders that require specific selectors.
-  // Skip aggressive fallback decoders that can match arbitrary bytes and cause:
+  // For nested bytes (depth > 0), only try decoders that require specific selectors
+  // or have strong structural validation. Skip aggressive heuristic decoders that
+  // can match arbitrary bytes and cause:
   // 1. False positive decodes (random bytes interpreted as valid calldata)
   // 2. Infinite recursion (decoded "calldata" has more bytes that get decoded)
   const isNestedDecode = _depth > 0;
@@ -186,19 +191,22 @@ export async function decodeWithSelector({
     try {
       return await _decodeWithSelector(calldata);
     } catch {
-      // =================================================================
-      // AGGRESSIVE FALLBACK DECODERS - Only for top-level calldata
-      // These can match arbitrary bytes and must be skipped for nested
-      // decoding to prevent false positives and infinite recursion.
-      // =================================================================
-      if (isNestedDecode) {
-        return null;
-      }
-
       // Strategy 3: Safe MultiSend packed transaction format
+      // This decoder has strong structural validation (all bytes must be consumed
+      // exactly with valid transaction structure), so it's safe to use at any depth.
+      // This is needed for multiSend(bytes) where the inner bytes are packed txs.
       try {
         return decodeSafeMultiSendTransactionsParam(calldata);
       } catch {
+        // =================================================================
+        // AGGRESSIVE FALLBACK DECODERS - Only for top-level calldata
+        // These use heuristics that can match arbitrary bytes and must be
+        // skipped for nested decoding to prevent false positives.
+        // =================================================================
+        if (isNestedDecode) {
+          return null;
+        }
+
         // Strategy 4: Uniswap Universal Router swap path
         try {
           return decodeUniversalRouterPath(calldata);
@@ -242,7 +250,6 @@ export async function decodeWithSelector({
  */
 const _decodeWithSelector = async (calldata: string) => {
   const selector = calldata.slice(0, 10); // "0x" + 4 bytes = 10 chars
-  console.log(`Decoding calldata with selector ${selector}`);
 
   // Skip the null selector to avoid spam results
   if (selector === "0x00000000") {
@@ -266,9 +273,7 @@ const _decodeWithSelector = async (calldata: string) => {
       throw new Error("Failed to decode calldata with function signature");
     }
 
-    const result = decodedTransactions[0];
-    console.log({ _decodeWithSelector: result });
-    return result;
+    return decodedTransactions[0];
   } catch (error) {
     throw new Error(
       `Failed to find function interface for selector ${selector}`
@@ -401,7 +406,6 @@ const decode7821Execute = (calldata: string) => {
     },
   };
 
-  console.log({ decode7821Execute: result });
   return result;
 };
 
@@ -419,12 +423,11 @@ const decode7821Execute = (calldata: string) => {
  *
  * @see https://github.com/safe-global/safe-contracts/blob/main/contracts/libraries/MultiSend.sol
  *
- * ⚠️ WARNING: This is an "aggressive" decoder that can match arbitrary bytes.
- * Only use for top-level calldata, not nested bytes.
+ * This decoder validates that ALL bytes are consumed exactly with valid transaction
+ * structure, so it's safe to use at any recursion depth. Overall depth is capped
+ * by MAX_DECODE_DEPTH in decodeRecursive().
  */
 const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
-  console.log("Attempting to decode as SafeMultiSend transactions param");
-
   try {
     // Remove "0x" prefix for easier byte manipulation
     const transactionsParam = bytes.slice(2);
@@ -481,8 +484,6 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
 
       i = dataEnd;
     }
-
-    console.log({ txs, i, transactionsParamLength: transactionsParam.length });
 
     // Validate that we consumed exactly all bytes
     if (i == 0 || i !== transactionsParam.length) {
@@ -547,10 +548,8 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
         outputs: [],
       },
     };
-    console.log({ decodeSafeMultiSendTransactionsParam: result });
     return result;
-  } catch (error) {
-    console.error(error);
+  } catch {
     throw new Error(
       `Failed to decode calldata as SafeMultiSend transactions param`
     );
@@ -569,7 +568,6 @@ const decodeSafeMultiSendTransactionsParam = (bytes: string) => {
 const decodeByGuessingFunctionFragment = (calldata: string) => {
   const selector = calldata.slice(0, 10);
   try {
-    console.log("Attempting to guess function fragment");
     const frag = guessFragment(calldata);
     if (!frag) {
       throw new Error("Failed to guess function fragment");
@@ -591,10 +589,8 @@ const decodeByGuessingFunctionFragment = (calldata: string) => {
       value: BigInt(0),
       fragment,
     } satisfies TransactionDescription;
-    console.log({ decodeByGuessingFunctionFragment: result });
     return result;
-  } catch (error) {
-    console.error(error);
+  } catch {
     throw new Error(
       `Failed to decode using guessed function fragment for calldata ${calldata}`
     );
@@ -614,7 +610,6 @@ const decodeABIEncodedData = (calldata: string) => {
   const selector = calldata.slice(0, 10);
 
   try {
-    console.log("Attempting to guess ABI encoded data");
     const paramTypes = guessAbiEncodedData(calldata);
     if (!paramTypes) {
       throw new Error("Failed to guess ABI encoded data");
@@ -641,10 +636,8 @@ const decodeABIEncodedData = (calldata: string) => {
         stateMutability: "nonpayable",
       }),
     } satisfies TransactionDescription;
-    console.log({ decodeABIEncodedData: result });
     return result;
-  } catch (error) {
-    console.error(error);
+  } catch {
     throw new Error(
       `Failed to guess ABI encoded data for calldata ${calldata}`
     );
@@ -727,10 +720,8 @@ const decodeUniversalRouterPath = (calldata: string) => {
         outputs: [],
       },
     };
-    console.log({ decodeUniversalRouterPath: result });
     return result;
-  } catch (error) {
-    console.error(error);
+  } catch {
     throw new Error(`Failed to decode calldata as UniversalRouter path`);
   }
 };
@@ -829,10 +820,8 @@ const decodeUniversalRouterCommands = (calldata: string) => {
         outputs: [],
       },
     };
-    console.log({ decodeUniversalRouterCommands: result });
     return result;
-  } catch (error) {
-    console.error(error);
+  } catch {
     throw new Error(`Failed to decode calldata as UniversalRouter path`);
   }
 };
@@ -899,8 +888,6 @@ const decodeAsUtf8Text = (calldata: string) => {
       throw new Error("Contains null bytes - likely binary data");
     }
 
-    console.log(`Decoded as UTF-8 text: "${text}"`);
-
     const result = {
       txType: "utf8TextMessage",
       name: "UTF-8 Text Message",
@@ -928,10 +915,8 @@ const decodeAsUtf8Text = (calldata: string) => {
       },
     };
 
-    console.log({ decodeAsUtf8Text: result });
     return result;
-  } catch (error) {
-    console.error(error);
+  } catch {
     throw new Error(`Failed to decode calldata as UTF-8 text message`);
   }
 };
@@ -989,8 +974,8 @@ async function fetchFunctionFromSourcify({ selector }: { selector: string }) {
       );
     }
     return parsedData.result.function[selector];
-  } catch (error) {
-    console.error(error);
+  } catch {
+    // Expected to fail for unknown selectors - silently return null
     return null;
   }
 }
@@ -1013,8 +998,8 @@ async function fetchFunctionFrom4Bytes({ selector }: { selector: string }) {
       );
     }
     return parsedData.results;
-  } catch (error) {
-    console.error(error);
+  } catch {
+    // Expected to fail for unknown selectors - silently return null
     return null;
   }
 }
@@ -1039,7 +1024,6 @@ function decodeAllPossibilities({
 }) {
   const results: TransactionDescription[] = [];
   for (const signature of functionSignatures) {
-    console.log(`Decoding calldata with signature ${signature}`);
     try {
       const parsedTransaction = decodeWithABI({
         abi: [`function ${signature}`],
@@ -1048,13 +1032,10 @@ function decodeAllPossibilities({
       if (parsedTransaction) {
         results.push(parsedTransaction);
       }
-    } catch (error) {
-      console.error(
-        `Failed to decode calldata with signature ${signature}, skipping`
-      );
+    } catch {
+      // Expected to fail for non-matching signatures - silently skip
     }
   }
-  console.log(`Decoded calldata with ${results.length} signatures`);
   return results;
 }
 
@@ -1146,6 +1127,11 @@ export async function decodeRecursive({
   encodedAbi?: any;
   _depth?: number;
 }): Promise<DecodeRecursiveResult> {
+  // Safety: cap recursion depth to prevent infinite loops
+  if (_depth > MAX_DECODE_DEPTH) {
+    return null;
+  }
+
   // Step 1: Decode the function call using the best available method
   let parsedTransaction: ParsedTransaction | null;
 
@@ -1359,8 +1345,8 @@ export async function decodeEvents({
 
   try {
     fetchedAbi = await fetchContractAbi({ address, chainId });
-  } catch (error) {
-    console.log("Failed to fetch contract ABI:", error);
+  } catch {
+    // Expected to fail for unverified contracts - silently return empty
     return [];
   }
 
@@ -1404,8 +1390,8 @@ export async function decodeEvents({
         signature: decodedEvent.signature,
         args,
       });
-    } catch (error) {
-      console.log("Failed to decode event log:", error);
+    } catch {
+      // Expected to fail for non-matching events - silently skip
       continue;
     }
   }

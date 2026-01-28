@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button, HStack, Text, ButtonProps } from "@chakra-ui/react";
-import { CopyIcon, CheckCircleIcon } from "@chakra-ui/icons";
+import { Copy, CheckCircle } from "lucide-react";
 
 interface CopyToClipboardParams extends ButtonProps {
   textToCopy: string;
@@ -18,6 +18,9 @@ export const CopyToClipboard = ({
   return (
     <Button
       size="sm"
+      variant="ghost"
+      color="whiteAlpha.700"
+      _hover={{ color: "white", bg: "whiteAlpha.200" }}
       onClick={async () => {
         setLoading(true);
         await navigator.clipboard.writeText(textToCopy);
@@ -28,8 +31,12 @@ export const CopyToClipboard = ({
       isLoading={loading}
       {...rest}
     >
-      <HStack>
-        {copySuccess ? <CheckCircleIcon color={"green.300"} /> : <CopyIcon />}
+      <HStack spacing={2}>
+        {copySuccess ? (
+          <CheckCircle size={16} color="var(--chakra-colors-success-text)" />
+        ) : (
+          <Copy size={16} />
+        )}
         {labelText ? (
           copySuccess ? (
             <Text>Copied</Text>

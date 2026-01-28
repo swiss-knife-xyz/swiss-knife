@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Button, VStack, Flex, Heading } from "@chakra-ui/react";
+import { Box, Heading, Text } from "@chakra-ui/react";
 import VerifySignatures from "./components/VerifySignatures";
 import WalletSignatures from "./components/WalletSignatures";
 import TabsSelector from "@/components/Tabs/TabsSelector";
@@ -73,19 +73,36 @@ export default function Signatures() {
   );
 
   return (
-    <VStack>
-      <Heading>Signatures</Heading>
-      <TabsSelector
-        tabs={tabs}
-        selectedTabIndex={selectedTabIndex}
-        setSelectedTabIndex={handleTabChange}
-        mb="1rem"
-      />
-      {component === SignatureComponent.verify ? (
-        <VerifySignatures />
-      ) : component === SignatureComponent.sign ? (
-        <WalletSignatures />
-      ) : null}
-    </VStack>
+    <Box maxW="700px" mx="auto" w="full">
+      {/* Header */}
+      <Box mb={6} textAlign="center">
+        <Heading size="lg" color="gray.100" fontWeight="bold" letterSpacing="tight">
+          Signatures
+        </Heading>
+        <Text color="gray.400" fontSize="md" mt={2}>
+          Verify or sign messages and typed data
+        </Text>
+      </Box>
+
+      <Box
+        p={5}
+        bg="whiteAlpha.50"
+        borderRadius="lg"
+        border="1px solid"
+        borderColor="whiteAlpha.200"
+      >
+        <TabsSelector
+          tabs={tabs}
+          selectedTabIndex={selectedTabIndex}
+          setSelectedTabIndex={handleTabChange}
+          mb={5}
+        />
+        {component === SignatureComponent.verify ? (
+          <VerifySignatures />
+        ) : component === SignatureComponent.sign ? (
+          <WalletSignatures />
+        ) : null}
+      </Box>
+    </Box>
   );
 }

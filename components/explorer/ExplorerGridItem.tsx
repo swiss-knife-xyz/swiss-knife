@@ -191,14 +191,16 @@ export const ExplorerGridItem = ({
       border="2px solid"
       borderColor={"gray.500"}
       bg={"white"}
-      color={"black"}
       _hover={{
         cursor: "pointer",
         bgColor: "whiteAlpha.300",
-        color: "white",
         borderColor: "gray.400",
       }}
       rounded="lg"
+      sx={{
+        "& p": { color: "gray.800" },
+        "&:hover p": { color: "white" },
+      }}
     >
       <CommonExplorerGridItem
         explorerName={explorerName}
@@ -238,14 +240,16 @@ export const FavoriteExplorerGridItem = ({
       border="2px solid"
       borderColor={"gray.500"}
       bg={"white"}
-      color={"black"}
       _hover={{
         cursor: "pointer",
         bgColor: "whiteAlpha.300",
-        color: "white",
         borderColor: "gray.400",
       }}
       rounded="lg"
+      sx={{
+        "& p": { color: "gray.800" },
+        "&:hover p": { color: "white" },
+      }}
     >
       <CommonExplorerGridItem
         explorerName={explorerName}

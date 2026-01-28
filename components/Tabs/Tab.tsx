@@ -13,16 +13,25 @@ export default function Tab({
   selectedTabIndex,
   setSelectedTabIndex,
 }: Props) {
+  const isSelected = tabIndex === selectedTabIndex;
+
   return (
     <HStack
-      fontWeight={tabIndex === selectedTabIndex ? "bold" : "semibold"}
-      color={tabIndex === selectedTabIndex ? "white" : "whiteAlpha.700"}
+      px={4}
+      py={2}
+      fontWeight="medium"
+      fontSize="sm"
+      color={isSelected ? "white" : "whiteAlpha.700"}
+      bg={isSelected ? "whiteAlpha.200" : "transparent"}
+      borderRadius="md"
       role="group"
       _hover={{
-        color: "whiteAlpha.900",
+        color: "white",
+        bg: isSelected ? "whiteAlpha.200" : "whiteAlpha.100",
       }}
       cursor="pointer"
       onClick={() => setSelectedTabIndex(tabIndex)}
+      transition="all 0.2s"
     >
       <Box>{children}</Box>
     </HStack>
