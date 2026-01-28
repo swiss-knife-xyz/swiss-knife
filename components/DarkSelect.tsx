@@ -88,10 +88,14 @@ export const DarkSelect = ({
     }),
     groupHeading: (provided: any) => ({
       ...provided,
-      h: "1px",
-      borderTop: "1px solid",
-      borderColor: "whiteAlpha.200",
-      bg: "whiteAlpha.100",
+      color: "whiteAlpha.500",
+      fontSize: "0.65rem",
+      fontWeight: "600",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      px: 3,
+      pt: 2,
+      pb: 1,
     }),
     menuList: (provided: any) => ({
       ...provided,

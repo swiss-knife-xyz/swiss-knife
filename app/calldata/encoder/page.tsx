@@ -1,21 +1,17 @@
-"use client";
+import { getMetadata } from "@/utils";
+import type { Metadata } from "next";
+import { CalldataEncoderPage as CalldataEncoderP } from "./CalldataEncoderPage";
+import { metadata as parentMetadata } from "../layout";
 
-import React, { useState } from "react";
-import { Heading, Box, Text, VStack } from "@chakra-ui/react";
+export async function generateMetadata(): Promise<Metadata> {
+  return getMetadata({
+    title: "ETH Calldata Encoder | ETH.sh",
+    description: parentMetadata.description as string,
+    images: parentMetadata.openGraph?.images as string,
+  });
+}
 
-const CalldataEncoder = () => {
-  return (
-    <Box w="full" maxW="1200px" mx="auto" px={4}>
-      <VStack spacing={6}>
-        <Heading size="xl" color="gray.100" fontWeight="bold" letterSpacing="tight">
-          Calldata Encoder
-        </Heading>
-        <Text color="gray.400" fontSize="lg">
-          Soon™️
-        </Text>
-      </VStack>
-    </Box>
-  );
+const CalldataEncoderPage = () => {
+  return <CalldataEncoderP />;
 };
-
-export default CalldataEncoder;
+export default CalldataEncoderPage;

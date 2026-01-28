@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   Button,
   HStack,
@@ -13,7 +14,7 @@ import { ConnectButton } from "./ConnectButton";
 import { JsonFragmentType } from "ethers";
 import { ChevronDownIcon } from "@chakra-ui/icons";
 
-export const WriteButton = ({
+const WriteButtonComponent = ({
   isError,
   userAddress,
   writeButtonType,
@@ -22,6 +23,7 @@ export const WriteButton = ({
   writeFunction,
   callAsReadFunction,
   simulateOnTenderly,
+  encodeCalldata,
   isDisabled,
   loading,
   setWriteButtonType,
@@ -35,6 +37,7 @@ export const WriteButton = ({
   writeFunction: () => void;
   callAsReadFunction: () => void;
   simulateOnTenderly: () => void;
+  encodeCalldata?: () => void;
   isDisabled: boolean;
   loading: boolean;
   setWriteButtonType: (writeButtonType: WriteButtonType) => void;
@@ -43,6 +46,7 @@ export const WriteButton = ({
   const showWrongNetwork =
     (!userAddress && writeButtonType === WriteButtonType.Write) ||
     (writeButtonType !== WriteButtonType.SimulateOnTenderly &&
+      writeButtonType !== WriteButtonType.EncodeCalldata &&
       chain &&
       chain.id !== chainId);
 
@@ -64,7 +68,9 @@ export const WriteButton = ({
               ? writeFunction
               : writeButtonType === WriteButtonType.CallAsViewFn
               ? () => callAsReadFunction()
-              : simulateOnTenderly
+              : writeButtonType === WriteButtonType.SimulateOnTenderly
+              ? simulateOnTenderly
+              : encodeCalldata
           }
           isDisabled={isDisabled}
           isLoading={loading}
@@ -77,7 +83,7 @@ export const WriteButton = ({
           {writeButtonType}
         </Button>
       )}
-      <Menu>
+      <Menu isLazy>
         <MenuButton
           as={IconButton}
           aria-label="Options"
@@ -131,8 +137,23 @@ export const WriteButton = ({
           >
             Simulate on Tenderly
           </MenuItem>
+          {encodeCalldata && (
+            <MenuItem
+              color="text.primary"
+              bg="transparent"
+              _hover={{ bg: "bg.emphasis" }}
+              onClick={() => {
+                setWriteButtonType(WriteButtonType.EncodeCalldata);
+                setIsError(false);
+              }}
+            >
+              Encode Calldata
+            </MenuItem>
+          )}
         </MenuList>
       </Menu>
     </HStack>
   );
 };
+
+export const WriteButton = memo(WriteButtonComponent);

@@ -1,7 +1,7 @@
 const subdomains = {
   CALLDATA: {
     base: "calldata",
-    paths: ["decoder"],
+    paths: ["decoder", "encoder"],
   },
   CONTRACT: {
     base: "contract",

@@ -390,6 +390,13 @@ export const fetchContractAbiRaw = async ({
   const data: ContractResponse = await res.json();
   const { ABI, ContractName, Implementation } = data.result[0];
 
+  const parseAbi = (abiStr: string): InterfaceAbi => {
+    if (!abiStr || !abiStr.trim().startsWith("[")) {
+      throw new Error(abiStr || "No ABI returned");
+    }
+    return JSON.parse(abiStr);
+  };
+
   if (Implementation.length > 0) {
     const res = await fetch(
       `${apiBasePath}/api/source-code?address=${Implementation}&chainId=${chainId}`
@@ -399,16 +406,16 @@ export const fetchContractAbiRaw = async ({
     const { ABI: implAbi, ContractName: implName } = implData.result[0];
 
     return {
-      abi: JSON.parse(ABI),
+      abi: parseAbi(ABI),
       name: ContractName,
       implementation: {
         address: Implementation,
-        abi: JSON.parse(implAbi),
+        abi: parseAbi(implAbi),
         name: implName,
       },
     };
   } else {
-    return { abi: JSON.parse(ABI), name: ContractName };
+    return { abi: parseAbi(ABI), name: ContractName };
   }
 };
 

@@ -555,6 +555,14 @@ const ReadWriteSection = ({
     };
   };
 
+  // Memoize highlighted functions so ReadWriteFunction children
+  // receive stable references and React.memo can skip re-renders
+  const highlightedFunctions = useMemo(
+    () => functions.map((func, index) => getFunc(func, index)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [functions, searchQuery, searchResults, currentResultIndex]
+  );
+
   const computedSearchResults = useMemo(() => {
     if (debouncedSearchQuery) {
       return functions
@@ -711,31 +719,16 @@ const ReadWriteSection = ({
         {client &&
           functions?.map((func, index) => (
             <Box key={index} ref={(el) => { functionRefs.current[index] = el; }}>
-              {type === "read" ? (
-                <ReadWriteFunction
-                  key={index}
-                  client={client}
-                  index={index + 1}
-                  type={"read"}
-                  func={getFunc(func, index)}
-                  address={address}
-                  chainId={chainId}
-                  isAbiDecoded={isAbiDecoded || false}
-                  readAllCollapsed={allCollapsed}
-                />
-              ) : (
-                <ReadWriteFunction
-                  key={index}
-                  client={client}
-                  index={index + 1}
-                  type={"write"}
-                  func={getFunc(func, index)}
-                  address={address}
-                  chainId={chainId}
-                  isAbiDecoded={isAbiDecoded || false}
-                  readAllCollapsed={allCollapsed}
-                />
-              )}
+              <ReadWriteFunction
+                client={client}
+                index={index + 1}
+                type={type}
+                func={highlightedFunctions[index]}
+                address={address}
+                chainId={chainId}
+                isAbiDecoded={isAbiDecoded || false}
+                readAllCollapsed={allCollapsed}
+              />
             </Box>
           ))}
       </Box>
