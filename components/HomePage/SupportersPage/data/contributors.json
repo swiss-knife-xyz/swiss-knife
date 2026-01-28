@@ -1,0 +1,162 @@
+[
+    {
+      "rank": 1,
+      "name": "vitalik.eth",
+      "avatar": "/avatars/vitalik.jpg",
+      "amount": 15.2,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/vitalik.eth"
+    },
+    {
+      "rank": 2,
+      "name": "sassal.eth",
+      "avatar": "/avatars/sassal.jpg",
+      "amount": 12.8,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/sassal.eth"
+    },
+    {
+      "rank": 3,
+      "name": "tayvano.eth",
+      "avatar": "/avatars/tayvano.jpg",
+      "amount": 9.5,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/tayvano.eth"
+    },
+    {
+      "rank": 4,
+      "name": "0x1a2b...3c4d",
+      "avatar": "/avatars/default.png",
+      "amount": 7.3,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/0x1a2b3c4d"
+    },
+    {
+      "rank": 5,
+      "name": "loomdart.eth",
+      "avatar": "/avatars/loomdart.jpg",
+      "amount": 6.8,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/loomdart.eth"
+    },
+    {
+      "rank": 6,
+      "name": "0x5e6f...7g8h",
+      "avatar": "/avatars/default.png",
+      "amount": 5.2,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/0x5e6f7g8h"
+    },
+    {
+      "rank": 7,
+      "name": "dapplion.eth",
+      "avatar": "/avatars/dapplion.jpg",
+      "amount": 4.9,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/dapplion.eth"
+    },
+    {
+      "rank": 8,
+      "name": "0x9i0j...1k2l",
+      "avatar": "/avatars/default.png",
+      "amount": 4.5,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/0x9i0j1k2l"
+    },
+    {
+      "rank": 9,
+      "name": "punk6529.eth",
+      "avatar": "/avatars/punk6529.jpg",
+      "amount": 4.2,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/punk6529.eth"
+    },
+    {
+      "rank": 10,
+      "name": "0x3m4n...5o6p",
+      "avatar": "/avatars/default.png",
+      "amount": 3.9,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/0x3m4n5o6p"
+    },
+    {
+      "rank": 11,
+      "name": "satoshi.eth",
+      "avatar": "/avatars/satoshi.jpg",
+      "amount": 3.7,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/satoshi.eth"
+    },
+    {
+      "rank": 12,
+      "name": "0x7q8r...9s0t",
+      "avatar": "/avatars/default.png",
+      "amount": 3.5,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/0x7q8r9s0t"
+    },
+    {
+      "rank": 13,
+      "name": "bitcoiner.eth",
+      "avatar": "/avatars/bitcoiner.jpg",
+      "amount": 3.2,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/bitcoiner.eth"
+    },
+    {
+      "rank": 14,
+      "name": "0x1u2v...3w4x",
+      "avatar": "/avatars/default.png",
+      "amount": 3.0,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/0x1u2v3w4x"
+    },
+    {
+      "rank": 15,
+      "name": "defiprime.eth",
+      "avatar": "/avatars/defiprime.jpg",
+      "amount": 2.8,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/defiprime.eth"
+    },
+    {
+      "rank": 16,
+      "name": "0x5y6z...7a8b",
+      "avatar": "/avatars/default.png",
+      "amount": 2.6,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/0x5y6z7a8b"
+    },
+    {
+      "rank": 17,
+      "name": "cryptocobain.eth",
+      "avatar": "/avatars/cryptocobain.jpg",
+      "amount": 2.4,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/cryptocobain.eth"
+    },
+    {
+      "rank": 18,
+      "name": "0x9c0d...1e2f",
+      "avatar": "/avatars/default.png",
+      "amount": 2.2,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/0x9c0d1e2f"
+    },
+    {
+      "rank": 19,
+      "name": "nftartist.eth",
+      "avatar": "/avatars/nftartist.jpg",
+      "amount": 2.0,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/nftartist.eth"
+    },
+    {
+      "rank": 20,
+      "name": "0x3g4h...5i6j",
+      "avatar": "/avatars/default.png",
+      "amount": 1.8,
+      "currency": "ETH",
+      "profileLink": "https://etherscan.io/address/0x3g4h5i6j"
+    }
+  ]
