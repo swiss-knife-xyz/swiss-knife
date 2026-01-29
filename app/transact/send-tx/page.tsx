@@ -7,6 +7,7 @@ import React, {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import {
   Container,
@@ -36,6 +37,7 @@ import {
   Spinner,
   Tooltip,
   Image,
+  Badge,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
@@ -68,6 +70,7 @@ import { chainIdToChain } from "@/data/common";
 import { decodeRecursive } from "@/lib/decoder";
 import { renderParams } from "@/components/renderParams";
 import { config } from "@/app/providers";
+import { getDisplayFunctionName } from "@/utils/functionNames";
 
 function SendTxContent() {
   const { data: walletClient } = useWalletClient();
@@ -112,6 +115,14 @@ function SendTxContent() {
   const [isDecodeModalOpen, setIsDecodeModalOpen] = useState(false);
   const [isDecoding, setIsDecoding] = useState(false);
   const [decoded, setDecoded] = useState<any>();
+  const decodedFunctionName = useMemo(
+    () =>
+      getDisplayFunctionName(
+        decoded?.functionName,
+        decoded?.guessedFunctionName
+      ),
+    [decoded]
+  );
 
   // ENS resolution state
   const [ensName, setEnsName] = useState("");
@@ -564,15 +575,23 @@ function SendTxContent() {
                     <ModalBody>
                       {decoded && (
                         <Box minW={"80%"}>
-                          {decoded.functionName &&
-                          decoded.functionName !== "__abi_decoded__" ? (
+                          {decodedFunctionName.name ? (
                             <HStack>
                               <Box>
                                 <Box fontSize={"xs"} color={"whiteAlpha.600"}>
-                                  function
+                                  {`function${
+                                    decodedFunctionName.isGuessed
+                                      ? " (guessed)"
+                                      : ""
+                                  }`}
                                 </Box>
-                                <Box>{decoded.functionName}</Box>
+                                <Box>{decodedFunctionName.name}</Box>
                               </Box>
+                              {decodedFunctionName.isGuessed ? (
+                                <Badge colorScheme="purple" variant="outline">
+                                  guessed
+                                </Badge>
+                              ) : null}
                               <Spacer />
                               <CopyToClipboard
                                 textToCopy={JSON.stringify(
