@@ -35,6 +35,7 @@ function ETHUnitConverterContent() {
   );
   const [gwei, setGwei] = useState<string>();
   const [eth, setEth] = useState<string>();
+  const [szabo, setSzabo] = useState<string>();
   const [unit, setUnit] = useState<string>();
   const [usd, setUsd] = useState<string>();
   const [exponent, setExponent] = useState<number>(6);
@@ -43,7 +44,7 @@ function ETHUnitConverterContent() {
 
   const handleOnChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    unit: "wei" | "gwei" | "eth" | "unit" | "usd",
+    unit: "wei" | "gwei" | "szabo" | "eth" | "unit" | "usd",
     valueToWei: (value: string) => string
   ) => {
     const value = e.target.value;
@@ -54,6 +55,7 @@ function ETHUnitConverterContent() {
     if (unit === "wei") setWei(value);
     else if (unit === "gwei") setGwei(value);
     else if (unit === "eth") setEth(value);
+    else if (unit === "szabo") setSzabo(value);
     else if (unit === "unit") setUnit(value);
     else if (unit === "usd") setUsd(value);
 
@@ -71,13 +73,14 @@ function ETHUnitConverterContent() {
 
   const setValues = (
     inWei: string,
-    exceptUnit: "wei" | "gwei" | "eth" | "unit" | "usd"
+    exceptUnit: "wei" | "gwei" | "szabo" | "eth" | "unit" | "usd"
   ) => {
     setWei(inWei);
 
     if (inWei.length > 0) {
       if (exceptUnit !== "gwei") setGwei(formatGwei(BigInt(inWei)));
       if (exceptUnit !== "eth") setEth(formatEther(BigInt(inWei)));
+      if (exceptUnit !== "szabo") setSzabo(formatUnits(BigInt(inWei), 12));
       if (exceptUnit !== "unit") {
         const unitValue = formatUnits(BigInt(inWei), exponent);
         setUnit(unitValue);
@@ -89,6 +92,7 @@ function ETHUnitConverterContent() {
     } else {
       setGwei("");
       setEth("");
+      setSzabo("");
       setUnit("");
       setUsd("");
     }
@@ -170,6 +174,24 @@ function ETHUnitConverterContent() {
                 onChange={(e) =>
                   handleOnChange(e, "gwei", (value) =>
                     parseGwei(value).toString()
+                  )
+                }
+              />
+            </Td>
+          </Tr>
+          <Tr>
+            <Label>
+              <Text>Szabo</Text>
+              <Text opacity={0.6}>(10^12)</Text>
+            </Label>
+            <Td>
+              <InputField
+                type="number"
+                placeholder="Szabo"
+                value={szabo}
+                onChange={(e) =>
+                  handleOnChange(e, "szabo", (value) =>
+                    parseUnits(value, 12).toString()
                   )
                 }
               />

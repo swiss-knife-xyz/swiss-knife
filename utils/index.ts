@@ -170,6 +170,7 @@ export const ethFormatOptions = [
   "Wei",
   "ETH",
   "Gwei",
+  "Szabo",
   "10^6",
   "Unix Time",
   "Bps ↔️ %",
@@ -200,6 +201,8 @@ export function convertTo(
       return formatEther(BigInt(value));
     case "Gwei":
       return value === "0" ? "0" : formatUnits(value, 9);
+    case "Szabo":
+      return value === "0" ? "0" : formatUnits(BigInt(value), 12);
     case "10^6":
       return value === "0" ? "0" : formatUnits(BigInt(value), 6);
     case "Unix Time":
@@ -232,6 +235,8 @@ export function convertFrom(
       return BigInt(parseEther(value)).toString();
     case "Gwei":
       return BigInt(parseUnits(value, 9)).toString();
+    case "Szabo":
+      return BigInt(parseUnits(value, 12)).toString();
     case "10^6":
       return BigInt(parseUnits(value, 6)).toString();
     case "Unix Time": {
