@@ -814,6 +814,13 @@ const shameChains: SupportedApp[] = [];
 
 const shameWallets: SupportedApp[] = [
   {
+    name: "BankrWallet",
+    logoUrl: "https://bankrwallet.app/images/bankrwallet-icon-nobg.png",
+    siteUrl: "https://bankrwallet.app",
+    supportedChainIds: [], // Empty since they don't support 7702
+    twitterHandle: "bankrwalletapp",
+  },
+  {
     name: "Rabby",
     logoUrl: getFaviconUrl("https://rabby.io"),
     siteUrl: "https://rabby.io/",
