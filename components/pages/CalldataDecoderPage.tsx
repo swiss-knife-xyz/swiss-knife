@@ -33,6 +33,7 @@ import {
   parseAsInteger,
   parseAsString,
   useQueryState,
+  useQueryStates,
 } from "next-usequerystate";
 import { createPublicClient, http, Hex, Chain, stringify } from "viem";
 import { DecodeRecursiveResult, SelectedOptionState , DecodeEventResult } from "@/types";
@@ -70,10 +71,28 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       )
     : 0;
 
-  const [calldata, setCalldata] = useQueryState<string>(
-    "calldata",
-    parseAsString.withDefault("")
+  const [queryParams, setQueryParams] = useQueryStates(
+    {
+      calldata: parseAsString.withDefault(""),
+      address: parseAsString.withDefault(""),
+      chainId: parseAsInteger.withDefault(1),
+      tx: parseAsString.withDefault(""),
+    },
+    {
+      history: "replace",
+    }
   );
+
+  const calldata = queryParams.calldata;
+  const contractAddress = queryParams.address;
+  const chainId = queryParams.chainId;
+  const fromTxInput = queryParams.tx;
+
+  const setCalldata = (value: string | null) => setQueryParams({ calldata: value });
+  const setContractAddress = (value: string | null) => setQueryParams({ address: value });
+  const setChainId = (value: number | null) => setQueryParams({ chainId: value });
+  const setFromTxInput = (value: string | null) => setQueryParams({ tx: value });
+
   // can be function calldata or abi.encode bytes
   const [result, setResult] = useState<DecodeRecursiveResult>();
   const [isLoading, setIsLoading] = useState(false);
@@ -85,21 +104,9 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
 
   const [abi, setAbi] = useState<any>();
 
-  const [contractAddress, setContractAddress] = useQueryState<string>(
-    "address",
-    parseAsString.withDefault("")
-  );
-  const [chainId, setChainId] = useQueryState<number>(
-    "chainId",
-    parseAsInteger.withDefault(1)
-  );
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>(networkOptions[networkOptionsIndex]);
 
-  const [fromTxInput, setFromTxInput] = useQueryState<string>(
-    "tx",
-    parseAsString.withDefault("")
-  );
   const [txShowSelectNetwork, setTxShowSelectNetwork] = useState(false);
 
   useEffect(() => {
@@ -123,18 +130,13 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
 
   useUpdateEffect(() => {
     if (selectedTabIndex === 0) {
-      setContractAddress(null);
-      setChainId(null);
-      setFromTxInput(null);
+      setQueryParams({ address: null, chainId: null, tx: null });
     } else if (selectedTabIndex === 1) {
-      setContractAddress(null);
-      setChainId(null);
-      setFromTxInput(null);
+      setQueryParams({ address: null, chainId: null, tx: null });
     } else if (selectedTabIndex === 2) {
-      setFromTxInput(null);
+      setQueryParams({ tx: null });
     } else if (selectedTabIndex === 3) {
-      setCalldata(null);
-      setContractAddress(null);
+      setQueryParams({ calldata: null, address: null });
     }
     // Reset result tab when switching main tabs
     setResultTabIndex(0);
@@ -163,8 +165,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
 
     // remove from url params if calldata updated
     if (selectedTabIndex === 0 || selectedTabIndex === 1) {
-      setContractAddress(null);
-      setChainId(null);
+      setQueryParams({ address: null, chainId: null });
     }
   }, [calldata]);
 
