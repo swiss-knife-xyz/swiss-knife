@@ -76,26 +76,26 @@ export const ValidationResults = ({
     <VStack spacing={6} align="stretch">
       {/* Summary Card */}
       <Box
-        p={6}
-        borderRadius="xl"
+        p={4}
+        borderRadius="lg"
         bg={result.isValid ? "green.900" : "red.900"}
         border="1px solid"
         borderColor={result.isValid ? "green.500" : "red.500"}
       >
-        <HStack spacing={4}>
+        <HStack spacing={3}>
           {result.isValid ? (
-            <CheckCircleIcon boxSize={10} color="green.300" />
+            <CheckCircleIcon boxSize={6} color="green.300" />
           ) : (
-            <WarningIcon boxSize={10} color="red.300" />
+            <WarningIcon boxSize={6} color="red.300" />
           )}
           <Box>
-            <Heading size="lg" color="white">
-              {result.isValid ? "Valid SIWE Message" : "Invalid SIWE Message"}
-            </Heading>
-            <Text color="whiteAlpha.800" mt={1}>
+            <Text fontWeight="bold" fontSize="md" color="white">
+              {result.isValid ? "Compliant" : "Non-Compliant"}
+            </Text>
+            <Text color="whiteAlpha.800" fontSize="sm">
               {result.isValid
-                ? "This message complies with EIP-4361 specification."
-                : `Found ${result.errors.length} error${result.errors.length !== 1 ? "s" : ""} that need to be fixed.`}
+                ? "Message complies with EIP-4361."
+                : `${result.errors.length} error${result.errors.length !== 1 ? "s" : ""} found.`}
             </Text>
           </Box>
         </HStack>
@@ -148,12 +148,12 @@ export const ValidationResults = ({
       {/* Issues List */}
       {totalIssues > 0 && (
         <Box>
-          <HStack justify="space-between" mb={4}>
-            <Heading size="md" color="whiteAlpha.900">
+          <HStack justify="space-between" mb={3}>
+            <Text fontWeight="semibold" fontSize="sm" color="whiteAlpha.900">
               Issues ({totalIssues})
-            </Heading>
+            </Text>
             {fixableCount > 0 && (
-              <Badge colorScheme="green" variant="subtle" fontSize="sm" px={3} py={1}>
+              <Badge colorScheme="green" variant="subtle" fontSize="xs" px={2}>
                 {fixableCount} auto-fixable
               </Badge>
             )}
@@ -192,12 +192,11 @@ export const ValidationResults = ({
 
       {/* Success message when no issues */}
       {totalIssues === 0 && result.isValid && (
-        <Center p={8}>
-          <VStack spacing={4}>
-            <CheckCircleIcon boxSize={16} color="green.400" />
-            <Text fontSize="lg" color="whiteAlpha.800" textAlign="center">
-              No issues found! Your SIWE message is properly formatted and
-              secure.
+        <Center p={6}>
+          <VStack spacing={3}>
+            <CheckCircleIcon boxSize={10} color="green.400" />
+            <Text fontSize="sm" color="whiteAlpha.800" textAlign="center">
+              No issues found. Message is properly formatted.
             </Text>
           </VStack>
         </Center>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Heading, Text, Center, VStack, Link, HStack, Badge } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack, Link, HStack, Badge } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { Layout } from "@/components/Layout";
 import { SiweValidator } from "./components";
@@ -8,20 +8,20 @@ import { SiweValidator } from "./components";
 const SiwePage = () => {
   return (
     <Layout>
-      <Box w="full" px={{ base: 4, md: 8 }} py={8}>
+      {/* Fixed width wrapper to prevent layout shifts from minW="max-content" in Layout */}
+      <Box w="90vw" maxW="1400px" px={{ base: 4, md: 8 }} py={8}>
         {/* Header */}
-        <VStack spacing={4} mb={8}>
+        <VStack spacing={3} mb={6}>
           <HStack spacing={3}>
-            <Heading textAlign="center" size="xl">
+            <Heading textAlign="center" size="lg">
               SIWE Message Validator
             </Heading>
-            <Badge colorScheme="blue" fontSize="sm" px={2} py={1}>
+            <Badge colorScheme="blue" fontSize="xs" px={2} py={1}>
               EIP-4361
             </Badge>
           </HStack>
-          <Text color="whiteAlpha.700" textAlign="center" maxW="2xl">
-            Validate, lint, and debug Sign in with Ethereum (SIWE) messages for
-            EIP-4361 compliance, security best practices, and proper formatting.
+          <Text color="whiteAlpha.700" textAlign="center" maxW="2xl" fontSize="sm">
+            Validate and debug Sign in with Ethereum messages for EIP-4361 compliance.
           </Text>
           <HStack spacing={4} fontSize="sm">
             <Link

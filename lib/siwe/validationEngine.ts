@@ -317,29 +317,40 @@ export class ValidationEngine {
 
   // Generate sample messages for testing
   public static generateSamples(): { [key: string]: string } {
+    const now = new Date();
+    const expiration = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes
+    const notBefore = new Date(now.getTime() - 60 * 1000); // 1 minute ago
+
     return {
-      // Per EIP-4361: 2 empty lines when no statement
+      // Minimal: only required fields per EIP-4361 (no statement = 2 empty lines)
       minimal: `example.com wants you to sign in with your Ethereum account:
-0x742d35Cc6C4C1Ca5d428d9eE0e9B1E1234567890
+0x742d35Cc6634C0532925a3b844Bc454e4438f44e
 
 
-URI: https://example.com
+URI: https://example.com/login
 Version: 1
 Chain ID: 1
-Nonce: abcdef123456
-Issued At: ${new Date().toISOString()}`,
+Nonce: k8Wp2xRt5mNqYv3F
+Issued At: ${now.toISOString()}`,
 
-      withResources: AutoFixer.generateTemplate({
-        domain: "app.example.com",
-        address: "0x742d35Cc6C4C1Ca5d428d9eE0e9B1E1234567890",
-        statement: "Sign in to our Web3 application.",
-        uri: "https://app.example.com/auth",
-        chainId: "137", // Polygon
-        resources: [
-          "https://api.example.com/user",
-          "https://storage.example.com/files",
-        ],
-      }),
+      // Full: all optional fields present
+      full: `app.example.com wants you to sign in with your Ethereum account:
+0x742d35Cc6634C0532925a3b844Bc454e4438f44e
+
+I accept the Terms of Service: https://app.example.com/tos
+
+URI: https://app.example.com/login
+Version: 1
+Chain ID: 1
+Nonce: n4bQgYhMfWWaL28Jh9k
+Issued At: ${now.toISOString()}
+Expiration Time: ${expiration.toISOString()}
+Not Before: ${notBefore.toISOString()}
+Request ID: req-12345
+Resources:
+- https://api.example.com/user
+- https://api.example.com/data
+- ipfs://Qme7ss3ARVgxv6rXqVPiikMJ8u2NLgmgszg13pYrDKEoiu`,
     };
   }
 

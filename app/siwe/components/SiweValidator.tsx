@@ -15,17 +15,12 @@ import {
   FormControl,
   FormLabel,
   Switch,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
   Tooltip,
   IconButton,
   Badge,
   Divider,
 } from "@chakra-ui/react";
 import {
-  ChevronDownIcon,
   CopyIcon,
   DeleteIcon,
   RepeatIcon,
@@ -37,7 +32,6 @@ import {
   AutoFixer,
   type ValidationResult,
   type ValidationError,
-  type ValidationProfile,
 } from "@/lib/siwe";
 import { ValidationResults } from "./ValidationResults";
 
@@ -50,12 +44,8 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRealTimeValidation, setIsRealTimeValidation] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<string>("strict");
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const toast = useToast();
-
-  // Get available profiles
-  const profiles = ValidationEngine.PROFILES;
 
   // Real-time validation with debounce
   useEffect(() => {
@@ -98,25 +88,23 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
       // Small delay to show loading state
       setTimeout(() => {
         try {
-          const validationResult = ValidationEngine.validate(message, {
-            profile: profiles[selectedProfile],
-          });
+          const validationResult = ValidationEngine.validate(message);
 
           setResult(validationResult);
 
           if (showToast) {
             if (validationResult.isValid) {
               toast({
-                title: "Valid SIWE Message",
-                description: "The message complies with EIP-4361",
+                title: "Compliant",
+                description: "Message complies with EIP-4361",
                 status: "success",
                 duration: 3000,
                 isClosable: true,
               });
             } else {
               toast({
-                title: "Validation Issues Found",
-                description: `${validationResult.errors.length} error(s), ${validationResult.warnings.length} warning(s)`,
+                title: "Non-Compliant",
+                description: `${validationResult.errors.length} error(s) found`,
                 status: "error",
                 duration: 3000,
                 isClosable: true,
@@ -140,7 +128,7 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
         }
       }, 100);
     },
-    [message, selectedProfile, profiles, toast]
+    [message, toast]
   );
 
   const handleFixIssue = useCallback(
@@ -247,19 +235,6 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
     [toast]
   );
 
-  const handleGenerateTemplate = useCallback(() => {
-    const template = AutoFixer.generateTemplate();
-    setMessage(template);
-    setResult(null);
-    toast({
-      title: "Template generated",
-      description: "A new SIWE message template has been created",
-      status: "info",
-      duration: 2000,
-      isClosable: true,
-    });
-  }, [toast]);
-
   // Quick status indicator
   const getQuickStatus = () => {
     if (!message.trim()) return null;
@@ -270,7 +245,7 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
   const quickStatus = getQuickStatus();
 
   return (
-    <Box w="full" maxW="1400px" mx="auto">
+    <Box w="full">
       <Grid
         templateColumns={{ base: "1fr", lg: "1fr 1fr" }}
         gap={8}
@@ -307,48 +282,26 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
             {/* Controls Row */}
             <HStack justify="space-between" flexWrap="wrap" gap={2}>
               <HStack spacing={2}>
-                <Menu>
-                  <MenuButton
-                    as={Button}
-                    size="sm"
-                    variant="outline"
-                    rightIcon={<ChevronDownIcon />}
-                    color="white"
-                    borderColor="whiteAlpha.400"
-                    _hover={{ bg: "whiteAlpha.100" }}
-                  >
-                    Load Sample
-                  </MenuButton>
-                  <MenuList bg="gray.800" borderColor="whiteAlpha.300">
-                    <MenuItem
-                      onClick={() => handleLoadSample("minimal")}
-                      bg="transparent"
-                      _hover={{ bg: "whiteAlpha.200" }}
-                    >
-                      Minimal (no statement)
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => handleLoadSample("withResources")}
-                      bg="transparent"
-                      _hover={{ bg: "whiteAlpha.200" }}
-                    >
-                      With Resources
-                    </MenuItem>
-                  </MenuList>
-                </Menu>
-
-                <Tooltip label="Generate new template" placement="top">
-                  <IconButton
-                    aria-label="Generate template"
-                    icon={<RepeatIcon />}
-                    size="sm"
-                    variant="outline"
-                    color="white"
-                    borderColor="whiteAlpha.400"
-                    _hover={{ bg: "whiteAlpha.100" }}
-                    onClick={handleGenerateTemplate}
-                  />
-                </Tooltip>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  color="white"
+                  borderColor="whiteAlpha.400"
+                  _hover={{ bg: "whiteAlpha.100" }}
+                  onClick={() => handleLoadSample("minimal")}
+                >
+                  Minimal
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  color="white"
+                  borderColor="whiteAlpha.400"
+                  _hover={{ bg: "whiteAlpha.100" }}
+                  onClick={() => handleLoadSample("full")}
+                >
+                  Full
+                </Button>
               </HStack>
 
               <HStack spacing={2}>
@@ -413,50 +366,17 @@ Issued At: 2024-01-15T12:00:00.000Z`}
             />
 
             {/* Options Row */}
-            <HStack justify="space-between" flexWrap="wrap" gap={4}>
-              <FormControl display="flex" alignItems="center" w="auto">
-                <FormLabel htmlFor="realtime-validation" mb="0" color="whiteAlpha.800" fontSize="sm">
-                  Real-time validation
-                </FormLabel>
-                <Switch
-                  id="realtime-validation"
-                  colorScheme="blue"
-                  isChecked={isRealTimeValidation}
-                  onChange={(e) => setIsRealTimeValidation(e.target.checked)}
-                />
-              </FormControl>
-
-              <Menu>
-                <MenuButton
-                  as={Button}
-                  size="sm"
-                  variant="outline"
-                  rightIcon={<ChevronDownIcon />}
-                  color="white"
-                  borderColor="whiteAlpha.400"
-                  _hover={{ bg: "whiteAlpha.100" }}
-                >
-                  Profile: {profiles[selectedProfile]?.name.split(" ")[0]}
-                </MenuButton>
-                <MenuList bg="gray.800" borderColor="whiteAlpha.300">
-                  {Object.entries(profiles).map(([key, profile]) => (
-                    <MenuItem
-                      key={key}
-                      onClick={() => setSelectedProfile(key)}
-                      bg="transparent"
-                      _hover={{ bg: "whiteAlpha.200" }}
-                    >
-                      <VStack align="start" spacing={0}>
-                        <Text fontWeight="medium">{profile.name}</Text>
-                        <Text fontSize="xs" color="whiteAlpha.600">
-                          {profile.description}
-                        </Text>
-                      </VStack>
-                    </MenuItem>
-                  ))}
-                </MenuList>
-              </Menu>
-            </HStack>
+            <FormControl display="flex" alignItems="center" w="auto">
+              <FormLabel htmlFor="realtime-validation" mb="0" color="whiteAlpha.800" fontSize="sm">
+                Real-time validation
+              </FormLabel>
+              <Switch
+                id="realtime-validation"
+                colorScheme="blue"
+                isChecked={isRealTimeValidation}
+                onChange={(e) => setIsRealTimeValidation(e.target.checked)}
+              />
+            </FormControl>
 
             {/* Action Buttons */}
             <HStack spacing={4}>
