@@ -275,13 +275,15 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
       return;
     }
 
-    const domain = typeof window !== "undefined" ? window.location.host : "example.com";
-    const uri = typeof window !== "undefined" ? window.location.origin : "https://example.com";
-    const now = new Date();
-    const expiration = new Date(now.getTime() + 10 * 60 * 1000);
-    const nonce = Math.random().toString(36).substring(2, 18) + Math.random().toString(36).substring(2, 18);
+    // If no message exists, generate a new one
+    if (!message.trim()) {
+      const domain = typeof window !== "undefined" ? window.location.host : "example.com";
+      const uri = typeof window !== "undefined" ? window.location.origin : "https://example.com";
+      const now = new Date();
+      const expiration = new Date(now.getTime() + 10 * 60 * 1000);
+      const nonce = Math.random().toString(36).substring(2, 18) + Math.random().toString(36).substring(2, 18);
 
-    const autoMessage = `${domain} wants you to sign in with your Ethereum account:
+      const autoMessage = `${domain} wants you to sign in with your Ethereum account:
 ${connectedAddress}
 
 Sign in with Ethereum
@@ -293,18 +295,69 @@ Nonce: ${nonce}
 Issued At: ${now.toISOString()}
 Expiration Time: ${expiration.toISOString()}`;
 
-    setMessage(autoMessage);
-    setResult(null);
-    setSignature(null);
-    setVerificationResult(null);
-    toast({
-      title: "Message auto-filled",
-      description: "Message populated with your wallet address",
-      status: "success",
-      duration: 2000,
-      isClosable: true,
-    });
-  }, [connectedAddress, chainId, toast]);
+      setMessage(autoMessage);
+      setResult(null);
+      setSignature(null);
+      setVerificationResult(null);
+      toast({
+        title: "Message generated",
+        description: "New SIWE message created with your wallet",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Update existing message - replace domain, address, and URI
+    let updatedMessage = message;
+    const updates: string[] = [];
+    const parsed = SiweMessageParser.parse(message);
+
+    // Replace domain (first line)
+    const currentDomain = typeof window !== "undefined" ? window.location.host : null;
+    if (currentDomain && parsed.fields.domain && parsed.fields.domain !== currentDomain) {
+      updatedMessage = FieldReplacer.replaceField(updatedMessage, "domain", currentDomain);
+      updates.push("domain");
+    }
+
+    // Replace address
+    if (parsed.fields.address) {
+      if (parsed.fields.address.toLowerCase() !== connectedAddress.toLowerCase()) {
+        updatedMessage = FieldReplacer.replaceField(updatedMessage, "address", connectedAddress);
+        updates.push("address");
+      }
+    }
+
+    // Replace URI with current origin
+    const currentUri = typeof window !== "undefined" ? window.location.origin : null;
+    if (currentUri && parsed.fields.uri && parsed.fields.uri !== currentUri) {
+      updatedMessage = FieldReplacer.replaceField(updatedMessage, "uri", currentUri);
+      updates.push("URI");
+    }
+
+    if (updates.length > 0) {
+      setMessage(updatedMessage);
+      setResult(null);
+      setSignature(null);
+      setVerificationResult(null);
+      toast({
+        title: "Message updated",
+        description: `Updated: ${updates.join(", ")}`,
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } else {
+      toast({
+        title: "Already up to date",
+        description: "Address and URI already match",
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+      });
+    }
+  }, [connectedAddress, chainId, message, toast]);
 
   // Sign the SIWE message
   const handleSign = useCallback(async () => {
@@ -324,26 +377,23 @@ Expiration Time: ${expiration.toISOString()}`;
       return;
     }
 
-    // Auto-update address in message to match connected wallet
-    let messageToSign = message;
+    // Warn if address doesn't match but don't modify
     const parsed = SiweMessageParser.parse(message);
     if (parsed.fields.address && connectedAddress) {
       if (parsed.fields.address.toLowerCase() !== connectedAddress.toLowerCase()) {
-        // Replace the address in the message
-        messageToSign = FieldReplacer.replaceField(message, "address", connectedAddress);
-        setMessage(messageToSign);
         toast({
-          title: "Address updated",
-          description: "Message address updated to match your wallet",
-          status: "info",
-          duration: 2000,
+          title: "Address mismatch",
+          description: "Use Auto-fill to update the address to match your wallet",
+          status: "warning",
+          duration: 4000,
           isClosable: true,
         });
+        return; // Don't sign with mismatched address
       }
     }
 
     try {
-      const sig = await signMessageAsync({ message: messageToSign });
+      const sig = await signMessageAsync({ message });
       setSignature(sig);
       setVerificationResult(null);
       toast({
@@ -570,34 +620,55 @@ Issued At: 2024-01-15T12:00:00.000Z`}
                 Validate
               </Button>
 
-              <Tooltip label={isConnected ? "Sign with your wallet" : "Connect wallet to sign"}>
-                <Button
-                  colorScheme="purple"
-                  size="md"
-                  flex="1"
-                  onClick={handleSign}
-                  isLoading={isSigningPending}
-                  loadingText="Signing..."
-                  leftIcon={<EditIcon />}
-                >
-                  {isConnected ? "Sign" : "Connect"}
-                </Button>
-              </Tooltip>
-
-              {isConnected && (
-                <Tooltip label="Auto-fill with connected wallet">
-                  <Button
-                    size="md"
-                    variant="outline"
-                    color="white"
-                    borderColor="whiteAlpha.400"
-                    _hover={{ bg: "whiteAlpha.100" }}
-                    onClick={handleAutoFill}
+              {/* Sign Flow - grouped visually */}
+              <HStack
+                spacing={0}
+                bg="purple.900"
+                borderRadius="md"
+                border="1px solid"
+                borderColor="purple.500"
+                overflow="hidden"
+              >
+                {isConnected && (
+                  <Tooltip
+                    label="Update domain, address, and URI to match your wallet and current site"
+                    placement="top"
+                    hasArrow
                   >
-                    Auto-fill
+                    <Button
+                      size="md"
+                      variant="ghost"
+                      color="purple.200"
+                      _hover={{ bg: "purple.800" }}
+                      onClick={handleAutoFill}
+                      borderRadius="0"
+                      px={4}
+                    >
+                      Auto-fill
+                    </Button>
+                  </Tooltip>
+                )}
+                <Tooltip
+                  label={isConnected ? "Sign this message with your wallet" : "Connect wallet to sign"}
+                  placement="top"
+                  hasArrow
+                >
+                  <Button
+                    colorScheme="purple"
+                    size="md"
+                    w="110px"
+                    onClick={handleSign}
+                    isLoading={isSigningPending}
+                    loadingText="Signing"
+                    leftIcon={!isSigningPending ? <EditIcon /> : undefined}
+                    borderRadius={isConnected ? "0" : "md"}
+                    borderLeft={isConnected ? "1px solid" : "none"}
+                    borderLeftColor="purple.600"
+                  >
+                    {isConnected ? "Sign" : "Connect"}
                   </Button>
                 </Tooltip>
-              )}
+              </HStack>
             </HStack>
 
             {/* Signature Section */}
