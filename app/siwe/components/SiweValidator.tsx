@@ -1,6 +1,20 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { createParser, useQueryState } from "next-usequerystate";
+
+// Custom parser for SIWE messages that handles newlines via base64 encoding
+const parseAsBase64Message = createParser({
+  parse: (value: string) => {
+    try {
+      return atob(value);
+    } catch {
+      return "";
+    }
+  },
+  serialize: (value: string) => btoa(value),
+}).withDefault("");
+
 import {
   Box,
   VStack,
@@ -29,6 +43,7 @@ import {
   DownloadIcon,
   CheckIcon,
   EditIcon,
+  LinkIcon,
 } from "@chakra-ui/icons";
 import { useAccount, useSignMessage, useChainId } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
@@ -48,7 +63,8 @@ interface SiweValidatorProps {
 }
 
 export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
-  const [message, setMessage] = useState(initialMessage);
+  // URL state for message persistence/sharing (base64 encoded to preserve newlines)
+  const [message, setMessage] = useQueryState("message", parseAsBase64Message);
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRealTimeValidation, setIsRealTimeValidation] = useState(true);
@@ -240,6 +256,17 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
       isClosable: true,
     });
   }, [message, toast]);
+
+  const handleCopyLink = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({
+      title: "Link copied",
+      description: "Share this URL to share the message",
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
+  }, [toast]);
 
   const handleLoadSample = useCallback(
     (sampleKey: string) => {
@@ -550,6 +577,19 @@ Expiration Time: ${expiration.toISOString()}`;
                   />
                 </Tooltip>
 
+                <Tooltip label="Copy shareable link" placement="top">
+                  <IconButton
+                    aria-label="Copy link"
+                    icon={<LinkIcon />}
+                    size="sm"
+                    variant="ghost"
+                    color="whiteAlpha.700"
+                    _hover={{ bg: "whiteAlpha.100" }}
+                    onClick={handleCopyLink}
+                    isDisabled={!message}
+                  />
+                </Tooltip>
+
                 <Tooltip label="Clear message" placement="top">
                   <IconButton
                     aria-label="Clear message"
@@ -626,10 +666,10 @@ Issued At: 2024-01-15T12:00:00.000Z`}
               {/* Sign Flow - grouped visually */}
               <HStack
                 spacing={0}
-                bg="purple.900"
+                bg="blue.900"
                 borderRadius="md"
                 border="1px solid"
-                borderColor="purple.500"
+                borderColor="blue.500"
                 overflow="hidden"
               >
                 {isConnected && (
@@ -641,8 +681,8 @@ Issued At: 2024-01-15T12:00:00.000Z`}
                     <Button
                       size="md"
                       variant="ghost"
-                      color="purple.200"
-                      _hover={{ bg: "purple.800" }}
+                      color="blue.200"
+                      _hover={{ bg: "blue.800" }}
                       onClick={handleAutoFill}
                       borderRadius="0"
                       px={4}
@@ -657,7 +697,7 @@ Issued At: 2024-01-15T12:00:00.000Z`}
                   hasArrow
                 >
                   <Button
-                    colorScheme="purple"
+                    colorScheme="blue"
                     size="md"
                     w="110px"
                     onClick={handleSign}
@@ -666,7 +706,7 @@ Issued At: 2024-01-15T12:00:00.000Z`}
                     leftIcon={!isSigningPending ? <EditIcon /> : undefined}
                     borderRadius={isConnected ? "0" : "md"}
                     borderLeft={isConnected ? "1px solid" : "none"}
-                    borderLeftColor="purple.600"
+                    borderLeftColor="blue.600"
                   >
                     {isConnected ? "Sign" : "Connect"}
                   </Button>
@@ -678,9 +718,9 @@ Issued At: 2024-01-15T12:00:00.000Z`}
             <Collapse in={!!signature} animateOpacity>
               <Box
                 p={4}
-                bg="purple.900"
+                bg="blue.900"
                 border="1px solid"
-                borderColor="purple.500"
+                borderColor="blue.500"
                 borderRadius="lg"
               >
                 <HStack justify="space-between" mb={2}>
@@ -701,7 +741,7 @@ Issued At: 2024-01-15T12:00:00.000Z`}
                     </Tooltip>
                     <Button
                       size="xs"
-                      colorScheme={verificationResult === true ? "green" : verificationResult === false ? "red" : "purple"}
+                      colorScheme={verificationResult === true ? "green" : verificationResult === false ? "red" : "blue"}
                       variant="outline"
                       onClick={handleVerify}
                       isLoading={isVerifying}
