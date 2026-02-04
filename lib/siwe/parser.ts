@@ -109,21 +109,55 @@ export class SiweMessageParser {
         lineIndex++;
       }
 
-      // Parse required fields
+      // Parse required fields - look for them in order, but also check if they exist elsewhere
       const fieldParsers = [
-        { prefix: "URI: ", field: "uri" },
-        { prefix: "Version: ", field: "version" },
-        { prefix: "Chain ID: ", field: "chainId" },
-        { prefix: "Nonce: ", field: "nonce" },
-        { prefix: "Issued At: ", field: "issuedAt" },
+        { prefix: "URI: ", field: "uri", expectedOrder: 0 },
+        { prefix: "Version: ", field: "version", expectedOrder: 1 },
+        { prefix: "Chain ID: ", field: "chainId", expectedOrder: 2 },
+        { prefix: "Nonce: ", field: "nonce", expectedOrder: 3 },
+        { prefix: "Issued At: ", field: "issuedAt", expectedOrder: 4 },
       ];
 
+      // First pass: find all fields regardless of position
+      const foundFields: { [key: string]: { value: string; line: number } } = {};
+      for (let i = lineIndex; i < lines.length; i++) {
+        for (const { prefix, field } of fieldParsers) {
+          if (lines[i].startsWith(prefix) && !foundFields[field]) {
+            foundFields[field] = {
+              value: lines[i].substring(prefix.length),
+              line: i + 1,
+            };
+          }
+        }
+      }
+
+      // Second pass: check order and report issues
+      let lastFoundLine = lineIndex;
       for (const { prefix, field } of fieldParsers) {
-        if (lineIndex < lines.length && lines[lineIndex].startsWith(prefix)) {
-          (fields as Record<string, string>)[field] =
-            lines[lineIndex].substring(prefix.length);
-          lineIndex++;
+        if (foundFields[field]) {
+          // Field exists - set it
+          (fields as Record<string, string>)[field] = foundFields[field].value;
+
+          // Check if it's in the expected position
+          if (lineIndex < lines.length && lines[lineIndex].startsWith(prefix)) {
+            // Field is in correct position
+            lineIndex++;
+            lastFoundLine = lineIndex;
+          } else {
+            // Field exists but is out of order
+            parseErrors.push(
+              this.createParseError(
+                "format",
+                field,
+                foundFields[field].line,
+                1,
+                `Field "${field}" is on line ${foundFields[field].line}, expected on line ${lineIndex + 1}`,
+                `FIELD_OUT_OF_ORDER`
+              )
+            );
+          }
         } else {
+          // Field is truly missing
           parseErrors.push(
             this.createParseError(
               "format",
@@ -134,6 +168,19 @@ export class SiweMessageParser {
               `MISSING_${field.toUpperCase()}`
             )
           );
+        }
+      }
+
+      // Advance lineIndex to after all required fields
+      for (const { prefix } of fieldParsers) {
+        while (lineIndex < lines.length && !lines[lineIndex].startsWith(prefix) && 
+               lines[lineIndex] !== "" && !lines[lineIndex].startsWith("Expiration") &&
+               !lines[lineIndex].startsWith("Not Before") && !lines[lineIndex].startsWith("Request ID") &&
+               !lines[lineIndex].startsWith("Resources:")) {
+          lineIndex++;
+        }
+        if (lineIndex < lines.length && lines[lineIndex].startsWith(prefix)) {
+          lineIndex++;
         }
       }
 
