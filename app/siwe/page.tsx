@@ -21,7 +21,7 @@ const SiwePage = () => {
             </Badge>
           </HStack>
           <Text color="whiteAlpha.700" textAlign="center" maxW="2xl" fontSize="sm">
-            Validate and debug Sign in with Ethereum messages for EIP-4361 compliance.
+            Validate and debug Sign in with Ethereum messages for EIP-4361 validity.
           </Text>
           <HStack spacing={4} fontSize="sm">
             <Link

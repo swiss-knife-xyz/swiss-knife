@@ -128,7 +128,7 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
           if (showToast) {
             if (validationResult.isValid) {
               toast({
-                title: "Compliant",
+                title: "Valid",
                 description: "Message complies with EIP-4361",
                 status: "success",
                 duration: 3000,
@@ -136,7 +136,7 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
               });
             } else {
               toast({
-                title: "Non-Compliant",
+                title: "Invalid",
                 description: `${validationResult.errors.length} error(s) found`,
                 status: "error",
                 duration: 3000,

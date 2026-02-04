@@ -90,7 +90,7 @@ export const ValidationResults = ({
           )}
           <Box>
             <Text fontWeight="bold" fontSize="md" color="white">
-              {result.isValid ? "Compliant" : "Non-Compliant"}
+              {result.isValid ? "Valid" : "Invalid"}
             </Text>
             <Text color="whiteAlpha.800" fontSize="sm">
               {result.isValid
