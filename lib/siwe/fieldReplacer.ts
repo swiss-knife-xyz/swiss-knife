@@ -2,6 +2,7 @@
 
 import type { ValidationError, SiweMessageFields } from "./types";
 import { SiweMessageParser } from "./parser";
+import { LineBreakValidator } from "./lineBreakValidator";
 
 export class FieldReplacer {
   /**
@@ -282,6 +283,18 @@ export class FieldReplacer {
           }
         }
         break;
+
+      // Line break issues
+      case "MISSING_LINE_BREAK_NO_STATEMENT":
+      case "MISSING_LINE_BREAK_ADDRESS_STATEMENT":
+      case "MISSING_LINE_BREAK_STATEMENT_URI":
+      case "TOO_MANY_CONSECUTIVE_EMPTY_LINES":
+      case "EXTRA_LINE_BREAK_HEADER_ADDRESS":
+      case "EXTRA_LINE_BREAKS_BEFORE_URI":
+      case "EXTRA_LINE_BREAKS_BETWEEN_FIELDS":
+      case "EXTRA_LINE_BREAKS_BEFORE_OPTIONAL_FIELD":
+      case "TRAILING_WHITESPACE":
+        return LineBreakValidator.fixLineBreaks(message);
     }
 
     return null;
