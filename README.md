@@ -35,6 +35,7 @@ All your EVM tools in one place: https://swiss-knife.xyz/
 17. [Web3 App Store](https://apps.swiss-knife.xyz/): Browse and use dapps in an embedded browser with your connected wallet.
 18. [Solidity Compiler](https://solidity.swiss-knife.xyz/compiler): Compile Solidity contracts directly in the browser.
 19. [USDC Pay](https://usdc-pay.swiss-knife.xyz/): Send USDC payments on Base. Supports ENS, Basename, and Farcaster username resolution.
+20. [SIWE Validator](https://siwe.swiss-knife.xyz/): Validate Sign-In With Ethereum (EIP-4361) messages. Features real-time validation, auto-fix for common errors, wallet signing, and shareable URLs.
 
 ## Setup
 
