@@ -504,9 +504,12 @@ Expiration Time: ${expiration.toISOString()}`;
         {/* Input Panel */}
         <GridItem>
           <VStack spacing={4} align="stretch">
-            <Heading size="md" color="whiteAlpha.900">
-              SIWE Message Input
-            </Heading>
+            {/* Header Row - matches Results panel height */}
+            <HStack justify="space-between" minH="32px">
+              <Heading size="md" color="whiteAlpha.900">
+                SIWE Message Input
+              </Heading>
+            </HStack>
 
             {/* Controls Row */}
             <HStack justify="space-between" flexWrap="wrap" gap={2}>
@@ -727,7 +730,8 @@ Issued At: 2024-01-15T12:00:00.000Z`}
         {/* Results Panel */}
         <GridItem>
           <VStack spacing={4} align="stretch">
-            <HStack justify="space-between">
+            {/* Header Row - matches Input panel height */}
+            <HStack justify="space-between" minH="32px">
               <Heading size="md" color="whiteAlpha.900">
                 Validation Results
               </Heading>
@@ -758,7 +762,8 @@ Issued At: 2024-01-15T12:00:00.000Z`}
               )}
             </HStack>
 
-            <Divider borderColor="whiteAlpha.200" />
+            {/* Spacer to align with Input panel's controls row */}
+            <Box minH="32px" />
 
             <Box
               minH="400px"

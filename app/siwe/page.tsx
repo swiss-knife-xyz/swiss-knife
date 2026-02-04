@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Heading, Text, VStack, Link, HStack, Badge } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack, Link, HStack, Badge, Divider } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { Layout } from "@/components/Layout";
 import { SiweValidator } from "./components";
@@ -42,6 +42,8 @@ const SiwePage = () => {
             </Link>
           </HStack>
         </VStack>
+
+        <Divider borderColor="whiteAlpha.300" mb={6} />
 
         {/* Main Validator Component */}
         <SiweValidator />
