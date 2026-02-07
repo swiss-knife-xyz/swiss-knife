@@ -1,9 +1,9 @@
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
-  title: "Padding | Swiss-Knife.xyz",
+  title: "Padding | ETH.sh",
   description: "Left or Right pad any hex value by 32 bytes.",
-  images: "https://swiss-knife.xyz/og/converter-padding.png",
+  images: "https://eth.sh/og/converter-padding.png",
 });
 
 const PaddingLayout = ({ children }: { children: React.ReactNode }) => {

@@ -1,11 +1,11 @@
-import { UniswapLayout as UniswapLayoutC } from "@/components/layouts/UniswapLayout";
 import { getMetadata } from "@/utils";
+import { UniswapLayout as UniswapLayoutC } from "./UniswapLayout";
 
 export const metadata = getMetadata({
-  title: "UniswapV3 | Swiss-Knife.xyz",
+  title: "Uniswap V4 | ETH.sh",
   description:
-    "Calculator to convert UniswapV3 tick to price for any token pair addresses.",
-  images: "https://swiss-knife.xyz/og/uniswap.png",
+    "Calculator to convert Uniswap V4 tick to price for any token pair addresses.",
+  images: "https://eth.sh/og/uniswap.png",
 });
 
 const UniswapLayout = ({ children }: { children: React.ReactNode }) => {

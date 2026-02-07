@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import {
   Box,
   Flex,
@@ -22,14 +21,14 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
+  Tooltip,
 } from "@chakra-ui/react";
-import { HamburgerIcon } from "@chakra-ui/icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGithub } from "@fortawesome/free-brands-svg-icons";
+import { Menu, Github, BookOpen } from "lucide-react";
 import { baseURL } from "@/config";
 import subdomains from "@/subdomains";
 import { getPath } from "@/utils";
 import { NotificationBar } from "./NotificationBar";
+import { useAddressBook } from "@/hooks/useAddressBook";
 
 export const Navbar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -39,6 +38,7 @@ export const Navbar = () => {
     onClose: onMenuClose,
   } = useDisclosure();
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const { openDrawer } = useAddressBook();
 
   return (
     <VStack w="100%" spacing={0}>
@@ -46,12 +46,12 @@ export const Navbar = () => {
       <Flex
         w="100%"
         py={3}
-        px={4}
+        px={{ base: 4, md: 6 }}
         alignItems="center"
         justifyContent="space-between"
         borderBottom="1px solid"
-        borderColor="whiteAlpha.200"
-        bg="blackAlpha.400"
+        borderColor="border.subtle"
+        bg="bg.base"
       >
         {/* Logo */}
         <Link href={baseURL}>
@@ -61,36 +61,53 @@ export const Navbar = () => {
               h={{ base: "2rem", sm: "2.5rem" }}
               alt="icon"
               src="/icon.png"
-              rounded="lg"
+              rounded="md"
             />
             <Heading
-              color="custom.pale"
+              color="text.primary"
               fontSize={{ base: "lg", sm: "xl", md: "2xl" }}
-              display={{ base: "block", sm: "block" }}
+              fontWeight="semibold"
+              letterSpacing="-0.02em"
             >
-              Swiss Knife
+              ETH.sh
             </Heading>
           </HStack>
         </Link>
 
         {/* Right side actions */}
-        <HStack spacing={4}>
+        <HStack spacing={3}>
           {/* GitHub link */}
           <ChakraLink
             href="https://github.com/swiss-knife-xyz/swiss-knife"
             isExternal
             display="flex"
             alignItems="center"
+            color="text.secondary"
+            _hover={{ color: "text.primary" }}
+            transition="color 0.2s"
           >
-            <FontAwesomeIcon icon={faGithub} size={isMobile ? "lg" : "xl"} />
+            <Github size={isMobile ? 20 : 22} />
           </ChakraLink>
+
+          {/* Address Book */}
+          <Tooltip label="Address Book" placement="bottom">
+            <IconButton
+              aria-label="Open address book"
+              icon={<BookOpen size={isMobile ? 18 : 20} />}
+              variant="ghost"
+              color="text.secondary"
+              _hover={{ color: "text.primary", bg: "bg.emphasis" }}
+              onClick={openDrawer}
+              size="md"
+            />
+          </Tooltip>
 
           <IconButton
             aria-label="Open menu"
-            icon={<HamburgerIcon />}
+            icon={<Menu size={20} />}
             variant="ghost"
-            color="white"
-            colorScheme="whiteAlpha"
+            color="text.secondary"
+            _hover={{ color: "text.primary", bg: "bg.emphasis" }}
             onClick={onMenuOpen}
             size="md"
           />
@@ -102,34 +119,43 @@ export const Navbar = () => {
 
       {/* Mobile Menu Drawer */}
       <Drawer isOpen={isMenuOpen} placement="right" onClose={onMenuClose}>
-        <DrawerOverlay backdropFilter="blur(5px)" />
-        <DrawerContent bg="bg.900" maxW="280px">
-          <DrawerCloseButton />
-          <DrawerHeader borderBottomWidth="1px">🔨 All Tools</DrawerHeader>
-          <DrawerBody pt={4}>
+        <DrawerOverlay backdropFilter="blur(8px)" bg="blackAlpha.600" />
+        <DrawerContent bg="bg.base" maxW="300px">
+          <DrawerCloseButton color="text.secondary" _hover={{ color: "text.primary" }} />
+          <DrawerHeader
+            borderBottomWidth="1px"
+            borderColor="border.subtle"
+            color="text.primary"
+            fontWeight="semibold"
+          >
+            All Tools
+          </DrawerHeader>
+          <DrawerBody pt={4} px={3}>
             <Accordion allowMultiple defaultIndex={[]} width="100%">
               {Object.keys(subdomains).map((key, index) => {
                 const subdomain = subdomains[key];
                 const hasPaths = subdomain.paths.length > 0;
 
                 return (
-                  <AccordionItem key={index} border="none" mb={2}>
+                  <AccordionItem key={index} border="none" mb={1}>
                     {hasPaths ? (
                       <>
                         <AccordionButton
-                          p={2}
-                          _hover={{ bg: "whiteAlpha.100" }}
-                          rounded="md"
+                          p={3}
+                          _hover={{ bg: "bg.emphasis" }}
+                          rounded="lg"
+                          color="text.primary"
                         >
                           <Box
                             as="span"
                             flex="1"
                             textAlign="left"
                             fontSize="sm"
+                            fontWeight="medium"
                           >
                             {subdomain.base}
                           </Box>
-                          <AccordionIcon />
+                          <AccordionIcon color="text.secondary" />
                         </AccordionButton>
                         <AccordionPanel pb={2} pl={4}>
                           <VStack align="start" spacing={1} width="100%">
@@ -145,10 +171,13 @@ export const Navbar = () => {
                               >
                                 <Box
                                   p={2}
-                                  _hover={{ bg: "whiteAlpha.100" }}
+                                  pl={3}
+                                  _hover={{ bg: "bg.emphasis" }}
                                   rounded="md"
                                   width="100%"
-                                  fontSize="xs"
+                                  fontSize="sm"
+                                  color="text.secondary"
+                                  transition="all 0.2s"
                                 >
                                   {path}
                                 </Box>
@@ -164,11 +193,14 @@ export const Navbar = () => {
                         onClick={onMenuClose}
                       >
                         <Box
-                          p={2}
-                          _hover={{ bg: "whiteAlpha.100" }}
-                          rounded="md"
+                          p={3}
+                          _hover={{ bg: "bg.emphasis" }}
+                          rounded="lg"
                           width="100%"
                           fontSize="sm"
+                          fontWeight="medium"
+                          color="text.primary"
+                          transition="all 0.2s"
                         >
                           {subdomain.base}
                         </Box>

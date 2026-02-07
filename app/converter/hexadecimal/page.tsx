@@ -1,7 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Heading, Table, Tbody, Tr, Td } from "@chakra-ui/react";
+import {
+  Heading,
+  Text,
+  Input,
+  Box,
+  VStack,
+  HStack,
+  Icon,
+  Badge,
+} from "@chakra-ui/react";
 import {
   numberToHex,
   hexToBigInt,
@@ -10,9 +19,9 @@ import {
   stringToHex,
 } from "viem";
 import bigInt from "big-integer";
-import { InputField } from "@/components/InputField";
-import { Label } from "@/components/Label";
+import { FiHash, FiType, FiCode } from "react-icons/fi";
 import { startHexWith0x } from "@/utils";
+import { InputField } from "@/components/InputField";
 
 const Hexadecimal = () => {
   const [hexadecimal, setHexadecimal] = useState<string>();
@@ -101,46 +110,134 @@ const Hexadecimal = () => {
   };
 
   return (
-    <>
-      <Heading color={"custom.pale"}>Hexadecimal Converter</Heading>
-      <Table mt={"3rem"} variant={"unstyled"}>
-        <Tbody>
-          <Tr>
-            <Label>Hexadecimal</Label>
-            <Td>
+    <Box
+      p={6}
+      bg="rgba(0, 0, 0, 0.05)"
+      backdropFilter="blur(5px)"
+      borderRadius="xl"
+      border="1px solid"
+      borderColor="whiteAlpha.50"
+      maxW="1400px"
+      mx="auto"
+    >
+      {/* Page Header */}
+      <Box mb={8} textAlign="center">
+        <HStack justify="center" spacing={3} mb={4}>
+          <Icon as={FiHash} color="blue.400" boxSize={8} />
+          <Heading
+            size="xl"
+            color="gray.100"
+            fontWeight="bold"
+            letterSpacing="tight"
+          >
+            Hexadecimal Converter
+          </Heading>
+        </HStack>
+        <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
+          Convert between hexadecimal, decimal, binary, and text formats
+        </Text>
+      </Box>
+
+      {/* Simple Input List */}
+      <Box w="full" maxW="800px" mx="auto">
+        <VStack spacing={4} align="stretch">
+          {/* Hexadecimal */}
+          <HStack
+            spacing={4}
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <Box minW="120px">
+              <VStack spacing={1} align="start">
+                <HStack spacing={2}>
+                  <Icon as={FiHash} color="blue.400" boxSize={4} />
+                  <Text color="gray.300" fontWeight="medium">
+                    Hexadecimal
+                  </Text>
+                </HStack>
+                <Badge colorScheme="blue" fontSize="xs" px={2} py={0.5}>
+                  Base 16
+                </Badge>
+              </VStack>
+            </Box>
+            <Box flex={1}>
               <InputField
-                autoFocus
-                placeholder="Hexadecimal"
-                value={hexadecimal}
+                placeholder="Enter hex value (e.g., 0x1a2b3c)"
+                value={hexadecimal || ""}
                 onChange={(e) =>
                   handleOnChange(e, "hexadecimal", (value) => value)
                 }
                 isInvalid={isHexadecimalInvalid}
+                autoFocus
               />
-            </Td>
-          </Tr>
-          <Tr>
-            <Label>Decimal</Label>
-            <Td>
+            </Box>
+          </HStack>
+
+          {/* Decimal */}
+          <HStack
+            spacing={4}
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <Box minW="120px">
+              <VStack spacing={1} align="start">
+                <HStack spacing={2}>
+                  <Icon as={FiHash} color="blue.400" boxSize={4} />
+                  <Text color="gray.300" fontWeight="medium">
+                    Decimal
+                  </Text>
+                </HStack>
+                <Badge colorScheme="gray" fontSize="xs" px={2} py={0.5}>
+                  Base 10
+                </Badge>
+              </VStack>
+            </Box>
+            <Box flex={1}>
               <InputField
                 type="number"
-                placeholder="decimal"
-                value={decimal}
+                placeholder="Enter decimal number"
+                value={decimal || ""}
                 onChange={(e) =>
                   handleOnChange(e, "decimal", (value) =>
                     numberToHex(BigInt(value))
                   )
                 }
               />
-            </Td>
-          </Tr>
-          <Tr>
-            <Label>Binary</Label>
-            <Td>
+            </Box>
+          </HStack>
+
+          {/* Binary */}
+          <HStack
+            spacing={4}
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <Box minW="120px">
+              <VStack spacing={1} align="start">
+                <HStack spacing={2}>
+                  <Icon as={FiCode} color="blue.400" boxSize={4} />
+                  <Text color="gray.300" fontWeight="medium">
+                    Binary
+                  </Text>
+                </HStack>
+                <Badge colorScheme="gray" fontSize="xs" px={2} py={0.5}>
+                  Base 2
+                </Badge>
+              </VStack>
+            </Box>
+            <Box flex={1}>
               <InputField
-                type="number"
-                placeholder="binary"
-                value={binary}
+                placeholder="Enter binary value (0s and 1s only)"
+                value={binary || ""}
                 onChange={(e) =>
                   handleOnChange(e, "binary", (value) =>
                     bigInt(value, 2).toString(16)
@@ -148,23 +245,44 @@ const Hexadecimal = () => {
                 }
                 isInvalid={isBinaryInvalid}
               />
-            </Td>
-          </Tr>
-          <Tr>
-            <Label>Text</Label>
-            <Td>
+            </Box>
+          </HStack>
+
+          {/* Text */}
+          <HStack
+            spacing={4}
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <Box minW="120px">
+              <VStack spacing={1} align="start">
+                <HStack spacing={2}>
+                  <Icon as={FiType} color="blue.400" boxSize={4} />
+                  <Text color="gray.300" fontWeight="medium">
+                    Text
+                  </Text>
+                </HStack>
+                <Badge colorScheme="gray" fontSize="xs" px={2} py={0.5}>
+                  UTF-8
+                </Badge>
+              </VStack>
+            </Box>
+            <Box flex={1}>
               <InputField
-                placeholder="text"
-                value={text}
+                placeholder="Enter text to convert"
+                value={text || ""}
                 onChange={(e) =>
                   handleOnChange(e, "text", (value) => stringToHex(value))
                 }
               />
-            </Td>
-          </Tr>
-        </Tbody>
-      </Table>
-    </>
+            </Box>
+          </HStack>
+        </VStack>
+      </Box>
+    </Box>
   );
 };
 

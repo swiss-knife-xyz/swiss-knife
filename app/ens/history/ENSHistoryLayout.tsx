@@ -1,7 +1,8 @@
 "use client";
 
 import NextLink from "next/link";
-import { useRouter, useParams } from "next/navigation";
+import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
+import { useParams } from "next/navigation";
 import { ReactNode, useRef, useState } from "react";
 import {
   Heading,
@@ -15,14 +16,13 @@ import {
   Card,
   CardBody,
   SimpleGrid,
-  Center,
   Image,
 } from "@chakra-ui/react";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 
 export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
-  const router = useRouter();
+  const router = useTopLoaderRouter();
   const params = useParams();
 
   const ensNameFromParams =
@@ -115,64 +115,82 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <Box maxW="1200px" w="full" px={4}>
+    <Box maxW="800px" mx="auto" w="full">
+      {/* Page Header */}
       <Box
         mb={6}
         as={NextLink}
         href={`${getPath(subdomains.ENS.base)}history`}
         _hover={{ textDecoration: "none" }}
+        textAlign="center"
       >
-        <Heading mt={10} color="custom.pale">
+        <Heading size="lg" color="gray.100" fontWeight="bold" letterSpacing="tight">
           ENS Domain History
         </Heading>
-        <Text mt={2} mb={14} color="whiteAlpha.700">
+        <Text mt={2} color="gray.400" fontSize="md">
           Check IPFS content changes, ownership transfers and more over time.
         </Text>
       </Box>
-      <Box maxW="1200px" w="full" px={4}>
-        <Center>
-          <FormControl maxW="40rem">
-            <FormLabel fontWeight="medium">ENS Name</FormLabel>
-            <HStack spacing={4}>
-              <Input
-                placeholder="eternalsafe.eth"
-                value={ensName}
-                onChange={handleInputChange}
-                onPaste={handlePaste}
-                onKeyDown={handleKeyDown}
-                size="md"
-              />
-              <Button
-                onClick={() => fetchHistory()}
-                isLoading={loading}
-                colorScheme="blue"
-                px={6}
-              >
-                Fetch
-              </Button>
-            </HStack>
-          </FormControl>
-        </Center>
+
+      <Box
+        p={5}
+        bg="whiteAlpha.50"
+        borderRadius="lg"
+        border="1px solid"
+        borderColor="whiteAlpha.200"
+        mb={5}
+      >
+        <FormControl>
+          <FormLabel fontWeight="medium" color="gray.300" fontSize="sm">ENS Name</FormLabel>
+          <HStack spacing={3}>
+            <Input
+              placeholder="eternalsafe.eth"
+              value={ensName}
+              onChange={handleInputChange}
+              onPaste={handlePaste}
+              onKeyDown={handleKeyDown}
+              size="md"
+              bg="whiteAlpha.100"
+              border="1px solid"
+              borderColor="whiteAlpha.300"
+              _hover={{ borderColor: "whiteAlpha.400" }}
+              _focus={{
+                borderColor: "blue.400",
+                boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
+              }}
+              color="gray.100"
+              _placeholder={{ color: "gray.500" }}
+            />
+            <Button
+              onClick={() => fetchHistory()}
+              isLoading={loading}
+              colorScheme="blue"
+            >
+              Fetch
+            </Button>
+          </HStack>
+        </FormControl>
 
         {!ensNameFromParams && (
-          <Box mt={"4rem"} pb={"4rem"}>
-            <Heading size="sm" mb={4}>
+          <Box mt={6}>
+            <Text fontSize="sm" mb={3} color="gray.400">
               or try these examples:
-            </Heading>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+            </Text>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
               {cardsData.map((card, index) => (
                 <Card
                   key={index}
-                  maxW={"20rem"}
                   variant="outline"
                   shadow="sm"
-                  bg="blackAlpha.300"
+                  bg="whiteAlpha.100"
+                  border="1px solid"
+                  borderColor="whiteAlpha.200"
                   cursor="pointer"
-                  _hover={{ transform: "translateY(-2px)", shadow: "md" }}
+                  _hover={{ borderColor: "blue.400", bg: "whiteAlpha.200" }}
                   transition="all 0.2s"
                   onClick={() => handleExampleClick(card.ensName)}
                 >
-                  <CardBody display="flex" alignItems="center" p={4}>
+                  <CardBody display="flex" alignItems="center" p={3}>
                     <Image
                       alt={card.ensName}
                       src={
@@ -180,14 +198,14 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
                           ? `https://euc.li/${card.ensName}`
                           : `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=https://${card.ensName}.limo`
                       }
-                      boxSize="48px"
+                      boxSize="40px"
                       borderRadius="full"
-                      mr={4}
-                      fallbackSrc="https://placehold.co/48x48/gray/white?text=ENS"
+                      mr={3}
+                      fallbackSrc="https://placehold.co/40x40/gray/white?text=ENS"
                     />
                     <Box>
-                      <Text fontWeight="bold">{card.ensName}</Text>
-                      <Text fontSize="sm" color="gray.400">
+                      <Text fontWeight="bold" fontSize="sm" color="gray.100">{card.ensName}</Text>
+                      <Text fontSize="xs" color="gray.400">
                         {card.description}
                       </Text>
                     </Box>

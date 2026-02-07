@@ -1,6 +1,6 @@
 "use client";
 
-import { HStack, Center } from "@chakra-ui/react";
+import { HStack, Box } from "@chakra-ui/react";
 import { Layout } from "@/components/Layout";
 import { Sidebar, SidebarItem } from "@/components/Sidebar";
 import subdomains from "@/subdomains";
@@ -13,15 +13,15 @@ const SidebarItems: SidebarItem[] = [
 export const ENSLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <Layout>
-      <HStack alignItems={"stretch"} h="full">
+      <HStack alignItems={"stretch"} h="full" spacing={0}>
         <Sidebar
           heading="ENS"
           items={SidebarItems}
           subdomain={subdomains.ENS.base}
         />
-        <Center flexDir={"column"} w="full">
+        <Box w="full" flex={1} p={6}>
           {children}
-        </Center>
+        </Box>
       </HStack>
     </Layout>
   );

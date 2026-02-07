@@ -4,15 +4,16 @@ import { useSearchParams } from "next/navigation";
 import React, { Suspense, useEffect, useState } from "react";
 import {
   Heading,
-  Table,
-  Tbody,
-  Tr,
-  Td,
   Text,
   Input,
   Box,
+  VStack,
+  HStack,
+  Icon,
+  Badge,
+  Flex,
 } from "@chakra-ui/react";
-import { parseAsString, useQueryState } from "next-usequerystate";
+import { parseAsString, useQueryState } from "nuqs";
 import {
   parseEther,
   parseGwei,
@@ -21,9 +22,9 @@ import {
   formatGwei,
   formatUnits,
 } from "viem";
-import { InputField } from "@/components/InputField";
-import { Label } from "@/components/Label";
+import { FiDollarSign, FiHash } from "react-icons/fi";
 import { useLocalStorage } from "usehooks-ts";
+import { InputField } from "@/components/InputField";
 
 function ETHUnitConverterContent() {
   const searchParams = useSearchParams();
@@ -48,9 +49,6 @@ function ETHUnitConverterContent() {
   ) => {
     const value = e.target.value;
 
-    // Directly set the value of the unit that is being changed
-    // to handle cases like 0.0000 ETH to not be converted to 0 ETH due to parsing
-    // setting what was input by user as it is, and excluding it in the setValues function
     if (unit === "wei") setWei(value);
     else if (unit === "gwei") setGwei(value);
     else if (unit === "eth") setEth(value);
@@ -101,7 +99,6 @@ function ETHUnitConverterContent() {
     try {
       const response = await fetch(url);
       const data = await response.json();
-
       setEthPrice(data[token].usd);
     } catch (error) {}
   };
@@ -134,54 +131,134 @@ function ETHUnitConverterContent() {
   }, [exponent]);
 
   return (
-    <>
-      <Heading color={"custom.pale"}>ETH Unit Converter</Heading>
-      <Table
-        mt={"3rem"}
-        variant="unstyled"
-        style={{ borderCollapse: "separate", borderSpacing: "0 0.75em" }}
-      >
-        <Tbody>
-          <Tr>
-            <Label>
-              <Text>Wei</Text>
-              <Text opacity={0.6}>(10^18)</Text>
-            </Label>
-            <Td>
+    <Box
+      p={6}
+      bg="rgba(0, 0, 0, 0.05)"
+      backdropFilter="blur(5px)"
+      borderRadius="xl"
+      border="1px solid"
+      borderColor="whiteAlpha.50"
+      maxW="1400px"
+      mx="auto"
+    >
+      {/* Page Header */}
+      <Box mb={8} textAlign="center">
+        <HStack justify="center" spacing={3} mb={4}>
+          <Icon as={FiDollarSign} color="blue.400" boxSize={8} />
+          <Heading
+            size="xl"
+            color="gray.100"
+            fontWeight="bold"
+            letterSpacing="tight"
+          >
+            ETH Unit Converter
+          </Heading>
+        </HStack>
+        <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
+          Convert between different Ethereum units
+        </Text>
+      </Box>
+
+      {/* Simple Input List */}
+      <Box w="full" maxW="800px" mx="auto">
+        <VStack spacing={4} align="stretch">
+          {/* Wei */}
+          <HStack
+            spacing={4}
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <Box minW="120px">
+              <VStack spacing={1} align="start">
+                <HStack spacing={2}>
+                  <Icon as={FiHash} color="blue.400" boxSize={4} />
+                  <Text color="gray.300" fontWeight="medium">
+                    Wei
+                  </Text>
+                </HStack>
+                <Badge colorScheme="gray" fontSize="xs" px={2} py={0.5}>
+                  10^18
+                </Badge>
+              </VStack>
+            </Box>
+            <Box flex={1}>
               <InputField
-                autoFocus
                 type="number"
-                placeholder="Wei"
-                value={wei}
+                placeholder="Enter Wei amount"
+                value={wei || ""}
                 onChange={(e) => handleOnChange(e, "wei", (value) => value)}
               />
-            </Td>
-          </Tr>
-          <Tr>
-            <Label>
-              <Text>Gwei</Text>
-              <Text opacity={0.6}>(10^9)</Text>
-            </Label>
-            <Td>
+            </Box>
+          </HStack>
+
+          {/* Gwei */}
+          <HStack
+            spacing={4}
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <Box minW="120px">
+              <VStack spacing={1} align="start">
+                <HStack spacing={2}>
+                  <Icon as={FiHash} color="blue.400" boxSize={4} />
+                  <Text color="gray.300" fontWeight="medium">
+                    Gwei
+                  </Text>
+                </HStack>
+                <Badge colorScheme="gray" fontSize="xs" px={2} py={0.5}>
+                  10^9
+                </Badge>
+              </VStack>
+            </Box>
+            <Box flex={1}>
               <InputField
                 type="number"
-                placeholder="Gwei"
-                value={gwei}
+                placeholder="Enter Gwei amount"
+                value={gwei || ""}
                 onChange={(e) =>
                   handleOnChange(e, "gwei", (value) =>
                     parseGwei(value).toString()
                   )
                 }
               />
-            </Td>
-          </Tr>
-          <Tr>
-            <Label>
-              <Box display="inline-flex" alignItems="center">
-                <Text>10^</Text>
+            </Box>
+          </HStack>
+
+          {/* Custom Unit */}
+          <HStack
+            spacing={4}
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <Box minW="120px">
+              <Flex align="center">
+                <HStack spacing={2}>
+                  <Icon as={FiHash} color="blue.400" boxSize={4} />
+                  <Text color="gray.300" fontWeight="medium">
+                    10^
+                  </Text>
+                </HStack>
                 <Input
+                  ml={2}
                   type="number"
-                  placeholder="Enter custom exponent"
+                  bg="whiteAlpha.50"
+                  border="1px solid"
+                  borderColor="whiteAlpha.200"
+                  _hover={{ borderColor: "whiteAlpha.300" }}
+                  _focus={{
+                    borderColor: "blue.400",
+                    boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
+                  }}
+                  color="gray.100"
                   value={exponent.toString()}
                   onChange={(e) => {
                     const newExponent = Number(e.target.value);
@@ -189,59 +266,87 @@ function ETHUnitConverterContent() {
                       setExponent(newExponent);
                     }
                   }}
-                  width="55px"
+                  maxW="3rem"
+                  textAlign="center"
+                  size="sm"
+                  rounded={"md"}
                 />
-              </Box>
-            </Label>
-            <Td>
+              </Flex>
+            </Box>
+            <Box flex={1}>
               <InputField
                 type="number"
-                placeholder={`10^${exponent}`}
-                value={unit}
+                placeholder={`Enter amount in 10^${exponent} units`}
+                value={unit || ""}
                 onChange={(e) =>
                   handleOnChange(e, "unit", (value) =>
                     parseUnits(value, exponent).toString()
                   )
                 }
               />
-            </Td>
-          </Tr>
+            </Box>
+          </HStack>
 
-          <Tr bg="whiteAlpha.100">
-            <Label roundedTopLeft={"md"} roundedBottomLeft={"md"}>
-              <Text>Ether</Text>
-              <Text opacity={0.6}>(1)</Text>
-            </Label>
-            <Td roundedTopRight={"md"} roundedBottomRight={"md"}>
+          {/* Ether - Highlighted */}
+          <HStack
+            spacing={4}
+            p={4}
+            bg="whiteAlpha.100"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <Box minW="120px">
+              <VStack spacing={1} align="start">
+                <HStack spacing={2}>
+                  <Icon as={FiHash} color="blue.400" boxSize={4} />
+                  <Text color="gray.300" fontWeight="medium">
+                    Ether
+                  </Text>
+                </HStack>
+                <Badge colorScheme="blue" fontSize="xs" px={2} py={0.5}>
+                  1 ETH
+                </Badge>
+              </VStack>
+            </Box>
+            <Box flex={1}>
               <InputField
                 type="number"
-                placeholder="Ether"
-                value={eth}
+                placeholder="Enter Ether amount"
+                value={eth || ""}
                 onChange={(e) =>
                   handleOnChange(e, "eth", (value) =>
                     parseEther(value).toString()
                   )
                 }
               />
-            </Td>
-          </Tr>
-          <Tr>
-            <Label>
-              <Text>USD</Text>
-              <Text opacity={0.6}>
-                (1 ETH ={" "}
-                {ethPrice.toLocaleString("en-US", {
-                  style: "currency",
-                  currency: "USD",
-                })}
-                )
-              </Text>
-            </Label>
-            <Td>
+            </Box>
+          </HStack>
+
+          {/* USD */}
+          <HStack
+            spacing={4}
+            p={4}
+            bg="whiteAlpha.50"
+            borderRadius="lg"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+          >
+            <Box minW="120px">
+              <VStack spacing={1} align="start">
+                <HStack spacing={2}>
+                  <Icon as={FiDollarSign} color="blue.400" boxSize={4} />
+                  <Text color="gray.300" fontWeight="medium">
+                    USD
+                  </Text>
+                </HStack>
+              </VStack>
+            </Box>
+            <Box flex={1}>
               <InputField
                 type="number"
-                placeholder="USD"
-                value={usd}
+                placeholder="Enter USD amount"
+                value={usd || ""}
                 onChange={(e) =>
                   handleOnChange(e, "usd", (value) => {
                     const eth = parseFloat(value) / ethPrice;
@@ -249,11 +354,20 @@ function ETHUnitConverterContent() {
                   })
                 }
               />
-            </Td>
-          </Tr>
-        </Tbody>
-      </Table>
-    </>
+            </Box>
+            <Box>
+              <Badge colorScheme="blue" fontSize="xs" px={2} py={1}>
+                1 ETH = $
+                {ethPrice.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </Badge>
+            </Box>
+          </HStack>
+        </VStack>
+      </Box>
+    </Box>
   );
 }
 

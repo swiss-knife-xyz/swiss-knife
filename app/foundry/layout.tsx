@@ -1,11 +1,11 @@
-import { FoundryLayout as FoundryLayoutC } from "@/components/layouts/FoundryLayout";
 import { getMetadata } from "@/utils";
+import { FoundryLayout as FoundryLayoutC } from "./FoundryLayout";
 
 export const metadata = getMetadata({
-  title: "Foundry | Swiss-Knife.xyz",
+  title: "Foundry | ETH.sh",
   description:
     "Foundry tools to easily visualize and collapse stack traces, and more.",
-  images: "https://swiss-knife.xyz/og/foundry.png",
+  images: "https://eth.sh/og/foundry.png",
 });
 
 const FoundryLayout = ({ children }: { children: React.ReactNode }) => {

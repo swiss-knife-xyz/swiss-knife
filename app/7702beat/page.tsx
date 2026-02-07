@@ -1556,7 +1556,8 @@ const SevenSevenZeroTwoBeat = () => {
     <Layout>
       <Box
         width="100%"
-        maxW="90vw"
+        maxW="1000px"
+        mx="auto"
         overflowX="hidden"
         position="relative"
         minH="100vh"

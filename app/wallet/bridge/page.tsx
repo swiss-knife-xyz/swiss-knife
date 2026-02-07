@@ -1289,7 +1289,7 @@ export default function WalletBridgePage() {
   ]);
 
   return (
-    <Box w="full" mt="-2rem">
+    <Box w="full">
       {/* Banner for Web3 App Store */}
       <Center>
         <Box
@@ -1315,11 +1315,11 @@ export default function WalletBridgePage() {
               fontSize={{ base: "sm", md: "md" }}
               lineHeight="1.2"
             >
-              🎉 New! Check out the Web3 App Store
+              New! Check out the Web3 App Store
             </Text>
             <Button
               as="a"
-              href="https://apps.swiss-knife.xyz/"
+              href="https://apps.eth.sh/"
               size={{ base: "sm", md: "sm" }}
               bg="whiteAlpha.200"
               color="white"
@@ -1342,16 +1342,16 @@ export default function WalletBridgePage() {
               fontWeight="medium"
               minH={{ base: "22px", md: "auto" }}
             >
-              Explore Apps →
+              Explore Apps
             </Button>
           </Flex>
         </Box>
       </Center>
 
       <Container
-        mt="2rem"
-        maxW={{ base: "20rem", md: "80%" }}
-        px={{ base: 0, sm: 4, md: 6 }}
+        mt={8}
+        maxW="1400px"
+        px={{ base: 4, sm: 4, md: 6 }}
         mx="auto"
       >
         <Global
@@ -1428,7 +1428,7 @@ export default function WalletBridgePage() {
             direction={{ base: "column", lg: "row" }}
             gap={{ base: 4, lg: 0 }}
           >
-            <Heading size={{ base: "xl", md: "xl" }}>💸 Wallet Bridge</Heading>
+            <Heading size={{ base: "xl", md: "xl" }}>Wallet Bridge</Heading>
             {isConnected && <ConnectButton />}
           </Flex>
 
