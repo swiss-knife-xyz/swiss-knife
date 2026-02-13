@@ -30,7 +30,7 @@ const SiwePage = () => {
             </Text>
             <HStack spacing={4} fontSize="sm">
               <Link
-                href="https://eips.ethereum.org/EIPS/eip-4361"
+                href="https://eip.tools/eip/4361"
                 isExternal
                 color="blue.400"
                 _hover={{ color: "blue.300" }}
