@@ -217,8 +217,8 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
       return;
     }
 
-    // Use the full auto-fixer
-    const { SiweMessageParser } = require("@/lib/siwe");
+    // SiweMessageParser is already imported at the top via ES module import —
+    // no need for a redundant require() call.
     const parsed = SiweMessageParser.parse(message);
     const fixResult = AutoFixer.fixMessage(parsed, allIssues);
 
