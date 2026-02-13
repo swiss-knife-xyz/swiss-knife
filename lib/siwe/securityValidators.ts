@@ -147,10 +147,16 @@ export class SecurityValidators {
           messagePort = portMatch[2];
         }
 
-        // Check hostname mismatch
+        // Check hostname mismatch. The subdomain check requires the message domain
+        // to have at least 2 parts (e.g., "example.com") to prevent a TLD like "com"
+        // from matching "evil.com" via the endsWith check.
+        const messageHasValidParent = messageHostname.split(".").length >= 2;
         const hostnameMismatch =
           messageHostname !== uriHostname &&
-          !uriHostname.endsWith(`.${messageHostname}`);
+          !(
+            messageHasValidParent &&
+            uriHostname.endsWith(`.${messageHostname}`)
+          );
 
         // Only check port mismatch if BOTH have explicit ports specified
         const portMismatch =
