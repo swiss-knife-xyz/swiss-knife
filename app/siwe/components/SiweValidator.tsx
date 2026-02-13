@@ -217,9 +217,19 @@ export const SiweValidator = ({ initialMessage = "" }: SiweValidatorProps) => {
       return;
     }
 
-    // SiweMessageParser is already imported at the top via ES module import —
-    // no need for a redundant require() call.
     const parsed = SiweMessageParser.parse(message);
+    // Guard against parse failures — if the message is too malformed to parse,
+    // AutoFixer.fixMessage() would throw on a null/empty fields object.
+    if (!parsed || !parsed.fields || Object.keys(parsed.fields).length === 0) {
+      toast({
+        title: "Cannot Auto-Fix",
+        description: "Message is too malformed to parse. Fix structural issues first.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
     const fixResult = AutoFixer.fixMessage(parsed, allIssues);
 
     if (fixResult.fixed) {
