@@ -76,7 +76,7 @@ export const IssueCard = ({ issue, onFix }: IssueCardProps) => {
       borderRadius="lg"
       border="1px solid"
       borderColor={styles.borderColor}
-      bg={`${styles.bgColor}`}
+      bg={styles.bgColor}
       opacity="0.95"
       _hover={{ opacity: 1 }}
       transition="opacity 0.2s"
