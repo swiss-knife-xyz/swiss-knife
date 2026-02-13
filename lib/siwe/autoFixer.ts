@@ -7,6 +7,7 @@ import type {
   ValidationError,
 } from "./types";
 import { SiweMessageParser } from "./parser";
+import { getAddress } from "viem";
 
 export class AutoFixer {
   public static fixMessage(
@@ -240,27 +241,20 @@ export class AutoFixer {
 
   // Helper methods for specific fixes
 
+  // Uses viem's getAddress() for proper EIP-55 checksum encoding via keccak256.
+  // The previous implementation used a naive `i % 2` heuristic which produced
+  // incorrect checksums — EIP-55 requires hashing the lowercase hex address with
+  // keccak256 and using each nibble of the hash to determine letter casing.
   private static toChecksumAddress(address: string): string {
     if (!address.startsWith("0x") || address.length !== 42) {
       return address; // Can't fix invalid addresses
     }
 
-    // Simple checksum implementation (basic version)
-    const hex = address.slice(2).toLowerCase();
-    let checksum = "";
-
-    for (let i = 0; i < hex.length; i++) {
-      const char = hex[i];
-      if (/[0-9]/.test(char)) {
-        checksum += char;
-      } else {
-        // Simple checksum logic (in production, use proper keccak256)
-        const shouldBeUppercase = i % 2 === 0;
-        checksum += shouldBeUppercase ? char.toUpperCase() : char.toLowerCase();
-      }
+    try {
+      return getAddress(address);
+    } catch {
+      return address;
     }
-
-    return "0x" + checksum;
   }
 
   private static fixAddressFormat(address: string): string | null {

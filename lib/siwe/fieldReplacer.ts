@@ -3,6 +3,7 @@
 import type { ValidationError, SiweMessageFields } from "./types";
 import { SiweMessageParser } from "./parser";
 import { LineBreakValidator } from "./lineBreakValidator";
+import { getAddress } from "viem";
 
 export class FieldReplacer {
   /**
@@ -391,29 +392,20 @@ export class FieldReplacer {
     return result;
   }
 
-  /**
-   * Convert to checksum address (basic implementation)
-   */
+  // Uses viem's getAddress() for proper EIP-55 checksum encoding via keccak256.
+  // The previous implementation used a naive `i % 2` heuristic which produced
+  // incorrect checksums — EIP-55 requires hashing the lowercase hex address with
+  // keccak256 and using each nibble of the hash to determine letter casing.
   private static toChecksumAddress(address: string): string {
     if (!address.startsWith("0x") || address.length !== 42) {
       return address;
     }
 
-    const hex = address.slice(2).toLowerCase();
-    let checksum = "";
-
-    for (let i = 0; i < hex.length; i++) {
-      const char = hex[i];
-      if (/[0-9]/.test(char)) {
-        checksum += char;
-      } else {
-        // Simple checksum logic
-        const shouldBeUppercase = i % 2 === 0;
-        checksum += shouldBeUppercase ? char.toUpperCase() : char.toLowerCase();
-      }
+    try {
+      return getAddress(address);
+    } catch {
+      return address;
     }
-
-    return "0x" + checksum;
   }
 
   /**
