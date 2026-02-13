@@ -570,9 +570,17 @@ export class FieldValidators {
     const domainRegex =
       /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
 
-    // Also allow IP addresses (IPv4 for now)
-    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-    const isIPv4 = ipv4Regex.test(domainPart);
+    // Validate IPv4 addresses with proper octet range (0-255).
+    // The previous regex /^(\d{1,3}\.){3}\d{1,3}$/ would accept invalid
+    // addresses like "999.999.999.999" since it only checked digit count.
+    const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    const ipv4Match = domainPart.match(ipv4Regex);
+    const isIPv4 =
+      ipv4Match !== null &&
+      ipv4Match.slice(1).every((octet) => {
+        const n = parseInt(octet, 10);
+        return n >= 0 && n <= 255;
+      });
 
     // Check if it's localhost
     const isLocalhost = domainPart === "localhost";
