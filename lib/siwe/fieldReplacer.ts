@@ -375,18 +375,18 @@ export class FieldReplacer {
     return lines.join("\n");
   }
 
-  /**
-   * Generate a secure nonce
-   */
+  // Uses crypto.getRandomValues() for cryptographically secure nonce generation.
+  // Math.random() is NOT cryptographically secure — its output can be predicted,
+  // which would allow replay attacks against SIWE authentication.
   private static generateSecureNonce(): string {
     const characters =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
     let result = "";
 
     for (let i = 0; i < 16; i++) {
-      result += characters.charAt(
-        Math.floor(Math.random() * characters.length)
-      );
+      result += characters.charAt(array[i] % characters.length);
     }
 
     return result;
