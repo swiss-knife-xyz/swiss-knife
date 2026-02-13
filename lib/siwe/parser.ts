@@ -350,6 +350,18 @@ export class SiweMessageParser {
       requestId: "Request ID: ",
     };
 
+    // Resources uses a "Resources:" header line followed by "- " prefixed items.
+    // Return the line number of the "Resources:" header so callers can offset by
+    // resource index to get individual item line numbers.
+    if (fieldName === "resources") {
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim() === "Resources:") {
+          return i + 1;
+        }
+      }
+      return -1;
+    }
+
     const prefix = prefixes[fieldName];
     if (!prefix) return -1;
 
