@@ -4,6 +4,26 @@ import type { ValidationError, ParsedSiweMessage } from "./types";
 import { SiweMessageParser } from "./parser";
 
 export class SecurityValidators {
+  // Pre-compiled regex patterns — avoids re-compiling on every validation call.
+  private static readonly WEAK_NONCE_PATTERNS = [
+    /^(test|demo|example)/i,
+    /^(123|abc|000)/,
+    /^(.)\1{4,}/, // Repeated characters
+    /^\d+$/, // Only numbers
+    /^[a-z]+$/i, // Only letters
+  ];
+
+  private static readonly SUSPICIOUS_DOMAIN_PATTERNS = [
+    /metamask.*\.(?!io$)/i, // Fake MetaMask domains
+    /wallet.*connect/i, // Fake WalletConnect
+    /ethereum.*wallet/i, // Suspicious wallet domains
+    /crypto.*app/i, // Generic crypto apps
+    /defi.*swap/i, // Suspicious DeFi names
+    /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/, // IP addresses
+    /[a-z]{20,}\.com/i, // Very long random domains
+    /[0-9]{8,}\./, // Domains with long numbers
+  ];
+
   // Comprehensive security validation
   static validateSecurity(message: ParsedSiweMessage): ValidationError[] {
     const errors: ValidationError[] = [];
@@ -363,16 +383,7 @@ export class SecurityValidators {
       });
     }
 
-    // Check for common weak patterns
-    const weakPatterns = [
-      /^(test|demo|example)/i,
-      /^(123|abc|000)/,
-      /^(.)\1{4,}/, // Repeated characters
-      /^\d+$/, // Only numbers
-      /^[a-z]+$/i, // Only letters
-    ];
-
-    for (const pattern of weakPatterns) {
+    for (const pattern of this.WEAK_NONCE_PATTERNS) {
       if (pattern.test(nonce)) {
         errors.push({
           type: "security",
@@ -593,18 +604,9 @@ export class SecurityValidators {
       hostname = portMatch[1];
     }
 
-    const suspiciousPatterns = [
-      /metamask.*\.(?!io$)/i, // Fake MetaMask domains
-      /wallet.*connect/i, // Fake WalletConnect
-      /ethereum.*wallet/i, // Suspicious wallet domains
-      /crypto.*app/i, // Generic crypto apps
-      /defi.*swap/i, // Suspicious DeFi names
-      /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/, // IP addresses
-      /[a-z]{20,}\.com/i, // Very long random domains
-      /[0-9]{8,}\./, // Domains with long numbers
-    ];
-
-    return suspiciousPatterns.some((pattern) => pattern.test(hostname));
+    return this.SUSPICIOUS_DOMAIN_PATTERNS.some((pattern) =>
+      pattern.test(hostname)
+    );
   }
 
   private static isDevelopmentDomain(domain: string): boolean {
