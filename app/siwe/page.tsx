@@ -1,9 +1,10 @@
 "use client";
 
 import { Suspense } from "react";
-import { Box, Heading, Text, VStack, Link, HStack, Badge, Divider } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack, Link, HStack, Badge, Divider, Flex, Spacer } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { Layout } from "@/components/Layout";
+import { ConnectButton } from "@/components/ConnectButton";
 import { SiweValidator } from "./components";
 
 // Suspense boundary required because SiweValidator uses useQueryState (which
@@ -48,6 +49,11 @@ const SiwePage = () => {
           </VStack>
 
           <Divider borderColor="whiteAlpha.300" mb={6} />
+
+          <Flex w="100%" mb="1rem">
+            <Spacer />
+            <ConnectButton />
+          </Flex>
 
           <SiweValidator />
         </Box>
