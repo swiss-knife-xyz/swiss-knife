@@ -24,18 +24,18 @@ export const Footer = () => {
       borderColor={"custom.greenDarker"}
     >
       <Container as={Stack} maxW={"8xl"} py={10}>
-        <VStack spacing={5}>
-          <Center flexDir={"column"}>
+        <HStack spacing={10} justify="center">
+          <Center>
             <Heading size="md">
               <Link
                 color={"white"}
                 href="https://twitter.com/swissknifexyz"
                 isExternal
               >
-                <HStack>
+                <HStack spacing={2}>
                   <FontAwesomeIcon icon={faTwitter} size="lg" />
-                  {"  "}
-                  <Text display="inline">@swissknifexyz</Text>{" "}
+                  {/* {"  "} */}
+                  <Text>@swissknifexyz</Text>
                   <ExternalLinkIcon />
                 </HStack>
               </Link>
@@ -46,7 +46,7 @@ export const Footer = () => {
               <FontAwesomeIcon icon={faDiscord} size="2x" />
             </Link>
           </Center>
-        </VStack>
+        </HStack>
       </Container>
     </Box>
   );
