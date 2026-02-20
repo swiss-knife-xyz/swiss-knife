@@ -108,6 +108,29 @@ const zircuit = {
   },
 };
 
+const megaeth = {
+  id: 4326,
+  name: "MegaETH",
+  iconUrl: "/chainIcons/megaeth.svg",
+  iconBackground: "white",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://mainnet.megaeth.com/rpc"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "MegaETH Explorer",
+      url: "https://mega.etherscan.io",
+    },
+  },
+};
+
 interface SupportedChain {
   id: number;
   name: string;
@@ -281,6 +304,13 @@ const chains: SupportedChain[] = [
     color: "yellow.400",
     abbreviation: "KATANA",
     chainObj: katana,
+  },
+  {
+    id: megaeth.id,
+    name: "MegaETH",
+    color: "white",
+    abbreviation: "MEGA",
+    chainObj: megaeth,
   },
   {
     id: monad.id,
