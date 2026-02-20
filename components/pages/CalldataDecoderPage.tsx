@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import React, { Suspense, useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect, useMemo } from "react";
 import {
   Heading,
   Table,
@@ -23,6 +23,7 @@ import {
   useUpdateEffect,
   Link,
   Button,
+  Badge,
 } from "@chakra-ui/react";
 import {
   ChevronDownIcon,
@@ -53,6 +54,7 @@ import TabsSelector from "@/components/Tabs/TabsSelector";
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { decodeEvents, decodeRecursive } from "@/lib/decoder";
+import { getDisplayFunctionName } from "@/utils/functionNames";
 
 function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const toast = useToast();
@@ -168,11 +170,20 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     }
   }, [calldata]);
 
+  const resolvedFunctionName = useMemo(
+    () =>
+      getDisplayFunctionName(
+        result?.functionName,
+        result?.guessedFunctionName
+      ),
+    [result]
+  );
+
   useEffect(() => {
     document.title = `${
-      result ? `${result.functionName} - ` : ""
+      resolvedFunctionName.name ? `${resolvedFunctionName.name} - ` : ""
     }Universal Calldata Decoder | Swiss-Knife.xyz`;
-  }, [result]);
+  }, [resolvedFunctionName.name]);
 
   const decode = async ({
     _calldata,
@@ -611,14 +622,21 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       {/* Calldata Result - show directly for non-Tx modes, or when Calldata tab selected for Tx mode */}
       {result && (selectedTabIndex !== 3 || resultTabIndex === 0) && (
         <Box minW={"80%"}>
-          {result.functionName && result.functionName !== "__abi_decoded__" ? (
+          {resolvedFunctionName.name ? (
             <HStack>
               <Box>
                 <Box fontSize={"xs"} color={"whiteAlpha.600"}>
-                  function
+                  {`function${
+                    resolvedFunctionName.isGuessed ? " (guessed)" : ""
+                  }`}
                 </Box>
-                <Box>{result.functionName}</Box>
+                <Box>{resolvedFunctionName.name}</Box>
               </Box>
+              {resolvedFunctionName.isGuessed ? (
+                <Badge colorScheme="purple" variant="outline">
+                  guessed
+                </Badge>
+              ) : null}
               <Spacer />
               <CopyToClipboard
                 textToCopy={JSON.stringify(
