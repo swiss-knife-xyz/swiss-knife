@@ -142,6 +142,28 @@ export const monad = defineChain({
   },
 });
 
+export const megaeth = defineChain({
+  id: 4326,
+  name: "MegaETH",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://mainnet.megaeth.com/rpc"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "MegaETH Explorer",
+      url: "https://mega.etherscan.io",
+    },
+  },
+  testnet: false,
+});
+
 export const CHAINLABEL_KEY = "$SK_CHAINLABEL";
 export const ADDRESS_KEY = "$SK_ADDRESS";
 export const TX_KEY = "$SK_TX";
@@ -200,6 +222,7 @@ export const c: { [name: string]: Chain } = {
   manta,
   mantaTestnet,
   mantle,
+  megaeth,
   metis,
   monad,
   moonbaseAlpha,
@@ -268,6 +291,7 @@ export const etherscanChains: { [name: string]: ExtendedChain } = {
   lineaTestnet,
   mantle,
   manta,
+  megaeth,
   moonbeam,
   moonriver,
   moonbaseAlpha,
@@ -355,6 +379,7 @@ export const chainIdToImage = (() => {
     [goerli.id]: `${basePath}/ethereum.svg`,
     [ink.id]: `${basePath}/ink.svg`,
     [mainnet.id]: `${basePath}/ethereum.svg`,
+    [megaeth.id]: `${basePath}/megaeth.svg`,
     [monad.id]: `${basePath}/monad.svg`,
     [optimism.id]: `${basePath}/optimism.svg`,
     [polygon.id]: `${basePath}/polygon.svg`,
