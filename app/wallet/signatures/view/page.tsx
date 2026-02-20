@@ -47,6 +47,16 @@ const decodeDataFromUrl = (
   encodedData: string
 ): SharedSignaturePayload | null => {
   try {
+    // Check if it's a storage key (shorter string starting with 'swissknife_sig_' or 'swissknife_ret_' for signature/returndata)
+    if (encodedData.startsWith('swissknife_sig_') || encodedData.startsWith('swissknife_ret_')) {
+      const storedData = sessionStorage.getItem(encodedData);
+      if (storedData) {
+        return JSON.parse(storedData) as SharedSignaturePayload;
+      }
+      return null;
+    }
+    
+    // Fall back to original URL decoding for backward compatibility
     const base64String = decodeURIComponent(encodedData);
     const jsonString = atob(base64String);
     return JSON.parse(jsonString) as SharedSignaturePayload;
@@ -86,9 +96,9 @@ function SignatureViewContent() {
   const [isVerifyingAll, setIsVerifyingAll] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     const encodedData = searchParams.get("payload");
+    const returnParamsData = searchParams.get("returnParams");
     if (encodedData) {
       const decoded = decodeDataFromUrl(encodedData);
       if (decoded && decoded.signers && Array.isArray(decoded.signers)) {
@@ -99,6 +109,14 @@ function SignatureViewContent() {
       }
     } else {
       setError("No signature data found in URL.");
+    }
+    if (returnParamsData) {
+      const decodedReturnParams = decodeDataFromUrl(returnParamsData);
+      if (decodedReturnParams) {
+        console.log("Decoded return params:", decodedReturnParams);
+      } else {
+        console.error("Failed to decode return parameters.");
+      }
     }
     setIsLoading(false);
   }, [searchParams]);
@@ -220,16 +238,34 @@ function SignatureViewContent() {
         setSignatureData(updatedSignatureData); // This will trigger re-verification useEffect
 
         const jsonString = JSON.stringify(updatedSignatureData);
+        
+        // Check payload size - if too large, use sessionStorage
         const base64String = btoa(jsonString);
         const encodedPayload = encodeURIComponent(base64String);
+        
+        let payloadParam = encodedPayload;
+        
+        // If URL would be too long, use sessionStorage, vercel caps the uri size at 14KB
+        // https://vercel.com/docs/errors/URL_TOO_LONG
+        if (encodedPayload.length > 4000) {
+          const storageKey = `swissknife_sig_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+          sessionStorage.setItem(storageKey, jsonString);
+          payloadParam = storageKey;
+        }
 
         // Preserve the returnParams when updating the URL
         const returnParams = searchParams.get("returnParams");
         let newUrl = `${getPath(
           subdomains.WALLET.base
-        )}signatures/view?payload=${encodedPayload}`;
+        )}signatures/view?payload=${payloadParam}`;
         if (returnParams) {
-          newUrl += `&returnParams=${encodeURIComponent(returnParams)}`;
+          let returnParam = returnParams;
+          if (returnParams.length > 4000) {
+            const returnKey = `swissknife_ret_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+            sessionStorage.setItem(returnKey, JSON.stringify({ returnParams }));
+            returnParam = returnKey;
+          }
+          newUrl += `&returnParams=${encodeURIComponent(returnParam)}`;
         }
 
         router.push(newUrl, {
@@ -257,8 +293,19 @@ function SignatureViewContent() {
 
     if (returnParams) {
       try {
-        const decodedParams = decodeURIComponent(returnParams);
-        backUrl += `?${decodedParams}`;
+        // Check if it's a storage key
+        if (returnParams.startsWith('swissknife_ret_')) {
+          const storedData = sessionStorage.getItem(returnParams);
+          if (storedData) {
+            const parsed = JSON.parse(storedData);
+            const decodedParams = parsed.returnParams;
+            backUrl += `?${decodedParams}`;
+          }
+        } else {
+          // Handle regular URL-encoded params
+          const decodedParams = decodeURIComponent(returnParams);
+          backUrl += `?${decodedParams}`;
+        }
       } catch (error) {
         console.error("Error decoding return parameters:", error);
       }

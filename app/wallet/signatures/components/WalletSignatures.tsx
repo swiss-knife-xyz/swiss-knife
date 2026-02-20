@@ -199,6 +199,16 @@ export default function WalletSignatures() {
         const jsonString = JSON.stringify(payloadForUrl);
         const base64String = btoa(jsonString);
         const encodedPayload = encodeURIComponent(base64String);
+        
+        let payloadParam = encodedPayload;
+        
+        // If URL would be too long, use sessionStorage, vercel caps the uri size at 14KB
+        // https://vercel.com/docs/errors/URL_TOO_LONG
+        if (encodedPayload.length > 4000) {
+          const storageKey = `swissknife_sig_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+          sessionStorage.setItem(storageKey, jsonString);
+          payloadParam = storageKey;
+        }
 
         // Preserve current query parameters for navigation back
         const preservedParams = new URLSearchParams();
@@ -213,11 +223,15 @@ export default function WalletSignatures() {
 
         let viewUrl = `${getPath(
           subdomains.WALLET.base
-        )}signatures/view?payload=${encodedPayload}`;
+        )}signatures/view?payload=${payloadParam}`;
         if (preservedParams.toString()) {
-          viewUrl += `&returnParams=${encodeURIComponent(
-            preservedParams.toString()
-          )}`;
+          let returnParam = preservedParams.toString();
+          if (returnParam.length > 4000) {
+            const returnKey = `swissknife_ret_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+            sessionStorage.setItem(returnKey, JSON.stringify({ returnParams: returnParam }));
+            returnParam = returnKey;
+          }
+          viewUrl += `&returnParams=${encodeURIComponent(returnParam)}`;
         }
 
         router.push(viewUrl);
