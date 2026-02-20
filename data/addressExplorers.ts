@@ -141,6 +141,7 @@ export const addressExplorers: ExplorersData = {
       [c.polygonZkEvm.id]: "zkevm",
       [c.zkSync.id]: "zksync",
       [c.zkSyncSepoliaTestnet.id]: "zksync-sepolia",
+      [c.megaeth.id]: "megaeth",
     },
   },
   Bloxy: {
@@ -379,6 +380,12 @@ export const addressExplorers: ExplorersData = {
       [c.moonbeam.id]: "moonbeam",
       [c.optimism.id]: "optimism",
       [c.polygon.id]: "polygon",
+    },
+  },
+  "MegaETH Explorer": {
+    urlLayout: `https://mega.etherscan.io/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.megaeth.id]: "",
     },
   },
   Monobase: {
