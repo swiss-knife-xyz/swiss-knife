@@ -86,6 +86,7 @@ export const txExplorers: ExplorersData = {
       [c.polygonZkEvm.id]: "zkevm",
       [c.zkSync.id]: "zksync",
       [c.zkSyncSepoliaTestnet.id]: "zksync-sepolia",
+      [c.megaeth.id]: "megaeth",
     },
   },
   Bloxy: {
@@ -145,6 +146,12 @@ export const txExplorers: ExplorersData = {
     chainIdToLabel: {
       [c.mainnet.id]: "mainnet",
       [c.goerli.id]: "goerli",
+    },
+  },
+  "MegaETH Explorer": {
+    urlLayout: `https://mega.etherscan.io/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.megaeth.id]: "",
     },
   },
   FTMscan: {
