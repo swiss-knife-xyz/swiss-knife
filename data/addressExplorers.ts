@@ -388,6 +388,13 @@ export const addressExplorers: ExplorersData = {
       [c.megaeth.id]: "",
     },
   },
+  SeiScan: {
+    urlLayout: `https://${CHAINLABEL_KEY}seiscan.io/address/${ADDRESS_KEY}`,
+    chainIdToLabel: {
+      [c.sei.id]: "",
+      [c.seiTestnet.id]: "testnet.",
+    },
+  },
   Monobase: {
     urlLayout: `https://monobase.xyz/${CHAINLABEL_KEY}/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
