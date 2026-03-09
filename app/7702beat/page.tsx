@@ -844,11 +844,11 @@ const shameChains: SupportedApp[] = [];
 
 const shameWallets: SupportedApp[] = [
   {
-    name: "BankrWallet",
-    logoUrl: "https://bankrwallet.app/images/bankrwallet-icon-nobg.png",
-    siteUrl: "https://bankrwallet.app",
+    name: "WalletChan",
+    logoUrl: "https://walletchan.com/images/walletchan-icon-nobg.png",
+    siteUrl: "https://walletchan.com",
     supportedChainIds: [], // Empty since they don't support 7702
-    twitterHandle: "bankrwalletapp",
+    twitterHandle: "walletchan_",
   },
   {
     name: "Rabby",
