@@ -26,7 +26,7 @@ export const Layout = ({ children }: LayoutParams) => {
           <Flex flexDir="column" flexGrow={1} overflow="hidden">
             <Navbar />
             <Box overflowX="auto" flexGrow={1}>
-              <Container mt={isMobile ? 0 : 12} minW="max-content" px={-20} mb={"6rem"}>
+              <Container mt={isMobile ? 0 : 20} minW="max-content" px={-20} mb={"6rem"}>
                 <Flex
                   flexDir="column"
                   mt="0.5rem"
