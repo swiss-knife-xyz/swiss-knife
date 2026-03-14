@@ -57,6 +57,7 @@ import {
   optimism,
   polygon,
   unichain,
+  sei,
   worldchain,
 } from "wagmi/chains";
 import { monad } from "@/data/common";
@@ -335,6 +336,16 @@ const chains: SupportedChain[] = [
     color: "purple.500",
     abbreviation: "POL",
     chainObj: polygon,
+  },
+  {
+    id: sei.id,
+    name: "Sei",
+    color: "red.600",
+    abbreviation: "SEI",
+    chainObj: {
+      ...sei,
+      iconBackground: "white",
+    },
   },
   {
     id: unichain.id,

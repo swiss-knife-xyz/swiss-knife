@@ -16,6 +16,8 @@ import {
   polygon,
   polygonMumbai,
   pulsechain,
+  sei,
+  seiTestnet,
   sepolia,
   soneium,
   sonic,
@@ -37,6 +39,7 @@ export const walletChains: readonly [Chain, ...Chain[]] = [
   megaeth,
   optimism,
   polygon,
+  sei,
   unichain,
   zora,
   // no icon
@@ -45,6 +48,7 @@ export const walletChains: readonly [Chain, ...Chain[]] = [
   soneium,
   sonic,
   // testnets
+  seiTestnet,
   sepolia,
   arbitrumSepolia,
   baseSepolia,
