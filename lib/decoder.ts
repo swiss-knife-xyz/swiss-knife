@@ -1146,6 +1146,7 @@ export async function decodeRecursive({
   encodedAbi?: any;
   _depth?: number;
 }): Promise<DecodeRecursiveResult> {
+  const selector = calldata.slice(0, 10);
   // Step 1: Decode the function call using the best available method
   let parsedTransaction: ParsedTransaction | null;
 
@@ -1165,12 +1166,34 @@ export async function decodeRecursive({
 
   // Step 2: Process the decoded result and recursively decode nested bytes
   if (parsedTransaction) {
+    let guessedFunctionName: string | undefined;
+    const shouldGuessFunctionName =
+      _depth === 0 &&
+      selector.length === 10 &&
+      (!parsedTransaction.fragment?.name ||
+        parsedTransaction.fragment.name === "__abi_decoded__");
+
+    if (shouldGuessFunctionName) {
+      try {
+        const guessedSignature = await fetchFunctionInterface({ selector });
+        if (guessedSignature) {
+          guessedFunctionName = guessedSignature.split("(")[0];
+        }
+      } catch (error) {
+        console.error(
+          `Failed to fetch guessed function name for selector ${selector}`,
+          error
+        );
+      }
+    }
+
     // Special handling for Safe MultiSend - decode each inner transaction
     if (parsedTransaction.txType === "safeMultiSend") {
       return {
         functionName: parsedTransaction.fragment.name,
         signature: parsedTransaction.signature,
         rawArgs: parsedTransaction.args,
+        guessedFunctionName,
         args: await Promise.all(
           parsedTransaction.args[0].map(async (tx: string[], i: number) => {
             const operation = tx[0];
@@ -1245,6 +1268,7 @@ export async function decodeRecursive({
         functionName: parsedTransaction.fragment.name,
         signature: parsedTransaction.signature,
         rawArgs: parsedTransaction.args,
+        guessedFunctionName,
         args: await Promise.all(
           parsedTransaction.args[0].map(async (tx: string[], i: number) => {
             const to = tx[0];
@@ -1305,6 +1329,7 @@ export async function decodeRecursive({
         functionName: parsedTransaction.fragment.name,
         signature: parsedTransaction.signature,
         rawArgs: parsedTransaction.args,
+        guessedFunctionName,
         args: await Promise.all(
           parsedTransaction.fragment.inputs.map(async (input, i) => {
             const value = parsedTransaction!.args[i];

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
+  Badge,
   Box,
   Collapse,
   HStack,
@@ -16,6 +17,7 @@ import { StringParam } from "./StringParam";
 import { renderParams } from "../renderParams";
 import { UintParam } from "./UintParam";
 import TabsSelector from "../Tabs/TabsSelector";
+import { getDisplayFunctionName } from "@/utils/functionNames";
 
 interface Params {
   arg: {
@@ -85,39 +87,45 @@ export const BytesParam = ({ arg: _arg, chainId }: Params) => {
     const index =
       arg.value.decoded !== null ? selectedTabIndex : selectedTabIndex + 1;
     switch (index) {
-      case 0:
-        return arg.value.decoded ? (
+      case 0: {
+        if (!arg.value.decoded) {
+          return null;
+        }
+        const decodedFn = getDisplayFunctionName(
+          arg.value.decoded.functionName,
+          arg.value.decoded.guessedFunctionName
+        );
+        return (
           <Box minW={"80%"}>
-            {arg.value.decoded.functionName &&
-            arg.value.decoded.functionName !== "__abi_decoded__" ? (
-              <>
+            {decodedFn.name ? (
+              <HStack alignItems={"flex-start"}>
                 <Box>
                   <Box fontSize={"xs"} color={"whiteAlpha.600"}>
-                    function
+                    {`function${decodedFn.isGuessed ? " (guessed)" : ""}`}
                   </Box>
-                  <Box>{arg.value.decoded.functionName}</Box>
+                  <Box>{decodedFn.name}</Box>
                 </Box>
-                <Stack
-                  mt={2}
-                  p={4}
-                  spacing={2}
-                  bg={"whiteAlpha.50"}
-                  rounded={"lg"}
-                >
-                  {arg.value.decoded.args.map((ar: any, i: number) => {
-                    return renderParams(i, ar, chainId);
-                  })}
-                </Stack>
-              </>
-            ) : (
-              <Stack spacing={2}>
-                {arg.value.decoded.args.map((ar: any, i: number) => {
-                  return renderParams(i, ar, chainId);
-                })}
-              </Stack>
-            )}
+                {decodedFn.isGuessed ? (
+                  <Badge colorScheme="purple" variant="outline">
+                    guessed
+                  </Badge>
+                ) : null}
+              </HStack>
+            ) : null}
+            <Stack
+              mt={decodedFn.name ? 2 : 0}
+              p={4}
+              spacing={2}
+              bg={"whiteAlpha.50"}
+              rounded={"lg"}
+            >
+              {arg.value.decoded.args.map((ar: any, i: number) => {
+                return renderParams(i, ar, chainId);
+              })}
+            </Stack>
           </Box>
-        ) : null;
+        );
+      }
       case 1:
         return (
           <Box mt={4}>
