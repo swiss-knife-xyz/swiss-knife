@@ -314,6 +314,19 @@ export const chainIdToChain = (() => {
         },
       };
     }
+
+    // Override Polygon RPC URL
+    if (chain.id === polygon.id) {
+      res[chain.id] = {
+        ...chain,
+        rpcUrls: {
+          ...chain.rpcUrls,
+          default: {
+            http: ["https://1rpc.io/matic"],
+          },
+        },
+      };
+    }
   });
 
   return res;
