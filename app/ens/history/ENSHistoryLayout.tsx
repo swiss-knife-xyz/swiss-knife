@@ -462,7 +462,7 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
                               ? card.customFaviconUrl
                               : card.useEnsAvatar
                               ? `https://euc.li/${card.ensName}`
-                              : `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=https://${card.ensName}${card.limoSuffix ?? ".limo"}`
+                              : `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=https://${card.ensName}${card.limoSuffix ?? ".link"}`
                           }
                           boxSize="40px"
                           borderRadius="full"
@@ -485,7 +485,7 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
                             <IconButton
                               as="a"
                               href={`https://${card.ensName}${
-                                card.limoSuffix ?? ".limo"
+                                card.limoSuffix ?? ".link"
                               }`}
                               target="_blank"
                               rel="noopener noreferrer"

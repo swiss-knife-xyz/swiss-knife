@@ -334,8 +334,8 @@ const ENSHistory = () => {
       contentEvents.length > 0 ? contentEvents[0] : null;
     const ipfsHash = latestContentEvent?.details.hash || null;
 
-    // Create the .eth.limo URL if we have an IPFS hash
-    const ethLimoUrl = ipfsHash && ensName ? `https://${ensName}.limo` : null;
+    // Create the .eth.link URL if we have an IPFS hash
+    const ethLimoUrl = ipfsHash && ensName ? `https://${ensName}.link` : null;
 
     return (
       <Card variant="outline" shadow="sm" bg="blackAlpha.300">
@@ -351,13 +351,13 @@ const ENSHistory = () => {
                   IPFS Content
                 </Heading>
                 {ethLimoUrl && (
-                  <Tooltip label="Open in .eth.limo gateway">
+                  <Tooltip label="Open in .eth.link gateway">
                     <IconButton
                       as="a"
                       href={ethLimoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label="Open in .eth.limo gateway"
+                      aria-label="Open in .eth.link gateway"
                       icon={<ExternalLinkIcon />}
                       size="xs"
                       variant="ghost"
