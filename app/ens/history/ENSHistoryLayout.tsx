@@ -277,6 +277,8 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
       description:
         "Fileverse Walkaway — encrypted, self-sovereign dDocs & dSheets",
       category: "Tools / Infrastructure",
+      customFaviconUrl:
+        "https://walkaway.fileverse.eth.link/assets/favicon-CPSrIiXo.ico",
     },
   ];
 
