@@ -272,6 +272,12 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
       customFaviconUrl:
         "https://simplepage.eth.limo/_files/.artifacts/foamFavicon-light.png",
     },
+    {
+      ensName: "walkaway.fileverse.eth",
+      description:
+        "Fileverse Walkaway — encrypted, self-sovereign dDocs & dSheets",
+      category: "Tools / Infrastructure",
+    },
   ];
 
   // Filter cards by the current input value (case-insensitive match on name or description)
