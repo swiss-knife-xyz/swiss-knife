@@ -66,6 +66,11 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
       description: "Safe{Wallet} official interface on ENS",
       category: "Wallets / Safe",
     },
+    {
+      ensName: "beta.walletbeat.eth",
+      description: "Walletbeat — wallet comparison & review",
+      category: "Wallets / Safe",
+    },
     // DeFi
     {
       ensName: "aero.drome.eth",
@@ -217,6 +222,12 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
       customFaviconUrl: "https://docs.ipfs.eth.sucks/favicon-32x32.png",
     },
     // Tools / Infrastructure
+    {
+      ensName: "evmnow.eth",
+      description:
+        "Smart Contract Reader — streamlined open source block explorer UI",
+      category: "Tools / Infrastructure",
+    },
     {
       ensName: "planetable.eth",
       description: "Planetable — decentralized publishing",
