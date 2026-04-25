@@ -130,9 +130,20 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
       description: "Reality.eth — crowd-sourced on-chain oracle",
       category: "DeFi",
     },
+    {
+      ensName: "ethpm.eth",
+      description:
+        "ethPM — decentralized prediction markets on zAMM.finance",
+      category: "DeFi",
+    },
+    {
+      ensName: "zorgz.eth",
+      description: "ZORGZ — swap ETH for ZORG tokens",
+      category: "DeFi",
+    },
     // Alternative ENS frontend
     {
-      ensName: "app.ens.eth",
+      ensName: "ens.eth",
       description: "Alternative ENS app frontend",
       category: "Alternative ENS frontend",
     },
@@ -207,6 +218,12 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
       description: "Juicebox DAO",
       category: "DAOs / Communities",
       customFaviconUrl: "https://jbdao.eth.limo/avatar.png",
+    },
+    {
+      ensName: "daicowtf.eth",
+      description:
+        "DAICO.wtf — launch DAOs with token sales & programmable treasury",
+      category: "DAOs / Communities",
     },
     // Education / Docs
     {
