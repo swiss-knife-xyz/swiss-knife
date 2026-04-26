@@ -7,6 +7,7 @@ import React, {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import {
   HStack,
@@ -32,6 +33,7 @@ import {
   Spinner,
   Tooltip,
   Image,
+  Badge,
   Icon,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
@@ -71,6 +73,7 @@ import { chainIdToChain } from "@/data/common";
 import { decodeRecursive } from "@/lib/decoder";
 import { renderParams } from "@/components/renderParams";
 import { config } from "@/app/providers";
+import { getDisplayFunctionName } from "@/utils/functionNames";
 
 function SendTxContent() {
   const { data: walletClient } = useWalletClient();
@@ -115,6 +118,14 @@ function SendTxContent() {
   const [isDecodeModalOpen, setIsDecodeModalOpen] = useState(false);
   const [isDecoding, setIsDecoding] = useState(false);
   const [decoded, setDecoded] = useState<any>();
+  const decodedFunctionName = useMemo(
+    () =>
+      getDisplayFunctionName(
+        decoded?.functionName,
+        decoded?.guessedFunctionName
+      ),
+    [decoded]
+  );
 
   // ENS resolution state
   const [ensName, setEnsName] = useState("");
@@ -640,23 +651,27 @@ function SendTxContent() {
             <ModalBody>
               {decoded && (
                 <Box minW={"80%"}>
-                  {decoded.functionName &&
-                  decoded.functionName !== "__abi_decoded__" ? (
+                  {decodedFunctionName.name ? (
                     <HStack>
                       <Box>
                         <Text fontSize="xs" color="gray.500">
-                          function
+                          {`function${
+                            decodedFunctionName.isGuessed ? " (guessed)" : ""
+                          }`}
                         </Text>
-                        <Text color="gray.100">{decoded.functionName}</Text>
+                        <Text color="gray.100">{decodedFunctionName.name}</Text>
                       </Box>
+                      {decodedFunctionName.isGuessed ? (
+                        <Badge colorScheme="purple" variant="outline">
+                          guessed
+                        </Badge>
+                      ) : null}
                       <Spacer />
                       <CopyToClipboard
                         textToCopy={JSON.stringify(
                           {
                             function: decoded.signature,
-                            params: JSON.parse(
-                              stringify(decoded.rawArgs)
-                            ),
+                            params: JSON.parse(stringify(decoded.rawArgs)),
                           },
                           undefined,
                           2

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import React, { Suspense, useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect, useMemo } from "react";
 import {
   Heading,
   Box,
@@ -54,6 +54,7 @@ import TabsSelector from "@/components/Tabs/TabsSelector";
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { decodeEvents, decodeRecursive } from "@/lib/decoder";
+import { getDisplayFunctionName } from "@/utils/functionNames";
 
 function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const toast = useToast();
@@ -172,11 +173,20 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     }
   }, [calldata]);
 
+  const resolvedFunctionName = useMemo(
+    () =>
+      getDisplayFunctionName(
+        result?.functionName,
+        result?.guessedFunctionName
+      ),
+    [result]
+  );
+
   useEffect(() => {
     document.title = `${
-      result ? `${result.functionName} - ` : ""
+      resolvedFunctionName.name ? `${resolvedFunctionName.name} - ` : ""
     }Universal Calldata Decoder | ETH.sh`;
-  }, [result]);
+  }, [resolvedFunctionName.name]);
 
   const decode = async ({
     _calldata,
@@ -766,7 +776,8 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
             <TreeView
               args={result.args}
               chainId={chainId}
-              functionName={result.functionName}
+              functionName={resolvedFunctionName.name ?? result.functionName}
+              isFunctionNameGuessed={resolvedFunctionName.isGuessed}
             />
           </Box>
         </Box>

@@ -82,6 +82,7 @@ export type DecodeRecursiveResult = {
   signature: string;
   rawArgs: any;
   args: Arg[];
+  guessedFunctionName?: string;
 } | null;
 
 export type DecodeEventResult = {
