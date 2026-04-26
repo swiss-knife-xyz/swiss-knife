@@ -188,6 +188,12 @@ export function TreeNode({
         />
       );
     }
+    // Empty tuple: render "{}" as a string value so it gets the same boxed
+    // input treatment as other leaves. Falling through to StringParam with the
+    // raw null value would show a permanent skeleton.
+    if (arg.baseType === "tuple") {
+      return <StringParam value="{}" />;
+    }
     return <StringParam value={arg.value as string | null} />;
   };
 
