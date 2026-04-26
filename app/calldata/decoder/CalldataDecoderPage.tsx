@@ -18,7 +18,6 @@ import {
   useUpdateEffect,
   Link,
   Button,
-  Badge,
   Icon,
 } from "@chakra-ui/react";
 import {
@@ -754,11 +753,6 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
         <Box maxW="800px" mx="auto">
           {/* Copy params button - outside the box */}
           <HStack mb={2} justify="flex-end">
-            {resolvedFunctionName.isGuessed ? (
-              <Badge colorScheme="purple" variant="outline">
-                guessed
-              </Badge>
-            ) : null}
             <CopyToClipboard
               textToCopy={JSON.stringify(
                 {
@@ -783,6 +777,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
               args={result.args}
               chainId={chainId}
               functionName={resolvedFunctionName.name ?? result.functionName}
+              isFunctionNameGuessed={resolvedFunctionName.isGuessed}
             />
           </Box>
         </Box>

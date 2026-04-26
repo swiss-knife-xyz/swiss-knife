@@ -2,7 +2,7 @@
 
 import React, { useEffect, useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Box, HStack, Button, Icon, Text, Collapse } from "@chakra-ui/react";
+import { Badge, Box, HStack, Button, Icon, Text, Collapse } from "@chakra-ui/react";
 import { FiMaximize2, FiMinimize2, FiTerminal } from "react-icons/fi";
 import { ChevronDownIcon, ChevronRightIcon } from "@chakra-ui/icons";
 import { Arg } from "@/types";
@@ -14,6 +14,7 @@ interface TreeViewProps {
   args: Arg[];
   chainId?: number;
   functionName?: string;
+  isFunctionNameGuessed?: boolean;
 }
 
 function TreeControls() {
@@ -221,11 +222,13 @@ function StickyHeaders() {
 
 function FunctionRootNode({
   functionName,
+  isFunctionNameGuessed,
   args,
   chainId,
   showControls,
 }: {
   functionName: string;
+  isFunctionNameGuessed?: boolean;
   args: Arg[];
   chainId?: number;
   showControls?: boolean;
@@ -327,6 +330,12 @@ function FunctionRootNode({
           <Text fontSize="xl" fontWeight="bold" color="green.300">
             {functionName}
           </Text>
+
+          {isFunctionNameGuessed ? (
+            <Badge colorScheme="purple" variant="outline">
+              guessed
+            </Badge>
+          ) : null}
 
           {/* Param count */}
           <Text fontSize="sm" color="whiteAlpha.500">
@@ -615,10 +624,12 @@ function TreeContent({
   args,
   chainId,
   functionName,
+  isFunctionNameGuessed,
 }: {
   args: Arg[];
   chainId?: number;
   functionName?: string;
+  isFunctionNameGuessed?: boolean;
 }) {
   const { scrollContainerRef } = useTreeContext();
 
@@ -637,6 +648,7 @@ function TreeContent({
           <StickyHeaders />
           <FunctionRootNode
             functionName={functionName}
+            isFunctionNameGuessed={isFunctionNameGuessed}
             args={args}
             chainId={chainId}
             showControls
@@ -673,10 +685,20 @@ function TreeContent({
   );
 }
 
-export function TreeView({ args, chainId, functionName }: TreeViewProps) {
+export function TreeView({
+  args,
+  chainId,
+  functionName,
+  isFunctionNameGuessed,
+}: TreeViewProps) {
   return (
     <TreeProvider args={args} functionName={functionName}>
-      <TreeContent args={args} chainId={chainId} functionName={functionName} />
+      <TreeContent
+        args={args}
+        chainId={chainId}
+        functionName={functionName}
+        isFunctionNameGuessed={isFunctionNameGuessed}
+      />
     </TreeProvider>
   );
 }
