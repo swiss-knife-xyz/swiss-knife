@@ -644,6 +644,7 @@ function AppStoreContent({
         inset={0}
         bg="bg.900"
         style={{ backgroundColor: "#1A202C" }}
+        zIndex={10}
       >
         <Flex
           position="absolute"
@@ -926,11 +927,18 @@ function AppStoreContent({
           </Flex>
         )}
 
-        <Center flexDir={"column"} gap={2}>
-          <Heading size="xl" color="white" width="100%" textAlign="center">
-            🏪 Web3 App Store
+        <Center flexDir="column" gap={2}>
+          <Heading
+            size="xl"
+            color="gray.100"
+            fontWeight="bold"
+            letterSpacing="tight"
+            width="100%"
+            textAlign="center"
+          >
+            Web3 App Store
           </Heading>
-          <Text color="whiteAlpha.800" fontSize="lg" fontStyle={"italic"}>
+          <Text color="gray.400" fontSize="lg" fontStyle="italic">
             Your Web3 Operating System
           </Text>
         </Center>

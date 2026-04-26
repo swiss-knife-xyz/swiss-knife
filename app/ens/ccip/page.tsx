@@ -522,7 +522,7 @@ export default function CCIPRead() {
         </Text>
 
         {/* Total time indicator */}
-        {result?.timing?.total && !isNaN(result.timing.total) && (
+        {!!result?.timing?.total && !isNaN(result.timing.total) && (
           <Box
             position="absolute"
             top="10px"
@@ -632,8 +632,8 @@ export default function CCIPRead() {
               ? result.progress?.lookup?.active
                 ? 0.4
                 : result.progress?.lookup?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -656,8 +656,8 @@ export default function CCIPRead() {
               ? result.progress?.lookup?.active
                 ? 0.4
                 : result.progress?.lookup?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />
@@ -683,7 +683,7 @@ export default function CCIPRead() {
         >
           Lookup {currentEnsName.length > 0 ? currentEnsName : "CCIP ENS"}
         </Text>
-        {result?.timing?.lookup && result?.progress?.lookup?.completed && (
+        {!!result?.timing?.lookup && result?.progress?.lookup?.completed && (
           <Text
             position="absolute"
             left="35%"
@@ -712,8 +712,8 @@ export default function CCIPRead() {
               ? result.progress?.revert?.active
                 ? 0.4
                 : result.progress?.revert?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -736,8 +736,8 @@ export default function CCIPRead() {
               ? result.progress?.revert?.active
                 ? 0.4
                 : result.progress?.revert?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />
@@ -777,8 +777,8 @@ export default function CCIPRead() {
               ? result.progress?.gateway?.active
                 ? 0.4
                 : result.progress?.gateway?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -801,8 +801,8 @@ export default function CCIPRead() {
               ? result.progress?.gateway?.active
                 ? 0.4
                 : result.progress?.gateway?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />
@@ -828,7 +828,7 @@ export default function CCIPRead() {
         >
           Ask Gateway
         </Text>
-        {result?.timing?.gateway && result?.progress?.gateway?.completed && (
+        {!!result?.timing?.gateway && result?.progress?.gateway?.completed && (
           <Text
             position="absolute"
             left="50%"
@@ -857,8 +857,8 @@ export default function CCIPRead() {
               ? result.progress?.return?.active
                 ? 0.4
                 : result.progress?.return?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -881,8 +881,8 @@ export default function CCIPRead() {
               ? result.progress?.return?.active
                 ? 0.4
                 : result.progress?.return?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />
@@ -908,7 +908,7 @@ export default function CCIPRead() {
         >
           Return Data
         </Text>
-        {result?.timing?.return && result?.progress?.return?.completed && (
+        {!!result?.timing?.return && result?.progress?.return?.completed && (
           <Text
             position="absolute"
             left="50%"
@@ -937,8 +937,8 @@ export default function CCIPRead() {
               ? result.progress?.verify?.active
                 ? 0.4
                 : result.progress?.verify?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -961,8 +961,8 @@ export default function CCIPRead() {
               ? result.progress?.verify?.active
                 ? 0.4
                 : result.progress?.verify?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />
@@ -988,7 +988,7 @@ export default function CCIPRead() {
         >
           Verify/Decode Data
         </Text>
-        {result?.timing?.verify && result?.progress?.verify?.completed && (
+        {!!result?.timing?.verify && result?.progress?.verify?.completed && (
           <Text
             position="absolute"
             left="35%"
@@ -1017,8 +1017,8 @@ export default function CCIPRead() {
               ? result.progress?.final?.active
                 ? 0.4
                 : result.progress?.final?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -1041,8 +1041,8 @@ export default function CCIPRead() {
               ? result.progress?.final?.active
                 ? 0.4
                 : result.progress?.final?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />

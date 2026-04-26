@@ -1,7 +1,11 @@
 const subdomains = {
   CALLDATA: {
     base: "calldata",
-    paths: ["decoder"],
+    paths: ["decoder", "encoder"],
+  },
+  CONTRACT: {
+    base: "contract",
+    paths: [],
   },
   EXPLORER: {
     base: "explorer",
@@ -33,7 +37,7 @@ const subdomains = {
   },
   UNISWAP: {
     base: "uniswap",
-    paths: ["tick-to-price"],
+    paths: ["tick-to-price", "pool-price-to-target"],
   },
   DETERMINE_ADDRESS: {
     base: "determine-address",

@@ -3,9 +3,9 @@ import axios from "axios";
 
 export const GET = async (
   request: NextRequest,
-  { params }: { params: { address: string } }
+  { params }: { params: Promise<{ address: string }> }
 ) => {
-  const { address } = params;
+  const { address } = await params;
 
   // Extract chainId from query parameters
   const searchParams = request.nextUrl.searchParams;

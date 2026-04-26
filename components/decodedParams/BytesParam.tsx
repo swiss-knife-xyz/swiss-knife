@@ -25,6 +25,7 @@ interface Params {
     value: {
       decoded: {
         functionName?: string;
+        guessedFunctionName?: string;
         args: any[];
       } | null;
     };

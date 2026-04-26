@@ -7,11 +7,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   Object.keys(subdomains).map((key) => {
     const subdomain = subdomains[key];
 
-    allPaths.push(`https://${subdomain.base}.swiss-knife.xyz/`);
+    allPaths.push(`https://${subdomain.base}.eth.sh/`);
 
     if (subdomain.paths) {
       subdomain.paths.map((path: string) => {
-        allPaths.push(`https://${subdomain.base}.swiss-knife.xyz/${path}`);
+        allPaths.push(`https://${subdomain.base}.eth.sh/${path}`);
       });
     }
   });

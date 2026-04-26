@@ -13,10 +13,12 @@ export const ConnectButton = ({
   expectedChainId,
   hideAccount,
   hideChain,
+  transparentWrongNetwork,
 }: {
   expectedChainId?: number;
   hideAccount?: boolean;
   hideChain?: boolean;
+  transparentWrongNetwork?: boolean;
 }) => {
   const { switchChain } = useSwitchChain();
   const isMobile = useBreakpointValue({ base: true, md: false });
@@ -82,6 +84,7 @@ export const ConnectButton = ({
                           }
                         }}
                         isCompact={isCompact}
+                        transparent={transparentWrongNetwork}
                       />
                     </Box>
                   ) : (

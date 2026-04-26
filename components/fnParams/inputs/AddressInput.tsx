@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
   Text,
   InputProps,
@@ -26,10 +26,24 @@ import { InputInfo } from "@/components/fnParams/inputs";
 import subdomains from "@/subdomains";
 import debounce from "lodash/debounce";
 import { motion, AnimatePresence } from "framer-motion";
+import { keyframes } from "@emotion/react";
 import { InputField } from "@/components/InputField";
 import { Address, createPublicClient, http, zeroAddress, erc20Abi } from "viem";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import { chainIdToChain } from "@/data/common";
+import { AddressBookButton } from "@/components/AddressBook";
+
+const resolveGlow = keyframes`
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(59,130,246,0.5), 0 0 10px rgba(59,130,246,0.15);
+  }
+  33% {
+    box-shadow: 0 0 0 1px rgba(139,92,246,0.5), 0 0 15px rgba(139,92,246,0.15), 0 0 30px rgba(139,92,246,0.05);
+  }
+  66% {
+    box-shadow: 0 0 0 1px rgba(96,165,250,0.6), 0 0 12px rgba(96,165,250,0.2);
+  }
+`;
 
 interface InputFieldProps extends InputProps {
   chainId: number;
@@ -56,128 +70,145 @@ export const AddressInput = ({
   const [ensAvatar, setEnsAvatar] = useState("");
   const [resolvedAddress, setResolvedAddress] = useState("");
   const [isResolving, setIsResolving] = useState(false);
-  const [lastResolvedValue, setLastResolvedValue] = useState("");
   const [errorResolving, setErrorResolving] = useState(false);
 
   const [addressLabels, setAddressLabels] = useState<string[]>([]);
 
-  const [isDelayedAnimating, setIsDelayedAnimating] = useState(isResolving);
-  const delayedAnimationDuration = 100;
-
+  // Use refs for values accessed inside debounced callbacks to avoid
+  // recreating the callbacks (which causes useEffect re-triggers and loops)
+  const lastResolvedValueRef = useRef("");
+  const lastFetchedLabelsRef = useRef("");
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const chainIdRef = useRef(chainId);
+  chainIdRef.current = chainId;
   const prevIsResolvingRef = useRef(isResolving);
 
-  const resolveEns = useCallback(
-    debounce(async (val: string) => {
-      if (val === lastResolvedValue) return; // Prevent re-resolution of already resolved values
-      setErrorResolving(false);
-      console.log({ val });
-      try {
-        // Check if it's a resolvable name (ENS, Basename, etc.)
-        if (isResolvableName(val)) {
-          setIsResolving(true);
-          const address = await resolveNameToAddress(val);
-          if (address) {
-            setResolvedAddress(address);
-            setEnsName(val);
-            onChange({
-              target: { value: address },
-            } as any);
-            setLastResolvedValue(address);
-          } else {
-            throw new Error("Name resolution failed");
-          }
-        } else if (val.length === 42) {
-          // It's an address, try reverse resolution
-          try {
-            const name = await resolveAddressToName(val);
-            if (name) {
-              setEnsName(name);
-              setResolvedAddress(val);
-              setLastResolvedValue(val);
+  const resolveEns = useMemo(
+    () =>
+      debounce(async (val: string) => {
+        if (val === lastResolvedValueRef.current) return;
+        setErrorResolving(false);
+        try {
+          if (isResolvableName(val)) {
+            setIsResolving(true);
+            const address = await resolveNameToAddress(val);
+            if (address) {
+              setResolvedAddress(address);
+              setEnsName(val);
+              setEnsAvatar("");
+              lastResolvedValueRef.current = address;
+              onChangeRef.current({
+                target: { value: address },
+              } as any);
             } else {
               setEnsName("");
-              setResolvedAddress(val);
-              setLastResolvedValue(val);
+              setResolvedAddress("");
+              lastResolvedValueRef.current = val;
+              setErrorResolving(true);
             }
-          } catch {
+          } else if (val.length === 42) {
+            try {
+              const name = await resolveAddressToName(val);
+              if (name) {
+                setEnsName(name);
+                setResolvedAddress(val);
+              } else {
+                setResolvedAddress(val);
+              }
+              lastResolvedValueRef.current = val;
+            } catch {
+              setResolvedAddress(val);
+              lastResolvedValueRef.current = val;
+            }
+          } else {
             setEnsName("");
-            setResolvedAddress(val);
-            setLastResolvedValue(val);
+            setResolvedAddress("");
+            lastResolvedValueRef.current = "";
           }
-        } else {
+        } catch {
+          setErrorResolving(true);
           setEnsName("");
           setResolvedAddress("");
-          setLastResolvedValue("");
+          lastResolvedValueRef.current = val;
+        } finally {
+          setIsResolving(false);
         }
-      } catch (error) {
-        console.error("Error resolving name:", error);
-        setErrorResolving(true);
-        setEnsName("");
-        setResolvedAddress("");
-        setLastResolvedValue(val);
-      } finally {
-        setIsResolving(false);
-      }
-    }, 500),
-    [lastResolvedValue, onChange]
+      }, 500),
+    []
   );
 
-  const fetchSetAddressLabels = useCallback(
-    debounce(async (val: string) => {
-      if (val === lastResolvedValue) return; // Prevent re-resolution of already resolved values
-      setErrorResolving(false);
-      setAddressLabels([]);
-      try {
-        const client = createPublicClient({
-          chain: chainIdToChain[chainId],
-          transport: http(),
-        });
-
-        // check if the address is a contract
-        const res = await client.getBytecode({
-          address: val as Address,
-        });
-
-        // try fetching the contract symbol() if it's a token
+  const fetchSetAddressLabels = useMemo(
+    () =>
+      debounce(async (val: string) => {
+        if (!val || !val.startsWith("0x") || val.length !== 42) return;
+        if (val === lastFetchedLabelsRef.current) return;
+        lastFetchedLabelsRef.current = val;
+        setAddressLabels([]);
         try {
-          const symbol = await client.readContract({
-            address: val as Address,
-            abi: erc20Abi,
-            functionName: "symbol",
+          const currentChainId = chainIdRef.current;
+          const client = createPublicClient({
+            chain: chainIdToChain[currentChainId],
+            transport: http(),
           });
-          setAddressLabels([symbol]);
+
+          const res = await client.getBytecode({
+            address: val as Address,
+          });
+
+          try {
+            const symbol = await client.readContract({
+              address: val as Address,
+              abi: erc20Abi,
+              functionName: "symbol",
+            });
+            setAddressLabels([symbol]);
+          } catch {
+            const fetchedAbi = await fetchContractAbi({
+              address: val,
+              chainId: currentChainId,
+            });
+            if (fetchedAbi) {
+              setAddressLabels([fetchedAbi.name]);
+            }
+          }
         } catch {
-          // else try fetching the contract name if it's verified
-          const fetchedAbi = await fetchContractAbi({ address: val, chainId });
-          if (fetchedAbi) {
-            setAddressLabels([fetchedAbi.name]);
+          try {
+            const labels = await fetchAddressLabels(
+              val,
+              chainIdRef.current
+            );
+            if (labels.length > 0) {
+              setAddressLabels(labels);
+            }
+          } catch {
+            setAddressLabels([]);
           }
         }
-      } catch {
-        try {
-          const labels = await fetchAddressLabels(val, chainId);
-          if (labels.length > 0) {
-            setAddressLabels(labels);
-          }
-        } catch {
-          setAddressLabels([]);
-        }
-      }
-    }, 500),
-    [lastResolvedValue, chainId]
+      }, 500),
+    []
   );
 
   useEffect(() => {
-    if (value && value !== lastResolvedValue) {
+    if (value && value !== lastResolvedValueRef.current) {
       resolveEns(value);
     }
-  }, [value, resolveEns, lastResolvedValue]);
+  }, [value, resolveEns]);
 
   useEffect(() => {
-    if (value && value !== lastResolvedValue && !hideTags) {
+    fetchSetAddressLabels.cancel();
+    if (value && !hideTags) {
       fetchSetAddressLabels(value);
     }
-  }, [value, hideTags, fetchSetAddressLabels, lastResolvedValue, chainId]);
+  }, [value, hideTags, fetchSetAddressLabels, chainId]);
+
+  // Cancel debounced calls on unmount
+  useEffect(() => {
+    return () => {
+      resolveEns.cancel();
+      fetchSetAddressLabels.cancel();
+    };
+  }, [resolveEns, fetchSetAddressLabels]);
 
   useEffect(() => {
     if (ensName) {
@@ -196,19 +227,18 @@ export const AddressInput = ({
     }
   }, [isResolving, setFunctionIsDisabled]);
 
-  useEffect(() => {
-    if (!isResolving) {
-      const timer = setTimeout(() => {
-        setIsDelayedAnimating(false);
-      }, delayedAnimationDuration);
-      return () => clearTimeout(timer);
-    } else {
-      setIsDelayedAnimating(true);
-    }
-  }, [isResolving]);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value.trim();
+    // Clear resolved state when user modifies the input
+    if (ensName) {
+      setEnsName("");
+      setEnsAvatar("");
+      setResolvedAddress("");
+      setErrorResolving(false);
+      setAddressLabels([]);
+      lastResolvedValueRef.current = "";
+      lastFetchedLabelsRef.current = "";
+    }
     onChange({
       target: { value: newValue },
     } as any);
@@ -268,43 +298,22 @@ export const AddressInput = ({
         )}
       </HStack>
       <Box>
-        <motion.div
-          initial={false}
-          animate={{
-            background: isDelayedAnimating
-              ? [
-                  "linear-gradient(90deg, #3498db, #8e44ad, #3498db)",
-                  "linear-gradient(180deg, #3498db, #8e44ad, #3498db)",
-                  "linear-gradient(270deg, #3498db, #8e44ad, #3498db)",
-                  "linear-gradient(360deg, #3498db, #8e44ad, #3498db)",
-                ]
-              : "none",
-            backgroundSize: "200% 200%",
-            boxShadow: isResolving
-              ? [
-                  "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
-                  "0 0 5px #8e44ad, 0 0 10px #8e44ad, 0 0 15px #8e44ad",
-                  "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
-                ]
-              : "none",
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-          style={{
-            width: "100%",
-            borderRadius: "md",
-            padding: "2px",
-          }}
-        >
+        <Box position="relative">
+          <Box
+            position="absolute"
+            inset="0"
+            rounded="md"
+            pointerEvents="none"
+            zIndex={1}
+            opacity={isResolving ? 1 : 0}
+            transition="opacity 0.4s ease"
+            animation={`${resolveGlow} 2s ease-in-out infinite`}
+          />
           <InputField
             type="text"
             value={value}
             onChange={handleInputChange}
             isInvalid={isInvalid || errorResolving}
-            bg={isDelayedAnimating ? "#222" : undefined}
             color="white"
             rounded="md"
             _focus={{
@@ -314,10 +323,17 @@ export const AddressInput = ({
             placeholder={rest.placeholder ?? ""}
             {...rest}
           />
-        </motion.div>
+        </Box>
 
         <HStack my={2}>
           <Spacer />
+          <AddressBookButton
+            onSelect={(address: string) => {
+              onChange({
+                target: { value: address },
+              } as any);
+            }}
+          />
           <Button
             onClick={() => {
               onChange({

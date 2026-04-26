@@ -36,9 +36,9 @@ import { publicClient, resolveAddressToName, fetchContractAbi } from "@/utils";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import axios from "axios";
-import { normalize } from "viem/ens";
+import { namehash, normalize } from "viem/ens";
 import contentHash from "content-hash";
-import { encodePacked, erc721Abi, keccak256, labelhash } from "viem";
+import { erc721Abi } from "viem";
 
 const ENS_SUBGRAPH_URL = `https://gateway.thegraph.com/api/${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH`;
 
@@ -51,12 +51,13 @@ interface ContentEvent {
 interface DomainDetails {
   id: string;
   createdAt: number;
-  expiryDate: number;
+  expiryDate: number | null;
   owner: string;
   registrant: string | null;
   resolver: {
     id: string;
   };
+  isSubdomain: boolean;
 }
 
 interface DomainTransfer {
@@ -113,12 +114,12 @@ const ENSHistory = () => {
   // Update page title when component loads or ensName changes
   useEffect(() => {
     if (ensName) {
-      document.title = `${ensName} - ENS History | Swiss-Knife.xyz`;
+      document.title = `${ensName} - ENS History | ETH.sh`;
     }
 
     // Cleanup function to reset title when navigating away
     return () => {
-      document.title = "ENS History | Swiss-Knife.xyz";
+      document.title = "ENS History | ETH.sh";
     };
   }, [ensName]);
 
@@ -333,8 +334,8 @@ const ENSHistory = () => {
       contentEvents.length > 0 ? contentEvents[0] : null;
     const ipfsHash = latestContentEvent?.details.hash || null;
 
-    // Create the .eth.limo URL if we have an IPFS hash
-    const ethLimoUrl = ipfsHash && ensName ? `https://${ensName}.limo` : null;
+    // Create the .eth.link URL if we have an IPFS hash
+    const ethLimoUrl = ipfsHash && ensName ? `https://${ensName}.link` : null;
 
     return (
       <Card variant="outline" shadow="sm" bg="blackAlpha.300">
@@ -350,13 +351,13 @@ const ENSHistory = () => {
                   IPFS Content
                 </Heading>
                 {ethLimoUrl && (
-                  <Tooltip label="Open in .eth.limo gateway">
+                  <Tooltip label="Open in .eth.link gateway">
                     <IconButton
                       as="a"
                       href={ethLimoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label="Open in .eth.limo gateway"
+                      aria-label="Open in .eth.link gateway"
                       icon={<ExternalLinkIcon />}
                       size="xs"
                       variant="ghost"
@@ -391,7 +392,11 @@ const ENSHistory = () => {
             </Box>
           )}
 
-          <SimpleGrid columns={2} spacing={6} mb={6}>
+          <SimpleGrid
+            columns={domainDetails.expiryDate ? 2 : 1}
+            spacing={6}
+            mb={6}
+          >
             <Stat>
               <StatLabel fontWeight="medium">Registration Date</StatLabel>
               <StatNumber fontSize="md" mt={1}>
@@ -403,17 +408,19 @@ const ENSHistory = () => {
                 {formatDate(domainDetails.createdAt)}
               </StatHelpText>
             </Stat>
-            <Stat>
-              <StatLabel fontWeight="medium">Expiry Date</StatLabel>
-              <StatNumber fontSize="md" mt={1}>
-                {formatDistanceToNow(domainDetails.expiryDate * 1000, {
-                  addSuffix: true,
-                })}
-              </StatNumber>
-              <StatHelpText fontSize="xs" mt={1}>
-                {formatDate(domainDetails.expiryDate)}
-              </StatHelpText>
-            </Stat>
+            {domainDetails.expiryDate ? (
+              <Stat>
+                <StatLabel fontWeight="medium">Expiry Date</StatLabel>
+                <StatNumber fontSize="md" mt={1}>
+                  {formatDistanceToNow(domainDetails.expiryDate * 1000, {
+                    addSuffix: true,
+                  })}
+                </StatNumber>
+                <StatHelpText fontSize="xs" mt={1}>
+                  {formatDate(domainDetails.expiryDate)}
+                </StatHelpText>
+              </Stat>
+            ) : null}
           </SimpleGrid>
           <SimpleGrid columns={2} spacing={6}>
             <Stat>
@@ -667,7 +674,12 @@ const ENSHistory = () => {
       // Normalize the ENS name
       const normalizedName = normalize(ens);
       setLoadedEnsName(normalizedName);
-      const labelName = normalizedName.split(".")[0]; // Get the part before .eth
+      const nameParts = normalizedName.split(".");
+      const isSubdomain =
+        nameParts.length > 2 ||
+        nameParts[nameParts.length - 1] !== "eth";
+      // Only meaningful for direct 2LD .eth names (used in registrar queries)
+      const labelName = isSubdomain ? null : nameParts[0];
 
       // 1. Query for domain details
       const domainDetailsQuery = `
@@ -713,32 +725,35 @@ const ENSHistory = () => {
       const ENS_NAME_WRAPPER = "0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401";
       let owner = domain.owner.id;
       if (owner.toLowerCase() === ENS_NAME_WRAPPER.toLowerCase()) {
-        const labelHash = labelhash(normalizedName.split(".")[0]);
+        const tokenId = BigInt(namehash(normalizedName));
 
-        const ETH_NODE =
-          "0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae";
-        const node = keccak256(
-          encodePacked(["bytes32", "bytes32"], [ETH_NODE, labelHash])
-        );
-        const tokenId = BigInt(node);
-
-        owner = await publicClient.readContract({
-          address: ENS_NAME_WRAPPER,
-          abi: erc721Abi,
-          functionName: "ownerOf",
-          args: [tokenId],
-        });
+        try {
+          owner = await publicClient.readContract({
+            address: ENS_NAME_WRAPPER,
+            abi: erc721Abi,
+            functionName: "ownerOf",
+            args: [tokenId],
+          });
+        } catch (err) {
+          // Wrapped subdomain may not be minted as an ERC721 — keep wrapper addr
+          console.error("Error reading NameWrapper ownerOf:", err);
+        }
       }
 
+      const parsedExpiry = parseInt(domain.expiryDate);
       setDomainDetails({
         id: domain.id,
         createdAt: parseInt(domain.createdAt),
-        expiryDate: parseInt(domain.expiryDate),
+        expiryDate:
+          Number.isFinite(parsedExpiry) && parsedExpiry > 0
+            ? parsedExpiry
+            : null,
         owner,
         registrant: domain.registrant?.id || null,
         resolver: {
           id: resolverId,
         },
+        isSubdomain,
       });
 
       // Prioritize content hash changes
@@ -848,21 +863,27 @@ const ENSHistory = () => {
           }
         `;
 
-        // Execute all queries in parallel
+        // Execute queries in parallel. Registration/renewal queries only apply
+        // to direct .eth 2LDs registered at the ETHRegistrarController — skip
+        // them for subdomains to avoid matching unrelated domains by labelName.
         const [transfersResponse, renewalsResponse, registrationResponse] =
           await Promise.all([
             axios.post(ENS_SUBGRAPH_URL, {
               query: transfersQuery,
               variables: { domainId },
             }),
-            axios.post(ENS_SUBGRAPH_URL, {
-              query: renewalsQuery,
-              variables: { labelName },
-            }),
-            axios.post(ENS_SUBGRAPH_URL, {
-              query: registrationQuery,
-              variables: { labelName },
-            }),
+            isSubdomain
+              ? Promise.resolve(null)
+              : axios.post(ENS_SUBGRAPH_URL, {
+                  query: renewalsQuery,
+                  variables: { labelName },
+                }),
+            isSubdomain
+              ? Promise.resolve(null)
+              : axios.post(ENS_SUBGRAPH_URL, {
+                  query: registrationQuery,
+                  variables: { labelName },
+                }),
           ]);
 
         // Process transfers
@@ -899,7 +920,7 @@ const ENSHistory = () => {
         }
 
         // Process renewals
-        if (!renewalsResponse.data.errors) {
+        if (renewalsResponse && !renewalsResponse.data.errors) {
           const renewals = renewalsResponse.data.data
             .nameReneweds as DomainRenewal[];
 
@@ -924,7 +945,7 @@ const ENSHistory = () => {
         }
 
         // Process registration
-        if (!registrationResponse.data.errors) {
+        if (registrationResponse && !registrationResponse.data.errors) {
           const registrations =
             registrationResponse.data.data.registrationEvents.filter(
               (event: any) => event.blockNumber

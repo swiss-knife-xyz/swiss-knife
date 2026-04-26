@@ -2,13 +2,15 @@ import { useState } from "react";
 import { verifyMessage, verifyTypedData } from "viem";
 import {
   VStack,
-  Flex,
+  HStack,
   Input,
-  Grid,
+  Box,
   Text,
   Button,
   Alert,
   AlertIcon,
+  FormControl,
+  FormLabel,
 } from "@chakra-ui/react";
 import { Editor } from "@monaco-editor/react";
 
@@ -101,80 +103,98 @@ export default function VerifySignatures() {
     setVerificationResult(null);
   };
 
+  const inputStyles = {
+    bg: "whiteAlpha.100",
+    border: "1px solid",
+    borderColor: "whiteAlpha.300",
+    _hover: { borderColor: "whiteAlpha.400" },
+    _focus: {
+      borderColor: "blue.400",
+      boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
+    },
+    color: "gray.100",
+    _placeholder: { color: "gray.500" },
+  };
+
   return (
-    <VStack
-      spacing={6}
-      align="stretch"
-      maxW={{ base: "100%", md: "900px" }}
-      mx="auto"
-      minW={"40rem"}
-      width="100%"
-      px={{ base: 2, md: 4 }}
-    >
-      <Grid gap={1}>
-        <Text fontWeight="bold">Address</Text>
+    <VStack spacing={4} align="stretch" w="full">
+      <FormControl>
+        <FormLabel color="gray.300" fontSize="sm">Address</FormLabel>
         <Input
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="0x..."
+          {...inputStyles}
         />
-      </Grid>
+      </FormControl>
 
-      <Grid gap={1}>
-        <Text fontWeight="bold">Message or Typed Data</Text>
-        <Editor
-          height="300px"
-          theme="vs-dark"
-          defaultLanguage="json"
-          value={message}
-          onChange={handleMessageChange}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-          }}
-        />
-      </Grid>
+      <FormControl>
+        <FormLabel color="gray.300" fontSize="sm">Message or Typed Data</FormLabel>
+        <Box
+          borderRadius="md"
+          overflow="hidden"
+          border="1px solid"
+          borderColor="whiteAlpha.300"
+        >
+          <Editor
+            height="180px"
+            theme="vs-dark"
+            defaultLanguage="json"
+            value={message}
+            onChange={handleMessageChange}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 13,
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              lineNumbers: "off",
+              folding: false,
+              padding: { top: 8, bottom: 8 },
+            }}
+          />
+        </Box>
+      </FormControl>
 
-      <Grid gap={1}>
-        <Text fontWeight="bold">Signature Hash</Text>
+      <FormControl>
+        <FormLabel color="gray.300" fontSize="sm">Signature Hash</FormLabel>
         <Input
           value={signatureHash}
           onChange={(e) => setSignatureHash(e.target.value)}
           placeholder="0x..."
+          {...inputStyles}
         />
-      </Grid>
+      </FormControl>
 
-      <Alert
-        rounded="lg"
-        status={verificationResult?.isValid ? "success" : "error"}
-        border="1px"
-        borderColor={verificationResult?.isValid ? "green.400" : "red.500"}
-        textColor={verificationResult?.isValid ? "green.400" : "red.500"}
-        minHeight="60px"
-        opacity={verificationResult ? 1 : 0}
-        visibility={verificationResult ? "visible" : "hidden"}
-        transition="opacity 0.2s ease-in-out"
-        display="flex"
-        alignItems="center"
-      >
-        <AlertIcon
-          color={verificationResult?.isValid ? "green.400" : "red.500"}
-        />
-        {verificationResult?.error
-          ? verificationResult.error
-          : verificationResult
-            ? `Signature ${verificationResult.isValid ? "verified" : "invalid"}`
-            : ""}
-      </Alert>
+      {verificationResult && (
+        <Alert
+          rounded="md"
+          status={verificationResult.isValid ? "success" : "error"}
+          bg={verificationResult.isValid ? "green.900" : "red.900"}
+        >
+          <AlertIcon
+            color={verificationResult.isValid ? "green.400" : "red.400"}
+          />
+          <Text color={verificationResult.isValid ? "green.100" : "red.100"} fontSize="sm">
+            {verificationResult.error
+              ? verificationResult.error
+              : `Signature ${verificationResult.isValid ? "verified successfully" : "is invalid"}`}
+          </Text>
+        </Alert>
+      )}
 
-      <Flex justifyContent="flex-end" gap={2}>
-        <Button onClick={clearFields}>Clear</Button>
-        <Button colorScheme="blue" onClick={handleVerify}>
+      <HStack justify="flex-end" spacing={3} pt={2}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={clearFields}
+          borderColor="whiteAlpha.300"
+        >
+          Clear
+        </Button>
+        <Button colorScheme="blue" size="sm" onClick={handleVerify}>
           Verify
         </Button>
-      </Flex>
+      </HStack>
     </VStack>
   );
 }
