@@ -72,6 +72,22 @@ const UNIVERSAL_RESOLVER_ABI = [
     stateMutability: "view",
     type: "function",
   },
+  // Newer Universal Resolver (>= viem 2.40 default) returns this selector in
+  // OffchainLookup. Etherscan lists empty outputs but it actually returns
+  // (bytes, address) via assembly.
+  {
+    inputs: [
+      { internalType: "bytes", name: "response", type: "bytes" },
+      { internalType: "bytes", name: "extraData", type: "bytes" },
+    ],
+    name: "ccipReadCallback",
+    outputs: [
+      { internalType: "bytes", name: "", type: "bytes" },
+      { internalType: "address", name: "", type: "address" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;
 
 // Animation keyframes
@@ -253,10 +269,17 @@ export default function CCIPRead() {
           // Step 2: Get the return data from the error
           const errorDataArgs = error.cause.data.args;
           const sender = errorDataArgs[0];
-          const urls = errorDataArgs[1];
+          const urls = errorDataArgs[1] as string[];
           const callData = errorDataArgs[2];
           const callbackFunctionSelector = errorDataArgs[3];
           const extraData = errorDataArgs[4];
+
+          // Pick the first HTTP(S) gateway URL — the newer Universal Resolver
+          // also lists viem's `x-batch-gateway:true` sentinel which is not fetchable.
+          const gatewayUrl = urls.find((u) => u.startsWith("http"));
+          if (!gatewayUrl) {
+            throw new Error("No HTTP gateway URL in OffchainLookup");
+          }
 
           // Record revert completion time
           timerRef.current.revert = performance.now();
@@ -280,12 +303,12 @@ export default function CCIPRead() {
             },
             lookupDetails: {
               nameHash,
-              gatewayUrl: urls[0],
+              gatewayUrl,
             },
           }));
 
-          // Step 3: Make a request to the gateway url with the sender and callData received from the error
-          const response = await fetch(urls[0], {
+          // Step 3: Make a request to the gateway url with the sender and callData received from the error.
+          const response = await fetch(gatewayUrl, {
             method: "POST",
             body: JSON.stringify({ sender, data: callData }),
           });
@@ -344,7 +367,7 @@ export default function CCIPRead() {
             },
           }));
 
-          // find the function to call corresponding to the `callbackFunctionSelector` in the UNIVERSAL_RESOLVER_ABI (it'll be `resolveSingleCallback()`)
+          // find the function to call corresponding to the `callbackFunctionSelector` in the UNIVERSAL_RESOLVER_ABI (it'll be `resolveSingleCallback()` on the legacy UR or `ccipReadCallback()` on the newer UR)
           const functionToCall = UNIVERSAL_RESOLVER_ABI.filter(
             (
               item
