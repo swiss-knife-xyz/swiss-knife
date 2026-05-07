@@ -86,6 +86,7 @@ export const txExplorers: ExplorersData = {
       [c.polygonZkEvm.id]: "zkevm",
       [c.zkSync.id]: "zksync",
       [c.zkSyncSepoliaTestnet.id]: "zksync-sepolia",
+      [c.megaeth.id]: "megaeth",
     },
   },
   Bloxy: {
@@ -145,6 +146,37 @@ export const txExplorers: ExplorersData = {
     chainIdToLabel: {
       [c.mainnet.id]: "mainnet",
       [c.goerli.id]: "goerli",
+    },
+  },
+  "evm.now": {
+    urlLayout: `https://evm.now/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.mainnet.id]: "",
+    },
+  },
+  "Citrea Explorer": {
+    urlLayout: `https://explorer.mainnet.citrea.xyz/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.citrea.id]: "",
+    },
+  },
+  "Citrea Explorer (Testnet)": {
+    urlLayout: `https://explorer.testnet.citrea.xyz/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.citreaTestnet.id]: "",
+    },
+  },
+  "MegaETH Explorer": {
+    urlLayout: `https://mega.etherscan.io/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.megaeth.id]: "",
+    },
+  },
+  SeiScan: {
+    urlLayout: `https://${CHAINLABEL_KEY}seiscan.io/tx/${TX_KEY}`,
+    chainIdToLabel: {
+      [c.sei.id]: "",
+      [c.seiTestnet.id]: "testnet.",
     },
   },
   FTMscan: {

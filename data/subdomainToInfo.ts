@@ -112,4 +112,10 @@ export const subdomainToInfo = {
     label: "Foundry",
     description: "Visualize and collapse Foundry stack traces and more",
   },
+  [subdomains.SIWE.base]: {
+    emoji: "🔐",
+    label: "SIWE Validator",
+    description:
+      "Validate EIP-4361 Sign-In With Ethereum messages with auto-fix and signing",
+  },
 };

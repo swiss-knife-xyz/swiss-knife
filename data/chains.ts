@@ -7,6 +7,7 @@ import {
   baseSepolia,
   bsc,
   canto,
+  citreaTestnet,
   evmos,
   gnosis,
   linea,
@@ -16,6 +17,8 @@ import {
   polygon,
   polygonMumbai,
   pulsechain,
+  sei,
+  seiTestnet,
   sepolia,
   soneium,
   sonic,
@@ -23,7 +26,7 @@ import {
   zora,
   Chain,
 } from "wagmi/chains";
-import { plasma } from "./common";
+import { plasma, megaeth, citrea } from "./common";
 
 export const walletChains: readonly [Chain, ...Chain[]] = [
   // first chain is the default
@@ -32,10 +35,13 @@ export const walletChains: readonly [Chain, ...Chain[]] = [
   arbitrum,
   avalanche,
   bsc,
+  citrea,
   gnosis,
   ink,
+  megaeth,
   optimism,
   polygon,
+  sei,
   unichain,
   zora,
   // no icon
@@ -44,9 +50,11 @@ export const walletChains: readonly [Chain, ...Chain[]] = [
   soneium,
   sonic,
   // testnets
+  seiTestnet,
   sepolia,
   arbitrumSepolia,
   baseSepolia,
+  citreaTestnet,
   monadTestnet,
   polygonMumbai,
 ];

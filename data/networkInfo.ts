@@ -35,6 +35,21 @@ const networkInfo = [
     api: `https://api.polygonscan.com/api?module=contract&action=getabi&apikey=${process.env.NEXT_PUBLIC_POLYGONSCAN_API_KEY}`,
   },
   {
+    chainID: 4326,
+    name: "MegaETH",
+    api: `https://api.etherscan.io/v2/api?chainid=4326&module=contract&action=getabi&apikey=${process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY}`,
+  },
+  {
+    chainID: 1329,
+    name: "Sei",
+    api: `https://api.etherscan.io/v2/api?chainid=1329&module=contract&action=getabi&apikey=${process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY}`,
+  },
+  {
+    chainID: 1328,
+    name: "Sei Testnet",
+    api: `https://api.etherscan.io/v2/api?chainid=1328&module=contract&action=getabi&apikey=${process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY}`,
+  },
+  {
     chainID: 11155111,
     name: "Sepolia Testnet",
     api: `https://api.etherscan.io/api?module=contract&action=getabi&apikey=${process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY}`,

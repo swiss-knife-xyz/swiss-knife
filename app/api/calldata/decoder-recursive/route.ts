@@ -1,10 +1,11 @@
-import { c } from "@/data/common";
+import { c, chainIdToChain } from "@/data/common";
 import {
   CalldataDecoderRecursiveRequest,
   calldataDecoderRecursiveRequestSchema,
 } from "@/data/schemas";
 import { decodeRecursive } from "@/lib/decoder";
-import { Chain, Hex, createPublicClient, http, stringify } from "viem";
+import { Chain, Hex, stringify } from "viem";
+import { getPublicClient } from "@/lib/publicClient";
 
 export const OPTIONS = async (request: Request) => {
   return new Response(null, {
@@ -55,6 +56,7 @@ export const POST = async (request: Request) => {
             "chainId is required when transaction hash is provided"
           );
         }
+        chain = chainIdToChain[chainId];
       } else {
         txHash = tx.split("/").pop()!;
 
@@ -91,10 +93,10 @@ export const POST = async (request: Request) => {
         chain = c[chainKey as keyof typeof c];
       }
 
-      const publicClient = createPublicClient({
-        chain,
-        transport: http(),
-      });
+      if (!chain) {
+        throw new Error("Could not determine chain for the provided tx");
+      }
+      const publicClient = getPublicClient(chain.id);
       const transaction = await publicClient.getTransaction({
         hash: txHash as Hex,
       });

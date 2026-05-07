@@ -38,14 +38,13 @@ import { useAccount } from "wagmi";
 import {
   formatEther,
   Address,
-  createPublicClient,
-  http,
   erc20Abi,
   zeroAddress,
 } from "viem";
 import { DecodedSignatureData, SessionRequest } from "../types";
 import { renderParams } from "@/components/renderParams";
 import { chainIdToChain } from "@/data/common";
+import { getPublicClient } from "@/lib/publicClient";
 import { useCallback, useEffect, useState } from "react";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import { fetchContractAbi, generateTenderlyUrl } from "@/utils";
@@ -110,10 +109,7 @@ export default function SessionRequestModal({
       setAddressLabels([]);
 
       try {
-        const client = createPublicClient({
-          chain: chainIdToChain[chainId],
-          transport: http(),
-        });
+        const client = getPublicClient(chainId);
 
         // check if the address is a contract
         const res = await client.getBytecode({

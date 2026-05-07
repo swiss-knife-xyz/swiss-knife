@@ -37,7 +37,8 @@ import { useAddressBook } from "@/hooks/useAddressBook";
 import { AddressBookInlineButton } from "@/components/AddressBook";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { JsonFragment } from "ethers";
-import { Address, PublicClient, createPublicClient, http } from "viem";
+import { Address, PublicClient } from "viem";
+import { getPublicClient } from "@/lib/publicClient";
 import { whatsabi } from "@shazow/whatsabi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { ReadWriteFunction } from "@/components/fnParams/ReadWriteFunction";
@@ -778,10 +779,7 @@ export const ContractPage = ({
   const [client, setClient] = useState<PublicClient | null>(() => {
     // Initialize client immediately with chainId from props
     if (chainIdToChain[chainId]) {
-      return createPublicClient({
-        chain: chainIdToChain[chainId],
-        transport: http(),
-      });
+      return getPublicClient(chainId);
     }
     return null;
   });
@@ -859,10 +857,7 @@ export const ContractPage = ({
 
       try {
         // Create client for bytecode fetch
-        const client = createPublicClient({
-          chain: chainIdToChain[chainId],
-          transport: http(),
-        });
+        const client = getPublicClient(chainId);
 
         // Fetch contract bytecode
         const contractCode = await client.getCode({
@@ -974,12 +969,7 @@ export const ContractPage = ({
     // Also update client when chainId changes from props
     if (chainIdToChain[chainId] && chainId !== currentChainIdRef.current) {
       currentChainIdRef.current = chainId;
-      setClient(
-        createPublicClient({
-          chain: chainIdToChain[chainId],
-          transport: http(),
-        })
-      );
+      setClient(getPublicClient(chainId));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chainId]);
@@ -1001,12 +991,7 @@ export const ContractPage = ({
       // Only create new client if chainId actually changed
       if (newChainId !== currentChainIdRef.current) {
         currentChainIdRef.current = newChainId;
-        setClient(
-          createPublicClient({
-            chain: chainIdToChain[newChainId],
-            transport: http(),
-          })
-        );
+        setClient(getPublicClient(newChainId));
       }
     }
   }, [selectedNetworkOption, chainId, router, address]);

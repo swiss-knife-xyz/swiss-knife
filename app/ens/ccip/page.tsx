@@ -17,8 +17,6 @@ import {
   Link,
 } from "@chakra-ui/react";
 import {
-  createPublicClient,
-  http,
   encodeFunctionData,
   zeroAddress,
   parseAbi,
@@ -29,13 +27,11 @@ import {
 import { mainnet } from "viem/chains";
 import { normalize, namehash, packetToBytes } from "viem/ens";
 import { keyframes } from "@emotion/react";
+import { getPublicClient } from "@/lib/publicClient";
 
-// Create a public client instance with CCIP Read enabled (default)
-const publicClient = createPublicClient({
-  chain: mainnet,
-  transport: http(),
-  ccipRead: false, // without it even the readContract automatically resolves the ccip read
-});
+// CCIP Read is disabled here so the OffchainLookup error surfaces to the page
+// instead of being auto-resolved by readContract.
+const publicClient = getPublicClient(mainnet.id, { ccipRead: false });
 
 // Universal Resolver ABI for resolve function (correct implementation)
 const UNIVERSAL_RESOLVER_ABI = [

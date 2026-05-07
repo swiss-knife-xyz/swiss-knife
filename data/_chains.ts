@@ -13848,6 +13848,11 @@ export const _chains = [
     icon: "sei",
     explorers: [
       {
+        name: "Seiscan",
+        url: "https://testnet.seiscan.io",
+        standard: "EIP3091",
+      },
+      {
         name: "Seitrace",
         url: "https://seitrace.com",
         standard: "EIP3091",
@@ -13870,6 +13875,11 @@ export const _chains = [
     networkId: 1329,
     icon: "seiv2",
     explorers: [
+      {
+        name: "Seiscan",
+        url: "https://seiscan.io",
+        standard: "EIP3091",
+      },
       {
         name: "Seitrace",
         url: "https://seitrace.com",

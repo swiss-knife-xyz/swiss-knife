@@ -28,10 +28,10 @@ import debounce from "lodash/debounce";
 import { motion, AnimatePresence } from "framer-motion";
 import { keyframes } from "@emotion/react";
 import { InputField } from "@/components/InputField";
-import { Address, createPublicClient, http, zeroAddress, erc20Abi } from "viem";
+import { Address, zeroAddress, erc20Abi } from "viem";
 import { fetchAddressLabels } from "@/utils/addressLabels";
-import { chainIdToChain } from "@/data/common";
 import { AddressBookButton } from "@/components/AddressBook";
+import { getPublicClient } from "@/lib/publicClient";
 
 const resolveGlow = keyframes`
   0%, 100% {
@@ -147,10 +147,7 @@ export const AddressInput = ({
         setAddressLabels([]);
         try {
           const currentChainId = chainIdRef.current;
-          const client = createPublicClient({
-            chain: chainIdToChain[currentChainId],
-            transport: http(),
-          });
+          const client = getPublicClient(currentChainId);
 
           const res = await client.getBytecode({
             address: val as Address,

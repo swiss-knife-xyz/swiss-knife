@@ -1,3 +1,51 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "ImportDeclaration[source.value=/^(viem|wagmi)$/] > ImportSpecifier[imported.name='createPublicClient']",
+        "message": "Do not import createPublicClient directly. Use getPublicClient(chainId) from @/lib/publicClient so env-configured custom RPCs are honored."
+      },
+      {
+        "selector": "CallExpression[callee.name='http'][arguments.length=0]",
+        "message": "Bare http() falls back to viem's default RPC and ignores env-configured custom RPCs. Use getPublicClient(chainId) from @/lib/publicClient."
+      }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "viem",
+            "importNames": ["createPublicClient"],
+            "message": "Use getPublicClient(chainId) from @/lib/publicClient instead."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["lib/publicClient.ts"],
+      "rules": {
+        "no-restricted-syntax": "off",
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["utils/impersonatorConnector/provider.ts"],
+      "rules": {
+        "no-restricted-syntax": "off",
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["app/api/leaderboard-refetch/route.ts"],
+      "rules": {
+        "no-restricted-syntax": "off",
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
 }

@@ -35,6 +35,7 @@ All your EVM tools in one place: https://eth.sh/
 17. [Web3 App Store](https://apps.eth.sh/): Browse and use dapps in an embedded browser with your connected wallet.
 18. [Solidity Compiler](https://solidity.eth.sh/): Compile Solidity contracts directly in the browser.
 19. [USDC Pay](https://usdc-pay.eth.sh/): Send USDC payments on Base. Supports ENS, Basename, and Farcaster username resolution.
+20. [SIWE Validator](https://siwe.eth.sh/): Validate Sign-In With Ethereum (EIP-4361) messages. Features real-time validation, auto-fix for common errors, wallet signing, and shareable URLs.
 
 ## Setup
 

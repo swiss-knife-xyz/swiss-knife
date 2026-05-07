@@ -79,6 +79,10 @@ const subdomains = {
     base: "usdc-pay",
     paths: [],
   },
+  SIWE: {
+    base: "siwe",
+    paths: [],
+  },
 };
 
 module.exports = subdomains;

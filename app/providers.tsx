@@ -35,6 +35,7 @@ import {
   AddressBookDrawer,
   AddressBookSelector,
 } from "@/components/AddressBook";
+import { getRpcUrlForChain } from "@/data/common";
 export { walletChains };
 
 const appName = "ETH.sh";
@@ -80,7 +81,7 @@ export const config = createConfig({
   chains: walletChains,
   transports: walletChains.reduce<Record<number, ReturnType<typeof http>>>(
     (transport, chain) => {
-      transport[chain.id] = http();
+      transport[chain.id] = http(getRpcUrlForChain(chain.id));
       return transport;
     },
     {}

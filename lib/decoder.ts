@@ -943,12 +943,12 @@ export async function fetchFunctionInterface({
   const sourcifyData = await fetchFunctionFromSourcify({ selector });
 
   let result: string | null = null;
-  if (sourcifyData) {
+  if (sourcifyData && sourcifyData.length > 0) {
     result = sourcifyData[0].name;
   } else {
     // Fallback to 4byte.directory
     const fourByteData = await fetchFunctionFrom4Bytes({ selector });
-    if (fourByteData) {
+    if (fourByteData && fourByteData.length > 0) {
       result = fourByteData[0].text_signature;
     }
   }

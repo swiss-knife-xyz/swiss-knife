@@ -33,19 +33,15 @@ import {
   Image,
 } from "@chakra-ui/react";
 import { Global } from "@emotion/react";
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient, useSwitchChain } from "wagmi";
 import {
   formatEther,
   Address,
-  createPublicClient,
-  http,
   erc20Abi,
   zeroAddress,
-  encodeFunctionData,
-  encodeAbiParameters,
-  parseAbiParameters,
   Hex,
 } from "viem";
+import { getPublicClient } from "@/lib/publicClient";
 import {
   DecodedSignatureData,
   SessionRequest,
@@ -57,10 +53,10 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import { fetchContractAbi, generateTenderlyUrl } from "@/utils";
 import { BsArrowsAngleExpand, BsArrowsAngleContract } from "react-icons/bs";
-import { DS_PROXY_ABI } from "../abi/DSProxy";
-import { EXECUTE_CALL_ABI } from "../abi/ExecuteCall";
+import type { SmartWalletConfig } from "../types";
 
-interface DSProxySessionRequestModalProps {
+interface SmartWalletSessionRequestModalProps {
+  config: SmartWalletConfig;
   isOpen: boolean;
   onClose: () => void;
   currentSessionRequest: SessionRequest | null;
@@ -72,19 +68,19 @@ interface DSProxySessionRequestModalProps {
   needsChainSwitch: boolean;
   targetChainId: number | null;
   onChainSwitch: () => void;
-  dsProxyAddress: string;
-  dsProxyChainId: number;
-  executorAddress: string;
+  walletAddress: string;
   walletKit: WalletKitInstance | null;
   address: string | undefined;
   walletClient: any;
   setPendingRequest: (pending: boolean) => void;
+  setIsSwitchingChain: (pending: boolean) => void;
   setNeedsChainSwitch: (needs: boolean) => void;
   setTargetChainId: (chainId: number | null) => void;
   toast: any;
 }
 
-export default function DSProxySessionRequestModal({
+export default function SmartWalletSessionRequestModal({
+  config,
   isOpen,
   onClose,
   currentSessionRequest,
@@ -96,18 +92,19 @@ export default function DSProxySessionRequestModal({
   needsChainSwitch,
   targetChainId,
   onChainSwitch,
-  dsProxyAddress,
-  dsProxyChainId,
-  executorAddress,
+  walletAddress,
   walletKit,
   address,
   walletClient,
   setPendingRequest,
+  setIsSwitchingChain,
   setNeedsChainSwitch,
   setTargetChainId,
   toast,
-}: DSProxySessionRequestModalProps) {
+}: SmartWalletSessionRequestModalProps) {
   const { address: connectedAddress } = useAccount();
+  const { switchChainAsync } = useSwitchChain();
+  const publicClient = usePublicClient();
 
   const [addressLabels, setAddressLabels] = useState<string[]>([]);
   const [txDataTabIndex, setTxDataTabIndex] = useState(1); // Start with Raw tab (index 1)
@@ -120,41 +117,23 @@ export default function DSProxySessionRequestModal({
     }
   }, [decodedTxData]);
 
-  // Helper function to construct DSProxy transaction
-  const constructDSProxyTransaction = useCallback(
+  const wrapTransaction = useCallback(
     (txParams: any) => {
-      // Extract transaction parameters
       const to = txParams.to as Address;
       const value = txParams.value ? BigInt(txParams.value) : BigInt(0);
       const data = (txParams.data as Hex) || "0x";
+      const chainIdStr = currentSessionRequest?.params?.chainId?.split(":")?.[1];
+      const chainId = chainIdStr ? parseInt(chainIdStr) : 0;
 
-      // Encode the struct Params {to, value, data} for executeActionDirect
-      const encodedParams = encodeAbiParameters(
-        parseAbiParameters("(address,uint256,bytes)"),
-        [[to, value, data]]
-      );
-
-      // Encode the executeActionDirect function call
-      const executeActionDirectData = encodeFunctionData({
-        abi: EXECUTE_CALL_ABI,
-        functionName: "executeActionDirect",
-        args: [encodedParams],
+      return config.wrapTransaction({
+        walletAddress: walletAddress as Address,
+        chainId,
+        to,
+        value,
+        data,
       });
-
-      // Encode the DS Proxy execute call with executor as target and executeActionDirect data
-      const dsProxyExecuteData = encodeFunctionData({
-        abi: DS_PROXY_ABI,
-        functionName: "execute",
-        args: [executorAddress as Address, executeActionDirectData],
-      });
-
-      return {
-        to: dsProxyAddress as Address,
-        value: 0n,
-        data: dsProxyExecuteData,
-      };
     },
-    [executorAddress, dsProxyAddress]
+    [config, walletAddress, currentSessionRequest]
   );
 
   const fetchAndSetAddressLabels = useCallback(
@@ -162,13 +141,10 @@ export default function DSProxySessionRequestModal({
       setAddressLabels([]);
 
       try {
-        const client = createPublicClient({
-          chain: chainIdToChain[chainId],
-          transport: http(),
-        });
+        const client = getPublicClient(chainId);
 
         // check if the address is a contract
-        const res = await client.getBytecode({
+        await client.getBytecode({
           address: address as Address,
         });
 
@@ -220,7 +196,6 @@ export default function DSProxySessionRequestModal({
     }
   }, [currentSessionRequest, fetchAndSetAddressLabels]);
 
-  // DS Proxy-specific approve function
   const onApprove = useCallback(async () => {
     if (!walletKit || !currentSessionRequest || !walletClient) return;
 
@@ -232,72 +207,108 @@ export default function DSProxySessionRequestModal({
 
       setPendingRequest(true);
 
-      // Handle different request methods
       if (request.method === "eth_sendTransaction") {
         const txParams = request.params[0];
-        const dsProxyTx = constructDSProxyTransaction(txParams);
+        const wrapped = wrapTransaction(txParams);
 
-        // Send transaction through DS Proxy using wagmi wallet client
         const hash = await walletClient.sendTransaction({
           account: address as Address,
-          ...dsProxyTx,
+          ...wrapped,
         });
 
         result = hash;
 
         toast({
-          title: "Transaction sent via DSProxy",
+          title: `Transaction sent via ${config.shortName}`,
           status: "info",
           duration: 5000,
           isClosable: true,
           position: "bottom-right",
         });
       } else if (request.method === "personal_sign") {
-        // Handle signing (no need to wrap for signatures)
+        if (!config.signPersonalMessage) {
+          throw new Error(
+            `${config.shortName} cannot sign messages: the contract does not implement ERC-1271.`
+          );
+        }
         const message = request.params[0];
         const signerAddress = request.params[1];
+        const requestedChainIdStr = params.chainId.split(":")[1];
+        const requestedChainId = parseInt(requestedChainIdStr);
 
-        if (signerAddress.toLowerCase() !== address?.toLowerCase()) {
-          throw new Error("Signer address mismatch");
+        // The dApp expects the smart wallet to be the signer (that's the
+        // account announced in the WC namespace). Reject if not.
+        if (signerAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+          throw new Error(
+            `Signer address mismatch: dApp requested ${signerAddress}, expected ${walletAddress}`
+          );
         }
+        if (!publicClient) throw new Error("No public client");
 
-        result = await walletClient.signMessage({
-          account: address as `0x${string}`,
-          message: typeof message === "string" ? message : message.raw,
+        result = await config.signPersonalMessage({
+          walletAddress: walletAddress as Address,
+          chainId: requestedChainId,
+          eoa: address as Address,
+          walletClient,
+          publicClient,
+          message,
         });
       } else if (
         request.method === "eth_signTypedData_v3" ||
         request.method === "eth_signTypedData_v4" ||
         request.method === "eth_signTypedData"
       ) {
-        // Handle typed data signing (no need to wrap for signatures)
-        const signerAddress = request.params[0];
-        const typedData = JSON.parse(request.params[1]);
-
-        if (signerAddress.toLowerCase() !== address?.toLowerCase()) {
-          throw new Error("Signer address mismatch");
+        if (!config.signTypedData) {
+          throw new Error(
+            `${config.shortName} cannot sign typed data: the contract does not implement ERC-1271.`
+          );
         }
+        const signerAddress = request.params[0];
+        const typedData =
+          typeof request.params[1] === "string"
+            ? JSON.parse(request.params[1])
+            : request.params[1];
+        const requestedChainIdStr = params.chainId.split(":")[1];
+        const requestedChainId = parseInt(requestedChainIdStr);
 
-        result = await walletClient.signTypedData({
-          account: address as `0x${string}`,
-          ...typedData,
+        if (signerAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+          throw new Error(
+            `Signer address mismatch: dApp requested ${signerAddress}, expected ${walletAddress}`
+          );
+        }
+        if (!publicClient) throw new Error("No public client");
+
+        result = await config.signTypedData({
+          walletAddress: walletAddress as Address,
+          chainId: requestedChainId,
+          eoa: address as Address,
+          walletClient,
+          publicClient,
+          typedData,
         });
       } else if (request.method === "wallet_switchEthereumChain") {
-        // Handle chain switching request
         const requestedChainId = parseInt(request.params[0].chainId);
 
-        // For DS Proxy, we don't need to actually switch chains
-        // Just return success as the DS Proxy will handle cross-chain execution
-        result = null;
-
-        toast({
-          title: "Chain switch handled by DSProxy",
-          description: `DSProxy will execute on chain ${requestedChainId}`,
-          status: "info",
-          duration: 3000,
-          isClosable: true,
-          position: "bottom-right",
-        });
+        if (config.walletSwitchChainBehavior === "switch") {
+          setIsSwitchingChain(true);
+          await switchChainAsync({ chainId: requestedChainId });
+          setIsSwitchingChain(false);
+          result = null;
+        } else {
+          // ack: smart wallet handles cross-chain execution itself
+          result = null;
+          if (config.ackChainSwitchToast) {
+            toast({
+              title: config.ackChainSwitchToast.title,
+              description:
+                config.ackChainSwitchToast.description(requestedChainId),
+              status: "info",
+              duration: 3000,
+              isClosable: true,
+              position: "bottom-right",
+            });
+          }
+        }
       } else if (request.method === "wallet_addEthereumChain") {
         // For adding a new chain, just show a toast
         const chainParams = request.params[0];
@@ -344,6 +355,7 @@ export default function DSProxySessionRequestModal({
     } catch (error) {
       console.error("Failed to handle session request:", error);
       setPendingRequest(false);
+      setIsSwitchingChain(false);
       toast({
         title: "Failed to handle request",
         description: (error as Error).message,
@@ -357,16 +369,20 @@ export default function DSProxySessionRequestModal({
     walletKit,
     currentSessionRequest,
     walletClient,
-    constructDSProxyTransaction,
+    wrapTransaction,
     address,
+    walletAddress,
+    publicClient,
+    config,
+    switchChainAsync,
     setPendingRequest,
+    setIsSwitchingChain,
     setNeedsChainSwitch,
     setTargetChainId,
     toast,
     onClose,
   ]);
 
-  // DS Proxy-specific reject function
   const onReject = useCallback(async () => {
     if (!walletKit || !currentSessionRequest) return;
 
@@ -1193,15 +1209,14 @@ export default function DSProxySessionRequestModal({
                       currentSessionRequest.params.chainId.split(":")[1];
                     const chainId = parseInt(chainIdStr);
 
-                    // Use DSProxy wrapped transaction for simulation
-                    const dsProxyTx = constructDSProxyTransaction(txData);
+                    const wrapped = wrapTransaction(txData);
 
                     const url = generateTenderlyUrl(
                       {
                         from: connectedAddress || zeroAddress,
-                        to: dsProxyTx.to,
-                        value: dsProxyTx.value.toString(),
-                        data: dsProxyTx.data,
+                        to: wrapped.to,
+                        value: wrapped.value.toString(),
+                        data: wrapped.data,
                       },
                       chainId
                     );

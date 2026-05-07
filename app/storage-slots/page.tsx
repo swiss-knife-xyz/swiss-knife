@@ -30,8 +30,9 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { SelectedOptionState } from "@/types";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { c, chainIdToChain, chainIdToImage } from "@/data/common";
-import { Address, encodePacked, keccak256, createPublicClient, http, erc20Abi } from "viem";
+import { Address, encodePacked, keccak256, erc20Abi } from "viem";
 import { resolveAddressToName, getNameAvatar } from "@/lib/nameResolution";
+import { getPublicClient } from "@/lib/publicClient";
 import { fetchContractAbi } from "@/utils";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 
@@ -379,10 +380,7 @@ const AddressValue = ({
 
   const fetchAndSetLabels = useCallback(async () => {
     try {
-      const client = createPublicClient({
-        chain: chainIdToChain[chainId],
-        transport: http(),
-      });
+      const client = getPublicClient(chainId);
 
       // Try fetching the contract symbol() if it's a token
       try {

@@ -21,6 +21,7 @@ import {
   canto,
   celo,
   celoAlfajores,
+  citreaTestnet,
   confluxESpace,
   cronos,
   cronosTestnet,
@@ -63,6 +64,8 @@ import {
   ronin,
   scroll,
   scrollSepolia,
+  sei,
+  seiTestnet,
   sepolia,
   sonic,
   taikoJolnir,
@@ -142,6 +145,50 @@ export const monad = defineChain({
   },
 });
 
+export const citrea = defineChain({
+  id: 4114,
+  name: "Citrea",
+  nativeCurrency: {
+    name: "Citrea BTC",
+    symbol: "cBTC",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc.mainnet.citrea.xyz"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Citrea Explorer",
+      url: "https://explorer.mainnet.citrea.xyz",
+    },
+  },
+  testnet: false,
+});
+
+export const megaeth = defineChain({
+  id: 4326,
+  name: "MegaETH",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://mainnet.megaeth.com/rpc"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "MegaETH Explorer",
+      url: "https://mega.etherscan.io",
+    },
+  },
+  testnet: false,
+});
+
 export const CHAINLABEL_KEY = "$SK_CHAINLABEL";
 export const ADDRESS_KEY = "$SK_ADDRESS";
 export const TX_KEY = "$SK_TX";
@@ -175,6 +222,8 @@ export const c: { [name: string]: Chain } = {
   canto,
   celo,
   celoAlfajores,
+  citrea,
+  citreaTestnet,
   confluxESpace,
   cronos,
   cronosTestnet,
@@ -200,6 +249,7 @@ export const c: { [name: string]: Chain } = {
   manta,
   mantaTestnet,
   mantle,
+  megaeth,
   metis,
   monad,
   moonbaseAlpha,
@@ -219,6 +269,8 @@ export const c: { [name: string]: Chain } = {
   ronin,
   scroll,
   scrollSepolia,
+  sei,
+  seiTestnet,
   sonic,
   taikoJolnir,
   taikoTestnetSepolia,
@@ -268,6 +320,7 @@ export const etherscanChains: { [name: string]: ExtendedChain } = {
   lineaTestnet,
   mantle,
   manta,
+  megaeth,
   moonbeam,
   moonriver,
   moonbaseAlpha,
@@ -282,6 +335,8 @@ export const etherscanChains: { [name: string]: ExtendedChain } = {
   polygonZkEvmTestnet,
   scroll,
   scrollSepolia,
+  sei,
+  seiTestnet,
   sepolia,
   taikoJolnir,
   taikoTestnetSepolia,
@@ -293,6 +348,14 @@ export const etherscanChains: { [name: string]: ExtendedChain } = {
   // xaiTestnet,
 };
 
+// Map of chainId -> custom RPC URL sourced from env vars.
+// Add a new entry here when introducing a NEXT_PUBLIC_<CHAIN>_RPC_URL env var.
+// Only NEXT_PUBLIC_* vars work in client code; server-only vars belong in their own server modules.
+export const chainIdToCustomRpcUrl: Record<number, string | undefined> = {
+  [mainnet.id]: process.env.NEXT_PUBLIC_MAINNET_RPC_URL,
+  [base.id]: process.env.NEXT_PUBLIC_BASE_RPC_URL,
+};
+
 // TODO: these should be placed in provider and memoized
 export const chainIdToChain = (() => {
   let res: {
@@ -300,19 +363,19 @@ export const chainIdToChain = (() => {
   } = {};
 
   Object.values(c).map((chain) => {
-    res[chain.id] = chain;
-
-    // Override mainnet RPC URL with env variable if available
-    if (chain.id === mainnet.id && process.env.NEXT_PUBLIC_MAINNET_RPC_URL) {
+    const customRpcUrl = chainIdToCustomRpcUrl[chain.id];
+    if (customRpcUrl) {
       res[chain.id] = {
         ...chain,
         rpcUrls: {
           ...chain.rpcUrls,
           default: {
-            http: [process.env.NEXT_PUBLIC_MAINNET_RPC_URL],
+            http: [customRpcUrl],
           },
         },
       };
+    } else {
+      res[chain.id] = chain;
     }
 
     // Override Polygon RPC URL
@@ -331,6 +394,13 @@ export const chainIdToChain = (() => {
 
   return res;
 })();
+
+// Returns the RPC URL to use for a given chain — the env-configured override
+// when set, otherwise viem's default for that chain. Single source of truth
+// for every public client and wagmi transport in the app.
+export const getRpcUrlForChain = (chainId: number): string | undefined =>
+  chainIdToCustomRpcUrl[chainId] ||
+  chainIdToChain[chainId]?.rpcUrls.default?.http?.[0];
 
 // TODO: these should be placed in provider and memoized
 export const erc3770ShortNameToChain = (() => {
@@ -366,11 +436,16 @@ export const chainIdToImage = (() => {
     [bsc.id]: `${basePath}/bsc.svg`,
     [cronos.id]: `${basePath}/cronos.svg`,
     [goerli.id]: `${basePath}/ethereum.svg`,
+    [citrea.id]: `${basePath}/citrea.svg`,
     [ink.id]: `${basePath}/ink.svg`,
+    [linea.id]: `${basePath}/linea.svg`,
     [mainnet.id]: `${basePath}/ethereum.svg`,
+    [megaeth.id]: `${basePath}/megaeth.svg`,
     [monad.id]: `${basePath}/monad.svg`,
     [optimism.id]: `${basePath}/optimism.svg`,
     [polygon.id]: `${basePath}/polygon.svg`,
+    [sei.id]: `${basePath}/sei.svg`,
+    [seiTestnet.id]: `${basePath}/sei.svg`,
     [sepolia.id]: `${basePath}/ethereum.svg`,
     [unichain.id]: `${basePath}/unichain.svg`,
     [worldchain.id]: `${basePath}/worldchain.svg`,

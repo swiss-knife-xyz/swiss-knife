@@ -1,6 +1,4 @@
 import {
-  createPublicClient,
-  http,
   Hex,
   Address,
   encodePacked,
@@ -10,6 +8,7 @@ import {
 import { mainnet, base } from "viem/chains";
 import { normalize } from "viem/ens";
 import { L2ResolverAbi } from "./abis/L2ResolverAbi";
+import { getPublicClient } from "./publicClient";
 
 // ============================================================================
 // Constants
@@ -24,15 +23,9 @@ export const BASE_CHAIN_ID = 8453;
 // Public Clients
 // ============================================================================
 
-export const mainnetClient = createPublicClient({
-  chain: mainnet,
-  transport: http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL),
-});
+export const mainnetClient = getPublicClient(mainnet.id);
 
-export const baseClient = createPublicClient({
-  chain: base,
-  transport: http(process.env.NEXT_PUBLIC_BASE_RPC_URL || "https://mainnet.base.org"),
-});
+export const baseClient = getPublicClient(base.id);
 
 // ============================================================================
 // Helper Functions

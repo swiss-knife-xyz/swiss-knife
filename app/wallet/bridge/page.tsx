@@ -21,7 +21,7 @@ import frameSdk, { Context } from "@farcaster/frame-sdk";
 import { useAccount, useWalletClient, useChainId, useSwitchChain } from "wagmi";
 import { base } from "viem/chains";
 import { buildApprovedNamespaces } from "@walletconnect/utils";
-import { createPublicClient, http } from "viem";
+import { getPublicClient } from "@/lib/publicClient";
 import {
   publicActionsL1,
   publicActionsL2,
@@ -173,11 +173,8 @@ export default function WalletBridgePage() {
 
               try {
                 // Create L2 public client
-                const l2Chain = chainIdToChain[l2ChainId];
-                const publicClientL2 = createPublicClient({
-                  chain: l2Chain,
-                  transport: http(),
-                }).extend(publicActionsL2());
+                const publicClientL2 =
+                  getPublicClient(l2ChainId).extend(publicActionsL2());
 
                 // Build deposit transaction
                 setForceInclusionProgress((prev) => ({
@@ -249,10 +246,8 @@ export default function WalletBridgePage() {
 
                 // Create L1 wallet client
                 const l1Chain = chainIdToChain[l1ChainId];
-                const publicClientL1 = createPublicClient({
-                  chain: l1Chain,
-                  transport: http(),
-                }).extend(publicActionsL1());
+                const publicClientL1 =
+                  getPublicClient(l1ChainId).extend(publicActionsL1());
 
                 // Submit to L1
                 setForceInclusionProgress((prev) => ({
@@ -1004,15 +999,10 @@ export default function WalletBridgePage() {
 
       // Create L1 and L2 clients
       const l1Chain = chainIdToChain[l1ChainId];
-      const l2Chain = chainIdToChain[l2ChainId];
-      const publicClientL1 = createPublicClient({
-        chain: l1Chain,
-        transport: http(),
-      }).extend(publicActionsL1());
-      const publicClientL2 = createPublicClient({
-        chain: l2Chain,
-        transport: http(),
-      }).extend(publicActionsL2());
+      const publicClientL1 =
+        getPublicClient(l1ChainId).extend(publicActionsL1());
+      const publicClientL2 =
+        getPublicClient(l2ChainId).extend(publicActionsL2());
 
       // Ensure we're on L1 chain
       await switchChainAsync({ chainId: l1ChainId });
@@ -1191,11 +1181,8 @@ export default function WalletBridgePage() {
 
       try {
         // Rebuild deposit transaction with new gas limit
-        const l2Chain = chainIdToChain[l2ChainId];
-        const publicClientL2 = createPublicClient({
-          chain: l2Chain,
-          transport: http(),
-        }).extend(publicActionsL2());
+        const publicClientL2 =
+          getPublicClient(l2ChainId).extend(publicActionsL2());
 
         const depositArgs = await publicClientL2.buildDepositTransaction({
           mint: txParams.value ? BigInt(txParams.value) : 0n,

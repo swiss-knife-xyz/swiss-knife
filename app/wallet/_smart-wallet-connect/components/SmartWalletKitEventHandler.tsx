@@ -13,11 +13,13 @@ import {
 } from "../../bridge/utils";
 import { buildApprovedNamespaces } from "@walletconnect/utils";
 import { walletChains } from "@/app/providers";
+import type { SmartWalletConfig } from "../types";
 
-interface DSProxyWalletKitEventHandlerProps {
+interface SmartWalletKitEventHandlerProps {
+  config: SmartWalletConfig;
   walletKit: WalletKitInstance | null;
   address: string | undefined;
-  dsProxyAddress: string;
+  walletAddress: string;
   setCurrentSessionProposal: (proposal: SessionProposal | null) => void;
   setCurrentSessionRequest: (request: SessionRequest | null) => void;
   setDecodedTxData: (data: any) => void;
@@ -28,10 +30,11 @@ interface DSProxyWalletKitEventHandlerProps {
   onSessionRequestOpen: () => void;
 }
 
-export default function DSProxyWalletKitEventHandler({
+export default function SmartWalletKitEventHandler({
+  config,
   walletKit,
   address,
-  dsProxyAddress,
+  walletAddress,
   setCurrentSessionProposal,
   setCurrentSessionRequest,
   setDecodedTxData,
@@ -40,35 +43,29 @@ export default function DSProxyWalletKitEventHandler({
   setActiveSessions,
   onSessionProposalOpen,
   onSessionRequestOpen,
-}: DSProxyWalletKitEventHandlerProps) {
+}: SmartWalletKitEventHandlerProps) {
   const toast = useToast();
 
-  // Set up event listeners for WalletKit
   useEffect(() => {
     if (!walletKit) return;
 
-    // Handle session proposal
     const onSessionProposal = (
       args: { verifyContext: any } & Omit<any, "topic">
     ) => {
-      // Convert the args to our SessionProposal type
       const proposal = args as unknown as SessionProposal;
       console.log("Session proposal received:", proposal);
       console.log("Required namespaces:", proposal.params.requiredNamespaces);
       console.log("Optional namespaces:", proposal.params.optionalNamespaces);
       setCurrentSessionProposal(proposal);
 
-      // Auto-approve the session proposal using DS Proxy address instead of wagmi address
-      if (walletKit && address && dsProxyAddress) {
-        // We'll call this in a setTimeout to ensure the state is updated
+      // Auto-approve the session proposal using the smart wallet address
+      // instead of the connected wagmi (EOA) address.
+      if (walletKit && address && walletAddress) {
+        // Defer to next tick so that state updates have a chance to settle.
         setTimeout(async () => {
           try {
-            // Get the supported chains from walletChains
             const chains = walletChains.map((chain) => `eip155:${chain.id}`);
-            // Use DS Proxy address instead of wagmi address
-            const accounts = chains.map(
-              (chain) => `${chain}:${dsProxyAddress}`
-            );
+            const accounts = chains.map((chain) => `${chain}:${walletAddress}`);
 
             const namespaces = buildApprovedNamespaces({
               proposal: proposal.params,
@@ -91,7 +88,7 @@ export default function DSProxyWalletKitEventHandler({
             });
 
             console.log(
-              "Auto-approving session with DS Proxy namespaces:",
+              `Auto-approving session with ${config.shortName} namespaces:`,
               namespaces
             );
 
@@ -100,12 +97,11 @@ export default function DSProxyWalletKitEventHandler({
               namespaces,
             });
 
-            // Update active sessions
             const sessions = walletKit.getActiveSessions();
             setActiveSessions(filterActiveSessions(Object.values(sessions)));
 
             toast({
-              title: "Dapp connected to DS Proxy",
+              title: `Dapp connected to ${config.shortName}`,
               status: "success",
               duration: 3000,
               isClosable: true,
@@ -114,7 +110,7 @@ export default function DSProxyWalletKitEventHandler({
           } catch (error) {
             console.error("Failed to auto-approve session:", error);
 
-            // If auto-approval fails, fall back to manual approval via modal
+            // Fall back to manual approval via modal.
             onSessionProposalOpen();
 
             toast({
@@ -128,31 +124,24 @@ export default function DSProxyWalletKitEventHandler({
           }
         }, 100);
       } else {
-        // If wallet is not connected, address is not available, or DS Proxy address is not provided, open the modal for manual approval
         onSessionProposalOpen();
       }
     };
 
-    // Handle session request
     const onSessionRequest = async (
       args: { verifyContext: any } & Omit<any, "topic">
     ) => {
-      // Convert the args to our SessionRequest type
       const request = args as unknown as SessionRequest;
       console.log("Session request received:", request);
       setCurrentSessionRequest(request);
 
-      // Reset decoded data
       setDecodedTxData(null);
       setDecodedSignatureData(null);
 
-      // Start title notification
       startTitleNotification();
 
-      // Open the modal immediately
       onSessionRequestOpen();
 
-      // Decode transaction data if it's a sendTransaction request
       if (request.params.request.method === "eth_sendTransaction") {
         try {
           setIsDecodingTx(true);
@@ -176,15 +165,13 @@ export default function DSProxyWalletKitEventHandler({
         } finally {
           setIsDecodingTx(false);
         }
-      }
-      // Decode signature requests
-      else if (
+      } else if (
         request.params.request.method === "personal_sign" ||
         request.params.request.method === "eth_sign"
       ) {
         try {
-          // For personal_sign, the message is the first parameter
-          // For eth_sign, the message is the second parameter (first is address)
+          // For personal_sign, the message is the first parameter.
+          // For eth_sign, the message is the second parameter (first is address).
           const messageParam =
             request.params.request.method === "personal_sign"
               ? request.params.request.params[0]
@@ -198,15 +185,12 @@ export default function DSProxyWalletKitEventHandler({
         } catch (error) {
           console.error("Error decoding signature message:", error);
         }
-      }
-      // Decode typed data signing requests
-      else if (
+      } else if (
         request.params.request.method === "eth_signTypedData" ||
         request.params.request.method === "eth_signTypedData_v3" ||
         request.params.request.method === "eth_signTypedData_v4"
       ) {
         try {
-          // The typed data is usually the second parameter
           const typedData = request.params.request.params[1];
           const formattedTypedData = formatTypedData(typedData);
 
@@ -220,51 +204,40 @@ export default function DSProxyWalletKitEventHandler({
       }
     };
 
-    // Handle session ping
     const onSessionPing = (data: any) => {
       console.log("ping", data);
     };
 
-    // Handle session delete
     const onSessionDelete = (data: any) => {
       console.log("session_delete event received", data);
-      // Update active sessions
       const sessions = walletKit.getActiveSessions();
       setActiveSessions(filterActiveSessions(Object.values(sessions)));
     };
 
-    // Function to handle title notification
     const startTitleNotification = () => {
       const originalTitle = document.title;
       const notificationTitle = "🔔 (1) Request - Swiss Knife";
       let isOriginalTitle = false;
 
-      // Store the interval ID so we can clear it later
       const titleInterval = setInterval(() => {
         document.title = isOriginalTitle ? notificationTitle : originalTitle;
         isOriginalTitle = !isOriginalTitle;
       }, 500);
 
-      // Create a function to stop the notification
       const stopTitleNotification = () => {
         clearInterval(titleInterval);
         document.title = originalTitle;
       };
 
-      // Stop the notification when the user focuses on the window
       window.addEventListener("focus", stopTitleNotification, { once: true });
-
-      // Also stop after 5 minutes as a fallback
       setTimeout(stopTitleNotification, 5 * 60 * 1000);
     };
 
-    // Subscribe to events
     walletKit.on("session_proposal", onSessionProposal);
     walletKit.on("session_request", onSessionRequest);
     walletKit.on("session_delete", onSessionDelete);
     walletKit.engine.signClient.events.on("session_ping", onSessionPing);
 
-    // Cleanup
     return () => {
       walletKit.off("session_proposal", onSessionProposal);
       walletKit.off("session_request", onSessionRequest);
@@ -274,7 +247,8 @@ export default function DSProxyWalletKitEventHandler({
   }, [
     walletKit,
     address,
-    dsProxyAddress,
+    walletAddress,
+    config,
     setCurrentSessionProposal,
     setCurrentSessionRequest,
     setDecodedTxData,
