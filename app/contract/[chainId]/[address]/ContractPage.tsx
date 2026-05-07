@@ -242,7 +242,7 @@ const AbiSourceCodeContent = ({
       p={3}
       position={isFullscreen ? "fixed" : "relative"}
       inset={isFullscreen ? 0 : undefined}
-      zIndex={isFullscreen ? 1400 : undefined}
+      zIndex={isFullscreen ? 10000 : undefined}
       h={isFullscreen ? "100vh" : undefined}
       transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
     >
