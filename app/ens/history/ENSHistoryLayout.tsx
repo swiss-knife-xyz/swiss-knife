@@ -141,11 +141,75 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
       description: "ZORGZ — swap ETH for ZORG tokens",
       category: "DeFi",
     },
-    // Alternative ENS frontend
+    // Tools / Infrastructure
+    {
+      ensName: "dapp3.eth",
+      description:
+        "dapp3 — Chromium extension that opens .eth sites via a local Helios light client and Kubo IPFS node",
+      category: "Tools / Infrastructure",
+    },
     {
       ensName: "ens.eth",
       description: "Alternative ENS app frontend",
-      category: "Alternative ENS frontend",
+      category: "Tools / Infrastructure",
+    },
+    {
+      ensName: "evmnow.eth",
+      description:
+        "Smart Contract Reader — streamlined open source block explorer UI",
+      category: "Tools / Infrastructure",
+    },
+    {
+      ensName: "planetable.eth",
+      description: "Planetable — decentralized publishing",
+      category: "Tools / Infrastructure",
+    },
+    {
+      ensName: "webhash.eth",
+      description: "WebHash — decentralized web tools",
+      category: "Tools / Infrastructure",
+    },
+    {
+      ensName: "pinme.eth",
+      description: "PinMe — IPFS pinning",
+      category: "Tools / Infrastructure",
+    },
+    {
+      ensName: "geocities.eth",
+      description: "Geocities revival on IPFS",
+      category: "Tools / Infrastructure",
+      customFaviconUrl:
+        "https://github.com/GeoCities/Ads/blob/main/Ads/Nyan%20Cat%20-%20Chris.gif?raw=true",
+    },
+    {
+      ensName: "evmfs.eth",
+      description: "EVM File System",
+      category: "Tools / Infrastructure",
+    },
+    {
+      ensName: "liber3.eth",
+      description: "Liber3 — decentralized publishing",
+      category: "Tools / Infrastructure",
+    },
+    {
+      ensName: "facelessprivacy.eth",
+      description: "Faceless Privacy tools",
+      category: "Tools / Infrastructure",
+    },
+    {
+      ensName: "simplepage.eth",
+      description: "SimplePage — simple static site builder",
+      category: "Tools / Infrastructure",
+      customFaviconUrl:
+        "https://simplepage.eth.limo/_files/.artifacts/foamFavicon-light.png",
+    },
+    {
+      ensName: "walkaway.fileverse.eth",
+      description:
+        "Fileverse Walkaway — encrypted, self-sovereign dDocs & dSheets",
+      category: "Tools / Infrastructure",
+      customFaviconUrl:
+        "https://walkaway.fileverse.eth.link/assets/favicon-CPSrIiXo.ico",
     },
     // NFT
     {
@@ -237,65 +301,6 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
       category: "Education / Docs",
       limoSuffix: ".sucks",
       customFaviconUrl: "https://docs.ipfs.eth.sucks/favicon-32x32.png",
-    },
-    // Tools / Infrastructure
-    {
-      ensName: "evmnow.eth",
-      description:
-        "Smart Contract Reader — streamlined open source block explorer UI",
-      category: "Tools / Infrastructure",
-    },
-    {
-      ensName: "planetable.eth",
-      description: "Planetable — decentralized publishing",
-      category: "Tools / Infrastructure",
-    },
-    {
-      ensName: "webhash.eth",
-      description: "WebHash — decentralized web tools",
-      category: "Tools / Infrastructure",
-    },
-    {
-      ensName: "pinme.eth",
-      description: "PinMe — IPFS pinning",
-      category: "Tools / Infrastructure",
-    },
-    {
-      ensName: "geocities.eth",
-      description: "Geocities revival on IPFS",
-      category: "Tools / Infrastructure",
-      customFaviconUrl:
-        "https://github.com/GeoCities/Ads/blob/main/Ads/Nyan%20Cat%20-%20Chris.gif?raw=true",
-    },
-    {
-      ensName: "evmfs.eth",
-      description: "EVM File System",
-      category: "Tools / Infrastructure",
-    },
-    {
-      ensName: "liber3.eth",
-      description: "Liber3 — decentralized publishing",
-      category: "Tools / Infrastructure",
-    },
-    {
-      ensName: "facelessprivacy.eth",
-      description: "Faceless Privacy tools",
-      category: "Tools / Infrastructure",
-    },
-    {
-      ensName: "simplepage.eth",
-      description: "SimplePage — simple static site builder",
-      category: "Tools / Infrastructure",
-      customFaviconUrl:
-        "https://simplepage.eth.limo/_files/.artifacts/foamFavicon-light.png",
-    },
-    {
-      ensName: "walkaway.fileverse.eth",
-      description:
-        "Fileverse Walkaway — encrypted, self-sovereign dDocs & dSheets",
-      category: "Tools / Infrastructure",
-      customFaviconUrl:
-        "https://walkaway.fileverse.eth.link/assets/favicon-CPSrIiXo.ico",
     },
   ];
 
