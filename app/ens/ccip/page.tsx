@@ -230,9 +230,12 @@ export default function CCIPRead() {
         args: [dnsEncodedName],
       });
 
+      let offchainLookupSeen = false;
       try {
         // Step 1: Call resolve() on the resolver itself. For CCIP this will
         // throw the `OffchainLookup` error containing the resolver's gateway.
+        // If it returns successfully, the name is fully onchain and there is
+        // nothing to visualize on this page.
         await publicClient.readContract({
           address: resolverAddress,
           abi: RESOLVER_ABI,
@@ -241,6 +244,7 @@ export default function CCIPRead() {
         });
       } catch (error: any) {
         if (error.message.includes("OffchainLookup")) {
+          offchainLookupSeen = true;
           // Record lookup completion time immediately
           timerRef.current.lookup = performance.now();
           const lookupTime = Math.round(
@@ -491,6 +495,19 @@ export default function CCIPRead() {
 
           return;
         }
+        throw error;
+      }
+
+      if (!offchainLookupSeen) {
+        toast({
+          title: "Not a CCIP name",
+          description: "This name resolves fully onchain — try jesse.base.eth.",
+          status: "info",
+          duration: 5000,
+          isClosable: true,
+        });
+        setResult(null);
+        return;
       }
 
       if (!resolvedAddress || resolvedAddress === zeroAddress) {
