@@ -10,6 +10,7 @@ const SidebarItems: SidebarItem[] = [
   { name: "Decoder", path: "decoder" },
   { name: "Encoder", path: "encoder" },
   { name: "Viem Error Simulate", path: "viem-error-simulate" },
+  { name: "CoWSwap TWAP Verifier", path: "cowswap" },
 ];
 
 export const CalldataLayout = ({ children }: { children: React.ReactNode }) => {
