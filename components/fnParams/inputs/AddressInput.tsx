@@ -52,6 +52,8 @@ interface InputFieldProps extends InputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFunctionIsDisabled?: (value: boolean) => void;
   hideTags?: boolean;
+  /** Hide the [zeroAddr] and [user address] quick-fill buttons rendered below the input. */
+  hideQuickFillButtons?: boolean;
 }
 
 export const AddressInput = ({
@@ -62,6 +64,7 @@ export const AddressInput = ({
   isInvalid,
   setFunctionIsDisabled,
   hideTags,
+  hideQuickFillButtons,
   ...rest
 }: InputFieldProps) => {
   const { address: userAddress } = useAccount();
@@ -322,33 +325,20 @@ export const AddressInput = ({
           />
         </Box>
 
-        <HStack my={2}>
-          <Spacer />
-          <AddressBookButton
-            onSelect={(address: string) => {
-              onChange({
-                target: { value: address },
-              } as any);
-            }}
-          />
-          <Button
-            onClick={() => {
-              onChange({
-                target: { value: zeroAddress },
-              } as any);
-            }}
-            size={"sx"}
-            fontWeight={"thin"}
-            variant={"ghost"}
-            color="whiteAlpha.300"
-          >
-            [zeroAddr]
-          </Button>
-          {userAddress && (
+        {!hideQuickFillButtons && (
+          <HStack my={2}>
+            <Spacer />
+            <AddressBookButton
+              onSelect={(address: string) => {
+                onChange({
+                  target: { value: address },
+                } as any);
+              }}
+            />
             <Button
               onClick={() => {
                 onChange({
-                  target: { value: userAddress },
+                  target: { value: zeroAddress },
                 } as any);
               }}
               size={"sx"}
@@ -356,10 +346,25 @@ export const AddressInput = ({
               variant={"ghost"}
               color="whiteAlpha.300"
             >
-              [{slicedText(userAddress)}]
+              [zeroAddr]
             </Button>
-          )}
-        </HStack>
+            {userAddress && (
+              <Button
+                onClick={() => {
+                  onChange({
+                    target: { value: userAddress },
+                  } as any);
+                }}
+                size={"sx"}
+                fontWeight={"thin"}
+                variant={"ghost"}
+                color="whiteAlpha.300"
+              >
+                [{slicedText(userAddress)}]
+              </Button>
+            )}
+          </HStack>
+        )}
       </Box>
     </Box>
   );

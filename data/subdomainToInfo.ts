@@ -24,6 +24,11 @@ export const subdomainToInfo = {
     label: "Wallet Bridge",
     description: "Connect your wallet from one browser to another",
   },
+  [subdomains.MIGRATE.base]: {
+    emoji: "🚚",
+    label: "Migrate",
+    description: "Sweep tokens from your wallet to another address in a batch",
+  },
   [subdomains["7702BEAT"].base]: {
     emoji: "👑",
     label: "7702 Beat",
