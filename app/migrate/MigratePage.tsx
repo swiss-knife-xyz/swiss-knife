@@ -412,7 +412,7 @@ export default function MigratePage() {
             Sweep tokens from your wallet to a single receiver address.
           </Text>
         </Box>
-        {mounted && isConnected && (
+        {mounted && (
           <Box
             flexShrink={0}
             display="flex"
@@ -432,18 +432,7 @@ export default function MigratePage() {
           p={10}
         />
       ) : !isConnected ? (
-        <Alert
-          status="info"
-          bg="rgba(59,130,246,0.10)"
-          border="1px solid"
-          borderColor="rgba(59,130,246,0.30)"
-          borderRadius="lg"
-          color="primary.400"
-        >
-          <AlertIcon color="primary.400" />
-          Connect your wallet to view your portfolio and start migrating
-          tokens.
-        </Alert>
+        <DisconnectedPreview />
       ) : isLoading ? (
         <Grid
           templateColumns={{ base: "1fr", lg: "1fr 380px" }}
@@ -745,4 +734,261 @@ function PortfolioSkeleton() {
         </VStack>
   );
 }
+
+// Static preview shown to disconnected users. Mirrors the real two-column
+// layout (portfolio + receiver) with plausible-looking fake data so the page
+// doesn't read as empty. Dimmed and click-blocked; a centered CTA overlay
+// surfaces the connect button.
+function DisconnectedPreview() {
+  return (
+    <Box position="relative">
+      <Box opacity={0.45} pointerEvents="none" filter="blur(0.5px)" aria-hidden>
+        <Grid
+          templateColumns={{ base: "1fr", lg: "1fr 380px" }}
+          gap={4}
+          alignItems="flex-start"
+        >
+          <GridItem minW={0}>
+            <VStack spacing={4} align="stretch">
+              {/* Portfolio header */}
+              <Box
+                p={5}
+                bg="whiteAlpha.50"
+                border="1px solid"
+                borderColor="whiteAlpha.200"
+                borderRadius="lg"
+              >
+                <Text
+                  fontSize="xs"
+                  color="whiteAlpha.600"
+                  letterSpacing="wider"
+                  mb={1}
+                >
+                  TOTAL VALUE
+                </Text>
+                <Heading
+                  fontSize="3xl"
+                  color="text.primary"
+                  fontWeight="bold"
+                  letterSpacing="tight"
+                >
+                  $12,847.23
+                </Heading>
+                <SimpleGrid
+                  columns={{ base: 3, sm: 4, md: 5 }}
+                  spacing={2}
+                  mt={4}
+                >
+                  {DEMO_CHAINS.map((c) => (
+                    <Box
+                      key={c.name}
+                      p={2}
+                      bg="whiteAlpha.50"
+                      border="1px solid"
+                      borderColor="whiteAlpha.100"
+                      borderRadius="md"
+                    >
+                      <Text fontSize="xs" color="whiteAlpha.700">
+                        {c.name}
+                      </Text>
+                      <Text fontSize="sm" color="white" fontWeight="600">
+                        {c.usd}
+                      </Text>
+                    </Box>
+                  ))}
+                </SimpleGrid>
+              </Box>
+
+              {/* Token group */}
+              <Box
+                bg="whiteAlpha.50"
+                border="1px solid"
+                borderColor="whiteAlpha.200"
+                borderRadius="lg"
+                overflow="hidden"
+              >
+                <HStack
+                  px={4}
+                  py={3}
+                  borderBottom="1px solid"
+                  borderColor="whiteAlpha.100"
+                >
+                  <Text color="white" fontWeight="600">
+                    Ethereum
+                  </Text>
+                  <Text color="whiteAlpha.500" fontSize="sm">
+                    · 4 tokens
+                  </Text>
+                  <Box flex={1} />
+                  <Text color="whiteAlpha.700" fontSize="sm">
+                    $8,221.40
+                  </Text>
+                </HStack>
+                <VStack spacing={0} align="stretch">
+                  {DEMO_TOKENS.map((t, i) => (
+                    <HStack
+                      key={t.symbol}
+                      px={4}
+                      py={3}
+                      spacing={3}
+                      borderBottom={
+                        i < DEMO_TOKENS.length - 1 ? "1px solid" : undefined
+                      }
+                      borderColor="whiteAlpha.100"
+                    >
+                      <Box
+                        boxSize="20px"
+                        borderRadius="md"
+                        border="1px solid"
+                        borderColor="whiteAlpha.300"
+                      />
+                      <Box
+                        boxSize="28px"
+                        borderRadius="full"
+                        bg="whiteAlpha.200"
+                      />
+                      <VStack spacing={0} align="flex-start" flex={1} minW={0}>
+                        <Text color="white" fontWeight="600">
+                          {t.symbol}
+                        </Text>
+                        <Text color="whiteAlpha.500" fontSize="sm">
+                          {t.name}
+                        </Text>
+                      </VStack>
+                      <VStack spacing={0} align="flex-end">
+                        <Text
+                          color="white"
+                          fontFamily="mono"
+                          sx={{ fontVariantNumeric: "tabular-nums" }}
+                        >
+                          {t.balance}
+                        </Text>
+                        <Text color="whiteAlpha.600" fontSize="sm">
+                          {t.usd}
+                        </Text>
+                      </VStack>
+                    </HStack>
+                  ))}
+                </VStack>
+              </Box>
+            </VStack>
+          </GridItem>
+
+          {/* Receiver panel */}
+          <GridItem display={{ base: "none", lg: "block" }}>
+            <Box
+              p={5}
+              bg="whiteAlpha.50"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+              borderRadius="lg"
+            >
+              <Text
+                fontSize="xs"
+                color="whiteAlpha.600"
+                letterSpacing="wider"
+                mb={2}
+              >
+                MIGRATE TO
+              </Text>
+              <Box
+                px={3}
+                py={2.5}
+                bg="whiteAlpha.50"
+                border="1px solid"
+                borderColor="whiteAlpha.200"
+                borderRadius="md"
+                mb={3}
+              >
+                <Text color="whiteAlpha.500" fontSize="sm">
+                  vitalik.eth
+                </Text>
+              </Box>
+              <Box
+                py={6}
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <Box
+                  px={4}
+                  py={2}
+                  bg="whiteAlpha.50"
+                  border="1px solid"
+                  borderColor="whiteAlpha.200"
+                  borderRadius="full"
+                >
+                  <Text color="whiteAlpha.600" fontSize="xs">
+                    4 tokens → 1 batch
+                  </Text>
+                </Box>
+              </Box>
+              <Box
+                w="full"
+                h="40px"
+                bg="primary.500"
+                borderRadius="md"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <Text color="white" fontWeight="600" fontSize="sm">
+                  Migrate 4 tokens
+                </Text>
+              </Box>
+            </Box>
+          </GridItem>
+        </Grid>
+      </Box>
+
+      {/* CTA overlay */}
+      <Flex
+        position="absolute"
+        inset={0}
+        align="center"
+        justify="center"
+        pointerEvents="none"
+      >
+        <VStack
+          spacing={3}
+          p={6}
+          bg="bg.muted"
+          border="1px solid"
+          borderColor="whiteAlpha.300"
+          borderRadius="lg"
+          boxShadow="0 12px 40px rgba(0,0,0,0.45)"
+          pointerEvents="auto"
+          maxW="sm"
+          textAlign="center"
+        >
+          <Heading fontSize="lg" color="text.primary">
+            Connect your wallet
+          </Heading>
+          <Text color="text.secondary" fontSize="sm">
+            We&apos;ll load your tokens across every supported chain and let
+            you sweep them to a single address in one batched transaction.
+          </Text>
+          <Box pt={1}>
+            <ConnectButton />
+          </Box>
+        </VStack>
+      </Flex>
+    </Box>
+  );
+}
+
+const DEMO_CHAINS = [
+  { name: "Ethereum", usd: "$8,221" },
+  { name: "Base", usd: "$2,915" },
+  { name: "Arbitrum", usd: "$1,108" },
+  { name: "Optimism", usd: "$412" },
+  { name: "Polygon", usd: "$190" },
+];
+
+const DEMO_TOKENS = [
+  { symbol: "ETH", name: "Ether", balance: "1.842", usd: "$5,612.45" },
+  { symbol: "USDC", name: "USD Coin", balance: "1,420.00", usd: "$1,420.00" },
+  { symbol: "AAVE", name: "Aave", balance: "14.21", usd: "$1,089.55" },
+  { symbol: "UNI", name: "Uniswap", balance: "112.5", usd: "$99.40" },
+];
 
