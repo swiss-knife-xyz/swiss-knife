@@ -22,7 +22,7 @@ import {
   useGasPrice,
   useSwitchChain,
 } from "wagmi";
-import { Address, isAddress } from "viem";
+import { Address, formatUnits, isAddress } from "viem";
 import { usePortfolio } from "./hooks/usePortfolio";
 import { useBatchSupport } from "./hooks/useBatchSupport";
 import {
@@ -31,16 +31,32 @@ import {
 } from "./hooks/useMigrateExecution";
 import { ConnectButton } from "@/components/ConnectButton/ConnectButton";
 import { Layout } from "@/components/Layout";
+import TabsSelector from "@/components/Tabs/TabsSelector";
 import { PortfolioSidebar } from "./components/PortfolioSidebar";
 import { TokenTable } from "./components/TokenTable";
 import { ReceiverPanel } from "./components/ReceiverPanel";
+import { SwapTargetPanel } from "./components/SwapTargetPanel";
+import { SwapExecutionModal } from "./components/SwapExecutionModal";
 import { BatchProgressModal } from "./components/BatchProgressModal";
 import { SequentialProgressModal } from "./components/SequentialProgressModal";
+import { chainIdToChain } from "@/data/common";
 import { PortfolioToken, tokenKey } from "./lib/portfolioApi";
 import { resolveTransferAmountWei } from "./lib/buildTransferCall";
 import { applyLiveBalance } from "./lib/onchainBalances";
 import { useLiveBalances } from "./hooks/useLiveBalances";
+import {
+  SwapQuote,
+  TargetTokenEntry,
+  getTargetTokensForChain,
+} from "./lib/swapTypes";
+import { useSwapTokenList } from "./hooks/useSwapTokenList";
+import { useSwapQuotes, QuoteRequest } from "./hooks/useSwapQuotes";
+import { detectWrapUnwrap } from "./lib/wrapUnwrap";
+import { NATIVE_TOKEN_ADDRESS_0X } from "./lib/swapQuoteApi";
 import { SelectionMap } from "./types";
+
+type MigrateTab = "send" | "swap";
+const TAB_LABELS = ["Send", "Swap"];
 
 const DUST_THRESHOLD_USD = 0.1;
 
@@ -65,6 +81,7 @@ export default function MigratePage() {
     : undefined;
 
   const {
+    tokens: portfolioTokens,
     chainGroups,
     totalValueUsd,
     isLoading,
@@ -89,6 +106,14 @@ export default function MigratePage() {
 
   const [selection, setSelection] = useState<SelectionMap>(new Map());
   const [receiver, setReceiver] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<MigrateTab>("send");
+  const [targetToken, setTargetToken] = useState<TargetTokenEntry | null>(null);
+  const [slippageBps, setSlippageBps] = useState<number>(300); // 3% default
+  const [isSwapPreviewOpen, setIsSwapPreviewOpen] = useState(false);
+  // Empty string ↔ "send the bought tokens to the connected wallet" (the
+  // 0x default). A non-empty *valid* address overrides via the `recipient`
+  // query param all the way through to 0x.
+  const [swapRecipient, setSwapRecipient] = useState<string>("");
   // Per-chain "show dust" toggle. Default off → tokens with valueUsd < $0.10
   // are hidden from the chain group, excluded from select-all, and excluded
   // from the migration plan.
@@ -315,6 +340,326 @@ export default function MigratePage() {
       .filter((t) => t.amountWei > 0n);
   }, [selectedOnCurrentChain, selection, gasPriceWei]);
 
+  // Only fetch the live token list when the Swap tab is actually visible.
+  // Avoids a needless round-trip for users who only ever use Send.
+  const {
+    tokens: liveTokenList,
+    isLoading: isLoadingTokenList,
+  } = useSwapTokenList(activeTab === "swap" ? currentChainId : undefined);
+
+  // Swap target token lists per current chain. The base set comes from the
+  // hardcoded `POPULAR_TARGETS_BY_CHAIN`; we then prefer USDT over WETH
+  // whenever the live token list has a real USDT entry (most users care
+  // more about a stablecoin chip than a wrapped-native chip — Mainnet and
+  // Arbitrum already have both, this catches Base / Optimism / Polygon).
+  const popularTargets = useMemo<TargetTokenEntry[]>(() => {
+    if (!currentChainId) return [];
+    const base = getTargetTokensForChain(currentChainId);
+    const hasUsdt = base.some((t) => t.symbol.toUpperCase() === "USDT");
+    if (hasUsdt) return base;
+    const liveUsdt = liveTokenList.find(
+      (t) => t.symbol.toUpperCase() === "USDT"
+    );
+    if (!liveUsdt) return base;
+    const wethIndex = base.findIndex(
+      (t) => t.symbol.toUpperCase() === "WETH"
+    );
+    // Inherit WETH's popularRank so chip ordering stays stable; if there's
+    // no WETH at all (unusual), tack USDT on at the end.
+    if (wethIndex >= 0) {
+      const next = [...base];
+      next[wethIndex] = { ...liveUsdt, popularRank: base[wethIndex].popularRank };
+      return next;
+    }
+    return [...base, liveUsdt];
+  }, [currentChainId, liveTokenList]);
+
+  // Rest list: live token list minus addresses already in `popularTargets`
+  // (the picker promotes those to chips and would otherwise show them twice).
+  // Empty while the live fetch is in flight — the dropdown shows a "loading"
+  // hint in that state via `isLoadingTargetList`.
+  const restTargets = useMemo<TargetTokenEntry[]>(() => {
+    if (currentChainId === undefined) return [];
+    if (liveTokenList.length === 0) return [];
+    const popularAddrs = new Set(
+      popularTargets.map((t) => t.address.toLowerCase())
+    );
+    return liveTokenList.filter(
+      (t) => !popularAddrs.has(t.address.toLowerCase())
+    );
+  }, [currentChainId, liveTokenList, popularTargets]);
+
+  useEffect(() => {
+    setTargetToken(null);
+  }, [currentChainId]);
+
+  const currentChainName = useMemo(() => {
+    if (currentChainId === undefined) return undefined;
+    return chainIdToChain[currentChainId]?.name;
+  }, [currentChainId]);
+
+  // Source rows that *could* be quoted — i.e. selected on the current chain,
+  // with a non-zero send amount, and whose address isn't the chosen target.
+  // The live quote hook is keyed on this list; identity changes drive refetch.
+  const quoteRequests = useMemo<QuoteRequest[]>(() => {
+    if (activeTab !== "swap" || !targetToken) return [];
+    const targetAddrLower = targetToken.address.toLowerCase();
+    return preparedTransfers
+      .filter((t) => {
+        const sourceAddr =
+          t.token.contractAddress === "native"
+            ? "native"
+            : t.token.contractAddress.toLowerCase();
+        return sourceAddr !== targetAddrLower;
+      })
+      .map((t) => ({ source: t.token, sourceAmountWei: t.amountWei }));
+  }, [activeTab, targetToken, preparedTransfers]);
+
+  // Only pass `recipient` to the quote API once it's a valid address —
+  // half-typed values would just make every request fail with a 400.
+  const validSwapRecipient = useMemo(() => {
+    const trimmed = swapRecipient.trim();
+    return isAddress(trimmed) ? trimmed : undefined;
+  }, [swapRecipient]);
+
+  const liveQuotes = useSwapQuotes({
+    chainId: currentChainId,
+    taker: address,
+    buyToken: targetToken?.address,
+    requests: quoteRequests,
+    slippageBps,
+    recipient: validSwapRecipient,
+    enabled:
+      activeTab === "swap" &&
+      !!targetToken &&
+      !!address &&
+      quoteRequests.length > 0,
+  });
+
+  // Target USD price: look in the user's portfolio first — both an exact
+  // (chainId, address) match on the current chain (most accurate) and a
+  // symbol-wide fallback for cross-chain stables. Falls back to undefined if
+  // we have nothing; the row USD is then derived from the source-side value
+  // (assumes the swap roughly conserves dollars, which is true for sane DEX
+  // routes). Saves us a separate CoinGecko round-trip when the user already
+  // holds the target somewhere.
+  const targetPriceUsd = useMemo<number | undefined>(() => {
+    if (!targetToken) return undefined;
+    const targetAddrLower = targetToken.address.toLowerCase();
+    const targetSymbol = targetToken.symbol.toUpperCase();
+    let symbolFallback: number | undefined;
+    for (const t of portfolioTokens) {
+      const tAddr =
+        t.contractAddress === "native"
+          ? "native"
+          : t.contractAddress.toLowerCase();
+      const tSym = t.symbol.toUpperCase();
+      if (
+        t.chainId === currentChainId &&
+        tAddr === targetAddrLower &&
+        t.priceUsd > 0
+      ) {
+        return t.priceUsd;
+      }
+      if (
+        symbolFallback === undefined &&
+        tSym === targetSymbol &&
+        t.priceUsd > 0
+      ) {
+        symbolFallback = t.priceUsd;
+      }
+    }
+    return symbolFallback;
+  }, [targetToken, currentChainId, portfolioTokens]);
+
+  // Marry live quote responses with the target USD price to produce the
+  // SwapQuote shape consumed by the panel + modal. Always emits one row per
+  // request — pending rows carry `isPending`, failed rows carry
+  // `errorMessage` — so adding a new token doesn't blank out the existing
+  // settled rows while only the new one is in flight.
+  const swapQuotes = useMemo<SwapQuote[]>(() => {
+    if (activeTab !== "swap" || !targetToken) return [];
+    return liveQuotes.results.map((r) => {
+      const isNativeSource = r.request.source.contractAddress === "native";
+      // Wrap/unwrap rows execute against the wrapped-native contract
+      // directly (deposit{value:} / withdraw) — neither path needs an
+      // ERC-20 approve. Detect here so chunk packing in the modal counts
+      // these as single-call units.
+      const wrapDirection =
+        currentChainId !== undefined && targetToken
+          ? detectWrapUnwrap(
+              currentChainId,
+              isNativeSource ? "native" : r.request.source.contractAddress,
+              targetToken.address
+            )
+          : null;
+      const needsApprove = !isNativeSource && !wrapDirection;
+      const base = {
+        source: r.request.source,
+        sourceAmountWei: r.request.sourceAmountWei,
+        needsApprove,
+      };
+      if (r.data && !r.isError) {
+        const buyAmountWei = (() => {
+          try {
+            return BigInt(r.data!.buyAmount);
+          } catch {
+            return 0n;
+          }
+        })();
+        const buyAmountFloat = Number(
+          formatUnits(buyAmountWei, targetToken.decimals)
+        );
+        const sourceFloat = Number(
+          formatUnits(r.request.sourceAmountWei, r.request.source.decimals)
+        );
+        const sourceUsd = sourceFloat * r.request.source.priceUsd;
+        // Prefer target-side USD if we have a price; otherwise source-side
+        // value is the best honest estimate (DEX routes ≈ price-conserving).
+        const targetUsd =
+          targetPriceUsd !== undefined && buyAmountFloat > 0
+            ? buyAmountFloat * targetPriceUsd
+            : sourceUsd;
+
+        // Integrator fee → USD. Walletchan's response carries either the
+        // singular `integratorFee` (current shape) or an `integratorFees`
+        // array. We price the fee token using whichever side of the swap
+        // it matches — typically the buy token (most fees skim from the
+        // output), but `resolveSwapFeeToken` can pick the sell side too.
+        // Synthetic wrap/unwrap rows have no `fees` field, so they
+        // contribute nothing to the fee total (correct: no DEX fee on a
+        // direct WETH.deposit/withdraw).
+        const integratorFee =
+          r.data.fees?.integratorFee ?? r.data.fees?.integratorFees?.[0];
+        let feeUsd: number | undefined;
+        if (integratorFee) {
+          const feeAddrLower = integratorFee.token.toLowerCase();
+          const targetAddrLower =
+            targetToken.address.toLowerCase() === "native"
+              ? NATIVE_TOKEN_ADDRESS_0X.toLowerCase()
+              : targetToken.address.toLowerCase();
+          const sourceAddrLower =
+            r.request.source.contractAddress === "native"
+              ? NATIVE_TOKEN_ADDRESS_0X.toLowerCase()
+              : r.request.source.contractAddress.toLowerCase();
+
+          let priceUsd: number | undefined;
+          let feeDecimals: number | undefined;
+          if (feeAddrLower === targetAddrLower) {
+            priceUsd = targetPriceUsd;
+            feeDecimals = targetToken.decimals;
+          } else if (feeAddrLower === sourceAddrLower) {
+            priceUsd = r.request.source.priceUsd;
+            feeDecimals = r.request.source.decimals;
+          }
+          if (
+            priceUsd !== undefined &&
+            priceUsd > 0 &&
+            feeDecimals !== undefined
+          ) {
+            try {
+              const feeFloat = Number(
+                formatUnits(BigInt(integratorFee.amount), feeDecimals)
+              );
+              feeUsd = feeFloat * priceUsd;
+            } catch {
+              // ignore — feeUsd stays undefined, footer just shows
+              // "Includes walletchan fee" without a $ amount.
+            }
+          }
+        }
+
+        return {
+          ...base,
+          targetAmountWei: buyAmountWei,
+          targetUsd,
+          feeUsd,
+          isPremiumFee: r.data.isPremiumFee === true,
+          quoteData: r.data,
+        };
+      }
+      if (r.isError) {
+        return {
+          ...base,
+          targetAmountWei: 0n,
+          targetUsd: 0,
+          errorMessage: r.error?.message ?? "Quote failed",
+        };
+      }
+      return {
+        ...base,
+        targetAmountWei: 0n,
+        targetUsd: 0,
+        isPending: true,
+      };
+    });
+  }, [activeTab, targetToken, liveQuotes.results, targetPriceUsd]);
+
+  const swapDisabledReason = useMemo(() => {
+    if (activeTab !== "swap") return undefined;
+    if (!isConnected) return "Connect a wallet to start";
+    if (
+      targetToken &&
+      preparedTransfers.length > 0 &&
+      quoteRequests.length === 0
+    ) {
+      return "Selected token matches the target — pick a different target";
+    }
+    if (
+      targetToken &&
+      quoteRequests.length > 0 &&
+      liveQuotes.isSettled &&
+      swapQuotes.every((q) => q.errorMessage)
+    ) {
+      return "Couldn't fetch swap quotes — try a different target or retry";
+    }
+    return undefined;
+  }, [
+    activeTab,
+    isConnected,
+    targetToken,
+    preparedTransfers.length,
+    quoteRequests.length,
+    swapQuotes,
+    liveQuotes.isSettled,
+  ]);
+
+  // Source rows on the current chain whose address matches the chosen swap
+  // target — these would be no-op swaps so we offer to uncheck them.
+  const conflictingSourceKeys = useMemo<string[]>(() => {
+    if (activeTab !== "swap" || !targetToken) return [];
+    const targetAddrLower = targetToken.address.toLowerCase();
+    return selectedOnCurrentChain
+      .filter((t) => {
+        const sourceAddr =
+          t.contractAddress === "native"
+            ? "native"
+            : t.contractAddress.toLowerCase();
+        return sourceAddr === targetAddrLower;
+      })
+      .map((t) => tokenKey(t));
+  }, [activeTab, targetToken, selectedOnCurrentChain]);
+
+  const handleResolveTargetConflict = useCallback(() => {
+    if (conflictingSourceKeys.length === 0) return;
+    setSelection((curr) => {
+      const next = new Map(curr);
+      for (const key of conflictingSourceKeys) {
+        const existing = next.get(key);
+        next.set(key, {
+          selected: false,
+          amountOverrideWei: existing?.amountOverrideWei,
+        });
+      }
+      return next;
+    });
+  }, [conflictingSourceKeys]);
+
+  const handleOpenSwapPreview = useCallback(() => {
+    if (!targetToken || swapQuotes.length === 0) return;
+    setIsSwapPreviewOpen(true);
+  }, [targetToken, swapQuotes.length]);
+
   const handleMigrate = useCallback(() => {
     if (!isAddress(receiver.trim())) return;
     if (preparedTransfers.length === 0) return;
@@ -338,6 +683,26 @@ export default function MigratePage() {
       if (delayedRefreshRef.current) clearTimeout(delayedRefreshRef.current);
     };
   }, []);
+
+  const handleSwapModalClose = useCallback(
+    (didSwapAnything: boolean) => {
+      setIsSwapPreviewOpen(false);
+      if (didSwapAnything) {
+        // Wipe selections that were swapped so the user doesn't accidentally
+        // re-send the same amounts. Mirrors the post-send cleanup below.
+        setSelection(new Map());
+        refetch();
+        invalidateLiveBalances();
+        if (delayedRefreshRef.current) clearTimeout(delayedRefreshRef.current);
+        delayedRefreshRef.current = setTimeout(() => {
+          refetch();
+          invalidateLiveBalances();
+          delayedRefreshRef.current = null;
+        }, 4_000);
+      }
+    },
+    [refetch, invalidateLiveBalances]
+  );
 
   const handleModalClose = useCallback(
     (didMigrateAnything: boolean) => {
@@ -409,7 +774,9 @@ export default function MigratePage() {
             Migrate Tokens
           </Heading>
           <Text color="text.secondary" fontSize="md" mt={2}>
-            Sweep tokens from your wallet to a single receiver address.
+            {activeTab === "swap"
+              ? "Swap every selected token into one — batched into as few transactions as your wallet allows."
+              : "Sweep tokens from your wallet to a single receiver address."}
           </Text>
         </Box>
         {mounted && (
@@ -488,19 +855,55 @@ export default function MigratePage() {
                 onChainClick={handleChainTileClick}
                 onReload={handleReload}
               />
-              {/* Inline receiver — only renders below lg, where the right
+              {/* Inline panel — only renders below lg, where the right
                   column is collapsed. Sits between portfolio + token list so
                   it's reachable without scrolling past every chain group. */}
               <Box display={{ base: "block", lg: "none" }}>
-                <ReceiverPanel
-                  receiver={receiver}
-                  onReceiverChange={setReceiver}
-                  chainId={currentChainId ?? 1}
-                  selectedTokens={selectedOnCurrentChain}
-                  onMigrate={handleMigrate}
-                  isExecuting={execution.plan !== null}
-                  disabledReason={receiverHint}
-                />
+                <Box mb={3} display="flex" justifyContent="flex-start">
+                  <TabsSelector
+                    tabs={TAB_LABELS}
+                    selectedTabIndex={activeTab === "send" ? 0 : 1}
+                    setSelectedTabIndex={(i) =>
+                      setActiveTab(i === 0 ? "send" : "swap")
+                    }
+                    mt={0}
+                  />
+                </Box>
+                {activeTab === "send" ? (
+                  <ReceiverPanel
+                    receiver={receiver}
+                    onReceiverChange={setReceiver}
+                    chainId={currentChainId ?? 1}
+                    selectedTokens={selectedOnCurrentChain}
+                    onMigrate={handleMigrate}
+                    isExecuting={execution.plan !== null}
+                    disabledReason={receiverHint}
+                  />
+                ) : (
+                  <SwapTargetPanel
+                    chainName={currentChainName}
+                    chainId={currentChainId}
+                    selectedSourceTokens={selectedOnCurrentChain}
+                    targetToken={targetToken}
+                    onTargetTokenChange={setTargetToken}
+                    popularTargets={popularTargets}
+                    restTargets={restTargets}
+                    isLoadingTargetList={isLoadingTokenList}
+                    slippageBps={slippageBps}
+                    onSlippageChange={setSlippageBps}
+                    quotes={swapQuotes}
+                    isLoadingQuotes={liveQuotes.isLoading}
+                    onSwap={handleOpenSwapPreview}
+                    isExecuting={isSwapPreviewOpen}
+                    disabledReason={swapDisabledReason}
+                    onResolveTargetConflict={handleResolveTargetConflict}
+                    conflictingSourceCount={conflictingSourceKeys.length}
+                    recipient={swapRecipient}
+                    onRecipientChange={setSwapRecipient}
+                    recipientChainId={currentChainId ?? 1}
+                    connectedWalletAddress={address}
+                  />
+                )}
               </Box>
               <TokenTable
                 chainGroups={displayedChainGroups}
@@ -526,15 +929,53 @@ export default function MigratePage() {
             maxH={{ lg: "calc(100vh - 2rem)" }}
             overflowY={{ lg: "auto" }}
           >
-            <ReceiverPanel
-              receiver={receiver}
-              onReceiverChange={setReceiver}
-              chainId={currentChainId ?? 1}
-              selectedTokens={selectedOnCurrentChain}
-              onMigrate={handleMigrate}
-              isExecuting={execution.plan !== null}
-              disabledReason={receiverHint}
-            />
+            <Box mb={3} display="flex" justifyContent="flex-start">
+              <TabsSelector
+                tabs={TAB_LABELS}
+                selectedTabIndex={activeTab === "send" ? 0 : 1}
+                setSelectedTabIndex={(i) =>
+                  setActiveTab(i === 0 ? "send" : "swap")
+                }
+                mt={0}
+              />
+            </Box>
+            {activeTab === "send" ? (
+              <ReceiverPanel
+                receiver={receiver}
+                onReceiverChange={setReceiver}
+                chainId={currentChainId ?? 1}
+                selectedTokens={selectedOnCurrentChain}
+                onMigrate={handleMigrate}
+                isExecuting={execution.plan !== null}
+                disabledReason={receiverHint}
+              />
+            ) : (
+              <SwapTargetPanel
+                chainName={currentChainName}
+                chainId={currentChainId}
+                selectedSourceTokens={selectedOnCurrentChain}
+                targetToken={targetToken}
+                onTargetTokenChange={setTargetToken}
+                popularTargets={popularTargets}
+                restTargets={restTargets}
+                isLoadingTargetList={isLoadingTokenList}
+                slippageBps={slippageBps}
+                onSlippageChange={setSlippageBps}
+                quotes={swapQuotes}
+                isLoadingQuotes={liveQuotes.isLoading}
+                isFetchingQuotes={liveQuotes.isFetching}
+                onRefreshQuotes={liveQuotes.refetchAll}
+                onSwap={handleOpenSwapPreview}
+                isExecuting={isSwapPreviewOpen}
+                disabledReason={swapDisabledReason}
+                onResolveTargetConflict={handleResolveTargetConflict}
+                conflictingSourceCount={conflictingSourceKeys.length}
+                recipient={swapRecipient}
+                onRecipientChange={setSwapRecipient}
+                recipientChainId={currentChainId ?? 1}
+                connectedWalletAddress={address}
+              />
+            )}
           </GridItem>
         </Grid>
       )}
@@ -550,6 +991,21 @@ export default function MigratePage() {
         <SequentialProgressModal
           plan={execution.plan}
           onClose={handleModalClose}
+        />
+      )}
+      {isSwapPreviewOpen && targetToken && address && currentChainId !== undefined && (
+        <SwapExecutionModal
+          isOpen
+          onClose={handleSwapModalClose}
+          quotes={swapQuotes.filter(
+            (q) => !q.isPending && !q.errorMessage
+          )}
+          targetToken={targetToken}
+          slippageBps={slippageBps}
+          supportsBatching={supportsBatching}
+          chainId={currentChainId}
+          taker={address as Address}
+          recipient={(validSwapRecipient as Address | undefined) ?? (address as Address)}
         />
       )}
     </Box>
