@@ -20,6 +20,8 @@ interface TokenListResponse {
 }
 
 const ENDPOINT = "/api/wallet-migrate-token-list";
+const NATIVE_TOKEN_ADDRESS =
+  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 export async function fetchSwapTokenList(
   chainId: number,
@@ -45,8 +47,12 @@ export async function fetchSwapTokenList(
 export function tokenListEntryToTarget(
   entry: TokenListEntry
 ): TargetTokenEntry {
+  const address =
+    entry.address.toLowerCase() === NATIVE_TOKEN_ADDRESS
+      ? "native"
+      : entry.address;
   return {
-    address: entry.address,
+    address,
     symbol: entry.symbol,
     name: entry.name,
     decimals: entry.decimals,

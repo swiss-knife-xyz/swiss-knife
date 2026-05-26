@@ -47,6 +47,7 @@ export interface SwapQuote {
 }
 
 const NATIVE_ETH_LOGO = "/chainIcons/ethereum.svg";
+const NATIVE_AVAX_LOGO = "/chainIcons/avalanche.svg";
 
 /**
  * Hardcoded popular target tokens per chain. Mirrors walletchan's
@@ -89,6 +90,12 @@ export const POPULAR_TARGETS_BY_CHAIN: Record<number, TargetTokenEntry[]> = {
     { address: "native", symbol: "POL", name: "Polygon", decimals: 18, popularRank: 0 },
     { address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", symbol: "USDC", name: "USD Coin", decimals: 6, logoUrl: "https://assets.coingecko.com/coins/images/6319/small/usdc.png", popularRank: 1 },
     { address: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619", symbol: "WETH", name: "Wrapped Ether", decimals: 18, logoUrl: "https://assets.coingecko.com/coins/images/2518/small/weth.png", popularRank: 2 },
+  ],
+  43114: [
+    { address: "native", symbol: "AVAX", name: "Avalanche", decimals: 18, logoUrl: NATIVE_AVAX_LOGO, popularRank: 0 },
+    { address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", symbol: "USDC", name: "USD Coin", decimals: 6, logoUrl: "https://assets.coingecko.com/coins/images/6319/small/usdc.png", popularRank: 1 },
+    { address: "0x9702230A8Ea53601f5cD2dc00fdbc13d4dF4A8c7", symbol: "USDT", name: "Tether USD", decimals: 6, logoUrl: "https://assets.coingecko.com/coins/images/325/small/Tether.png", popularRank: 2 },
+    { address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7", symbol: "WAVAX", name: "Wrapped AVAX", decimals: 18, popularRank: 3 },
   ],
 };
 
