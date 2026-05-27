@@ -602,6 +602,34 @@ const wallets: SupportedApp[] = [
       tweet: "https://x.com/rainbowdotme/status/2026753700216127820",
     },
   },
+  {
+    name: "WalletChan",
+    logoUrl: "https://walletchan.com/images/walletchan-icon-nobg.png",
+    siteUrl: "https://walletchan.com",
+    // source: wchan/walletchan/_docs/7702.md + chainRegistry/knownChains.generated.ts
+    supportedChainIds: [
+      mainnet.id,
+      arbitrum.id,
+      base.id,
+      berachain.id,
+      bsc.id,
+      celo.id,
+      citrea.id,
+      gnosis.id,
+      ink.id,
+      katana.id,
+      linea.id,
+      megaeth.id,
+      monad.id,
+      optimism.id,
+      polygon.id,
+      unichain.id,
+    ],
+    announcement: {
+      epochTimestamp: 1779886800,
+      tweet: "https://x.com/walletchan_/status/2059620716228784407",
+    },
+  },
 ];
 
 const hardwareWallets: SupportedApp[] = [
@@ -977,13 +1005,6 @@ const shameChains: SupportedApp[] = [];
 
 const shameWallets: SupportedApp[] = [
   {
-    name: "WalletChan",
-    logoUrl: "https://walletchan.com/images/walletchan-icon-nobg.png",
-    siteUrl: "https://walletchan.com",
-    supportedChainIds: [], // Empty since they don't support 7702
-    twitterHandle: "walletchan_",
-  },
-  {
     name: "Rabby",
     logoUrl: getFaviconUrl("https://rabby.io"),
     siteUrl: "https://rabby.io/",
@@ -1048,6 +1069,7 @@ const ChainTag = ({ chain }: { chain: SupportedChain }) => {
       hasArrow
       placement="top"
       bg="white"
+      color="gray.900"
     >
       <Box
         display="inline-flex"
