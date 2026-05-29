@@ -998,6 +998,12 @@ const dapps: SupportedApp[] = [
     siteUrl: "https://zora.co/",
     supportedChainIds: [base.id],
   },
+  {
+    name: "Based Loans",
+    logoUrl: getFaviconUrl("https://based.loans/"),
+    siteUrl: "https://based.loans/",
+    supportedChainIds: [base.id],
+  },
 ];
 
 // Wall of Shame data
