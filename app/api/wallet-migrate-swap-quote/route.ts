@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Server-side proxy to walletchan.com's swap quote endpoint. Same CORS
+ * Server-side proxy to walletchan.eth.sh's swap quote endpoint. Same CORS
  * rationale as the portfolio and token-list proxies in this app.
  *
  * Forwards every query param verbatim — walletchan accepts chainId, sellToken,
  * buyToken, sellAmount, taker, slippageBps. No caching here: prices move and
  * a stale quote risks reverts at execution.
  */
-const UPSTREAM = "https://walletchan.com/api/swap/quote";
+const UPSTREAM = "https://walletchan.eth.sh/api/swap/quote";
 
 export async function GET(request: NextRequest) {
   const qs = request.nextUrl.searchParams.toString();

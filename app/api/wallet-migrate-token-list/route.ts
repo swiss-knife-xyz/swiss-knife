@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Server-side proxy to walletchan.com's swap token-list endpoint.
+ * Server-side proxy to walletchan.eth.sh's swap token-list endpoint.
  *
- * Same CORS rationale as the portfolio proxy — walletchan.com doesn't emit
+ * Same CORS rationale as the portfolio proxy — the upstream doesn't emit
  * cross-origin headers, so we hop through our own origin. Adds a generous
  * upstream cache (1h) since the token list is stable over the day; clients
  * still get their own `staleTime` via react-query.
@@ -13,8 +13,8 @@ import { NextRequest, NextResponse } from "next/server";
  * to Bungee for chains where the quote endpoint works yet the swap token-list
  * endpoint has not been enabled (Avalanche is the current example).
  */
-const SWAP_UPSTREAM = "https://walletchan.com/api/swap/token-list";
-const BRIDGE_TOKENS_UPSTREAM = "https://walletchan.com/api/bridge/tokens";
+const SWAP_UPSTREAM = "https://walletchan.eth.sh/api/swap/token-list";
+const BRIDGE_TOKENS_UPSTREAM = "https://walletchan.eth.sh/api/bridge/tokens";
 
 interface TokenListEntry {
   address: string;

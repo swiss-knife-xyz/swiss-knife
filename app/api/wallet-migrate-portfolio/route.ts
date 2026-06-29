@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Server-side proxy to walletchan.com's portfolio endpoint.
+ * Server-side proxy to walletchan.eth.sh's portfolio endpoint.
  *
  * Reason for proxying instead of calling walletchan directly from the
- * browser: walletchan.com does not currently emit CORS headers, so a
+ * browser: the upstream does not currently emit CORS headers, so a
  * cross-origin XHR from this app's origin is blocked by the browser. Doing
  * the fetch server-side sidesteps CORS and keeps the upstream URL and any
  * future auth concerns out of the client bundle.
  */
-const UPSTREAM = "https://walletchan.com/api/portfolio";
+const UPSTREAM = "https://walletchan.eth.sh/api/portfolio";
 
 export async function GET(request: NextRequest) {
   const address = request.nextUrl.searchParams.get("address");
