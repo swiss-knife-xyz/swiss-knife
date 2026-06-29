@@ -25,6 +25,7 @@ import { TokenRow } from "./TokenRow";
 interface ChainGroupProps {
   group: ChainGroupData;
   isCurrent: boolean;
+  allowCrossChainSelection?: boolean;
   selection: SelectionMap;
   onToggle: (key: string) => void;
   onAmountOverride: (key: string, wei: bigint | undefined) => void;
@@ -42,6 +43,7 @@ export const ChainGroup = forwardRef<HTMLDivElement, ChainGroupProps>(
     {
       group,
       isCurrent,
+      allowCrossChainSelection = false,
       selection,
       onToggle,
       onAmountOverride,
@@ -69,6 +71,7 @@ export const ChainGroup = forwardRef<HTMLDivElement, ChainGroupProps>(
     const allSelected =
       selectedCount > 0 && selectedCount === group.tokens.length;
     const someSelected = selectedCount > 0 && !allSelected;
+    const canSelect = isCurrent || (allowCrossChainSelection && info.supported);
 
     return (
       <Box
@@ -80,13 +83,7 @@ export const ChainGroup = forwardRef<HTMLDivElement, ChainGroupProps>(
         borderColor={isCurrent ? "primary.500" : "whiteAlpha.200"}
         overflow="hidden"
       >
-        <HStack
-          px={4}
-          py={3}
-          bg="whiteAlpha.100"
-          spacing={3}
-          align="center"
-        >
+        <HStack px={4} py={3} bg="whiteAlpha.100" spacing={3} align="center">
           <IconButton
             aria-label="Toggle"
             icon={
@@ -192,17 +189,31 @@ export const ChainGroup = forwardRef<HTMLDivElement, ChainGroupProps>(
             </VStack>
           )}
 
-          {isCurrent ? (
-            <Checkbox
-              isChecked={allSelected}
-              isIndeterminate={someSelected}
-              onChange={(e) => onSelectAll(group.chainId, e.target.checked)}
-              colorScheme="blue"
-            >
-              <Text fontSize="xs" color="whiteAlpha.800">
-                Select all
-              </Text>
-            </Checkbox>
+          {canSelect ? (
+            <HStack spacing={2} flexShrink={0}>
+              {!isCurrent && info.supported && (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  color="whiteAlpha.700"
+                  _hover={{ bg: "whiteAlpha.100", color: "white" }}
+                  isLoading={isSwitchingChain}
+                  onClick={() => onSwitchChain(group.chainId)}
+                >
+                  Switch
+                </Button>
+              )}
+              <Checkbox
+                isChecked={allSelected}
+                isIndeterminate={someSelected}
+                onChange={(e) => onSelectAll(group.chainId, e.target.checked)}
+                colorScheme="blue"
+              >
+                <Text fontSize="xs" color="whiteAlpha.800">
+                  Select all
+                </Text>
+              </Checkbox>
+            </HStack>
           ) : info.supported ? (
             <Button
               size="xs"
@@ -230,9 +241,9 @@ export const ChainGroup = forwardRef<HTMLDivElement, ChainGroupProps>(
                   token={t}
                   entryKey={key}
                   entry={entry}
-                  disabled={!isCurrent}
+                  disabled={!canSelect}
                   disabledReason={
-                    !isCurrent
+                    !canSelect
                       ? info.supported
                         ? `Switch to ${info.name} to migrate these tokens`
                         : `${info.name} is not configured for transactions in this app`

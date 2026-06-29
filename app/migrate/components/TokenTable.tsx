@@ -9,6 +9,7 @@ import { ChainGroup } from "./ChainGroup";
 interface TokenTableProps {
   chainGroups: ChainGroupData[];
   currentChainId?: number;
+  allowCrossChainSelection?: boolean;
   selection: SelectionMap;
   onToggle: (key: string) => void;
   onAmountOverride: (key: string, wei: bigint | undefined) => void;
@@ -24,6 +25,7 @@ interface TokenTableProps {
 export function TokenTable({
   chainGroups,
   currentChainId,
+  allowCrossChainSelection = false,
   selection,
   onToggle,
   onAmountOverride,
@@ -67,6 +69,7 @@ export function TokenTable({
           key={g.chainId}
           group={g}
           isCurrent={g.chainId === currentChainId}
+          allowCrossChainSelection={allowCrossChainSelection}
           selection={selection}
           onToggle={onToggle}
           onAmountOverride={onAmountOverride}

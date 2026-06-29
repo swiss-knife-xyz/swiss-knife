@@ -5,6 +5,7 @@
  * dropdown with before the live token list lands.
  */
 import { PortfolioToken } from "./portfolioApi";
+import type { BridgeManualRoute, BridgeQuoteResponse } from "./bridgeApi";
 import { SwapQuoteResponse } from "./swapQuoteApi";
 
 export interface TargetTokenEntry {
@@ -18,6 +19,8 @@ export interface TargetTokenEntry {
 }
 
 export interface SwapQuote {
+  /** Same-chain 0x route or cross-chain Socket/Bungee route. */
+  routeKind?: "swap" | "bridge";
   /** Source token being swapped. */
   source: PortfolioToken;
   /** Amount of source being swapped (raw, in source decimals). */
@@ -44,6 +47,17 @@ export interface SwapQuote {
    *  `transaction` and `allowanceTarget`). Absent for wrap/unwrap rows; the
    *  builder synthesizes the call locally in that case. */
   quoteData?: SwapQuoteResponse;
+  /** Raw Socket/Bungee quote response for bridge rows. */
+  bridgeData?: BridgeQuoteResponse;
+  /** Selected executable route from `bridgeData.result.manualRoutes[0]`. */
+  bridgeRoute?: BridgeManualRoute;
+  /** Destination chain for bridge rows. */
+  destinationChainId?: number;
+  destinationChainName?: string;
+  routeName?: string;
+  estimatedTimeSeconds?: number;
+  gasFeeUsd?: number;
+  feeBps?: string;
 }
 
 const NATIVE_ETH_LOGO = "/chainIcons/ethereum.svg";

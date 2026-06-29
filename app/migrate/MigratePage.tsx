@@ -16,12 +16,7 @@ import {
   SkeletonCircle,
   SimpleGrid,
 } from "@chakra-ui/react";
-import {
-  useAccount,
-  useChainId,
-  useGasPrice,
-  useSwitchChain,
-} from "wagmi";
+import { useAccount, useChainId, useGasPrice, useSwitchChain } from "wagmi";
 import { Address, formatUnits, isAddress } from "viem";
 import { usePortfolio } from "./hooks/usePortfolio";
 import { useBatchSupport } from "./hooks/useBatchSupport";
@@ -50,15 +45,27 @@ import {
   getTargetTokensForChain,
 } from "./lib/swapTypes";
 import { useSwapTokenList } from "./hooks/useSwapTokenList";
-import { useSwapQuotes, QuoteRequest } from "./hooks/useSwapQuotes";
+import { useBridgeChains } from "./hooks/useBridgeChains";
+import { useBridgeTokenList } from "./hooks/useBridgeTokenList";
+import {
+  MigrateRouteQuoteRequest,
+  useMigrateRouteQuotes,
+} from "./hooks/useMigrateRouteQuotes";
 import { detectWrapUnwrap } from "./lib/wrapUnwrap";
 import { NATIVE_TOKEN_ADDRESS_0X } from "./lib/swapQuoteApi";
+import { getChainInfo } from "./lib/chains";
 import { SelectionMap } from "./types";
 
 type MigrateTab = "send" | "swap";
 const TAB_LABELS = ["Send", "Swap"];
 
 const DUST_THRESHOLD_USD = 0.1;
+
+interface SwapExecutionSnapshot {
+  targetToken: TargetTokenEntry;
+  destinationChainId: number;
+  quotes: SwapQuote[];
+}
 
 function scrollChainIntoView(chainId: number) {
   const el = document.getElementById(`migrate-chain-${chainId}`);
@@ -74,8 +81,11 @@ export default function MigratePage() {
 
   const { address, isConnected } = useAccount();
   const currentChainId = useChainId();
-  const { switchChainAsync, isPending: isSwitchingChain, variables } =
-    useSwitchChain();
+  const {
+    switchChainAsync,
+    isPending: isSwitchingChain,
+    variables,
+  } = useSwitchChain();
   const switchingToChainId = isSwitchingChain
     ? (variables?.chainId as number | undefined)
     : undefined;
@@ -108,8 +118,14 @@ export default function MigratePage() {
   const [receiver, setReceiver] = useState<string>("");
   const [activeTab, setActiveTab] = useState<MigrateTab>("send");
   const [targetToken, setTargetToken] = useState<TargetTokenEntry | null>(null);
+  // null means same-chain conversion. A concrete chain id turns Swap into a
+  // bridge-to-destination flow.
+  const [destinationChainId, setDestinationChainId] = useState<number | null>(
+    null
+  );
   const [slippageBps, setSlippageBps] = useState<number>(300); // 3% default
-  const [isSwapPreviewOpen, setIsSwapPreviewOpen] = useState(false);
+  const [swapExecutionSnapshot, setSwapExecutionSnapshot] =
+    useState<SwapExecutionSnapshot | null>(null);
   // Empty string ↔ "send the bought tokens to the connected wallet" (the
   // 0x default). A non-empty *valid* address overrides via the `recipient`
   // query param all the way through to 0x.
@@ -121,16 +137,13 @@ export default function MigratePage() {
     new Map()
   );
 
-  const setShowDustForChain = useCallback(
-    (chainId: number, value: boolean) => {
-      setShowDustByChain((curr) => {
-        const next = new Map(curr);
-        next.set(chainId, value);
-        return next;
-      });
-    },
-    []
-  );
+  const setShowDustForChain = useCallback((chainId: number, value: boolean) => {
+    setShowDustByChain((curr) => {
+      const next = new Map(curr);
+      next.set(chainId, value);
+      return next;
+    });
+  }, []);
 
   // Pre-live chain groups filtered by the per-chain dust toggle. These define
   // which tokens are *visible* — and therefore which ones get a live on-chain
@@ -314,11 +327,11 @@ export default function MigratePage() {
   // $0 tokens never sneak into the migration.
   const selectedOnCurrentChain = useMemo<PortfolioToken[]>(() => {
     if (currentChainId === undefined) return [];
-    const group = displayedChainGroups.find((g) => g.chainId === currentChainId);
-    if (!group) return [];
-    return group.tokens.filter(
-      (t) => selection.get(tokenKey(t))?.selected
+    const group = displayedChainGroups.find(
+      (g) => g.chainId === currentChainId
     );
+    if (!group) return [];
+    return group.tokens.filter((t) => selection.get(tokenKey(t))?.selected);
   }, [displayedChainGroups, currentChainId, selection]);
 
   // Prepared transfers (with resolved amounts) for the current chain. The
@@ -340,12 +353,96 @@ export default function MigratePage() {
       .filter((t) => t.amountWei > 0n);
   }, [selectedOnCurrentChain, selection, gasPriceWei]);
 
-  // Only fetch the live token list when the Swap tab is actually visible.
-  // Avoids a needless round-trip for users who only ever use Send.
-  const {
-    tokens: liveTokenList,
-    isLoading: isLoadingTokenList,
-  } = useSwapTokenList(activeTab === "swap" ? currentChainId : undefined);
+  const selectedSwapTokens = useMemo<PortfolioToken[]>(() => {
+    if (activeTab !== "swap") return [];
+    return displayedChainGroups.flatMap((g) =>
+      g.tokens.filter(
+        (t) =>
+          selection.get(tokenKey(t))?.selected &&
+          getChainInfo(t.chainId).supported
+      )
+    );
+  }, [activeTab, displayedChainGroups, selection]);
+
+  const selectedSwapCountByChain = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const token of selectedSwapTokens) {
+      counts.set(token.chainId, (counts.get(token.chainId) ?? 0) + 1);
+    }
+    return counts;
+  }, [selectedSwapTokens]);
+
+  const preparedSwapTransfers = useMemo<PreparedTransfer[]>(() => {
+    return selectedSwapTokens
+      .map((token) => {
+        const override = selection.get(tokenKey(token))?.amountOverrideWei;
+        const amountWei = resolveTransferAmountWei(
+          token,
+          override,
+          selectedSwapCountByChain.get(token.chainId) ?? 1,
+          token.chainId === currentChainId ? gasPriceWei : undefined
+        );
+        return { token, amountWei };
+      })
+      .filter((t) => t.amountWei > 0n);
+  }, [
+    selectedSwapTokens,
+    selection,
+    selectedSwapCountByChain,
+    currentChainId,
+    gasPriceWei,
+  ]);
+
+  const effectiveDestinationChainId =
+    activeTab === "swap"
+      ? (swapExecutionSnapshot?.destinationChainId ??
+        destinationChainId ??
+        currentChainId)
+      : undefined;
+  const hasExplicitCrossChainDestination =
+    activeTab === "swap" &&
+    destinationChainId !== null &&
+    destinationChainId !== undefined &&
+    currentChainId !== undefined &&
+    destinationChainId !== currentChainId;
+  const hasCrossChainRouteCandidates =
+    activeTab === "swap" &&
+    effectiveDestinationChainId !== undefined &&
+    preparedSwapTransfers.some(
+      (t) => t.token.chainId !== effectiveDestinationChainId
+    );
+  const isBridgeMode =
+    hasExplicitCrossChainDestination || hasCrossChainRouteCandidates;
+
+  const { chains: bridgeChains, isLoading: isLoadingBridgeChains } =
+    useBridgeChains(activeTab === "swap");
+
+  const destinationChainName = useMemo(() => {
+    if (effectiveDestinationChainId === undefined) return undefined;
+    return (
+      bridgeChains.find((c) => c.chainId === effectiveDestinationChainId)
+        ?.name ?? chainIdToChain[effectiveDestinationChainId]?.name
+    );
+  }, [effectiveDestinationChainId, bridgeChains]);
+
+  // Only fetch token catalogs when the Swap/Bridge tab is visible. Same-chain
+  // conversion uses 0x's token list; cross-chain conversion uses Socket's
+  // bridge token list for the destination chain.
+  const { tokens: liveSwapTokenList, isLoading: isLoadingSwapTokenList } =
+    useSwapTokenList(
+      activeTab === "swap" && !isBridgeMode
+        ? effectiveDestinationChainId
+        : undefined
+    );
+  const { tokens: liveBridgeTokenList, isLoading: isLoadingBridgeTokenList } =
+    useBridgeTokenList(
+      isBridgeMode ? effectiveDestinationChainId : undefined,
+      activeTab === "swap"
+    );
+  const liveTokenList = isBridgeMode ? liveBridgeTokenList : liveSwapTokenList;
+  const isLoadingTokenList = isBridgeMode
+    ? isLoadingBridgeTokenList
+    : isLoadingSwapTokenList;
 
   // Swap target token lists per current chain. The base set comes from the
   // hardcoded `POPULAR_TARGETS_BY_CHAIN`; we then prefer USDT over WETH
@@ -353,33 +450,34 @@ export default function MigratePage() {
   // more about a stablecoin chip than a wrapped-native chip — Mainnet and
   // Arbitrum already have both, this catches Base / Optimism / Polygon).
   const popularTargets = useMemo<TargetTokenEntry[]>(() => {
-    if (!currentChainId) return [];
-    const base = getTargetTokensForChain(currentChainId);
+    if (!effectiveDestinationChainId) return [];
+    const base = getTargetTokensForChain(effectiveDestinationChainId);
     const hasUsdt = base.some((t) => t.symbol.toUpperCase() === "USDT");
     if (hasUsdt) return base;
     const liveUsdt = liveTokenList.find(
       (t) => t.symbol.toUpperCase() === "USDT"
     );
     if (!liveUsdt) return base;
-    const wethIndex = base.findIndex(
-      (t) => t.symbol.toUpperCase() === "WETH"
-    );
+    const wethIndex = base.findIndex((t) => t.symbol.toUpperCase() === "WETH");
     // Inherit WETH's popularRank so chip ordering stays stable; if there's
     // no WETH at all (unusual), tack USDT on at the end.
     if (wethIndex >= 0) {
       const next = [...base];
-      next[wethIndex] = { ...liveUsdt, popularRank: base[wethIndex].popularRank };
+      next[wethIndex] = {
+        ...liveUsdt,
+        popularRank: base[wethIndex].popularRank,
+      };
       return next;
     }
     return [...base, liveUsdt];
-  }, [currentChainId, liveTokenList]);
+  }, [effectiveDestinationChainId, liveTokenList]);
 
   // Rest list: live token list minus addresses already in `popularTargets`
   // (the picker promotes those to chips and would otherwise show them twice).
   // Empty while the live fetch is in flight — the dropdown shows a "loading"
   // hint in that state via `isLoadingTargetList`.
   const restTargets = useMemo<TargetTokenEntry[]>(() => {
-    if (currentChainId === undefined) return [];
+    if (effectiveDestinationChainId === undefined) return [];
     if (liveTokenList.length === 0) return [];
     const popularAddrs = new Set(
       popularTargets.map((t) => t.address.toLowerCase())
@@ -387,33 +485,54 @@ export default function MigratePage() {
     return liveTokenList.filter(
       (t) => !popularAddrs.has(t.address.toLowerCase())
     );
-  }, [currentChainId, liveTokenList, popularTargets]);
+  }, [effectiveDestinationChainId, liveTokenList, popularTargets]);
 
   useEffect(() => {
     setTargetToken(null);
-  }, [currentChainId]);
+  }, [effectiveDestinationChainId]);
 
   const currentChainName = useMemo(() => {
     if (currentChainId === undefined) return undefined;
     return chainIdToChain[currentChainId]?.name;
   }, [currentChainId]);
 
-  // Source rows that *could* be quoted — i.e. selected on the current chain,
-  // with a non-zero send amount, and whose address isn't the chosen target.
-  // The live quote hook is keyed on this list; identity changes drive refetch.
-  const quoteRequests = useMemo<QuoteRequest[]>(() => {
-    if (activeTab !== "swap" || !targetToken) return [];
+  // One route intent per executable source row. Same-chain sources go through
+  // the swap endpoint; every other selected source chain bridges into the
+  // single destination chain/token.
+  const routeQuoteRequests = useMemo<MigrateRouteQuoteRequest[]>(() => {
+    if (
+      activeTab !== "swap" ||
+      !targetToken ||
+      effectiveDestinationChainId === undefined
+    ) {
+      return [];
+    }
     const targetAddrLower = targetToken.address.toLowerCase();
-    return preparedTransfers
+    return preparedSwapTransfers
       .filter((t) => {
+        if (t.token.chainId !== effectiveDestinationChainId) return true;
         const sourceAddr =
           t.token.contractAddress === "native"
             ? "native"
             : t.token.contractAddress.toLowerCase();
         return sourceAddr !== targetAddrLower;
       })
-      .map((t) => ({ source: t.token, sourceAmountWei: t.amountWei }));
-  }, [activeTab, targetToken, preparedTransfers]);
+      .map((t) => ({
+        id: `${t.token.chainId}:${t.token.contractAddress.toLowerCase()}`,
+        routeKind:
+          t.token.chainId === effectiveDestinationChainId
+            ? ("swap" as const)
+            : ("bridge" as const),
+        source: t.token,
+        sourceAmountWei: t.amountWei,
+        destinationChainId: effectiveDestinationChainId,
+      }));
+  }, [
+    activeTab,
+    targetToken,
+    effectiveDestinationChainId,
+    preparedSwapTransfers,
+  ]);
 
   // Only pass `recipient` to the quote API once it's a valid address —
   // half-typed values would just make every request fail with a 400.
@@ -422,18 +541,17 @@ export default function MigratePage() {
     return isAddress(trimmed) ? trimmed : undefined;
   }, [swapRecipient]);
 
-  const liveQuotes = useSwapQuotes({
-    chainId: currentChainId,
+  const liveRouteQuotes = useMigrateRouteQuotes({
     taker: address,
-    buyToken: targetToken?.address,
-    requests: quoteRequests,
+    receiverAddress: validSwapRecipient,
+    targetToken: targetToken?.address,
+    requests: routeQuoteRequests,
     slippageBps,
-    recipient: validSwapRecipient,
     enabled:
       activeTab === "swap" &&
       !!targetToken &&
       !!address &&
-      quoteRequests.length > 0,
+      routeQuoteRequests.length > 0,
   });
 
   // Target USD price: look in the user's portfolio first — both an exact
@@ -455,7 +573,7 @@ export default function MigratePage() {
           : t.contractAddress.toLowerCase();
       const tSym = t.symbol.toUpperCase();
       if (
-        t.chainId === currentChainId &&
+        t.chainId === effectiveDestinationChainId &&
         tAddr === targetAddrLower &&
         t.priceUsd > 0
       ) {
@@ -470,7 +588,7 @@ export default function MigratePage() {
       }
     }
     return symbolFallback;
-  }, [targetToken, currentChainId, portfolioTokens]);
+  }, [targetToken, effectiveDestinationChainId, portfolioTokens]);
 
   // Marry live quote responses with the target USD price to produce the
   // SwapQuote shape consumed by the panel + modal. Always emits one row per
@@ -478,31 +596,111 @@ export default function MigratePage() {
   // `errorMessage` — so adding a new token doesn't blank out the existing
   // settled rows while only the new one is in flight.
   const swapQuotes = useMemo<SwapQuote[]>(() => {
-    if (activeTab !== "swap" || !targetToken) return [];
-    return liveQuotes.results.map((r) => {
+    if (
+      activeTab !== "swap" ||
+      !targetToken ||
+      effectiveDestinationChainId === undefined
+    ) {
+      return [];
+    }
+    return liveRouteQuotes.results.map((r) => {
+      if (r.request.routeKind === "bridge") {
+        const isNativeSource = r.request.source.contractAddress === "native";
+        const sourceFloat = Number(
+          formatUnits(r.request.sourceAmountWei, r.request.source.decimals)
+        );
+        const sourceUsd = sourceFloat * r.request.source.priceUsd;
+        const base = {
+          routeKind: "bridge" as const,
+          source: r.request.source,
+          sourceAmountWei: r.request.sourceAmountWei,
+          needsApprove: !isNativeSource,
+          destinationChainId: r.request.destinationChainId,
+          destinationChainName,
+        };
+
+        if (r.data?.routeKind === "bridge" && !r.isError) {
+          const data = r.data.data;
+          const route = data.result.manualRoutes[0];
+          const output = route.output;
+          const targetAmountWei = (() => {
+            try {
+              return BigInt(output.amount);
+            } catch {
+              return 0n;
+            }
+          })();
+          const outputFloat = Number(
+            formatUnits(targetAmountWei, targetToken.decimals)
+          );
+          const targetUsd =
+            typeof output.valueInUsd === "number" && output.valueInUsd > 0
+              ? output.valueInUsd
+              : typeof output.priceInUsd === "number" &&
+                  output.priceInUsd > 0 &&
+                  outputFloat > 0
+                ? outputFloat * output.priceInUsd
+                : targetPriceUsd !== undefined && outputFloat > 0
+                  ? outputFloat * targetPriceUsd
+                  : sourceUsd;
+          const gasFeeUsd =
+            route.gasFee?.feesInUsd ?? route.gasFee?.feeInUsd ?? undefined;
+
+          return {
+            ...base,
+            targetAmountWei,
+            targetUsd,
+            isPremiumFee: data.isPremiumFee === true,
+            bridgeData: data,
+            bridgeRoute: route,
+            routeName: route.routeDetails?.name,
+            estimatedTimeSeconds: route.estimatedTime,
+            gasFeeUsd,
+            feeBps: data.feeBps,
+          };
+        }
+
+        if (r.isError) {
+          return {
+            ...base,
+            targetAmountWei: 0n,
+            targetUsd: 0,
+            errorMessage: r.error?.message ?? "No bridge route found",
+          };
+        }
+
+        return {
+          ...base,
+          targetAmountWei: 0n,
+          targetUsd: 0,
+          isPending: true,
+        };
+      }
+
       const isNativeSource = r.request.source.contractAddress === "native";
       // Wrap/unwrap rows execute against the wrapped-native contract
       // directly (deposit{value:} / withdraw) — neither path needs an
       // ERC-20 approve. Detect here so chunk packing in the modal counts
       // these as single-call units.
-      const wrapDirection =
-        currentChainId !== undefined && targetToken
-          ? detectWrapUnwrap(
-              currentChainId,
-              isNativeSource ? "native" : r.request.source.contractAddress,
-              targetToken.address
-            )
-          : null;
+      const wrapDirection = detectWrapUnwrap(
+        r.request.source.chainId,
+        isNativeSource ? "native" : r.request.source.contractAddress,
+        targetToken.address
+      );
       const needsApprove = !isNativeSource && !wrapDirection;
       const base = {
+        routeKind: "swap" as const,
         source: r.request.source,
         sourceAmountWei: r.request.sourceAmountWei,
         needsApprove,
+        destinationChainId: r.request.destinationChainId,
+        destinationChainName: isBridgeMode ? destinationChainName : undefined,
       };
-      if (r.data && !r.isError) {
+      if (r.data?.routeKind === "swap" && !r.isError) {
+        const data = r.data.data;
         const buyAmountWei = (() => {
           try {
-            return BigInt(r.data!.buyAmount);
+            return BigInt(data.buyAmount);
           } catch {
             return 0n;
           }
@@ -530,7 +728,7 @@ export default function MigratePage() {
         // contribute nothing to the fee total (correct: no DEX fee on a
         // direct WETH.deposit/withdraw).
         const integratorFee =
-          r.data.fees?.integratorFee ?? r.data.fees?.integratorFees?.[0];
+          data.fees?.integratorFee ?? data.fees?.integratorFees?.[0];
         let feeUsd: number | undefined;
         if (integratorFee) {
           const feeAddrLower = integratorFee.token.toLowerCase();
@@ -574,8 +772,8 @@ export default function MigratePage() {
           targetAmountWei: buyAmountWei,
           targetUsd,
           feeUsd,
-          isPremiumFee: r.data.isPremiumFee === true,
-          quoteData: r.data,
+          isPremiumFee: data.isPremiumFee === true,
+          quoteData: data,
         };
       }
       if (r.isError) {
@@ -583,7 +781,7 @@ export default function MigratePage() {
           ...base,
           targetAmountWei: 0n,
           targetUsd: 0,
-          errorMessage: r.error?.message ?? "Quote failed",
+          errorMessage: r.error?.message ?? "No swap route found",
         };
       }
       return {
@@ -593,44 +791,59 @@ export default function MigratePage() {
         isPending: true,
       };
     });
-  }, [activeTab, targetToken, liveQuotes.results, targetPriceUsd]);
+  }, [
+    activeTab,
+    targetToken,
+    effectiveDestinationChainId,
+    destinationChainName,
+    targetPriceUsd,
+    liveRouteQuotes.results,
+    isBridgeMode,
+  ]);
 
   const swapDisabledReason = useMemo(() => {
     if (activeTab !== "swap") return undefined;
     if (!isConnected) return "Connect a wallet to start";
     if (
       targetToken &&
-      preparedTransfers.length > 0 &&
-      quoteRequests.length === 0
+      preparedSwapTransfers.length > 0 &&
+      routeQuoteRequests.length === 0
     ) {
       return "Selected token matches the target — pick a different target";
     }
     if (
       targetToken &&
-      quoteRequests.length > 0 &&
-      liveQuotes.isSettled &&
+      routeQuoteRequests.length > 0 &&
+      liveRouteQuotes.isSettled &&
       swapQuotes.every((q) => q.errorMessage)
     ) {
-      return "Couldn't fetch swap quotes — try a different target or retry";
+      return "Couldn't find routes — try a different target or retry";
     }
     return undefined;
   }, [
     activeTab,
     isConnected,
     targetToken,
-    preparedTransfers.length,
-    quoteRequests.length,
+    preparedSwapTransfers.length,
+    routeQuoteRequests.length,
     swapQuotes,
-    liveQuotes.isSettled,
+    liveRouteQuotes.isSettled,
   ]);
 
-  // Source rows on the current chain whose address matches the chosen swap
+  // Source rows on the destination chain whose address matches the chosen swap
   // target — these would be no-op swaps so we offer to uncheck them.
   const conflictingSourceKeys = useMemo<string[]>(() => {
-    if (activeTab !== "swap" || !targetToken) return [];
+    if (
+      activeTab !== "swap" ||
+      !targetToken ||
+      effectiveDestinationChainId === undefined
+    ) {
+      return [];
+    }
     const targetAddrLower = targetToken.address.toLowerCase();
-    return selectedOnCurrentChain
+    return selectedSwapTokens
       .filter((t) => {
+        if (t.chainId !== effectiveDestinationChainId) return false;
         const sourceAddr =
           t.contractAddress === "native"
             ? "native"
@@ -638,7 +851,7 @@ export default function MigratePage() {
         return sourceAddr === targetAddrLower;
       })
       .map((t) => tokenKey(t));
-  }, [activeTab, targetToken, selectedOnCurrentChain]);
+  }, [activeTab, targetToken, selectedSwapTokens, effectiveDestinationChainId]);
 
   const handleResolveTargetConflict = useCallback(() => {
     if (conflictingSourceKeys.length === 0) return;
@@ -656,9 +869,23 @@ export default function MigratePage() {
   }, [conflictingSourceKeys]);
 
   const handleOpenSwapPreview = useCallback(() => {
-    if (!targetToken || swapQuotes.length === 0) return;
-    setIsSwapPreviewOpen(true);
-  }, [targetToken, swapQuotes.length]);
+    if (
+      !targetToken ||
+      swapQuotes.length === 0 ||
+      effectiveDestinationChainId === undefined
+    ) {
+      return;
+    }
+    const executableQuotes = swapQuotes.filter(
+      (q) => !q.isPending && !q.errorMessage
+    );
+    if (executableQuotes.length === 0) return;
+    setSwapExecutionSnapshot({
+      targetToken,
+      destinationChainId: effectiveDestinationChainId,
+      quotes: executableQuotes,
+    });
+  }, [targetToken, swapQuotes, effectiveDestinationChainId]);
 
   const handleMigrate = useCallback(() => {
     if (!isAddress(receiver.trim())) return;
@@ -672,7 +899,13 @@ export default function MigratePage() {
       },
       supportsBatching
     );
-  }, [receiver, preparedTransfers, currentChainId, supportsBatching, execution]);
+  }, [
+    receiver,
+    preparedTransfers,
+    currentChainId,
+    supportsBatching,
+    execution,
+  ]);
 
   // Cancel any pending post-migration delayed-refresh timer if the user
   // leaves the page. (React 18 silently ignores setState on an unmounted
@@ -686,7 +919,7 @@ export default function MigratePage() {
 
   const handleSwapModalClose = useCallback(
     (didSwapAnything: boolean) => {
-      setIsSwapPreviewOpen(false);
+      setSwapExecutionSnapshot(null);
       if (didSwapAnything) {
         // Wipe selections that were swapped so the user doesn't accidentally
         // re-send the same amounts. Mirrors the post-send cleanup below.
@@ -733,15 +966,9 @@ export default function MigratePage() {
   const receiverHint = useMemo(() => {
     if (!isConnected) return "Connect a wallet to start";
     if (currentChainId === undefined) return undefined;
-    const currentGroup = chainGroups.find(
-      (g) => g.chainId === currentChainId
-    );
-    if (currentGroup && selectedOnCurrentChain.length === 0)
-      return undefined;
-    if (
-      selectedOnCurrentChain.length > 0 &&
-      preparedTransfers.length === 0
-    ) {
+    const currentGroup = chainGroups.find((g) => g.chainId === currentChainId);
+    if (currentGroup && selectedOnCurrentChain.length === 0) return undefined;
+    if (selectedOnCurrentChain.length > 0 && preparedTransfers.length === 0) {
       return "All selected balances are below the gas-reserve threshold";
     }
     return undefined;
@@ -755,260 +982,280 @@ export default function MigratePage() {
 
   return (
     <Layout allowSticky>
-    <Box w="full" py={{ base: 4, md: 6 }}>
-      <Flex
-        direction={{ base: "column-reverse", md: "row" }}
-        align={{ base: "stretch", md: "center" }}
-        justify="space-between"
-        gap={{ base: 3, md: 4 }}
-        mb={6}
-      >
-        <Box flex={1} textAlign={{ base: "center", md: "left" }} minW={0}>
-          <Heading
-            fontSize={{ base: "3xl", md: "4xl", lg: "5xl", xl: "6xl" }}
-            color="text.primary"
-            fontWeight="bold"
-            letterSpacing="tight"
-            lineHeight="1.05"
-          >
-            Migrate Tokens
-          </Heading>
-          <Text color="text.secondary" fontSize="md" mt={2}>
-            {activeTab === "swap"
-              ? "Swap every selected token into one — batched into as few transactions as your wallet allows."
-              : "Sweep tokens from your wallet to a single receiver address."}
-          </Text>
-        </Box>
-        {mounted && (
-          <Box
-            flexShrink={0}
-            display="flex"
-            justifyContent={{ base: "flex-end", md: "flex-end" }}
-          >
-            <ConnectButton />
+      <Box w="full" py={{ base: 4, md: 6 }}>
+        <Flex
+          direction={{ base: "column-reverse", md: "row" }}
+          align={{ base: "stretch", md: "center" }}
+          justify="space-between"
+          gap={{ base: 3, md: 4 }}
+          mb={6}
+        >
+          <Box flex={1} textAlign={{ base: "center", md: "left" }} minW={0}>
+            <Heading
+              fontSize={{ base: "3xl", md: "4xl", lg: "5xl", xl: "6xl" }}
+              color="text.primary"
+              fontWeight="bold"
+              letterSpacing="tight"
+              lineHeight="1.05"
+            >
+              Migrate Tokens
+            </Heading>
+            <Text color="text.secondary" fontSize="md" mt={2}>
+              {activeTab === "swap"
+                ? "Swap or bridge every selected token into one target — batched into as few transactions as your wallet allows."
+                : "Sweep tokens from your wallet to a single receiver address."}
+            </Text>
           </Box>
-        )}
-      </Flex>
-
-      {!mounted ? (
-        <Box
-          bg="whiteAlpha.50"
-          border="1px solid"
-          borderColor="whiteAlpha.200"
-          borderRadius="lg"
-          p={10}
-        />
-      ) : !isConnected ? (
-        <DisconnectedPreview />
-      ) : isLoading ? (
-        <Grid
-          templateColumns={{ base: "1fr", lg: "1fr 380px" }}
-          gap={4}
-          alignItems="flex-start"
-        >
-          <GridItem minW={0}>
-            <PortfolioSkeleton />
-          </GridItem>
-          <GridItem
-            display={{ base: "none", lg: "block" }}
-            position={{ lg: "sticky" }}
-            top={{ lg: "1rem" }}
-            maxH={{ lg: "calc(100vh - 2rem)" }}
-            overflowY={{ lg: "auto" }}
-          >
-            <ReceiverPanel
-              receiver={receiver}
-              onReceiverChange={setReceiver}
-              chainId={currentChainId ?? 1}
-              selectedTokens={[]}
-              onMigrate={handleMigrate}
-              isExecuting={false}
-              disabledReason="Loading your portfolio…"
-            />
-          </GridItem>
-        </Grid>
-      ) : isError ? (
-        <Alert
-          status="error"
-          bg="rgba(239,68,68,0.10)"
-          border="1px solid"
-          borderColor="rgba(239,68,68,0.30)"
-          borderRadius="lg"
-          color="#F87171"
-        >
-          <AlertIcon color="#F87171" />
-          Failed to load portfolio: {error?.message ?? "Unknown error"}
-        </Alert>
-      ) : (
-        <Grid
-          templateColumns={{ base: "1fr", lg: "1fr 380px" }}
-          gap={4}
-          alignItems="flex-start"
-        >
-          <GridItem minW={0}>
-            <VStack spacing={4} align="stretch">
-              <PortfolioSidebar
-                totalValueUsd={liveTotalValueUsd}
-                chainGroups={displayedChainGroups}
-                currentChainId={currentChainId}
-                isFetching={isFetching}
-                onChainClick={handleChainTileClick}
-                onReload={handleReload}
-              />
-              {/* Inline panel — only renders below lg, where the right
-                  column is collapsed. Sits between portfolio + token list so
-                  it's reachable without scrolling past every chain group. */}
-              <Box display={{ base: "block", lg: "none" }}>
-                <Box mb={3} display="flex" justifyContent="flex-start">
-                  <TabsSelector
-                    tabs={TAB_LABELS}
-                    selectedTabIndex={activeTab === "send" ? 0 : 1}
-                    setSelectedTabIndex={(i) =>
-                      setActiveTab(i === 0 ? "send" : "swap")
-                    }
-                    mt={0}
-                  />
-                </Box>
-                {activeTab === "send" ? (
-                  <ReceiverPanel
-                    receiver={receiver}
-                    onReceiverChange={setReceiver}
-                    chainId={currentChainId ?? 1}
-                    selectedTokens={selectedOnCurrentChain}
-                    onMigrate={handleMigrate}
-                    isExecuting={execution.plan !== null}
-                    disabledReason={receiverHint}
-                  />
-                ) : (
-                  <SwapTargetPanel
-                    chainName={currentChainName}
-                    chainId={currentChainId}
-                    selectedSourceTokens={selectedOnCurrentChain}
-                    targetToken={targetToken}
-                    onTargetTokenChange={setTargetToken}
-                    popularTargets={popularTargets}
-                    restTargets={restTargets}
-                    isLoadingTargetList={isLoadingTokenList}
-                    slippageBps={slippageBps}
-                    onSlippageChange={setSlippageBps}
-                    quotes={swapQuotes}
-                    isLoadingQuotes={liveQuotes.isLoading}
-                    onSwap={handleOpenSwapPreview}
-                    isExecuting={isSwapPreviewOpen}
-                    disabledReason={swapDisabledReason}
-                    onResolveTargetConflict={handleResolveTargetConflict}
-                    conflictingSourceCount={conflictingSourceKeys.length}
-                    recipient={swapRecipient}
-                    onRecipientChange={setSwapRecipient}
-                    recipientChainId={currentChainId ?? 1}
-                    connectedWalletAddress={address}
-                  />
-                )}
-              </Box>
-              <TokenTable
-                chainGroups={displayedChainGroups}
-                currentChainId={currentChainId}
-                selection={selection}
-                onToggle={toggle}
-                onAmountOverride={setAmountOverride}
-                onSelectAll={selectAll}
-                onSwitchChain={handleSwitchChain}
-                switchingToChainId={switchingToChainId}
-                showDustByChain={showDustByChain}
-                onToggleDustForChain={setShowDustForChain}
-                dustThresholdUsd={DUST_THRESHOLD_USD}
-                dustCountByChain={dustCountByChain}
-              />
-            </VStack>
-          </GridItem>
-
-          <GridItem
-            display={{ base: "none", lg: "block" }}
-            position={{ lg: "sticky" }}
-            top={{ lg: "1rem" }}
-            maxH={{ lg: "calc(100vh - 2rem)" }}
-            overflowY={{ lg: "auto" }}
-          >
-            <Box mb={3} display="flex" justifyContent="flex-start">
-              <TabsSelector
-                tabs={TAB_LABELS}
-                selectedTabIndex={activeTab === "send" ? 0 : 1}
-                setSelectedTabIndex={(i) =>
-                  setActiveTab(i === 0 ? "send" : "swap")
-                }
-                mt={0}
-              />
+          {mounted && (
+            <Box
+              flexShrink={0}
+              display="flex"
+              justifyContent={{ base: "flex-end", md: "flex-end" }}
+            >
+              <ConnectButton />
             </Box>
-            {activeTab === "send" ? (
+          )}
+        </Flex>
+
+        {!mounted ? (
+          <Box
+            bg="whiteAlpha.50"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+            borderRadius="lg"
+            p={10}
+          />
+        ) : !isConnected ? (
+          <DisconnectedPreview />
+        ) : isLoading ? (
+          <Grid
+            templateColumns={{ base: "1fr", lg: "1fr 380px" }}
+            gap={4}
+            alignItems="flex-start"
+          >
+            <GridItem minW={0}>
+              <PortfolioSkeleton />
+            </GridItem>
+            <GridItem
+              display={{ base: "none", lg: "block" }}
+              position={{ lg: "sticky" }}
+              top={{ lg: "1rem" }}
+              maxH={{ lg: "calc(100vh - 2rem)" }}
+              overflowY={{ lg: "auto" }}
+            >
               <ReceiverPanel
                 receiver={receiver}
                 onReceiverChange={setReceiver}
                 chainId={currentChainId ?? 1}
-                selectedTokens={selectedOnCurrentChain}
+                selectedTokens={[]}
                 onMigrate={handleMigrate}
-                isExecuting={execution.plan !== null}
-                disabledReason={receiverHint}
+                isExecuting={false}
+                disabledReason="Loading your portfolio…"
               />
-            ) : (
-              <SwapTargetPanel
-                chainName={currentChainName}
-                chainId={currentChainId}
-                selectedSourceTokens={selectedOnCurrentChain}
-                targetToken={targetToken}
-                onTargetTokenChange={setTargetToken}
-                popularTargets={popularTargets}
-                restTargets={restTargets}
-                isLoadingTargetList={isLoadingTokenList}
-                slippageBps={slippageBps}
-                onSlippageChange={setSlippageBps}
-                quotes={swapQuotes}
-                isLoadingQuotes={liveQuotes.isLoading}
-                isFetchingQuotes={liveQuotes.isFetching}
-                onRefreshQuotes={liveQuotes.refetchAll}
-                onSwap={handleOpenSwapPreview}
-                isExecuting={isSwapPreviewOpen}
-                disabledReason={swapDisabledReason}
-                onResolveTargetConflict={handleResolveTargetConflict}
-                conflictingSourceCount={conflictingSourceKeys.length}
-                recipient={swapRecipient}
-                onRecipientChange={setSwapRecipient}
-                recipientChainId={currentChainId ?? 1}
-                connectedWalletAddress={address}
-              />
-            )}
-          </GridItem>
-        </Grid>
-      )}
+            </GridItem>
+          </Grid>
+        ) : isError ? (
+          <Alert
+            status="error"
+            bg="rgba(239,68,68,0.10)"
+            border="1px solid"
+            borderColor="rgba(239,68,68,0.30)"
+            borderRadius="lg"
+            color="#F87171"
+          >
+            <AlertIcon color="#F87171" />
+            Failed to load portfolio: {error?.message ?? "Unknown error"}
+          </Alert>
+        ) : (
+          <Grid
+            templateColumns={{ base: "1fr", lg: "1fr 380px" }}
+            gap={4}
+            alignItems="flex-start"
+          >
+            <GridItem minW={0}>
+              <VStack spacing={4} align="stretch">
+                <PortfolioSidebar
+                  totalValueUsd={liveTotalValueUsd}
+                  chainGroups={displayedChainGroups}
+                  currentChainId={currentChainId}
+                  isFetching={isFetching}
+                  onChainClick={handleChainTileClick}
+                  onReload={handleReload}
+                />
+                {/* Inline panel — only renders below lg, where the right
+                  column is collapsed. Sits between portfolio + token list so
+                  it's reachable without scrolling past every chain group. */}
+                <Box display={{ base: "block", lg: "none" }}>
+                  <Box mb={3} display="flex" justifyContent="flex-start">
+                    <TabsSelector
+                      tabs={TAB_LABELS}
+                      selectedTabIndex={activeTab === "send" ? 0 : 1}
+                      setSelectedTabIndex={(i) =>
+                        setActiveTab(i === 0 ? "send" : "swap")
+                      }
+                      mt={0}
+                    />
+                  </Box>
+                  {activeTab === "send" ? (
+                    <ReceiverPanel
+                      receiver={receiver}
+                      onReceiverChange={setReceiver}
+                      chainId={currentChainId ?? 1}
+                      selectedTokens={selectedOnCurrentChain}
+                      onMigrate={handleMigrate}
+                      isExecuting={execution.plan !== null}
+                      disabledReason={receiverHint}
+                    />
+                  ) : (
+                    <SwapTargetPanel
+                      chainName={currentChainName}
+                      chainId={currentChainId}
+                      destinationChainId={destinationChainId}
+                      onDestinationChainChange={setDestinationChainId}
+                      destinationChainName={destinationChainName}
+                      hasBridgeRoutes={isBridgeMode}
+                      bridgeChains={bridgeChains}
+                      isLoadingBridgeChains={isLoadingBridgeChains}
+                      selectedSourceTokens={selectedSwapTokens}
+                      targetToken={targetToken}
+                      onTargetTokenChange={setTargetToken}
+                      popularTargets={popularTargets}
+                      restTargets={restTargets}
+                      isLoadingTargetList={isLoadingTokenList}
+                      slippageBps={slippageBps}
+                      onSlippageChange={setSlippageBps}
+                      quotes={swapQuotes}
+                      isLoadingQuotes={liveRouteQuotes.isLoading}
+                      isFetchingQuotes={liveRouteQuotes.isFetching}
+                      onRefreshQuotes={liveRouteQuotes.refetchAll}
+                      onSwap={handleOpenSwapPreview}
+                      isExecuting={swapExecutionSnapshot !== null}
+                      disabledReason={swapDisabledReason}
+                      onResolveTargetConflict={handleResolveTargetConflict}
+                      conflictingSourceCount={conflictingSourceKeys.length}
+                      recipient={swapRecipient}
+                      onRecipientChange={setSwapRecipient}
+                      recipientChainId={
+                        effectiveDestinationChainId ?? currentChainId ?? 1
+                      }
+                      connectedWalletAddress={address}
+                    />
+                  )}
+                </Box>
+                <TokenTable
+                  chainGroups={displayedChainGroups}
+                  currentChainId={currentChainId}
+                  allowCrossChainSelection={activeTab === "swap"}
+                  selection={selection}
+                  onToggle={toggle}
+                  onAmountOverride={setAmountOverride}
+                  onSelectAll={selectAll}
+                  onSwitchChain={handleSwitchChain}
+                  switchingToChainId={switchingToChainId}
+                  showDustByChain={showDustByChain}
+                  onToggleDustForChain={setShowDustForChain}
+                  dustThresholdUsd={DUST_THRESHOLD_USD}
+                  dustCountByChain={dustCountByChain}
+                />
+              </VStack>
+            </GridItem>
 
-      {execution.plan && execution.mode === "batch" && (
-        <BatchProgressModal
-          plan={execution.plan}
-          onClose={handleModalClose}
-          onSwitchToSequential={execution.switchToSequential}
-        />
-      )}
-      {execution.plan && execution.mode === "sequential" && (
-        <SequentialProgressModal
-          plan={execution.plan}
-          onClose={handleModalClose}
-        />
-      )}
-      {isSwapPreviewOpen && targetToken && address && currentChainId !== undefined && (
-        <SwapExecutionModal
-          isOpen
-          onClose={handleSwapModalClose}
-          quotes={swapQuotes.filter(
-            (q) => !q.isPending && !q.errorMessage
-          )}
-          targetToken={targetToken}
-          slippageBps={slippageBps}
-          supportsBatching={supportsBatching}
-          chainId={currentChainId}
-          taker={address as Address}
-          recipient={(validSwapRecipient as Address | undefined) ?? (address as Address)}
-        />
-      )}
-    </Box>
+            <GridItem
+              display={{ base: "none", lg: "block" }}
+              position={{ lg: "sticky" }}
+              top={{ lg: "1rem" }}
+              maxH={{ lg: "calc(100vh - 2rem)" }}
+              overflowY={{ lg: "auto" }}
+            >
+              <Box mb={3} display="flex" justifyContent="flex-start">
+                <TabsSelector
+                  tabs={TAB_LABELS}
+                  selectedTabIndex={activeTab === "send" ? 0 : 1}
+                  setSelectedTabIndex={(i) =>
+                    setActiveTab(i === 0 ? "send" : "swap")
+                  }
+                  mt={0}
+                />
+              </Box>
+              {activeTab === "send" ? (
+                <ReceiverPanel
+                  receiver={receiver}
+                  onReceiverChange={setReceiver}
+                  chainId={currentChainId ?? 1}
+                  selectedTokens={selectedOnCurrentChain}
+                  onMigrate={handleMigrate}
+                  isExecuting={execution.plan !== null}
+                  disabledReason={receiverHint}
+                />
+              ) : (
+                <SwapTargetPanel
+                  chainName={currentChainName}
+                  chainId={currentChainId}
+                  destinationChainId={destinationChainId}
+                  onDestinationChainChange={setDestinationChainId}
+                  destinationChainName={destinationChainName}
+                  hasBridgeRoutes={isBridgeMode}
+                  bridgeChains={bridgeChains}
+                  isLoadingBridgeChains={isLoadingBridgeChains}
+                  selectedSourceTokens={selectedSwapTokens}
+                  targetToken={targetToken}
+                  onTargetTokenChange={setTargetToken}
+                  popularTargets={popularTargets}
+                  restTargets={restTargets}
+                  isLoadingTargetList={isLoadingTokenList}
+                  slippageBps={slippageBps}
+                  onSlippageChange={setSlippageBps}
+                  quotes={swapQuotes}
+                  isLoadingQuotes={liveRouteQuotes.isLoading}
+                  isFetchingQuotes={liveRouteQuotes.isFetching}
+                  onRefreshQuotes={liveRouteQuotes.refetchAll}
+                  onSwap={handleOpenSwapPreview}
+                  isExecuting={swapExecutionSnapshot !== null}
+                  disabledReason={swapDisabledReason}
+                  onResolveTargetConflict={handleResolveTargetConflict}
+                  conflictingSourceCount={conflictingSourceKeys.length}
+                  recipient={swapRecipient}
+                  onRecipientChange={setSwapRecipient}
+                  recipientChainId={
+                    effectiveDestinationChainId ?? currentChainId ?? 1
+                  }
+                  connectedWalletAddress={address}
+                />
+              )}
+            </GridItem>
+          </Grid>
+        )}
+
+        {execution.plan && execution.mode === "batch" && (
+          <BatchProgressModal
+            plan={execution.plan}
+            onClose={handleModalClose}
+            onSwitchToSequential={execution.switchToSequential}
+          />
+        )}
+        {execution.plan && execution.mode === "sequential" && (
+          <SequentialProgressModal
+            plan={execution.plan}
+            onClose={handleModalClose}
+          />
+        )}
+        {swapExecutionSnapshot && address && currentChainId !== undefined && (
+          <SwapExecutionModal
+            isOpen
+            onClose={handleSwapModalClose}
+            quotes={swapExecutionSnapshot.quotes}
+            targetToken={swapExecutionSnapshot.targetToken}
+            slippageBps={slippageBps}
+            supportsBatching={supportsBatching}
+            chainId={currentChainId}
+            taker={address as Address}
+            recipient={
+              (validSwapRecipient as Address | undefined) ??
+              (address as Address)
+            }
+          />
+        )}
+      </Box>
     </Layout>
   );
 }
@@ -1022,172 +1269,172 @@ const skelEnd = "whiteAlpha.300";
 function PortfolioSkeleton() {
   return (
     <VStack spacing={4} align="stretch">
-          <Box
-            p={5}
-            bg="whiteAlpha.50"
-            borderRadius="lg"
-            border="1px solid"
-            borderColor="whiteAlpha.200"
+      <Box
+        p={5}
+        bg="whiteAlpha.50"
+        borderRadius="lg"
+        border="1px solid"
+        borderColor="whiteAlpha.200"
+      >
+        <HStack
+          align="stretch"
+          spacing={{ base: 4, md: 6 }}
+          flexDir={{ base: "column", md: "row" }}
+        >
+          <VStack
+            align="flex-start"
+            spacing={2}
+            flexShrink={0}
+            minW={{ md: "260px" }}
           >
-            <HStack
-              align="stretch"
-              spacing={{ base: 4, md: 6 }}
-              flexDir={{ base: "column", md: "row" }}
+            <Skeleton
+              height="10px"
+              width="120px"
+              startColor={skelStart}
+              endColor={skelEnd}
+              borderRadius="sm"
+            />
+            <Skeleton
+              height={{ base: "36px", md: "44px", lg: "52px" }}
+              width="200px"
+              startColor={skelStart}
+              endColor={skelEnd}
+              borderRadius="md"
+            />
+          </VStack>
+          <Box flex={1} minW={0}>
+            <Skeleton
+              height="10px"
+              width="80px"
+              startColor={skelStart}
+              endColor={skelEnd}
+              borderRadius="sm"
+              mb={2}
+            />
+            <SimpleGrid
+              columns={{ base: 2, sm: 3, md: 3, lg: 4, xl: 5 }}
+              spacing={2}
             >
-              <VStack
-                align="flex-start"
-                spacing={2}
-                flexShrink={0}
-                minW={{ md: "260px" }}
-              >
-                <Skeleton
-                  height="10px"
-                  width="120px"
-                  startColor={skelStart}
-                  endColor={skelEnd}
-                  borderRadius="sm"
-                />
-                <Skeleton
-                  height={{ base: "36px", md: "44px", lg: "52px" }}
-                  width="200px"
-                  startColor={skelStart}
-                  endColor={skelEnd}
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Box
+                  key={i}
+                  bg="whiteAlpha.100"
                   borderRadius="md"
-                />
-              </VStack>
-              <Box flex={1} minW={0}>
+                  border="1px solid"
+                  borderColor="whiteAlpha.200"
+                  p={2.5}
+                >
+                  <HStack spacing={2} mb={2}>
+                    <SkeletonCircle
+                      size="18px"
+                      startColor={skelStart}
+                      endColor={skelEnd}
+                    />
+                    <Skeleton
+                      height="10px"
+                      flex={1}
+                      startColor={skelStart}
+                      endColor={skelEnd}
+                      borderRadius="sm"
+                    />
+                  </HStack>
+                  <Skeleton
+                    height="14px"
+                    width="60%"
+                    startColor={skelStart}
+                    endColor={skelEnd}
+                    borderRadius="sm"
+                  />
+                </Box>
+              ))}
+            </SimpleGrid>
+          </Box>
+        </HStack>
+      </Box>
+
+      {Array.from({ length: 2 }).map((_, gi) => (
+        <Box
+          key={gi}
+          bg="whiteAlpha.50"
+          borderRadius="lg"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+          overflow="hidden"
+        >
+          <HStack px={4} py={3} bg="whiteAlpha.100" spacing={3}>
+            <SkeletonCircle
+              size="22px"
+              startColor={skelStart}
+              endColor={skelEnd}
+            />
+            <VStack spacing={1.5} align="flex-start" flex={1}>
+              <Skeleton
+                height="12px"
+                width="120px"
+                startColor={skelStart}
+                endColor={skelEnd}
+                borderRadius="sm"
+              />
+              <Skeleton
+                height="10px"
+                width="180px"
+                startColor={skelStart}
+                endColor={skelEnd}
+                borderRadius="sm"
+              />
+            </VStack>
+            <Skeleton
+              height="20px"
+              width="80px"
+              startColor={skelStart}
+              endColor={skelEnd}
+              borderRadius="sm"
+            />
+          </HStack>
+          <VStack spacing={1} align="stretch" px={2} py={2}>
+            {Array.from({ length: 4 }).map((_, ri) => (
+              <HStack key={ri} px={3} py={2.5} spacing={3}>
                 <Skeleton
-                  height="10px"
-                  width="80px"
+                  height="16px"
+                  width="16px"
                   startColor={skelStart}
                   endColor={skelEnd}
                   borderRadius="sm"
-                  mb={2}
                 />
-                <SimpleGrid
-                  columns={{ base: 2, sm: 3, md: 3, lg: 4, xl: 5 }}
-                  spacing={2}
-                >
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <Box
-                      key={i}
-                      bg="whiteAlpha.100"
-                      borderRadius="md"
-                      border="1px solid"
-                      borderColor="whiteAlpha.200"
-                      p={2.5}
-                    >
-                      <HStack spacing={2} mb={2}>
-                        <SkeletonCircle
-                          size="18px"
-                          startColor={skelStart}
-                          endColor={skelEnd}
-                        />
-                        <Skeleton
-                          height="10px"
-                          flex={1}
-                          startColor={skelStart}
-                          endColor={skelEnd}
-                          borderRadius="sm"
-                        />
-                      </HStack>
-                      <Skeleton
-                        height="14px"
-                        width="60%"
-                        startColor={skelStart}
-                        endColor={skelEnd}
-                        borderRadius="sm"
-                      />
-                    </Box>
-                  ))}
-                </SimpleGrid>
-              </Box>
-            </HStack>
-          </Box>
-
-          {Array.from({ length: 2 }).map((_, gi) => (
-            <Box
-              key={gi}
-              bg="whiteAlpha.50"
-              borderRadius="lg"
-              border="1px solid"
-              borderColor="whiteAlpha.200"
-              overflow="hidden"
-            >
-              <HStack px={4} py={3} bg="whiteAlpha.100" spacing={3}>
                 <SkeletonCircle
-                  size="22px"
+                  size="28px"
                   startColor={skelStart}
                   endColor={skelEnd}
                 />
                 <VStack spacing={1.5} align="flex-start" flex={1}>
                   <Skeleton
                     height="12px"
-                    width="120px"
+                    width="80px"
                     startColor={skelStart}
                     endColor={skelEnd}
                     borderRadius="sm"
                   />
                   <Skeleton
                     height="10px"
-                    width="180px"
+                    width="140px"
                     startColor={skelStart}
                     endColor={skelEnd}
                     borderRadius="sm"
                   />
                 </VStack>
                 <Skeleton
-                  height="20px"
-                  width="80px"
+                  height="14px"
+                  width="60px"
                   startColor={skelStart}
                   endColor={skelEnd}
                   borderRadius="sm"
                 />
               </HStack>
-              <VStack spacing={1} align="stretch" px={2} py={2}>
-                {Array.from({ length: 4 }).map((_, ri) => (
-                  <HStack key={ri} px={3} py={2.5} spacing={3}>
-                    <Skeleton
-                      height="16px"
-                      width="16px"
-                      startColor={skelStart}
-                      endColor={skelEnd}
-                      borderRadius="sm"
-                    />
-                    <SkeletonCircle
-                      size="28px"
-                      startColor={skelStart}
-                      endColor={skelEnd}
-                    />
-                    <VStack spacing={1.5} align="flex-start" flex={1}>
-                      <Skeleton
-                        height="12px"
-                        width="80px"
-                        startColor={skelStart}
-                        endColor={skelEnd}
-                        borderRadius="sm"
-                      />
-                      <Skeleton
-                        height="10px"
-                        width="140px"
-                        startColor={skelStart}
-                        endColor={skelEnd}
-                        borderRadius="sm"
-                      />
-                    </VStack>
-                    <Skeleton
-                      height="14px"
-                      width="60px"
-                      startColor={skelStart}
-                      endColor={skelEnd}
-                      borderRadius="sm"
-                    />
-                  </HStack>
-                ))}
-              </VStack>
-            </Box>
-          ))}
-        </VStack>
+            ))}
+          </VStack>
+        </Box>
+      ))}
+    </VStack>
   );
 }
 
@@ -1421,8 +1668,8 @@ function DisconnectedPreview() {
             Connect your wallet
           </Heading>
           <Text color="text.secondary" fontSize="sm">
-            We&apos;ll load your tokens across every supported chain and let
-            you sweep them to a single address in one batched transaction.
+            We&apos;ll load your tokens across every supported chain and let you
+            sweep them to a single address in one batched transaction.
           </Text>
           <Box pt={1}>
             <ConnectButton />
@@ -1447,4 +1694,3 @@ const DEMO_TOKENS = [
   { symbol: "AAVE", name: "Aave", balance: "14.21", usd: "$1,089.55" },
   { symbol: "UNI", name: "Uniswap", balance: "112.5", usd: "$99.40" },
 ];
-

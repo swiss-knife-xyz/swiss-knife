@@ -22,22 +22,25 @@ import {
   useDisclosure,
   VStack,
 } from "@chakra-ui/react";
-import { ArrowRight, ExternalLink, Pencil, RefreshCw, Sparkles, X } from "lucide-react";
-import { formatUnits, isAddress, getAddress } from "viem";
-import { PortfolioToken } from "../lib/portfolioApi";
 import {
-  SwapQuote,
-  TargetTokenEntry,
-  sumQuotes,
-} from "../lib/swapTypes";
+  ArrowRight,
+  ExternalLink,
+  Pencil,
+  RefreshCw,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { formatUnits, isAddress, getAddress } from "viem";
+import type { BridgeChain } from "../lib/bridgeApi";
+import { PortfolioToken } from "../lib/portfolioApi";
+import { SwapQuote, TargetTokenEntry, sumQuotes } from "../lib/swapTypes";
 import { formatUsd, formatUsdCompact } from "../lib/format";
+import { ChainPickerDropdown } from "./ChainPickerDropdown";
 import { TokenPickerDropdown } from "./TokenPickerDropdown";
 import { SlippageSettings } from "./SlippageSettings";
 import { AddressInput } from "@/components/fnParams/inputs/AddressInput";
-import {
-  resolveAddressToName,
-  getNameAvatar,
-} from "@/lib/nameResolution";
+import { chainIdToImage } from "@/data/common";
+import { resolveAddressToName, getNameAvatar } from "@/lib/nameResolution";
 
 // Shim — AddressInput's `input` prop is a JsonFragment-shaped placeholder we
 // don't actually use here.
@@ -46,6 +49,12 @@ const ADDRESS_INPUT_SHIM = { name: "Recipient", type: "address" } as any;
 interface SwapTargetPanelProps {
   chainName?: string;
   chainId?: number;
+  destinationChainId: number | null;
+  onDestinationChainChange: (chainId: number | null) => void;
+  destinationChainName?: string;
+  hasBridgeRoutes?: boolean;
+  bridgeChains: BridgeChain[];
+  isLoadingBridgeChains?: boolean;
   selectedSourceTokens: PortfolioToken[];
   targetToken: TargetTokenEntry | null;
   onTargetTokenChange: (t: TargetTokenEntry) => void;
@@ -128,9 +137,92 @@ function TokenLogo({
   );
 }
 
+function TokenLogoWithChainBadge({
+  tokenSrc,
+  symbol,
+  chainLogoUrl,
+  size = "24px",
+  chainSize = "11px",
+}: {
+  tokenSrc?: string;
+  symbol: string;
+  chainLogoUrl?: string;
+  size?: string;
+  chainSize?: string;
+}) {
+  return (
+    <Box position="relative" boxSize={size} flexShrink={0}>
+      <TokenLogo src={tokenSrc} symbol={symbol} size={size} />
+      {chainLogoUrl && (
+        <Image
+          src={chainLogoUrl}
+          alt=""
+          aria-hidden
+          boxSize={chainSize}
+          borderRadius="full"
+          bg="bg.muted"
+          border="1px solid"
+          borderColor="whiteAlpha.700"
+          position="absolute"
+          right="-2px"
+          bottom="-2px"
+          fallbackSrc="/icon.png"
+        />
+      )}
+    </Box>
+  );
+}
+
+function DestinationChainLabel({
+  logoUrl,
+  name,
+  align = "flex-end",
+  prefix,
+}: {
+  logoUrl?: string;
+  name?: string;
+  align?: "flex-start" | "flex-end";
+  prefix?: string;
+}) {
+  if (!logoUrl && !name) return null;
+
+  const label = name ? `${prefix ? `${prefix} ` : ""}${name}` : "Destination";
+
+  return (
+    <HStack
+      spacing={1}
+      alignSelf={align}
+      minW={0}
+      maxW="full"
+      color="whiteAlpha.600"
+    >
+      {logoUrl && (
+        <Image
+          src={logoUrl}
+          alt={name ? `${name} chain` : "Destination chain"}
+          boxSize="12px"
+          borderRadius="full"
+          bg="whiteAlpha.200"
+          flexShrink={0}
+          fallbackSrc="/icon.png"
+        />
+      )}
+      <Text fontSize="2xs" fontWeight="600" noOfLines={1}>
+        {label}
+      </Text>
+    </HStack>
+  );
+}
+
 export function SwapTargetPanel({
   chainName,
   chainId,
+  destinationChainId,
+  onDestinationChainChange,
+  destinationChainName,
+  hasBridgeRoutes = false,
+  bridgeChains,
+  isLoadingBridgeChains,
   selectedSourceTokens,
   targetToken,
   onTargetTokenChange,
@@ -153,6 +245,30 @@ export function SwapTargetPanel({
   recipientChainId,
   connectedWalletAddress,
 }: SwapTargetPanelProps) {
+  const isBridgeMode =
+    hasBridgeRoutes ||
+    (destinationChainId !== null &&
+      destinationChainId !== undefined &&
+      chainId !== undefined &&
+      destinationChainId !== chainId);
+  const effectiveDestinationChainId = isBridgeMode
+    ? (destinationChainId ?? chainId)
+    : chainId;
+  const destinationChainLogoUrl = useMemo(() => {
+    if (effectiveDestinationChainId === undefined) return undefined;
+    const bridgeChain = bridgeChains.find(
+      (chain) => chain.chainId === effectiveDestinationChainId
+    );
+    return (
+      bridgeChain?.icon ??
+      bridgeChain?.logoURI ??
+      chainIdToImage[effectiveDestinationChainId]
+    );
+  }, [effectiveDestinationChainId, bridgeChains]);
+  const destinationChainDisplayName =
+    isBridgeMode && effectiveDestinationChainId !== undefined
+      ? (destinationChainName ?? `Chain ${effectiveDestinationChainId}`)
+      : undefined;
   const totals = useMemo(() => {
     if (!targetToken || quotes.length === 0) {
       return {
@@ -172,7 +288,37 @@ export function SwapTargetPanel({
     () => quotes.filter((q) => !q.isPending && !q.errorMessage),
     [quotes]
   );
+  const failedQuotes = useMemo(
+    () => quotes.filter((q) => !q.isPending && q.errorMessage),
+    [quotes]
+  );
   const hasPending = quotes.some((q) => q.isPending);
+  const hasSwapQuotes = quotes.some((q) => q.routeKind !== "bridge");
+  const hasBridgeQuotes = quotes.some((q) => q.routeKind === "bridge");
+  const actionVerb =
+    hasSwapQuotes && hasBridgeQuotes
+      ? "Convert"
+      : isBridgeMode
+        ? "Bridge"
+        : "Swap";
+  const routeMeta = useMemo(() => {
+    const settledBridgeQuotes = settledQuotes.filter(
+      (q) => q.routeKind === "bridge"
+    );
+    const routeNames = Array.from(
+      new Set(
+        settledBridgeQuotes
+          .map((q) => q.routeName)
+          .filter((name): name is string => !!name)
+      )
+    );
+    const feeBps = settledBridgeQuotes.find((q) => q.feeBps)?.feeBps;
+    const gasFeeUsd = settledBridgeQuotes.reduce(
+      (sum, q) => sum + (q.gasFeeUsd ?? 0),
+      0
+    );
+    return { routeNames, feeBps, gasFeeUsd };
+  }, [settledQuotes]);
   // Don't let the user fire the modal mid-fetch — the preview would show
   // half-empty rows. Wait until every requested quote has settled.
   const canSwap =
@@ -193,7 +339,7 @@ export function SwapTargetPanel({
     >
       <HStack justify="space-between" align="center" mb={3}>
         <Text fontSize="xs" color="whiteAlpha.700" letterSpacing="wider">
-          SWAP INTO
+          DESTINATION
         </Text>
         <SlippageSettings
           slippageBps={slippageBps}
@@ -201,18 +347,45 @@ export function SwapTargetPanel({
         />
       </HStack>
 
-      <Box mb={4}>
-        <TokenPickerDropdown
-          selected={targetToken}
-          popular={popularTargets}
-          rest={restTargets}
-          onSelect={onTargetTokenChange}
-          chainName={chainName}
-          chainId={chainId}
-          isLoadingRest={isLoadingTargetList}
-          autoOpenOnMount={!targetToken}
-        />
-      </Box>
+      <VStack mb={4} spacing={2.5} align="stretch">
+        <Box>
+          <Text
+            fontSize="2xs"
+            color="whiteAlpha.600"
+            letterSpacing="wider"
+            mb={1}
+          >
+            CHAIN
+          </Text>
+          <ChainPickerDropdown
+            sourceChainId={chainId}
+            destinationChainId={destinationChainId}
+            chains={bridgeChains}
+            onSelect={onDestinationChainChange}
+            isLoading={isLoadingBridgeChains}
+          />
+        </Box>
+        <Box>
+          <Text
+            fontSize="2xs"
+            color="whiteAlpha.600"
+            letterSpacing="wider"
+            mb={1}
+          >
+            TOKEN
+          </Text>
+          <TokenPickerDropdown
+            selected={targetToken}
+            popular={popularTargets}
+            rest={restTargets}
+            onSelect={onTargetTokenChange}
+            chainName={isBridgeMode ? destinationChainName : chainName}
+            chainId={isBridgeMode ? effectiveDestinationChainId : chainId}
+            isLoadingRest={isLoadingTargetList}
+            autoOpenOnMount={!targetToken}
+          />
+        </Box>
+      </VStack>
 
       {/* Quotes section header — only shown once the user has both a target
           and selected sources, since the empty/placeholder states render
@@ -292,7 +465,9 @@ export function SwapTargetPanel({
           >
             <Text fontSize="sm">Pick a target token</Text>
             <Text fontSize="xs" textAlign="center">
-              We'll quote every selected token into it
+              {isBridgeMode
+                ? "We'll bridge every selected token into it"
+                : "We'll quote every selected token into it"}
             </Text>
           </VStack>
         ) : quotes.length === 0 && isLoadingQuotes ? (
@@ -329,6 +504,26 @@ export function SwapTargetPanel({
               },
             }}
           >
+            {isBridgeMode && (
+              <HStack
+                spacing={2.5}
+                px={2}
+                pt={0.5}
+                pb={1.5}
+                borderBottom="1px solid"
+                borderColor="whiteAlpha.100"
+              >
+                <Box boxSize="22px" flexShrink={0} />
+                <Box flex={1} minW={0} />
+                <Box boxSize="12px" flexShrink={0} />
+                <HStack flex={1} minW={0} justify="flex-end">
+                  <DestinationChainLabel
+                    logoUrl={destinationChainLogoUrl}
+                    name={destinationChainDisplayName}
+                  />
+                </HStack>
+              </HStack>
+            )}
             {quotes.map((q, idx) => {
               const srcAmt = formatTokenAmount(
                 q.sourceAmountWei,
@@ -352,6 +547,13 @@ export function SwapTargetPanel({
                 if (!Number.isFinite(amtFloat) || amtFloat <= 0) return null;
                 return amtFloat * q.source.priceUsd;
               })();
+              const sourceChain = bridgeChains.find(
+                (chain) => chain.chainId === q.source.chainId
+              );
+              const sourceChainLogoUrl =
+                sourceChain?.icon ??
+                sourceChain?.logoURI ??
+                chainIdToImage[q.source.chainId];
               return (
                 <HStack
                   key={`${q.source.chainId}:${q.source.contractAddress}`}
@@ -363,20 +565,17 @@ export function SwapTargetPanel({
                   }
                   borderColor="whiteAlpha.100"
                 >
-                  <TokenLogo
-                    src={q.source.logoUrl}
+                  <TokenLogoWithChainBadge
+                    tokenSrc={q.source.logoUrl}
                     symbol={q.source.symbol}
+                    chainLogoUrl={sourceChainLogoUrl}
                     size="22px"
+                    chainSize="10px"
                   />
                   {/* Two equal flex columns + a fixed-width arrow keep every
                       row's arrow on the same x — otherwise variable source /
                       target text widths shove the glyph all over the panel. */}
-                  <VStack
-                    spacing={0.5}
-                    align="flex-start"
-                    flex={1}
-                    minW={0}
-                  >
+                  <VStack spacing={0.5} align="flex-start" flex={1} minW={0}>
                     <Text
                       fontSize="xs"
                       color="white"
@@ -399,19 +598,14 @@ export function SwapTargetPanel({
                       hasError
                         ? "#F87171"
                         : isPending
-                        ? "whiteAlpha.400"
-                        : "whiteAlpha.500"
+                          ? "whiteAlpha.400"
+                          : "whiteAlpha.500"
                     }
                     flexShrink={0}
                   >
                     <ArrowRight size={12} />
                   </Box>
-                  <VStack
-                    spacing={0.5}
-                    align="flex-end"
-                    flex={1}
-                    minW={0}
-                  >
+                  <VStack spacing={0.5} align="flex-end" flex={1} minW={0}>
                     {isPending ? (
                       <>
                         <HStack spacing={1.5}>
@@ -444,7 +638,7 @@ export function SwapTargetPanel({
                         noOfLines={1}
                         title={q.errorMessage}
                       >
-                        Quote failed
+                        No route
                       </Text>
                     ) : (
                       <>
@@ -495,12 +689,8 @@ export function SwapTargetPanel({
           borderColor="rgba(59,130,246,0.30)"
           borderRadius="lg"
         >
-          <HStack justify="space-between" mb={1}>
-            <Text
-              fontSize="2xs"
-              color="whiteAlpha.700"
-              letterSpacing="wider"
-            >
+          <HStack justify="space-between" align="flex-start" mb={1.5}>
+            <Text fontSize="2xs" color="whiteAlpha.700" letterSpacing="wider">
               YOU RECEIVE
             </Text>
             {totals.pendingCount > 0 && (
@@ -512,35 +702,69 @@ export function SwapTargetPanel({
               </HStack>
             )}
           </HStack>
-          <HStack spacing={2} align="center">
-            <TokenLogo
-              src={targetToken!.logoUrl}
-              symbol={targetToken!.symbol}
-              size="28px"
-            />
-            <Text
-              fontSize="2xl"
-              color="white"
-              fontWeight="700"
-              fontFamily="mono"
-              letterSpacing="tight"
-              sx={{ fontVariantNumeric: "tabular-nums" }}
-              lineHeight="1"
-            >
-              {formatTokenAmount(totals.totalTargetWei, targetToken!.decimals)}
-            </Text>
-            <Text fontSize="md" color="whiteAlpha.800" fontWeight="600">
-              {targetToken!.symbol}
-            </Text>
-          </HStack>
-          <Text
-            fontSize="sm"
-            color="whiteAlpha.700"
-            mt={1}
-            fontWeight="500"
-          >
-            ≈ {formatUsd(totals.totalUsd)}
-          </Text>
+          <VStack spacing={0.5} align="stretch" w="full">
+            <HStack spacing={2} align="center" minW={0}>
+              <TokenLogo
+                src={targetToken!.logoUrl}
+                symbol={targetToken!.symbol}
+                size="28px"
+              />
+              <HStack spacing={2} align="baseline" minW={0} flex={1}>
+                <Text
+                  fontSize="2xl"
+                  color="white"
+                  fontWeight="700"
+                  fontFamily="mono"
+                  letterSpacing="tight"
+                  sx={{ fontVariantNumeric: "tabular-nums" }}
+                  lineHeight="1"
+                >
+                  {formatTokenAmount(
+                    totals.totalTargetWei,
+                    targetToken!.decimals
+                  )}
+                </Text>
+                <Text fontSize="md" color="whiteAlpha.800" fontWeight="600">
+                  {targetToken!.symbol}
+                </Text>
+              </HStack>
+            </HStack>
+            <HStack justify="space-between" align="center" pl="36px" minW={0}>
+              <Text fontSize="sm" color="whiteAlpha.700" fontWeight="500">
+                ≈ {formatUsd(totals.totalUsd)}
+              </Text>
+              {isBridgeMode && (
+                <HStack
+                  spacing={1}
+                  minW={0}
+                  color="whiteAlpha.700"
+                  justify="flex-end"
+                >
+                  <Text fontSize="sm" fontWeight="600" whiteSpace="nowrap">
+                    on
+                  </Text>
+                  {destinationChainLogoUrl && (
+                    <Image
+                      src={destinationChainLogoUrl}
+                      alt={
+                        destinationChainDisplayName
+                          ? `${destinationChainDisplayName} chain`
+                          : "Destination chain"
+                      }
+                      boxSize="13px"
+                      borderRadius="full"
+                      bg="whiteAlpha.200"
+                      flexShrink={0}
+                      fallbackSrc="/icon.png"
+                    />
+                  )}
+                  <Text fontSize="sm" fontWeight="600" noOfLines={1}>
+                    {destinationChainDisplayName}
+                  </Text>
+                </HStack>
+              )}
+            </HStack>
+          </VStack>
         </Box>
       )}
 
@@ -558,25 +782,35 @@ export function SwapTargetPanel({
         }}
         onClick={onSwap}
         isLoading={isExecuting}
-        loadingText="Swapping…"
+        loadingText={actionVerb === "Bridge" ? "Bridging…" : "Converting…"}
         isDisabled={!canSwap}
       >
         {!hasSelection
-          ? "Select tokens to swap"
+          ? isBridgeMode
+            ? "Select tokens to bridge"
+            : "Select tokens to swap"
           : !hasTarget
-          ? "Pick a target token"
-          : hasPending && settledQuotes.length === 0
-          ? "Fetching quotes…"
-          : `Swap ${settledQuotes.length} token${
-              settledQuotes.length === 1 ? "" : "s"
-            } → ${targetToken!.symbol}`}
+            ? "Pick a target token"
+            : hasPending && settledQuotes.length === 0
+              ? "Fetching quotes…"
+              : `${actionVerb} ${settledQuotes.length} token${
+                  settledQuotes.length === 1 ? "" : "s"
+                } → ${targetToken!.symbol}`}
       </Button>
 
-      {disabledReason && (
+      {(disabledReason || failedQuotes.length > 0) && (
         <VStack mt={2} spacing={2} align="center">
-          <Text fontSize="xs" color="#FBBF24" textAlign="center">
-            {disabledReason}
-          </Text>
+          {disabledReason && (
+            <Text fontSize="xs" color="#FBBF24" textAlign="center">
+              {disabledReason}
+            </Text>
+          )}
+          {failedQuotes.length > 0 && settledQuotes.length > 0 && (
+            <Text fontSize="xs" color="whiteAlpha.600" textAlign="center">
+              {failedQuotes.length} route
+              {failedQuotes.length === 1 ? "" : "s"} excluded from calls
+            </Text>
+          )}
           {onResolveTargetConflict && conflictingSourceCount > 0 && (
             <Button
               size="xs"
@@ -597,18 +831,42 @@ export function SwapTargetPanel({
 
       {settledQuotes.length > 0 && (
         <VStack mt={2.5} spacing={1.5} align="flex-end">
-          <Text
-            fontSize="2xs"
-            color="whiteAlpha.500"
-            letterSpacing="wide"
-          >
-            Fee: {totals.isPremiumFee ? "0.3%" : "0.8%"}
-          </Text>
-          {!totals.isPremiumFee && <StakerDiscountCta />}
-          {totals.isPremiumFee && (
-            <Text fontSize="2xs" color="whiteAlpha.500">
-              👑 WCHAN staker discount applied
-            </Text>
+          {isBridgeMode ? (
+            <>
+              {routeMeta.routeNames.length > 0 && (
+                <Text
+                  fontSize="2xs"
+                  color="whiteAlpha.500"
+                  letterSpacing="wide"
+                >
+                  Via {routeMeta.routeNames.slice(0, 2).join(", ")}
+                  {routeMeta.routeNames.length > 2 ? " +" : ""}
+                </Text>
+              )}
+              <Text fontSize="2xs" color="whiteAlpha.500" letterSpacing="wide">
+                Fee:{" "}
+                {routeMeta.feeBps
+                  ? `${(Number(routeMeta.feeBps) / 100).toFixed(2)}%`
+                  : totals.isPremiumFee
+                    ? "0.3%"
+                    : "0.8%"}
+                {routeMeta.gasFeeUsd > 0
+                  ? ` · est. gas ${formatUsdCompact(routeMeta.gasFeeUsd)}`
+                  : ""}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text fontSize="2xs" color="whiteAlpha.500" letterSpacing="wide">
+                Fee: {totals.isPremiumFee ? "0.3%" : "0.8%"}
+              </Text>
+              {!totals.isPremiumFee && <StakerDiscountCta />}
+              {totals.isPremiumFee && (
+                <Text fontSize="2xs" color="whiteAlpha.500">
+                  👑 WCHAN staker discount applied
+                </Text>
+              )}
+            </>
           )}
         </VStack>
       )}
@@ -684,16 +942,27 @@ function StakerDiscountCta() {
               >
                 <HStack justify="space-between">
                   <VStack spacing={0} align="flex-start">
-                    <Text fontSize="2xs" color="whiteAlpha.600" letterSpacing="wider">
+                    <Text
+                      fontSize="2xs"
+                      color="whiteAlpha.600"
+                      letterSpacing="wider"
+                    >
                       STANDARD
                     </Text>
                     <Text fontSize="xl" color="white" fontWeight="700">
                       0.8%
                     </Text>
                   </VStack>
-                  <ArrowRight size={16} color="var(--chakra-colors-whiteAlpha-500)" />
+                  <ArrowRight
+                    size={16}
+                    color="var(--chakra-colors-whiteAlpha-500)"
+                  />
                   <VStack spacing={0} align="flex-end">
-                    <Text fontSize="2xs" color="primary.400" letterSpacing="wider">
+                    <Text
+                      fontSize="2xs"
+                      color="primary.400"
+                      letterSpacing="wider"
+                    >
                       👑 PREMIUM
                     </Text>
                     <Text fontSize="xl" color="primary.300" fontWeight="700">
@@ -702,11 +971,7 @@ function StakerDiscountCta() {
                   </VStack>
                 </HStack>
               </Box>
-              <Text
-                fontSize="sm"
-                color="whiteAlpha.800"
-                textAlign="center"
-              >
+              <Text fontSize="sm" color="whiteAlpha.800" textAlign="center">
                 Hold{" "}
                 <Text as="span" fontWeight="700" color="white">
                   20M+ sWCHAN
@@ -854,12 +1119,7 @@ function RecipientField({
             src={walletAvatar ?? undefined}
             bg="whiteAlpha.200"
           />
-          <Text
-            fontSize="xs"
-            color="white"
-            fontWeight="500"
-            noOfLines={1}
-          >
+          <Text fontSize="xs" color="white" fontWeight="500" noOfLines={1}>
             {walletName ?? "Connected wallet"}
           </Text>
         </HStack>
@@ -876,11 +1136,7 @@ function RecipientField({
   return (
     <Box mb={4}>
       <HStack justify="space-between" mb={1.5}>
-        <Text
-          fontSize="2xs"
-          color="whiteAlpha.600"
-          letterSpacing="wider"
-        >
+        <Text fontSize="2xs" color="whiteAlpha.600" letterSpacing="wider">
           RECIPIENT
         </Text>
         {trimmed.length === 0 ? (
