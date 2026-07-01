@@ -83,6 +83,7 @@ export const DarkSelect = ({
         ? "0 0 0 1px var(--chakra-colors-blue-400)"
         : "none",
       _hover: {
+        bg: "whiteAlpha.100",
         borderColor: "whiteAlpha.400",
       },
     }),
@@ -189,12 +190,7 @@ export const DarkSelect = ({
   // Prevent hydration mismatch by not rendering select on server
   if (!isMounted) {
     return (
-      <Box
-        cursor="pointer"
-        pos="relative"
-        overflow="visible"
-        {...boxProps}
-      >
+      <Box cursor="pointer" pos="relative" overflow="visible" {...boxProps}>
         <Box
           bg="whiteAlpha.50"
           border="1px solid"

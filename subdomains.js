@@ -87,6 +87,10 @@ const subdomains = {
     base: "siwe",
     paths: [],
   },
+  FAUCET: {
+    base: "faucet",
+    paths: [],
+  },
 };
 
 module.exports = subdomains;

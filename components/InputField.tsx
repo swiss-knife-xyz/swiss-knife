@@ -38,9 +38,11 @@ export const InputField = ({
       borderColor={isInvalid ? "red.500" : "whiteAlpha.200"}
       borderRadius="lg"
       _hover={{
+        bg: "whiteAlpha.100",
         borderColor: isInvalid ? "red.500" : "whiteAlpha.400",
       }}
       _focus={{
+        bg: "whiteAlpha.50",
         borderColor: isInvalid ? "red.500" : "blue.400",
         boxShadow: isInvalid
           ? "0 0 0 1px var(--chakra-colors-red-500)"

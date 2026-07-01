@@ -33,9 +33,14 @@ export const Layout = ({ children, allowSticky, ...props }: LayoutParams) => {
     <Box display="flex" flexDir="column" minHeight="100vh" bg="bg.base">
       <Box flexGrow={1} overflow={wrapperOverflow}>
         <HStack alignItems="flex-start" spacing={0}>
-          <Flex flexDir="column" flexGrow={1} overflow={wrapperOverflow}>
+          <Flex
+            flexDir="column"
+            flexGrow={1}
+            minW={0}
+            overflow={wrapperOverflow}
+          >
             <Navbar />
-            <Box overflowX={innerOverflowX} flexGrow={1}>
+            <Box overflowX={innerOverflowX} flexGrow={1} minW={0}>
               <Container
                 mt={8}
                 minW={allowSticky ? undefined : "max-content"}

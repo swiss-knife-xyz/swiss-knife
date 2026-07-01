@@ -1,5 +1,6 @@
 import { MetadataRoute } from "next";
 import subdomains from "@/subdomains";
+import { getFaucetChainSeoEntries } from "@/app/faucet/chains";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const allPaths: string[] = [];
@@ -12,6 +13,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     if (subdomain.paths) {
       subdomain.paths.map((path: string) => {
         allPaths.push(`https://${subdomain.base}.eth.sh/${path}`);
+      });
+    }
+
+    if (subdomain.base === "faucet") {
+      getFaucetChainSeoEntries().map(({ slug }) => {
+        allPaths.push(`https://faucet.eth.sh/${slug}`);
       });
     }
   });

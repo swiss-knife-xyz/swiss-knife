@@ -187,7 +187,8 @@ const breakpoints = {
 
 const transition = {
   property: {
-    common: "background-color, border-color, color, fill, stroke, opacity, box-shadow, transform",
+    common:
+      "background-color, border-color, color, fill, stroke, opacity, box-shadow, transform",
     colors: "background-color, border-color, color, fill, stroke",
     dimensions: "width, height",
     position: "left, right, top, bottom",
@@ -352,7 +353,11 @@ const components = {
             color: "text.tertiary",
           },
           _hover: {
+            bg: "bg.muted",
             borderColor: "border.strong",
+          },
+          _active: {
+            bg: "bg.muted",
           },
           _focus: {
             bg: "bg.subtle",
@@ -375,9 +380,14 @@ const components = {
             color: "text.tertiary",
           },
           _hover: {
+            bg: "bg.muted",
             borderColor: "border.strong",
           },
+          _active: {
+            bg: "bg.muted",
+          },
           _focus: {
+            bg: "bg.subtle",
             borderColor: "primary.500",
             boxShadow: `0 0 0 3px ${tokenColors.primary[500]}20`,
           },
@@ -410,7 +420,11 @@ const components = {
           color: "text.tertiary",
         },
         _hover: {
+          bg: "bg.muted",
           borderColor: "border.strong",
+        },
+        _active: {
+          bg: "bg.muted",
         },
         _focus: {
           bg: "bg.subtle",
@@ -435,9 +449,14 @@ const components = {
           color: "text.primary",
           borderRadius: "lg",
           _hover: {
+            bg: "bg.muted",
             borderColor: "border.strong",
           },
+          _active: {
+            bg: "bg.muted",
+          },
           _focus: {
+            bg: "bg.subtle",
             borderColor: "primary.500",
             boxShadow: `0 0 0 3px ${tokenColors.primary[500]}20`,
           },
@@ -769,6 +788,13 @@ const styles = {
     "*::placeholder": {
       color: "text.tertiary",
     },
+    "input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, textarea:-webkit-autofill, textarea:-webkit-autofill:hover, textarea:-webkit-autofill:focus, select:-webkit-autofill, select:-webkit-autofill:hover, select:-webkit-autofill:focus":
+      {
+        WebkitBoxShadow: `0 0 0 1000px ${tokenColors.bg.subtle} inset`,
+        WebkitTextFillColor: tokenColors.text.primary,
+        caretColor: tokenColors.text.primary,
+        transition: "background-color 9999s ease-out",
+      },
     "*, *::before, &::after": {
       borderColor: "border.subtle",
     },

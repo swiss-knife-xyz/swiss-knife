@@ -124,4 +124,10 @@ export const subdomainToInfo = {
     description:
       "Validate EIP-4361 Sign-In With Ethereum messages with auto-fix and signing",
   },
+  [subdomains.FAUCET.base]: {
+    emoji: "🚰",
+    label: "Faucets",
+    description:
+      "Find live testnet faucets and track when each faucet is ready to claim again",
+  },
 };
