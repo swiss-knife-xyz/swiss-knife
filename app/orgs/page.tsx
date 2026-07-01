@@ -18,7 +18,7 @@ import {
   WrapItem,
 } from "@chakra-ui/react";
 import { ChevronDown, ChevronUp, ExternalLink, FileText } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Layout } from "@/components/Layout";
 import {
   ethereumOrgs,
@@ -50,17 +50,6 @@ const getFaviconUrl = (domain: string) =>
 
 const getOrgLogoUrl = (org: EthereumOrg) =>
   logoSrcOverrides[org.id] ?? getFaviconUrl(org.logoDomain);
-
-const getDefaultExpandedOrgIds = () => {
-  if (
-    typeof window !== "undefined" &&
-    window.matchMedia("(max-width: 767px)").matches
-  ) {
-    return new Set<string>();
-  }
-
-  return new Set(orgIds);
-};
 
 const OrgLogo = ({ org, size = 36 }: { org: EthereumOrg; size?: number }) => (
   <Box
@@ -361,12 +350,8 @@ const CoverageMap = () => (
 
 const OrgsPage = () => {
   const [expandedOrgIds, setExpandedOrgIds] = useState<Set<string>>(
-    getDefaultExpandedOrgIds
+    () => new Set()
   );
-
-  useEffect(() => {
-    setExpandedOrgIds(getDefaultExpandedOrgIds());
-  }, []);
 
   const allDetailsExpanded = orgIds.every((orgId) => expandedOrgIds.has(orgId));
 

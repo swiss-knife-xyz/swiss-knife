@@ -17,7 +17,7 @@
 
 - Direction: ETH.sh tool-page aggregation, matching faucet and 7702beat rather than a standalone editorial page.
 - Defining trait: a row-based directory replaces stacked editorial sections.
-- Signature move: every organization is a row first, with deeper research visible on page load and collapsible per row.
+- Signature move: every organization is a row first, with deeper research available through per-row expansion.
 
 ## Typography
 
@@ -61,7 +61,7 @@
 ## Components And States
 
 - Buttons: Chakra variants using ETH.sh hover/focus states; Details is secondary, website links sit beside org names, and handles are clickable text links.
-- Rows: light separators, left-aligned text, org count in the Organization header, no nested card stacks, subtly blue-tinted focus tags, independently collapsible detail areas open by default on desktop and collapsed by default on mobile, with a Details header control to collapse or expand all rows together.
+- Rows: light separators, left-aligned text, org count in the Organization header, no nested card stacks, subtly blue-tinted focus tags, independently collapsible detail areas collapsed by default on every viewport, with a Details header control to collapse or expand all rows together.
 - Focus ring: `0 0 0 1px var(--chakra-colors-primary-400)`.
 
 ## Motion
@@ -120,4 +120,5 @@
 ## Changelog
 
 - 2026-07-02: Rebuilt `/orgs` as a minimal ETH.sh-style aggregator page aligned with faucet and 7702beat.
-- 2026-07-02: Moved org website links and clickable handles into the identity block, tightened logo treatment with a local EF mark, removed decorative org color dots, removed the search/filter and duplicate stat strips, moved org count into the table header, made detail rows independently collapsible with desktop-open and mobile-closed defaults, added a Details header toggle for all rows, redesigned coverage as a tighter focus-area map, tinted focus tags, and renamed Source trail to Sources.
+- 2026-07-02: Moved org website links and clickable handles into the identity block, tightened logo treatment with a local EF mark, removed decorative org color dots, removed the search/filter and duplicate stat strips, moved org count into the table header, made detail rows independently collapsible and collapsed by default, added a Details header toggle for all rows, redesigned coverage as a tighter focus-area map, tinted focus tags, and renamed Source trail to Sources.
+- 2026-07-02: Changed desktop behavior so organization details also start collapsed, matching mobile and keeping the directory scan-first.
