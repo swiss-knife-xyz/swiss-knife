@@ -714,6 +714,9 @@ const tokenLogoSources: Record<string, string> = {
   XDAI: "/chainIcons/gnosis.webp",
 };
 
+const logoSurfaceBg = "rgba(255,255,255,0.94)";
+const logoSurfaceBorder = "rgba(255,255,255,0.28)";
+
 const TokenLogo = ({
   symbol,
   chain,
@@ -739,17 +742,18 @@ const TokenLogo = ({
       h="22px"
       ml={index === 0 ? 0 : "-7px"}
       rounded="full"
-      bg="bg.emphasis"
-      color="text.primary"
+      bg={iconSrc ? logoSurfaceBg : "bg.emphasis"}
+      color={iconSrc ? "gray.900" : "text.primary"}
       border="2px solid"
       borderColor="bg.subtle"
       overflow="hidden"
       flexShrink={0}
       fontSize="10px"
       fontWeight="bold"
+      boxShadow={iconSrc ? "inset 0 0 0 1px rgba(0,0,0,0.08)" : "none"}
     >
       {iconSrc ? (
-        <Image src={iconSrc} alt="" w="100%" h="100%" objectFit="cover" />
+        <Image src={iconSrc} alt="" w="100%" h="100%" objectFit="contain" />
       ) : (
         normalizedSymbol.slice(0, 1)
       )}
@@ -794,10 +798,11 @@ const ChainLogo = ({ chain, size = 20 }: { chain: string; size?: number }) => (
     w={`${size}px`}
     h={`${size}px`}
     rounded="full"
-    bg="bg.emphasis"
+    bg={logoSurfaceBg}
     border="1px solid"
-    borderColor="border.default"
-    objectFit="cover"
+    borderColor={logoSurfaceBorder}
+    boxShadow="inset 0 0 0 1px rgba(0,0,0,0.08)"
+    objectFit="contain"
     flexShrink={0}
   />
 );
@@ -949,11 +954,15 @@ const FilterTokenLogo = ({ symbol }: { symbol: string }) => (
     w="18px"
     h="18px"
     rounded="full"
-    bg="bg.emphasis"
+    bg={tokenLogoSources[symbol] ? logoSurfaceBg : "bg.emphasis"}
+    color={tokenLogoSources[symbol] ? "gray.900" : "text.primary"}
     overflow="hidden"
     flexShrink={0}
     fontSize="9px"
     fontWeight="bold"
+    boxShadow={
+      tokenLogoSources[symbol] ? "inset 0 0 0 1px rgba(0,0,0,0.08)" : "none"
+    }
   >
     {tokenLogoSources[symbol] ? (
       <Image
@@ -961,7 +970,7 @@ const FilterTokenLogo = ({ symbol }: { symbol: string }) => (
         alt=""
         w="100%"
         h="100%"
-        objectFit="cover"
+        objectFit="contain"
       />
     ) : (
       symbol.slice(0, 1)
@@ -1212,6 +1221,36 @@ const RatingVotes = ({ stat }: { stat?: FaucetRatingStat }) => {
   );
 };
 
+const FaucetInfoIcon = ({ faucet }: { faucet: FaucetEntry }) => (
+  <Tooltip
+    label={
+      <Box>
+        <Text fontWeight="semibold" mb={1}>
+          {faucet.requirement}
+        </Text>
+        <Text>{faucet.notes}</Text>
+      </Box>
+    }
+    placement="top"
+  >
+    <Box as="span" color="text.tertiary" flexShrink={0}>
+      <Info size={14} />
+    </Box>
+  </Tooltip>
+);
+
+const MobileHeaderMetaLine = ({ children }: { children: ReactNode }) => (
+  <HStack
+    spacing={1.25}
+    justify="flex-end"
+    maxW="100%"
+    minW={0}
+    overflow="hidden"
+  >
+    {children}
+  </HStack>
+);
+
 const FaucetRow = ({
   faucet,
   ratingStat,
@@ -1229,24 +1268,28 @@ const FaucetRow = ({
   tokenFilter: string;
   onOpen: (faucet: FaucetEntry, variant?: ClaimVariant) => void;
 }) => {
-  const remainingMs = getRowRemainingMs(
-    faucet,
-    records,
-    now,
-    chainFilter,
-    tokenFilter
-  );
-  const isCoolingDown = remainingMs > 0;
   const faucetChains = getFaucetChains(faucet);
+  const chainLabel =
+    faucetChains.length > 1 ? `${faucetChains.length} networks` : faucet.chain;
+  const faucetTokenSymbols = getFaucetTokenSymbols(faucet);
+  const visibleMobileTokens = faucetTokenSymbols.slice(0, 2);
+  const hiddenMobileTokenCount = Math.max(
+    0,
+    faucetTokenSymbols.length - visibleMobileTokens.length
+  );
+  const mobileTokenLabel = `${visibleMobileTokens
+    .map(formatTokenFilterLabel)
+    .join(
+      ", "
+    )}${hiddenMobileTokenCount > 0 ? ` +${hiddenMobileTokenCount}` : ""}`;
 
   return (
     <Box
-      display="grid"
+      display={{ base: "block", md: "grid" }}
       gridTemplateColumns={{
-        base: "1fr",
         md: TABLE_GRID_COLUMNS,
       }}
-      gap={{ base: 3, md: 4 }}
+      gap={{ md: 4 }}
       alignItems="center"
       px={{ base: 3, md: 4 }}
       py={{ base: 3, md: 2.75 }}
@@ -1270,7 +1313,97 @@ const FaucetRow = ({
         }
       }}
     >
-      <HStack spacing={3} minW={0}>
+      <Box display={{ base: "block", md: "none" }} minW={0}>
+        <Flex align="flex-start" gap={2.5} minW={0}>
+          <RatingVotes stat={ratingStat} />
+          <FaucetLogo
+            url={faucet.url}
+            provider={faucet.provider}
+            faviconDomain={faucet.faviconDomain}
+            size={30}
+          />
+          <Box minW={0} flex="1">
+            <HStack spacing={1.5} minW={0}>
+              <Text
+                color="text.primary"
+                fontWeight="semibold"
+                fontSize="sm"
+                lineHeight="18px"
+                noOfLines={1}
+              >
+                {faucet.provider}
+              </Text>
+              <FaucetInfoIcon faucet={faucet} />
+            </HStack>
+            <Text
+              color="text.secondary"
+              fontSize="xs"
+              lineHeight="17px"
+              mt={0.5}
+              noOfLines={1}
+            >
+              {faucet.name}
+            </Text>
+          </Box>
+          <VStack
+            align="flex-end"
+            spacing={1}
+            minW="92px"
+            maxW="42%"
+            pt="1px"
+            overflow="hidden"
+            flexShrink={0}
+          >
+            <MobileHeaderMetaLine>
+              <ChainLogoStack chains={faucetChains} />
+              <Text
+                color="text.secondary"
+                fontSize="xs"
+                noOfLines={1}
+                textAlign="right"
+              >
+                {chainLabel}
+              </Text>
+            </MobileHeaderMetaLine>
+            <MobileHeaderMetaLine>
+              <TokenLogoStack
+                token={faucet.token}
+                chain={faucet.chain}
+                chains={faucetChains}
+                symbols={visibleMobileTokens}
+              />
+              <Text
+                color="text.primary"
+                fontSize="xs"
+                noOfLines={1}
+                textAlign="right"
+              >
+                {mobileTokenLabel}
+              </Text>
+            </MobileHeaderMetaLine>
+          </VStack>
+        </Flex>
+
+        <HStack spacing={3} justify="center" mt={2.5} minW={0}>
+          <ClaimPill
+            faucet={faucet}
+            records={records}
+            now={now}
+            chainFilter={chainFilter}
+            tokenFilter={tokenFilter}
+          />
+          <Text
+            color="text.tertiary"
+            fontSize="xs"
+            whiteSpace="nowrap"
+            sx={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {faucet.cooldownHours}h recharge
+          </Text>
+        </HStack>
+      </Box>
+
+      <HStack display={{ base: "none", md: "flex" }} spacing={3} minW={0}>
         <RatingVotes stat={ratingStat} />
         <FaucetLogo
           url={faucet.url}
@@ -1287,21 +1420,7 @@ const FaucetRow = ({
             >
               {faucet.provider}
             </Text>
-            <Tooltip
-              label={
-                <Box>
-                  <Text fontWeight="semibold" mb={1}>
-                    {faucet.requirement}
-                  </Text>
-                  <Text>{faucet.notes}</Text>
-                </Box>
-              }
-              placement="top"
-            >
-              <Box as="span" color="text.tertiary" flexShrink={0}>
-                <Info size={14} />
-              </Box>
-            </Tooltip>
+            <FaucetInfoIcon faucet={faucet} />
           </HStack>
           <HStack spacing={2} mt={0.5} minW={0}>
             <Text color="text.secondary" fontSize="xs" noOfLines={1}>
@@ -1311,21 +1430,19 @@ const FaucetRow = ({
         </Box>
       </HStack>
 
-      <HStack spacing={2} minW={0}>
+      <HStack display={{ base: "none", md: "flex" }} spacing={2} minW={0}>
         <ChainLogoStack chains={faucetChains} />
         <Text color="text.secondary" fontSize="sm" noOfLines={1}>
-          {faucetChains.length > 1
-            ? `${faucetChains.length} networks`
-            : faucet.chain}
+          {chainLabel}
         </Text>
       </HStack>
 
-      <HStack spacing={2} minW={0}>
+      <HStack display={{ base: "none", md: "flex" }} spacing={2} minW={0}>
         <TokenLogoStack
           token={faucet.token}
           chain={faucet.chain}
           chains={faucetChains}
-          symbols={getFaucetTokenSymbols(faucet, 3)}
+          symbols={faucetTokenSymbols.slice(0, 3)}
         />
         <Box minW={0}>
           <Text color="text.primary" fontSize="sm" noOfLines={1}>
@@ -1337,7 +1454,7 @@ const FaucetRow = ({
         </Box>
       </HStack>
 
-      <HStack spacing={2} minW={0}>
+      <HStack display={{ base: "none", md: "flex" }} spacing={2} minW={0}>
         <ClaimPill
           faucet={faucet}
           records={records}
@@ -1375,12 +1492,11 @@ const ClaimVariantRow = ({
 
   return (
     <Box
-      display="grid"
+      display={{ base: "block", md: "grid" }}
       gridTemplateColumns={{
-        base: "1fr",
         md: TABLE_GRID_COLUMNS,
       }}
-      gap={{ base: 3, md: 4 }}
+      gap={{ md: 4 }}
       alignItems="center"
       px={{ base: 3, md: 4 }}
       py={{ base: 2.75, md: 2.25 }}
@@ -1405,7 +1521,98 @@ const ClaimVariantRow = ({
         }
       }}
     >
-      <HStack spacing={3} minW={0}>
+      <Box display={{ base: "block", md: "none" }} minW={0}>
+        <Flex align="flex-start" gap={2.5} minW={0}>
+          <Flex
+            w="24px"
+            h="30px"
+            align="center"
+            justify="center"
+            flexShrink={0}
+          >
+            <Box
+              w="12px"
+              h="12px"
+              borderLeft="1px solid"
+              borderBottom="1px solid"
+              borderColor="border.strong"
+              transform="translateY(-3px)"
+            />
+          </Flex>
+          <Box minW={0} flex="1">
+            <Text
+              color="text.primary"
+              fontWeight="semibold"
+              fontSize="sm"
+              lineHeight="18px"
+              noOfLines={1}
+            >
+              Tracked claim
+            </Text>
+            <Text
+              color="text.secondary"
+              fontSize="xs"
+              lineHeight="17px"
+              mt={0.5}
+              noOfLines={1}
+            >
+              {formatTokenFilterLabel(variant.token)} /{" "}
+              {getFaucetVariantAmount(faucet, variant)}
+            </Text>
+          </Box>
+          <VStack
+            align="flex-end"
+            spacing={1}
+            minW="92px"
+            maxW="42%"
+            pt="1px"
+            overflow="hidden"
+            flexShrink={0}
+          >
+            <MobileHeaderMetaLine>
+              <ChainLogo chain={variant.chain} />
+              <Text
+                color="text.secondary"
+                fontSize="xs"
+                noOfLines={1}
+                textAlign="right"
+              >
+                {variant.chain}
+              </Text>
+            </MobileHeaderMetaLine>
+            <MobileHeaderMetaLine>
+              <FilterTokenLogo symbol={variant.token} />
+              <Text
+                color="text.primary"
+                fontSize="xs"
+                noOfLines={1}
+                textAlign="right"
+              >
+                {formatTokenFilterLabel(variant.token)}
+              </Text>
+            </MobileHeaderMetaLine>
+          </VStack>
+        </Flex>
+
+        <HStack spacing={3} justify="center" mt={2.5} mb={0.75} minW={0}>
+          <TimerPill
+            remainingMs={remainingMs}
+            tooltipLabel={`${variant.chain} / ${formatTokenFilterLabel(
+              variant.token
+            )} claimed ${formatClaimedAt(record.claimedAt)}`}
+          />
+          <Text
+            color="text.tertiary"
+            fontSize="xs"
+            whiteSpace="nowrap"
+            sx={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {record.cooldownHours}h recharge
+          </Text>
+        </HStack>
+      </Box>
+
+      <HStack display={{ base: "none", md: "flex" }} spacing={3} minW={0}>
         <Box w={VOTE_RAIL_WIDTH} flexShrink={0} />
         <Flex w="28px" h="28px" align="center" justify="center" flexShrink={0}>
           <Box
@@ -1438,7 +1645,7 @@ const ClaimVariantRow = ({
         </Box>
       </HStack>
 
-      <HStack spacing={2} minW={0}>
+      <HStack display={{ base: "none", md: "flex" }} spacing={2} minW={0}>
         <ChainLogo chain={variant.chain} />
         <Text color="text.secondary" fontSize="sm" noOfLines={1}>
           {variant.chain}
@@ -1447,7 +1654,7 @@ const ClaimVariantRow = ({
 
       <Box display={{ base: "none", md: "block" }} />
 
-      <HStack spacing={2} minW={0}>
+      <HStack display={{ base: "none", md: "flex" }} spacing={2} minW={0}>
         <TimerPill
           remainingMs={remainingMs}
           tooltipLabel={`${variant.chain} / ${formatTokenFilterLabel(
@@ -1883,6 +2090,7 @@ const FaucetPageClient = ({ initialChain }: { initialChain?: string }) => {
       maxW={{ base: "100%", xl: "1180px" }}
       minW={0}
       w="full"
+      overflowX={{ base: "hidden", md: "visible" }}
       pb={10}
     >
       <Flex
@@ -2035,6 +2243,8 @@ const FaucetPageClient = ({ initialChain }: { initialChain?: string }) => {
         rounded="lg"
         bg="rgba(17,17,19,0.72)"
         overflow="hidden"
+        maxW="100%"
+        minW={0}
       >
         <Box
           display={{ base: "none", md: "grid" }}
