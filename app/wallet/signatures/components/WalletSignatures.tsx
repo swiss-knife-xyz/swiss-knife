@@ -10,8 +10,7 @@ import { SignMessage } from "./SignMessage";
 import { SignTypedData } from "./SignTypedData";
 import { exampleTypedDataJSON } from "./types";
 import { SignatureType, SharedSignaturePayload, SignerEntry } from "./types";
-import { getPath } from "@/utils";
-import subdomains from "@/subdomains";
+import { buildSignatureViewUrl } from "../url";
 
 const DEFAULT_EXAMPLE_PRETTY = JSON.stringify(exampleTypedDataJSON, null, 2);
 const DEFAULT_EXAMPLE_MINIFIED = JSON.stringify(exampleTypedDataJSON);
@@ -196,10 +195,6 @@ export default function WalletSignatures() {
       }
 
       if (payloadForUrl) {
-        const jsonString = JSON.stringify(payloadForUrl);
-        const base64String = btoa(jsonString);
-        const encodedPayload = encodeURIComponent(base64String);
-
         // Preserve current query parameters for navigation back
         const preservedParams = new URLSearchParams();
 
@@ -211,14 +206,10 @@ export default function WalletSignatures() {
           preservedParams.set("typedDataToSign", rawTypedDataString);
         }
 
-        let viewUrl = `${getPath(
-          subdomains.WALLET.base
-        )}signatures/view?payload=${encodedPayload}`;
-        if (preservedParams.toString()) {
-          viewUrl += `&returnParams=${encodeURIComponent(
-            preservedParams.toString()
-          )}`;
-        }
+        const viewUrl = buildSignatureViewUrl(
+          payloadForUrl,
+          preservedParams.toString() || undefined
+        );
 
         router.push(viewUrl);
       } else {
@@ -246,7 +237,9 @@ export default function WalletSignatures() {
         />
       </Box>
       <Center py={2}>
-        <Text color="gray.500" fontSize="sm">OR</Text>
+        <Text color="gray.500" fontSize="sm">
+          OR
+        </Text>
       </Center>
       <Box>
         <SignTypedData
