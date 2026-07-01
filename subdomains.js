@@ -91,6 +91,11 @@ const subdomains = {
     base: "faucet",
     paths: [],
   },
+  ORGS: {
+    base: "orgs",
+    paths: [],
+    isRelativePath: true,
+  },
 };
 
 module.exports = subdomains;

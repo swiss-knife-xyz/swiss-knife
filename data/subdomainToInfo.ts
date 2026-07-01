@@ -130,4 +130,10 @@ export const subdomainToInfo = {
     description:
       "Find live testnet faucets and track when each faucet is ready to claim again",
   },
+  [subdomains.ORGS.base]: {
+    emoji: "🏛️",
+    label: "Ethereum Orgs",
+    description:
+      "Track Ethereum foundations, labs, guilds, collectives, and adoption groups",
+  },
 };
