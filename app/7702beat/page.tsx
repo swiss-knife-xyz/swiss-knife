@@ -674,6 +674,12 @@ const dapps: SupportedApp[] = [
     supportedChainIds: [mainnet.id, base.id, bsc.id, optimism.id],
   },
   {
+    name: "Based Loans",
+    logoUrl: getFaviconUrl("https://based.loans/"),
+    siteUrl: "https://based.loans/",
+    supportedChainIds: [base.id],
+  },
+  {
     name: "Bungee",
     logoUrl: getFaviconUrl("https://bungee.exchange/"),
     siteUrl: "https://bungee.exchange/",
@@ -996,12 +1002,6 @@ const dapps: SupportedApp[] = [
     name: "Zora",
     logoUrl: getFaviconUrl("https://zora.co/"),
     siteUrl: "https://zora.co/",
-    supportedChainIds: [base.id],
-  },
-  {
-    name: "Based Loans",
-    logoUrl: getFaviconUrl("https://based.loans/"),
-    siteUrl: "https://based.loans/",
     supportedChainIds: [base.id],
   },
 ];
