@@ -12,6 +12,8 @@ export const contentType = "image/png";
 
 const logoSrcOverrides: Record<string, string> = {
   "ethereum-foundation": "/external/ethereum-foundation.svg",
+  "ethereum-community-foundation":
+    "/external/ethereum-community-foundation.svg",
 };
 
 const getPublicAssetUrl = (path: string, request: Request) =>
@@ -27,6 +29,7 @@ const ogCategoryLabels: Record<string, string> = {
   "ethereum-economic-zone": "Composability infra",
   argot: "Compiler tooling",
   "ethereum-institutional": "Institutions",
+  "ethereum-community-foundation": "ETH public goods",
 };
 
 const getOgCategoryLabel = (org: EthereumOrg) =>
@@ -186,7 +189,7 @@ export async function GET(request: Request) {
                       alignItems: "center",
                       justifyContent: "space-between",
                       gap: 16,
-                      height: 68,
+                      height: 61,
                       padding: "0 18px",
                       borderTop:
                         index === 0 ? "0" : "1px solid rgba(255,255,255,0.09)",
@@ -235,9 +238,9 @@ export async function GET(request: Request) {
                       >
                         <span
                           style={{
-                            fontSize: 21,
+                            fontSize: 19,
                             color: "#F5F5F5",
-                            maxWidth: 360,
+                            maxWidth: 404,
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",

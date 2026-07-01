@@ -283,6 +283,46 @@ export const ethereumOrgs: EthereumOrg[] = [
       },
     ],
   },
+  {
+    id: "ethereum-community-foundation",
+    name: "Ethereum Community Foundation",
+    shortName: "ECF",
+    handle: "@ethcforg",
+    website: "https://ethcf.org/",
+    twitter: "https://x.com/ethcforg",
+    logoDomain: "ethcf.org",
+    accent: "#60A5FA",
+    category: "ETH-aligned public infrastructure",
+    stage: "Launched 2025",
+    role: "Token-free infrastructure, transparency tooling, and ETH-holder-aligned public goods.",
+    summary:
+      "The Ethereum Community Foundation is an Ethereum-aligned organization building token-free public infrastructure that strengthens ETH, with work spanning transparency dashboards, proof-of-burn grant experiments, blob tooling, and validator coordination.",
+    evidence: [
+      "The official site describes ECF as building token-free public infrastructure that strengthens ETH and benefits ETH holders.",
+      "Glassbox is presented as an open-source transparency dashboard for Ethereum-based DAOs and foundations, showing onchain activity around treasury movement, grants, and transactions.",
+      "ECF says it created and funded the Ethereum Validators Association to give validators a coordinated voice around protocol, economics, research, and operations.",
+    ],
+    workstreams: [
+      "BETH and proof-of-burn grant experiments for builders creating ETH-aligned applications and infrastructure.",
+      "BlobKit, EIPN, Glassbox, transparency dashboards, and other public infrastructure projects.",
+      "Validator coordination through EVA, including research, signaling, standards, and forum programming.",
+    ],
+    watch: [
+      "Whether BETH and proof-of-burn grants lead to durable public goods rather than one-off incentives.",
+      "How ECF governance, treasury activity, and grants remain transparent as the scope grows.",
+      "How the validator coordination track interacts with core development without becoming a narrow stakeholder lobby.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://ethcf.org/" },
+      { label: "Blog", href: "https://ethcf.org/blog/" },
+      { label: "Glassbox", href: "https://ethcf.org/blog/glassbox/" },
+      { label: "BlobKit", href: "https://ethcf.org/blog/blobkit/" },
+      {
+        label: "Ethereum Validators Association",
+        href: "https://blog.ethcf.org/blog/eva/",
+      },
+    ],
+  },
 ];
 
 export const roleMap = [
@@ -319,6 +359,12 @@ export const roleMap = [
     description: "Banks, asset managers, market infrastructure, public sector",
     orgIds: ["ethereum-institutional"],
   },
+  {
+    label: "ETH-aligned public goods",
+    description:
+      "Token-free infrastructure, transparent funding, burn-aligned grants, validator coordination",
+    orgIds: ["ethereum-community-foundation"],
+  },
 ];
 
 export const sourceTrail: SourceLink[] = [
@@ -351,5 +397,11 @@ export const sourceTrail: SourceLink[] = [
   {
     label: "Ethereum Institutional coverage",
     href: "https://www.coindesk.com/tech/2026/07/01/ethereum-gets-a-new-nonprofit-focused-on-institutional-adoption",
+  },
+  { label: "ECF official site", href: "https://ethcf.org/" },
+  { label: "ECF Glassbox", href: "https://ethcf.org/blog/glassbox/" },
+  {
+    label: "ECF validator association",
+    href: "https://blog.ethcf.org/blog/eva/",
   },
 ];

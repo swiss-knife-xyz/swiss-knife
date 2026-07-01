@@ -41,6 +41,8 @@ const orgById = new Map(ethereumOrgs.map((org) => [org.id, org]));
 
 const logoSrcOverrides: Record<string, string> = {
   "ethereum-foundation": "/external/ethereum-foundation.svg",
+  "ethereum-community-foundation":
+    "/external/ethereum-community-foundation.svg",
 };
 
 const getFaviconUrl = (domain: string) =>
@@ -309,7 +311,7 @@ const CoverageMap = () => (
         </Heading>
         <Text color="text.secondary" fontSize="sm" lineHeight="20px" mt={1}>
           How the directory groups the work across stewardship, adoption,
-          infrastructure, tooling, and institutions.
+          infrastructure, tooling, institutions, and public goods.
         </Text>
       </Box>
     </Box>
