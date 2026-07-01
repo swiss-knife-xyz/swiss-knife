@@ -61,7 +61,8 @@ export const subdomainToInfo = {
   [subdomains.STORAGE_SLOTS.base]: {
     emoji: "🗄️",
     label: "Storage Slots",
-    description: "Query custom or EIP-1967 storage slots for any EVM contract",
+    description:
+      "Query custom, EIP-1967, or ERC-7201 storage slots for any EVM contract",
   },
   [subdomains.CONTRACT_DIFF.base]: {
     emoji: "⚖️",

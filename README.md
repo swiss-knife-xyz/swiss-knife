@@ -15,7 +15,7 @@ All your EVM tools in one place: https://eth.sh/
    5. Address to checksum/lowercase format
 5. [Constants](https://constants.eth.sh/): Have frequently used constants at your fingertips, like Zero Address, Max Uint256, etc.
 6. [Epoch-Converter](https://epoch-converter.eth.sh/): Grab unix timestamp, get timestamp `x` minutes/hours/days in the future, or convert timestamp to human-readable format.
-7. [Storage-Slots](https://storage-slots.eth.sh/): Query EIP-1967 slots or custom storage slot value of any contract.
+7. [Storage-Slots](https://storage-slots.eth.sh/): Query EIP-1967, ERC-7201, or custom storage slot values of any contract.
 8. [Uniswap](https://uniswap.eth.sh/tick-to-price): Calculator to convert UniswapV3 tick to price for any token pair addresses.
 9. [Character Counter](https://character-counter.eth.sh/): Count the length of the input string. Also allows to select on the input text to only get the character count for the selection.
 10. [Determine Address](https://determine-address.eth.sh/): Determine the contract address using CREATE or CREATE2 opcode.
