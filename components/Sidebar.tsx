@@ -101,24 +101,31 @@ export const Sidebar = ({
   showHeading?: boolean;
 }) => {
   return (
-    <Flex w="220px" flexDir={"column"} py={"2rem"} minH="100vh">
+    <Flex
+      w="220px"
+      flexDir={"column"}
+      py={showHeading ? "2rem" : 4}
+      minH="100vh"
+    >
       <VStack spacing={4} align="stretch">
-        <Center
-          pb="1rem"
-          mb="1rem"
-          borderBottom="1px solid"
-          borderBottomColor="whiteAlpha.200"
-        >
-          <Heading
-            size="md"
-            bgGradient="linear(to-r, white, white)"
-            bgClip="text"
-            fontWeight="bold"
-            textAlign="center"
+        {showHeading && (
+          <Center
+            pb="1rem"
+            mb="1rem"
+            borderBottom={showBorders ? "1px solid" : "none"}
+            borderBottomColor="whiteAlpha.200"
           >
-            {heading}
-          </Heading>
-        </Center>
+            <Heading
+              size="md"
+              bgGradient="linear(to-r, white, white)"
+              bgClip="text"
+              fontWeight="bold"
+              textAlign="center"
+            >
+              {heading}
+            </Heading>
+          </Center>
+        )}
 
         <VStack spacing={1} align="stretch" px={2}>
           {items.map((item) => (
