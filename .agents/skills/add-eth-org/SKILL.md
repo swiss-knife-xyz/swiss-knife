@@ -17,7 +17,7 @@ Use this skill when the user gives a website and X/Twitter handle, a launch post
    - `app/orgs/data.ts`
    - `app/orgs/page.tsx`
    - `app/orgs/layout.tsx`
-   - `app/api/og/orgs/route.tsx`
+   - `app/api/og/orgs/route.tsx` only when the user explicitly asks to change the social preview image
    - `DESIGN.md` when UI behavior or copy changes
 
 2. Research before editing. Prefer primary sources:
@@ -36,8 +36,8 @@ Use this skill when the user gives a website and X/Twitter handle, a launch post
 5. Verify visually and technically:
    - `pnpm exec prettier --write` on touched TS/TSX/MD files.
    - `pnpm exec tsc --noEmit`.
-   - Regenerate and inspect `/api/og/orgs` if data, org count, labels, or logo behavior changed.
    - Screenshot `/orgs` when row length, logo, category, or focus-area content changes.
+   - Regenerate and inspect `/api/og/orgs` only if the OG route itself was intentionally changed.
    - Run `pnpm build` for larger changes or before committing.
 
 ## Research Rules
@@ -54,4 +54,4 @@ Use this skill when the user gives a website and X/Twitter handle, a launch post
 - Do not add search/filter/stat sections.
 - Do not commit unless the user asks.
 - Prefer official favicons via `logoDomain`. Add a local `public/external/{id}.svg` or `.png` only when the official favicon is missing, distorted, or materially worse than an official mark.
-- Keep the OG image readable. Add short `ogCategoryLabels` for long categories and inspect the generated PNG.
+- The OG image uses a curated featured set to avoid clutter. Do not add routine new orgs to `featuredOgOrgIds`, `logoSrcOverrides`, or `ogCategoryLabels` in `app/api/og/orgs/route.tsx` unless the user explicitly asks for the social image to change.

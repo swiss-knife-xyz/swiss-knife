@@ -6,7 +6,7 @@ Use this reference when adding or updating organizations in the Ethereum Orgs di
 
 - `app/orgs/data.ts`: canonical organization data, focus areas, and sources.
 - `app/orgs/layout.tsx`: metadata, keywords, Open Graph, Twitter tags.
-- `app/api/og/orgs/route.tsx`: dynamic OG image and logo/category overrides.
+- `app/api/og/orgs/route.tsx`: curated OG image. Do not update for routine org additions unless the user explicitly asks.
 - `app/orgs/page.tsx`: logo overrides only when local assets are needed.
 - `public/external/`: official logo assets that cannot reliably come from favicons.
 - `DESIGN.md`: update only if behavior, layout, design policy, or page interaction changes.
@@ -76,26 +76,30 @@ Use a local asset when:
 Local asset checklist:
 
 - Save as `public/external/{id}.svg` or `.png`.
-- Add the same override to both `logoSrcOverrides` maps in `app/orgs/page.tsx` and `app/api/og/orgs/route.tsx`.
+- Add an override to `logoSrcOverrides` in `app/orgs/page.tsx`.
+- Add the same override to `app/api/og/orgs/route.tsx` only if the org is intentionally part of the curated OG image.
 - Use official source assets only. Do not use X avatars unless the official site clearly uses the same mark and no better source exists.
 
 ## OG Image
 
-After adding an org:
+For routine org additions:
 
-- Add an `ogCategoryLabels` entry if `category` is long.
-- Regenerate `/api/og/orgs` to a PNG and visually inspect it.
-- If rows clip, reduce row height/font size carefully or use a shorter OG-only category label.
+- Do not add the org to `featuredOgOrgIds`.
+- Do not add an `ogCategoryLabels` entry.
+- Do not change OG logo overrides.
+
+Only update `/api/og/orgs` when the user explicitly asks for the social preview image to change. If you do change it, regenerate `/api/og/orgs` to a PNG and visually inspect it.
 
 ## Verification Commands
 
 Run from the repo root:
 
 ```bash
-pnpm exec prettier --write app/orgs/data.ts app/orgs/page.tsx app/orgs/layout.tsx app/api/og/orgs/route.tsx DESIGN.md
+pnpm exec prettier --write app/orgs/data.ts app/orgs/page.tsx app/orgs/layout.tsx DESIGN.md
 pnpm exec tsc --noEmit
-curl -L http://localhost:3000/api/og/orgs -o /tmp/orgs-og.png && file /tmp/orgs-og.png
 pnpm exec playwright screenshot --viewport-size=1440,1000 http://localhost:3000/orgs /tmp/orgs-desktop.png
 ```
+
+Add `app/api/og/orgs/route.tsx` to the Prettier command and inspect `/api/og/orgs` only when the OG route changed.
 
 Run `pnpm build` before committing or when metadata, OG routes, or shared layout behavior changed.

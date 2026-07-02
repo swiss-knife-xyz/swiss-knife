@@ -17,6 +17,23 @@ const logoSrcOverrides: Record<string, string> = {
   "european-ethereum-institute": "/external/european-ethereum-institute.svg",
 };
 
+const featuredOgOrgIds = [
+  "ethereum-foundation",
+  "ethlabs",
+  "ethereum-applications-guild",
+  "ethereum-economic-zone",
+  "argot",
+  "ethereum-institutional",
+  "ethereum-community-foundation",
+  "european-ethereum-institute",
+];
+
+const orgById = new Map(ethereumOrgs.map((org) => [org.id, org]));
+const featuredOgOrgs = featuredOgOrgIds.flatMap((id) => {
+  const org = orgById.get(id);
+  return org ? [org] : [];
+});
+
 const getPublicAssetUrl = (path: string, request: Request) =>
   new URL(path, request.url).toString();
 
@@ -43,7 +60,9 @@ export async function GET(request: Request) {
       new URL("../../../../assets/Poppins-Bold.ttf", import.meta.url)
     ).then((response) => response.arrayBuffer());
     const logoUrl = getPublicAssetUrl("/logo.png", request);
-    const orgLogoUrls = ethereumOrgs.map((org) => getOrgLogoUrl(org, request));
+    const orgLogoUrls = featuredOgOrgs.map((org) =>
+      getOrgLogoUrl(org, request)
+    );
 
     return new ImageResponse(
       (
@@ -88,7 +107,7 @@ export async function GET(request: Request) {
               flexDirection: "column",
               height: "100%",
               position: "relative",
-              zIndex: 1,
+              zIndex: "1",
             }}
           >
             <div
@@ -183,7 +202,7 @@ export async function GET(request: Request) {
                   overflow: "hidden",
                 }}
               >
-                {ethereumOrgs.map((org, index) => (
+                {featuredOgOrgs.map((org, index) => (
                   <div
                     key={org.id}
                     style={{

@@ -284,6 +284,46 @@ export const ethereumOrgs: EthereumOrg[] = [
     ],
   },
   {
+    id: "etherealize",
+    name: "Etherealize",
+    shortName: "Etherealize",
+    handle: "@Etherealize_io",
+    website: "https://www.etherealize.com/",
+    twitter: "https://x.com/Etherealize_io",
+    logoDomain: "etherealize.com",
+    accent: "#8B5CF6",
+    category: "Institutional infrastructure",
+    stage: "Launched Jan 2025",
+    role: "Institutional trading, tokenization, settlement, and privacy infrastructure on Ethereum.",
+    summary:
+      "Etherealize is a company building Ethereum-based products, research, and go-to-market infrastructure for Wall Street, with work across tokenized assets, Ethereum-native settlement, institutional privacy, policy engagement, and education for banks and asset managers.",
+    evidence: [
+      "The official site says Etherealize is building the rails to move Wall Street onto Ethereum, with tokenization, Ethereum-native settlement engines, and institutional-grade privacy environments.",
+      "Its about and product pages describe meetings with banks, asset managers, sovereigns, and hedge funds, Washington engagement, tokenized asset issuance and settlement, automated execution, instant settlement, and zk privacy.",
+      "A September 2025 company announcement reports a $40 million round led by Electric Capital and Paradigm, plus a 2024 grant from Vitalik Buterin and the Ethereum Foundation to start institutional education work.",
+    ],
+    workstreams: [
+      "Institutional education, research, content, and market narrative around ETH, Ethereum L2s, tokenized assets, stablecoins, and Ethereum as financial infrastructure.",
+      "Product development for tokenized asset workflows, settlement engines, compliant privacy environments, and institutional-grade applications.",
+      "Wall Street and policy engagement across banks, asset managers, payment networks, the SEC, Treasury, Congress, and Ethereum ecosystem builders.",
+    ],
+    watch: [
+      "Which products move from public thesis and fundraising into production systems used by institutions.",
+      "How Etherealize coordinates with Ethereum Institutional, EEI, EF, and L2/app teams while remaining an investor-backed product company.",
+      "Whether institutional privacy and compliance work preserves Ethereum's open, neutral, and self-custodial properties.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://www.etherealize.com/" },
+      { label: "About", href: "https://www.etherealize.com/about" },
+      { label: "Product", href: "https://www.etherealize.com/product" },
+      { label: "Content", href: "https://www.etherealize.com/content" },
+      {
+        label: "Funding announcement",
+        href: "https://www.globenewswire.com/news-release/2025/09/03/3143712/0/en/Etherealize-Raises-40-Million-to-Rewire-Wall-Street-s-Infrastructure-with-Ethereum.html",
+      },
+    ],
+  },
+  {
     id: "ethereum-community-foundation",
     name: "Ethereum Community Foundation",
     shortName: "ECF",
@@ -400,7 +440,7 @@ export const roleMap = [
   {
     label: "Institutions",
     description: "Banks, asset managers, market infrastructure, public sector",
-    orgIds: ["ethereum-institutional"],
+    orgIds: ["ethereum-institutional", "etherealize"],
   },
   {
     label: "Policy and regulation",
@@ -446,6 +486,12 @@ export const sourceTrail: SourceLink[] = [
   {
     label: "Ethereum Institutional coverage",
     href: "https://www.coindesk.com/tech/2026/07/01/ethereum-gets-a-new-nonprofit-focused-on-institutional-adoption",
+  },
+  { label: "Etherealize official site", href: "https://www.etherealize.com/" },
+  { label: "Etherealize product", href: "https://www.etherealize.com/product" },
+  {
+    label: "Etherealize funding",
+    href: "https://www.globenewswire.com/news-release/2025/09/03/3143712/0/en/Etherealize-Raises-40-Million-to-Rewire-Wall-Street-s-Infrastructure-with-Ethereum.html",
   },
   { label: "ECF official site", href: "https://ethcf.org/" },
   { label: "ECF Glassbox", href: "https://ethcf.org/blog/glassbox/" },
