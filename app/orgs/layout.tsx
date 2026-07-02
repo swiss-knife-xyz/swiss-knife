@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 const title = "Ethereum Orgs Directory | ETH.sh";
 const description =
-  "A researched directory of Ethereum Foundation, Protocol Guild, Ethlabs, EAG, EEZ, Argot, EEA, Ethereum Institutional, Etherealize, ECF, EEI, and other Ethereum stewardship organizations.";
+  "A researched directory of Ethereum Foundation, Protocol Guild, Ethlabs, EAG, EEZ, Argot, DTG, EEA, Ethereum Institutional, Etherealize, ECF, EEI, and other Ethereum stewardship organizations.";
 const siteUrl =
   process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
     ? "http://localhost:3000"
@@ -22,6 +22,8 @@ export const metadata: Metadata = {
     "Ethereum Applications Guild",
     "Ethereum Economic Zone",
     "Argot Collective",
+    "Dev Tools Guild",
+    "DTG",
     "Enterprise Ethereum Alliance",
     "EEA",
     "Ethereum Institutional",
