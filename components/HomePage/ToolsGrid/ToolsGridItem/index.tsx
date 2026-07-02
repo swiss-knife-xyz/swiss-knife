@@ -8,12 +8,13 @@ interface ToolsGridItemParams {
     emoji: string;
     label: string;
     description: string;
+    isRelativePath?: boolean;
   };
 }
 
 export const ToolsGridItem = ({ subdomain, info }: ToolsGridItemParams) => {
   return (
-    <Link href={getPath(subdomain)} passHref role="group">
+    <Link href={getPath(subdomain, info.isRelativePath)} passHref role="group">
       <Box
         p={{ base: 4, md: 6 }}
         bg="bg.700"

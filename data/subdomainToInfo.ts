@@ -135,5 +135,6 @@ export const subdomainToInfo = {
     label: "Ethereum Orgs",
     description:
       "Track Ethereum foundations, labs, guilds, collectives, and adoption groups",
+    isRelativePath: subdomains.ORGS.isRelativePath,
   },
 };
