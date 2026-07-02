@@ -286,6 +286,46 @@ export const ethereumOrgs: EthereumOrg[] = [
     ],
   },
   {
+    id: "dev-tools-guild",
+    name: "Dev Tools Guild",
+    shortName: "DTG",
+    handle: "@devtoolsguild",
+    website: "https://devtoolsguild.xyz/",
+    twitter: "https://x.com/devtoolsguild",
+    logoDomain: "devtoolsguild.xyz",
+    accent: "#14B8A6",
+    category: "Developer tooling funding",
+    stage: "Pilot launched Jun 2025",
+    role: "Collective funding and coordination for Ethereum developer tooling maintainers.",
+    summary:
+      "Dev Tools Guild is a Protocol-Guild-inspired collective funding mechanism and coordination layer for widely used Ethereum developer tooling, sustaining the projects and individuals who maintain critical libraries, compilers, and frameworks while bridging protocol developers and application-layer builders.",
+    evidence: [
+      "The official intro describes DTG as uniting Ethereum developer tool projects to collectively fund members and projects and boost coordination between protocol and dev tools developers.",
+      "Coordinated by founder Conor Svensson (author of the Web3j Java integration library) and Andrew B Coathup (former Week in Ethereum News editor), starting with a one-year pilot from June 2025.",
+      "Initial member projects announced at launch include Solidity, Vyper, ethers.js, viem, alloy, Nethereum, Web3j, web3.py, Foundry, Scaffold-ETH, Ape, and Sourcify.",
+    ],
+    workstreams: [
+      "Collective funding for developer tooling projects and individual maintainers, with donations routed to donate.devtoolsguild.eth on Ethereum mainnet, Arbitrum, Base, and Optimism.",
+      "Coordination between protocol developers and application-layer builders through roadmap sharing, protocol-change awareness, and cross-project knowledge exchange.",
+      "Visibility and accountability across dev-tools projects through progress tracking, community updates, and public communications.",
+    ],
+    watch: [
+      "Whether the one-year pilot converts into a durable funding entity with diversified donors and a stable member registry.",
+      "How DTG membership evolves across both projects and individual maintainers, and how eligibility is curated over time.",
+      "How DTG coordinates with Protocol Guild, Argot, and EF ecosystem support without duplicating scope.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://devtoolsguild.xyz/" },
+      { label: "Introduction", href: "https://devtoolsguild.xyz/intro" },
+      { label: "FAQs", href: "https://devtoolsguild.xyz/faq" },
+      {
+        label: "Launch announcement",
+        href: "https://devtoolsguild.xyz/blog/devtoolsguild-launch",
+      },
+      { label: "GitHub", href: "https://github.com/devtoolsguild" },
+    ],
+  },
+  {
     id: "enterprise-ethereum-alliance",
     name: "Enterprise Ethereum Alliance",
     shortName: "EEA",
@@ -539,6 +579,12 @@ export const roleMap = [
     orgIds: ["argot"],
   },
   {
+    label: "Developer tooling",
+    description:
+      "Collective funding and coordination for library, framework, and SDK maintainers",
+    orgIds: ["dev-tools-guild"],
+  },
+  {
     label: "Institutions",
     description:
       "Banks, asset managers, enterprise standards, market infrastructure, public sector",
@@ -593,6 +639,12 @@ export const sourceTrail: SourceLink[] = [
   {
     label: "Argot transparency",
     href: "https://www.argot.org/reports/transparency-report-2025",
+  },
+  { label: "Dev Tools Guild site", href: "https://devtoolsguild.xyz/" },
+  { label: "Dev Tools Guild intro", href: "https://devtoolsguild.xyz/intro" },
+  {
+    label: "Dev Tools Guild launch",
+    href: "https://devtoolsguild.xyz/blog/devtoolsguild-launch",
   },
   {
     label: "EEA about",
