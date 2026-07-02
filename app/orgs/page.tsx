@@ -301,7 +301,8 @@ const CoverageMap = () => (
         </Heading>
         <Text color="text.secondary" fontSize="sm" lineHeight="20px" mt={1}>
           How the directory groups the work across stewardship, adoption,
-          infrastructure, tooling, institutions, policy, and public goods.
+          infrastructure, tooling, institutions, policy, core funding, and
+          public goods.
         </Text>
       </Box>
     </Box>

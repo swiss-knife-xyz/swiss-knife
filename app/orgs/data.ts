@@ -66,6 +66,52 @@ export const ethereumOrgs: EthereumOrg[] = [
     ],
   },
   {
+    id: "protocol-guild",
+    name: "Protocol Guild",
+    shortName: "PG",
+    handle: "@ProtocolGuild",
+    website: "https://www.protocolguild.org/",
+    twitter: "https://x.com/ProtocolGuild",
+    logoDomain: "protocolguild.org",
+    accent: "#E5E7EB",
+    category: "Core contributor funding",
+    stage: "Pilot May 2022, entity 2024",
+    role: "Onchain funding and vesting for Ethereum L1 R&D maintainers.",
+    summary:
+      "Protocol Guild is a peer-managed collective and funding mechanism for Ethereum core protocol contributors, maintaining an eligibility framework, member registry, and onchain donation contracts so ecosystem funding can flow directly to the people sustaining Ethereum L1 research, development, testing, and coordination.",
+    evidence: [
+      "The official site describes Protocol Guild as the leading independent funding organization for Ethereum core developers, focused on securing the future of Ethereum core development.",
+      "The documentation defines three core components: an eligibility framework, a member registry, and onchain donation contracts, while stating that donations do not affect protocol stewardship decisions.",
+      "Membership and donation docs describe self-curation by active contributors, quarterly onchain weight updates, one-year vesting contracts for donations, and the 1% Protocol Guild Pledge for token projects.",
+    ],
+    workstreams: [
+      "Maintaining the eligibility framework and self-curated registry for Ethereum L1 R&D maintainers across client implementations, upgrade delivery, research, testing, and coordination.",
+      "Operating donation, vesting, pass-through wallet, and split-contract infrastructure across Ethereum mainnet and major L2s.",
+      "Growing sustainable funding norms through the Protocol Guild Pledge, donor outreach, annual reporting, legal operations, and public dashboards.",
+    ],
+    watch: [
+      "Whether funding remains diversified enough to avoid reliance on a narrow set of donors or one-off pledge events.",
+      "How accurately the member registry tracks the evolving set of Ethereum core protocol contributors as teams and roadmap priorities change.",
+      "How Protocol Guild preserves credible neutrality while accepting large ecosystem and institutional donations.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://www.protocolguild.org/" },
+      { label: "Docs", href: "https://protocol-guild.readthedocs.io/" },
+      {
+        label: "Membership",
+        href: "https://protocol-guild.readthedocs.io/en/latest/01-membership.html",
+      },
+      {
+        label: "Donate and pledge",
+        href: "https://protocol-guild.readthedocs.io/en/latest/03-donate.html",
+      },
+      {
+        label: "Entity and operations",
+        href: "https://protocol-guild.readthedocs.io/en/latest/04-entity-%26-operations.html",
+      },
+    ],
+  },
+  {
     id: "ethlabs",
     name: "Ethlabs",
     shortName: "Ethlabs",
@@ -415,6 +461,12 @@ export const roleMap = [
     orgIds: ["ethereum-foundation"],
   },
   {
+    label: "Core contributor funding",
+    description:
+      "Onchain funding, vesting, and registry infrastructure for Ethereum L1 maintainers",
+    orgIds: ["protocol-guild"],
+  },
+  {
     label: "Protocol adoption",
     description:
       "R&D that turns real demand into Ethereum upgrades and standards",
@@ -461,6 +513,15 @@ export const sourceTrail: SourceLink[] = [
   {
     label: "EF new structure",
     href: "https://blog.ethereum.org/2026/06/23/ef-structure",
+  },
+  { label: "Protocol Guild site", href: "https://www.protocolguild.org/" },
+  {
+    label: "Protocol Guild docs",
+    href: "https://protocol-guild.readthedocs.io/",
+  },
+  {
+    label: "Protocol Guild funding",
+    href: "https://protocol-guild.readthedocs.io/en/latest/03-donate.html",
   },
   { label: "Ethlabs thesis", href: "https://ethlabs.org/thesis.html" },
   { label: "Ethlabs funding", href: "https://ethlabs.org/funding.html" },
