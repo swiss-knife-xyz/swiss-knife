@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add Faucet"
+  short_description: "Add faucet entries safely"
+  default_prompt: "Use $add-faucet to research and add new faucet URLs to the swiss-knife faucet directory."
