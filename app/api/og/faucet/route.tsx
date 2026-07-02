@@ -31,6 +31,7 @@ const chainIconMap: Array<[string, string]> = [
   ["Filecoin", "/chainIcons/filecoin.webp"],
   ["Flow", "/chainIcons/flow.webp"],
   ["Gnosis", "/chainIcons/gnosis.webp"],
+  ["Hoodi", "/chainIcons/ethereum.svg"],
   ["HyperEVM", "/chainIcons/hyperevm.svg"],
   ["Ink", "/chainIcons/ink.svg"],
   ["Linea", "/chainIcons/linea.svg"],
@@ -38,6 +39,7 @@ const chainIconMap: Array<[string, string]> = [
   ["Monad", "/chainIcons/monad.svg"],
   ["OP ", "/chainIcons/optimism.svg"],
   ["Optimism", "/chainIcons/optimism.svg"],
+  ["Plasma", "/chainIcons/plasma.svg"],
   ["Polygon", "/chainIcons/polygon.svg"],
   ["RISE", "/chainIcons/rise.svg"],
   ["Robinhood", "/chainIcons/robinhood.svg"],
@@ -70,6 +72,7 @@ const tokenLogoSources: Record<string, string> = {
   MATIC: "/tokenIcons/pol.png",
   POL: "/tokenIcons/pol.png",
   USDC: "/tokenIcons/usdc.png",
+  XPL: "/tokenIcons/xpl.svg",
   APE: "/chainIcons/apechain.webp",
   XDAI: "/chainIcons/gnosis.webp",
 };
