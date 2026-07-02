@@ -286,6 +286,55 @@ export const ethereumOrgs: EthereumOrg[] = [
     ],
   },
   {
+    id: "enterprise-ethereum-alliance",
+    name: "Enterprise Ethereum Alliance",
+    shortName: "EEA",
+    handle: "@EntEthAlliance",
+    website: "https://entethalliance.org/",
+    twitter: "https://x.com/EntEthAlliance",
+    logoDomain: "entethalliance.org",
+    accent: "#5B7CFA",
+    category: "Enterprise standards",
+    stage: "Launched Feb 2017",
+    role: "Enterprise Ethereum standards, education, and cross-industry coordination.",
+    summary:
+      "The Enterprise Ethereum Alliance is a member-led non-profit trade organization connecting Ethereum, L2s, and enterprises through education, standardization, working groups, technical resources, and enterprise adoption coordination.",
+    evidence: [
+      "The official about page describes EEA as a non-profit trade organization bridging Ethereum, Layer 2 solutions, and enterprises through education, standardization, and collaboration.",
+      "The February 28, 2017 launch post says EEA was formed to build, promote, and support Ethereum-based best practices, standards, and reference architecture for enterprise-grade Ethereum.",
+      "Current working-group and GitHub pages show active standards and adoption work across privacy, cross-chain interoperability, technical specifications, reports, and public repositories.",
+    ],
+    workstreams: [
+      "Member coordination across enterprises, L2s, Ethereum organizations, financial institutions, vendors, universities, and public-good groups.",
+      "Open enterprise standards, implementation guides, best practices, specifications, primers, webinars, surveys, and reports.",
+      "Working groups for privacy, cross-chain interoperability, security, DeFi risk, and enterprise requirements feeding into Ethereum technical standards.",
+    ],
+    watch: [
+      "Whether working-group output turns into production Ethereum and L2 deployments rather than staying at the report layer.",
+      "How EEA coordinates with Ethereum Institutional, Etherealize, EEI, EF, and member companies while staying neutral and standards-focused.",
+      "How much enterprise work remains open, Ethereum-aligned, and connected to public Ethereum infrastructure versus private or permissioned systems.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://entethalliance.org/" },
+      {
+        label: "About and mission",
+        href: "https://entethalliance.org/about-enterprise-ethereum-alliance/",
+      },
+      {
+        label: "2017 launch",
+        href: "https://entethalliance.org/enterprise-ethereum-alliance-launches/",
+      },
+      {
+        label: "Working groups",
+        href: "https://entethalliance.org/eea-groups/",
+      },
+      {
+        label: "GitHub",
+        href: "https://github.com/EntEthAlliance",
+      },
+    ],
+  },
+  {
     id: "ethereum-institutional",
     name: "Ethereum Institutional",
     shortName: "EI",
@@ -491,8 +540,13 @@ export const roleMap = [
   },
   {
     label: "Institutions",
-    description: "Banks, asset managers, market infrastructure, public sector",
-    orgIds: ["ethereum-institutional", "etherealize"],
+    description:
+      "Banks, asset managers, enterprise standards, market infrastructure, public sector",
+    orgIds: [
+      "enterprise-ethereum-alliance",
+      "ethereum-institutional",
+      "etherealize",
+    ],
   },
   {
     label: "Policy and regulation",
@@ -539,6 +593,18 @@ export const sourceTrail: SourceLink[] = [
   {
     label: "Argot transparency",
     href: "https://www.argot.org/reports/transparency-report-2025",
+  },
+  {
+    label: "EEA about",
+    href: "https://entethalliance.org/about-enterprise-ethereum-alliance/",
+  },
+  {
+    label: "EEA working groups",
+    href: "https://entethalliance.org/eea-groups/",
+  },
+  {
+    label: "EEA privacy report",
+    href: "https://entethalliance.org/enterprise-ethereum-finally-has-a-privacy-playbook/",
   },
   {
     label: "Ethereum Institutional",

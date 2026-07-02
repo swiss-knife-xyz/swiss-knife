@@ -41,6 +41,7 @@ const orgById = new Map(ethereumOrgs.map((org) => [org.id, org]));
 
 const logoSrcOverrides: Record<string, string> = {
   "ethereum-foundation": "/external/ethereum-foundation.svg",
+  "enterprise-ethereum-alliance": "/external/enterprise-ethereum-alliance.png",
   "ethereum-community-foundation":
     "/external/ethereum-community-foundation.svg",
   "european-ethereum-institute": "/external/european-ethereum-institute.svg",
