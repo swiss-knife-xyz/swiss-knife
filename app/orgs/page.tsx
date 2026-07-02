@@ -43,6 +43,7 @@ const logoSrcOverrides: Record<string, string> = {
   "ethereum-foundation": "/external/ethereum-foundation.svg",
   "ethereum-community-foundation":
     "/external/ethereum-community-foundation.svg",
+  "european-ethereum-institute": "/external/european-ethereum-institute.svg",
 };
 
 const getFaviconUrl = (domain: string) =>
@@ -300,7 +301,7 @@ const CoverageMap = () => (
         </Heading>
         <Text color="text.secondary" fontSize="sm" lineHeight="20px" mt={1}>
           How the directory groups the work across stewardship, adoption,
-          infrastructure, tooling, institutions, and public goods.
+          infrastructure, tooling, institutions, policy, and public goods.
         </Text>
       </Box>
     </Box>

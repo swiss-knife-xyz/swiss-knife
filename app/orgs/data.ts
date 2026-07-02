@@ -323,6 +323,49 @@ export const ethereumOrgs: EthereumOrg[] = [
       },
     ],
   },
+  {
+    id: "european-ethereum-institute",
+    name: "European Ethereum Institute",
+    shortName: "EEI",
+    handle: "@EuEthInstitute",
+    website: "https://ethereum.institute/",
+    twitter: "https://x.com/EuEthInstitute",
+    logoDomain: "ethereum.institute",
+    accent: "#1C1CF5",
+    category: "European policy advocacy",
+    stage: "Launched Mar 2026",
+    role: "European policy advocacy for Ethereum as open, permissionless public infrastructure.",
+    summary:
+      "The European Ethereum Institute is a Brussels-based advocacy organization focused on shaping EU regulation for open, permissionless, decentralized applications and positioning Ethereum as neutral public infrastructure for Europe's digital and financial future.",
+    evidence: [
+      "The official site describes EEI as an advocacy organization based in Brussels that supports EU regulation for open, permissionless decentralized applications, SMEs, and innovative CASPs.",
+      "Its EthCC[9] launch event says EUCI evolved into the European Ethereum Institute after six years of EU policy work, with a focus on Ethereum as neutral public infrastructure.",
+      "The site positions EEI as an industry body giving dedicated attention to decentralized use cases, with policy submissions to the European Commission, EDPB, FCA, and Bank of England.",
+    ],
+    workstreams: [
+      "Policy submissions, consultation responses, and position papers across eIDAS, GDPR anonymization, open-source policy, DeFi, staking, and stablecoins.",
+      "Policymaker education through EEIpedia, Ethereum public-infrastructure explainers, library resources, dictionary entries, and institutional reference material.",
+      "Events, workshops, and forums connecting policymakers, regulators, central banks, Ethereum builders, DeFi teams, and financial institutions.",
+    ],
+    watch: [
+      "Whether EU programs and regulatory frameworks begin to recognize Ethereum as open public infrastructure.",
+      "How EEI keeps an Ethereum-specific voice while coordinating with broader crypto trade groups and institutional adoption organizations.",
+      "How its governance, supporters, and policy positions remain transparent as the organization grows beyond the EUCI transition.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://ethereum.institute/" },
+      { label: "Team and mission", href: "https://ethereum.institute/team" },
+      { label: "Advocacy", href: "https://ethereum.institute/advocacy" },
+      {
+        label: "Launch event",
+        href: "https://ethereum.institute/events/ethcc-eei-launch",
+      },
+      {
+        label: "Ethereum as infrastructure",
+        href: "https://ethereum.institute/learn-about-ethereum#ethereum-as-infrastructure",
+      },
+    ],
+  },
 ];
 
 export const roleMap = [
@@ -358,6 +401,12 @@ export const roleMap = [
     label: "Institutions",
     description: "Banks, asset managers, market infrastructure, public sector",
     orgIds: ["ethereum-institutional"],
+  },
+  {
+    label: "Policy and regulation",
+    description:
+      "EU policy advocacy, regulator education, Ethereum public-infrastructure framing",
+    orgIds: ["european-ethereum-institute"],
   },
   {
     label: "ETH-aligned public goods",
@@ -403,5 +452,11 @@ export const sourceTrail: SourceLink[] = [
   {
     label: "ECF validator association",
     href: "https://blog.ethcf.org/blog/eva/",
+  },
+  { label: "EEI official site", href: "https://ethereum.institute/" },
+  { label: "EEI advocacy", href: "https://ethereum.institute/advocacy" },
+  {
+    label: "EEI launch",
+    href: "https://ethereum.institute/events/ethcc-eei-launch",
   },
 ];

@@ -14,6 +14,7 @@ const logoSrcOverrides: Record<string, string> = {
   "ethereum-foundation": "/external/ethereum-foundation.svg",
   "ethereum-community-foundation":
     "/external/ethereum-community-foundation.svg",
+  "european-ethereum-institute": "/external/european-ethereum-institute.svg",
 };
 
 const getPublicAssetUrl = (path: string, request: Request) =>
@@ -30,6 +31,7 @@ const ogCategoryLabels: Record<string, string> = {
   argot: "Compiler tooling",
   "ethereum-institutional": "Institutions",
   "ethereum-community-foundation": "ETH public goods",
+  "european-ethereum-institute": "Policy advocacy",
 };
 
 const getOgCategoryLabel = (org: EthereumOrg) =>
@@ -189,7 +191,7 @@ export async function GET(request: Request) {
                       alignItems: "center",
                       justifyContent: "space-between",
                       gap: 16,
-                      height: 61,
+                      height: 55,
                       padding: "0 18px",
                       borderTop:
                         index === 0 ? "0" : "1px solid rgba(255,255,255,0.09)",
