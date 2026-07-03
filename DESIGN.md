@@ -53,7 +53,8 @@
 ## Layout And Composition
 
 - Grid: one app-width container, capped at 1180px like faucet.
-- Rhythm: compact title, directory surface, optional supporting sections.
+- Rhythm: compact title, directory surface, optional supporting sections,
+  contextual treasury table, sources.
 - Signature layout move: table rows on desktop and card-like stacked rows on mobile.
 - Scanning: F-pattern.
 - Responsive: desktop table converts to stacked row cards on mobile.
@@ -107,9 +108,13 @@
 
 ## Cards And Surfaces
 
-- One top-level directory surface, one compact focus-area surface, one source surface.
+- One top-level directory surface, one compact focus-area surface, one contextual
+  ETH treasury surface, one source surface.
 - Expanded row details use `whiteAlpha` backgrounds inside the directory surface.
 - No cards inside cards.
+- ETH treasury quotes are contextual live data: server-proxied through
+  `/api/treasury-quotes`, cached server-side, and hydrated from client
+  `localStorage` before revalidation.
 
 ## Slop Audit
 
@@ -122,3 +127,15 @@
 - 2026-07-02: Rebuilt `/orgs` as a minimal ETH.sh-style aggregator page aligned with faucet and 7702beat.
 - 2026-07-02: Moved org website links and clickable handles into the identity block, tightened logo treatment with a local EF mark, removed decorative org color dots, removed the search/filter and duplicate stat strips, moved org count into the table header, made detail rows independently collapsible and collapsed by default, added a Details header toggle for all rows, redesigned coverage as a tighter focus-area map, tinted focus tags, and renamed Source trail to Sources.
 - 2026-07-02: Changed desktop behavior so organization details also start collapsed, matching mobile and keeping the directory scan-first.
+- 2026-07-03: Added a separate ETH treasury companies table for public
+  ETH treasury firms with direct ecosystem connections. These rows are
+  contextual, not first-class orgs, and are excluded from the org count and
+  focus-area lanes.
+- 2026-07-03: Added cached treasury quote display for ticker price and 1D
+  change, using a private Finnhub server API key and client-side localStorage
+  hydration.
+- 2026-07-03: Added anchored cross-references from focus-area pills and
+  treasury ecosystem mentions back to organization rows, plus a subtle anchor
+  affordance on the treasury heading.
+- 2026-07-03: Added a brief blue row flash when organization anchor links are
+  opened so cross-reference jumps have clear visual confirmation.

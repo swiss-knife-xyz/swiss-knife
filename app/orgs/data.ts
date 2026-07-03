@@ -1,3 +1,5 @@
+import type { TreasuryQuoteSymbol } from "@/lib/treasury-quotes";
+
 export type SourceLink = {
   label: string;
   href: string;
@@ -19,6 +21,22 @@ export type EthereumOrg = {
   evidence: string[];
   workstreams: string[];
   watch: string[];
+  sources: SourceLink[];
+};
+
+export type EthTreasuryCompany = {
+  id: string;
+  name: string;
+  shortName: string;
+  exchange: string;
+  ticker: TreasuryQuoteSymbol;
+  priceUrl: string;
+  handle: string;
+  website: string;
+  twitter: string;
+  logoDomain: string;
+  treasuryRole: string;
+  ecosystemConnection: string;
   sources: SourceLink[];
 };
 
@@ -538,6 +556,54 @@ export const ethereumOrgs: EthereumOrg[] = [
       {
         label: "Ethereum as infrastructure",
         href: "https://ethereum.institute/learn-about-ethereum#ethereum-as-infrastructure",
+      },
+    ],
+  },
+];
+
+export const ethTreasuryCompanies: EthTreasuryCompany[] = [
+  {
+    id: "sharplink",
+    name: "SharpLink",
+    shortName: "SBET",
+    exchange: "NASDAQ",
+    ticker: "SBET",
+    priceUrl: "https://www.google.com/finance/quote/SBET:NASDAQ",
+    handle: "@SharpLink",
+    website: "https://www.sharplink.com/",
+    twitter: "https://x.com/SharpLink",
+    logoDomain: "sharplink.com",
+    treasuryRole:
+      "Public ETH treasury platform focused on staking, custody, and ETH-per-share growth.",
+    ecosystemConnection:
+      "Consensys and Joe Lubin-backed treasury strategy; named anchor funder of Ethlabs and Ethereum Institutional.",
+    sources: [
+      { label: "Investors", href: "https://www.sharplink.com/investors" },
+      {
+        label: "Treasury launch",
+        href: "https://www.globenewswire.com/news-release/2025/05/27/3088575/0/en/sharplink-gaming-announces-425-000-000-private-placement-to-initiate-ethereum-treasury-strategy.html",
+      },
+    ],
+  },
+  {
+    id: "bitmine",
+    name: "BitMine",
+    shortName: "BMNR",
+    exchange: "NYSE",
+    ticker: "BMNR",
+    priceUrl: "https://www.google.com/finance/quote/BMNR:NYSE",
+    handle: "@BitMNR",
+    website: "https://www.bitminetech.io/",
+    twitter: "https://x.com/BitMNR",
+    logoDomain: "bitminetech.io",
+    treasuryRole:
+      "ETH treasury company pursuing its Alchemy of 5% strategy and operating MAVAN staking infrastructure.",
+    ecosystemConnection:
+      "Named anchor funder of Ethlabs and Ethereum Institutional; frames itself as a bridge between Ethereum and Wall Street.",
+    sources: [
+      {
+        label: "Investor relations",
+        href: "https://www.bitminetech.io/investor-relations",
       },
     ],
   },
