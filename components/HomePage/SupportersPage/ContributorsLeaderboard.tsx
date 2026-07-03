@@ -1,6 +1,5 @@
 import {
   Avatar,
-  Badge,
   Box,
   Container,
   Flex,
@@ -25,10 +24,6 @@ type Contributor = {
 };
 
 const contributorData = contributors as Contributor[];
-const totalContributions = contributorData.reduce(
-  (total, contributor) => total + contributor.contributions,
-  0
-);
 
 const formatNumber = (value: number) =>
   new Intl.NumberFormat("en").format(value);
@@ -163,15 +158,6 @@ export const ContributorsLeaderboard = () => {
               </Link>
               .
             </Text>
-            <Badge
-              colorScheme="blue"
-              variant="subtle"
-              borderRadius="md"
-              px={2}
-              py={1}
-            >
-              {formatNumber(totalContributions)} total listed
-            </Badge>
           </Flex>
 
           <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={3}>

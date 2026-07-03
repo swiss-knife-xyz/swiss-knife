@@ -90,6 +90,8 @@ DEFAULT_ALIASES = {
     "antonio viggiano": "aviggiano",
     "angelagilhotra@gmail.com": "probablyangg",
     "angela gilhotra": "probablyangg",
+    "francesco.andreoli@consensys.net": "andreolf",
+    "francesco andreoli": "andreolf",
 }
 
 NOREPLY_RE = re.compile(
