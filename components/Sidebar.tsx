@@ -2,7 +2,6 @@ import { usePathname } from "next/navigation";
 import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { Box, Flex, Center, Heading, Icon, VStack } from "@chakra-ui/react";
 import { getPath } from "@/utils";
-import { useState } from "react";
 
 export interface SidebarItem {
   name: string;
@@ -26,60 +25,70 @@ const SidebarItem = ({
 }: SidebarItemProps) => {
   const router = useTopLoaderRouter();
   const pathname = usePathname();
-  const [isHovered, setIsHovered] = useState(false);
 
   const fullPath = `${getPath(subdomain, isRelativePath)}${path}`;
-  const isActive = exactPathMatch
-    ? pathname === fullPath
-    : pathname.startsWith(fullPath) &&
-      (pathname === fullPath || pathname[fullPath.length] === "/");
+  const targetPath = new URL(fullPath, "https://eth.sh").pathname;
+  const rewrittenTargetPath = `/${subdomain}/${path}`;
+  const activePaths = Array.from(new Set([targetPath, rewrittenTargetPath]));
+  const isActive = activePaths.some((activePath) =>
+    exactPathMatch
+      ? pathname === activePath
+      : pathname.startsWith(activePath) &&
+        (pathname === activePath || pathname[activePath.length] === "/")
+  );
 
   return (
-    <Box
-      w="full"
+    <Flex
+      as="button"
+      type="button"
+      align="center"
+      alignSelf="stretch"
+      appearance="none"
+      textAlign="left"
+      px="3"
+      py="2.5"
+      mx="2"
+      minH="44px"
+      borderRadius="md"
+      cursor="pointer"
+      position="relative"
+      bg={isActive ? "bg.muted" : "transparent"}
+      color={isActive ? "text.primary" : "text.secondary"}
+      fontWeight="medium"
+      border="1px solid"
+      borderColor={isActive ? "border.default" : "transparent"}
+      boxShadow={isActive ? "inset 0 1px 0 rgba(255, 255, 255, 0.04)" : "none"}
+      transitionProperty="background-color, border-color, color, box-shadow"
+      transitionDuration="fast"
+      transitionTimingFunction="ease-out"
+      aria-current={isActive ? "page" : undefined}
       onClick={() =>
         router.push(`${getPath(subdomain, isRelativePath)}${path}`)
       }
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      _hover={{
+        bg: isActive ? "bg.muted" : "whiteAlpha.50",
+        borderColor: isActive ? "whiteAlpha.200" : "whiteAlpha.100",
+        color: "text.primary",
+      }}
+      _focusVisible={{
+        boxShadow: isActive
+          ? "0 0 0 1px var(--chakra-colors-primary-400), inset 0 1px 0 rgba(255, 255, 255, 0.04)"
+          : "0 0 0 1px var(--chakra-colors-primary-400)",
+      }}
     >
-      <Flex
-        align="center"
-        p="3"
-        mx="2"
-        borderRadius="lg"
-        cursor="pointer"
-        position="relative"
-        transition="all 0.2s ease"
-        bg={
-          isActive
-            ? "whiteAlpha.200"
-            : isHovered
-              ? "whiteAlpha.100"
-              : "transparent"
-        }
-        color={isActive ? "white" : isHovered ? "gray.200" : "gray.400"}
-        fontWeight={isActive ? "semibold" : "medium"}
-        borderLeft="3px solid"
-        borderLeftColor={isActive ? "blue.400" : "transparent"}
-        _hover={{
-          transform: "translateX(2px)",
-        }}
-      >
-        {icon && (
-          <Icon
-            as={icon}
-            mr={3}
-            fontSize="md"
-            color={isActive ? "blue.300" : "gray.500"}
-            transition="color 0.2s ease"
-          />
-        )}
-        <Box fontSize="sm" whiteSpace="nowrap">
-          {name}
-        </Box>
-      </Flex>
-    </Box>
+      {icon && (
+        <Icon
+          as={icon}
+          mr={3}
+          fontSize="md"
+          color={isActive ? "text.primary" : "text.tertiary"}
+          transition="color 0.15s ease-out"
+        />
+      )}
+      <Box as="span" fontSize="sm" whiteSpace="nowrap">
+        {name}
+      </Box>
+    </Flex>
   );
 };
 
