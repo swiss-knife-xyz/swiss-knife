@@ -144,9 +144,9 @@ export const ethereumOrgs: EthereumOrg[] = [
     summary:
       "The PBS Foundation is a non-profit that supports a healthy proposer-builder separation ecosystem for Ethereum by funding research, development, and transparency for out-of-protocol MEV mechanisms such as mev-boost, with the aim of competitive markets, open access for new entrants, best execution for users, validator revenue, and protection against centralization.",
     evidence: [
-      "The official site describes PBSF as a non-profit ensuring a healthy PBS ecosystem through research, development, and transparency for out-of-protocol MEV mechanisms such as mev-boost.",
-      "PBSF frames its work around a competitive MEV supply chain with open access, best execution for users, optimized validator revenue, and protection of Ethereum from centralization.",
-      "The site states PBSF is entirely funded by donations and grants from organizations and individuals, with public resource lists and donor contact channels.",
+      "Research papers and maintainance of critical software such as mev-boost.",
+      "Work around a competitive MEV supply chain with open access, best execution for users, optimized validator revenue, and protection of Ethereum from centralization.",
+      "PBSF is entirely funded by donations and grants from known organizations and individuals, with public resource lists and donor contact channels.",
     ],
     workstreams: [
       "Research and development grants for out-of-protocol PBS and MEV mechanisms, including mev-boost and related software improvements.",
@@ -154,7 +154,7 @@ export const ethereumOrgs: EthereumOrg[] = [
       "Public education, transparency, and ecosystem coordination through communications, resource lists, and donor-funded grant programs.",
     ],
     watch: [
-      "Whether donor funding stays diversified enough to sustain independent relay and research capacity over time.",
+      "Sustain independent relay and research capacity over time.",
       "How out-of-protocol PBS evolves as enshrined PBS designs and L2 MEV mechanisms advance.",
       "Whether PBS supply-chain competition actually limits centralized builder or relay power in practice.",
     ],
