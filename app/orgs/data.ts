@@ -130,6 +130,47 @@ export const ethereumOrgs: EthereumOrg[] = [
     ],
   },
   {
+    id: "pbs-foundation",
+    name: "PBS Foundation",
+    shortName: "PBSF",
+    handle: "@PBS_Foundation",
+    website: "https://pbs.foundation/",
+    twitter: "https://x.com/PBS_Foundation",
+    logoDomain: "pbs.foundation",
+    accent: "#7899E8",
+    category: "PBS and MEV infrastructure",
+    stage: "Donor-funded non-profit",
+    role: "Grant funding for PBS research and neutral out-of-protocol MEV infrastructure.",
+    summary:
+      "The PBS Foundation is a non-profit that supports a healthy proposer-builder separation ecosystem for Ethereum by funding research, development, and transparency for out-of-protocol MEV mechanisms such as mev-boost, with the aim of competitive markets, open access for new entrants, best execution for users, validator revenue, and protection against centralization.",
+    evidence: [
+      "The official site describes PBSF as a non-profit ensuring a healthy PBS ecosystem through research, development, and transparency for out-of-protocol MEV mechanisms such as mev-boost.",
+      "PBSF frames its work around a competitive MEV supply chain with open access, best execution for users, optimized validator revenue, and protection of Ethereum from centralization.",
+      "The site states PBSF is entirely funded by donations and grants from organizations and individuals, with public resource lists and donor contact channels.",
+    ],
+    workstreams: [
+      "Research and development grants for out-of-protocol PBS and MEV mechanisms, including mev-boost and related software improvements.",
+      "Support for competitive, transparent MEV market infrastructure that lowers barriers for new entrants and limits centralized market power.",
+      "Public education, transparency, and ecosystem coordination through communications, resource lists, and donor-funded grant programs.",
+    ],
+    watch: [
+      "Whether donor funding stays diversified enough to sustain independent relay and research capacity over time.",
+      "How out-of-protocol PBS evolves as enshrined PBS designs and L2 MEV mechanisms advance.",
+      "Whether PBS supply-chain competition actually limits centralized builder or relay power in practice.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://pbs.foundation/" },
+      {
+        label: "Resource list",
+        href: "https://www.notion.so/121b546e2d2580eea3a3e137c4f526b4?pvs=4",
+      },
+      {
+        label: "Foundation intro",
+        href: "https://simbro.medium.com/intro-to-the-pbs-foundation-488423453628",
+      },
+    ],
+  },
+  {
     id: "ethlabs",
     name: "Ethlabs",
     shortName: "Ethlabs",
@@ -622,6 +663,12 @@ export const roleMap = [
     orgIds: ["protocol-guild"],
   },
   {
+    label: "PBS and MEV infrastructure",
+    description:
+      "Grants and coordination for PBS research and neutral MEV infrastructure",
+    orgIds: ["pbs-foundation"],
+  },
+  {
     label: "Protocol adoption",
     description:
       "R&D that turns real demand into Ethereum upgrades and standards",
@@ -688,6 +735,11 @@ export const sourceTrail: SourceLink[] = [
   {
     label: "Protocol Guild funding",
     href: "https://protocol-guild.readthedocs.io/en/latest/03-donate.html",
+  },
+  { label: "PBS Foundation site", href: "https://pbs.foundation/" },
+  {
+    label: "PBS Foundation resources",
+    href: "https://www.notion.so/121b546e2d2580eea3a3e137c4f526b4?pvs=4",
   },
   { label: "Ethlabs thesis", href: "https://ethlabs.org/thesis.html" },
   { label: "Ethlabs funding", href: "https://ethlabs.org/funding.html" },
