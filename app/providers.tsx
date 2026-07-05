@@ -1,7 +1,8 @@
 "use client";
 
-import { ChakraProvider } from "@chakra-ui/react";
+import { ChakraProvider, type ToastProviderProps } from "@chakra-ui/react";
 import theme from "@/style/theme";
+import { EthToast } from "@/components/EthToast";
 import "@rainbow-me/rainbowkit/styles.css";
 import { AppProgressProvider as ProgressProvider } from "@bprogress/next";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -88,6 +89,20 @@ export const config = createConfig({
 });
 
 const queryClient = new QueryClient();
+const toastOptions = {
+  defaultOptions: {
+    position: "bottom-right",
+    duration: 6000,
+    isClosable: true,
+    toastComponent: EthToast,
+    containerStyle: {
+      maxWidth: "min(560px, calc(100vw - 32px))",
+      minWidth: "auto",
+    },
+  } as ToastProviderProps["defaultOptions"] & {
+    toastComponent: typeof EthToast;
+  },
+} satisfies ToastProviderProps;
 
 export const Providers = ({ children }: { children: React.ReactNode }) => {
   // Set up impersonator modal hook
@@ -103,14 +118,12 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
       options={{ showSpinner: false }}
       shallowRouting
     >
-      <ChakraProvider theme={theme}>
+      <ChakraProvider theme={theme} toastOptions={toastOptions}>
         <WagmiProvider config={config}>
           <QueryClientProvider client={queryClient}>
             <RainbowKitProvider theme={darkTheme()} modalSize={"compact"}>
               <AddressBookProvider>
-                <NuqsAdapter>
-                  {children}
-                </NuqsAdapter>
+                <NuqsAdapter>{children}</NuqsAdapter>
                 <ModalComponent />
                 <ImpersonatorFloatingButton />
                 <AddressBookDrawer />

@@ -127,6 +127,18 @@ custom: {
 | Error | `rgba(239,68,68,0.10)` | `rgba(239,68,68,0.30)` | `#F87171` |
 | Info | `rgba(59,130,246,0.10)` | `rgba(59,130,246,0.30)` | `#60A5FA` |
 
+### Toast Feedback
+
+Toasts use the shared `EthToast` renderer from `components/EthToast.tsx`.
+They are semantic status surfaces, not generic dark cards:
+
+- Surface: the whole toast background reflects the status color
+- Status: a compact leading icon plus a status-colored border
+- Typography: `md` semibold title, `sm` secondary description
+- Layout: max width 560px, mobile width `100vw - 32px`, long hashes/errors wrap anywhere
+- Error copy: raw viem request details are collapsed out of string descriptions
+- Behavior: Chakra's default toast shell still owns stacking, hover pause, updates, and dismiss timing
+
 ### Usage Examples
 
 ```typescript

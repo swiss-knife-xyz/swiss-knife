@@ -24,6 +24,7 @@ import subdomains from "@/subdomains";
 
 const SidebarItems: SidebarItem[] = [
   { name: "Wallet Bridge", path: "bridge" },
+  { name: "Replace Tx", path: "replace-tx" },
   { name: "DSProxy", path: "ds-proxy" },
   { name: "Coinbase Smart Wallet", path: "coinbase-smart-wallet" },
   { name: "Signatures", path: "signatures" },
