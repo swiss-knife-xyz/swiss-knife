@@ -110,6 +110,7 @@ function formatSignedPercent(value: number) {
 
 const logoSrcOverrides: Record<string, string> = {
   "ethereum-foundation": "/external/ethereum-foundation.svg",
+  "lido-labs-foundation": "/external/lido-labs-foundation.svg",
   "enterprise-ethereum-alliance": "/external/enterprise-ethereum-alliance.png",
   "ethereum-community-foundation":
     "/external/ethereum-community-foundation.svg",

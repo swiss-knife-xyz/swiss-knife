@@ -259,6 +259,181 @@ export const ethereumOrgs: EthereumOrg[] = [
     ],
   },
   {
+    id: "pbs-foundation",
+    name: "PBS Foundation",
+    shortName: "PBSF",
+    handle: "@PBS_Foundation",
+    website: "https://pbs.foundation/",
+    twitter: "https://x.com/PBS_Foundation",
+    logoDomain: "pbs.foundation",
+    accent: "#0EA5E9",
+    category: "PBS and MEV public goods",
+    stage: "Set up Sep 2023",
+    role: "Research, grants, and neutral infrastructure for Ethereum PBS and MEV markets.",
+    summary:
+      "PBS Foundation is an independent non-profit supporting a healthy proposer-builder separation ecosystem for Ethereum through grants, research coordination, neutral infrastructure support, market transparency, and improvements to out-of-protocol MEV mechanisms such as mev-boost.",
+    evidence: [
+      "The official site describes PBS Foundation as a non-profit for a healthy Ethereum PBS ecosystem with stable infrastructure and fair MEV markets.",
+      "A July 2024 introduction says PBSF was set up on September 15, 2023 as an independent non-profit initiative supporting Ethereum proposer-builder-separation research collaboration.",
+      "Independent coverage reported an initial $1 million grants program backed by Coinbase, Consensys, Fenbushi Capital, Flashbots, Paradigm, Uniswap Foundation, and Vitalik Buterin.",
+    ],
+    workstreams: [
+      "Grantmaking for PBS, mev-boost, data transparency, community education, research, and neutral infrastructure.",
+      "Support for independent and credibly neutral infrastructure such as mev-boost relays and relay-market experimentation.",
+      "Research coordination around builder concentration, order-flow access, relay trust assumptions, enshrined PBS, L2 PBS, and competitive MEV market design.",
+    ],
+    watch: [
+      "Whether PBSF can keep funding independent of dominant builders, relays, validators, and order-flow sources.",
+      "How research outputs translate into practical improvements for mev-boost, relay diversity, or future enshrined PBS designs.",
+      "How PBSF avoids duplicating Ethereum Foundation research while still acting as a neutral coordination point for contentious MEV topics.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://pbs.foundation/" },
+      {
+        label: "Intro to PBSF",
+        href: "https://simbro.medium.com/intro-to-the-pbs-foundation-488423453628",
+      },
+      {
+        label: "Grant launch coverage",
+        href: "https://blockworks.com/news/grant-funding-for-ethereum-decentralization",
+      },
+      {
+        label: "Supported research",
+        href: "https://ethresear.ch/t/incentives-of-builder-multiplexing-in-pbs/22239",
+      },
+      {
+        label: "Bitwise donation",
+        href: "https://www.prnewswire.com/news-releases/bitwise-donating-100-000-from-ethw-profits-to-ethereum-open-source-developers-302704971.html",
+      },
+    ],
+  },
+  {
+    id: "lido-labs-foundation",
+    name: "Lido Labs Foundation",
+    shortName: "Lido Labs",
+    handle: "@LidoFinance",
+    website: "https://lido.fi/",
+    twitter: "https://x.com/LidoFinance",
+    logoDomain: "lido.fi",
+    accent: "#00A3FF",
+    category: "Ethereum staking infrastructure",
+    stage: "Approved Jan 2025",
+    role: "Lido on Ethereum protocol R&D, maintenance, governance, and node-operator support.",
+    summary:
+      "Lido Labs Foundation is a Lido-DAO-approved Cayman Islands foundation company that researches, develops, deploys, and helps maintain the Lido on Ethereum protocol, with work spanning Lido V3, stVaults, Dual Governance, protocol security, node-operator tooling, and DAO operations.",
+    evidence: [
+      "A June 2026 Lido governance post describes Lido Labs Foundation as approved by Lido DAO on January 30, 2025 and funded through the Ecosystem Grant gRequest.",
+      "The establishment proposal defines purposes including Lido on Ethereum protocol R&D, canonical contracts and applications, node-operator documentation, DAO governance processes, and staking ecosystem collaboration.",
+      "The 2025 EGG request sought funding through December 31, 2025 for protocol R&D, Lido V3 implementation, Dual Governance development, security research, and Lido protocol maintenance.",
+    ],
+    workstreams: [
+      "Protocol research, smart contracts, oracles, services, audits, test suites, Lido V3, stVaults, and maintenance of Lido on Ethereum.",
+      "Governance and operations infrastructure including Dual Governance, Snapshot and Aragon processes, Easy Track, DAO transaction execution, and committee or multisig oversight.",
+      "Node-operator and validator-set work across the Node Operator Portal, Community Staking Module, DVT and permissionless participation research, documentation, and grants.",
+    ],
+    watch: [
+      "How Lido balances product growth with Ethereum validator-set decentralization and stake-concentration risk.",
+      "Whether DAO-approved budgets, board updates, multisig reports, and EGG reporting keep foundation operations accountable to LDO governance.",
+      "How Lido Labs coordinates with Lido Ecosystem Foundation and Lido Alliance BORG without concentrating too much operational authority outside token-holder review.",
+    ],
+    sources: [
+      {
+        label: "Lido Labs background",
+        href: "https://research.lido.fi/t/lido-labs-proposes-nemo-as-a-new-director/11624",
+      },
+      {
+        label: "Establishment proposal",
+        href: "https://research.lido.fi/t/establishment-of-lido-labs-borg-foundation-as-a-lido-dao-adjacent-foundation/9344",
+      },
+      {
+        label: "2025 EGG request",
+        href: "https://research.lido.fi/t/egg-lido-labs-borg-foundation-grant-funding-request/9708",
+      },
+      { label: "Lido opportunities", href: "https://lido.fi/opportunities" },
+      {
+        label: "GOOSE-3 proposal",
+        href: "https://research.lido.fi/t/lido-labs-goose-3-lido-s-next-chapter/10927",
+      },
+    ],
+  },
+  {
+    id: "nomic-foundation",
+    name: "Nomic Foundation",
+    shortName: "Nomic",
+    handle: "@NomicFoundation",
+    website: "https://nomic.foundation/",
+    twitter: "https://x.com/NomicFoundation",
+    logoDomain: "nomic.foundation",
+    accent: "#EAB308",
+    category: "Developer platform public goods",
+    stage: "Announced Feb 2022",
+    role: "Open-source Ethereum developer environment, runtime, and compiler tooling.",
+    summary:
+      "Nomic Foundation is a non-profit Ethereum developer-platform organization that maintains Hardhat and builds reusable open-source infrastructure such as Slang and EDR, with a mandate to improve developer experience and reduce Ethereum's dependence on any single team for core tooling.",
+    evidence: [
+      "The official site describes Nomic Foundation as a non-profit advancing the Ethereum ecosystem through open-source engineering software for developers.",
+      "The February 2022 launch announcement says Nomic Labs became Nomic Foundation, took over Hardhat and Nomic Labs' open engineering projects, and launched with Ethereum ecosystem backing.",
+      "Current project pages list Hardhat, Slang, and EDR as active developer-platform work spanning smart contract development, Solidity compiler APIs, and reusable EVM runtime infrastructure.",
+    ],
+    workstreams: [
+      "Hardhat development environment work across testing, deployment, debugging, coverage, plugins, and the Hardhat 3 migration path.",
+      "EDR runtime work for reusable EVM tooling primitives, local simulation, JSON-RPC behavior, tracing, coverage, and Solidity test execution.",
+      "Slang compiler APIs for full-fidelity Solidity parsing and downstream code analysis, editor, linting, and tooling use cases.",
+    ],
+    watch: [
+      "Hardhat 3 adoption and the migration path for projects still anchored on Hardhat 2.",
+      "Whether Slang and EDR become shared building blocks beyond Nomic-maintained tools.",
+      "How Nomic sustains diversified public-goods funding while coordinating with EF, Argot, and Dev Tools Guild.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://nomic.foundation/" },
+      {
+        label: "Launch announcement",
+        href: "https://blog.nomic.foundation/introducing-the-nomic-foundation-an-ethereum-public-goods-organization-31012af67df9/",
+      },
+      { label: "Hardhat", href: "https://hardhat.org/" },
+      { label: "Slang", href: "https://github.com/NomicFoundation/slang" },
+      { label: "EDR", href: "https://github.com/NomicFoundation/edr" },
+    ],
+  },
+  {
+    id: "wevm",
+    name: "Wevm",
+    shortName: "Wevm",
+    handle: "@wevm_dev",
+    website: "https://wevm.dev/",
+    twitter: "https://x.com/wevm_dev",
+    logoDomain: "wevm.dev",
+    accent: "#FACC15",
+    category: "Ethereum TypeScript tooling",
+    stage: "Active 2023-present",
+    role: "Open-source TypeScript libraries and frameworks for Ethereum applications.",
+    summary:
+      "Wevm is an independent collective building open-source TypeScript tooling for Ethereum developers, including Viem, Wagmi, ABIType, and Ox, with a focus on typed clients, application frameworks, contract interfaces, and reusable frontend infrastructure.",
+    evidence: [
+      "The official site describes Wevm as a collective building open-source TypeScript software used by hundreds of enterprise organizations and millions of developers.",
+      "Its public GitHub organization frames the work as TypeScript tools for Ethereum and lists active repositories including Viem, Wagmi, Ox, Vocs, and ABIType.",
+      "Project docs position Viem as a TypeScript interface for Ethereum and Wagmi as reactive primitives for Ethereum applications, with Wagmi built on Viem.",
+    ],
+    workstreams: [
+      "Viem and Ox libraries for typed Ethereum clients, JSON-RPC abstractions, ABI utilities, smart contract interaction, and low-level Ethereum primitives.",
+      "Wagmi frontend primitives, connectors, and framework adapters for Ethereum app accounts, wallets, contracts, transactions, signing, ENS, and caching.",
+      "ABIType, documentation infrastructure, contributor workflows, sponsors, and supporting TypeScript tools used across Ethereum application stacks.",
+    ],
+    watch: [
+      "Sponsor and maintainer sustainability for libraries that many wallets, apps, and infrastructure teams depend on.",
+      "How Wevm tracks protocol, wallet, L2, account abstraction, and standards changes without fragmenting developer APIs.",
+      "Coordination with Dev Tools Guild, Nomic, Argot, and application teams around shared developer-tooling priorities.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://wevm.dev/" },
+      { label: "GitHub", href: "https://github.com/wevm" },
+      { label: "Viem", href: "https://viem.sh/" },
+      { label: "Wagmi", href: "https://wagmi.sh/" },
+      { label: "ABIType", href: "https://abitype.dev/" },
+    ],
+  },
+  {
     id: "argot",
     name: "Argot Collective",
     shortName: "Argot",
@@ -628,6 +803,18 @@ export const roleMap = [
     orgIds: ["ethlabs"],
   },
   {
+    label: "Staking infrastructure",
+    description:
+      "Liquid staking, validator-set decentralization, governance, and node-operator support",
+    orgIds: ["lido-labs-foundation"],
+  },
+  {
+    label: "Block building and MEV",
+    description:
+      "PBS, mev-boost, relay health, market transparency, and neutral infrastructure",
+    orgIds: ["pbs-foundation"],
+  },
+  {
     label: "Applications",
     description: "Builder networks, emerging markets, funding, real users",
     orgIds: ["ethereum-applications-guild"],
@@ -639,6 +826,12 @@ export const roleMap = [
     orgIds: ["ethereum-economic-zone"],
   },
   {
+    label: "Developer platform",
+    description:
+      "Open-source smart contract development environments, runtimes, and compiler APIs",
+    orgIds: ["nomic-foundation"],
+  },
+  {
     label: "Developer base layer",
     description:
       "Solidity, compilers, verification, debugging, source verification",
@@ -647,8 +840,8 @@ export const roleMap = [
   {
     label: "Developer tooling",
     description:
-      "Collective funding and coordination for library, framework, and SDK maintainers",
-    orgIds: ["dev-tools-guild"],
+      "Application libraries, frameworks, SDKs, and collective funding coordination",
+    orgIds: ["wevm", "dev-tools-guild"],
   },
   {
     label: "Institutions",
@@ -698,6 +891,36 @@ export const sourceTrail: SourceLink[] = [
   },
   { label: "EAG Gathering", href: "https://gathering.ethappsguild.org/" },
   { label: "EEZ launch post", href: "https://eez.io/blog/introducing-the-eez" },
+  { label: "PBS Foundation", href: "https://pbs.foundation/" },
+  {
+    label: "PBSF intro",
+    href: "https://simbro.medium.com/intro-to-the-pbs-foundation-488423453628",
+  },
+  {
+    label: "PBSF grant launch",
+    href: "https://blockworks.com/news/grant-funding-for-ethereum-decentralization",
+  },
+  {
+    label: "Lido Labs background",
+    href: "https://research.lido.fi/t/lido-labs-proposes-nemo-as-a-new-director/11624",
+  },
+  {
+    label: "Lido Labs establishment",
+    href: "https://research.lido.fi/t/establishment-of-lido-labs-borg-foundation-as-a-lido-dao-adjacent-foundation/9344",
+  },
+  {
+    label: "Lido Labs EGG",
+    href: "https://research.lido.fi/t/egg-lido-labs-borg-foundation-grant-funding-request/9708",
+  },
+  { label: "Nomic official site", href: "https://nomic.foundation/" },
+  {
+    label: "Nomic launch",
+    href: "https://blog.nomic.foundation/introducing-the-nomic-foundation-an-ethereum-public-goods-organization-31012af67df9/",
+  },
+  { label: "Hardhat", href: "https://hardhat.org/" },
+  { label: "Wevm official site", href: "https://wevm.dev/" },
+  { label: "Wevm GitHub", href: "https://github.com/wevm" },
+  { label: "Viem", href: "https://viem.sh/" },
   {
     label: "Argot roadmap",
     href: "https://www.argot.org/blog/2026-07-01-argot-roadmap-update-2026-2",
