@@ -59,6 +59,10 @@ const subdomains = {
     base: "migrate",
     paths: [],
   },
+  GWEI: {
+    base: "gwei",
+    paths: [],
+  },
   ENS: {
     base: "ens",
     paths: ["history"],

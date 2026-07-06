@@ -39,6 +39,10 @@ import axios from "axios";
 import { namehash, normalize } from "viem/ens";
 import contentHash from "content-hash";
 import { erc721Abi } from "viem";
+import {
+  readEnsAddressRecord,
+  readEnsContenthashRecord,
+} from "@/lib/ensUniversalResolver";
 
 const ENS_SUBGRAPH_URL = `https://gateway.thegraph.com/api/${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH`;
 
@@ -50,14 +54,15 @@ interface ContentEvent {
 
 interface DomainDetails {
   id: string;
-  createdAt: number;
+  createdAt: number | null;
   expiryDate: number | null;
-  owner: string;
+  owner: string | null;
   registrant: string | null;
   resolver: {
     id: string;
-  };
+  } | null;
   isSubdomain: boolean;
+  currentContenthash: string | null;
 }
 
 interface DomainTransfer {
@@ -332,7 +337,8 @@ const ENSHistory = () => {
     // Get the most recent content hash event (if any)
     const latestContentEvent =
       contentEvents.length > 0 ? contentEvents[0] : null;
-    const ipfsHash = latestContentEvent?.details.hash || null;
+    const ipfsHash =
+      latestContentEvent?.details.hash || domainDetails.currentContenthash;
 
     // Create the .eth.link URL if we have an IPFS hash
     const ethLimoUrl = ipfsHash && ensName ? `https://${ensName}.link` : null;
@@ -399,14 +405,22 @@ const ENSHistory = () => {
           >
             <Stat>
               <StatLabel fontWeight="medium">Registration Date</StatLabel>
-              <StatNumber fontSize="md" mt={1}>
-                {formatDistanceToNow(domainDetails.createdAt * 1000, {
-                  addSuffix: true,
-                })}
-              </StatNumber>
-              <StatHelpText fontSize="xs" mt={1}>
-                {formatDate(domainDetails.createdAt)}
-              </StatHelpText>
+              {domainDetails.createdAt ? (
+                <>
+                  <StatNumber fontSize="md" mt={1}>
+                    {formatDistanceToNow(domainDetails.createdAt * 1000, {
+                      addSuffix: true,
+                    })}
+                  </StatNumber>
+                  <StatHelpText fontSize="xs" mt={1}>
+                    {formatDate(domainDetails.createdAt)}
+                  </StatHelpText>
+                </>
+              ) : (
+                <Text fontSize="sm" color="gray.500" mt={1}>
+                  Not indexed
+                </Text>
+              )}
             </Stat>
             {domainDetails.expiryDate ? (
               <Stat>
@@ -651,6 +665,35 @@ const ENSHistory = () => {
     }
   };
 
+  const fetchResolverBackedDomainDetails = async (
+    normalizedName: string,
+    isSubdomain: boolean
+  ): Promise<DomainDetails | null> => {
+    const [owner, rawContenthash] = await Promise.all([
+      readEnsAddressRecord(normalizedName).catch(() => null),
+      readEnsContenthashRecord(normalizedName).catch(() => null),
+    ]);
+
+    const decodedContenthash = rawContenthash
+      ? decodeContentHash(rawContenthash)
+      : null;
+
+    if (!owner && !decodedContenthash) {
+      return null;
+    }
+
+    return {
+      id: namehash(normalizedName),
+      createdAt: null,
+      expiryDate: null,
+      owner,
+      registrant: null,
+      resolver: null,
+      isSubdomain,
+      currentContenthash: decodedContenthash,
+    };
+  };
+
   const fetchContentHash = async (_ensName?: string) => {
     if (!ensName && !_ensName) {
       toast({
@@ -670,14 +713,15 @@ const ENSHistory = () => {
       setContentEvents([]);
       setOtherEvents([]);
       setIsContentLoaded(false);
+      setDomainDetails(null);
+      setInitialRegistration(null);
 
       // Normalize the ENS name
       const normalizedName = normalize(ens);
       setLoadedEnsName(normalizedName);
       const nameParts = normalizedName.split(".");
       const isSubdomain =
-        nameParts.length > 2 ||
-        nameParts[nameParts.length - 1] !== "eth";
+        nameParts.length > 2 || nameParts[nameParts.length - 1] !== "eth";
       // Only meaningful for direct 2LD .eth names (used in registrar queries)
       const labelName = isSubdomain ? null : nameParts[0];
 
@@ -714,7 +758,21 @@ const ENSHistory = () => {
         !domainResponse.data.data.domains ||
         domainResponse.data.data.domains.length === 0
       ) {
-        throw new Error("Domain not found");
+        const fallback = await fetchResolverBackedDomainDetails(
+          normalizedName,
+          isSubdomain
+        );
+
+        if (!fallback) {
+          throw new Error("Domain not found");
+        }
+
+        setDomainDetails(fallback);
+        setHistoryEvents([]);
+        setContentEvents([]);
+        setOtherEvents([]);
+        setIsContentLoaded(true);
+        return;
       }
 
       const domain = domainResponse.data.data.domains[0];
@@ -754,6 +812,7 @@ const ENSHistory = () => {
           id: resolverId,
         },
         isSubdomain,
+        currentContenthash: null,
       });
 
       // Prioritize content hash changes

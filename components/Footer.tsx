@@ -6,7 +6,7 @@ import {
   HStack,
   Heading,
   Flex,
-  SimpleGrid,
+  Grid,
   Button,
   Image,
 } from "@chakra-ui/react";
@@ -57,9 +57,12 @@ export const Footer = () => {
           </Flex>
 
           {/* Quick Links, Popular Tools, and Newsletter in a grid */}
-          <SimpleGrid
-            columns={{ base: 1, sm: 3 }}
-            spacing={{ base: 6, md: 10 }}
+          <Grid
+            templateColumns={{
+              base: "repeat(2, minmax(0, 1fr))",
+              md: "repeat(3, minmax(0, 1fr))",
+            }}
+            gap={{ base: 6, md: 10 }}
             width={{ base: "100%", md: "auto" }}
           >
             {/* Quick Links */}
@@ -70,15 +73,11 @@ export const Footer = () => {
                 color="text.primary"
                 mb={4}
                 fontWeight="semibold"
-                textAlign={{ base: "center", sm: "left" }}
+                textAlign="left"
               >
                 Quick Links
               </Heading>
-              <Flex
-                direction="column"
-                gap={2}
-                align={{ base: "center", sm: "flex-start" }}
-              >
+              <Flex direction="column" gap={2} align="flex-start">
                 <ChakraLink
                   href="#all-tools"
                   color="text.secondary"
@@ -138,15 +137,11 @@ export const Footer = () => {
                 color="text.primary"
                 mb={4}
                 fontWeight="semibold"
-                textAlign={{ base: "center", sm: "left" }}
+                textAlign="left"
               >
                 Popular Tools
               </Heading>
-              <Flex
-                direction="column"
-                gap={2}
-                align={{ base: "center", sm: "flex-start" }}
-              >
+              <Flex direction="column" gap={2} align="flex-start">
                 <ChakraLink
                   href={`${getPath(subdomains.CALLDATA.base)}decoder`}
                   color="text.secondary"
@@ -187,7 +182,7 @@ export const Footer = () => {
             </Box>
 
             {/* Community */}
-            <Box>
+            <Box gridColumn={{ base: "1 / -1", md: "auto" }}>
               <Heading
                 as="h4"
                 size="sm"
@@ -222,7 +217,7 @@ export const Footer = () => {
                 </Button>
               </Flex>
             </Box>
-          </SimpleGrid>
+          </Grid>
         </Flex>
       </Container>
     </Box>

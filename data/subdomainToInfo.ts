@@ -29,6 +29,12 @@ export const subdomainToInfo = {
     label: "Migrate",
     description: "Sweep tokens from your wallet to another address in a batch",
   },
+  [subdomains.GWEI.base]: {
+    emoji: "🏷️",
+    label: "Gwei Names",
+    description:
+      "Register a .gwei name and migrate ENS contenthash, avatar, and primary identity records",
+  },
   [subdomains["7702BEAT"].base]: {
     emoji: "👑",
     label: "7702 Beat",
