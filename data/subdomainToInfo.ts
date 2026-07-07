@@ -136,6 +136,12 @@ export const subdomainToInfo = {
     description:
       "Find live testnet faucets and track when each faucet is ready to claim again",
   },
+  [subdomains.SKILLS.base]: {
+    emoji: "🤖",
+    label: "Web3 AI Skills",
+    description:
+      "Explore skills, MCP servers, CLIs, wallets, models, and protocol tools for onchain agents",
+  },
   [subdomains.ORGS.base]: {
     emoji: "🏛️",
     label: "Ethereum Orgs",

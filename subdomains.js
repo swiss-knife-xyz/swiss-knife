@@ -95,6 +95,10 @@ const subdomains = {
     base: "faucet",
     paths: [],
   },
+  SKILLS: {
+    base: "skills",
+    paths: [],
+  },
   ORGS: {
     base: "orgs",
     paths: [],
