@@ -442,6 +442,24 @@ const skillResourcesData: SkillResource[] = [
     ],
   },
   {
+    id: "portals-foresight",
+    name: "Portals Foresight",
+    provider: "Portals.fi",
+    url: "https://foresight.portals.fi/docs/skill/",
+    logoDomain: "portals.fi",
+    toolTypes: ["Skill", "API"],
+    categories: ["DeFi", "Developer"],
+    tags: ["Simulation", "Transaction preview", "EVM", "x402"],
+    install:
+      "Save SKILL.md from https://foresight.portals.fi/docs/skill/ to .claude/skills/portals-foresight/SKILL.md",
+    description:
+      "Claude Code skill and model-agnostic docs for the Portals Foresight API. Agents can simulate single or batch EVM transactions, inspect asset changes, gas costs, token metadata, human-readable reverts, trace/replay transactions, and use x402 pay-per-request access.",
+    sourceUrls: [
+      "https://foresight.portals.fi/docs/skill/",
+      "https://foresight.portals.fi/docs/",
+    ],
+  },
+  {
     id: "fileverse-api",
     name: "Fileverse API",
     provider: "Fileverse",
@@ -492,6 +510,7 @@ const prioritizedResourceIds = [
   "fluid-skill",
   "across-skills",
   "socket-for-agents",
+  "portals-foresight",
   "pendle-ai",
   "opensea-skill",
   "nethermind-defi-skills",
