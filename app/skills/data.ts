@@ -15,6 +15,7 @@ export type SkillResourceCategory =
   | "Trading"
   | "NFT"
   | "Cross-chain"
+  | "Security"
   | "Developer"
   | "Model"
   | "Infrastructure";
@@ -252,6 +253,57 @@ const skillResourcesData: SkillResource[] = [
     sourceUrls: ["https://github.com/DefiLlama/defillama-skills"],
   },
   {
+    id: "dune-agents",
+    name: "Dune",
+    provider: "Dune",
+    url: "https://dune.com/agents",
+    logoDomain: "dune.com",
+    toolTypes: ["MCP", "CLI", "Skill", "API"],
+    categories: ["Data", "Developer"],
+    tags: ["DuneSQL", "Dashboards", "Datasets", "x402"],
+    install: "curl -sSfL https://dune.com/cli/install.sh | sh",
+    description:
+      "Official agent surfaces for Dune onchain analytics. Agents can use the remote MCP endpoint or CLI plus skills to discover tables, run DuneSQL, manage queries, generate visualizations, build dashboards, and track credits.",
+    sourceUrls: [
+      "https://dune.com/agents",
+      "https://docs.dune.com/api-reference/agents/mcp",
+      "https://docs.dune.com/api-reference/agents/cli-and-skills",
+      "https://github.com/duneanalytics/skills",
+    ],
+  },
+  {
+    id: "herd-skill",
+    name: "Herd",
+    provider: "Herd",
+    url: "https://herd.eco/skill.md",
+    logoDomain: "herd.eco",
+    toolTypes: ["Skill", "MCP", "CLI"],
+    categories: ["Data", "Developer", "Wallet"],
+    tags: ["Explorer", "HAL", "Ethereum", "Base"],
+    install: "codex mcp add herd-mcp --url https://mcp.herd.eco/v1",
+    description:
+      "Skill, remote MCP, and CLI for exploring Ethereum/Base contracts, transactions, and wallets with decoded traces, ABIs, proxy history, labels, balance changes, and HAL actions/adapters.",
+    sourceUrls: [
+      "https://herd.eco/skill.md",
+      "https://docs.herd.eco/herd-mcp/introduction",
+      "https://github.com/herd-labs/herd-cli",
+    ],
+  },
+  {
+    id: "pashov-skills",
+    name: "Pashov Skills",
+    provider: "Pashov Audit Group",
+    url: "https://github.com/pashov/skills",
+    logoDomain: "pashov.com",
+    toolTypes: ["Skill"],
+    categories: ["Security", "Developer"],
+    tags: ["Solidity", "Audits", "Fuzzing", "Threat models"],
+    install: "Install https://github.com/pashov/skills/",
+    description:
+      "Solidity security skills for agents. Includes fizz for Echidna/Medusa fuzz suites, solidity-auditor for AI-assisted vulnerability review, and x-ray for pre-audit threat modeling, invariants, entry points, and git analysis.",
+    sourceUrls: ["https://github.com/pashov/skills"],
+  },
+  {
     id: "fluid-skill",
     name: "Fluid Skill",
     provider: "Fluid",
@@ -371,6 +423,63 @@ const skillResourcesData: SkillResource[] = [
       "https://docs.bitrefill.com",
     ],
   },
+  {
+    id: "socket-for-agents",
+    name: "Socket for Agents",
+    provider: "Socket",
+    url: "https://docs.socket.tech/for-agents/intro",
+    logoDomain: "socket.tech",
+    toolTypes: ["Skill", "API"],
+    categories: ["Cross-chain", "DeFi", "Commerce"],
+    tags: ["Swaps", "Bridges", "Deposit addresses", "llms.txt"],
+    install: "Fetch https://docs.socket.tech/skill.md",
+    description:
+      "Agent-ready docs for Socket's routing API. The skill.md and llms.txt files cover swap and bridge quotes, execution status, deposit-address flows, supported chains/tokens, and production API access.",
+    sourceUrls: [
+      "https://docs.socket.tech/for-agents/intro",
+      "https://docs.socket.tech/skill.md",
+      "https://docs.socket.tech/llms.txt",
+    ],
+  },
+  {
+    id: "fileverse-api",
+    name: "Fileverse API",
+    provider: "Fileverse",
+    url: "https://fileverse.io/faq",
+    logoDomain: "fileverse.io",
+    toolTypes: ["MCP", "CLI", "Skill", "API"],
+    categories: ["Developer", "Infrastructure", "Data"],
+    tags: ["Encrypted docs", "dDocs", "Markdown", "Collaboration"],
+    install:
+      "Enable dDocs developer mode, then add the Fileverse MCP server URL",
+    description:
+      "Agent-facing API for dDocs. LLMs, CLIs, and MCP clients can create, edit, read, delete, search, and sync end-to-end encrypted markdown documents for private human-agent collaboration.",
+    sourceUrls: [
+      "https://fileverse.io/faq",
+      "https://github.com/fileverse",
+      "https://www.npmjs.com/package/@fileverse/api",
+      "https://clawhub.ai/vijaykrishnavanshi/skills/encrypted-docs",
+    ],
+  },
+  {
+    id: "octav-api",
+    name: "Octav API",
+    provider: "Octav",
+    url: "https://docs.octav.fi/api/ai-development/overview",
+    logoDomain: "octav.fi",
+    toolTypes: ["Skill", "MCP", "CLI", "API"],
+    categories: ["Data", "DeFi", "Wallet"],
+    tags: ["Portfolio", "Transactions", "DeFi positions", "x402"],
+    install: "npx skills add Octav-Labs/octav-api-skill",
+    description:
+      "Skill, MCP server, CLI, and AI-ready docs for Octav portfolio data. Agents can query holdings, NAV, DeFi positions, transaction history, historical snapshots, airdrops, sync status, and credit usage.",
+    sourceUrls: [
+      "https://docs.octav.fi/api/ai-development/overview",
+      "https://docs.octav.fi/api/ai-development/mcp-server",
+      "https://docs.octav.fi/api/ai-development/cli",
+      "https://github.com/Octav-Labs/octav-api-skill",
+    ],
+  },
 ];
 
 const prioritizedResourceIds = [
@@ -382,9 +491,12 @@ const prioritizedResourceIds = [
   "morpho-agents",
   "fluid-skill",
   "across-skills",
+  "socket-for-agents",
   "pendle-ai",
   "opensea-skill",
   "nethermind-defi-skills",
+  "octav-api",
+  "fileverse-api",
 ] as const;
 
 const prioritizedResourceIdMap = new Map<string, number>(
@@ -438,6 +550,7 @@ export const categoryOrder: SkillResourceCategory[] = [
   "Trading",
   "NFT",
   "Cross-chain",
+  "Security",
   "Developer",
   "Infrastructure",
   "Model",

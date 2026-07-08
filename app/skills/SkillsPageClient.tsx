@@ -58,7 +58,7 @@ const missingSkillIssueBody = [
   "",
   "### Category",
   "",
-  "DeFi / Data / Wallet / Commerce / Trading / NFT / Cross-chain / Developer / Infrastructure / Model",
+  "DeFi / Data / Wallet / Commerce / Trading / NFT / Cross-chain / Security / Developer / Infrastructure / Model",
   "",
   "### Install or usage",
   "",
