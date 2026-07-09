@@ -16,7 +16,7 @@ export async function generateMetadata({
   searchParams,
 }: PageProps): Promise<Metadata> {
   const params = await searchParams;
-  let title = "ETH Calldata Decoder | ETH.sh";
+  let title = "Calldata Decoder | ETH.sh";
 
   let calldata = params.calldata as string | undefined;
   let tx = params.tx as string | undefined;
@@ -82,7 +82,7 @@ export async function generateMetadata({
     const functionInterface = await fetchFunctionInterface({ selector });
     if (functionInterface) {
       const functionName = functionInterface.split("(")[0];
-      title = `${functionName}() - Universal Calldata Decoder | ETH.sh`;
+      title = `${functionName}() - Calldata Decoder | ETH.sh`;
     }
   }
 

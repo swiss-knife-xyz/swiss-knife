@@ -2,9 +2,9 @@ import { getMetadata } from "@/utils";
 import { CalldataLayout as CalldataLayoutC } from "./CalldataLayout";
 
 export const metadata = getMetadata({
-  title: "ETH Calldata Decoder | ETH.sh",
+  title: "Calldata Decoder | ETH.sh",
   description:
-    "Decode any calldata, and view the parameters in a human-readable format, even without having the contract ABI with this Universal ETH Calldata Decoder.",
+    "Decode any calldata, and view the parameters in a human-readable format, even without having the contract ABI with this Calldata Decoder.",
   images: "https://eth.sh/og/calldata-decoder.png",
 });
 

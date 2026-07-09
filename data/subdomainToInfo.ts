@@ -3,7 +3,7 @@ import subdomains from "@/subdomains";
 export const subdomainToInfo = {
   [subdomains.CALLDATA.base]: {
     emoji: "📞",
-    label: "Calldata",
+    label: "Calldata Decoder",
     description:
       "Decode calldata into human-readable format without needing contract ABI",
   },

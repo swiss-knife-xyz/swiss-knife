@@ -182,12 +182,13 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       ),
     [result]
   );
+  const pageTitle = headerText ?? "Calldata Decoder";
 
   useEffect(() => {
     document.title = `${
       resolvedFunctionName.name ? `${resolvedFunctionName.name} - ` : ""
-    }Universal Calldata Decoder | ETH.sh`;
-  }, [resolvedFunctionName.name]);
+    }${pageTitle} | ETH.sh`;
+  }, [pageTitle, resolvedFunctionName.name]);
 
   const decode = async ({
     _calldata,
@@ -650,7 +651,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
             fontWeight="bold"
             letterSpacing="tight"
           >
-            {headerText ?? "Universal Calldata Decoder"}
+            {pageTitle}
           </Heading>
         </HStack>
         <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
