@@ -2,7 +2,7 @@ import { Flex, Heading } from "@chakra-ui/react";
 import { LeftDash } from "./LeftDash";
 import { RightDash } from "./RightDash";
 
-export const ToolsGridHeading = () => {
+export const ToolsGridHeading = ({ title }: { title: string }) => {
   return (
     <Flex
       alignItems="center"
@@ -17,7 +17,7 @@ export const ToolsGridHeading = () => {
         color="white"
         textAlign="center"
       >
-        Explore Our Tools
+        {title}
       </Heading>
       <RightDash />
     </Flex>
