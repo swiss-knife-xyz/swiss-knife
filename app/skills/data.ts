@@ -498,6 +498,26 @@ const skillResourcesData: SkillResource[] = [
       "https://github.com/Octav-Labs/octav-api-skill",
     ],
   },
+  {
+    id: "jaw-skill",
+    name: "JAW Skill",
+    provider: "JAW.id",
+    url: "https://docs.jaw.id/llms",
+    logoDomain: "jaw.id",
+    toolTypes: ["Skill", "Wallet"],
+    categories: ["Wallet", "Developer", "Infrastructure"],
+    tags: ["Passkeys", "Smart accounts", "ERC-7715", "ENS"],
+    install:
+      "npx skills add JustaName-id/jaw-skills --skill jaw-sdk-best-practices",
+    description:
+      "Best-practices skill for the JAW SDK, a drop-in smart account solution for dApps via a standard EIP-1193 provider or wagmi connector — no custom bundler or paymaster wiring required. Covers passkey authentication, ENS-native identity, batched transactions, gas sponsoring, ERC-7715 permissions and session keys, EIP-7702 EOA upgrades, and AI agent delegation.",
+    sourceUrls: [
+      "https://jaw.id/",
+      "https://docs.jaw.id",
+      "https://github.com/JustaName-id/jaw-mono",
+      "https://github.com/JustaName-id/jaw-skills",
+    ],
+  },
 ];
 
 const prioritizedResourceIds = [
