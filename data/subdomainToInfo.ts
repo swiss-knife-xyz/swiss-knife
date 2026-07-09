@@ -149,4 +149,10 @@ export const subdomainToInfo = {
       "Track Ethereum foundations, labs, guilds, collectives, and adoption groups",
     isRelativePath: subdomains.ORGS.isRelativePath,
   },
+  [subdomains.PRIVACY.base]: {
+    emoji: "🛡️",
+    label: "Privacy Protocols",
+    description:
+      "Compare Ethereum privacy protocols by chains, assets, fees, wait times, and privacy model",
+  },
 };

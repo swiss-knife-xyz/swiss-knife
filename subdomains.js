@@ -104,6 +104,10 @@ const subdomains = {
     paths: [],
     isRelativePath: true,
   },
+  PRIVACY: {
+    base: "privacy",
+    paths: [],
+  },
 };
 
 module.exports = subdomains;
