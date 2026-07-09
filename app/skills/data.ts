@@ -146,6 +146,33 @@ const skillResourcesData: SkillResource[] = [
     ],
   },
   {
+    id: "walletconnect-agent-sdk",
+    name: "WalletConnect Agent SDK",
+    provider: "WalletConnect",
+    url: "https://github.com/WalletConnect/agent-sdk",
+    logoDomain: "walletconnect.network",
+    logoBg: "#0b1220",
+    toolTypes: ["Skill", "CLI", "Wallet"],
+    categories: [
+      "Wallet",
+      "Commerce",
+      "Cross-chain",
+      "Developer",
+      "Infrastructure",
+    ],
+    tags: ["WalletConnect", "Signing", "Swidge", "WCT staking"],
+    install: "npx skills add WalletConnect/agent-sdk",
+    description:
+      "Beta WalletConnect agent tooling for wallet connection, message signing, transaction sending, cross-chain bridge/swap flows, WalletConnect Pay payments, and WCT staking from terminal-friendly skills and CLIs. Published packages include walletconnect, walletconnect-staking, and walletconnect-pay commands.",
+    sourceUrls: [
+      "https://github.com/WalletConnect/agent-sdk",
+      "https://www.npmjs.com/package/@walletconnect/cli-sdk",
+      "https://www.npmjs.com/package/@walletconnect/staking-cli",
+      "https://www.npmjs.com/package/@walletconnect/pay-cli",
+      "https://walletconnect.network/",
+    ],
+  },
+  {
     id: "morpho-agents",
     name: "Morpho Agents",
     provider: "Morpho",
@@ -290,6 +317,24 @@ const skillResourcesData: SkillResource[] = [
     ],
   },
   {
+    id: "poidh-bounty",
+    name: "poidh Bounty Skill",
+    provider: "poidh",
+    url: "https://github.com/picsoritdidnthappen/poidh-app/blob/prod/SKILL.md",
+    logoDomain: "poidh.xyz",
+    toolTypes: ["Skill"],
+    categories: ["Commerce", "NFT", "Developer"],
+    tags: ["Bounties", "Photo proof", "Arbitrum", "Base"],
+    install:
+      "Fetch https://raw.githubusercontent.com/picsoritdidnthappen/poidh-app/prod/SKILL.md",
+    description:
+      "Skill for poidh, the onchain bounty protocol for pics-or-it-didn't-happen proof. Agents can post solo or open bounties, inspect proof URIs, evaluate claims, accept winners, route contributor votes, submit claims, and withdraw payouts on Arbitrum, Base, and Degen Chain.",
+    sourceUrls: [
+      "https://github.com/picsoritdidnthappen/poidh-app/blob/prod/SKILL.md",
+      "https://poidh.xyz/",
+    ],
+  },
+  {
     id: "pashov-skills",
     name: "Pashov Skills",
     provider: "Pashov Audit Group",
@@ -302,6 +347,25 @@ const skillResourcesData: SkillResource[] = [
     description:
       "Solidity security skills for agents. Includes fizz for Echidna/Medusa fuzz suites, solidity-auditor for AI-assisted vulnerability review, and x-ray for pre-audit threat modeling, invariants, entry points, and git analysis.",
     sourceUrls: ["https://github.com/pashov/skills"],
+  },
+  {
+    id: "quillshield-skills",
+    name: "QuillShield Security Skills",
+    provider: "QuillShield",
+    url: "https://github.com/quillai-network/quillshield_skills",
+    logoDomain: "quillai.network",
+    logoBg: "#050816",
+    toolTypes: ["Skill", "Plugin"],
+    categories: ["Security", "Developer"],
+    tags: ["Audits", "Invariants", "Reentrancy", "OWASP"],
+    install:
+      "Install https://github.com/quillai-network/quillshield_skills as a Claude plugin",
+    description:
+      "Smart contract security skill suite based on the QuillShield audit methodology. It includes plugins for behavioral state analysis, semantic guard gaps, state invariants, reentrancy variants, oracle and flash-loan attack chains, proxy upgrade safety, arithmetic and input validation, external calls, signature replay, and DoS/griefing checks.",
+    sourceUrls: [
+      "https://github.com/quillai-network/quillshield_skills",
+      "https://quillai.network/",
+    ],
   },
   {
     id: "fluid-skill",
@@ -442,6 +506,25 @@ const skillResourcesData: SkillResource[] = [
     ],
   },
   {
+    id: "yo-protocol-skills",
+    name: "YO Protocol Skills",
+    provider: "YO Protocol",
+    url: "https://github.com/yoprotocol/yo-protocol-skills",
+    logoDomain: "yo.xyz",
+    logoBg: "#050505",
+    toolTypes: ["Skill", "CLI", "MCP", "API"],
+    categories: ["DeFi", "Developer"],
+    tags: ["ERC-4626", "Vaults", "Calldata", "Yield"],
+    install: "npx skills add yoprotocol/yo-protocol-skills --all",
+    description:
+      "Official YO Protocol skills bundle for ERC-4626 yield vaults. It covers the TypeScript SDK, React hooks, agent-first CLI, Base MCP plugin, design guidance, and Risk Graph API for deposits, redeems, positions, vault snapshots, Merkl rewards, and unsigned Gateway calldata across Ethereum, Base, and Arbitrum.",
+    sourceUrls: [
+      "https://github.com/yoprotocol/yo-protocol-skills",
+      "https://www.yo.xyz/",
+      "https://www.npmjs.com/package/@yo-protocol/cli",
+    ],
+  },
+  {
     id: "portals-foresight",
     name: "Portals Foresight",
     provider: "Portals.fi",
@@ -461,22 +544,41 @@ const skillResourcesData: SkillResource[] = [
   },
   {
     id: "fileverse-api",
-    name: "Fileverse API",
+    name: "Fileverse",
     provider: "Fileverse",
-    url: "https://fileverse.io/faq",
+    url: "https://www.npmjs.com/package/@fileverse/api",
     logoDomain: "fileverse.io",
     toolTypes: ["MCP", "CLI", "Skill", "API"],
     categories: ["Developer", "Infrastructure", "Data"],
     tags: ["Encrypted docs", "dDocs", "Markdown", "Collaboration"],
     install:
-      "Enable dDocs developer mode, then add the Fileverse MCP server URL",
+      "npm install @fileverse/api && npx @fileverse/api --apiKey <key> --rpcUrl <url>",
     description:
-      "Agent-facing API for dDocs. LLMs, CLIs, and MCP clients can create, edit, read, delete, search, and sync end-to-end encrypted markdown documents for private human-agent collaboration.",
+      "NPM package for programmatic dDocs access. After enabling Fileverse dDocs developer mode and generating an API key, agents can run the CLI/MCP/API surface to create, read, edit, delete, and sync end-to-end encrypted markdown documents for private human-agent collaboration.",
     sourceUrls: [
+      "https://www.npmjs.com/package/@fileverse/api",
       "https://fileverse.io/faq",
       "https://github.com/fileverse",
-      "https://www.npmjs.com/package/@fileverse/api",
       "https://clawhub.ai/vijaykrishnavanshi/skills/encrypted-docs",
+    ],
+  },
+  {
+    id: "veil-cash-mcp",
+    name: "Veil Cash MCP",
+    provider: "Veil Cash",
+    url: "https://www.npmjs.com/package/@veil-cash/mcp",
+    logoDomain: "veil.cash",
+    logoBg: "#050505",
+    toolTypes: ["MCP"],
+    categories: ["Wallet", "Commerce", "Developer"],
+    tags: ["Privacy", "Base", "x402", "Calldata"],
+    install: "npx -y @veil-cash/mcp",
+    description:
+      "Local MCP server for Veil Cash on Base. It wraps the Veil Cash SDK with Base MCP-compatible tools for status, balances, x402 quotes, register and deposit calldata, plus confirmed private withdrawals, transfers, UTXO consolidation, and x402 payments when a local VEIL_KEY is configured.",
+    sourceUrls: [
+      "https://www.npmjs.com/package/@veil-cash/mcp",
+      "https://github.com/veildotcash/veil-mcp",
+      "https://www.veil.cash/",
     ],
   },
   {
@@ -518,6 +620,24 @@ const skillResourcesData: SkillResource[] = [
       "https://github.com/JustaName-id/jaw-skills",
     ],
   },
+  {
+    id: "foundry-mcp-server",
+    name: "Foundry MCP Server",
+    provider: "PraneshASP",
+    url: "https://github.com/PraneshASP/foundry-mcp-server",
+    logoDomain: "getfoundry.sh",
+    logoBg: "#111111",
+    toolTypes: ["MCP"],
+    categories: ["Developer", "Infrastructure", "Data"],
+    tags: ["Foundry", "Solidity", "Anvil", "Heimdall"],
+    install: "npx @pranesh.asp/foundry-mcp-server",
+    description:
+      "MCP server for Solidity and onchain development with Foundry. Agents can manage Anvil, run Cast calls and sends, inspect receipts, storage, logs, traces, ABIs, and source, maintain a persistent Forge workspace, deploy scripts, estimate gas, generate wallets, and use Heimdall for bytecode disassembly, calldata decoding, decompilation, and CFGs.",
+    sourceUrls: [
+      "https://github.com/PraneshASP/foundry-mcp-server",
+      "https://www.npmjs.com/package/@pranesh.asp/foundry-mcp-server",
+    ],
+  },
 ];
 
 const prioritizedResourceIds = [
@@ -528,24 +648,39 @@ const prioritizedResourceIds = [
   "uniswap-ai",
   "morpho-agents",
   "fluid-skill",
-  "across-skills",
-  "socket-for-agents",
-  "portals-foresight",
   "pendle-ai",
   "opensea-skill",
+  "across-skills",
+  "socket-for-agents",
   "nethermind-defi-skills",
+  "sablier-agent-skills",
+  "yo-protocol-skills",
   "octav-api",
+  "defillama-skills",
+  "dune-agents",
+  "coingecko-mcp",
+  "blockscout-mcp",
+  "tenderly-mcp",
+  "portals-foresight",
+  "herd-skill",
+  "poidh-bounty",
   "fileverse-api",
+  "veil-cash-mcp",
+  "walletconnect-agent-sdk",
+  "jaw-skill",
+  "steer-cli",
+  "bankr-skills",
+  "bitrefill-skill",
+  "pashov-skills",
+  "quillshield-skills",
+  "ethskills",
+  "foundry-mcp-server",
+  "cryo-mcp",
+  "nani-qwen",
 ] as const;
 
 const prioritizedResourceIdMap = new Map<string, number>(
   prioritizedResourceIds.map((id, index) => [id, index])
-);
-
-const trailingResourceIds = ["nani-qwen", "cryo-mcp"] as const;
-
-const trailingResourceIdMap = new Map<string, number>(
-  trailingResourceIds.map((id, index) => [id, index])
 );
 
 const originalResourceIndexMap = new Map(
@@ -555,11 +690,6 @@ const originalResourceIndexMap = new Map(
 const getResourceSortRank = (resource: SkillResource) => {
   const priorityRank = prioritizedResourceIdMap.get(resource.id);
   if (priorityRank !== undefined) return priorityRank;
-
-  const trailingRank = trailingResourceIdMap.get(resource.id);
-  if (trailingRank !== undefined) {
-    return Number.MAX_SAFE_INTEGER - trailingResourceIds.length + trailingRank;
-  }
 
   return (
     prioritizedResourceIds.length +
