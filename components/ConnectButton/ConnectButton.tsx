@@ -35,7 +35,6 @@ export const ConnectButton = ({
       {({
         account,
         chain,
-        openAccountModal,
         openChainModal,
         openConnectModal,
         authenticationStatus,
@@ -102,11 +101,7 @@ export const ConnectButton = ({
                   )}
                   {!shouldHideAccount && (
                     <Box flex={isMobile ? "1" : "initial"}>
-                      <AccountButton
-                        onClick={openAccountModal}
-                        account={account}
-                        isCompact={isCompact}
-                      />
+                      <AccountButton account={account} isCompact={isCompact} />
                     </Box>
                   )}
                 </Flex>

@@ -42,7 +42,7 @@ import {
   Wallet,
   XCircle,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatEther } from "viem";
 import type { Address, Hex } from "viem";
 import { mainnet } from "viem/chains";
@@ -65,6 +65,7 @@ import {
   createGnsCommitmentStorageKey,
   createRandomSecret,
   getEnsGatewayUrl,
+  getGnsIdentityQueryKey,
   getGnsGatewayUrl,
   gnsNameNftAbi,
   makeGnsCommitment,
@@ -112,6 +113,7 @@ const SECTION_DIVIDER = "rgba(255,255,255,0.055)";
 
 export default function GweiMigrationPage() {
   const toast = useToast();
+  const queryClient = useQueryClient();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
@@ -341,6 +343,10 @@ export default function GweiMigrationPage() {
           await loadSnapshots();
         }
 
+        await queryClient.invalidateQueries({
+          queryKey: getGnsIdentityQueryKey(connectedAddress),
+        });
+
         return receipt;
       } catch (error) {
         toast({
@@ -355,7 +361,14 @@ export default function GweiMigrationPage() {
         setActiveAction(null);
       }
     },
-    [connectedAddress, ensureMainnet, isWalletReady, loadSnapshots, toast]
+    [
+      connectedAddress,
+      ensureMainnet,
+      isWalletReady,
+      loadSnapshots,
+      queryClient,
+      toast,
+    ]
   );
 
   const handleEnsChange = (value: string) => {

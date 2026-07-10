@@ -285,6 +285,11 @@ export type GnsNameSnapshot = {
   isPrimaryForConnectedAddress: boolean;
 };
 
+export type GnsIdentity = {
+  name: string;
+  avatar: string | null;
+};
+
 export type StoredGnsCommitment = {
   label: string;
   owner: Address;
@@ -364,6 +369,35 @@ export function getGnsTokenId(label: string) {
 
 export function getGnsGatewayUrl(label: string) {
   return `https://${label}.gwei.domains`;
+}
+
+export function getGnsIdentityQueryKey(address: Address | string) {
+  return ["gns", "identity", address.toLowerCase()] as const;
+}
+
+export async function readGnsIdentity(
+  address: Address
+): Promise<GnsIdentity | null> {
+  if (!isAddress(address)) return null;
+
+  const name = await mainnetClient.readContract({
+    address: GNS_NAME_NFT_ADDRESS,
+    abi: gnsNameNftAbi,
+    functionName: "reverseResolve",
+    args: [address],
+  });
+
+  if (!name || !name.toLowerCase().endsWith(".gwei")) return null;
+
+  const avatar = await nullable(
+    mainnetClient.getEnsAvatar({
+      name,
+      universalResolverAddress: GNS_UNIVERSAL_RESOLVER_ADDRESS,
+    }),
+    null
+  );
+
+  return { name, avatar };
 }
 
 export function getEnsGatewayUrl(name: string) {
