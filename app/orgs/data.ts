@@ -169,6 +169,49 @@ export const ethereumOrgs: EthereumOrg[] = [
     ],
   },
   {
+    id: "ethsystems",
+    name: "EthSystems",
+    shortName: "EthSystems",
+    handle: "@eth_systems",
+    website: "https://ethsystems.org/",
+    twitter: "https://x.com/eth_systems",
+    logoDomain: "ethsystems.org",
+    accent: "#133E87",
+    category: "Institutional privacy",
+    stage: "Launched Jul 2026",
+    role: "Confidential system design and implementation for institutions using Ethereum.",
+    summary:
+      "EthSystems is an independent for-profit company that designs and builds confidential systems for institutional Ethereum, carrying forward the Ethereum Foundation Institutional Privacy Task Force's work through open research, protocol specifications, proofs of concept, architecture reviews, and production implementations.",
+    evidence: [
+      "EthSystems launched on July 14, 2026 as the independent successor to the Ethereum Foundation's Institutional Privacy Task Force.",
+      "The founding team is Mo Jalil, Oskar Thorén, and Aaryamann Challani, whose official introduction cites institutional, protocol-design, privacy, and production-infrastructure experience.",
+      "The company describes a commercial consulting model backed by Ethereum-aligned investors while committing to continue open-source libraries, protocol specifications, ecosystem mapping, and public technical writing.",
+    ],
+    workstreams: [
+      "Institutional workshops that translate privacy, auditability, integration, and regulatory requirements into concrete technical scopes.",
+      "Open research, architecture reviews, protocol specifications, and proofs of concept for private payments, tokenized assets, selective disclosure, settlement, and resilient systems.",
+      "Production confidential systems integrated with institutions' existing vendors and infrastructure.",
+    ],
+    watch: [
+      "Which commercial engagements progress from workshops and proofs of concept into production deployments.",
+      "How the team balances client confidentiality with its commitment to open technical work and ecosystem knowledge sharing.",
+      "How EthSystems' independent roadmap complements Ethereum Foundation privacy and institutional-adoption initiatives.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://ethsystems.org/" },
+      {
+        label: "Launch post",
+        href: "https://ethsystems.org/blog/introducing-ethsystems/",
+      },
+      { label: "About", href: "https://ethsystems.org/about/" },
+      { label: "Offerings", href: "https://ethsystems.org/offerings/" },
+      {
+        label: "Launch announcement",
+        href: "https://x.com/eth_systems/status/2077000602320805918",
+      },
+    ],
+  },
+  {
     id: "ethereum-applications-guild",
     name: "Ethereum Applications Guild",
     shortName: "EAG",
@@ -851,6 +894,7 @@ export const roleMap = [
       "enterprise-ethereum-alliance",
       "ethereum-institutional",
       "etherealize",
+      "ethsystems",
     ],
   },
   {
@@ -884,6 +928,15 @@ export const sourceTrail: SourceLink[] = [
   },
   { label: "Ethlabs thesis", href: "https://ethlabs.org/thesis.html" },
   { label: "Ethlabs funding", href: "https://ethlabs.org/funding.html" },
+  {
+    label: "EthSystems launch",
+    href: "https://ethsystems.org/blog/introducing-ethsystems/",
+  },
+  { label: "EthSystems about", href: "https://ethsystems.org/about/" },
+  {
+    label: "EthSystems offerings",
+    href: "https://ethsystems.org/offerings/",
+  },
   { label: "EAG official site", href: "https://www.ethappsguild.org/" },
   {
     label: "EAG global initiatives",
