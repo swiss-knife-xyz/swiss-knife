@@ -249,6 +249,43 @@ const skillResourcesData: SkillResource[] = [
     sourceUrls: ["https://docs.tenderly.co/ai-tools/quickstart"],
   },
   {
+    id: "trustless-ai-agent-sdk",
+    name: "Trustless AI Agent SDK",
+    provider: "trustless-ai",
+    url: "https://github.com/trustless-ai/agent-sdk",
+    logoDomain: "github.com",
+    logoBg: "#0d1117",
+    toolTypes: ["API"],
+    categories: ["Security", "Developer", "Infrastructure"],
+    tags: ["Verification", "BIP-340", "Nostr", "OpenTimestamps"],
+    install: "npm install @trustless-ai/agent-sdk",
+    description:
+      "JavaScript verification library with a zero-I/O core for trustless agent workflows. It recomputes NIP-01 event IDs and BIP-340 signatures, builds commit-before-outcome events, checks artifact and anchor gates, normalizes EVM job specs, and packs receipt proofs for onchain verification without handling private keys.",
+    sourceUrls: [
+      "https://github.com/trustless-ai/agent-sdk",
+      "https://www.npmjs.com/package/@trustless-ai/agent-sdk",
+    ],
+  },
+  {
+    id: "recompute-kit",
+    name: "Recompute Kit",
+    provider: "trustless-ai",
+    url: "https://github.com/trustless-ai/recompute-kit",
+    logoDomain: "github.com",
+    logoBg: "#0d1117",
+    toolTypes: ["MCP", "CLI"],
+    categories: ["Security", "Developer", "Infrastructure"],
+    tags: ["Verification", "Proofs", "Pinned refs", "Tri-state verdicts"],
+    install:
+      'git clone https://github.com/trustless-ai/recompute-kit && cd recompute-kit && export PATH="$PWD/bin:$PATH"',
+    description:
+      "Self-hosted MCP and CLI toolkit that verifies claims by recomputing them from pinned primary artifacts. Its tools cover repositories, citations, CI, onchain calls, commitments, storage and receipt proofs, returning verified-good, verified-bad, or unverifiable verdicts with evidence.",
+    sourceUrls: [
+      "https://github.com/trustless-ai/recompute-kit",
+      "https://github.com/trustless-ai/recompute-kit/blob/main/RECOMPUTE.md",
+    ],
+  },
+  {
     id: "nani-qwen",
     name: "Nani Qwen 3.5 2B",
     provider: "NaniDAO",
@@ -347,6 +384,26 @@ const skillResourcesData: SkillResource[] = [
     description:
       "Solidity security skills for agents. Includes fizz for Echidna/Medusa fuzz suites, solidity-auditor for AI-assisted vulnerability review, and x-ray for pre-audit threat modeling, invariants, entry points, and git analysis.",
     sourceUrls: ["https://github.com/pashov/skills"],
+  },
+  {
+    id: "eip7702-rescue",
+    name: "EIP-7702 Rescue",
+    provider: "trustless-ai",
+    url: "https://github.com/trustless-ai/eip7702-rescue",
+    logoDomain: "github.com",
+    logoBg: "#0d1117",
+    toolTypes: ["MCP"],
+    categories: ["Security", "Wallet", "Developer"],
+    tags: ["EIP-7702", "Wallet recovery", "Forensics", "Fork simulation"],
+    install:
+      "git clone https://github.com/trustless-ai/eip7702-rescue && cd eip7702-rescue && forge build && node mcp/server.mjs",
+    description:
+      "Key-free forensic MCP for EIP-7702-compromised wallets. It detects active delegation, scans ERC-721 holdings, simulates an atomic sponsored rescue on a disposable Anvil fork, and builds a human-reviewed rescue plan without signing or broadcasting transactions.",
+    sourceUrls: [
+      "https://github.com/trustless-ai/eip7702-rescue",
+      "https://github.com/trustless-ai/eip7702-rescue/blob/main/SPEC.md",
+      "https://github.com/trustless-ai/eip7702-rescue/blob/main/CASE.md",
+    ],
   },
   {
     id: "quillshield-skills",
@@ -676,7 +733,10 @@ const prioritizedResourceIds = [
   "ethskills",
   "foundry-mcp-server",
   "cryo-mcp",
+  "eip7702-rescue",
   "nani-qwen",
+  "trustless-ai-agent-sdk",
+  "recompute-kit",
 ] as const;
 
 const prioritizedResourceIdMap = new Map<string, number>(
