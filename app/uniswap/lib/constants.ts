@@ -1,5 +1,6 @@
 import { Address } from "viem";
 import { base, baseSepolia } from "viem/chains";
+import { robinhood } from "@/data/common";
 import { UniversalRouterAbi } from "@/lib/uniswap/abi/UniversalRouter";
 
 // ===== CONTRACT ADDRESSES =====
@@ -7,21 +8,25 @@ import { UniversalRouterAbi } from "@/lib/uniswap/abi/UniversalRouter";
 export const StateViewAddress: Record<number, Address> = {
   [baseSepolia.id]: "0x571291b572ed32ce6751a2Cb2486EbEe8DEfB9B4",
   [base.id]: "0xA3c0c9b65baD0b08107Aa264b0f3dB444b867A71",
+  [robinhood.id]: "0xF3334192D15450CdD385c8B70e03f9A6bD9E673b",
 };
 
 export const Permit2Address: Record<number, Address> = {
   [baseSepolia.id]: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
   [base.id]: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+  [robinhood.id]: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
 };
 
 export const UniV4PositionManagerAddress: Record<number, Address> = {
   [baseSepolia.id]: "0x4B2C77d209D3405F41a037Ec6c77F7F5b8e2ca80",
   [base.id]: "0x7C5f5A4bBd8fD63184577525326123B519429bDc",
+  [robinhood.id]: "0x58daec3116aae6D93017bAAea7749052E8a04fA7",
 };
 
 export const UniversalRouterAddress: Record<number, Address> = {
   [baseSepolia.id]: "0x492E6456D9528771018DeB9E87ef7750EF184104",
   [base.id]: "0x6fF5693b99212Da76ad316178A184AB56D299b43",
+  [robinhood.id]: "0x8876789976dEcBfCbBbe364623C63652db8C0904",
 };
 
 // ===== CONTRACT ABIS =====
