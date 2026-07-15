@@ -53,6 +53,25 @@ const skillResourcesData: SkillResource[] = [
     sourceUrls: ["https://github.com/hypurrclaw/hyperliquid-cli"],
   },
   {
+    id: "goldrush-agent-tools",
+    name: "GoldRush Agent Skills & MCP",
+    provider: "GoldRush",
+    url: "https://goldrush.dev/docs/goldrush-agent-skills/overview",
+    logoDomain: "goldrush.dev",
+    toolTypes: ["Skill", "MCP", "CLI", "API"],
+    categories: ["Data", "NFT", "Cross-chain", "Developer", "Infrastructure"],
+    tags: ["100+ chains", "Balances", "Transactions", "Streaming"],
+    install: "npx skills add covalenthq/goldrush-agent-skills",
+    description:
+      "Official GoldRush agent toolkit for blockchain data across 100+ chains. Four skills cover the Foundational and Streaming APIs, the CLI, and x402 access, while the MCP server exposes 50+ tools for balances, transactions, NFTs, approvals, prices, blocks, and cross-chain activity.",
+    sourceUrls: [
+      "https://goldrush.dev/docs/goldrush-agent-skills/overview",
+      "https://github.com/covalenthq/goldrush-agent-skills",
+      "https://goldrush.dev/docs/goldrush-mcp-server",
+      "https://www.npmjs.com/package/@covalenthq/goldrush-mcp-server",
+    ],
+  },
+  {
     id: "ethskills",
     name: "ETHSkills",
     provider: "ETHSkills",
@@ -720,6 +739,7 @@ const prioritizedResourceIds = [
   "tenderly-mcp",
   "portals-foresight",
   "herd-skill",
+  "goldrush-agent-tools",
   "poidh-bounty",
   "fileverse-api",
   "veil-cash-mcp",

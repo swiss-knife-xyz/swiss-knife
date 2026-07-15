@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { skillResources, type SkillResource } from "../data";
 
 const newSkillIds = [
+  "goldrush-agent-tools",
   "poidh-bounty",
   "yo-protocol-skills",
   "jaw-skill",
@@ -158,13 +159,7 @@ const NewSkillsPage = () => {
         w="min(1072px, 100%)"
       >
         {newSkillResources.map((resource) => (
-          <NewSkillCard
-            key={resource.id}
-            resource={resource}
-            gridColumn={
-              resource.id === "walletconnect-agent-sdk" ? "1 / -1" : undefined
-            }
-          />
+          <NewSkillCard key={resource.id} resource={resource} />
         ))}
       </Grid>
     </Box>
