@@ -236,6 +236,23 @@ const skillResourcesData: SkillResource[] = [
     sourceUrls: ["https://github.com/Uniswap/uniswap-ai"],
   },
   {
+    id: "0x-ai",
+    name: "0x AI",
+    provider: "0x",
+    url: "https://github.com/0xProject/0x-ai",
+    logoDomain: "0x.org",
+    toolTypes: ["Skill", "MCP", "API"],
+    categories: ["DeFi", "Trading", "Developer"],
+    tags: ["Swaps", "Gasless", "Permit2", "x402 / MPP"],
+    install: "npx skills add 0xProject/0x-ai",
+    description:
+      "Official 0x skills for Swap API v2 and Gasless API v2 across supported EVM chains. Agents get guided AllowanceHolder, Permit2, gasless, and API-keyless x402/MPP swap flows, plus live 0x documentation through MCP.",
+    sourceUrls: [
+      "https://0x.org/post/0x-agent-skills",
+      "https://github.com/0xProject/0x-ai",
+    ],
+  },
+  {
     id: "nethermind-defi-skills",
     name: "DeFi Skills",
     provider: "Nethermind",
@@ -722,6 +739,7 @@ const prioritizedResourceIds = [
   "walletchan-mcp",
   "base-mcp",
   "uniswap-ai",
+  "0x-ai",
   "morpho-agents",
   "fluid-skill",
   "pendle-ai",
