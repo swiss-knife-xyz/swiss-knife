@@ -777,6 +777,46 @@ export const ethereumOrgs: EthereumOrg[] = [
       },
     ],
   },
+  {
+    id: "nyx-foundation",
+    name: "Nyx Foundation",
+    shortName: "Nyx",
+    handle: "@NyxFoundation",
+    website: "https://nyx.foundation/en/",
+    twitter: "https://x.com/NyxFoundation",
+    logoDomain: "nyx.foundation",
+    accent: "#D946EF",
+    category: "Security and formal verification",
+    stage: "Established Sep 2025",
+    role: "Vulnerability research and machine-checked proofs across Ethereum clients, protocol specifications, and applications.",
+    summary:
+      "Nyx Foundation is a Tokyo-based non-profit research institute that finds security bugs across the Ethereum stack and proves them away, combining formal verification in Lean 4, cryptography, and AI agents across client implementations, protocol specifications, and DeFi.",
+    evidence: [
+      "Founded in Tokyo in September 2025 by researchers holding Ethereum Foundation research grants; the team has co-authored papers with the EF and works inside its post-quantum migration effort.",
+      "Ranked first worldwide by report count in the Fusaka client audit contest with 17 vulnerabilities, and has audited DeFi and ZK systems including zERC20, Intmax's zkRollup proof library, and SP1 zkVM.",
+      "Funded entirely by donations, research grants, and sponsorships from the Ethereum Foundation, Fenbushi Capital, and the TL;DR Fellowship, with all output released as open source, public vulnerability reports, and machine-checkable formal specifications.",
+    ],
+    workstreams: [
+      "Client and protocol security: specification-driven agents that detect vulnerabilities in client implementations before they ship (SPECA), and a Lean 4-verified consensus client alongside formalization of the leanEthereum specification (Verity).",
+      "Application and market security: audits of DeFi protocols and ZK systems, an experimental L2 that stress-tests live DeFi designs before mainnet (Eris), and empirical research on liquidity provision, JIT liquidity, and MEV.",
+      "Post-quantum and education: formal verification of post-quantum signature schemes for Ethereum's PQ transition, and the Advanced Cryptography Program on ZK, FHE, and MPC, taken over from the Ethereum Foundation in 2025 and co-hosted with the University of Tokyo in 2026.",
+    ],
+    watch: [
+      "Whether formalizing leanEthereum in Lean 4 keeps surfacing specification-level bugs as the spec stabilizes.",
+      "Whether specification-driven auditing produces findings that client and application teams act on before deployment rather than after.",
+      "How the post-quantum verification work lands against Ethereum's PQ migration timeline.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://nyx.foundation/en/" },
+      { label: "Dashboard", href: "https://nyx.foundation/en/dashboard" },
+      { label: "GitHub", href: "https://github.com/NyxFoundation" },
+      { label: "Support", href: "https://nyx.foundation/en/support" },
+      {
+        label: "Advanced Cryptography Program",
+        href: "https://github.com/zk-tokyo/advanced-cryptography-2026",
+      },
+    ],
+  },
 ];
 
 export const ethTreasuryCompanies: EthTreasuryCompany[] = [
@@ -908,6 +948,12 @@ export const roleMap = [
     description:
       "Token-free infrastructure, transparent funding, burn-aligned grants, validator coordination",
     orgIds: ["ethereum-community-foundation"],
+  },
+  {
+    label: "Security and formal verification",
+    description:
+      "Vulnerability research, formal specification, machine-checked proofs across clients and applications",
+    orgIds: ["nyx-foundation"],
   },
 ];
 
