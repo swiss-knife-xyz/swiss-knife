@@ -192,6 +192,25 @@ const skillResourcesData: SkillResource[] = [
     ],
   },
   {
+    id: "aerodrome-sugar",
+    name: "Aerodrome Sugar",
+    provider: "Aerodrome",
+    url: "https://aerodrome-finance.github.io/agents/",
+    logoDomain: "aerodrome.finance",
+    toolTypes: ["Skill", "CLI"],
+    categories: ["DeFi", "Trading", "Cross-chain"],
+    tags: ["Swaps", "Liquidity", "Staking", "Unsigned txs"],
+    install:
+      "git clone --branch v0.4.2 --depth 1 https://github.com/velodrome-finance/sugar-sdk.git",
+    description:
+      "Agent-ready Sugar toolkit for Aerodrome and Velodrome. Its Python CLI and Claude Code skill inspect pools and positions, quote swaps, and build unsigned transactions for swaps, liquidity, staking, and reward claims across Base, Optimism, Unichain, and Lisk without handling private keys or broadcasting.",
+    sourceUrls: [
+      "https://aerodrome-finance.github.io/agents/",
+      "https://github.com/velodrome-finance/sugar-sdk",
+      "https://github.com/velodrome-finance/sugar-sdk/tree/v0.4.2/.claude/skills/sugar",
+    ],
+  },
+  {
     id: "morpho-agents",
     name: "Morpho Agents",
     provider: "Morpho",
@@ -283,6 +302,26 @@ const skillResourcesData: SkillResource[] = [
     description:
       "MCP server for Tenderly AI tooling. Agents can authenticate with Tenderly, set active project context, and use Tenderly simulation, virtual environment, trace, and project workflows from MCP clients.",
     sourceUrls: ["https://docs.tenderly.co/ai-tools/quickstart"],
+  },
+  {
+    id: "alchemy-cli",
+    name: "Alchemy CLI",
+    provider: "Alchemy",
+    url: "https://www.alchemy.com/docs/alchemy-cli",
+    logoDomain: "alchemy.com",
+    toolTypes: ["CLI", "Wallet", "API"],
+    categories: [
+      "Data",
+      "Wallet",
+      "Cross-chain",
+      "Developer",
+      "Infrastructure",
+    ],
+    tags: ["EVM + Solana", "Simulation", "Agent wallets", "JSON output"],
+    install: "npm i -g @alchemy/cli@latest",
+    description:
+      "Agent-ready CLI for Alchemy's blockchain platform. It provides machine-readable, non-interactive access to EVM and Solana RPC and data, simulations, wallet-signed transfers and contract calls, swaps and cross-chain bridges, plus app, webhook, and usage administration.",
+    sourceUrls: ["https://www.alchemy.com/docs/alchemy-cli"],
   },
   {
     id: "trustless-ai-agent-sdk",
@@ -740,6 +779,7 @@ const prioritizedResourceIds = [
   "base-mcp",
   "uniswap-ai",
   "0x-ai",
+  "aerodrome-sugar",
   "morpho-agents",
   "fluid-skill",
   "pendle-ai",
@@ -755,6 +795,7 @@ const prioritizedResourceIds = [
   "coingecko-mcp",
   "blockscout-mcp",
   "tenderly-mcp",
+  "alchemy-cli",
   "portals-foresight",
   "herd-skill",
   "goldrush-agent-tools",
