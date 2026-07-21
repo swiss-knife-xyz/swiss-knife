@@ -84,14 +84,15 @@ export function maxLiquidityForAmount1(
 // Accurate liquidity calculation using Uniswap v3 SDK
 export const getLiquidityFromAmounts = (params: {
   currentTick: number;
+  currentSqrtPriceX96?: bigint;
   tickLower: number;
   tickUpper: number;
   amount0: bigint;
   amount1: bigint;
 }) => {
-  const sqrtRatioCurrentX96 = BigInt(
-    TickMath.getSqrtRatioAtTick(params.currentTick).toString()
-  );
+  const sqrtRatioCurrentX96 =
+    params.currentSqrtPriceX96 ??
+    BigInt(TickMath.getSqrtRatioAtTick(params.currentTick).toString());
   let sqrtRatioAX96 = BigInt(
     TickMath.getSqrtRatioAtTick(params.tickLower).toString()
   );

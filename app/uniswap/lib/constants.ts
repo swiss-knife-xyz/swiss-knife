@@ -261,6 +261,13 @@ export const Permit2Abi = [
 
 export const UniV4PositionManagerAbi = [
   {
+    inputs: [{ internalType: "bytes[]", name: "data", type: "bytes[]" }],
+    name: "multicall",
+    outputs: [{ internalType: "bytes[]", name: "results", type: "bytes[]" }],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
     inputs: [
       {
         components: [
@@ -426,6 +433,11 @@ export const UniV4PM_SettlePairAbi = [
       { type: "address", name: "currency1" },
     ],
   },
+] as const;
+
+export const UniV4PM_SweepAbi = [
+  { type: "address", name: "currency" },
+  { type: "address", name: "recipient" },
 ] as const;
 
 export const DecreaseLiquidityParamsAbi = [

@@ -68,6 +68,7 @@ import {
   StateViewAddress,
   UniV4PM_MintPositionAbi,
   UniV4PM_SettlePairAbi,
+  UniV4PM_SweepAbi,
   UniV4PositionManagerAbi,
   UniV4PositionManagerAddress,
   V4PMActions,
@@ -75,7 +76,6 @@ import {
 import {
   getLiquidityFromAmounts,
   getPoolId,
-  priceToSqrtPriceX96,
   type PoolKey,
 } from "@/app/uniswap/add-liquidity/lib/utils";
 import { ROBINHOOD_CHAIN_ID, type OftDeployment } from "../lib/oft";
@@ -84,13 +84,13 @@ import { findRegisteredDeployment, WCHAN_BASE_TOKEN } from "../lib/registry";
 import {
   ROBIN_LP_FEE,
   ROBIN_LP_TICK_SPACING,
-  currentTickToFdv,
   fdvRangeToTicks,
-  fdvToTick,
-  fdvToTokenPerEth,
+  fdvToSqrtPriceX96,
   getAmountsForAnchor,
   getFullRangeTicks,
   getRequiredLiquiditySides,
+  sqrtPriceX96ToFdv,
+  sqrtPriceX96ToTick,
   type RequiredLiquiditySides,
   type RobinMarketData,
 } from "../lib/liquidity";
@@ -421,14 +421,30 @@ export function LiquidityPanel({
   const tokenUsd =
     market?.tokenUsd ??
     (referenceFdv > 0 && totalSupply > 0 ? referenceFdv / totalSupply : 0);
-  const initialTick =
-    referenceFdv > 0 && totalSupply > 0 && market?.ethUsd
-      ? fdvToTick(referenceFdv, totalSupply, market.ethUsd)
-      : 0;
-  const executableTick = robinState.initialized ? robinState.tick : initialTick;
+  const initialSqrtPriceX96 = useMemo(() => {
+    if (!referenceFdv || !totalSupply || !market?.ethUsd) return 0n;
+    try {
+      return fdvToSqrtPriceX96(
+        referenceFdv,
+        totalSupply,
+        market.ethUsd,
+        robinState.tokenDecimals
+      );
+    } catch {
+      return 0n;
+    }
+  }, [market?.ethUsd, referenceFdv, robinState.tokenDecimals, totalSupply]);
+  const executableSqrtPriceX96 = robinState.initialized
+    ? robinState.sqrtPriceX96
+    : initialSqrtPriceX96;
   const executableFdv =
-    referenceFdv > 0 && totalSupply > 0 && market?.ethUsd
-      ? currentTickToFdv(executableTick, totalSupply, market.ethUsd)
+    executableSqrtPriceX96 > 0n && totalSupply > 0 && market?.ethUsd
+      ? sqrtPriceX96ToFdv(
+          executableSqrtPriceX96,
+          totalSupply,
+          market.ethUsd,
+          robinState.tokenDecimals
+        )
       : referenceFdv;
 
   useEffect(() => {
@@ -452,19 +468,35 @@ export function LiquidityPanel({
     ) {
       return null;
     }
-    return fdvRangeToTicks(
-      minFdvNumber,
-      maxFdvNumber,
-      totalSupply,
-      market.ethUsd
-    );
-  }, [hasMinFdv, market?.ethUsd, maxFdvNumber, minFdvNumber, totalSupply]);
+    try {
+      return fdvRangeToTicks(
+        minFdvNumber,
+        maxFdvNumber,
+        totalSupply,
+        market.ethUsd,
+        robinState.tokenDecimals
+      );
+    } catch {
+      return null;
+    }
+  }, [
+    hasMinFdv,
+    market?.ethUsd,
+    maxFdvNumber,
+    minFdvNumber,
+    robinState.tokenDecimals,
+    totalSupply,
+  ]);
   const fullRange = useMemo(() => getFullRangeTicks(), []);
   const ticks = mode === "full" ? fullRange : concentratedRange;
   const requiredSides: RequiredLiquiditySides =
-    mode === "full" || !executableFdv || !hasMinFdv || !maxFdvNumber
+    !ticks || executableSqrtPriceX96 <= 0n
       ? "both"
-      : getRequiredLiquiditySides(minFdvNumber, maxFdvNumber, executableFdv);
+      : getRequiredLiquiditySides(
+          executableSqrtPriceX96,
+          ticks.tickLower,
+          ticks.tickUpper
+        );
 
   const fdvSliderMax = getFdvSliderMax(referenceFdv);
   const fdvSliderStep = getFdvSliderStep(fdvSliderMax);
@@ -483,7 +515,7 @@ export function LiquidityPanel({
           anchor === "eth" ? 18 : robinState.tokenDecimals
         );
         return getAmountsForAnchor({
-          currentTick: executableTick,
+          sqrtPriceX96: executableSqrtPriceX96,
           tickLower: ticks.tickLower,
           tickUpper: ticks.tickUpper,
           anchor,
@@ -494,7 +526,7 @@ export function LiquidityPanel({
       }
     },
     [
-      executableTick,
+      executableSqrtPriceX96,
       market?.ethUsd,
       referenceFdv,
       robinState.tokenDecimals,
@@ -581,7 +613,9 @@ export function LiquidityPanel({
   const exceedsEthBalance = parsedEthAmount > robinState.ethBalance;
   const exceedsTokenBalance = parsedTokenAmount > robinState.tokenBalance;
   const canReview =
-    Boolean(referenceFdv && market?.ethUsd && ticks) &&
+    Boolean(
+      referenceFdv && market?.ethUsd && ticks && executableSqrtPriceX96 > 0n
+    ) &&
     rangeIsValid &&
     amountsAreValid &&
     !exceedsEthBalance &&
@@ -602,14 +636,26 @@ export function LiquidityPanel({
     market?.referencePool?.reserveUsd !== undefined &&
     market.referencePool.reserveUsd < LOW_LIQUIDITY_USD;
 
-  const buildCalls = (latestState: RobinState) => {
-    if (!address || !ticks || !market?.ethUsd || !referenceFdv) {
+  const buildCalls = (
+    latestState: RobinState,
+    executionTicks: { tickLower: number; tickUpper: number },
+    executionInitialSqrtPriceX96: bigint
+  ) => {
+    if (!address || executionInitialSqrtPriceX96 <= 0n) {
       throw new Error("Liquidity details are incomplete.");
     }
+    const executionInitialTick = sqrtPriceX96ToTick(
+      executionInitialSqrtPriceX96
+    );
     const initialLiquidity = getLiquidityFromAmounts({
-      currentTick: latestState.initialized ? latestState.tick : initialTick,
-      tickLower: ticks.tickLower,
-      tickUpper: ticks.tickUpper,
+      currentTick: latestState.initialized
+        ? latestState.tick
+        : executionInitialTick,
+      currentSqrtPriceX96: latestState.initialized
+        ? latestState.sqrtPriceX96
+        : executionInitialSqrtPriceX96,
+      tickLower: executionTicks.tickLower,
+      tickUpper: executionTicks.tickUpper,
       amount0: parsedEthAmount,
       amount1: parsedTokenAmount,
     });
@@ -659,39 +705,14 @@ export function LiquidityPanel({
         },
       });
     }
-    if (!latestState.initialized) {
-      const tokenPerEth = fdvToTokenPerEth(
-        referenceFdv,
-        totalSupply,
-        market.ethUsd
-      );
-      calls.push({
-        label: "Create 1% pool",
-        call: {
-          to: UniV4PositionManagerAddress[ROBINHOOD_CHAIN_ID],
-          data: encodeFunctionData({
-            abi: UniV4PositionManagerAbi,
-            functionName: "initializePool",
-            args: [
-              poolKey,
-              priceToSqrtPriceX96(
-                tokenPerEth,
-                18,
-                latestState.tokenDecimals,
-                true
-              ),
-            ],
-          }),
-        },
-      });
-    }
-
-    const actions =
-      `0x${V4PMActions.MINT_POSITION}${V4PMActions.SETTLE_PAIR}` as Hex;
+    const actionCodes: string[] = [
+      V4PMActions.MINT_POSITION,
+      V4PMActions.SETTLE_PAIR,
+    ];
     const mintParams = encodeAbiParameters(UniV4PM_MintPositionAbi, [
       poolKey,
-      ticks.tickLower,
-      ticks.tickUpper,
+      executionTicks.tickLower,
+      executionTicks.tickUpper,
       liquidity,
       parsedEthAmount,
       parsedTokenAmount,
@@ -701,25 +722,54 @@ export function LiquidityPanel({
     const settleParams = encodeAbiParameters(UniV4PM_SettlePairAbi, [
       { currency0: poolKey.currency0, currency1: poolKey.currency1 },
     ]);
+    const actionParams = [mintParams, settleParams];
+    if (parsedEthAmount > 0n) {
+      // SETTLE_PAIR pays only the exact PoolManager debt. Return the unused
+      // portion of amount0Max instead of leaving it in PositionManager.
+      actionCodes.push(V4PMActions.SWEEP);
+      actionParams.push(
+        encodeAbiParameters(UniV4PM_SweepAbi, [poolKey.currency0, address])
+      );
+    }
+    const actions = `0x${actionCodes.join("")}` as Hex;
+    const modifyLiquiditiesData = encodeFunctionData({
+      abi: UniV4PositionManagerAbi,
+      functionName: "modifyLiquidities",
+      args: [
+        encodeAbiParameters(
+          [
+            { type: "bytes", name: "actions" },
+            { type: "bytes[]", name: "params" },
+          ],
+          [actions, actionParams]
+        ),
+        BigInt(Math.floor(Date.now() / 1_000) + 1_200),
+      ],
+    });
+    const data = latestState.initialized
+      ? modifyLiquiditiesData
+      : encodeFunctionData({
+          abi: UniV4PositionManagerAbi,
+          functionName: "multicall",
+          args: [
+            [
+              encodeFunctionData({
+                abi: UniV4PositionManagerAbi,
+                functionName: "initializePool",
+                args: [poolKey, executionInitialSqrtPriceX96],
+              }),
+              modifyLiquiditiesData,
+            ],
+          ],
+        });
     calls.push({
-      label: "Add liquidity",
+      label: latestState.initialized
+        ? "Add liquidity"
+        : "Create pool & add liquidity",
       call: {
         to: UniV4PositionManagerAddress[ROBINHOOD_CHAIN_ID],
         value: parsedEthAmount,
-        data: encodeFunctionData({
-          abi: UniV4PositionManagerAbi,
-          functionName: "modifyLiquidities",
-          args: [
-            encodeAbiParameters(
-              [
-                { type: "bytes", name: "actions" },
-                { type: "bytes[]", name: "params" },
-              ],
-              [actions, [mintParams, settleParams]]
-            ),
-            BigInt(Math.floor(Date.now() / 1_000) + 1_200),
-          ],
-        }),
+        data,
       },
     });
     return calls;
@@ -817,7 +867,44 @@ export function LiquidityPanel({
         );
         return;
       }
-      const liquidityActions = buildCalls(latestState);
+      const latestTotalSupply = parsePositiveNumber(latestMarket.totalSupply);
+      const latestReferenceFdv = latestMarket.fdvUsd ?? referenceFdv;
+      const latestInitialSqrtPriceX96 = fdvToSqrtPriceX96(
+        latestReferenceFdv,
+        latestTotalSupply,
+        latestMarket.ethUsd,
+        latestState.tokenDecimals
+      );
+      const latestTicks =
+        mode === "full"
+          ? fullRange
+          : fdvRangeToTicks(
+              minFdvNumber,
+              maxFdvNumber,
+              latestTotalSupply,
+              latestMarket.ethUsd,
+              latestState.tokenDecimals
+            );
+      if (!latestTicks) {
+        throw new Error("The selected FDV range is outside Uniswap's limits.");
+      }
+      if (
+        !ticks ||
+        latestTicks.tickLower !== ticks.tickLower ||
+        latestTicks.tickUpper !== ticks.tickUpper
+      ) {
+        setReviewed(false);
+        setStatus("idle");
+        setError(
+          "The refreshed market data changed the usable ticks. Review the updated range and amounts."
+        );
+        return;
+      }
+      const liquidityActions = buildCalls(
+        latestState,
+        latestTicks,
+        latestInitialSqrtPriceX96
+      );
       if (supportsBatch) {
         // `wallet_sendCalls` carries its own chain id. Let a capable wallet
         // handle the Robinhood chain and the complete approval / initialize /
@@ -913,7 +1000,7 @@ export function LiquidityPanel({
     const anchorAmount = (anchorBalance * BigInt(percentage)) / 100n;
     if (requiredSides === "both" && ticks) {
       let paired = getAmountsForAnchor({
-        currentTick: executableTick,
+        sqrtPriceX96: executableSqrtPriceX96,
         tickLower: ticks.tickLower,
         tickUpper: ticks.tickUpper,
         anchor: side,
@@ -921,7 +1008,7 @@ export function LiquidityPanel({
       });
       if (side === "eth" && paired.amountToken > robinState.tokenBalance) {
         paired = getAmountsForAnchor({
-          currentTick: executableTick,
+          sqrtPriceX96: executableSqrtPriceX96,
           tickLower: ticks.tickLower,
           tickUpper: ticks.tickUpper,
           anchor: "token",
@@ -929,7 +1016,7 @@ export function LiquidityPanel({
         });
       } else if (side === "token" && paired.amountEth > availableEth) {
         paired = getAmountsForAnchor({
-          currentTick: executableTick,
+          sqrtPriceX96: executableSqrtPriceX96,
           tickLower: ticks.tickLower,
           tickUpper: ticks.tickUpper,
           anchor: "eth",
@@ -1445,7 +1532,9 @@ export function LiquidityPanel({
                 <Text>
                   {supportsBatch
                     ? "Approvals and mint will be submitted atomically."
-                    : "Each required transaction will be confirmed in order."}
+                    : robinState.initialized
+                      ? "Approvals are confirmed in order, followed by the mint."
+                      : "Approvals are confirmed first; pool creation and mint are atomic in the final transaction."}
                 </Text>
               </HStack>
             </Box>

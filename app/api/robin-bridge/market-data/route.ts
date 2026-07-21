@@ -113,14 +113,19 @@ async function fetchMarketData(
           : pool.attributes?.quote_token_price_native_currency
       );
       if (!tokenEth || tokenEth <= 0 || !pool.attributes?.address) continue;
-      referencePool = {
+      const candidate: NonNullable<RobinMarketData["referencePool"]> = {
         address: pool.attributes.address,
         name: pool.attributes.name ?? "Base ETH pool",
         dex: pool.relationships?.dex?.data?.id ?? "unknown",
         reserveUsd: finiteNumber(pool.attributes.reserve_in_usd),
         tokenEth,
       };
-      break;
+      if (
+        !referencePool ||
+        (candidate.reserveUsd ?? -1) > (referencePool.reserveUsd ?? -1)
+      ) {
+        referencePool = candidate;
+      }
     }
   }
 
