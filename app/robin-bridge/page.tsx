@@ -1505,7 +1505,7 @@ export default function RobinBridgePage() {
                           alt: "Base",
                         }}
                         address={deployment.baseToken}
-                        href={`https://basescan.org/address/${deployment.baseToken}`}
+                        href={`https://gmgn.ai/base/token/${deployment.baseToken}`}
                       />
                       <ContractLink
                         label={deployment.symbol}
@@ -1514,7 +1514,7 @@ export default function RobinBridgePage() {
                           alt: "Robinhood Chain",
                         }}
                         address={deployment.robinToken}
-                        href={`https://robinhoodchain.blockscout.com/address/${deployment.robinToken}`}
+                        href={`https://gmgn.ai/robinhood/token/${deployment.robinToken}`}
                       />
                       <Divider borderColor="whiteAlpha.200" my={1} />
                       <ContractLink
