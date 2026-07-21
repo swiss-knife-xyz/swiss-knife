@@ -3,6 +3,7 @@ import { Address } from "viem";
 import { useReadContract } from "wagmi";
 import { StateViewAddress, StateViewAbi } from "../../lib/constants";
 import { Chain } from "viem/chains";
+import { sqrtPriceX96ToPrice } from "../lib/utils";
 
 interface Slot0Data {
   sqrtPriceX96: bigint;
@@ -86,13 +87,14 @@ export const usePoolState = (
         currency0Decimals !== undefined &&
         currency1Decimals !== undefined
       ) {
-        const currentTick = Number(tick);
-        const price = Math.pow(1.0001, currentTick);
-        const token1PerToken0 =
-          (price * 10 ** currency0Decimals) / 10 ** currency1Decimals;
-        setCurrentZeroForOnePrice(token1PerToken0.toFixed(6));
-        const token0PerToken1 = 1 / token1PerToken0;
-        setCurrentOneForZeroPrice(token0PerToken1.toFixed(6));
+        const token1PerToken0 = sqrtPriceX96ToPrice(
+          sqrtPriceX96,
+          currency0Decimals,
+          currency1Decimals,
+          true
+        );
+        setCurrentZeroForOnePrice(token1PerToken0.toString());
+        setCurrentOneForZeroPrice((1 / token1PerToken0).toString());
       } else {
         setCurrentZeroForOnePrice(undefined);
         setCurrentOneForZeroPrice(undefined);

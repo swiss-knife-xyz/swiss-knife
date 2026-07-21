@@ -12,13 +12,16 @@ import {
   VStack,
   Spinner,
 } from "@chakra-ui/react";
-import { Address, formatUnits, parseUnits } from "viem";
+import { Address, zeroAddress } from "viem";
 import { FiArrowRight } from "react-icons/fi";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import {
   formatCurrencyDisplay,
+  formatSpendableBalance,
+  getSpendableNativeBalance,
   isValidNumericInput,
   formatTokenBalance,
+  parseTokenAmount,
 } from "../lib/utils";
 import { useTokenBalances } from "../hooks/useTokenBalances";
 
@@ -31,6 +34,7 @@ interface SwapInterfaceProps {
   setSwapAmount: (amount: string) => void;
   slippage: string;
   setSlippage: (slippage: string) => void;
+  isSlippageInvalid?: boolean;
   availableCurrencies: Address[];
   quotedAmount?: string;
   isQuoting?: boolean;
@@ -51,6 +55,7 @@ export const SwapInterface: React.FC<SwapInterfaceProps> = ({
   setSwapAmount,
   slippage,
   setSlippage,
+  isSlippageInvalid,
   availableCurrencies,
   quotedAmount,
   isQuoting,
@@ -99,13 +104,18 @@ export const SwapInterface: React.FC<SwapInterfaceProps> = ({
 
   // Check if the entered amount exceeds the user's balance
   const checkBalanceExceeded = (): boolean => {
-    if (!swapAmount || !fromBalance || !fromCurrency) return false;
+    if (!swapAmount || fromBalance === undefined || !fromCurrency) return false;
 
     try {
       const info = currencyInfoMap.get(fromCurrency);
-      const decimals = info?.decimals || 18;
-      const amountInWei = parseUnits(swapAmount, decimals);
-      return amountInWei > fromBalance;
+      const decimals = info?.decimals;
+      if (decimals === undefined) return false;
+      const amountInWei = parseTokenAmount(swapAmount, decimals);
+      const spendableBalance =
+        fromCurrency === zeroAddress
+          ? getSpendableNativeBalance(fromBalance)
+          : fromBalance;
+      return amountInWei > spendableBalance;
     } catch {
       // If parsing fails, don't show balance exceeded error
       return false;
@@ -116,11 +126,15 @@ export const SwapInterface: React.FC<SwapInterfaceProps> = ({
 
   // Helper function to get max available balance as string
   const getMaxBalance = (): string => {
-    if (!fromBalance || !fromCurrency) return "0";
+    if (fromBalance === undefined || !fromCurrency) return "0";
     const info = currencyInfoMap.get(fromCurrency);
-    const decimals = info?.decimals || 18;
-    const maxAmount = formatUnits(fromBalance, decimals);
-    return maxAmount;
+    const decimals = info?.decimals;
+    if (decimals === undefined) return "0";
+    return formatSpendableBalance(
+      fromBalance,
+      decimals,
+      fromCurrency === zeroAddress
+    );
   };
 
   const handleMaxClick = () => {
@@ -509,7 +523,7 @@ export const SwapInterface: React.FC<SwapInterfaceProps> = ({
             onChange={(e) => handleSlippageChange(e.target.value)}
             bg="whiteAlpha.100"
             border="1px solid"
-            borderColor="whiteAlpha.200"
+            borderColor={isSlippageInvalid ? "red.400" : "whiteAlpha.200"}
             borderRadius="md"
             _hover={{ borderColor: "whiteAlpha.300" }}
             _focus={{
@@ -549,12 +563,12 @@ export const SwapInterface: React.FC<SwapInterfaceProps> = ({
           {!fromCurrency || !toCurrency
             ? "Select Tokens"
             : !swapAmount || swapAmount === "0"
-            ? "Enter Amount"
-            : fromCurrency === toCurrency
-            ? "Select Different Tokens"
-            : isBalanceExceeded
-            ? "Insufficient Balance"
-            : "Swap Tokens"}
+              ? "Enter Amount"
+              : fromCurrency === toCurrency
+                ? "Select Different Tokens"
+                : isBalanceExceeded
+                  ? "Insufficient Balance"
+                  : "Swap Tokens"}
         </Button>
       </VStack>
     </Box>

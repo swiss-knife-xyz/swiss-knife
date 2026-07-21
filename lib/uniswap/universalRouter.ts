@@ -1,4 +1,11 @@
-import { Address, encodeAbiParameters, encodeFunctionData, Hex } from "viem";
+import {
+  Address,
+  encodeAbiParameters,
+  encodeFunctionData,
+  Hex,
+  maxUint128,
+  zeroAddress,
+} from "viem";
 import { QuoteExactInputParams } from "./types";
 import { IV4RouterAbiExactInput } from "./abi/IV4RouterAbiExactInput";
 import { UniversalRouterAbi } from "./abi/UniversalRouter";
@@ -20,11 +27,25 @@ export const getExactInputCalldata = ({
   quoteParams,
   amountOutMin,
   tokenOut,
+  recipient,
+  deadline,
 }: {
   quoteParams: QuoteExactInputParams;
   amountOutMin: bigint;
   tokenOut: Address;
+  recipient: Address;
+  deadline: bigint;
 }) => {
+  if (
+    quoteParams.exactAmount <= 0n ||
+    quoteParams.exactAmount > maxUint128 ||
+    amountOutMin <= 0n ||
+    amountOutMin > maxUint128
+  ) {
+    throw new RangeError("Swap input and minimum output must fit uint128.");
+  }
+  if (deadline <= 0n) throw new RangeError("Swap deadline must be positive.");
+
   const v4Actions = ("0x" +
     V4Actions.SWAP_EXACT_IN +
     V4Actions.SETTLE_ALL +
@@ -77,14 +98,28 @@ export const getExactInputCalldata = ({
   );
 
   // Commands for Universal Router
-  const urCommands = ("0x" + URCommands.V4_SWAP) as Hex;
+  const commandCodes = [URCommands.V4_SWAP];
 
   // Encode calldata for Universal Router
-  const inputs = [v4RouterData];
+  const inputs: Hex[] = [v4RouterData];
+  if (quoteParams.exactCurrency === zeroAddress) {
+    commandCodes.push(URCommands.SWEEP);
+    inputs.push(
+      encodeAbiParameters(
+        [
+          { type: "address", name: "token" },
+          { type: "address", name: "recipient" },
+          { type: "uint256", name: "amountMinimum" },
+        ],
+        [zeroAddress, recipient, 0n]
+      )
+    );
+  }
+  const urCommands = `0x${commandCodes.join("")}` as Hex;
   const urExecuteCalldata = encodeFunctionData({
     abi: UniversalRouterAbi,
     functionName: "execute",
-    args: [urCommands, inputs],
+    args: [urCommands, inputs, deadline],
   });
 
   return urExecuteCalldata;

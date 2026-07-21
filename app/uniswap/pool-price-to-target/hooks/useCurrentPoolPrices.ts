@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useReadContract } from "wagmi";
 import { StateViewAbi, StateViewAddress } from "../../lib/constants";
 import { Chain, Hex } from "viem";
+import { sqrtPriceX96ToPrice } from "../../add-liquidity/lib/utils";
 
 interface UseCurrentPoolPricesProps {
   poolId: Hex | null; // Changed from string to Hex
@@ -45,18 +46,20 @@ export function useCurrentPoolPrices({
   useEffect(() => {
     if (
       slot0DataResult &&
+      slot0DataResult[0] !== 0n &&
       currency0Decimals !== undefined &&
       currency1Decimals !== undefined &&
       !isForcedLoading // Don't update prices while forced loading
     ) {
       // slot0DataResult is: readonly [sqrtPriceX96: bigint, tick: number, protocolFee: number, lpFee: number]
       // The ABI defines tick as int24, which viem treats as number.
-      const [, tick] = slot0DataResult;
-      const currentTick = Number(tick);
-      const price = Math.pow(1.0001, currentTick);
-
-      const token1PerToken0 =
-        (price * 10 ** currency0Decimals) / 10 ** currency1Decimals;
+      const [sqrtPriceX96] = slot0DataResult;
+      const token1PerToken0 = sqrtPriceX96ToPrice(
+        sqrtPriceX96,
+        currency0Decimals,
+        currency1Decimals,
+        true
+      );
       // Keep full precision for calculations - format only on display
       setCurrentZeroForOnePrice(token1PerToken0.toString());
 
@@ -85,8 +88,8 @@ export function useCurrentPoolPrices({
   const fetchCurrentPrices = async () => {
     if (
       poolId &&
-      currency0Decimals &&
-      currency1Decimals &&
+      currency0Decimals !== undefined &&
+      currency1Decimals !== undefined &&
       chain?.id &&
       StateViewAddress[chain.id]
     ) {

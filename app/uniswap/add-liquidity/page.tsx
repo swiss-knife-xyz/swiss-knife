@@ -41,7 +41,6 @@ import {
   parseUnits,
   formatUnits,
   encodeFunctionData,
-  encodeAbiParameters,
   Hex,
   maxUint160,
   Call,
@@ -67,10 +66,6 @@ import {
   Permit2Address,
   UniV4PositionManagerAddress,
   Permit2Abi,
-  UniV4PositionManagerAbi,
-  UniV4PM_MintPositionAbi,
-  UniV4PM_SettlePairAbi,
-  V4PMActions,
   AddLiquidityLocalStorageKeys,
 } from "../lib/constants";
 
@@ -79,29 +74,59 @@ import {
   priceToSqrtPriceX96,
   getLiquidityFromAmounts,
   getAmountsForLiquidity,
-  getPoolId,
+  tryGetPoolId,
   PoolKey,
   isValidNumericInput,
   formatBalance,
   priceRatioToTick,
+  sqrtPriceX96ToTick,
 } from "./lib/utils";
+import { buildAddLiquidityPositionCalldata } from "./lib/transactions";
+import {
+  Permit2AllowanceState,
+  getErc20ApprovalAmounts,
+  isErc20AllowanceSufficient,
+  isPermit2AllowanceSufficient,
+} from "./lib/approvals";
 
 // Create ApprovalStatusRow component inline
 const ApprovalStatusRow: React.FC<{
   label: string;
   approval?: bigint;
+  permit2Allowance?: Permit2AllowanceState;
   requiredAmount: string;
   decimals: number;
   isPermit2?: boolean;
-}> = ({ label, approval, requiredAmount, decimals, isPermit2 = false }) => {
+  requiredUntil?: number;
+}> = ({
+  label,
+  approval,
+  permit2Allowance,
+  requiredAmount,
+  decimals,
+  isPermit2 = false,
+  requiredUntil = 0,
+}) => {
   const getStatus = () => {
     if (!requiredAmount || requiredAmount === "" || requiredAmount === "0") {
       return { text: "-", color: "gray.400" };
     }
     try {
       const requiredAmountBigInt = parseUnits(requiredAmount, decimals);
-      if (approval === undefined) return { text: "-", color: "gray.400" };
-      if (approval >= requiredAmountBigInt) {
+      const isSufficient = isPermit2
+        ? isPermit2AllowanceSufficient(
+            permit2Allowance,
+            requiredAmountBigInt,
+            requiredUntil
+          )
+        : approval !== undefined && approval >= requiredAmountBigInt;
+      if (
+        (isPermit2 && permit2Allowance === undefined) ||
+        (!isPermit2 && approval === undefined)
+      ) {
+        return { text: "-", color: "gray.400" };
+      }
+      if (isSufficient) {
         return {
           text: isPermit2 ? "✅ Allowed" : "✅ Approved",
           color: "green.400",
@@ -137,12 +162,12 @@ const ApprovalStatusRow: React.FC<{
           status.color.includes("green")
             ? "green"
             : status.color.includes("red")
-            ? "red"
-            : status.color.includes("purple")
-            ? "purple"
-            : status.color.includes("orange")
-            ? "orange"
-            : "gray"
+              ? "red"
+              : status.color.includes("purple")
+                ? "purple"
+                : status.color.includes("orange")
+                  ? "orange"
+                  : "gray"
         }
         fontSize="xs"
         px={2}
@@ -294,8 +319,7 @@ const AddLiquidity = () => {
     [currency0, currency1, fee, tickSpacing, hookAddress]
   );
 
-  const poolId =
-    currency0 && currency1 && tickSpacing ? getPoolId(poolKey) : null;
+  const poolId = tryGetPoolId(poolKey);
 
   // USE THE NEW usePoolState HOOK
   const {
@@ -382,8 +406,8 @@ const AddLiquidity = () => {
     // Only recalculate if ticks changed and we have the necessary data
     if (
       ticksChanged &&
-      currency0Decimals &&
-      currency1Decimals &&
+      currency0Decimals !== undefined &&
+      currency1Decimals !== undefined &&
       tickLower &&
       tickUpper &&
       isPoolInitialized !== undefined
@@ -442,8 +466,8 @@ const AddLiquidity = () => {
       currency0 &&
       currency1 &&
       (amount0 || amount1) &&
-      currency0Decimals &&
-      currency1Decimals
+      currency0Decimals !== undefined &&
+      currency1Decimals !== undefined
     ) {
       // Small delay to avoid rapid consecutive calls
       const timeoutId = setTimeout(() => {
@@ -488,47 +512,66 @@ const AddLiquidity = () => {
 
   // Main add liquidity function
   const addLiquidity = useCallback(async () => {
-    if (!address || !publicClient || !isChainSupported) return;
+    if (
+      !address ||
+      !publicClient ||
+      !isChainSupported ||
+      isPoolInitialized === undefined
+    ) {
+      return;
+    }
 
     try {
-      const amount0Parsed = parseUnits(amount0, currency0Decimals || 18);
-      const amount1Parsed = parseUnits(amount1, currency1Decimals || 18);
+      if (currency0Decimals === undefined || currency1Decimals === undefined) {
+        throw new Error("Token decimals are required.");
+      }
+      if (!tickSpacing) {
+        throw new Error("A valid tick spacing is required.");
+      }
+      const amount0Parsed = parseUnits(amount0, currency0Decimals);
+      const amount1Parsed = parseUnits(amount1, currency1Decimals);
       const tickLowerNum = parseInt(tickLower);
       const tickUpperNum = parseInt(tickUpper);
 
-      // Calculate the correct current tick for liquidity calculations
       let effectiveCurrentTick: number;
+      let effectiveCurrentSqrtPriceX96: bigint;
 
       if (isPoolInitialized) {
-        // Pool is initialized, use the actual current tick
-        effectiveCurrentTick =
-          currentTick ?? (slot0Data ? Number(slot0Data[1]) : 0);
+        if (!slot0Data || slot0Data[0] === 0n) {
+          throw new Error("Current pool price is unavailable.");
+        }
+        effectiveCurrentSqrtPriceX96 = slot0Data[0];
+        effectiveCurrentTick = Number(slot0Data[1]);
       } else {
-        // Pool is not initialized, calculate tick from initial price
-        if (
-          !initialPrice ||
-          !currency0Decimals ||
-          !currency1Decimals ||
-          !tickSpacing
-        ) {
+        if (!initialPrice) {
           throw new Error(
             "Initial price, token decimals, and tick spacing are required for uninitialized pools"
           );
         }
 
-        effectiveCurrentTick = priceRatioToTick(
-          initialPrice,
-          initialPriceDirection,
+        effectiveCurrentSqrtPriceX96 = priceToSqrtPriceX96(
+          Number(initialPrice),
           currency0Decimals,
           currency1Decimals,
-          tickSpacing,
-          false // Don't snap to nearest usable tick for initialization
+          initialPriceDirection
         );
+        effectiveCurrentTick = sqrtPriceX96ToTick(effectiveCurrentSqrtPriceX96);
+      }
+
+      if (
+        !Number.isInteger(tickLowerNum) ||
+        !Number.isInteger(tickUpperNum) ||
+        tickLowerNum >= tickUpperNum ||
+        tickLowerNum % tickSpacing !== 0 ||
+        tickUpperNum % tickSpacing !== 0
+      ) {
+        throw new Error("Liquidity range ticks are invalid or unaligned.");
       }
 
       console.log({
         currentTick,
         effectiveCurrentTick,
+        effectiveCurrentSqrtPriceX96,
         isPoolInitialized,
         initialPrice,
         initialPriceDirection,
@@ -538,97 +581,48 @@ const AddLiquidity = () => {
         tickUpperNum,
       });
 
-      // Calculate liquidity first using user's input amounts
-      const initialLiquidity = getLiquidityFromAmounts({
+      const finalLiquidity = getLiquidityFromAmounts({
         currentTick: effectiveCurrentTick,
+        currentSqrtPriceX96: effectiveCurrentSqrtPriceX96,
         tickLower: tickLowerNum,
         tickUpper: tickUpperNum,
         amount0: amount0Parsed,
         amount1: amount1Parsed,
       });
+      if (finalLiquidity <= 0n) {
+        throw new Error(
+          "The supplied token side cannot fund this price range."
+        );
+      }
 
-      // Calculate the actual amounts needed for this liquidity
-      const actualAmounts = getAmountsForLiquidity({
+      const requiredAmounts = getAmountsForLiquidity({
         currentTick: effectiveCurrentTick,
+        currentSqrtPriceX96: effectiveCurrentSqrtPriceX96,
         tickLower: tickLowerNum,
         tickUpper: tickUpperNum,
-        liquidity: initialLiquidity,
+        liquidity: finalLiquidity,
+        roundUp: true,
       });
-
-      // Check if actual amounts exceed user input - if so, constrain them
-      let finalLiquidity = initialLiquidity;
-      let finalAmount0 = actualAmounts.amount0;
-      let finalAmount1 = actualAmounts.amount1;
-
-      // If actual amounts exceed user input, we need to recalculate with constraints
       if (
-        actualAmounts.amount0 > amount0Parsed ||
-        actualAmounts.amount1 > amount1Parsed
+        requiredAmounts.amount0 > amount0Parsed ||
+        requiredAmounts.amount1 > amount1Parsed
       ) {
-        console.log("Actual amounts exceed user input, constraining...");
-
-        // Calculate liquidity constrained by each amount separately
-        const liquidity0Constrained = getLiquidityFromAmounts({
-          currentTick: effectiveCurrentTick,
-          tickLower: tickLowerNum,
-          tickUpper: tickUpperNum,
-          amount0: amount0Parsed,
-          amount1: 0n, // Only constrain by amount0
-        });
-
-        const liquidity1Constrained = getLiquidityFromAmounts({
-          currentTick: effectiveCurrentTick,
-          tickLower: tickLowerNum,
-          tickUpper: tickUpperNum,
-          amount0: 0n, // Only constrain by amount1
-          amount1: amount1Parsed,
-        });
-
-        // Use the smaller liquidity to ensure we don't exceed either amount
-        finalLiquidity =
-          liquidity0Constrained < liquidity1Constrained
-            ? liquidity0Constrained
-            : liquidity1Constrained;
-
-        // Recalculate amounts for the constrained liquidity
-        const constrainedAmounts = getAmountsForLiquidity({
-          currentTick: effectiveCurrentTick,
-          tickLower: tickLowerNum,
-          tickUpper: tickUpperNum,
-          liquidity: finalLiquidity,
-        });
-
-        finalAmount0 = constrainedAmounts.amount0;
-        finalAmount1 = constrainedAmounts.amount1;
+        throw new Error("Calculated liquidity exceeds the submitted maxima.");
       }
 
-      // IMPORTANT: Add conservative buffer to account for contract rounding differences
-      // Reduce liquidity by 0.05% to ensure contract calculations stay within user bounds
-      // TODO: allow user to specify this buffer slippage
-      const liquidityBuffer = finalLiquidity / 2000n; // 0.05%
-      const conservativeLiquidity =
-        finalLiquidity - (liquidityBuffer > 1n ? liquidityBuffer : 1n);
-
-      // Use conservative liquidity but keep user's original amounts as maximums
-      // The conservative liquidity ensures the contract won't need more than user provided
-      if (isPoolInitialized) {
-        // if pool is already initialized then use conservative liquidity
-        // as a new pool would accept any liquidity amounts given by us
-        finalLiquidity = conservativeLiquidity;
-      }
-      finalAmount0 = amount0Parsed; // Use user's full amount as maximum
-      finalAmount1 = amount1Parsed; // Use user's full amount as maximum
+      const finalAmount0 = amount0Parsed;
+      const finalAmount1 = amount1Parsed;
 
       console.log("Liquidity calculation debug:", {
         userAmount0: amount0Parsed.toString(),
         userAmount1: amount1Parsed.toString(),
-        initialLiquidity: initialLiquidity.toString(),
         finalLiquidity: finalLiquidity.toString(),
+        requiredAmount0: requiredAmounts.amount0.toString(),
+        requiredAmount1: requiredAmounts.amount1.toString(),
         finalAmount0: finalAmount0.toString(),
         finalAmount1: finalAmount1.toString(),
         withinUserLimits:
           finalAmount0 <= amount0Parsed && finalAmount1 <= amount1Parsed,
-        liquidityReduced: finalLiquidity < initialLiquidity,
       });
 
       let value = 0n;
@@ -642,48 +636,56 @@ const AddLiquidity = () => {
       }
 
       const calls: Call[] = [];
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const transactionDeadline = nowSeconds + 20 * 60;
+      const permit2Expiration = nowSeconds + 60 * 60;
 
       // Add approval calls if needed - use user's original amounts for approvals
       // Check ERC20 approvals to Permit2
-      if (
-        currency0 !== zeroAddress &&
-        currency0Approval !== undefined &&
-        currency0Approval < amount0Parsed
-      ) {
-        calls.push({
-          to: currency0 as Address,
-          data: encodeFunctionData({
-            abi: erc20Abi,
-            functionName: "approve",
-            args: [Permit2Address[chain!.id], maxUint160],
-          }),
-          value: 0n,
-        });
+      if (currency0 !== zeroAddress) {
+        for (const approvalAmount of getErc20ApprovalAmounts(
+          currency0Approval,
+          amount0Parsed,
+          maxUint160
+        )) {
+          calls.push({
+            to: currency0 as Address,
+            data: encodeFunctionData({
+              abi: erc20Abi,
+              functionName: "approve",
+              args: [Permit2Address[chain!.id], approvalAmount],
+            }),
+            value: 0n,
+          });
+        }
       }
 
-      if (
-        currency1 !== zeroAddress &&
-        currency1Approval !== undefined &&
-        currency1Approval < amount1Parsed
-      ) {
-        calls.push({
-          to: currency1 as Address,
-          data: encodeFunctionData({
-            abi: erc20Abi,
-            functionName: "approve",
-            args: [Permit2Address[chain!.id], maxUint160],
-          }),
-          value: 0n,
-        });
+      if (currency1 !== zeroAddress) {
+        for (const approvalAmount of getErc20ApprovalAmounts(
+          currency1Approval,
+          amount1Parsed,
+          maxUint160
+        )) {
+          calls.push({
+            to: currency1 as Address,
+            data: encodeFunctionData({
+              abi: erc20Abi,
+              functionName: "approve",
+              args: [Permit2Address[chain!.id], approvalAmount],
+            }),
+            value: 0n,
+          });
+        }
       }
 
       // Check Permit2 allowances and approve Position Manager if needed
-      const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
-
       if (
         currency0 !== zeroAddress &&
-        currency0Permit2Allowance !== undefined &&
-        currency0Permit2Allowance < amount0Parsed
+        !isPermit2AllowanceSufficient(
+          currency0Permit2Allowance,
+          amount0Parsed,
+          transactionDeadline
+        )
       ) {
         calls.push({
           to: Permit2Address[chain!.id],
@@ -694,7 +696,7 @@ const AddLiquidity = () => {
               currency0 as Address,
               UniV4PositionManagerAddress[chain!.id],
               amount0Parsed, // Use user's original amount for Permit2 approval
-              expiration,
+              permit2Expiration,
             ],
           }),
           value: 0n,
@@ -703,8 +705,11 @@ const AddLiquidity = () => {
 
       if (
         currency1 !== zeroAddress &&
-        currency1Permit2Allowance !== undefined &&
-        currency1Permit2Allowance < amount1Parsed
+        !isPermit2AllowanceSufficient(
+          currency1Permit2Allowance,
+          amount1Parsed,
+          transactionDeadline
+        )
       ) {
         calls.push({
           to: Permit2Address[chain!.id],
@@ -715,76 +720,35 @@ const AddLiquidity = () => {
               currency1 as Address,
               UniV4PositionManagerAddress[chain!.id],
               amount1Parsed, // Use user's original amount for Permit2 approval
-              expiration,
+              permit2Expiration,
             ],
           }),
           value: 0n,
         });
       }
 
-      // Check if pool needs initialization
-      if (!isPoolInitialized) {
-        const initialSqrtPriceX96 = priceToSqrtPriceX96(
-          Number(initialPrice),
-          currency0Decimals || 18,
-          currency1Decimals || 18,
-          initialPriceDirection
-        );
-
-        calls.push({
-          to: UniV4PositionManagerAddress[chain!.id],
-          data: encodeFunctionData({
-            abi: UniV4PositionManagerAbi,
-            functionName: "initializePool",
-            args: [poolKey, initialSqrtPriceX96],
-          }),
-          value: 0n,
-        });
-      }
-
-      // Prepare mint position parameters
-      const v4Actions = ("0x" +
-        V4PMActions.MINT_POSITION +
-        V4PMActions.SETTLE_PAIR) as Hex;
+      const initialSqrtPriceX96 = !isPoolInitialized
+        ? effectiveCurrentSqrtPriceX96
+        : undefined;
 
       // Validate hookData format
       const validHookData = hookData.startsWith("0x")
         ? (hookData as Hex)
         : (`0x${hookData}` as Hex);
 
-      const mintPositionParams = encodeAbiParameters(UniV4PM_MintPositionAbi, [
-        poolKey,
-        tickLowerNum,
-        tickUpperNum,
-        finalLiquidity,
-        finalAmount0,
-        finalAmount1,
-        address,
-        validHookData,
-      ]);
-
-      const settlePairParams = encodeAbiParameters(UniV4PM_SettlePairAbi, [
-        {
-          currency0: poolKey.currency0,
-          currency1: poolKey.currency1,
-        },
-      ]);
-
       calls.push({
         to: UniV4PositionManagerAddress[chain!.id],
-        data: encodeFunctionData({
-          abi: UniV4PositionManagerAbi,
-          functionName: "modifyLiquidities",
-          args: [
-            encodeAbiParameters(
-              [
-                { type: "bytes", name: "actions" },
-                { type: "bytes[]", name: "params" },
-              ],
-              [v4Actions, [mintPositionParams, settlePairParams]]
-            ),
-            BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour deadline
-          ],
+        data: buildAddLiquidityPositionCalldata({
+          poolKey,
+          tickLower: tickLowerNum,
+          tickUpper: tickUpperNum,
+          liquidity: finalLiquidity,
+          amount0Max: finalAmount0,
+          amount1Max: finalAmount1,
+          owner: address,
+          hookData: validHookData,
+          deadline: BigInt(transactionDeadline),
+          initializeSqrtPriceX96: initialSqrtPriceX96,
         }),
         value,
       });
@@ -839,18 +803,22 @@ const AddLiquidity = () => {
     const needsApproval = [];
 
     // Check currency0 approvals
-    if (currency0 !== zeroAddress && amount0 && currency0Decimals) {
+    if (
+      currency0 !== zeroAddress &&
+      amount0 &&
+      currency0Decimals !== undefined
+    ) {
       try {
         const requiredAmount = parseUnits(amount0, currency0Decimals);
-        if (
-          currency0Approval !== undefined &&
-          currency0Approval < requiredAmount
-        ) {
+        if (!isErc20AllowanceSufficient(currency0Approval, requiredAmount)) {
           needsApproval.push(`${currency0Symbol || "Currency0"} → Permit2`);
         }
         if (
-          currency0Permit2Allowance !== undefined &&
-          currency0Permit2Allowance < requiredAmount
+          !isPermit2AllowanceSufficient(
+            currency0Permit2Allowance,
+            requiredAmount,
+            Math.floor(Date.now() / 1000) + 20 * 60
+          )
         ) {
           needsApproval.push(
             `Permit2 → PM (${currency0Symbol || "Currency0"})`
@@ -860,18 +828,22 @@ const AddLiquidity = () => {
     }
 
     // Check currency1 approvals
-    if (currency1 !== zeroAddress && amount1 && currency1Decimals) {
+    if (
+      currency1 !== zeroAddress &&
+      amount1 &&
+      currency1Decimals !== undefined
+    ) {
       try {
         const requiredAmount = parseUnits(amount1, currency1Decimals);
-        if (
-          currency1Approval !== undefined &&
-          currency1Approval < requiredAmount
-        ) {
+        if (!isErc20AllowanceSufficient(currency1Approval, requiredAmount)) {
           needsApproval.push(`${currency1Symbol || "Currency1"} → Permit2`);
         }
         if (
-          currency1Permit2Allowance !== undefined &&
-          currency1Permit2Allowance < requiredAmount
+          !isPermit2AllowanceSufficient(
+            currency1Permit2Allowance,
+            requiredAmount,
+            Math.floor(Date.now() / 1000) + 20 * 60
+          )
         ) {
           needsApproval.push(
             `Permit2 → PM (${currency1Symbol || "Currency1"})`
@@ -888,7 +860,8 @@ const AddLiquidity = () => {
   // Helper functions to check if amounts are valid (not exceeding balance)
   const isAmount0Valid = () => {
     if (!amount0 || amount0 === "" || amount0 === "0") return true;
-    if (!currency0Balance || !currency0Decimals) return true;
+    if (currency0Balance === undefined || currency0Decimals === undefined)
+      return false;
     try {
       const enteredAmount = parseUnits(amount0, currency0Decimals);
       return enteredAmount <= currency0Balance;
@@ -899,7 +872,8 @@ const AddLiquidity = () => {
 
   const isAmount1Valid = () => {
     if (!amount1 || amount1 === "" || amount1 === "0") return true;
-    if (!currency1Balance || !currency1Decimals) return true;
+    if (currency1Balance === undefined || currency1Decimals === undefined)
+      return false;
     try {
       const enteredAmount = parseUnits(amount1, currency1Decimals);
       return enteredAmount <= currency1Balance;
@@ -1006,8 +980,8 @@ const AddLiquidity = () => {
                   poolInteractionDisabled={
                     !currency0 ||
                     !currency1 ||
-                    !currency0Decimals ||
-                    !currency1Decimals ||
+                    currency0Decimals === undefined ||
+                    currency1Decimals === undefined ||
                     !isChainSupported ||
                     !poolId
                   }
@@ -1268,7 +1242,10 @@ const AddLiquidity = () => {
                         textDecoration: "underline",
                       }}
                       onClick={() => {
-                        if (currency0Balance && currency0Decimals) {
+                        if (
+                          currency0Balance !== undefined &&
+                          currency0Decimals !== undefined
+                        ) {
                           const maxBalance = formatUnits(
                             currency0Balance,
                             currency0Decimals
@@ -1286,7 +1263,7 @@ const AddLiquidity = () => {
                       title="Click to use max balance"
                     >
                       Balance:{" "}
-                      {formatBalance(currency0Balance, currency0Decimals || 18)}
+                      {formatBalance(currency0Balance, currency0Decimals ?? 18)}
                     </Text>
                     {!isAmount0Valid() && amount0 && amount0 !== "0" && (
                       <Text
@@ -1375,7 +1352,10 @@ const AddLiquidity = () => {
                         textDecoration: "underline",
                       }}
                       onClick={() => {
-                        if (currency1Balance && currency1Decimals) {
+                        if (
+                          currency1Balance !== undefined &&
+                          currency1Decimals !== undefined
+                        ) {
                           const maxBalance = formatUnits(
                             currency1Balance,
                             currency1Decimals
@@ -1393,7 +1373,7 @@ const AddLiquidity = () => {
                       title="Click to use max balance"
                     >
                       Balance:{" "}
-                      {formatBalance(currency1Balance, currency1Decimals || 18)}
+                      {formatBalance(currency1Balance, currency1Decimals ?? 18)}
                     </Text>
                     {!isAmount1Valid() && amount1 && amount1 !== "0" && (
                       <Text
@@ -1514,14 +1494,14 @@ const AddLiquidity = () => {
                   {/* Approval Status */}
                   {((currency0 !== zeroAddress &&
                     amount0 &&
-                    currency0Decimals) ||
+                    currency0Decimals !== undefined) ||
                     (currency1 !== zeroAddress &&
                       amount1 &&
-                      currency1Decimals)) && (
+                      currency1Decimals !== undefined)) && (
                     <VStack spacing={3} align="stretch">
                       {currency0 !== zeroAddress &&
                         amount0 &&
-                        currency0Decimals && (
+                        currency0Decimals !== undefined && (
                           <VStack spacing={2} align="stretch">
                             <ApprovalStatusRow
                               label={`${
@@ -1535,16 +1515,19 @@ const AddLiquidity = () => {
                               label={`Permit2 → Position Manager (${
                                 currency0Symbol || "Currency0"
                               })`}
-                              approval={currency0Permit2Allowance}
+                              permit2Allowance={currency0Permit2Allowance}
                               requiredAmount={amount0}
                               decimals={currency0Decimals}
                               isPermit2={true}
+                              requiredUntil={
+                                Math.floor(Date.now() / 1000) + 20 * 60
+                              }
                             />
                           </VStack>
                         )}
                       {currency1 !== zeroAddress &&
                         amount1 &&
-                        currency1Decimals && (
+                        currency1Decimals !== undefined && (
                           <VStack spacing={2} align="stretch">
                             <ApprovalStatusRow
                               label={`${
@@ -1558,10 +1541,13 @@ const AddLiquidity = () => {
                               label={`Permit2 → Position Manager (${
                                 currency1Symbol || "Currency1"
                               })`}
-                              approval={currency1Permit2Allowance}
+                              permit2Allowance={currency1Permit2Allowance}
                               requiredAmount={amount1}
                               decimals={currency1Decimals}
                               isPermit2={true}
+                              requiredUntil={
+                                Math.floor(Date.now() / 1000) + 20 * 60
+                              }
                             />
                           </VStack>
                         )}
@@ -1597,9 +1583,15 @@ const AddLiquidity = () => {
                   !address ||
                   !currency0 ||
                   !currency1 ||
+                  !poolId ||
+                  !tickLower ||
+                  !tickUpper ||
+                  currency0Decimals === undefined ||
+                  currency1Decimals === undefined ||
                   !amount0 ||
                   !amount1 ||
                   !isChainSupported ||
+                  isPoolInitialized === undefined ||
                   (!isPoolInitialized && !initialPrice) ||
                   isTransactionLoading ||
                   hasInvalidAmounts
@@ -1609,8 +1601,8 @@ const AddLiquidity = () => {
                 {hasInvalidAmounts
                   ? "Invalid Token Amounts"
                   : !isPoolInitialized && isPoolInitialized !== undefined
-                  ? "Initialize Pool & Add Liquidity"
-                  : "Add Liquidity"}
+                    ? "Initialize Pool & Add Liquidity"
+                    : "Add Liquidity"}
               </Button>
 
               {!isPoolInitialized && isPoolInitialized !== undefined && (

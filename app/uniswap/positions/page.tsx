@@ -21,26 +21,33 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import { FiUser, FiTrash2, FiExternalLink, FiCopy } from "react-icons/fi";
+import { FiUser, FiTrash2 } from "react-icons/fi";
 import { useAccount, useChainId } from "wagmi";
-import { base, baseSepolia } from "viem/chains";
 import { InputField } from "@/components/InputField";
 import { ConnectButton } from "@/components/ConnectButton";
 import { usePositionDetails } from "./hooks/usePositionDetails";
 import { useRemoveLiquidityTransaction } from "./hooks/useRemoveLiquidityTransaction";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-import { formatUnits } from "viem";
-
-const SUPPORTED_CHAINS = [base.id, baseSepolia.id];
+import { Hex, zeroAddress } from "viem";
+import { MAX_SLIPPAGE_BPS } from "../lib/constants";
+import { tryParseSlippageBps } from "../lib/validation";
+import {
+  StateViewAddress,
+  UniV4PositionManagerAddress,
+} from "../lib/constants";
 
 const PositionsPage = () => {
   const { address: userAddress, isConnected } = useAccount();
   const chainId = useChainId();
-  const isChainSupported = chainId
-    ? (SUPPORTED_CHAINS as number[]).includes(chainId)
-    : false;
+  const isChainSupported = !!(
+    chainId &&
+    StateViewAddress[chainId] &&
+    UniV4PositionManagerAddress[chainId]
+  );
 
   const [tokenId, setTokenId] = useState("");
+  const [removeSlippage, setRemoveSlippage] = useState("0.5");
+  const [removeHookData, setRemoveHookData] = useState("0x");
 
   const {
     fetchPositionDetails,
@@ -63,8 +70,20 @@ const PositionsPage = () => {
 
   const handleRemoveLiquidity = () => {
     if (!positionDetails) return;
-    executeRemoveLiquidity(positionDetails);
+    const slippageBps = tryParseSlippageBps(removeSlippage);
+    if (slippageBps === null) return;
+    executeRemoveLiquidity(positionDetails, {
+      slippageBps,
+      hookData: removeHookData as Hex,
+    });
   };
+
+  const removeSlippageBps = tryParseSlippageBps(removeSlippage);
+  const isRemoveSlippageValid = removeSlippageBps !== null;
+  const hasAfterRemoveReturnDeltaHook = positionDetails
+    ? (BigInt(positionDetails.poolKey.hooks) & 1n) !== 0n
+    : false;
+  const isRemoveHookDataValid = /^0x(?:[0-9a-fA-F]{2})*$/.test(removeHookData);
 
   const handleTokenIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTokenId(e.target.value);
@@ -145,7 +164,8 @@ const PositionsPage = () => {
         <Alert status="error" bg="red.900" borderRadius="lg" mb={5}>
           <AlertIcon color="red.400" />
           <AlertDescription color="red.100">
-            This chain is not supported. Please switch to Base or Base Sepolia.
+            This chain does not have the required Uniswap v4 Position Manager
+            and StateView contracts configured.
           </AlertDescription>
         </Alert>
       )}
@@ -291,7 +311,11 @@ const PositionsPage = () => {
                             Fee Tier
                           </Text>
                           <Badge colorScheme="purple" fontSize="xs">
-                            {(positionDetails.poolKey.fee / 10000).toFixed(2)}%
+                            {positionDetails.poolKey.fee === 0x800000
+                              ? "Dynamic"
+                              : `${(
+                                  positionDetails.poolKey.fee / 10000
+                                ).toFixed(2)}%`}
                           </Badge>
                         </HStack>
 
@@ -493,7 +517,9 @@ const PositionsPage = () => {
                             fontWeight="medium"
                             fontFamily="mono"
                           >
-                            {formatUnits(BigInt(positionDetails.liquidity), 18)}
+                            {BigInt(positionDetails.liquidity).toLocaleString(
+                              "en-US"
+                            )}
                           </Text>
                         </HStack>
 
@@ -539,6 +565,51 @@ const PositionsPage = () => {
                               </AlertDescription>
                             </Alert>
 
+                            {hasAfterRemoveReturnDeltaHook && (
+                              <Alert status="error" bg="red.900">
+                                <AlertIcon color="red.400" />
+                                <AlertDescription color="red.100">
+                                  This hook can change withdrawal deltas, so a
+                                  safe minimum output cannot be calculated by
+                                  this page. Removal is disabled.
+                                </AlertDescription>
+                              </Alert>
+                            )}
+
+                            <Box w="full">
+                              <Text color="gray.300" fontSize="sm" mb={2}>
+                                Minimum-output slippage (%)
+                              </Text>
+                              <InputField
+                                type="number"
+                                min={0}
+                                max={MAX_SLIPPAGE_BPS / 100}
+                                step={0.01}
+                                placeholder="0.5"
+                                value={removeSlippage}
+                                onChange={(event) =>
+                                  setRemoveSlippage(event.target.value)
+                                }
+                                isInvalid={!isRemoveSlippageValid}
+                              />
+                            </Box>
+
+                            {positionDetails.poolKey.hooks !== zeroAddress && (
+                              <Box w="full">
+                                <Text color="gray.300" fontSize="sm" mb={2}>
+                                  Remove-liquidity hook data
+                                </Text>
+                                <InputField
+                                  placeholder="0x"
+                                  value={removeHookData}
+                                  onChange={(event) =>
+                                    setRemoveHookData(event.target.value)
+                                  }
+                                  isInvalid={!isRemoveHookDataValid}
+                                />
+                              </Box>
+                            )}
+
                             <Button
                               colorScheme="red"
                               variant="outline"
@@ -547,7 +618,12 @@ const PositionsPage = () => {
                               onClick={handleRemoveLiquidity}
                               isLoading={isRemovingLiquidity}
                               loadingText="Removing Liquidity..."
-                              isDisabled={isTransactionComplete}
+                              isDisabled={
+                                isTransactionComplete ||
+                                !isRemoveSlippageValid ||
+                                !isRemoveHookDataValid ||
+                                hasAfterRemoveReturnDeltaHook
+                              }
                               w="full"
                             >
                               Remove 100% Liquidity

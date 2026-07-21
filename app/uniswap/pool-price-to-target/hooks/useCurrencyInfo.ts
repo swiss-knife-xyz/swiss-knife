@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useReadContracts } from "wagmi";
-import { erc20Abi, zeroAddress, Address } from "viem";
+import { erc20Abi, zeroAddress, Address, isAddress } from "viem";
 
 interface UseCurrencyInfoProps {
   currency0: string;
@@ -15,6 +15,10 @@ export function useCurrencyInfo({
   setCurrency0,
   setCurrency1,
 }: UseCurrencyInfoProps) {
+  const currency0IsToken = currency0 !== zeroAddress && isAddress(currency0);
+  const currency1IsToken = currency1 !== zeroAddress && isAddress(currency1);
+  const currency0IsValid = currency0 === zeroAddress || isAddress(currency0);
+  const currency1IsValid = currency1 === zeroAddress || isAddress(currency1);
   const [currency0Symbol, setCurrency0Symbol] = useState<string | undefined>();
   const [currency0Decimals, setCurrency0Decimals] = useState<
     number | undefined
@@ -27,7 +31,7 @@ export function useCurrencyInfo({
   const { data: currencyInfo, refetch: refetchCurrencyInfo } = useReadContracts(
     {
       contracts: [
-        ...(currency0 !== zeroAddress && currency0.length === 42 // Basic address check
+        ...(currency0IsToken
           ? [
               {
                 address: currency0 as Address,
@@ -41,7 +45,7 @@ export function useCurrencyInfo({
               },
             ]
           : []),
-        ...(currency1 !== zeroAddress && currency1.length === 42 // Basic address check
+        ...(currency1IsToken
           ? [
               {
                 address: currency1 as Address,
@@ -58,11 +62,7 @@ export function useCurrencyInfo({
       ],
       query: {
         // Enable only if both currencies are set and are valid-looking addresses (or zeroAddress for native)
-        enabled:
-          currency0.length > 0 &&
-          currency1.length > 0 &&
-          (currency0 === zeroAddress || currency0.length === 42) &&
-          (currency1 === zeroAddress || currency1.length === 42),
+        enabled: currency0IsValid && currency1IsValid,
         // Do not refetch on window focus or mount, only when currencies change (handled by useEffect below)
         refetchOnWindowFocus: false,
         refetchOnMount: false,
@@ -71,12 +71,7 @@ export function useCurrencyInfo({
   );
 
   useEffect(() => {
-    if (
-      currency0.length > 0 &&
-      currency1.length > 0 &&
-      (currency0 === zeroAddress || currency0.length === 42) &&
-      (currency1 === zeroAddress || currency1.length === 42)
-    ) {
+    if (currency0IsValid && currency1IsValid) {
       refetchCurrencyInfo();
     }
   }, [currency0, currency1, refetchCurrencyInfo]);
@@ -86,7 +81,7 @@ export function useCurrencyInfo({
     if (currency0 === zeroAddress) {
       setCurrency0Symbol("ETH");
       setCurrency0Decimals(18);
-    } else if (currencyInfo && currency0.length === 42) {
+    } else if (currencyInfo && currency0IsToken) {
       const currency0InfoIndex = 0;
       // Check if result exists for currency0
       if (currencyInfo[currency0InfoIndex]?.status === "success") {
@@ -107,9 +102,8 @@ export function useCurrencyInfo({
     if (currency1 === zeroAddress) {
       setCurrency1Symbol("ETH");
       setCurrency1Decimals(18);
-    } else if (currencyInfo && currency1.length === 42) {
-      const currency1InfoIndex =
-        currency0 !== zeroAddress && currency0.length === 42 ? 2 : 0;
+    } else if (currencyInfo && currency1IsToken) {
+      const currency1InfoIndex = currency0IsToken ? 2 : 0;
       // Check if result exists for currency1
       if (currencyInfo[currency1InfoIndex]?.status === "success") {
         setCurrency1Symbol(currencyInfo[currency1InfoIndex]?.result as string);
@@ -134,8 +128,8 @@ export function useCurrencyInfo({
       currency0.length > 0 && // Ensure strings are not empty
       currency1.length > 0 &&
       currency0 !== currency1 &&
-      currency0.startsWith("0x") &&
-      currency1.startsWith("0x") // Ensure they are hex strings
+      isAddress(currency0) &&
+      isAddress(currency1)
     ) {
       try {
         if (BigInt(currency1) < BigInt(currency0)) {

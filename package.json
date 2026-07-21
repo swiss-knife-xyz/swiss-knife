@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:robin-oft-artifacts": "tsx scripts/buildRobinOftArtifacts.ts",
+    "test": "tsx --test",
     "start": "next start",
     "lint": "next lint",
     "fetch-dapps": "tsx scripts/fetchSafeDapps.ts"

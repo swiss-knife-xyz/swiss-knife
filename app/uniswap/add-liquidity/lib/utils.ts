@@ -1,6 +1,13 @@
-import { Address, formatUnits } from "viem";
+import {
+  Address,
+  encodeAbiParameters,
+  formatUnits,
+  keccak256,
+  maxUint128,
+} from "viem";
 import { TickMath } from "@uniswap/v3-sdk";
 import { MIN_TICK, MAX_TICK, Q96 } from "../../lib/constants";
+import { assertValidRoutePool } from "@/lib/uniswap/quote";
 
 export interface PoolKey {
   currency0: Address;
@@ -10,13 +17,99 @@ export interface PoolKey {
   hooks: Address;
 }
 
+const MIN_SQRT_PRICE_X96 = BigInt(TickMath.MIN_SQRT_RATIO.toString());
+const MAX_SQRT_PRICE_X96 = BigInt(TickMath.MAX_SQRT_RATIO.toString());
+const LOG_TICK_BASE = Math.log(1.0001);
+
+const assertDecimals = (decimals: number) => {
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 255) {
+    throw new RangeError("Token decimals must be an integer from 0 to 255.");
+  }
+};
+
+const assertTick = (tick: number) => {
+  if (!Number.isInteger(tick) || tick < MIN_TICK || tick > MAX_TICK) {
+    throw new RangeError(
+      `Tick must be an integer from ${MIN_TICK} to ${MAX_TICK}.`
+    );
+  }
+};
+
+const assertTickRange = (tickLower: number, tickUpper: number) => {
+  assertTick(tickLower);
+  assertTick(tickUpper);
+  if (tickLower >= tickUpper) {
+    throw new RangeError("Lower tick must be less than upper tick.");
+  }
+};
+
+const assertSqrtRatioRange = (sqrtRatioAX96: bigint, sqrtRatioBX96: bigint) => {
+  if (
+    sqrtRatioAX96 < MIN_SQRT_PRICE_X96 ||
+    sqrtRatioBX96 > MAX_SQRT_PRICE_X96 ||
+    sqrtRatioAX96 >= sqrtRatioBX96
+  ) {
+    throw new RangeError("Square-root price bounds must be valid and ordered.");
+  }
+};
+
+export const assertValidTickSpacing = (tickSpacing: number) => {
+  if (
+    !Number.isInteger(tickSpacing) ||
+    tickSpacing <= 0 ||
+    tickSpacing > 32_767
+  ) {
+    throw new RangeError("Tick spacing must be an integer from 1 to 32767.");
+  }
+};
+
+export const getUsableTickBounds = (tickSpacing: number) => {
+  assertValidTickSpacing(tickSpacing);
+  return {
+    minTick: Math.ceil(MIN_TICK / tickSpacing) * tickSpacing,
+    maxTick: Math.floor(MAX_TICK / tickSpacing) * tickSpacing,
+  };
+};
+
 // Helper function to get nearest usable tick
 export const getNearestUsableTick = (
   tick: number,
   tickSpacing: number
 ): number => {
-  const rounded = Math.round(tick / tickSpacing) * tickSpacing;
-  return Math.max(MIN_TICK, Math.min(MAX_TICK, rounded));
+  if (!Number.isInteger(tick) || !Number.isFinite(tick)) {
+    throw new RangeError("Tick must be a finite integer.");
+  }
+  assertValidTickSpacing(tickSpacing);
+  const { minTick, maxTick } = getUsableTickBounds(tickSpacing);
+  const boundedTick = Math.max(MIN_TICK, Math.min(MAX_TICK, tick));
+  const rounded = Math.round(boundedTick / tickSpacing) * tickSpacing;
+  return Math.max(minTick, Math.min(maxTick, rounded));
+};
+
+export const snapTickRangeOutward = (
+  rawTickA: number,
+  rawTickB: number,
+  tickSpacing: number
+) => {
+  if (!Number.isFinite(rawTickA) || !Number.isFinite(rawTickB)) {
+    throw new RangeError("Range ticks must be finite.");
+  }
+  assertValidTickSpacing(tickSpacing);
+  const { minTick, maxTick } = getUsableTickBounds(tickSpacing);
+  const tickLower = Math.max(
+    minTick,
+    Math.floor(Math.min(rawTickA, rawTickB) / tickSpacing) * tickSpacing
+  );
+  const tickUpper = Math.min(
+    maxTick,
+    Math.ceil(Math.max(rawTickA, rawTickB) / tickSpacing) * tickSpacing
+  );
+  if (tickLower >= tickUpper) {
+    throw new RangeError(
+      "Price range is narrower than one usable tick interval."
+    );
+  }
+  return { tickLower, tickUpper };
 };
 
 // Helper function to convert price to sqrtPriceX96
@@ -26,6 +119,11 @@ export const priceToSqrtPriceX96 = (
   decimals1: number,
   isDirection1Per0: boolean = true
 ): bigint => {
+  assertDecimals(decimals0);
+  assertDecimals(decimals1);
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new RangeError("Price must be finite and positive.");
+  }
   // Calculate the effective price considering direction
   let effectivePrice = price;
 
@@ -37,7 +135,63 @@ export const priceToSqrtPriceX96 = (
 
   const adjustedPrice = (effectivePrice * 10 ** decimals1) / 10 ** decimals0;
   const sqrtPrice = Math.sqrt(adjustedPrice);
-  return BigInt(Math.round(sqrtPrice * Number(Q96)));
+  const scaledSqrtPrice = sqrtPrice * Number(Q96);
+  if (!Number.isFinite(scaledSqrtPrice)) {
+    throw new RangeError("Price is outside the supported Uniswap range.");
+  }
+  const sqrtPriceX96 = BigInt(Math.round(scaledSqrtPrice));
+  if (sqrtPriceX96 < MIN_SQRT_PRICE_X96 || sqrtPriceX96 >= MAX_SQRT_PRICE_X96) {
+    throw new RangeError("Price is outside the supported Uniswap range.");
+  }
+  return sqrtPriceX96;
+};
+
+export const sqrtPriceX96ToPrice = (
+  sqrtPriceX96: bigint,
+  decimals0: number,
+  decimals1: number,
+  isDirection1Per0 = true
+): number => {
+  assertDecimals(decimals0);
+  assertDecimals(decimals1);
+  if (sqrtPriceX96 < MIN_SQRT_PRICE_X96 || sqrtPriceX96 >= MAX_SQRT_PRICE_X96) {
+    throw new RangeError("Square-root price is outside the supported range.");
+  }
+  const rawSqrtPrice = Number(sqrtPriceX96) / Number(Q96);
+  const token1PerToken0 =
+    rawSqrtPrice * rawSqrtPrice * 10 ** (decimals0 - decimals1);
+  const price = isDirection1Per0 ? token1PerToken0 : 1 / token1PerToken0;
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new RangeError("Price cannot be represented safely.");
+  }
+  return price;
+};
+
+export const sqrtPriceX96ToTick = (sqrtPriceX96: bigint): number => {
+  if (sqrtPriceX96 < MIN_SQRT_PRICE_X96 || sqrtPriceX96 >= MAX_SQRT_PRICE_X96) {
+    throw new RangeError("Square-root price is outside the supported range.");
+  }
+  const sqrtPrice = Number(sqrtPriceX96) / Number(Q96);
+  let tick = Math.max(
+    MIN_TICK,
+    Math.min(
+      MAX_TICK - 1,
+      Math.floor((2 * Math.log(sqrtPrice)) / LOG_TICK_BASE)
+    )
+  );
+  while (
+    tick > MIN_TICK &&
+    BigInt(TickMath.getSqrtRatioAtTick(tick).toString()) > sqrtPriceX96
+  ) {
+    tick -= 1;
+  }
+  while (
+    tick < MAX_TICK - 1 &&
+    BigInt(TickMath.getSqrtRatioAtTick(tick + 1).toString()) <= sqrtPriceX96
+  ) {
+    tick += 1;
+  }
+  return tick;
 };
 
 /**
@@ -53,9 +207,8 @@ export function maxLiquidityForAmount0Precise(
   sqrtRatioBX96: bigint,
   amount0: bigint
 ): bigint {
-  if (sqrtRatioAX96 > sqrtRatioBX96) {
-    [sqrtRatioAX96, sqrtRatioBX96] = [sqrtRatioBX96, sqrtRatioAX96];
-  }
+  assertSqrtRatioRange(sqrtRatioAX96, sqrtRatioBX96);
+  if (amount0 < 0n) throw new RangeError("Token amount cannot be negative.");
 
   const numerator = amount0 * sqrtRatioAX96 * sqrtRatioBX96;
   const denominator = Q96 * (sqrtRatioBX96 - sqrtRatioAX96);
@@ -75,9 +228,8 @@ export function maxLiquidityForAmount1(
   sqrtRatioBX96: bigint,
   amount1: bigint
 ): bigint {
-  if (sqrtRatioAX96 > sqrtRatioBX96) {
-    [sqrtRatioAX96, sqrtRatioBX96] = [sqrtRatioBX96, sqrtRatioAX96];
-  }
+  assertSqrtRatioRange(sqrtRatioAX96, sqrtRatioBX96);
+  if (amount1 < 0n) throw new RangeError("Token amount cannot be negative.");
   return (amount1 * Q96) / (sqrtRatioBX96 - sqrtRatioAX96);
 }
 
@@ -90,6 +242,11 @@ export const getLiquidityFromAmounts = (params: {
   amount0: bigint;
   amount1: bigint;
 }) => {
+  assertTick(params.currentTick);
+  assertTickRange(params.tickLower, params.tickUpper);
+  if (params.amount0 < 0n || params.amount1 < 0n) {
+    throw new RangeError("Token amounts cannot be negative.");
+  }
   const sqrtRatioCurrentX96 =
     params.currentSqrtPriceX96 ??
     BigInt(TickMath.getSqrtRatioAtTick(params.currentTick).toString());
@@ -100,12 +257,18 @@ export const getLiquidityFromAmounts = (params: {
     TickMath.getSqrtRatioAtTick(params.tickUpper).toString()
   );
 
-  if (sqrtRatioAX96 > sqrtRatioBX96) {
-    [sqrtRatioAX96, sqrtRatioBX96] = [sqrtRatioBX96, sqrtRatioAX96];
+  if (
+    sqrtRatioCurrentX96 < MIN_SQRT_PRICE_X96 ||
+    sqrtRatioCurrentX96 >= MAX_SQRT_PRICE_X96
+  ) {
+    throw new RangeError(
+      "Current square-root price is outside the supported range."
+    );
   }
 
+  let liquidity: bigint;
   if (sqrtRatioCurrentX96 <= sqrtRatioAX96) {
-    return maxLiquidityForAmount0Precise(
+    liquidity = maxLiquidityForAmount0Precise(
       sqrtRatioAX96,
       sqrtRatioBX96,
       params.amount0
@@ -121,28 +284,54 @@ export const getLiquidityFromAmounts = (params: {
       sqrtRatioCurrentX96,
       params.amount1
     );
-    return liquidity0 < liquidity1 ? liquidity0 : liquidity1;
+    liquidity = liquidity0 < liquidity1 ? liquidity0 : liquidity1;
   } else {
-    return maxLiquidityForAmount1(sqrtRatioAX96, sqrtRatioBX96, params.amount1);
+    liquidity = maxLiquidityForAmount1(
+      sqrtRatioAX96,
+      sqrtRatioBX96,
+      params.amount1
+    );
   }
+  if (liquidity > maxUint128) {
+    throw new RangeError("Liquidity exceeds uint128.");
+  }
+  return liquidity;
 };
 
 export const getPoolId = (poolKey: PoolKey) => {
-  const { keccak256, concat, pad, toHex } = require("viem");
+  assertValidRoutePool({ ...poolKey, hookData: "0x" });
+  return keccak256(
+    encodeAbiParameters(
+      [
+        {
+          type: "tuple",
+          components: [
+            { type: "address", name: "currency0" },
+            { type: "address", name: "currency1" },
+            { type: "uint24", name: "fee" },
+            { type: "int24", name: "tickSpacing" },
+            { type: "address", name: "hooks" },
+          ],
+        },
+      ],
+      [poolKey]
+    )
+  );
+};
 
-  const packed = concat([
-    pad(poolKey.currency0, { size: 32 }),
-    pad(poolKey.currency1, { size: 32 }),
-    pad(toHex(poolKey.fee), { size: 32 }),
-    pad(toHex(poolKey.tickSpacing), { size: 32 }),
-    pad(poolKey.hooks, { size: 32 }),
-  ]);
-
-  return keccak256(packed);
+export const tryGetPoolId = (poolKey: PoolKey) => {
+  try {
+    return getPoolId(poolKey);
+  } catch {
+    return null;
+  }
 };
 
 // Helper function to calculate tick from price
 export const getTickFromPrice = (price: number): number => {
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new RangeError("Price must be finite and positive.");
+  }
   // price = 1.0001^tick
   // tick = log(price) / log(1.0001)
   return Math.floor(Math.log(price) / Math.log(1.0001));
@@ -157,44 +346,41 @@ export const priceRatioToTick = (
   spacing: number,
   shouldGetNearestUsableTick: boolean = true
 ): number => {
-  if (!priceInput || isNaN(Number(priceInput))) return 0;
-
+  if (!priceInput) throw new RangeError("Price is required.");
   const inputPrice = Number(priceInput);
+  const tick = sqrtPriceX96ToTick(
+    priceToSqrtPriceX96(inputPrice, decimals0, decimals1, isDirection1Per0)
+  );
+  return shouldGetNearestUsableTick
+    ? getNearestUsableTick(tick, spacing)
+    : tick;
+};
 
-  try {
-    // For Uniswap v3/v4, the tick represents price as: price = 1.0001^tick
-    // where price = amount1/amount0 in their raw decimal format
-
-    let priceRatio: number;
-
-    if (isDirection1Per0) {
-      // Input is token1 per token0 (e.g., USDC per ETH)
-      // Convert from human-readable to raw: divide by (10^decimals0 / 10^decimals1)
-      priceRatio = inputPrice / Math.pow(10, decimals0 - decimals1);
-    } else {
-      // Input is token0 per token1 (e.g., ETH per USDC)
-      // Invert to get token1 per token0, then convert to raw
-      priceRatio = 1 / inputPrice / Math.pow(10, decimals0 - decimals1);
-    }
-
-    // Calculate tick: tick = log(price) / log(1.0001)
-    const tick = Math.log(priceRatio) / Math.log(1.0001);
-
-    if (shouldGetNearestUsableTick) {
-      return getNearestUsableTick(Math.round(tick), spacing);
-    } else {
-      return Math.round(tick);
-    }
-  } catch (error) {
-    console.error("Error converting price to tick:", error);
-    // Fallback to basic calculation
-    const rawTick = getTickFromPrice(inputPrice);
-    if (shouldGetNearestUsableTick) {
-      return getNearestUsableTick(rawTick, spacing);
-    } else {
-      return rawTick;
-    }
-  }
+export const priceRangeToTicksOutward = (
+  priceA: string,
+  priceB: string,
+  isDirection1Per0: boolean,
+  decimals0: number,
+  decimals1: number,
+  spacing: number
+) => {
+  const rawTickA = priceRatioToTick(
+    priceA,
+    isDirection1Per0,
+    decimals0,
+    decimals1,
+    spacing,
+    false
+  );
+  const rawTickB = priceRatioToTick(
+    priceB,
+    isDirection1Per0,
+    decimals0,
+    decimals1,
+    spacing,
+    false
+  );
+  return snapTickRangeOutward(rawTickA, rawTickB, spacing);
 };
 
 // Helper function to convert tick to price ratio with decimal handling using Uniswap SDK
@@ -204,32 +390,28 @@ export const tickToPriceRatio = (
   decimals0: number,
   decimals1: number
 ): number => {
-  try {
-    // Calculate price from tick: price = 1.0001^tick
-    // This gives us the raw price (amount1/amount0 in their native decimal format)
-    const rawPrice = Math.pow(1.0001, tick);
+  assertTick(tick);
+  assertDecimals(decimals0);
+  assertDecimals(decimals1);
+  // Calculate price from tick: price = 1.0001^tick
+  // This gives us the raw price (amount1/amount0 in their native decimal format)
+  const rawPrice = Math.pow(1.0001, tick);
 
-    // Convert from raw price to human-readable price
-    if (isDirection1Per0) {
-      // Return token1 per token0 (e.g., USDC per ETH)
-      // Multiply by (10^decimals0 / 10^decimals1) to get human-readable
-      return rawPrice * Math.pow(10, decimals0 - decimals1);
-    } else {
-      // Return token0 per token1 (e.g., ETH per USDC)
-      // Invert and multiply by (10^decimals1 / 10^decimals0)
-      return (1 / rawPrice) * Math.pow(10, decimals1 - decimals0);
-    }
-  } catch (error) {
-    console.error("Error converting tick to price:", error);
-    // Fallback to basic calculation
-    const rawPrice = Math.pow(1.0001, tick);
-
-    if (isDirection1Per0) {
-      return rawPrice * Math.pow(10, decimals0 - decimals1);
-    } else {
-      return (1 / rawPrice) * Math.pow(10, decimals1 - decimals0);
-    }
+  // Convert from raw price to human-readable price
+  let price: number;
+  if (isDirection1Per0) {
+    // Return token1 per token0 (e.g., USDC per ETH)
+    // Multiply by (10^decimals0 / 10^decimals1) to get human-readable
+    price = rawPrice * Math.pow(10, decimals0 - decimals1);
+  } else {
+    // Return token0 per token1 (e.g., ETH per USDC)
+    // Invert and multiply by (10^decimals1 / 10^decimals0)
+    price = (1 / rawPrice) * Math.pow(10, decimals1 - decimals0);
   }
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new RangeError("Price cannot be represented safely.");
+  }
+  return price;
 };
 
 // Helper function to validate numeric input
@@ -261,17 +443,19 @@ export const formatBalance = (
 export function getAmount0ForLiquidity(
   sqrtRatioAX96: bigint,
   sqrtRatioBX96: bigint,
-  liquidity: bigint
+  liquidity: bigint,
+  roundUp = false
 ): bigint {
-  if (sqrtRatioAX96 > sqrtRatioBX96) {
-    [sqrtRatioAX96, sqrtRatioBX96] = [sqrtRatioBX96, sqrtRatioAX96];
+  assertSqrtRatioRange(sqrtRatioAX96, sqrtRatioBX96);
+  if (liquidity < 0n || liquidity > maxUint128) {
+    throw new RangeError("Liquidity must fit uint128 and not be negative.");
   }
 
-  return (
-    (liquidity * Q96 * (sqrtRatioBX96 - sqrtRatioAX96)) /
-    sqrtRatioAX96 /
-    sqrtRatioBX96
-  );
+  const numerator = liquidity * Q96 * (sqrtRatioBX96 - sqrtRatioAX96);
+  const denominator = sqrtRatioAX96 * sqrtRatioBX96;
+  return roundUp
+    ? (numerator + denominator - 1n) / denominator
+    : numerator / denominator;
 }
 
 /**
@@ -284,13 +468,16 @@ export function getAmount0ForLiquidity(
 export function getAmount1ForLiquidity(
   sqrtRatioAX96: bigint,
   sqrtRatioBX96: bigint,
-  liquidity: bigint
+  liquidity: bigint,
+  roundUp = false
 ): bigint {
-  if (sqrtRatioAX96 > sqrtRatioBX96) {
-    [sqrtRatioAX96, sqrtRatioBX96] = [sqrtRatioBX96, sqrtRatioAX96];
+  assertSqrtRatioRange(sqrtRatioAX96, sqrtRatioBX96);
+  if (liquidity < 0n || liquidity > maxUint128) {
+    throw new RangeError("Liquidity must fit uint128 and not be negative.");
   }
 
-  return (liquidity * (sqrtRatioBX96 - sqrtRatioAX96)) / Q96;
+  const numerator = liquidity * (sqrtRatioBX96 - sqrtRatioAX96);
+  return roundUp ? (numerator + Q96 - 1n) / Q96 : numerator / Q96;
 }
 
 /**
@@ -299,18 +486,25 @@ export function getAmount1ForLiquidity(
  */
 export const getAmountsForLiquidity = (params: {
   currentTick: number;
+  currentSqrtPriceX96?: bigint;
   tickLower: number;
   tickUpper: number;
   liquidity: bigint;
+  roundUp?: boolean;
 }): { amount0: bigint; amount1: bigint } => {
+  assertTick(params.currentTick);
+  assertTickRange(params.tickLower, params.tickUpper);
+  if (params.liquidity < 0n || params.liquidity > maxUint128) {
+    throw new RangeError("Liquidity must fit uint128 and not be negative.");
+  }
   // Handle zero liquidity case
   if (params.liquidity === 0n) {
     return { amount0: 0n, amount1: 0n };
   }
 
-  const sqrtRatioCurrentX96 = BigInt(
-    TickMath.getSqrtRatioAtTick(params.currentTick).toString()
-  );
+  const sqrtRatioCurrentX96 =
+    params.currentSqrtPriceX96 ??
+    BigInt(TickMath.getSqrtRatioAtTick(params.currentTick).toString());
   let sqrtRatioAX96 = BigInt(
     TickMath.getSqrtRatioAtTick(params.tickLower).toString()
   );
@@ -318,8 +512,13 @@ export const getAmountsForLiquidity = (params: {
     TickMath.getSqrtRatioAtTick(params.tickUpper).toString()
   );
 
-  if (sqrtRatioAX96 > sqrtRatioBX96) {
-    [sqrtRatioAX96, sqrtRatioBX96] = [sqrtRatioBX96, sqrtRatioAX96];
+  if (
+    sqrtRatioCurrentX96 < MIN_SQRT_PRICE_X96 ||
+    sqrtRatioCurrentX96 >= MAX_SQRT_PRICE_X96
+  ) {
+    throw new RangeError(
+      "Current square-root price is outside the supported range."
+    );
   }
 
   let amount0 = 0n;
@@ -330,28 +529,80 @@ export const getAmountsForLiquidity = (params: {
     amount0 = getAmount0ForLiquidity(
       sqrtRatioAX96,
       sqrtRatioBX96,
-      params.liquidity
+      params.liquidity,
+      params.roundUp
     );
   } else if (sqrtRatioCurrentX96 < sqrtRatioBX96) {
     // Current price is within the range, need both tokens
     amount0 = getAmount0ForLiquidity(
       sqrtRatioCurrentX96,
       sqrtRatioBX96,
-      params.liquidity
+      params.liquidity,
+      params.roundUp
     );
     amount1 = getAmount1ForLiquidity(
       sqrtRatioAX96,
       sqrtRatioCurrentX96,
-      params.liquidity
+      params.liquidity,
+      params.roundUp
     );
   } else {
     // Current price is above the range, only token1 needed
     amount1 = getAmount1ForLiquidity(
       sqrtRatioAX96,
       sqrtRatioBX96,
-      params.liquidity
+      params.liquidity,
+      params.roundUp
     );
   }
 
   return { amount0, amount1 };
+};
+
+export const getPairedAmountForInput = ({
+  anchor,
+  amount,
+  currentTick,
+  currentSqrtPriceX96,
+  tickLower,
+  tickUpper,
+}: {
+  anchor: "amount0" | "amount1";
+  amount: bigint;
+  currentTick: number;
+  currentSqrtPriceX96: bigint;
+  tickLower: number;
+  tickUpper: number;
+}): bigint => {
+  if (amount < 0n) throw new RangeError("Token amount cannot be negative.");
+  if (amount === 0n) return 0n;
+  assertTickRange(tickLower, tickUpper);
+  const sqrtLower = BigInt(TickMath.getSqrtRatioAtTick(tickLower).toString());
+  const sqrtUpper = BigInt(TickMath.getSqrtRatioAtTick(tickUpper).toString());
+  if (
+    (anchor === "amount0" && currentSqrtPriceX96 >= sqrtUpper) ||
+    (anchor === "amount1" && currentSqrtPriceX96 <= sqrtLower)
+  ) {
+    return 0n;
+  }
+  const amount0 = anchor === "amount0" ? amount : maxUint128;
+  const amount1 = anchor === "amount1" ? amount : maxUint128;
+  const liquidity = getLiquidityFromAmounts({
+    currentTick,
+    currentSqrtPriceX96,
+    tickLower,
+    tickUpper,
+    amount0,
+    amount1,
+  });
+  if (liquidity === 0n) return 0n;
+  const paired = getAmountsForLiquidity({
+    currentTick,
+    currentSqrtPriceX96,
+    tickLower,
+    tickUpper,
+    liquidity,
+    roundUp: true,
+  });
+  return anchor === "amount0" ? paired.amount1 : paired.amount0;
 };

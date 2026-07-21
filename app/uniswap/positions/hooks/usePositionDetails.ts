@@ -6,7 +6,10 @@ import {
   UniV4PositionManagerAddress,
   ERC20Abi,
   NATIVE_ETH,
+  StateViewAbi,
+  StateViewAddress,
 } from "../../lib/constants";
+import { getPoolId } from "../../add-liquidity/lib/utils";
 import {
   parsePositionInfo,
   calculatePriceRange,
@@ -39,8 +42,6 @@ export interface PriceInfo {
   priceUpper: number;
   formattedPriceLower: string;
   formattedPriceUpper: string;
-  token0PerToken1: number;
-  token1PerToken0: number;
 }
 
 export interface PositionDetails {
@@ -53,6 +54,8 @@ export interface PositionDetails {
   token1: TokenInfo;
   tokenURI: string;
   priceInfo: PriceInfo;
+  currentSqrtPriceX96: bigint;
+  currentTick: number;
 }
 
 export const usePositionDetails = () => {
@@ -128,7 +131,7 @@ export const usePositionDetails = () => {
         // Extract pool key and position info from the result
         const [poolKey, packedPositionInfo] = poolAndPositionInfo as [
           any,
-          bigint
+          bigint,
         ];
         const positionInfo = parsePositionInfo(packedPositionInfo);
 
@@ -175,14 +178,16 @@ export const usePositionDetails = () => {
 
             const results = await publicClient.multicall({ contracts });
 
-            const symbol =
-              results[0].status === "success"
-                ? (results[0].result as string)
-                : "UNKNOWN";
-            const decimals =
-              results[1].status === "success"
-                ? (results[1].result as number)
-                : 18;
+            if (
+              results[0].status !== "success" ||
+              results[1].status !== "success"
+            ) {
+              throw new Error(
+                `Failed to read token metadata for ${tokenAddress}`
+              );
+            }
+            const symbol = results[0].result as string;
+            const decimals = results[1].result as number;
             const balance =
               userAddress && results[2]?.status === "success"
                 ? (results[2].result as unknown as bigint)
@@ -203,6 +208,21 @@ export const usePositionDetails = () => {
           getTokenInfo(poolKey.currency1),
         ]);
 
+        const stateViewAddress = StateViewAddress[chain.id];
+        if (!stateViewAddress) {
+          throw new Error("StateView not supported on this chain");
+        }
+        const [currentSqrtPriceX96, currentTick] =
+          (await publicClient.readContract({
+            address: stateViewAddress,
+            abi: StateViewAbi,
+            functionName: "getSlot0",
+            args: [getPoolId(poolKey)],
+          })) as readonly [bigint, number, number, number];
+        if (currentSqrtPriceX96 === 0n) {
+          throw new Error("Position pool is not initialized");
+        }
+
         // Calculate price range
         const priceRange = calculatePriceRange(
           positionInfo.tickLower,
@@ -216,8 +236,6 @@ export const usePositionDetails = () => {
           priceUpper: priceRange.priceUpper,
           formattedPriceLower: formatPrice(priceRange.priceLower),
           formattedPriceUpper: formatPrice(priceRange.priceUpper),
-          token0PerToken1: priceRange.priceLower, // Price at lower tick
-          token1PerToken0: 1 / priceRange.priceLower, // Inverse
         };
 
         const details: PositionDetails = {
@@ -230,6 +248,8 @@ export const usePositionDetails = () => {
           token1: token1Info,
           tokenURI,
           priceInfo,
+          currentSqrtPriceX96,
+          currentTick,
         };
 
         setPositionDetails(details);

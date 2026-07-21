@@ -63,15 +63,15 @@ export const BinarySearchControls: React.FC<BinarySearchControlsProps> = ({
             searchProgress.startsWith("❌")
               ? "red.900"
               : searchProgress.startsWith("🛑")
-              ? "yellow.700"
-              : "black"
+                ? "yellow.700"
+                : "black"
           }
           color={
             searchProgress.startsWith("❌")
               ? "red.100"
               : searchProgress.startsWith("🛑")
-              ? "yellow.100"
-              : "green.400"
+                ? "yellow.100"
+                : "green.400"
           }
           p={3}
           borderRadius="md"
@@ -82,8 +82,8 @@ export const BinarySearchControls: React.FC<BinarySearchControlsProps> = ({
             searchProgress.startsWith("❌")
               ? "red.600"
               : searchProgress.startsWith("🛑")
-              ? "yellow.500"
-              : "green.400"
+                ? "yellow.500"
+                : "green.400"
           }
         >
           <Text whiteSpace="pre-wrap">{searchProgress}</Text>
@@ -125,7 +125,7 @@ export const BinarySearchControls: React.FC<BinarySearchControlsProps> = ({
             colorScheme="blue"
             onClick={() => {
               setAmount(searchResult.amount);
-              setZeroForOne(searchResult.direction.includes("Sell Currency0"));
+              setZeroForOne(searchResult.zeroForOne);
               swapAmountRef?.current?.scrollIntoView({
                 behavior: "smooth",
                 block: "center",

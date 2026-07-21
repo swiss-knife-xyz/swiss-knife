@@ -15,7 +15,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { Address, parseUnits, zeroAddress } from "viem";
+import { Address, zeroAddress } from "viem";
 import { useAccount, useSwitchChain } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { chainIdToChain } from "@/data/common";
@@ -30,21 +30,20 @@ import { useCurrencyInfo } from "./hooks/useCurrencyInfo";
 
 // Import utilities and types
 import { PoolWithHookData } from "@/lib/uniswap/types";
-import { getAvailableCurrencies } from "./lib/utils";
-import { StateViewAddress, Permit2Address } from "../lib/constants";
+import {
+  getAvailableCurrencies,
+  getSupportedSwapChainIds,
+  getSwapChainConfig,
+} from "./lib/utils";
 import { SwapLocalStorageKeys } from "../lib/constants";
+import { tryParseSlippageBps } from "../lib/validation";
 
 const SwapPage = () => {
   const { chain, address } = useAccount();
   const { switchChain } = useSwitchChain();
 
-  const chainNotSupported =
-    chain && (!StateViewAddress[chain.id] || !Permit2Address[chain.id]);
-  const isChainSupported = !!(
-    chain &&
-    StateViewAddress[chain.id] &&
-    Permit2Address[chain.id]
-  );
+  const chainNotSupported = chain && getSwapChainConfig(chain.id) === null;
+  const isChainSupported = !!chain && getSwapChainConfig(chain.id) !== null;
 
   // Pool configuration state
   const [pools, setPools] = useLocalStorage<PoolWithHookData[]>(
@@ -78,6 +77,7 @@ const SwapPage = () => {
     SwapLocalStorageKeys.SLIPPAGE,
     "0.5"
   );
+  const slippageBps = tryParseSlippageBps(slippage);
 
   // Available currencies based on pools
   const [availableCurrencies, setAvailableCurrencies] = useState<Address[]>([]);
@@ -117,17 +117,16 @@ const SwapPage = () => {
   );
 
   // Swap quote hook
-  const { quotedAmount, amountOut, isQuoting, quoteError, routingPath } =
-    useSwapQuote({
-      fromCurrency,
-      toCurrency,
-      swapAmount,
-      pools,
-      chainId: chain?.id,
-      enabled: isChainSupported && !!address,
-      fromDecimals: fromCurrencyInfo.decimals || 18,
-      toDecimals: toCurrencyInfo.decimals || 18,
-    });
+  const { quotedAmount, quote, isQuoting, quoteError } = useSwapQuote({
+    fromCurrency,
+    toCurrency,
+    swapAmount,
+    pools,
+    chainId: chain?.id,
+    enabled: isChainSupported && !!address,
+    fromDecimals: fromCurrencyInfo.decimals,
+    toDecimals: toCurrencyInfo.decimals,
+  });
 
   // Swap transaction hook
   const { executeSwap, isLoading: isSwapLoading } = useSwapTransaction({
@@ -143,32 +142,11 @@ const SwapPage = () => {
 
   // Execute swap function
   const handleExecuteSwap = async () => {
-    if (!routingPath || !amountOut) {
-      return;
-    }
-
-    const fromDecimals = fromCurrencyInfo.decimals || 18;
-    const quoteParams = {
-      exactAmount: parseUnits(swapAmount, fromDecimals),
-      exactCurrency: fromCurrency,
-      path: routingPath.map((pool) => ({
-        fee: pool.fee,
-        tickSpacing: pool.tickSpacing,
-        hookData: pool.hookData,
-        hooks: pool.hooks,
-        intermediateCurrency:
-          pool.currency0 === fromCurrency ? pool.currency1 : pool.currency0,
-      })),
-    };
+    if (!quote) return;
 
     await executeSwap({
-      quoteParams,
-      amountOut,
+      quote,
       slippage,
-      fromCurrency,
-      toCurrency,
-      swapAmount,
-      fromDecimals,
     });
   };
 
@@ -178,7 +156,11 @@ const SwapPage = () => {
     !toCurrency ||
     !swapAmount ||
     fromCurrency === toCurrency ||
-    !amountOut ||
+    !quote ||
+    isQuoting ||
+    fromCurrencyInfo.decimals === undefined ||
+    toCurrencyInfo.decimals === undefined ||
+    slippageBps === null ||
     !!quoteError;
 
   return (
@@ -230,17 +212,15 @@ const SwapPage = () => {
               Chain not supported. Please switch to a supported chain:
             </Text>
             <VStack spacing={2}>
-              {Object.keys(StateViewAddress)
-                .map((chainId) => parseInt(chainId))
-                .map((chainId) => (
-                  <Button
-                    key={chainId}
-                    onClick={() => switchChain?.({ chainId })}
-                    colorScheme="blue"
-                  >
-                    {chainIdToChain[chainId].name}
-                  </Button>
-                ))}
+              {getSupportedSwapChainIds().map((chainId) => (
+                <Button
+                  key={chainId}
+                  onClick={() => switchChain?.({ chainId })}
+                  colorScheme="blue"
+                >
+                  {chainIdToChain[chainId].name}
+                </Button>
+              ))}
             </VStack>
           </Box>
         </Center>
@@ -266,6 +246,7 @@ const SwapPage = () => {
               setSwapAmount={setSwapAmount}
               slippage={slippage}
               setSlippage={setSlippage}
+              isSlippageInvalid={slippageBps === null}
               availableCurrencies={endpointCurrencies}
               quotedAmount={quotedAmount || undefined}
               isQuoting={isQuoting}

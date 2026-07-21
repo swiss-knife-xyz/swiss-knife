@@ -169,3 +169,63 @@ test("anchored amount math respects ETH as token0 and token as token1", () => {
   assert.equal(aboveRange.amountEth, 0n);
   assert.ok(aboveRange.amountToken > 0n);
 });
+
+test("FDV round-trips across representative token decimals", () => {
+  for (const decimals of [0, 6, 18, 24]) {
+    const sqrtPriceX96 = fdvToSqrtPriceX96(
+      FDV_USD,
+      TOTAL_SUPPLY,
+      ETH_USD,
+      decimals
+    );
+    assertRelativeClose(
+      sqrtPriceX96ToFdv(sqrtPriceX96, TOTAL_SUPPLY, ETH_USD, decimals),
+      FDV_USD,
+      1e-12
+    );
+  }
+});
+
+test("varied supported FDV ranges remain outward and spacing-aligned", () => {
+  for (const decimals of [0, 6, 8, 18, 24, 36]) {
+    for (let index = 1; index <= 100; index += 1) {
+      const center = 100_000 + index * 50_000;
+      const requestedMin = center / (1.1 + (index % 7) / 10);
+      const requestedMax = center * (1.2 + (index % 5) / 10);
+      const range = fdvRangeToTicks(
+        requestedMin,
+        requestedMax,
+        TOTAL_SUPPLY,
+        ETH_USD,
+        decimals
+      );
+      assert.ok(range);
+      assert.ok(range.tickLower % ROBIN_LP_TICK_SPACING === 0);
+      assert.ok(range.tickUpper % ROBIN_LP_TICK_SPACING === 0);
+      assert.ok(range.effectiveMinFdvUsd <= requestedMin);
+      assert.ok(range.effectiveMaxFdvUsd >= requestedMax);
+    }
+  }
+});
+
+test("Robin liquidity helpers reject malformed market and range inputs", () => {
+  for (const spacing of [0, -200, 1.5, 32_768]) {
+    assert.throws(() => getFullRangeTicks(spacing), /Tick spacing/);
+  }
+  assert.throws(() =>
+    fdvRangeToTicks(FDV_USD * 2, FDV_USD, TOTAL_SUPPLY, ETH_USD, 18)
+  );
+  assert.throws(() => fdvToSqrtPriceX96(Number.NaN, TOTAL_SUPPLY, ETH_USD, 18));
+  assert.throws(() =>
+    sqrtPriceX96ToFdv(2n ** 1024n, TOTAL_SUPPLY, ETH_USD, 18)
+  );
+  assert.throws(() =>
+    getAmountsForAnchor({
+      sqrtPriceX96: sqrtAtTick(0),
+      tickLower: 200,
+      tickUpper: -200,
+      anchor: "eth",
+      amount: 1n,
+    })
+  );
+});

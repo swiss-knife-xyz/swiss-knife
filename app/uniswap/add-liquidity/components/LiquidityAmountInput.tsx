@@ -55,7 +55,7 @@ export const LiquidityAmountInput: React.FC<LiquidityAmountInputProps> = ({
           fontSize="xs"
           color="gray.400"
         >
-          Balance: {formatBalance(balance, decimals || 18)}
+          Balance: {formatBalance(balance, decimals ?? 18)}
         </Text>
       </Box>
     </Td>

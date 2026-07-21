@@ -27,14 +27,13 @@ import {
   FiTarget,
   FiBarChart,
 } from "react-icons/fi";
+import { isAddress } from "viem";
+import { tickToPriceRatio } from "../add-liquidity/lib/utils";
+import { formatPriceForDisplay } from "../pool-price-to-target/lib/utils";
 
 // Helper function to validate hexadecimal number (complete)
 const isValidHexNum = (value: string): boolean => {
-  if (!value) return false;
-
-  // Check if it starts with 0x and contains only valid hex characters
-  const hexRegex = /^0x[a-fA-F0-9]+$/;
-  return hexRegex.test(value);
+  return isAddress(value);
 };
 
 // Helper function to check if input could become a valid hex number
@@ -203,10 +202,19 @@ const TokenInput = ({
               color="gray.100"
               _placeholder={{ color: "gray.500" }}
               placeholder="18"
-              value={tokenDecimals || ""}
-              onChange={(e) =>
-                setTokenDecimals(parseInt(e.target.value) || undefined)
-              }
+              value={tokenDecimals ?? ""}
+              min={0}
+              max={255}
+              step={1}
+              onChange={(e) => {
+                if (e.target.value === "") return setTokenDecimals(undefined);
+                const decimals = Number(e.target.value);
+                setTokenDecimals(
+                  Number.isInteger(decimals) && decimals >= 0 && decimals <= 255
+                    ? decimals
+                    : undefined
+                );
+              }}
             />
           </FormControl>
         </VStack>
@@ -271,27 +279,42 @@ const TickToPrice = () => {
       !tokenAAddress ||
       !tokenBAddress ||
       !tickInput ||
-      !tokenADecimals ||
-      !tokenBDecimals
-    )
+      tokenADecimals === undefined ||
+      tokenBDecimals === undefined
+    ) {
+      setToken1PerToken0InDecimals(undefined);
       return;
+    }
 
     // Additional safety check before BigInt conversion
-    if (!isValidHexNum(tokenAAddress) || !isValidHexNum(tokenBAddress)) {
+    if (
+      !isValidHexNum(tokenAAddress) ||
+      !isValidHexNum(tokenBAddress) ||
+      BigInt(tokenAAddress) === BigInt(tokenBAddress)
+    ) {
+      setToken1PerToken0InDecimals(undefined);
       return;
     }
 
     const _isTokenA0 = BigInt(tokenAAddress) < BigInt(tokenBAddress);
     setIsTokenA0(_isTokenA0);
 
-    const price = Math.pow(1.0001, parseInt(tickInput));
+    const tick = Number(tickInput);
+    if (!Number.isInteger(tick) || tick < -887272 || tick > 887272) {
+      setToken1PerToken0InDecimals(undefined);
+      return;
+    }
 
     const token0Decimals = _isTokenA0 ? tokenADecimals : tokenBDecimals;
     const token1Decimals = _isTokenA0 ? tokenBDecimals : tokenADecimals;
 
-    setToken1PerToken0InDecimals(
-      (price * 10 ** token0Decimals) / 10 ** token1Decimals
-    );
+    try {
+      setToken1PerToken0InDecimals(
+        tickToPriceRatio(tick, true, token0Decimals, token1Decimals)
+      );
+    } catch {
+      setToken1PerToken0InDecimals(undefined);
+    }
   }, [tokenAAddress, tokenBAddress, tickInput, tokenADecimals, tokenBDecimals]);
 
   return (
@@ -317,7 +340,7 @@ const TickToPrice = () => {
           </Heading>
         </HStack>
         <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
-          Convert Uniswap V3 tick values to human-readable token prices
+          Convert concentrated-liquidity ticks to human-readable token prices
         </Text>
       </Box>
 
@@ -446,11 +469,11 @@ const TickToPrice = () => {
         </Box>
 
         {/* Results Section */}
-        {token1PerToken0InDecimals &&
+        {token1PerToken0InDecimals !== undefined &&
         tokenAName &&
         tokenBName &&
-        tokenADecimals &&
-        tokenBDecimals ? (
+        tokenADecimals !== undefined &&
+        tokenBDecimals !== undefined ? (
           <Box
             p={6}
             bg="gradient.primary"
@@ -494,8 +517,8 @@ const TickToPrice = () => {
                         color="green.300"
                         textAlign="center"
                       >
-                        {`${token1PerToken0InDecimals.toFixed(
-                          !isTokenA0 ? tokenADecimals : tokenBDecimals
+                        {`${formatPriceForDisplay(
+                          token1PerToken0InDecimals
                         )} ${isTokenA0 ? tokenBName : tokenAName}`}
                       </Text>
                       <Text color="gray.300" fontSize="md" textAlign="center">
@@ -519,8 +542,8 @@ const TickToPrice = () => {
                         color="blue.300"
                         textAlign="center"
                       >
-                        {`${(1 / token1PerToken0InDecimals).toFixed(
-                          isTokenA0 ? tokenADecimals : tokenBDecimals
+                        {`${formatPriceForDisplay(
+                          1 / token1PerToken0InDecimals
                         )} ${isTokenA0 ? tokenAName : tokenBName}`}
                       </Text>
                       <Text color="gray.300" fontSize="md" textAlign="center">

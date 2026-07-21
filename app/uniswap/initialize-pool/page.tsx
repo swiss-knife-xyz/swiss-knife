@@ -19,7 +19,7 @@ import {
   Icon,
 } from "@chakra-ui/react";
 import { FiAlertTriangle, FiZap } from "react-icons/fi";
-import { Address, zeroAddress, encodeFunctionData, Call } from "viem";
+import { Address, zeroAddress } from "viem";
 import { useAccount, useSwitchChain, usePublicClient } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { chainIdToChain } from "@/data/common";
@@ -36,7 +36,6 @@ import {
   StateViewAddress,
   Permit2Address,
   UniV4PositionManagerAddress,
-  UniV4PositionManagerAbi,
   PoolConfigLocalStorageKeys,
   AddLiquidityLocalStorageKeys,
 } from "../lib/constants";
@@ -44,11 +43,12 @@ import {
 // Import utility functions
 import {
   priceToSqrtPriceX96,
-  getPoolId,
+  tryGetPoolId,
   PoolKey,
   isValidNumericInput,
   priceRatioToTick,
 } from "../add-liquidity/lib/utils";
+import { buildInitializePoolCalldata } from "./lib/transactions";
 
 const InitializePool = () => {
   const publicClient = usePublicClient();
@@ -131,8 +131,7 @@ const InitializePool = () => {
     [currency0, currency1, fee, tickSpacing, hookAddress]
   );
 
-  const poolId =
-    currency0 && currency1 && tickSpacing ? getPoolId(poolKey) : null;
+  const poolId = tryGetPoolId(poolKey);
 
   // USE THE NEW usePoolState HOOK
   const {
@@ -186,37 +185,24 @@ const InitializePool = () => {
     if (!address || !publicClient || !isChainSupported) return;
 
     try {
-      // Calculate the correct current tick for liquidity calculations
-      let effectiveCurrentTick = priceRatioToTick(
-        initialPrice,
-        initialPriceDirection,
-        currency0Decimals || 18,
-        currency1Decimals || 18,
-        tickSpacing,
-        false // Don't snap to nearest usable tick for initialization
-      );
-
-      console.log({
-        effectiveCurrentTick,
-        initialPrice,
-        initialPriceDirection,
-      });
+      if (currency0Decimals === undefined || currency1Decimals === undefined) {
+        throw new Error("Token decimals are required.");
+      }
 
       // Check if pool needs initialization
       const initialSqrtPriceX96 = priceToSqrtPriceX96(
         Number(initialPrice),
-        currency0Decimals || 18,
-        currency1Decimals || 18,
+        currency0Decimals,
+        currency1Decimals,
         initialPriceDirection
       );
 
       // Use the new transaction hook
       await executeSendTransaction({
         to: UniV4PositionManagerAddress[chain!.id],
-        data: encodeFunctionData({
-          abi: UniV4PositionManagerAbi,
-          functionName: "initializePool",
-          args: [poolKey, initialSqrtPriceX96],
+        data: buildInitializePoolCalldata({
+          poolKey,
+          sqrtPriceX96: initialSqrtPriceX96,
         }),
         value: 0n,
       });
@@ -342,8 +328,8 @@ const InitializePool = () => {
                   poolInteractionDisabled={
                     !currency0 ||
                     !currency1 ||
-                    !currency0Decimals ||
-                    !currency1Decimals ||
+                    currency0Decimals === undefined ||
+                    currency1Decimals === undefined ||
                     !isChainSupported ||
                     !poolId
                   }
@@ -525,6 +511,9 @@ const InitializePool = () => {
                 !address ||
                 !currency0 ||
                 !currency1 ||
+                !poolId ||
+                currency0Decimals === undefined ||
+                currency1Decimals === undefined ||
                 !isChainSupported ||
                 (isPoolInitialized ? true : !initialPrice) ||
                 isTransactionLoading

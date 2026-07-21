@@ -167,7 +167,7 @@ export const PoolInfoForm: React.FC<PoolInfoFormProps> = ({
               <HStack spacing={2} mb={2}>
                 <Icon as={FiSettings} color="purple.400" boxSize={4} />
                 <Text color="gray.300" fontSize="sm" fontWeight="medium">
-                  Fee (bps)
+                  Fee (1 = 0.0001%)
                 </Text>
               </HStack>
               <Input

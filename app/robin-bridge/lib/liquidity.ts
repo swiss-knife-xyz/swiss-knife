@@ -64,17 +64,31 @@ const fdvToRawTick = (
   return tick;
 };
 
-export const getFullRangeTicks = (spacing = ROBIN_LP_TICK_SPACING) => ({
-  tickLower: Math.ceil(MIN_TICK / spacing) * spacing,
-  tickUpper: Math.floor(MAX_TICK / spacing) * spacing,
-});
+export const getFullRangeTicks = (spacing = ROBIN_LP_TICK_SPACING) => {
+  if (!Number.isInteger(spacing) || spacing <= 0 || spacing > 32_767) {
+    throw new RangeError("Tick spacing must be an integer from 1 to 32767.");
+  }
+  return {
+    tickLower: Math.ceil(MIN_TICK / spacing) * spacing,
+    tickUpper: Math.floor(MAX_TICK / spacing) * spacing,
+  };
+};
 
 export const fdvToTokenPerEth = (
   fdvUsd: number,
   totalSupply: number,
   ethUsd: number
 ) => {
-  if (fdvUsd <= 0 || totalSupply <= 0 || ethUsd <= 0) return 0;
+  if (
+    !Number.isFinite(fdvUsd) ||
+    !Number.isFinite(totalSupply) ||
+    !Number.isFinite(ethUsd) ||
+    fdvUsd <= 0 ||
+    totalSupply <= 0 ||
+    ethUsd <= 0
+  ) {
+    throw new RangeError("FDV, total supply, and ETH price must be positive.");
+  }
   const tokenUsd = fdvUsd / totalSupply;
   return ethUsd / tokenUsd;
 };
@@ -162,7 +176,16 @@ export const sqrtPriceX96ToFdv = (
   tokenDecimals = 18
 ) => {
   assertTokenDecimals(tokenDecimals);
-  if (sqrtPriceX96 <= 0n || totalSupply <= 0 || ethUsd <= 0) return 0;
+  if (
+    sqrtPriceX96 < MIN_SQRT_PRICE_X96 ||
+    sqrtPriceX96 >= MAX_SQRT_PRICE_X96 ||
+    !Number.isFinite(totalSupply) ||
+    !Number.isFinite(ethUsd) ||
+    totalSupply <= 0 ||
+    ethUsd <= 0
+  ) {
+    throw new RangeError("Square-root price and market inputs are invalid.");
+  }
   const sqrtPrice = Number(sqrtPriceX96) / Number(Q96);
   const rawTokenPerEth = sqrtPrice * sqrtPrice;
   const tokensPerEth = rawTokenPerEth * 10 ** (18 - tokenDecimals);
@@ -176,6 +199,14 @@ export const fdvRangeToTicks = (
   ethUsd: number,
   tokenDecimals = 18
 ) => {
+  if (
+    !Number.isFinite(minFdvUsd) ||
+    !Number.isFinite(maxFdvUsd) ||
+    minFdvUsd < 0 ||
+    maxFdvUsd <= minFdvUsd
+  ) {
+    throw new RangeError("FDV range must be finite, ordered, and nonnegative.");
+  }
   const fullRange = getFullRangeTicks(ROBIN_LP_TICK_SPACING);
   const tickAtMinFdv =
     minFdvUsd <= 0
@@ -225,6 +256,15 @@ export const getRequiredLiquiditySides = (
   tickLower: number,
   tickUpper: number
 ): RequiredLiquiditySides => {
+  if (
+    tickLower >= tickUpper ||
+    tickLower % ROBIN_LP_TICK_SPACING !== 0 ||
+    tickUpper % ROBIN_LP_TICK_SPACING !== 0
+  ) {
+    throw new RangeError(
+      "Liquidity ticks must be ordered and spacing-aligned."
+    );
+  }
   const sqrtLower = BigInt(TickMath.getSqrtRatioAtTick(tickLower).toString());
   const sqrtUpper = BigInt(TickMath.getSqrtRatioAtTick(tickUpper).toString());
   if (sqrtPriceX96 <= sqrtLower) return "eth";
@@ -245,7 +285,17 @@ export const getAmountsForAnchor = ({
   anchor: "eth" | "token";
   amount: bigint;
 }) => {
-  if (amount <= 0n || tickLower >= tickUpper) {
+  if (amount < 0n) throw new RangeError("Anchor amount cannot be negative.");
+  if (
+    tickLower >= tickUpper ||
+    tickLower % ROBIN_LP_TICK_SPACING !== 0 ||
+    tickUpper % ROBIN_LP_TICK_SPACING !== 0
+  ) {
+    throw new RangeError(
+      "Liquidity ticks must be ordered and spacing-aligned."
+    );
+  }
+  if (amount === 0n) {
     return { amountEth: 0n, amountToken: 0n, liquidity: 0n };
   }
 

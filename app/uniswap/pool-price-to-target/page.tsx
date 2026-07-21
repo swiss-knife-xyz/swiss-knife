@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import {
   Box,
@@ -22,7 +22,7 @@ import { FiTarget, FiTrendingUp } from "react-icons/fi";
 
 import { chainIdToChain } from "@/data/common";
 import { quoterAddress, PoolKey } from "../lib/constants";
-import { getPoolId, getSearchRangeTokenSymbol } from "./lib/utils";
+import { getSearchRangeTokenSymbol, tryGetPoolId } from "./lib/utils";
 import { usePoolFormState } from "./hooks/usePoolFormState";
 import { useCurrencyInfo } from "./hooks/useCurrencyInfo";
 import { useCurrentPoolPrices } from "./hooks/useCurrentPoolPrices";
@@ -90,16 +90,18 @@ const PoolPriceToTarget = () => {
   // Add ref for scroll target
   const swapAmountRef = useRef<HTMLElement | null>(null);
 
-  const poolKey: PoolKey = {
-    currency0: currency0 as Address,
-    currency1: currency1 as Address,
-    fee: fee!,
-    tickSpacing: tickSpacing!,
-    hooks: (hookAddress || zeroAddress) as Address,
-  };
+  const poolKey: PoolKey = useMemo(
+    () => ({
+      currency0: currency0 as Address,
+      currency1: currency1 as Address,
+      fee: fee!,
+      tickSpacing: tickSpacing!,
+      hooks: (hookAddress || zeroAddress) as Address,
+    }),
+    [currency0, currency1, fee, hookAddress, tickSpacing]
+  );
 
-  const poolId =
-    currency0 && currency1 && tickSpacing ? getPoolId(poolKey) : null;
+  const poolId = tryGetPoolId(poolKey);
 
   // Use the new current pool prices hook
   const {
@@ -269,14 +271,12 @@ const PoolPriceToTarget = () => {
               poolInteractionDisabled={
                 !currency0.length ||
                 !currency1.length ||
-                !currency0Decimals ||
-                !currency1Decimals ||
+                currency0Decimals === undefined ||
+                currency1Decimals === undefined ||
                 !isChainSupported ||
                 !poolId
               }
               slot0Tick={slot0Tick}
-              currentZeroForOnePrice={currentZeroForOnePrice}
-              currentOneForZeroPrice={currentOneForZeroPrice}
               currency0Symbol={currency0Symbol}
               currency1Symbol={currency1Symbol}
             />
@@ -304,8 +304,10 @@ const PoolPriceToTarget = () => {
                 !currency0.length ||
                 !currency1.length ||
                 !amount ||
+                currency0Decimals === undefined ||
+                currency1Decimals === undefined ||
                 !isChainSupported ||
-                !poolKey
+                !poolId
               }
               swapAmountRef={swapAmountRef}
             />
@@ -381,21 +383,12 @@ const PoolPriceToTarget = () => {
                 !searchLow ||
                 !searchHigh ||
                 !isChainSupported ||
-                !poolKey
+                !poolId
               }
               setAmount={setAmount}
               setZeroForOne={setZeroForOne}
               swapAmountRef={swapAmountRef as React.RefObject<HTMLElement>}
               threshold={threshold}
-              targetPrice={targetPrice}
-              currentZeroForOnePrice={currentZeroForOnePrice}
-              currentOneForZeroPrice={currentOneForZeroPrice}
-              currency0={currency0 as Address}
-              currency1={currency1 as Address}
-              fee={fee}
-              tickSpacing={tickSpacing}
-              hookAddress={hookAddress as Address}
-              hookData={hookData}
             />
           </Box>
         </Box>

@@ -39,7 +39,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import {
-  encodeAbiParameters,
   encodeFunctionData,
   erc20Abi,
   formatEther,
@@ -66,18 +65,16 @@ import {
   Permit2Address,
   StateViewAbi,
   StateViewAddress,
-  UniV4PM_MintPositionAbi,
-  UniV4PM_SettlePairAbi,
-  UniV4PM_SweepAbi,
-  UniV4PositionManagerAbi,
   UniV4PositionManagerAddress,
-  V4PMActions,
 } from "@/app/uniswap/lib/constants";
 import {
+  getAmountsForLiquidity,
   getLiquidityFromAmounts,
   getPoolId,
   type PoolKey,
 } from "@/app/uniswap/add-liquidity/lib/utils";
+import { buildAddLiquidityPositionCalldata } from "@/app/uniswap/add-liquidity/lib/transactions";
+import { getErc20ApprovalAmounts } from "@/app/uniswap/add-liquidity/lib/approvals";
 import { ROBINHOOD_CHAIN_ID, type OftDeployment } from "../lib/oft";
 import { RegisteredTokenList, TokenLogo } from "./RegisteredTokenList";
 import { findRegisteredDeployment, WCHAN_BASE_TOKEN } from "../lib/registry";
@@ -98,6 +95,7 @@ import {
 const MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11" as Address;
 const BALANCE_REFRESH_INTERVAL_MS = 10_000;
 const BALANCE_PERCENTAGES = [25, 50, 75, 100] as const;
+const NATIVE_GAS_RESERVE_WEI = 2_000_000_000_000_000n;
 const REVIEW_PRICE_TOLERANCE = 0.01;
 const DRIFT_WARNING_THRESHOLD = 0.02;
 const LOW_LIQUIDITY_USD = 50_000;
@@ -610,7 +608,11 @@ export function LiquidityPanel({
     (requiredSides === "both"
       ? parsedEthAmount > 0n && parsedTokenAmount > 0n
       : true);
-  const exceedsEthBalance = parsedEthAmount > robinState.ethBalance;
+  const spendableEthBalance =
+    robinState.ethBalance > NATIVE_GAS_RESERVE_WEI
+      ? robinState.ethBalance - NATIVE_GAS_RESERVE_WEI
+      : 0n;
+  const exceedsEthBalance = parsedEthAmount > spendableEthBalance;
   const exceedsTokenBalance = parsedTokenAmount > robinState.tokenBalance;
   const canReview =
     Boolean(
@@ -659,16 +661,36 @@ export function LiquidityPanel({
       amount0: parsedEthAmount,
       amount1: parsedTokenAmount,
     });
-    const buffer = initialLiquidity / 2_000n;
-    const liquidity = initialLiquidity - (buffer > 1n ? buffer : 1n);
+    const liquidity = initialLiquidity;
     if (liquidity <= 0n)
       throw new Error("The deposit is too small for this range.");
+    const requiredAmounts = getAmountsForLiquidity({
+      currentTick: latestState.initialized
+        ? latestState.tick
+        : executionInitialTick,
+      currentSqrtPriceX96: latestState.initialized
+        ? latestState.sqrtPriceX96
+        : executionInitialSqrtPriceX96,
+      tickLower: executionTicks.tickLower,
+      tickUpper: executionTicks.tickUpper,
+      liquidity,
+      roundUp: true,
+    });
+    if (
+      requiredAmounts.amount0 > parsedEthAmount ||
+      requiredAmounts.amount1 > parsedTokenAmount
+    ) {
+      throw new Error(
+        "Calculated liquidity exceeds the submitted token maxima."
+      );
+    }
 
     const calls: LiquidityAction[] = [];
-    if (
-      parsedTokenAmount > 0n &&
-      latestState.tokenAllowance < parsedTokenAmount
-    ) {
+    for (const approvalAmount of getErc20ApprovalAmounts(
+      latestState.tokenAllowance,
+      parsedTokenAmount,
+      parsedTokenAmount
+    )) {
       calls.push({
         label: `Approve ${deployment.symbol}`,
         call: {
@@ -676,7 +698,7 @@ export function LiquidityPanel({
           data: encodeFunctionData({
             abi: erc20Abi,
             functionName: "approve",
-            args: [Permit2Address[ROBINHOOD_CHAIN_ID], parsedTokenAmount],
+            args: [Permit2Address[ROBINHOOD_CHAIN_ID], approvalAmount],
           }),
         },
       });
@@ -705,63 +727,20 @@ export function LiquidityPanel({
         },
       });
     }
-    const actionCodes: string[] = [
-      V4PMActions.MINT_POSITION,
-      V4PMActions.SETTLE_PAIR,
-    ];
-    const mintParams = encodeAbiParameters(UniV4PM_MintPositionAbi, [
+    const data = buildAddLiquidityPositionCalldata({
       poolKey,
-      executionTicks.tickLower,
-      executionTicks.tickUpper,
+      tickLower: executionTicks.tickLower,
+      tickUpper: executionTicks.tickUpper,
       liquidity,
-      parsedEthAmount,
-      parsedTokenAmount,
-      address,
-      "0x",
-    ]);
-    const settleParams = encodeAbiParameters(UniV4PM_SettlePairAbi, [
-      { currency0: poolKey.currency0, currency1: poolKey.currency1 },
-    ]);
-    const actionParams = [mintParams, settleParams];
-    if (parsedEthAmount > 0n) {
-      // SETTLE_PAIR pays only the exact PoolManager debt. Return the unused
-      // portion of amount0Max instead of leaving it in PositionManager.
-      actionCodes.push(V4PMActions.SWEEP);
-      actionParams.push(
-        encodeAbiParameters(UniV4PM_SweepAbi, [poolKey.currency0, address])
-      );
-    }
-    const actions = `0x${actionCodes.join("")}` as Hex;
-    const modifyLiquiditiesData = encodeFunctionData({
-      abi: UniV4PositionManagerAbi,
-      functionName: "modifyLiquidities",
-      args: [
-        encodeAbiParameters(
-          [
-            { type: "bytes", name: "actions" },
-            { type: "bytes[]", name: "params" },
-          ],
-          [actions, actionParams]
-        ),
-        BigInt(Math.floor(Date.now() / 1_000) + 1_200),
-      ],
+      amount0Max: parsedEthAmount,
+      amount1Max: parsedTokenAmount,
+      owner: address,
+      hookData: "0x",
+      deadline: BigInt(Math.floor(Date.now() / 1_000) + 1_200),
+      initializeSqrtPriceX96: latestState.initialized
+        ? undefined
+        : executionInitialSqrtPriceX96,
     });
-    const data = latestState.initialized
-      ? modifyLiquiditiesData
-      : encodeFunctionData({
-          abi: UniV4PositionManagerAbi,
-          functionName: "multicall",
-          args: [
-            [
-              encodeFunctionData({
-                abi: UniV4PositionManagerAbi,
-                functionName: "initializePool",
-                args: [poolKey, executionInitialSqrtPriceX96],
-              }),
-              modifyLiquiditiesData,
-            ],
-          ],
-        });
     calls.push({
       label: latestState.initialized
         ? "Add liquidity"
@@ -988,9 +967,7 @@ export function LiquidityPanel({
   };
 
   const setBalancePercentage = (side: "eth" | "token", percentage: number) => {
-    const reserve = 2_000_000_000_000_000n;
-    const availableEth =
-      robinState.ethBalance > reserve ? robinState.ethBalance - reserve : 0n;
+    const availableEth = spendableEthBalance;
     const anchorBalance =
       side === "eth"
         ? percentage === 100

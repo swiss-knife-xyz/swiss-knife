@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { parseUnits, formatUnits } from "viem";
-import { TickMath } from "@uniswap/v3-sdk";
-import { Q96, Q192 } from "../../lib/constants";
-import { priceRatioToTick } from "../lib/utils";
+import {
+  getPairedAmountForInput,
+  priceToSqrtPriceX96,
+  sqrtPriceX96ToTick,
+} from "../lib/utils";
 
 interface UseLiquidityCalculationsProps {
   currency0Decimals?: number;
@@ -56,6 +58,7 @@ export const useLiquidityCalculations = ({
     (
       amount0Input: string,
       currentTick: number,
+      currentSqrtPriceX96: bigint,
       tickLowerNum: number,
       tickUpperNum: number,
       decimals0: number,
@@ -65,39 +68,14 @@ export const useLiquidityCalculations = ({
         return "";
       try {
         const amount0Parsed = parseUnits(amount0Input, decimals0);
-        const sqrtRatioCurrentX96 = BigInt(
-          TickMath.getSqrtRatioAtTick(currentTick).toString()
-        );
-        let sqrtRatioLowerX96 = BigInt(
-          TickMath.getSqrtRatioAtTick(tickLowerNum).toString()
-        );
-        let sqrtRatioUpperX96 = BigInt(
-          TickMath.getSqrtRatioAtTick(tickUpperNum).toString()
-        );
-        if (sqrtRatioLowerX96 > sqrtRatioUpperX96) {
-          [sqrtRatioLowerX96, sqrtRatioUpperX96] = [
-            sqrtRatioUpperX96,
-            sqrtRatioLowerX96,
-          ];
-        }
-        let amount1Calculated: bigint;
-        if (sqrtRatioCurrentX96 <= sqrtRatioLowerX96) {
-          amount1Calculated = 0n;
-        } else if (sqrtRatioCurrentX96 >= sqrtRatioUpperX96) {
-          const ratio = (sqrtRatioUpperX96 * sqrtRatioUpperX96) / Q96;
-          amount1Calculated = (amount0Parsed * ratio) / Q96;
-        } else {
-          const intermediate1 =
-            (sqrtRatioUpperX96 *
-              sqrtRatioCurrentX96 *
-              (sqrtRatioCurrentX96 - sqrtRatioLowerX96)) /
-            Q96;
-          const intermediate2 =
-            (Q192 * (sqrtRatioUpperX96 - sqrtRatioCurrentX96)) / Q96;
-          if (intermediate2 > 0n)
-            amount1Calculated = (amount0Parsed * intermediate1) / intermediate2;
-          else amount1Calculated = 0n;
-        }
+        const amount1Calculated = getPairedAmountForInput({
+          anchor: "amount0",
+          amount: amount0Parsed,
+          currentTick,
+          currentSqrtPriceX96,
+          tickLower: tickLowerNum,
+          tickUpper: tickUpperNum,
+        });
         return formatUnits(amount1Calculated, decimals1);
       } catch (error) {
         console.error("Error calculating amount1 from amount0:", error);
@@ -111,6 +89,7 @@ export const useLiquidityCalculations = ({
     (
       amount1Input: string,
       currentTick: number,
+      currentSqrtPriceX96: bigint,
       tickLowerNum: number,
       tickUpperNum: number,
       decimals0: number,
@@ -120,39 +99,14 @@ export const useLiquidityCalculations = ({
         return "";
       try {
         const amount1Parsed = parseUnits(amount1Input, decimals1);
-        const sqrtRatioCurrentX96 = BigInt(
-          TickMath.getSqrtRatioAtTick(currentTick).toString()
-        );
-        let sqrtRatioLowerX96 = BigInt(
-          TickMath.getSqrtRatioAtTick(tickLowerNum).toString()
-        );
-        let sqrtRatioUpperX96 = BigInt(
-          TickMath.getSqrtRatioAtTick(tickUpperNum).toString()
-        );
-        if (sqrtRatioLowerX96 > sqrtRatioUpperX96) {
-          [sqrtRatioLowerX96, sqrtRatioUpperX96] = [
-            sqrtRatioUpperX96,
-            sqrtRatioLowerX96,
-          ];
-        }
-        let amount0Calculated: bigint;
-        if (sqrtRatioCurrentX96 <= sqrtRatioLowerX96) {
-          const ratio = (sqrtRatioLowerX96 * sqrtRatioLowerX96) / Q96;
-          amount0Calculated = (amount1Parsed * Q96) / ratio;
-        } else if (sqrtRatioCurrentX96 >= sqrtRatioUpperX96) {
-          amount0Calculated = 0n;
-        } else {
-          const intermediate1 =
-            (sqrtRatioUpperX96 *
-              sqrtRatioCurrentX96 *
-              (sqrtRatioCurrentX96 - sqrtRatioLowerX96)) /
-            Q96;
-          const intermediate2 =
-            (Q192 * (sqrtRatioUpperX96 - sqrtRatioCurrentX96)) / Q96;
-          if (intermediate1 > 0n)
-            amount0Calculated = (amount1Parsed * intermediate2) / intermediate1;
-          else amount0Calculated = 0n;
-        }
+        const amount0Calculated = getPairedAmountForInput({
+          anchor: "amount1",
+          amount: amount1Parsed,
+          currentTick,
+          currentSqrtPriceX96,
+          tickLower: tickLowerNum,
+          tickUpper: tickUpperNum,
+        });
         return formatUnits(amount0Calculated, decimals0);
       } catch (error) {
         console.error("Error calculating amount0 from amount1:", error);
@@ -165,8 +119,8 @@ export const useLiquidityCalculations = ({
   useEffect(() => {
     if (
       lastUpdatedField !== "amount0" ||
-      !currency0Decimals ||
-      !currency1Decimals ||
+      currency0Decimals === undefined ||
+      currency1Decimals === undefined ||
       (!isPoolInitialized && !initialPrice)
     )
       return;
@@ -175,21 +129,23 @@ export const useLiquidityCalculations = ({
     const timeoutId = setTimeout(async () => {
       try {
         let currentTick: number;
-        if (isPoolInitialized && slot0Data) currentTick = Number(slot0Data[1]);
-        else if (
+        let currentSqrtPriceX96: bigint;
+        if (isPoolInitialized && slot0Data) {
+          currentTick = Number(slot0Data[1]);
+          currentSqrtPriceX96 = slot0Data[0];
+        } else if (
           !isPoolInitialized &&
           initialPrice &&
           tickSpacing &&
           initialPriceDirection !== undefined
         ) {
-          currentTick = priceRatioToTick(
-            initialPrice,
-            initialPriceDirection,
+          currentSqrtPriceX96 = priceToSqrtPriceX96(
+            Number(initialPrice),
             currency0Decimals,
             currency1Decimals,
-            tickSpacing,
-            false // Don't snap to nearest usable tick for calculation consistency
+            initialPriceDirection
           );
+          currentTick = sqrtPriceX96ToTick(currentSqrtPriceX96);
         } else {
           setIsCalculating(false);
           setCalculatingField(null);
@@ -206,6 +162,7 @@ export const useLiquidityCalculations = ({
           const calculatedAmount1 = calculateAmount1FromAmount0(
             amount0,
             currentTick,
+            currentSqrtPriceX96,
             tickLowerNum,
             tickUpperNum,
             currency0Decimals,
@@ -254,8 +211,8 @@ export const useLiquidityCalculations = ({
   useEffect(() => {
     if (
       lastUpdatedField !== "amount1" ||
-      !currency0Decimals ||
-      !currency1Decimals ||
+      currency0Decimals === undefined ||
+      currency1Decimals === undefined ||
       (!isPoolInitialized && !initialPrice)
     )
       return;
@@ -264,21 +221,23 @@ export const useLiquidityCalculations = ({
     const timeoutId = setTimeout(async () => {
       try {
         let currentTick: number;
-        if (isPoolInitialized && slot0Data) currentTick = Number(slot0Data[1]);
-        else if (
+        let currentSqrtPriceX96: bigint;
+        if (isPoolInitialized && slot0Data) {
+          currentTick = Number(slot0Data[1]);
+          currentSqrtPriceX96 = slot0Data[0];
+        } else if (
           !isPoolInitialized &&
           initialPrice &&
           tickSpacing &&
           initialPriceDirection !== undefined
         ) {
-          currentTick = priceRatioToTick(
-            initialPrice,
-            initialPriceDirection,
+          currentSqrtPriceX96 = priceToSqrtPriceX96(
+            Number(initialPrice),
             currency0Decimals,
             currency1Decimals,
-            tickSpacing,
-            false // Don't snap to nearest usable tick for calculation consistency
+            initialPriceDirection
           );
+          currentTick = sqrtPriceX96ToTick(currentSqrtPriceX96);
         } else {
           setIsCalculating(false);
           setCalculatingField(null);
@@ -295,6 +254,7 @@ export const useLiquidityCalculations = ({
           const calculatedAmount0 = calculateAmount0FromAmount1(
             amount1,
             currentTick,
+            currentSqrtPriceX96,
             tickLowerNum,
             tickUpperNum,
             currency0Decimals,

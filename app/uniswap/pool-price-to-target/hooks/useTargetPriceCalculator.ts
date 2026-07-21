@@ -1,13 +1,22 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocalStorage } from "usehooks-ts";
-import { Address, Hex, parseUnits, formatUnits, zeroAddress } from "viem";
+import { Address, Hex, formatUnits } from "viem";
 import { usePublicClient } from "wagmi";
 import { multicall } from "@wagmi/core";
 import { config } from "@/app/providers"; // Import wagmi config
 import { quoterAbi, quoterAddress, PoolKey } from "../../lib/constants";
-import { sqrtPriceX96ToPrice } from "../lib/utils";
+import type { PoolWithHookData } from "@/lib/uniswap/types";
+import { assertValidRoutePool } from "@/lib/uniswap/quote";
+import { sqrtPriceX96ToPrice } from "../../add-liquidity/lib/utils";
+import {
+  generateParallelSearchAmounts,
+  getNextBinarySearchBounds,
+  getTargetSwapDirection,
+  parseTargetSearchParameters,
+  priceDecreasesAsAmountIncreases,
+} from "../lib/search";
 
 interface UseTargetPriceCalculatorProps {
   poolKey: PoolKey | null;
@@ -26,6 +35,9 @@ export interface SearchResult {
   token: string;
   finalPrice: string;
   direction: string;
+  zeroForOne: boolean;
+  chainId: number;
+  pool: PoolWithHookData;
   targetPrice?: string; // Add target price for deviation calculation
   priceDeviation?: string; // Add price deviation
   currentPrice?: string; // Add current price for reference
@@ -67,20 +79,40 @@ export const useTargetPriceCalculator = ({
     50
   );
   const [searchProgress, setSearchProgress] = useState<string>("");
-  const [isSearching, setIsSearching] = useState<boolean>(false);
   const [isBinarySearching, setIsBinarySearching] = useState<boolean>(false);
   const [isParallelSearching, setIsParallelSearching] =
     useState<boolean>(false);
   const shouldStopSearch = useRef<boolean>(false);
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
 
+  useEffect(() => {
+    shouldStopSearch.current = true;
+    setSearchResult(null);
+    setSearchProgress("");
+  }, [
+    chain?.id,
+    currentOneForZeroPrice,
+    currentZeroForOnePrice,
+    hookDataProp,
+    poolKey?.currency0,
+    poolKey?.currency1,
+    poolKey?.fee,
+    poolKey?.hooks,
+    poolKey?.tickSpacing,
+    searchHigh,
+    searchLow,
+    targetPrice,
+    targetPriceDirection,
+    threshold,
+  ]);
+
   const performBinarySearch = useCallback(async () => {
     if (
       !targetPrice ||
       !currentZeroForOnePrice ||
       !currentOneForZeroPrice ||
-      !currency0Decimals ||
-      !currency1Decimals ||
+      currency0Decimals === undefined ||
+      currency1Decimals === undefined ||
       !chain?.id ||
       !quoterAddress[chain.id] ||
       !publicClient ||
@@ -113,59 +145,69 @@ export const useTargetPriceCalculator = ({
     setSearchProgress("Initializing binary search...");
     setSearchResult(null);
 
-    const targetPriceNum = Number(targetPrice);
-    const currentPriceNum = targetPriceDirection
-      ? Number(currentZeroForOnePrice)
-      : Number(currentOneForZeroPrice);
-
-    const thresholdNum = Number(threshold) / 100;
-    const tolerance = targetPriceNum * thresholdNum;
-
-    let swapZeroForOne: boolean;
-    if (targetPriceDirection) {
-      if (targetPriceNum > currentPriceNum) {
-        swapZeroForOne = false;
-      } else {
-        swapZeroForOne = true;
-      }
-    } else {
-      if (targetPriceNum > currentPriceNum) {
-        swapZeroForOne = false;
-      } else {
-        swapZeroForOne = true;
-      }
-    }
-
-    const swapTokenSymbolToUse = swapZeroForOne
-      ? currency0Symbol
-      : currency1Symbol;
-    const swapTokenDecimals = swapZeroForOne
-      ? currency0Decimals
-      : currency1Decimals;
-
-    console.log("🚀 Starting binary search for optimal swap amount");
-    console.log("Target Price:", targetPriceNum);
-    console.log("Current Price:", currentPriceNum);
-    console.log(
-      "Swap Direction:",
-      swapZeroForOne ? "Currency0 → Currency1" : "Currency1 → Currency0"
-    );
-    console.log("Swap Token:", swapTokenSymbolToUse);
-    console.log("Max Iterations:", maxIterations);
-    console.log(
-      "Search Range:",
-      formatUnits(parseUnits(searchLow, swapTokenDecimals), swapTokenDecimals),
-      "to",
-      formatUnits(parseUnits(searchHigh, swapTokenDecimals), swapTokenDecimals),
-      swapTokenSymbolToUse
-    );
-
-    let low = parseUnits(searchLow, swapTokenDecimals);
-    let high = parseUnits(searchHigh, swapTokenDecimals);
-    let iterations = 0;
-    let foundResult = false;
-
     try {
+      const selectedCurrentPrice = targetPriceDirection
+        ? currentZeroForOnePrice
+        : currentOneForZeroPrice;
+      const targetPriceNum = Number(targetPrice);
+      const currentPriceNum = Number(selectedCurrentPrice);
+      const swapZeroForOne = getTargetSwapDirection(
+        targetPriceNum,
+        currentPriceNum,
+        targetPriceDirection
+      );
+      if (swapZeroForOne === null) {
+        setSearchProgress("✅ Pool is already at the target price");
+        return;
+      }
+
+      const swapTokenSymbolToUse = swapZeroForOne
+        ? currency0Symbol
+        : currency1Symbol;
+      const swapTokenDecimals = swapZeroForOne
+        ? currency0Decimals
+        : currency1Decimals;
+      const poolSnapshot: PoolWithHookData = {
+        ...poolKey,
+        hookData: (hookDataProp || "0x") as Hex,
+      };
+      assertValidRoutePool(poolSnapshot);
+      const parsed = parseTargetSearchParameters({
+        targetPrice,
+        currentPrice: selectedCurrentPrice,
+        thresholdPercent: threshold,
+        searchLow,
+        searchHigh,
+        tokenDecimals: swapTokenDecimals,
+        maxIterations,
+      });
+      const tolerance = parsed.tolerance;
+      let low = parsed.low;
+      let high = parsed.high;
+      let iterations = 0;
+      let foundResult = false;
+      const priceDecreases = priceDecreasesAsAmountIncreases(
+        swapZeroForOne,
+        targetPriceDirection
+      );
+
+      console.log("🚀 Starting binary search for optimal swap amount");
+      console.log("Target Price:", targetPriceNum);
+      console.log("Current Price:", currentPriceNum);
+      console.log(
+        "Swap Direction:",
+        swapZeroForOne ? "Currency0 → Currency1" : "Currency1 → Currency0"
+      );
+      console.log("Swap Token:", swapTokenSymbolToUse);
+      console.log("Max Iterations:", maxIterations);
+      console.log(
+        "Search Range:",
+        formatUnits(low, swapTokenDecimals),
+        "to",
+        formatUnits(high, swapTokenDecimals),
+        swapTokenSymbolToUse
+      );
+
       while (
         low <= high &&
         iterations < maxIterations &&
@@ -187,15 +229,15 @@ export const useTargetPriceCalculator = ({
             args: [
               {
                 poolKey: {
-                  currency0: poolKey.currency0 as Address,
-                  currency1: poolKey.currency1 as Address,
-                  tickSpacing: poolKey.tickSpacing!,
-                  fee: poolKey.fee!,
-                  hooks: (poolKey.hooks || zeroAddress) as Address,
+                  currency0: poolSnapshot.currency0,
+                  currency1: poolSnapshot.currency1,
+                  tickSpacing: poolSnapshot.tickSpacing,
+                  fee: poolSnapshot.fee,
+                  hooks: poolSnapshot.hooks,
                 },
                 zeroForOne: swapZeroForOne,
                 exactAmount: mid,
-                hookData: (hookDataProp || "0x") as Hex,
+                hookData: poolSnapshot.hookData,
               },
             ],
           });
@@ -204,8 +246,9 @@ export const useTargetPriceCalculator = ({
             bigint,
             bigint,
             number,
-            bigint
+            bigint,
           ];
+          if (shouldStopSearch.current) return;
 
           const priceAfter = sqrtPriceX96ToPrice(
             sqrtPriceX96After,
@@ -249,6 +292,9 @@ export const useTargetPriceCalculator = ({
               direction: swapZeroForOne
                 ? "Sell Currency0 for Currency1"
                 : "Sell Currency1 for Currency0",
+              zeroForOne: swapZeroForOne,
+              chainId: chain.id,
+              pool: poolSnapshot,
               targetPrice: targetPrice,
               priceDeviation: (
                 (Math.abs(adjustedPriceAfter - targetPriceNum) /
@@ -261,10 +307,15 @@ export const useTargetPriceCalculator = ({
               `✅ Found optimal amount: ${swapAmountFormatted} ${swapTokenSymbolToUse}`
             );
             break;
-          } else if (adjustedPriceAfter < targetPriceNum) {
-            high = mid - 1n;
           } else {
-            low = mid + 1n;
+            ({ low, high } = getNextBinarySearchBounds({
+              low,
+              high,
+              mid,
+              quotedPrice: adjustedPriceAfter,
+              targetPrice: targetPriceNum,
+              priceDecreases,
+            }));
           }
           await new Promise((resolve) => setTimeout(resolve, 200));
         } catch (error: any) {
@@ -279,7 +330,7 @@ export const useTargetPriceCalculator = ({
           ) {
             high = mid - 1n;
           } else {
-            high = mid - 1n;
+            throw error;
           }
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
@@ -333,8 +384,8 @@ export const useTargetPriceCalculator = ({
       !targetPrice ||
       !currentZeroForOnePrice ||
       !currentOneForZeroPrice ||
-      !currency0Decimals ||
-      !currency1Decimals ||
+      currency0Decimals === undefined ||
+      currency1Decimals === undefined ||
       !chain?.id ||
       !quoterAddress[chain.id] ||
       !publicClient ||
@@ -355,56 +406,59 @@ export const useTargetPriceCalculator = ({
     setSearchProgress("Initializing parallel search...");
     setSearchResult(null);
 
-    const targetPriceNum = Number(targetPrice);
-    const currentPriceNum = targetPriceDirection
-      ? Number(currentZeroForOnePrice)
-      : Number(currentOneForZeroPrice);
-
-    const thresholdNum = Number(threshold) / 100;
-    const tolerance = targetPriceNum * thresholdNum;
-
-    let swapZeroForOne: boolean;
-    if (targetPriceDirection) {
-      swapZeroForOne = targetPriceNum <= currentPriceNum;
-    } else {
-      swapZeroForOne = targetPriceNum >= currentPriceNum;
-    }
-
-    const swapTokenSymbolToUse = swapZeroForOne
-      ? currency0Symbol
-      : currency1Symbol;
-    const swapTokenDecimals = swapZeroForOne
-      ? currency0Decimals
-      : currency1Decimals;
-
-    console.log(
-      "🚀 Starting optimized parallel search for optimal swap amount"
-    );
-    console.log("Target Price:", targetPriceNum);
-    console.log("Current Price:", currentPriceNum);
-    console.log(
-      "Swap Direction:",
-      swapZeroForOne ? "Currency0 → Currency1" : "Currency1 → Currency0"
-    );
-
     try {
-      // Generate test amounts - we'll use a logarithmic distribution for better coverage
-      const lowAmount = parseUnits(searchLow, swapTokenDecimals);
-      const highAmount = parseUnits(searchHigh, swapTokenDecimals);
-
-      // Generate test points using logarithmic distribution
-      const testAmounts: bigint[] = [];
-      const numTests = maxIterations;
-
-      for (let i = 0; i < numTests; i++) {
-        const ratio = i / (numTests - 1);
-        // Use logarithmic interpolation for better distribution
-        const logLow = Math.log(Number(lowAmount));
-        const logHigh = Math.log(Number(highAmount));
-        const logAmount = logLow + ratio * (logHigh - logLow);
-        const amount = BigInt(Math.floor(Math.exp(logAmount)));
-        testAmounts.push(amount);
+      const selectedCurrentPrice = targetPriceDirection
+        ? currentZeroForOnePrice
+        : currentOneForZeroPrice;
+      const targetPriceNum = Number(targetPrice);
+      const currentPriceNum = Number(selectedCurrentPrice);
+      const swapZeroForOne = getTargetSwapDirection(
+        targetPriceNum,
+        currentPriceNum,
+        targetPriceDirection
+      );
+      if (swapZeroForOne === null) {
+        setSearchProgress("✅ Pool is already at the target price");
+        return;
       }
+
+      const swapTokenSymbolToUse = swapZeroForOne
+        ? currency0Symbol
+        : currency1Symbol;
+      const swapTokenDecimals = swapZeroForOne
+        ? currency0Decimals
+        : currency1Decimals;
+      const poolSnapshot: PoolWithHookData = {
+        ...poolKey,
+        hookData: (hookDataProp || "0x") as Hex,
+      };
+      assertValidRoutePool(poolSnapshot);
+      const parsed = parseTargetSearchParameters({
+        targetPrice,
+        currentPrice: selectedCurrentPrice,
+        thresholdPercent: threshold,
+        searchLow,
+        searchHigh,
+        tokenDecimals: swapTokenDecimals,
+        maxIterations,
+        minimumIterations: 2,
+      });
+      const tolerance = parsed.tolerance;
+      const testAmounts = generateParallelSearchAmounts(
+        parsed.low,
+        parsed.high,
+        parsed.maxIterations
+      );
+
+      console.log(
+        "🚀 Starting optimized parallel search for optimal swap amount"
+      );
+      console.log("Target Price:", targetPriceNum);
+      console.log("Current Price:", currentPriceNum);
+      console.log(
+        "Swap Direction:",
+        swapZeroForOne ? "Currency0 → Currency1" : "Currency1 → Currency0"
+      );
 
       setSearchProgress(`Testing ${testAmounts.length} amounts in parallel...`);
 
@@ -416,15 +470,15 @@ export const useTargetPriceCalculator = ({
         args: [
           {
             poolKey: {
-              currency0: poolKey.currency0 as Address,
-              currency1: poolKey.currency1 as Address,
-              tickSpacing: poolKey.tickSpacing!,
-              fee: poolKey.fee!,
-              hooks: (poolKey.hooks || zeroAddress) as Address,
+              currency0: poolSnapshot.currency0,
+              currency1: poolSnapshot.currency1,
+              tickSpacing: poolSnapshot.tickSpacing,
+              fee: poolSnapshot.fee,
+              hooks: poolSnapshot.hooks,
             },
             zeroForOne: swapZeroForOne,
             exactAmount: amount,
-            hookData: (hookDataProp || "0x") as Hex,
+            hookData: poolSnapshot.hookData,
           },
         ],
         chainId: chain.id,
@@ -459,7 +513,7 @@ export const useTargetPriceCalculator = ({
               bigint,
               bigint,
               number,
-              bigint
+              bigint,
             ];
 
             const priceAfter = sqrtPriceX96ToPrice(
@@ -525,6 +579,9 @@ export const useTargetPriceCalculator = ({
             direction: swapZeroForOne
               ? "Sell Currency0 for Currency1"
               : "Sell Currency1 for Currency0",
+            zeroForOne: swapZeroForOne,
+            chainId: chain.id,
+            pool: poolSnapshot,
             targetPrice: targetPrice,
             priceDeviation: (
               (Math.abs(bestMatch.price - targetPriceNum) / targetPriceNum) *
@@ -596,6 +653,11 @@ export const useTargetPriceCalculator = ({
       tolerance: number
     ) => {
       setSearchProgress("Performing refined search around best match...");
+      const poolSnapshot: PoolWithHookData = {
+        ...poolKey!,
+        hookData: (hookDataProp || "0x") as Hex,
+      };
+      assertValidRoutePool(poolSnapshot);
 
       // Create a narrower range around the best match
       const bestAmount = bestMatch.amount;
@@ -605,38 +667,44 @@ export const useTargetPriceCalculator = ({
           Math.min(originalAmounts.length - 1, bestMatch.index + 1)
         ];
 
-      const lowerBound = prevAmount < bestAmount ? prevAmount : bestAmount / 2n;
+      const lowerBound =
+        prevAmount < bestAmount
+          ? prevAmount
+          : bestAmount / 2n > 0n
+            ? bestAmount / 2n
+            : 1n;
       const upperBound = nextAmount > bestAmount ? nextAmount : bestAmount * 2n;
 
       // Generate 15 refined test points
-      const refinedAmounts: bigint[] = [];
+      const refinedAmounts = new Set<bigint>();
       const numRefinedTests = 15;
 
       for (let i = 0; i < numRefinedTests; i++) {
-        const ratio = i / (numRefinedTests - 1);
         const amount =
           lowerBound +
-          BigInt(Math.floor(Number(upperBound - lowerBound) * ratio));
-        refinedAmounts.push(amount);
+          ((upperBound - lowerBound) * BigInt(i)) / BigInt(numRefinedTests - 1);
+        refinedAmounts.add(amount);
       }
 
+      const uniqueRefinedAmounts = [...refinedAmounts];
+
       // Prepare refined multicall contracts
-      const contracts = refinedAmounts.map((amount) => ({
+      const contracts = uniqueRefinedAmounts.map((amount) => ({
         address: quoterAddress[chain!.id] as Address,
         abi: quoterAbi,
         functionName: "quoteExactInputSingle" as const,
         args: [
           {
             poolKey: {
-              currency0: poolKey!.currency0 as Address,
-              currency1: poolKey!.currency1 as Address,
-              tickSpacing: poolKey!.tickSpacing!,
-              fee: poolKey!.fee!,
-              hooks: (poolKey!.hooks || zeroAddress) as Address,
+              currency0: poolSnapshot.currency0,
+              currency1: poolSnapshot.currency1,
+              tickSpacing: poolSnapshot.tickSpacing,
+              fee: poolSnapshot.fee,
+              hooks: poolSnapshot.hooks,
             },
             zeroForOne: swapZeroForOne,
             exactAmount: amount,
-            hookData: (hookDataProp || "0x") as Hex,
+            hookData: poolSnapshot.hookData,
           },
         ],
         chainId: chain!.id,
@@ -655,7 +723,7 @@ export const useTargetPriceCalculator = ({
           if (shouldStopSearch.current) break;
 
           const result = refinedResults[i];
-          const amount = refinedAmounts[i];
+          const amount = uniqueRefinedAmounts[i];
 
           if (result.status === "success" && result.result) {
             try {
@@ -663,7 +731,7 @@ export const useTargetPriceCalculator = ({
                 bigint,
                 bigint,
                 number,
-                bigint
+                bigint,
               ];
 
               const priceAfter = sqrtPriceX96ToPrice(
@@ -689,6 +757,7 @@ export const useTargetPriceCalculator = ({
             }
           }
         }
+        if (shouldStopSearch.current) return;
 
         // Set the final result
         const finalAmountFormatted = formatUnits(
@@ -706,6 +775,9 @@ export const useTargetPriceCalculator = ({
           direction: swapZeroForOne
             ? "Sell Currency0 for Currency1"
             : "Sell Currency1 for Currency0",
+          zeroForOne: swapZeroForOne,
+          chainId: chain!.id,
+          pool: poolSnapshot,
           targetPrice: targetPrice,
           priceDeviation: (
             (Math.abs(refinedBestMatch.price - targetPriceNum) /
@@ -740,6 +812,9 @@ export const useTargetPriceCalculator = ({
           direction: swapZeroForOne
             ? "Sell Currency0 for Currency1"
             : "Sell Currency1 for Currency0",
+          zeroForOne: swapZeroForOne,
+          chainId: chain!.id,
+          pool: poolSnapshot,
           targetPrice: targetPrice,
           priceDeviation: (
             (Math.abs(bestMatch.price - targetPriceNum) / targetPriceNum) *

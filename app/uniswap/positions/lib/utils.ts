@@ -1,4 +1,5 @@
 import { Address } from "viem";
+import { tickToPriceRatio } from "../../add-liquidity/lib/utils";
 
 // PositionInfo packing/unpacking utilities based on the contract
 export interface ParsedPositionInfo {
@@ -33,6 +34,9 @@ export const parsePositionInfo = (packedInfo: bigint): ParsedPositionInfo => {
 
 // Tick to price conversion utilities
 export const tickToPrice = (tick: number): number => {
+  if (!Number.isInteger(tick) || tick < -887272 || tick > 887272) {
+    throw new RangeError("Tick is outside the supported Uniswap range.");
+  }
   return Math.pow(1.0001, tick);
 };
 
@@ -40,23 +44,32 @@ export const calculatePriceRange = (
   tickLower: number,
   tickUpper: number,
   token0Decimals: number,
-  token1Decimals: number,
-  isToken0Base: boolean = true
+  token1Decimals: number
 ) => {
-  const priceLower = tickToPrice(tickLower);
-  const priceUpper = tickToPrice(tickUpper);
-
-  // Adjust for token decimals
-  const decimalAdjustment = Math.pow(10, token0Decimals - token1Decimals);
+  if (tickLower >= tickUpper) {
+    throw new RangeError("Lower tick must be less than upper tick.");
+  }
 
   return {
-    priceLower: priceLower * decimalAdjustment,
-    priceUpper: priceUpper * decimalAdjustment,
-    currentPrice: undefined, // Will be set separately if needed
+    priceLower: tickToPriceRatio(
+      tickLower,
+      true,
+      token0Decimals,
+      token1Decimals
+    ),
+    priceUpper: tickToPriceRatio(
+      tickUpper,
+      true,
+      token0Decimals,
+      token1Decimals
+    ),
   };
 };
 
 export const formatPrice = (price: number, decimals: number = 6): string => {
+  if (!Number.isFinite(price) || price < 0) {
+    throw new RangeError("Price must be finite and non-negative.");
+  }
   if (price === 0) return "0";
   if (price < 0.000001) return `< 0.${"0".repeat(Math.max(0, decimals - 1))}1`;
   if (price > 1000000) return price.toExponential(3);
@@ -74,5 +87,5 @@ export const isInRange = (
   tickLower: number,
   tickUpper: number
 ): boolean => {
-  return currentTick >= tickLower && currentTick <= tickUpper;
+  return currentTick >= tickLower && currentTick < tickUpper;
 };

@@ -49,7 +49,7 @@ export const TokenApprovals: React.FC<TokenApprovalsProps> = ({
   ) => {
     if (
       !requiredAmountStr ||
-      !decimals ||
+      decimals === undefined ||
       requiredAmountStr === "" ||
       requiredAmountStr === "0"
     ) {
