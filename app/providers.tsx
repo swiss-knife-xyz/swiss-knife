@@ -5,6 +5,7 @@ import theme from "@/style/theme";
 import "@rainbow-me/rainbowkit/styles.css";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { http, WagmiProvider, createConfig } from "wagmi";
 import {
   connectorsForWallets,
@@ -94,9 +95,11 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider theme={darkTheme()} modalSize={"compact"}>
-            {children}
-            <ModalComponent />
-            <ImpersonatorFloatingButton />
+            <NuqsAdapter>
+              {children}
+              <ModalComponent />
+              <ImpersonatorFloatingButton />
+            </NuqsAdapter>
           </RainbowKitProvider>
         </QueryClientProvider>
       </WagmiProvider>

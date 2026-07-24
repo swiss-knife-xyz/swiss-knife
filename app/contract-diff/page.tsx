@@ -22,7 +22,7 @@ import {
   parseAsInteger,
   parseAsString,
   useQueryState,
-} from "next-usequerystate";
+} from "nuqs";
 import { diffLines } from "diff";
 import { etherscanChains, chainIdToChain } from "@/data/common";
 import { getSourceCode } from "@/utils";

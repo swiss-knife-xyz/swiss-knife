@@ -27,7 +27,7 @@ import {
   useToast,
   HStack,
 } from "@chakra-ui/react";
-import { parseAsString, useQueryState } from "next-usequerystate";
+import { parseAsString, useQueryState } from "nuqs";
 import { ConnectButton } from "@/components/ConnectButton";
 import { base, baseSepolia } from "wagmi/chains";
 import { baseURL } from "@/config";
