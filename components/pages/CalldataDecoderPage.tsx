@@ -33,7 +33,7 @@ import {
   parseAsInteger,
   parseAsString,
   useQueryState,
-} from "next-usequerystate";
+} from "nuqs";
 import { Hex, Chain, stringify } from "viem";
 import { getPublicClient } from "@/lib/publicClient";
 import { DecodeRecursiveResult, SelectedOptionState , DecodeEventResult } from "@/types";
