@@ -227,6 +227,24 @@ const skillResourcesData: SkillResource[] = [
     ],
   },
   {
+    id: "aave-agents",
+    name: "Aave for Agents",
+    provider: "Aave",
+    url: "https://aave.com/agents",
+    logoDomain: "aave.com",
+    toolTypes: ["MCP", "Skill"],
+    categories: ["DeFi"],
+    tags: ["Lending", "Borrowing", "Simulation", "Position management"],
+    install: "https://mcp.aave.com",
+    description:
+      "Official Aave MCP server and workflow skills for V3 and V4 markets. Agents can compare rates, monitor positions, simulate supply, borrow, repay, and position-swap actions, and prepare unsigned transactions for wallet approval. Skills cover deleveraging, yield analysis, safe transactions, account activity, and transaction confirmation.",
+    sourceUrls: [
+      "https://aave.com/agents",
+      "https://aave.com/docs/mcp/getting-started",
+      "https://github.com/aave/skills",
+    ],
+  },
+  {
     id: "pendle-ai",
     name: "Pendle AI",
     provider: "Pendle",
@@ -776,6 +794,7 @@ const prioritizedResourceIds = [
   "polymarket-cli",
   "hyperliquid-cli",
   "walletchan-mcp",
+  "aave-agents",
   "base-mcp",
   "uniswap-ai",
   "0x-ai",
