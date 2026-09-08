@@ -26,12 +26,13 @@ import {
   zora,
   Chain,
 } from "wagmi/chains";
-import { plasma, megaeth, citrea } from "./common";
+import { plasma, megaeth, citrea, monad, robinhood } from "./common";
 
 export const walletChains: readonly [Chain, ...Chain[]] = [
   // first chain is the default
   mainnet,
   base,
+  robinhood,
   arbitrum,
   avalanche,
   bsc,
@@ -39,6 +40,7 @@ export const walletChains: readonly [Chain, ...Chain[]] = [
   gnosis,
   ink,
   megaeth,
+  monad,
   optimism,
   polygon,
   sei,

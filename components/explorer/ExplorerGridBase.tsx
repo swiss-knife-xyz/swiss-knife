@@ -7,6 +7,7 @@ import {
   HStack,
   Input,
   InputGroup,
+  InputLeftElement,
   InputRightElement,
   SimpleGrid,
   Text,
@@ -20,14 +21,14 @@ import {
   PopoverBody,
   Tooltip,
   Divider,
+  Icon,
 } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
-import { parseAsBoolean, useQueryState } from "next-usequerystate";
+import { FiSearch, FiFilter } from "react-icons/fi";
+import { parseAsBoolean, useQueryState } from "nuqs";
 import { useLocalStorage } from "usehooks-ts";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFilter } from "@fortawesome/free-solid-svg-icons";
 import { ExplorerGridItem, FavoriteExplorerGridItem } from "./ExplorerGridItem";
 import { ExplorersData, ExplorerType } from "@/types";
 import { c, chainIdToChain, chainIdToImage } from "@/data/common";
@@ -144,143 +145,189 @@ export const ExplorerGridBase = ({
 
   return (
     <Box>
-      <Center pb="0.5rem">
-        <InputGroup maxW="30rem">
-          <Input
-            placeholder="search explorers 🔎"
-            value={searchExplorer}
-            onChange={(e) => setSearchExplorer(e.target.value)}
-            borderColor={"whiteAlpha.300"}
-          />
-          {searchExplorer && (
-            <InputRightElement width="3rem">
+      <Center pb={4}>
+        <HStack spacing={3}>
+          <InputGroup maxW="24rem">
+            <InputLeftElement>
+              <Icon as={FiSearch} color="gray.400" boxSize={4} />
+            </InputLeftElement>
+            <Input
+              placeholder="Search explorers..."
+              value={searchExplorer}
+              onChange={(e) => setSearchExplorer(e.target.value)}
+              bg="whiteAlpha.50"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+              _hover={{ borderColor: "whiteAlpha.300" }}
+              _focus={{
+                borderColor: "blue.400",
+                boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
+              }}
+              color="gray.100"
+              _placeholder={{ color: "gray.500" }}
+            />
+            {searchExplorer && (
+              <InputRightElement>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => setSearchExplorer("")}
+                  _hover={{ bg: "whiteAlpha.200" }}
+                >
+                  <CloseIcon boxSize={3} />
+                </Button>
+              </InputRightElement>
+            )}
+          </InputGroup>
+          <Popover>
+            <PopoverTrigger>
               <Button
-                size="xs"
-                variant={"ghost"}
-                onClick={() => setSearchExplorer("")}
+                variant="outline"
+                borderColor="whiteAlpha.200"
+                px={4}
+                py={2}
+                h="auto"
+                _hover={{
+                  bg: "whiteAlpha.100",
+                  borderColor: "whiteAlpha.300",
+                }}
               >
-                <CloseIcon />
+                <HStack spacing={2}>
+                  <Icon as={FiFilter} boxSize={4} />
+                  <Text fontSize="sm">
+                    Chains
+                    {chainIdsSelected.length > 0 &&
+                      ` (${chainIdsSelected.length})`}
+                  </Text>
+                </HStack>
               </Button>
-            </InputRightElement>
-          )}
-        </InputGroup>
-        <Popover>
-          <PopoverTrigger>
-            <Button ml="0.5rem" size={"xs"} py={"1.2rem"}>
-              <HStack>
-                <FontAwesomeIcon icon={faFilter} size="lg" />
-                <Text>
-                  Chains{" "}
-                  {chainIdsSelected.length > 0 &&
-                    `(${chainIdsSelected.length})`}
-                </Text>
-              </HStack>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent w="11rem">
-            <PopoverArrow />
-            <PopoverCloseButton />
-            <PopoverBody bg="bg.900">
-              <Text>Select chains:</Text>
-              <SimpleGrid>
-                {chainIdOptions.map((chainId, i) => (
-                  <GridItem key={i}>
-                    <Button
-                      pr="1.5rem"
-                      size="xs"
-                      variant={"ghost"}
-                      onClick={() => {
-                        // remove from the array
-                        if (chainIdsSelected.includes(chainId)) {
-                          setChainIdsSelected(
-                            chainIdsSelected.filter((id) => id !== chainId)
-                          );
-                        } else {
-                          setChainIdsSelected([...chainIdsSelected, chainId]);
-                        }
-                      }}
-                      bg={
-                        chainIdsSelected.includes(chainId)
-                          ? "whiteAlpha.300"
-                          : ""
-                      }
-                    >
-                      <HStack>
-                        <Image
-                          src={chainIdToImage[chainId]}
-                          alt={chainIdToChain[chainId].name}
-                          w="1rem"
-                          bg="white"
-                          rounded="full"
-                        />
-                        <Text>{chainIdToChain[chainId].name}</Text>
-                      </HStack>
-                    </Button>
-                  </GridItem>
-                ))}
-                {chainIdsSelected.length > 0 && (
-                  <GridItem>
-                    <Center>
-                      <Button
-                        size="xs"
-                        variant={"ghost"}
-                        onClick={() => setChainIdsSelected([])}
-                        bg={"whiteAlpha.300"}
-                      >
-                        <Text>Clear</Text>
-                      </Button>
-                    </Center>
-                  </GridItem>
-                )}
-              </SimpleGrid>
-            </PopoverBody>
-          </PopoverContent>
-        </Popover>
-        {explorerType === ExplorerType.ADDRESS && (
-          <Tooltip label="Filter explorers only for contracts">
-            <Button
-              ml="0.5rem"
-              size={"xs"}
-              p={"1.2rem"}
-              variant={forContracts ? "solid" : "outline"}
-              bg={forContracts ? "whiteAlpha.500" : ""}
-              onClick={() => setForContracts(!forContracts)}
+            </PopoverTrigger>
+            <PopoverContent
+              w="12rem"
+              bg="gray.800"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
             >
-              🤖
-            </Button>
-          </Tooltip>
-        )}
+              <PopoverArrow bg="gray.800" />
+              <PopoverCloseButton />
+              <PopoverBody>
+                <Text color="gray.300" fontSize="sm" mb={2}>
+                  Select chains:
+                </Text>
+                <SimpleGrid spacing={1}>
+                  {chainIdOptions.map((chainId, i) => (
+                    <GridItem key={i}>
+                      <Button
+                        w="full"
+                        size="sm"
+                        variant="ghost"
+                        justifyContent="flex-start"
+                        onClick={() => {
+                          if (chainIdsSelected.includes(chainId)) {
+                            setChainIdsSelected(
+                              chainIdsSelected.filter((id) => id !== chainId)
+                            );
+                          } else {
+                            setChainIdsSelected([...chainIdsSelected, chainId]);
+                          }
+                        }}
+                        bg={
+                          chainIdsSelected.includes(chainId)
+                            ? "whiteAlpha.200"
+                            : "transparent"
+                        }
+                        _hover={{ bg: "whiteAlpha.100" }}
+                      >
+                        <HStack spacing={2}>
+                          <Image
+                            src={chainIdToImage[chainId]}
+                            alt={chainIdToChain[chainId].name}
+                            w="1rem"
+                            bg="white"
+                            rounded="full"
+                          />
+                          <Text fontSize="sm" color="gray.200">
+                            {chainIdToChain[chainId].name}
+                          </Text>
+                        </HStack>
+                      </Button>
+                    </GridItem>
+                  ))}
+                  {chainIdsSelected.length > 0 && (
+                    <GridItem>
+                      <Center mt={2}>
+                        <Button
+                          size="xs"
+                          colorScheme="red"
+                          variant="ghost"
+                          onClick={() => setChainIdsSelected([])}
+                        >
+                          Clear All
+                        </Button>
+                      </Center>
+                    </GridItem>
+                  )}
+                </SimpleGrid>
+              </PopoverBody>
+            </PopoverContent>
+          </Popover>
+          {explorerType === ExplorerType.ADDRESS && (
+            <Tooltip
+              label="Filter explorers only for contracts"
+              placement="top"
+            >
+              <Button
+                size="sm"
+                variant={forContracts ? "solid" : "outline"}
+                colorScheme={forContracts ? "purple" : "gray"}
+                borderColor={forContracts ? undefined : "whiteAlpha.200"}
+                _hover={{
+                  bg: forContracts ? undefined : "whiteAlpha.100",
+                  borderColor: forContracts ? undefined : "whiteAlpha.300",
+                }}
+                onClick={() => setForContracts(!forContracts)}
+              >
+                🤖
+              </Button>
+            </Tooltip>
+          )}
+        </HStack>
       </Center>
       <Box
-        mt="1rem"
-        px="1rem"
+        mt={4}
+        px={4}
         minH="30rem"
         maxH="30rem"
-        overflow="scroll"
-        overflowX="auto"
-        overflowY="auto"
+        overflow="auto"
+        borderRadius="lg"
+        border="1px solid"
+        borderColor="whiteAlpha.100"
+        bg="whiteAlpha.50"
         sx={{
           "::-webkit-scrollbar": {
-            w: "10px",
+            w: "8px",
           },
-          "::-webkit-scrollbar-track ": {
-            bg: "gray.700",
+          "::-webkit-scrollbar-track": {
+            bg: "whiteAlpha.100",
             rounded: "lg",
           },
           "::-webkit-scrollbar-thumb": {
-            bg: "gray.600",
+            bg: "whiteAlpha.300",
             rounded: "lg",
+            _hover: {
+              bg: "whiteAlpha.400",
+            },
           },
         }}
       >
         {favoriteExplorerNames.length > 0 && (
           <>
-            <Box>
-              <Text fontSize="sm" fontWeight="bold">
-                Favorites:
+            <Box py={4}>
+              <Text fontSize="sm" fontWeight="medium" color="gray.300" mb={3}>
+                ⭐ Favorites
               </Text>
               <DndProvider backend={HTML5Backend}>
-                <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
+                <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={4}>
                   {favoriteExplorerNames.map((explorerName, i) => (
                     <FavoriteExplorerGridItem
                       key={i}
@@ -296,23 +343,25 @@ export const ExplorerGridBase = ({
                 </SimpleGrid>
               </DndProvider>
             </Box>
-            <Divider my="1rem" />
+            <Divider borderColor="whiteAlpha.200" />
           </>
         )}
-        <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
-          {filteredExplorerNames
-            .filter((name) => !favoriteExplorerNames.includes(name))
-            .map((explorerName, i) => (
-              <ExplorerGridItem
-                key={i}
-                explorerName={explorerName}
-                explorerData={explorersData[explorerName]}
-                explorerType={explorerType}
-                addressOrTx={addressOrTx}
-                toggleFavorite={toggleFavorite}
-              />
-            ))}
-        </SimpleGrid>
+        <Box py={4}>
+          <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={4}>
+            {filteredExplorerNames
+              .filter((name) => !favoriteExplorerNames.includes(name))
+              .map((explorerName, i) => (
+                <ExplorerGridItem
+                  key={i}
+                  explorerName={explorerName}
+                  explorerData={explorersData[explorerName]}
+                  explorerType={explorerType}
+                  addressOrTx={addressOrTx}
+                  toggleFavorite={toggleFavorite}
+                />
+              ))}
+          </SimpleGrid>
+        </Box>
       </Box>
     </Box>
   );

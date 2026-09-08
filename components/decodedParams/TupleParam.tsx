@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Arg, DecodeTupleParamResult } from "@/types";
 import { stringify } from "viem";
 import { StringParam } from "./StringParam";
+import { InputField } from "@/components/InputField";
 
 interface Params {
   arg: Omit<Arg, "value"> & {
@@ -47,6 +48,19 @@ export const TupleParam = ({ arg: _arg, chainId }: Params) => {
   typeof arg.value === "object" && arg.value !== null && Object.keys(arg.value as any).length > 0 ? (
     <StringParam value={stringify(arg.value)} />
   ) : (
-    <></>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      style={{ width: "100%" }}
+    >
+      <InputField
+        placeholder=""
+        value="()"
+        onChange={() => {}}
+        isReadOnly
+        fontFamily={"mono"}
+      />
+    </motion.div>
   );
 };

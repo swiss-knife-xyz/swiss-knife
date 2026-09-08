@@ -42,10 +42,10 @@ export default function WalletKitInitializer({
         const kit = await WalletKit.init({
           core,
           metadata: {
-            name: "Swiss Knife Wallet",
+            name: "ETH.sh Wallet",
             description: "A simple wallet for WalletConnect",
-            url: "https://swiss-knife.vercel.app",
-            icons: ["https://swiss-knife.vercel.app/logo.png"],
+            url: "https://eth.sh",
+            icons: ["https://eth.sh/icon.png"],
           },
         });
 

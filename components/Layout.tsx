@@ -1,44 +1,54 @@
 "use client";
 
 import { ReactNode } from "react";
-import {
-  Box,
-  Container,
-  Flex,
-  HStack,
-  useBreakpointValue,
-} from "@chakra-ui/react";
+import { Box, Container, Flex, HStack, FlexProps } from "@chakra-ui/react";
+import { useLocalStorage } from "usehooks-ts";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
-interface LayoutParams {
+interface LayoutParams extends FlexProps {
   children: ReactNode;
+  /**
+   * Opt out of the default ancestor `overflow: hidden | auto` wrappers so
+   * descendants can use `position: sticky`. Use when the page has no wide
+   * content that needs horizontal scrolling.
+   */
+  allowSticky?: boolean;
 }
 
-export const Layout = ({ children }: LayoutParams) => {
-  const isMobile = useBreakpointValue({ base: true, md: false });
+export const Layout = ({ children, allowSticky, ...props }: LayoutParams) => {
+  const [isNavExpanded, setIsNavExpanded] = useLocalStorage(
+    "isNavExpanded",
+    false
+  );
+
+  const toggleNav = () => {
+    setIsNavExpanded(!isNavExpanded);
+  };
+
+  const wrapperOverflow = allowSticky ? "visible" : "hidden";
+  const innerOverflowX = allowSticky ? "visible" : "auto";
 
   return (
-    <Box display="flex" flexDir="column" minHeight="100vh">
-      <Box flexGrow={1} overflow="hidden">
+    <Box display="flex" flexDir="column" minHeight="100vh" bg="bg.base">
+      <Box flexGrow={1} overflow={wrapperOverflow}>
         <HStack alignItems="flex-start" spacing={0}>
-          {/* <MainSidebar isNavExpanded={isNavExpanded} toggleNav={toggleNav} /> */}
-          <Flex flexDir="column" flexGrow={1} overflow="hidden">
+          <Flex
+            flexDir="column"
+            flexGrow={1}
+            minW={0}
+            overflow={wrapperOverflow}
+          >
             <Navbar />
-            <Box overflowX="auto" flexGrow={1}>
-              <Container mt={isMobile ? 0 : 12} minW="max-content" px={-20} mb={"6rem"}>
-                <Flex
-                  flexDir="column"
-                  mt="0.5rem"
-                  p="4"
-                  pt={isMobile ? 0 : "4"}
-                  border="1px"
-                  borderColor="whiteAlpha.700"
-                  borderStyle={isMobile ? "none" : "dotted"}
-                  rounded="lg"
-                >
-                  {children}
-                </Flex>
+            <Box overflowX={innerOverflowX} flexGrow={1} minW={0}>
+              <Container
+                mt={8}
+                minW={allowSticky ? undefined : "max-content"}
+                px={{ base: 4, md: 6 }}
+                maxW="container.xl"
+                {...props}
+              >
+                {children}
               </Container>
             </Box>
           </Flex>

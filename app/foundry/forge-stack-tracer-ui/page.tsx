@@ -6,18 +6,19 @@ import {
   VStack,
   Text,
   Button,
-  useColorModeValue,
   Textarea,
   Heading,
   Flex,
   HStack,
   Link,
+  Icon,
 } from "@chakra-ui/react";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
   ExternalLinkIcon,
 } from "@chakra-ui/icons";
+import { FiLayers } from "react-icons/fi";
 
 interface TraceNode {
   content: string;
@@ -89,8 +90,6 @@ const TraceNodeComponent: React.FC<{
   allNodes,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const bgColor = useColorModeValue("gray.100", "gray.700");
-  const borderColor = useColorModeValue("gray.200", "gray.600");
 
   const recalculateMaxDepth = useCallback(() => {
     const maxDepth = Math.max(
@@ -115,6 +114,14 @@ const TraceNodeComponent: React.FC<{
       ? 1
       : Math.max(0.15, 1 - (maxExpandedDepth - node.depth) * 0.4);
 
+  // Determine text color based on content
+  const getTextColor = () => {
+    if (node.content.startsWith("←")) {
+      return node.content.startsWith("← [Revert]") ? "red.400" : "green.400";
+    }
+    return isExpanded ? "gray.100" : "gray.300";
+  };
+
   return (
     <Box width="100%">
       <Button
@@ -124,9 +131,9 @@ const TraceNodeComponent: React.FC<{
         leftIcon={
           node.children.length > 0 ? (
             isExpanded ? (
-              <ChevronDownIcon />
+              <ChevronDownIcon color="blue.400" />
             ) : (
-              <ChevronRightIcon />
+              <ChevronRightIcon color="gray.400" />
             )
           ) : undefined
         }
@@ -134,34 +141,29 @@ const TraceNodeComponent: React.FC<{
         width="100%"
         height="auto"
         justifyContent="flex-start"
-        bg={bgColor}
-        borderColor={borderColor}
+        bg={isExpanded ? "whiteAlpha.100" : "whiteAlpha.50"}
+        border="1px solid"
+        borderColor={isExpanded ? "whiteAlpha.300" : "whiteAlpha.200"}
         opacity={opacity}
-        transition="opacity 0.2s, background-color 0.2s"
+        transition="all 0.2s ease"
         _hover={{
           opacity: Math.min(1, opacity + 0.3),
-          bg: useColorModeValue("gray.200", "gray.600"),
+          bg: "whiteAlpha.100",
+          borderColor: "whiteAlpha.300",
         }}
       >
         <Text
           fontSize="sm"
+          fontFamily="mono"
           isTruncated={!isExpanded}
           whiteSpace={isExpanded ? "normal" : "nowrap"}
-          fontWeight={isExpanded ? "bolder" : "normal"}
+          fontWeight={isExpanded ? "semibold" : "normal"}
           textAlign="left"
           wordBreak="break-all"
-          color={
-            node.content.startsWith("←")
-              ? node.content.startsWith("← [Revert]")
-                ? "red.300"
-                : "green.300"
-              : isExpanded
-              ? "white"
-              : "whiteAlpha.800"
-          }
+          color={getTextColor()}
           transition="color 0.2s"
           _hover={{
-            color: useColorModeValue("black", "white"),
+            color: "gray.100",
           }}
           pointerEvents={isExpanded ? "auto" : "none"}
         >
@@ -169,7 +171,7 @@ const TraceNodeComponent: React.FC<{
         </Text>
       </Button>
       {isExpanded && node.children.length > 0 && (
-        <Box pl={4} borderLeft="1px" borderColor={borderColor} width="100%">
+        <Box pl={4} borderLeft="2px solid" borderColor="blue.400" width="100%">
           {node.children.map((child, index) => (
             <TraceNodeComponent
               key={index}
@@ -208,33 +210,76 @@ const ForgeStackTracerUI = () => {
   };
 
   return (
-    <Flex flexDir={"column"} alignItems={"center"} w="100%">
-      <Heading size="lg">Forge Tests Stack Tracer UI</Heading>
-      <HStack mt="1rem">
-        <Text opacity={0.8}>Try the npm package!</Text>
-        <Link
-          color={"blue.300"}
-          href="https://www.npmjs.com/package/forge-stack-tracer"
-          isExternal
-        >
-          <HStack>
-            <Text>forge-stack-tracer</Text>
-            <ExternalLinkIcon />
+    <Box
+      p={6}
+      bg="rgba(0, 0, 0, 0.05)"
+      backdropFilter="blur(5px)"
+      borderRadius="xl"
+      border="1px solid"
+      borderColor="whiteAlpha.50"
+      maxW="900px"
+      mx="auto"
+    >
+      {/* Page Header */}
+      <Box mb={8} textAlign="center">
+        <HStack justify="center" spacing={3} mb={4}>
+          <Icon as={FiLayers} color="blue.400" boxSize={8} />
+          <Heading
+            size="xl"
+            color="gray.100"
+            fontWeight="bold"
+            letterSpacing="tight"
+          >
+            Forge Stack Tracer
+          </Heading>
+        </HStack>
+        <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto" mb={3}>
+          Visualize and explore your Foundry test stack traces interactively
+        </Text>
+        <HStack justify="center" spacing={2}>
+          <Text color="gray.500" fontSize="sm">
+            Also available as npm package:
+          </Text>
+          <Link
+            color="blue.400"
+            href="https://www.npmjs.com/package/forge-stack-tracer"
+            isExternal
+            fontSize="sm"
+            _hover={{ color: "blue.300" }}
+          >
+            <HStack spacing={1}>
+              <Text>forge-stack-tracer</Text>
+              <ExternalLinkIcon boxSize={3} />
+            </HStack>
+          </Link>
+        </HStack>
+      </Box>
+
+      {/* Input Section */}
+      <Box
+        p={5}
+        bg="whiteAlpha.50"
+        borderRadius="lg"
+        border="1px solid"
+        borderColor="whiteAlpha.200"
+      >
+        <VStack spacing={4} align="stretch">
+          <HStack spacing={2} align="center">
+            <Icon as={FiLayers} color="blue.400" boxSize={5} />
+            <Text color="gray.300" fontWeight="medium">
+              Stack Trace Input
+            </Text>
           </HStack>
-        </Link>
-      </HStack>
-      <Textarea
-        mt="1rem"
-        w="30rem"
-        value={trace}
-        onChange={handleInputChange}
-        onPaste={(e) => {
-          e.preventDefault();
-          const _trace = e.clipboardData.getData("text");
-          setTrace(_trace);
-          handleRenderTree(_trace);
-        }}
-        placeholder={`Paste your forge tests stack trace here...
+          <Textarea
+            value={trace}
+            onChange={handleInputChange}
+            onPaste={(e) => {
+              e.preventDefault();
+              const _trace = e.clipboardData.getData("text");
+              setTrace(_trace);
+              handleRenderTree(_trace);
+            }}
+            placeholder={`Paste your forge tests stack trace here...
 Example:
 
 [PASS] test_tokenBalance()
@@ -243,37 +288,71 @@ Traces:
     └─ [307] Token::balanceOf() [staticcall]
           └─ ← [Return] 900
 `}
-        height="200px"
-        maxWidth="100%"
-        resize="none"
-      />
-      <Button
-        my="1.5rem"
-        maxW="10rem"
-        onClick={() => {
-          handleRenderTree();
-        }}
-        colorScheme="blue"
-      >
-        Render Stack
-      </Button>
+            height="200px"
+            resize="none"
+            bg="whiteAlpha.50"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+            _hover={{ borderColor: "whiteAlpha.300" }}
+            _focus={{
+              borderColor: "blue.400",
+              boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
+            }}
+            color="gray.100"
+            _placeholder={{ color: "gray.500" }}
+            fontFamily="mono"
+            fontSize="sm"
+          />
+          <Flex justify="center">
+            <Button
+              onClick={() => {
+                handleRenderTree();
+              }}
+              colorScheme="blue"
+              leftIcon={<Icon as={FiLayers} boxSize={4} />}
+            >
+              Render Stack
+            </Button>
+          </Flex>
+        </VStack>
+      </Box>
+
+      {/* Results Section */}
       {treeData.length > 0 && (
-        <Box w="40rem" px="1rem">
-          <VStack align="stretch" spacing={2} width="100%">
-            {treeData.map((root, index) => (
-              <TraceNodeComponent
-                key={index}
-                node={root}
-                expandedDepth={0}
-                maxExpandedDepth={maxExpandedDepth}
-                setMaxExpandedDepth={setMaxExpandedDepth}
-                allNodes={allNodes}
-              />
-            ))}
+        <Box
+          mt={6}
+          p={5}
+          bg="whiteAlpha.50"
+          borderRadius="lg"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+        >
+          <VStack spacing={4} align="stretch">
+            <HStack spacing={2} align="center">
+              <Icon as={FiLayers} color="green.400" boxSize={5} />
+              <Text color="gray.300" fontWeight="medium">
+                Trace Visualization
+              </Text>
+              <Text color="gray.500" fontSize="sm">
+                (click to expand/collapse)
+              </Text>
+            </HStack>
+            <VStack align="stretch" spacing={2} width="100%">
+              {treeData.map((root, index) => (
+                <TraceNodeComponent
+                  key={index}
+                  node={root}
+                  expandedDepth={0}
+                  maxExpandedDepth={maxExpandedDepth}
+                  setMaxExpandedDepth={setMaxExpandedDepth}
+                  allNodes={allNodes}
+                />
+              ))}
+            </VStack>
           </VStack>
         </Box>
       )}
-    </Flex>
+    </Box>
   );
 };
 

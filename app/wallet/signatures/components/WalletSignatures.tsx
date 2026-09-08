@@ -5,13 +5,12 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { VStack, Center, Text, Box, HStack, Spacer } from "@chakra-ui/react";
-import { parseAsString, useQueryState } from "next-usequerystate";
+import { parseAsString, useQueryState } from "nuqs";
 import { SignMessage } from "./SignMessage";
 import { SignTypedData } from "./SignTypedData";
 import { exampleTypedDataJSON } from "./types";
 import { SignatureType, SharedSignaturePayload, SignerEntry } from "./types";
-import { getPath } from "@/utils";
-import subdomains from "@/subdomains";
+import { buildSignatureViewUrl } from "../url";
 
 const DEFAULT_EXAMPLE_PRETTY = JSON.stringify(exampleTypedDataJSON, null, 2);
 const DEFAULT_EXAMPLE_MINIFIED = JSON.stringify(exampleTypedDataJSON);
@@ -196,10 +195,6 @@ export default function WalletSignatures() {
       }
 
       if (payloadForUrl) {
-        const jsonString = JSON.stringify(payloadForUrl);
-        const base64String = btoa(jsonString);
-        const encodedPayload = encodeURIComponent(base64String);
-
         // Preserve current query parameters for navigation back
         const preservedParams = new URLSearchParams();
 
@@ -211,14 +206,10 @@ export default function WalletSignatures() {
           preservedParams.set("typedDataToSign", rawTypedDataString);
         }
 
-        let viewUrl = `${getPath(
-          subdomains.WALLET.base
-        )}signatures/view?payload=${encodedPayload}`;
-        if (preservedParams.toString()) {
-          viewUrl += `&returnParams=${encodeURIComponent(
-            preservedParams.toString()
-          )}`;
-        }
+        const viewUrl = buildSignatureViewUrl(
+          payloadForUrl,
+          preservedParams.toString() || undefined
+        );
 
         router.push(viewUrl);
       } else {
@@ -230,54 +221,46 @@ export default function WalletSignatures() {
   };
 
   return (
-    <VStack
-      spacing={10}
-      align="stretch"
-      maxW={{ base: "100%", md: "900px" }}
-      mx="auto"
-      minW={"40rem"}
-      width="100%"
-      px={{ base: 2, md: 4 }}
-    >
-      <VStack gap={2}>
-        {isConnected && (
-          <HStack w="100%" mb={2}>
-            <Spacer /> <ConnectButton hideChain />
-          </HStack>
-        )}
-        <Box position="relative" width="100%" overflow="hidden">
-          <SignMessage
-            messageText={messageToSign}
-            setMessageText={setMessageToSign}
-            onSign={(signature) =>
-              handleSignature(signature, "message", { message: messageToSign })
-            }
-          />
-        </Box>
-        <Center flexDirection="column" my={4}>
-          <Text>OR</Text>
-        </Center>
-        <Box position="relative" width="100%" overflow="hidden">
-          <SignTypedData
-            typedData={typedDataInput}
-            setTypedData={handleTypedDataInputChange}
-            placeholder={exampleTypedDataJSON}
-            onSign={(signature, signedDataObject) =>
-              handleSignature(signature, "typed_data", {
-                typedDataRaw:
-                  rawTypedDataString && rawTypedDataString.trim() !== ""
-                    ? rawTypedDataString
-                    : DEFAULT_EXAMPLE_MINIFIED,
-                typedDataObject:
-                  rawTypedDataString && rawTypedDataString.trim() !== ""
-                    ? signedDataObject
-                    : exampleTypedDataJSON,
-              })
-            }
-            onPasteCallback={handlePastedJson}
-          />
-        </Box>
-      </VStack>
+    <VStack spacing={5} align="stretch" w="full">
+      {isConnected && (
+        <HStack w="full" justify="flex-end">
+          <ConnectButton hideChain />
+        </HStack>
+      )}
+      <Box>
+        <SignMessage
+          messageText={messageToSign}
+          setMessageText={setMessageToSign}
+          onSign={(signature) =>
+            handleSignature(signature, "message", { message: messageToSign })
+          }
+        />
+      </Box>
+      <Center py={2}>
+        <Text color="gray.500" fontSize="sm">
+          OR
+        </Text>
+      </Center>
+      <Box>
+        <SignTypedData
+          typedData={typedDataInput}
+          setTypedData={handleTypedDataInputChange}
+          placeholder={exampleTypedDataJSON}
+          onSign={(signature, signedDataObject) =>
+            handleSignature(signature, "typed_data", {
+              typedDataRaw:
+                rawTypedDataString && rawTypedDataString.trim() !== ""
+                  ? rawTypedDataString
+                  : DEFAULT_EXAMPLE_MINIFIED,
+              typedDataObject:
+                rawTypedDataString && rawTypedDataString.trim() !== ""
+                  ? signedDataObject
+                  : exampleTypedDataJSON,
+            })
+          }
+          onPasteCallback={handlePastedJson}
+        />
+      </Box>
     </VStack>
   );
 }

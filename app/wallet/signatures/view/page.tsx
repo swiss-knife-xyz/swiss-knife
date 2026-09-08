@@ -40,29 +40,14 @@ import {
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import AddressDisplay from "@/components/AddressDisplay";
 import TypeBadge from "../components/TypeBadge";
+import {
+  buildSignatureViewUrl,
+  decodeSignaturePayload,
+  getSignatureViewParams,
+} from "../url";
+import type { SignatureViewParams } from "../url";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
-
-const decodeDataFromUrl = (
-  encodedData: string
-): SharedSignaturePayload | null => {
-  try {
-    const base64String = decodeURIComponent(encodedData);
-    const jsonString = atob(base64String);
-    return JSON.parse(jsonString) as SharedSignaturePayload;
-  } catch (error) {
-    console.error("Failed to decode or parse URL data:", error);
-    if (
-      error instanceof DOMException &&
-      error.name === "InvalidCharacterError"
-    ) {
-      console.error(
-        "Error during atob(): Input may not be a valid Base64 string."
-      );
-    }
-    return null;
-  }
-};
 
 const explorerBaseUrl = "https://etherscan.io/address/";
 
@@ -86,21 +71,44 @@ function SignatureViewContent() {
   const [isVerifyingAll, setIsVerifyingAll] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [signatureViewParams, setSignatureViewParams] =
+    useState<SignatureViewParams>({
+      payload: null,
+      returnParams: null,
+    });
 
   useEffect(() => {
-    const encodedData = searchParams.get("payload");
-    if (encodedData) {
-      const decoded = decodeDataFromUrl(encodedData);
-      if (decoded && decoded.signers && Array.isArray(decoded.signers)) {
-        setSignatureData(decoded);
+    const readSignatureData = () => {
+      const viewParams = getSignatureViewParams(
+        searchParams,
+        window.location.hash
+      );
+      setSignatureViewParams(viewParams);
+
+      if (viewParams.payload) {
+        const decoded = decodeSignaturePayload(viewParams.payload);
+        if (decoded && decoded.signers && Array.isArray(decoded.signers)) {
+          setSignatureData(decoded);
+          setError(null);
+        } else {
+          setError("Invalid multi-signature data format in URL.");
+          setSignatureData(null);
+        }
       } else {
-        setError("Invalid multi-signature data format in URL.");
+        setError("No signature data found in URL.");
         setSignatureData(null);
       }
-    } else {
-      setError("No signature data found in URL.");
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    readSignatureData();
+    window.addEventListener("hashchange", readSignatureData);
+    window.addEventListener("popstate", readSignatureData);
+
+    return () => {
+      window.removeEventListener("hashchange", readSignatureData);
+      window.removeEventListener("popstate", readSignatureData);
+    };
   }, [searchParams]);
 
   useEffect(() => {
@@ -219,18 +227,10 @@ function SignatureViewContent() {
         };
         setSignatureData(updatedSignatureData); // This will trigger re-verification useEffect
 
-        const jsonString = JSON.stringify(updatedSignatureData);
-        const base64String = btoa(jsonString);
-        const encodedPayload = encodeURIComponent(base64String);
-
-        // Preserve the returnParams when updating the URL
-        const returnParams = searchParams.get("returnParams");
-        let newUrl = `${getPath(
-          subdomains.WALLET.base
-        )}signatures/view?payload=${encodedPayload}`;
-        if (returnParams) {
-          newUrl += `&returnParams=${encodeURIComponent(returnParams)}`;
-        }
+        const newUrl = buildSignatureViewUrl(
+          updatedSignatureData,
+          signatureViewParams.returnParams ?? undefined
+        );
 
         router.push(newUrl, {
           scroll: false,
@@ -252,16 +252,11 @@ function SignatureViewContent() {
   };
 
   const handleBackNavigation = () => {
-    const returnParams = searchParams.get("returnParams");
+    const returnParams = signatureViewParams.returnParams;
     let backUrl = `${getPath(subdomains.WALLET.base)}signatures#sign`;
 
     if (returnParams) {
-      try {
-        const decodedParams = decodeURIComponent(returnParams);
-        backUrl += `?${decodedParams}`;
-      } catch (error) {
-        console.error("Error decoding return parameters:", error);
-      }
+      backUrl += `?${returnParams}`;
     }
 
     router.push(backUrl);

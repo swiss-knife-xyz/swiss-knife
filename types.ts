@@ -4,6 +4,7 @@ import { JsonFragmentType, TransactionDescription } from "ethers";
 export interface SelectedOption {
   label: string;
   value: number | string | boolean;
+  image?: string;
 }
 
 export type SelectedOptionState = SingleValue<SelectedOption>;
@@ -81,6 +82,7 @@ export type DecodeRecursiveResult = {
   signature: string;
   rawArgs: any;
   args: Arg[];
+  guessedFunctionName?: string;
 } | null;
 
 export type DecodeEventResult = {

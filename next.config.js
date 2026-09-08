@@ -4,6 +4,20 @@ require("dotenv/config");
 
 const nextConfig = {
   reactStrictMode: true,
+  // Enable Turbopack with empty config (webpack config still applies when needed)
+  turbopack: {},
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
+        protocol: "http",
+        hostname: "**",
+      },
+    ],
+  },
   rewrites() {
     return {
       beforeFiles: [
@@ -13,6 +27,10 @@ const nextConfig = {
           destination: "/chainIcons/:asset*",
         },
         {
+          source: "/tokenIcons/:asset*",
+          destination: "/tokenIcons/:asset*",
+        },
+        {
           source: "/external/:asset*",
           destination: "/external/:asset*",
         },
@@ -20,17 +38,28 @@ const nextConfig = {
           source: "/icon.png",
           destination: "/icon.png",
         },
-        // set up subdomains (exclude api routes from subdomain rewrites)
-        ...Object.values(subdomains).map((subdomain) => ({
-          source: "/:path((?!_next|api|chainIcons|external|icon.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
-          has: [
-            {
-              type: "host",
-              value: `${subdomain.base}.swiss-knife.xyz`,
-            },
-          ],
-          destination: `/${subdomain.base}/:path*`,
-        })),
+        {
+          source: "/logo.png",
+          destination: "/logo.png",
+        },
+        {
+          source: "/splashImage.png",
+          destination: "/splashImage.png",
+        },
+        // set up subdomains (exclude api routes, static assets and worker from subdomain rewrites)
+        ...Object.values(subdomains).flatMap((subdomain) => [
+          {
+            source:
+              "/:path((?!_next|api|chainIcons|tokenIcons|external|icon.png|logo.png|splashImage.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
+            has: [
+              {
+                type: "host",
+                value: `${subdomain.base}.eth.sh`,
+              },
+            ],
+            destination: `/${subdomain.base}/:path*`,
+          },
+        ]),
       ],
     };
   },

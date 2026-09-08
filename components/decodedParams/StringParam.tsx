@@ -68,8 +68,13 @@ export const StringParam = ({
     const _value = isBase64Encoded ? base64!.content : value;
     const parsedValue = JSON.parse(_value);
     displayValue = JSON.stringify(parsedValue, null, 4);
-    // Don't show decoded JSON for null, empty arrays, or invalid JSON
-    if (displayValue === "null" || displayValue === "[]" || !isValidJSON(_value)) {
+    // Don't show decoded JSON for null, empty arrays/objects, or invalid JSON
+    if (
+      displayValue === "null" ||
+      displayValue === "[]" ||
+      displayValue === "{}" ||
+      !isValidJSON(_value)
+    ) {
       throw new Error("Invalid JSON");
     }
     isJson = true;
@@ -102,12 +107,23 @@ export const StringParam = ({
           </HStack>
         </HStack>
         <Textarea
+          className="scroll"
           value={value}
           isReadOnly
-          resize={"both"}
+          resize={"vertical"}
           rows={2}
           placeholder=""
           w="full"
+          bg="whiteAlpha.50"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+          borderRadius="lg"
+          color="white"
+          _hover={{ borderColor: "whiteAlpha.400" }}
+          _focus={{
+            borderColor: "blue.400",
+            boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
+          }}
         />
       </Box>
     ) : (
@@ -231,6 +247,8 @@ export const StringParam = ({
       } else {
         // Raw JSON / SVG
         if (isJson || isImage) {
+          const lineCount = (displayValue?.split("\n").length ?? 1) + 1;
+          const editorHeight = `${Math.min(500, Math.max(80, lineCount * 19 + 10))}px`;
           return (
             <Box>
               <HStack mb={1}>
@@ -238,7 +256,7 @@ export const StringParam = ({
                 <CopyToClipboard textToCopy={value ?? ""} size="xs" />
               </HStack>
               <Editor
-                height="300px"
+                height={editorHeight}
                 theme="vs-dark"
                 defaultLanguage="json"
                 value={displayValue}
@@ -254,6 +272,8 @@ export const StringParam = ({
         } else if (isUrlImageOrJson?.isJson && urlContent) {
           // Raw JSON from URL
           const formattedUrlContent = JSON.stringify(urlContent, null, 4);
+          const lineCount = (formattedUrlContent?.split("\n").length ?? 1) + 1;
+          const editorHeight = `${Math.min(500, Math.max(80, lineCount * 19 + 10))}px`;
           return (
             <Box>
               <HStack mb={1}>
@@ -264,7 +284,7 @@ export const StringParam = ({
                 />
               </HStack>
               <Editor
-                height="300px"
+                height={editorHeight}
                 theme="vs-dark"
                 defaultLanguage="json"
                 value={formattedUrlContent}

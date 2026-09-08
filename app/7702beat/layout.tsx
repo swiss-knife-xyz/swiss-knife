@@ -1,9 +1,9 @@
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
-  title: "7702 Beat | Swiss-Knife.xyz",
+  title: "7702 Beat | ETH.sh",
   description: "Stats about 7702 adoption across EVM chains, Wallets and Dapps",
-  images: "https://swiss-knife.xyz/og/7702beat.png",
+  images: "https://eth.sh/og/7702beat.png",
 });
 
 const SevenSevenZeroTwoBeatLayout = ({
