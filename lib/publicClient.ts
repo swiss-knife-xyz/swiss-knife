@@ -7,22 +7,24 @@
 // `chainIdToCustomRpcUrl` rather than hand-rolling a client elsewhere.
 import {
   createPublicClient,
+  fallback,
   http,
   type Chain,
-  type HttpTransport,
   type PublicClient,
+  type Transport,
 } from "viem";
 import { chainIdToChain, getRpcUrlForChain } from "@/data/common";
 
 type GetPublicClientOptions = {
   // Disable EIP-3668 CCIP-read so callers handle the OffchainLookup error themselves.
   ccipRead?: false;
+  timeout?: number;
 };
 
 // Typed with `Chain` (not `Chain | undefined`) so consumers that call
 // chain-specific actions like `publicActionsL2().buildDepositTransaction`
 // don't need to re-narrow the chain type at the call site.
-type ChainPublicClient = PublicClient<HttpTransport, Chain>;
+type ChainPublicClient = PublicClient<Transport, Chain>;
 
 const cache: Record<number, ChainPublicClient> = {};
 
@@ -38,10 +40,22 @@ export const getPublicClient = (
     throw new Error(`getPublicClient: unsupported chainId ${chainId}`);
   }
 
-  const rpcUrl = getRpcUrlForChain(chainId);
+  const rpcUrls = getRpcUrlsForChain(chainId);
   const client = createPublicClient({
     chain,
-    transport: http(rpcUrl),
+    transport:
+      rpcUrls.length > 1
+        ? fallback(
+            rpcUrls.map((rpcUrl) =>
+              http(rpcUrl, {
+                ...(options?.timeout ? { timeout: options.timeout } : {}),
+              })
+            ),
+            { retryCount: 0 }
+          )
+        : http(rpcUrls[0], {
+            ...(options?.timeout ? { timeout: options.timeout } : {}),
+          }),
     ...(options?.ccipRead === false ? { ccipRead: false } : {}),
   }) as ChainPublicClient;
 
@@ -54,3 +68,12 @@ export const getPublicClient = (
 // `getPublicClient(chainId)` for normal flows so env-configured RPCs apply.
 export const createPublicClientForRpcUrl = (rpcUrl: string): PublicClient =>
   createPublicClient({ transport: http(rpcUrl) }) as PublicClient;
+
+const getRpcUrlsForChain = (chainId: number) => {
+  const primaryRpcUrl = getRpcUrlForChain(chainId);
+  const configuredUrls =
+    chainIdToChain[chainId]?.rpcUrls.default?.http?.filter(Boolean) ?? [];
+  return Array.from(
+    new Set([primaryRpcUrl, ...configuredUrls].filter(Boolean) as string[])
+  );
+};

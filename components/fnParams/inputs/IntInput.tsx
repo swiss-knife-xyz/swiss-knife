@@ -347,7 +347,7 @@ export const IntInput = ({
           ) : undefined
         }
         pl={selectedEthFormatOption?.value === "Bps ↔️ %" ? "14" : undefined}
-        bg={isDelayedAnimating ? "bg.900" : undefined}
+        {...(isDelayedAnimating ? { bg: "bg.900" } : {})}
         value={displayValue}
         type={
           selectedEthFormatOption?.value === "Unix Time" ? "date-time" : "text"

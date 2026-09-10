@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Heading,
   Box,
-  Container,
   FormControl,
   FormLabel,
   Input,
   Text,
   Center,
   HStack,
+  VStack,
   Button,
   Link,
   Tag,
@@ -18,28 +18,36 @@ import {
   Spinner,
   IconButton,
   Tooltip,
+  Icon,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
+import { FiDatabase } from "react-icons/fi";
 import { ethers } from "ethers";
 import { Layout } from "@/components/Layout";
 import { DarkSelect } from "@/components/DarkSelect";
+import { InputField } from "@/components/InputField";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { SelectedOptionState } from "@/types";
 import TabsSelector from "@/components/Tabs/TabsSelector";
-import { c, chainIdToChain } from "@/data/common";
+import { c, chainIdToChain, chainIdToImage } from "@/data/common";
 import { Address, encodePacked, keccak256, erc20Abi } from "viem";
 import { resolveAddressToName, getNameAvatar } from "@/lib/nameResolution";
 import { getPublicClient } from "@/lib/publicClient";
 import { fetchContractAbi } from "@/utils";
 import { fetchAddressLabels } from "@/utils/addressLabels";
+import {
+  EIP1967Options,
+  getEIP1967StorageSlot,
+  getERC7201StorageSlot,
+  normalizeStorageSlot,
+} from "@/lib/storageSlots";
 
-const networkOptions: { label: string; value: number }[] = Object.keys(c).map(
-  (k, i) => ({
+const networkOptions: { label: string; value: number; image: string }[] =
+  Object.keys(c).map((k, i) => ({
     label: c[k].name,
     value: c[k].id,
-  })
-);
-
-const EIP1967Options = ["implementation", "admin", "beacon", "rollback"];
+    image: chainIdToImage[c[k].id],
+  }));
 
 const Txt = ({ str, colorScheme }: { str: string; colorScheme: string }) => (
   <Text
@@ -62,15 +70,15 @@ const EIP1967Select = ({
   setSelectedEIP1967Slot: (value: SelectedOptionState) => void;
 }) => {
   return (
-    <Center mt={10}>
-      <HStack fontWeight={"bold"}>
+    <Center mt={6}>
+      <HStack fontWeight={"bold"} flexWrap="wrap" justify="center" spacing={1}>
         <Txt colorScheme="orange" str={`bytes32(`} />
         <Txt colorScheme="pink" str={`uint256(`} />
         <Txt colorScheme="red" str={`keccak256(`} />
         <Txt colorScheme="green" str={`'eip1967.proxy.`} />
         <DarkSelect
           boxProps={{
-            minW: "14rem",
+            minW: "160px",
           }}
           isCreatable
           selectedOption={selectedEIP1967Slot}
@@ -86,6 +94,86 @@ const EIP1967Select = ({
         <Txt colorScheme="orange" str={`)`} />
       </HStack>
     </Center>
+  );
+};
+
+const ERC7201Select = ({
+  namespaceId,
+  setNamespaceId,
+}: {
+  namespaceId: string;
+  setNamespaceId: (value: string) => void;
+}) => {
+  const normalizedNamespaceId = namespaceId.trim();
+  const storageSlot = normalizedNamespaceId
+    ? getERC7201StorageSlot(normalizedNamespaceId)
+    : undefined;
+
+  return (
+    <VStack mt={6} spacing={5} align="stretch">
+      <FormControl>
+        <FormLabel color="gray.400" fontSize="sm" fontWeight="medium">
+          Namespace ID
+        </FormLabel>
+        <InputField
+          autoComplete="off"
+          value={namespaceId}
+          onChange={(e) => setNamespaceId(e.target.value)}
+          placeholder="example.main"
+        />
+      </FormControl>
+
+      <Center>
+        <HStack fontWeight="bold" flexWrap="wrap" justify="center" spacing={1}>
+          <Txt colorScheme="red" str="keccak256(" />
+          <Txt colorScheme="blue" str="abi.encode(" />
+          <Txt colorScheme="pink" str="uint256(" />
+          <Txt colorScheme="red" str="keccak256(" />
+          <Txt
+            colorScheme="green"
+            str={`'${normalizedNamespaceId || "namespace.id"}'`}
+          />
+          <Txt colorScheme="red" str=")" />
+          <Txt colorScheme="pink" str=") - 1" />
+          <Txt colorScheme="blue" str=")" />
+          <Txt colorScheme="red" str=")" />
+          <Txt colorScheme="orange" str="& ~0xff" />
+        </HStack>
+      </Center>
+
+      {storageSlot && (
+        <Box
+          p={4}
+          bg="whiteAlpha.100"
+          borderRadius="md"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+        >
+          <HStack justify="space-between" flexWrap="wrap" gap={2}>
+            <Text
+              color="gray.400"
+              fontSize="sm"
+              fontWeight="medium"
+              flexShrink={0}
+            >
+              Root Slot
+            </Text>
+            <HStack flex={1} justify="flex-end" spacing={2}>
+              <Text
+                fontFamily="mono"
+                fontSize={{ base: "xs", md: "sm" }}
+                lineHeight="1.5"
+                wordBreak="break-all"
+                color="gray.100"
+              >
+                {storageSlot}
+              </Text>
+              <CopyToClipboard textToCopy={storageSlot} />
+            </HStack>
+          </HStack>
+        </Box>
+      )}
+    </VStack>
   );
 };
 
@@ -146,27 +234,43 @@ const StorageSlotInput = ({
     setStorageSlot,
     setSlotRange,
   ]);
+
+  // Styling for inline inputs (mapping key, array index)
+  const inlineInputStyles = {
+    bg: "whiteAlpha.100",
+    border: "1px solid",
+    borderColor: "whiteAlpha.300",
+    _hover: { borderColor: "whiteAlpha.400" },
+    _focus: {
+      borderColor: "blue.400",
+      boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
+    },
+    color: "gray.100",
+    _placeholder: { color: "gray.500" },
+  };
+
   return (
-    <Container>
+    <Box mt={6}>
       <TabsSelector
         tabs={["Raw", "Mapping", "Array", "Range"]}
         selectedTabIndex={selectedTabIndex}
         setSelectedTabIndex={setSelectedTabIndex}
-        mb={10}
+        mb={6}
       />
       {(() => {
         switch (selectedTabIndex) {
           case 0:
             return (
               <FormControl>
-                <FormLabel>Enter storage slot:</FormLabel>
-                <Input
+                <FormLabel color="gray.400" fontSize="sm" fontWeight="medium">
+                  Enter storage slot
+                </FormLabel>
+                <InputField
                   autoComplete="off"
                   value={localStorageSlot}
                   onChange={(e) => {
                     setLocalStorageSlot(e.target.value);
                   }}
-                  bg={"blackAlpha.300"}
                   placeholder="123 or 0xabc123..."
                 />
               </FormControl>
@@ -174,18 +278,19 @@ const StorageSlotInput = ({
           case 1:
             return (
               <FormControl>
-                <FormLabel>Enter storage slot of the mapping:</FormLabel>
-                <Input
+                <FormLabel color="gray.400" fontSize="sm" fontWeight="medium">
+                  Enter storage slot of the mapping
+                </FormLabel>
+                <InputField
                   autoComplete="off"
                   value={mappingStorageSlot}
                   onChange={(e) => {
                     setMappingStorageSlot(e.target.value);
                   }}
-                  bg={"blackAlpha.300"}
                   placeholder="123 or 0xabc123..."
                 />
-                <Center>
-                  <HStack fontWeight={"bold"}>
+                <Center mt={4}>
+                  <HStack fontWeight={"bold"} spacing={2}>
                     <Txt colorScheme="orange" str={`myMapping[`} />
                     <Input
                       autoComplete="off"
@@ -193,8 +298,9 @@ const StorageSlotInput = ({
                       onChange={(e) => {
                         setMappingKey(e.target.value);
                       }}
-                      bg={"blackAlpha.300"}
-                      placeholder="123 or 0xabc123..."
+                      {...inlineInputStyles}
+                      placeholder="key"
+                      w="150px"
                     />
                     <Txt colorScheme="orange" str={`]`} />
                   </HStack>
@@ -204,18 +310,19 @@ const StorageSlotInput = ({
           case 2:
             return (
               <FormControl>
-                <FormLabel>Enter storage slot of the array:</FormLabel>
-                <Input
+                <FormLabel color="gray.400" fontSize="sm" fontWeight="medium">
+                  Enter storage slot of the array
+                </FormLabel>
+                <InputField
                   autoComplete="off"
                   value={arrayStorageSlot}
                   onChange={(e) => {
                     setArrayStorageSlot(e.target.value);
                   }}
-                  bg={"blackAlpha.300"}
                   placeholder="123 or 0xabc123..."
                 />
-                <Center>
-                  <HStack maxWidth={"50%"} fontWeight={"bold"}>
+                <Center mt={4}>
+                  <HStack fontWeight={"bold"} spacing={2}>
                     <Txt colorScheme="blue" str={`myArray[`} />
                     <Input
                       type="number"
@@ -224,8 +331,9 @@ const StorageSlotInput = ({
                       onChange={(e) => {
                         setArrayIndex(e.target.value);
                       }}
-                      bg={"blackAlpha.300"}
-                      placeholder="123"
+                      {...inlineInputStyles}
+                      placeholder="index"
+                      w="100px"
                     />
                     <Txt colorScheme="blue" str={`]`} />
                   </HStack>
@@ -235,54 +343,49 @@ const StorageSlotInput = ({
           case 3:
             return (
               <FormControl>
-                <FormLabel>Enter storage slot range:</FormLabel>
-                <HStack>
-                  <Input
+                <FormLabel color="gray.400" fontSize="sm" fontWeight="medium">
+                  Enter storage slot range
+                </FormLabel>
+                <HStack spacing={3}>
+                  <InputField
                     autoComplete="off"
                     value={rangeStart}
                     onChange={(e) => {
                       setRangeStart(e.target.value);
                     }}
-                    bg={"blackAlpha.300"}
-                    placeholder="Start slot (e.g., 0)"
+                    placeholder="Start (e.g., 0)"
                   />
-                  <Text color="whiteAlpha.700" fontWeight="bold">
+                  <Text color="gray.400" fontWeight="medium">
                     to
                   </Text>
-                  <Input
+                  <InputField
                     autoComplete="off"
                     value={rangeEnd}
                     onChange={(e) => {
                       setRangeEnd(e.target.value);
                     }}
-                    bg={"blackAlpha.300"}
-                    placeholder="End slot (e.g., 9)"
+                    placeholder="End (e.g., 9)"
                   />
                 </HStack>
-                <Text mt={2} fontSize="sm" color="whiteAlpha.600">
+                <Text mt={3} fontSize="sm" color="gray.500">
                   Fetches all storage values from start to end slot (inclusive)
                 </Text>
               </FormControl>
             );
         }
       })()}
-    </Container>
+    </Box>
   );
 };
 
-const Query = ({ query }: { query: () => {} }) => {
+const Query = ({ query }: { query: () => Promise<void> }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
     <Center mt={8}>
       <Button
-        color="white"
-        bg={"blackAlpha.400"}
-        _hover={{
-          bg: "blackAlpha.100",
-        }}
-        border="1px solid"
-        borderColor={"whiteAlpha.500"}
+        colorScheme="blue"
+        leftIcon={<Icon as={FiDatabase} boxSize={4} />}
         onClick={async () => {
           setIsLoading(true);
           try {
@@ -294,7 +397,7 @@ const Query = ({ query }: { query: () => {} }) => {
         }}
         isLoading={isLoading}
       >
-        Query
+        Query Storage
       </Button>
     </Center>
   );
@@ -328,16 +431,19 @@ const detectFormat = (value: string): string => {
     return "bool";
   }
 
-  // Check if it looks like an address (has 24 leading zero bytes = 48 hex chars after 0x)
-  // Addresses are 20 bytes, stored right-aligned in 32 bytes
-  if (value.substring(2, 26) === "0".repeat(24) && value.substring(26) !== "0".repeat(40)) {
-    return "address";
-  }
-
   // Check if it's a small number (fits in reasonable uint range and has many leading zeros)
   const leadingZeros = value.substring(2).match(/^0*/)?.[0].length || 0;
   if (leadingZeros >= 32) {
     return "uint256";
+  }
+
+  // Check if it looks like an address (has 24 leading zero bytes = 48 hex chars after 0x)
+  // Addresses are 20 bytes, stored right-aligned in 32 bytes.
+  if (
+    value.substring(2, 26) === "0".repeat(24) &&
+    value.substring(26) !== "0".repeat(40)
+  ) {
+    return "address";
   }
 
   // Default to hex for complex values
@@ -427,13 +533,7 @@ const AddressValue = ({
         </HStack>
       )}
       {ensName && (
-        <HStack
-          bg="whiteAlpha.200"
-          px={2}
-          py={1}
-          borderRadius="md"
-          gap={1}
-        >
+        <HStack bg="whiteAlpha.200" px={2} py={1} borderRadius="md" gap={1}>
           {ensAvatar && <Avatar src={ensAvatar} size="2xs" />}
           <Text fontSize="sm" color="purple.300">
             {ensName}
@@ -474,7 +574,7 @@ const Result = ({
 }) => {
   // Auto-detect format when result changes
   const autoDetectedFormat = result.value ? detectFormat(result.value) : "hex";
-  
+
   const [selectedFormatOption, setSelectedFormatOption] =
     useState<SelectedOptionState>({
       label: autoDetectedFormat,
@@ -493,16 +593,28 @@ const Result = ({
   }, [result.value]);
 
   const activeFormat = selectedFormatOption?.value?.toString() || "hex";
-  const formattedAddress = activeFormat === "address" && result.value
-    ? formatValue(result.value, "address")
-    : null;
+  const formattedAddress =
+    activeFormat === "address" && result.value
+      ? formatValue(result.value, "address")
+      : null;
+
+  const formattedValue = result.value
+    ? formatValue(result.value, activeFormat)
+    : "";
 
   return (
-    <Box mt={4} mx="auto" w="full" maxW="1200px" px={4}>
+    <Box
+      mt={6}
+      p={6}
+      bg="whiteAlpha.50"
+      borderRadius="lg"
+      border="1px solid"
+      borderColor="whiteAlpha.200"
+    >
       {!result.error ? (
         <>
-          <HStack mb={4}>
-            <Heading fontSize={"3xl"} color="whiteAlpha.800">
+          <HStack mb={4} spacing={3}>
+            <Heading fontSize="lg" color="gray.100">
               Result
             </Heading>
             <DarkSelect
@@ -518,32 +630,84 @@ const Result = ({
               }))}
             />
           </HStack>
-          <Box
-            p={4}
-            bg="blackAlpha.400"
-            borderRadius="md"
-            border="1px solid"
-            borderColor="whiteAlpha.300"
-          >
-            <HStack flexWrap="wrap" gap={2}>
-              <Text color="whiteAlpha.700" flexShrink={0}>Value:</Text>
-              {activeFormat === "address" && formattedAddress ? (
-                <AddressValue address={formattedAddress} chainId={chainId} />
-              ) : (
-                <Text fontFamily="mono" wordBreak="break-all">
-                  {result.value ? formatValue(result.value, activeFormat) : ""}
+          <VStack spacing={4} align="stretch">
+            <Box
+              p={4}
+              bg="whiteAlpha.100"
+              borderRadius="md"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+            >
+              <HStack justify="space-between" flexWrap="wrap" gap={2}>
+                <Text
+                  color="gray.400"
+                  fontSize="sm"
+                  fontWeight="medium"
+                  flexShrink={0}
+                >
+                  Value
                 </Text>
-              )}
-            </HStack>
-
-            <Box mt={4}>
-              <Text color="whiteAlpha.700">At storage slot:</Text>
-              <Text fontFamily="mono">{result.storageSlot}</Text>
+                {activeFormat === "address" && formattedAddress ? (
+                  <AddressValue address={formattedAddress} chainId={chainId} />
+                ) : (
+                  <HStack flex={1} justify="flex-end" spacing={2}>
+                    <Text
+                      fontFamily="mono"
+                      fontSize={{ base: "xs", md: "sm" }}
+                      lineHeight="1.5"
+                      wordBreak="break-all"
+                      color="gray.100"
+                    >
+                      {formattedValue}
+                    </Text>
+                    <CopyToClipboard textToCopy={formattedValue} />
+                  </HStack>
+                )}
+              </HStack>
             </Box>
-          </Box>
+
+            <Box
+              p={4}
+              bg="whiteAlpha.100"
+              borderRadius="md"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+            >
+              <HStack justify="space-between" flexWrap="wrap" gap={2}>
+                <Text
+                  color="gray.400"
+                  fontSize="sm"
+                  fontWeight="medium"
+                  flexShrink={0}
+                >
+                  Storage Slot
+                </Text>
+                <HStack flex={1} justify="flex-end" spacing={2}>
+                  <Text
+                    fontFamily="mono"
+                    fontSize={{ base: "xs", md: "sm" }}
+                    lineHeight="1.5"
+                    wordBreak="break-all"
+                    color="gray.100"
+                  >
+                    {result.storageSlot}
+                  </Text>
+                  <CopyToClipboard textToCopy={result.storageSlot ?? ""} />
+                </HStack>
+              </HStack>
+            </Box>
+          </VStack>
         </>
       ) : (
-        <Text>Error: {result.error}</Text>
+        <Box
+          p={4}
+          bg="red.900"
+          borderRadius="md"
+          border="1px solid"
+          borderColor="red.600"
+        >
+          <Text color="red.200">Error: {result.error}</Text>
+        </Box>
       )}
     </Box>
   );
@@ -565,19 +729,34 @@ const RangeResultRow = ({
   });
 
   // Use global format if set, otherwise use per-row format
-  const activeFormat = globalFormat || selectedFormat?.value?.toString() || "hex";
+  const activeFormat =
+    globalFormat || selectedFormat?.value?.toString() || "hex";
 
   // Get the formatted address value when format is "address"
-  const formattedAddress = activeFormat === "address" 
-    ? formatValue(item.value, "address") 
-    : null;
+  const formattedAddress =
+    activeFormat === "address" ? formatValue(item.value, "address") : null;
+
+  const formattedValue = formatValue(item.value, activeFormat);
 
   return (
-    <Box p={3} mb={2} bg="blackAlpha.400" borderRadius="md" _last={{ mb: 0 }}>
+    <Box
+      p={3}
+      mb={2}
+      bg="whiteAlpha.100"
+      borderRadius="md"
+      border="1px solid"
+      borderColor="whiteAlpha.200"
+      _last={{ mb: 0 }}
+    >
       <HStack justify="space-between" flexWrap="nowrap" gap={4}>
         <HStack flexShrink={0}>
-          <Text color="whiteAlpha.700" fontSize="sm" whiteSpace="nowrap">
-            Slot {item.slot}:
+          <Text
+            color="gray.400"
+            fontSize="sm"
+            fontWeight="medium"
+            whiteSpace="nowrap"
+          >
+            Slot {item.slot}
           </Text>
           {!globalFormat && (
             <DarkSelect
@@ -597,9 +776,18 @@ const RangeResultRow = ({
         {activeFormat === "address" && formattedAddress ? (
           <AddressValue address={formattedAddress} chainId={chainId} />
         ) : (
-          <Text fontFamily="mono" fontSize="sm" wordBreak="break-all" flex={1} textAlign="right">
-            {formatValue(item.value, activeFormat)}
-          </Text>
+          <HStack flex={1} justify="flex-end" spacing={2}>
+            <Text
+              fontFamily="mono"
+              fontSize={{ base: "xs", md: "sm" }}
+              lineHeight="1.5"
+              wordBreak="break-all"
+              color="gray.100"
+            >
+              {formattedValue}
+            </Text>
+            <CopyToClipboard textToCopy={formattedValue} />
+          </HStack>
         )}
       </HStack>
     </Box>
@@ -625,15 +813,22 @@ const RangeResult = ({
   ];
 
   return (
-    <Box mt={4} mx="auto" w="full" maxW="1200px" px={4}>
+    <Box
+      mt={6}
+      p={6}
+      bg="whiteAlpha.50"
+      borderRadius="lg"
+      border="1px solid"
+      borderColor="whiteAlpha.200"
+    >
       {!results.error ? (
         <>
-          <HStack mb={4} flexWrap="wrap" gap={3}>
-            <Heading fontSize={"3xl"} color="whiteAlpha.800">
+          <HStack mb={4} flexWrap="wrap" gap={3} justify="space-between">
+            <Heading fontSize="lg" color="gray.100">
               Results
             </Heading>
             <HStack>
-              <Text fontSize="sm" color="whiteAlpha.600" whiteSpace="nowrap">
+              <Text fontSize="sm" color="gray.400" whiteSpace="nowrap">
                 Format all:
               </Text>
               <DarkSelect
@@ -641,7 +836,9 @@ const RangeResult = ({
                   w: "180px",
                   minW: "180px",
                 }}
-                selectedOption={globalFormatOption || { label: "Auto (per slot)", value: "" }}
+                selectedOption={
+                  globalFormatOption || { label: "Auto (per slot)", value: "" }
+                }
                 setSelectedOption={(opt) => {
                   setGlobalFormatOption(opt?.value ? opt : null);
                 }}
@@ -652,10 +849,9 @@ const RangeResult = ({
           <Box
             maxH="500px"
             overflowY="auto"
-            border="1px solid"
-            borderColor="whiteAlpha.300"
             borderRadius="md"
             p={3}
+            bg="whiteAlpha.50"
           >
             {results.values?.map((item, index) => (
               <RangeResultRow
@@ -666,12 +862,20 @@ const RangeResult = ({
               />
             ))}
           </Box>
-          <Text mt={2} fontSize="sm" color="whiteAlpha.600">
+          <Text mt={3} fontSize="sm" color="gray.500">
             {results.values?.length} slot(s) fetched
           </Text>
         </>
       ) : (
-        <Text>Error: {results.error}</Text>
+        <Box
+          p={4}
+          bg="red.900"
+          borderRadius="md"
+          border="1px solid"
+          borderColor="red.600"
+        >
+          <Text color="red.200">Error: {results.error}</Text>
+        </Box>
       )}
     </Box>
   );
@@ -684,6 +888,7 @@ const StorageSlots = () => {
       label: EIP1967Options[0],
       value: EIP1967Options[0],
     });
+  const [erc7201NamespaceId, setErc7201NamespaceId] = useState("");
 
   const [address, setAddress] = useState<string>();
   const [selectedNetworkOption, setSelectedNetworkOption] =
@@ -702,6 +907,13 @@ const StorageSlots = () => {
     values?: { slot: string; value: string }[];
     error?: string;
   }>();
+
+  useEffect(() => {
+    if (selectedTabIndex !== 2) {
+      setStorageSlot("");
+      setSlotRange(null);
+    }
+  }, [selectedTabIndex]);
 
   const query = async () => {
     // validate address
@@ -765,10 +977,20 @@ const StorageSlots = () => {
 
     // Handle single slot query
     setRangeResults(undefined);
-    let _storageSlot =
-      selectedTabIndex === 0
-        ? getEIP1967StorageSlot(selectedEIP1967Slot!.value.toString())
-        : storageSlot;
+    let _storageSlot: string | bigint | undefined;
+
+    if (selectedTabIndex === 0) {
+      _storageSlot = getEIP1967StorageSlot(
+        selectedEIP1967Slot!.value.toString()
+      );
+    } else if (selectedTabIndex === 1) {
+      const normalizedNamespaceId = erc7201NamespaceId.trim();
+      _storageSlot = normalizedNamespaceId
+        ? getERC7201StorageSlot(normalizedNamespaceId)
+        : undefined;
+    } else {
+      _storageSlot = storageSlot;
+    }
 
     if (!_storageSlot) {
       setResult({ error: "Storage slot not entered." });
@@ -776,17 +998,12 @@ const StorageSlots = () => {
     }
 
     try {
-      const res = await provider.getStorage(address, _storageSlot);
-
-      _storageSlot = _storageSlot.toString(16);
-      // add 0x in the beginning if doesn't exist (as returned via getEIP1967StorageSlot)
-      if (_storageSlot.substring(0, 2) !== "0x") {
-        _storageSlot = `0x${_storageSlot}`;
-      }
+      const normalizedStorageSlot = normalizeStorageSlot(_storageSlot);
+      const res = await provider.getStorage(address, normalizedStorageSlot);
 
       setResult({
         value: res,
-        storageSlot: _storageSlot,
+        storageSlot: normalizedStorageSlot,
       });
     } catch (e) {
       setResult({
@@ -795,69 +1012,120 @@ const StorageSlots = () => {
     }
   };
 
-  const getEIP1967StorageSlot = (key: string) => {
-    const khash = ethers.keccak256(ethers.toUtf8Bytes(`eip1967.proxy.${key}`));
-    const num = BigInt(khash);
-    const storageSlot = num - BigInt(1);
-    return storageSlot;
-  };
-
   return (
     <Layout>
-      <Box minW={["0", "0", "2xl", "2xl"]}>
-        <Heading textAlign="center" pt="2rem">
-          Query Storage Slot
-        </Heading>
-        <Container>
-          <FormControl mt={16}>
-            <FormLabel>Contract Address</FormLabel>
-            <Input
-              autoFocus
-              autoComplete="off"
-              placeholder="0x00..."
-              value={address}
-              onChange={(e) => {
-                setAddress(e.target.value);
-              }}
-              bg={"blackAlpha.300"}
-            />
-          </FormControl>
-          <DarkSelect
-            boxProps={{
-              w: "100%",
-              mt: "2",
-            }}
-            selectedOption={selectedNetworkOption}
-            setSelectedOption={setSelectedNetworkOption}
-            options={networkOptions}
+      <Box maxW="800px" mx="auto" px={4}>
+        {/* Page Header */}
+        <Box mb={8} textAlign="center">
+          <HStack justify="center" spacing={3} mb={4}>
+            <Icon as={FiDatabase} color="blue.400" boxSize={8} />
+            <Heading
+              size="xl"
+              color="gray.100"
+              fontWeight="bold"
+              letterSpacing="tight"
+            >
+              Storage Slots
+            </Heading>
+          </HStack>
+          <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
+            Read storage slots from any smart contract on any network
+          </Text>
+        </Box>
+
+        <Box
+          p={6}
+          bg="whiteAlpha.50"
+          borderRadius="lg"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+          mb={6}
+        >
+          <VStack spacing={4} align="stretch">
+            <FormControl>
+              <HStack spacing={2} mb={2}>
+                <Icon as={FiDatabase} color="blue.400" boxSize={4} />
+                <FormLabel
+                  color="gray.300"
+                  fontSize="sm"
+                  fontWeight="medium"
+                  mb={0}
+                >
+                  Contract Address
+                </FormLabel>
+              </HStack>
+              <InputField
+                autoFocus
+                autoComplete="off"
+                placeholder="0x00..."
+                value={address ?? ""}
+                onChange={(e) => {
+                  setAddress(e.target.value);
+                }}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel color="gray.300" fontSize="sm" fontWeight="medium">
+                Network
+              </FormLabel>
+              <DarkSelect
+                boxProps={{
+                  w: "100%",
+                }}
+                selectedOption={selectedNetworkOption}
+                setSelectedOption={setSelectedNetworkOption}
+                options={networkOptions}
+              />
+            </FormControl>
+          </VStack>
+        </Box>
+        <Box
+          p={6}
+          bg="whiteAlpha.50"
+          borderRadius="lg"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+        >
+          <HStack spacing={2} mb={4}>
+            <Icon as={FiDatabase} color="blue.400" boxSize={5} />
+            <Text color="gray.300" fontSize="md" fontWeight="medium">
+              Storage Slot Type
+            </Text>
+          </HStack>
+          <TabsSelector
+            tabs={["EIP-1967", "ERC-7201", "Custom"]}
+            selectedTabIndex={selectedTabIndex}
+            setSelectedTabIndex={setSelectedTabIndex}
           />
-        </Container>
-        <TabsSelector
-          tabs={["EIP-1967", "Custom"]}
-          selectedTabIndex={selectedTabIndex}
-          setSelectedTabIndex={setSelectedTabIndex}
-        />
-        {(() => {
-          switch (selectedTabIndex) {
-            case 0:
-              return (
-                <EIP1967Select
-                  EIP1967Options={EIP1967Options}
-                  selectedEIP1967Slot={selectedEIP1967Slot}
-                  setSelectedEIP1967Slot={setSelectedEIP1967Slot}
-                />
-              );
-            case 1:
-              return (
-                <StorageSlotInput
-                  storageSlot={storageSlot}
-                  setStorageSlot={setStorageSlot}
-                  setSlotRange={setSlotRange}
-                />
-              );
-          }
-        })()}
-        <Query query={query} />
+          {(() => {
+            switch (selectedTabIndex) {
+              case 0:
+                return (
+                  <EIP1967Select
+                    EIP1967Options={EIP1967Options}
+                    selectedEIP1967Slot={selectedEIP1967Slot}
+                    setSelectedEIP1967Slot={setSelectedEIP1967Slot}
+                  />
+                );
+              case 1:
+                return (
+                  <ERC7201Select
+                    namespaceId={erc7201NamespaceId}
+                    setNamespaceId={setErc7201NamespaceId}
+                  />
+                );
+              case 2:
+                return (
+                  <StorageSlotInput
+                    storageSlot={storageSlot}
+                    setStorageSlot={setStorageSlot}
+                    setSlotRange={setSlotRange}
+                  />
+                );
+            }
+          })()}
+          <Query query={query} />
+        </Box>
         {(result?.value || result?.error) && (
           <Result
             result={result}

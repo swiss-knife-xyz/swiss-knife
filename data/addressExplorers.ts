@@ -3,6 +3,7 @@ import { CHAINLABEL_KEY, ADDRESS_KEY, c } from "./common";
 
 export const addressExplorers: ExplorersData = {
   ABINinja: {
+    forContracts: true,
     urlLayout: `https://abi.ninja/${ADDRESS_KEY}/${CHAINLABEL_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: c.mainnet.id.toString(),
@@ -21,14 +22,13 @@ export const addressExplorers: ExplorersData = {
       [c.zkSync.id]: c.zkSync.id.toString(),
       [c.zkSyncSepoliaTestnet.id]: c.zkSyncSepoliaTestnet.id.toString(),
     },
-    forContracts: true,
   },
   ABIw1nt3r: {
+    forContracts: true,
     urlLayout: `https://abi.w1nt3r.xyz/mainnet/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "",
     },
-    forContracts: true,
   },
   "address.vision": {
     urlLayout: `https://address.vision/${ADDRESS_KEY}`,
@@ -39,6 +39,7 @@ export const addressExplorers: ExplorersData = {
       "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>👀</text></svg>",
   },
   AnyABI: {
+    forContracts: true,
     urlLayout: `https://anyabi.xyz/api/get-abi/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
     // Supports all EVM chains
     chainIdToLabel: (() => {
@@ -49,7 +50,6 @@ export const addressExplorers: ExplorersData = {
       });
       return res;
     })(),
-    forContracts: true,
   },
   Arbitrum: {
     urlLayout: `https://${CHAINLABEL_KEY}arbiscan.io/address/${ADDRESS_KEY}`,
@@ -151,6 +151,7 @@ export const addressExplorers: ExplorersData = {
     },
   },
   Bubblemaps: {
+    forContracts: true,
     urlLayout: `https://app.bubblemaps.io/${CHAINLABEL_KEY}/token/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "eth",
@@ -161,7 +162,6 @@ export const addressExplorers: ExplorersData = {
       [c.fantom.id]: "ftm",
       [c.polygon.id]: "poly",
     },
-    forContracts: true,
   },
   Breadcrumbs: {
     urlLayout: `https://breadcrumbs.app/reports/${ADDRESS_KEY}`,
@@ -178,11 +178,11 @@ export const addressExplorers: ExplorersData = {
     },
   },
   Bytegraph: {
+    forContracts: true,
     urlLayout: `https://bytegraph.xyz/contract/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "",
     },
-    forContracts: true,
   },
   CeloScan: {
     urlLayout: `https://${CHAINLABEL_KEY}celoscan.io/address/${ADDRESS_KEY}`,
@@ -198,6 +198,7 @@ export const addressExplorers: ExplorersData = {
     },
   },
   Codeslaw: {
+    forContracts: true,
     urlLayout: `https://www.codeslaw.app/contracts/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "ethereum",
@@ -212,6 +213,7 @@ export const addressExplorers: ExplorersData = {
     },
   },
   ContractReader: {
+    forContracts: true,
     urlLayout: `https://contractreader.io/contract/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "mainnet",
@@ -223,7 +225,6 @@ export const addressExplorers: ExplorersData = {
       [c.polygon.id]: "polygon",
       [c.sepolia.id]: "sepolia",
     },
-    forContracts: true,
   },
   Debank: {
     urlLayout: `https://debank.com/profile/${ADDRESS_KEY}`,
@@ -259,6 +260,7 @@ export const addressExplorers: ExplorersData = {
     },
   },
   DecompileTools: {
+    forContracts: true,
     urlLayout: `https://decompile.tools/contract/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: c.mainnet.id.toString(),
@@ -276,9 +278,9 @@ export const addressExplorers: ExplorersData = {
       [c.polygon.id]: c.polygon.id.toString(),
       [c.polygonMumbai.id]: c.polygonMumbai.id.toString(),
     },
-    forContracts: true,
   },
   Dedaub: {
+    forContracts: true,
     urlLayout: `https://library.dedaub.com/${CHAINLABEL_KEY}/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "ethereum",
@@ -286,9 +288,9 @@ export const addressExplorers: ExplorersData = {
       [c.base.id]: "base",
       [c.fantom.id]: "fantom",
     },
-    forContracts: true,
   },
   DethCode: {
+    forContracts: true,
     urlLayout: `https://${CHAINLABEL_KEY}.deth.net/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "etherscan",
@@ -303,7 +305,6 @@ export const addressExplorers: ExplorersData = {
       [c.goerli.id]: "goerli.etherscan",
       [c.optimism.id]: "optimistic.etherscan",
     },
-    forContracts: true,
   },
   Etherscan: {
     urlLayout: `https://etherscan.io/address/${ADDRESS_KEY}`,
@@ -326,13 +327,14 @@ export const addressExplorers: ExplorersData = {
     },
   },
   EVMCodes: {
+    forContracts: true,
     urlLayout: `https://www.evm.codes/contract?address=${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "",
     },
-    forContracts: true,
   },
   EVMole: {
+    forContracts: true,
     urlLayout: `https://evmole.xyz/#${ADDRESS_KEY}/${CHAINLABEL_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "eth",
@@ -342,7 +344,6 @@ export const addressExplorers: ExplorersData = {
       [c.optimism.id]: "op",
       [c.polygon.id]: "matic",
     },
-    forContracts: true,
   },
   "evm.now": {
     urlLayout: `https://evm.now/address/${ADDRESS_KEY}`,
@@ -351,20 +352,17 @@ export const addressExplorers: ExplorersData = {
     },
   },
   EVMStorage: {
+    forContracts: true,
     urlLayout: `https://evm.storage/eth/latest/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "",
     },
-    forContracts: true,
   },
   FTMScan: {
-    urlLayout: `https://${CHAINLABEL_KEY}ftmscan.com/address/${ADDRESS_KEY}`,
+    urlLayout: `https://explorer.fantom.network/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.fantom.id]: "",
-      [c.fantomTestnet.id]: "testnet.",
     },
-    faviconUrl: "https://ftmscan.com/assets/generic/html/favicon-light.ico",
-    faviconWhite: true,
   },
   GnosisScan: {
     urlLayout: `https://gnosisscan.io/address/${ADDRESS_KEY}`,
@@ -374,9 +372,15 @@ export const addressExplorers: ExplorersData = {
   },
   Impersonator: {
     urlLayout: `https://impersonator.xyz/?address=${ADDRESS_KEY}`,
-    chainIdToLabel: {
-      [c.mainnet.id]: "",
-    },
+    // Supports all EVM chains
+    chainIdToLabel: (() => {
+      let res: ExplorerData["chainIdToLabel"] = {};
+
+      Object.values(c).map((val) => {
+        res[val.id] = "";
+      });
+      return res;
+    })(),
   },
   Llamafolio: {
     urlLayout: `https://llamafolio.com/address/${ADDRESS_KEY}`,
@@ -426,6 +430,7 @@ export const addressExplorers: ExplorersData = {
     },
   },
   Monobase: {
+    forContracts: true,
     urlLayout: `https://monobase.xyz/${CHAINLABEL_KEY}/address/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "ethereum",
@@ -434,7 +439,6 @@ export const addressExplorers: ExplorersData = {
       [c.goerli.id]: "goerli",
       [c.sepolia.id]: "sepolia",
     },
-    forContracts: true,
   },
   Nansen: {
     urlLayout: `https://pro.nansen.ai/wallet-profiler?address=${ADDRESS_KEY}`,
@@ -471,11 +475,11 @@ export const addressExplorers: ExplorersData = {
     },
   },
   "OpenSeaPro Collection": {
+    forContracts: true,
     urlLayout: `https://pro.opensea.io/collection/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "",
     },
-    forContracts: true,
   },
   "OpenSea Testnet": {
     urlLayout: `https://testnets.opensea.io/${ADDRESS_KEY}`,
@@ -534,7 +538,20 @@ export const addressExplorers: ExplorersData = {
     },
     faviconUrl: "https://polygonscan.com/assets/generic/html/favicon-light.ico",
   },
+  "0xPPL": {
+    urlLayout: `https://0xppl.com/${ADDRESS_KEY}`,
+    // Supports all EVM chains
+    chainIdToLabel: (() => {
+      let res: ExplorerData["chainIdToLabel"] = {};
+
+      Object.values(c).map((val) => {
+        res[val.id] = "";
+      });
+      return res;
+    })(),
+  },
   Remix: {
+    forContracts: true,
     urlLayout: `https://remix.ethereum.org/#address=${ADDRESS_KEY}`,
     // Supports all EVM chains
     chainIdToLabel: (() => {
@@ -545,7 +562,6 @@ export const addressExplorers: ExplorersData = {
       });
       return res;
     })(),
-    forContracts: true,
   },
   Scopescan: {
     urlLayout: `https://scopescan.ai/address/${ADDRESS_KEY}?network=${CHAINLABEL_KEY}`,
@@ -588,6 +604,7 @@ export const addressExplorers: ExplorersData = {
     forContracts: true,
   },
   Tenderly: {
+    forContracts: true,
     urlLayout: `https://dashboard.tenderly.co/contract/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "mainnet",
@@ -602,9 +619,9 @@ export const addressExplorers: ExplorersData = {
       [c.polygon.id]: "polygon",
       [c.sepolia.id]: "sepolia",
     },
-    forContracts: true,
   },
   Thirdweb: {
+    forContracts: true,
     urlLayout: `https://thirdweb.com/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
     // Supports all EVM chains
     chainIdToLabel: (() => {
@@ -617,6 +634,7 @@ export const addressExplorers: ExplorersData = {
     })(),
   },
   UpgradeHub: {
+    forContracts: true,
     urlLayout: `https://upgradehub.xyz/diffs/${CHAINLABEL_KEY}/${ADDRESS_KEY}`,
     chainIdToLabel: {
       [c.mainnet.id]: "etherscan",
@@ -629,7 +647,6 @@ export const addressExplorers: ExplorersData = {
       [c.optimism.id]: "optimistic.etherscan",
       [c.polygon.id]: "polygonscan",
     },
-    forContracts: true,
     faviconWhite: true,
   },
   VFatScan: {

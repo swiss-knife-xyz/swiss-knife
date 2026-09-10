@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add ETH Org"
+  short_description: "Research and add Ethereum orgs"
+  default_prompt: "Use $add-eth-org to research a new Ethereum organization from its website and X handle, then add it to the /orgs directory."

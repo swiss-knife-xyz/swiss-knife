@@ -189,6 +189,22 @@ export const megaeth = defineChain({
   testnet: false,
 });
 
+export const robinhood = defineChain({
+  id: 4663,
+  name: "Robinhood Chain",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://rpc.mainnet.chain.robinhood.com"] },
+  },
+  blockExplorers: {
+    default: {
+      name: "Robinhood Chain Explorer",
+      url: "https://robinhoodchain.blockscout.com",
+    },
+  },
+  testnet: false,
+});
+
 export const CHAINLABEL_KEY = "$SK_CHAINLABEL";
 export const ADDRESS_KEY = "$SK_ADDRESS";
 export const TX_KEY = "$SK_TX";
@@ -262,6 +278,7 @@ export const c: { [name: string]: Chain } = {
   optimismGoerli,
   optimismSepolia,
   plasma,
+  robinhood,
   polygon,
   polygonMumbai,
   polygonZkEvm,
@@ -377,6 +394,19 @@ export const chainIdToChain = (() => {
     } else {
       res[chain.id] = chain;
     }
+
+    // Override Polygon RPC URL
+    if (chain.id === polygon.id) {
+      res[chain.id] = {
+        ...chain,
+        rpcUrls: {
+          ...chain.rpcUrls,
+          default: {
+            http: ["https://1rpc.io/matic"],
+          },
+        },
+      };
+    }
   });
 
   return res;
@@ -452,9 +482,9 @@ export const chainIdToImage = (() => {
   return res;
 })();
 
-export const networkOptions: { label: string; value: number }[] = Object.keys(
-  c
-).map((k, i) => ({
-  label: c[k].name,
-  value: c[k].id,
-}));
+export const networkOptions: { label: string; value: number; image: string }[] =
+  Object.keys(c).map((k, i) => ({
+    label: c[k].name,
+    value: c[k].id,
+    image: chainIdToImage[c[k].id],
+  }));

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Contributors"
+  short_description: "Refresh homepage contributor data"
+  default_prompt: "Use $update-contributors to refresh the homepage contributors JSON from repository history."

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   Button,
   HStack,
@@ -13,7 +14,7 @@ import { ConnectButton } from "./ConnectButton";
 import { JsonFragmentType } from "ethers";
 import { ChevronDownIcon } from "@chakra-ui/icons";
 
-export const WriteButton = ({
+const WriteButtonComponent = ({
   isError,
   userAddress,
   writeButtonType,
@@ -22,6 +23,7 @@ export const WriteButton = ({
   writeFunction,
   callAsReadFunction,
   simulateOnTenderly,
+  encodeCalldata,
   isDisabled,
   loading,
   setWriteButtonType,
@@ -35,18 +37,29 @@ export const WriteButton = ({
   writeFunction: () => void;
   callAsReadFunction: () => void;
   simulateOnTenderly: () => void;
+  encodeCalldata?: () => void;
   isDisabled: boolean;
   loading: boolean;
   setWriteButtonType: (writeButtonType: WriteButtonType) => void;
   setIsError: (isError: boolean) => void;
 }) => {
+  const showWrongNetwork =
+    (!userAddress && writeButtonType === WriteButtonType.Write) ||
+    (writeButtonType !== WriteButtonType.SimulateOnTenderly &&
+      writeButtonType !== WriteButtonType.EncodeCalldata &&
+      chain &&
+      chain.id !== chainId);
+
   return (
-    <HStack bg={!isError ? "blue.200" : "red.200"} rounded="lg" spacing={0}>
-      {(!userAddress && writeButtonType === WriteButtonType.Write) ||
-      (writeButtonType !== WriteButtonType.SimulateOnTenderly &&
-        chain &&
-        chain.id !== chainId) ? (
-        <ConnectButton expectedChainId={chainId} hideAccount />
+    <HStack
+      bg="bg.muted"
+      rounded="lg"
+      spacing={0}
+      border="1px solid"
+      borderColor="border.strong"
+    >
+      {showWrongNetwork ? (
+        <ConnectButton expectedChainId={chainId} hideAccount transparentWrongNetwork />
       ) : (
         <Button
           px={4}
@@ -55,33 +68,46 @@ export const WriteButton = ({
               ? writeFunction
               : writeButtonType === WriteButtonType.CallAsViewFn
               ? () => callAsReadFunction()
-              : simulateOnTenderly
+              : writeButtonType === WriteButtonType.SimulateOnTenderly
+              ? simulateOnTenderly
+              : encodeCalldata
           }
           isDisabled={isDisabled}
           isLoading={loading}
           size={"sm"}
           title={"write"}
-          colorScheme={!isError ? "blue" : "red"}
+          variant="ghost"
+          color={!isError ? "text.primary" : "red.300"}
+          _hover={{ bg: "whiteAlpha.100" }}
         >
           {writeButtonType}
         </Button>
       )}
-      <Menu>
+      <Menu isLazy>
         <MenuButton
           as={IconButton}
           aria-label="Options"
           icon={<ChevronDownIcon />}
-          variant="outline"
+          variant="ghost"
           size={"xs"}
-          color="blue.800"
-          borderLeftColor="blue.800"
+          color="text.secondary"
+          borderLeftWidth="1px"
+          borderLeftColor="border.strong"
           borderLeftRadius={0}
+          _hover={{ bg: "whiteAlpha.100" }}
+          _active={{ bg: "whiteAlpha.200" }}
         />
-        <MenuList bg="gray.800">
+        <MenuList
+          bg="bg.subtle"
+          borderColor="border.default"
+          boxShadow="lg"
+          rounded="lg"
+          py={1}
+        >
           <MenuItem
-            color="white"
-            bg="gray.800"
-            _hover={{ bg: "gray.700" }}
+            color="text.primary"
+            bg="transparent"
+            _hover={{ bg: "bg.emphasis" }}
             onClick={() => {
               setWriteButtonType(WriteButtonType.Write);
               setIsError(false);
@@ -90,9 +116,9 @@ export const WriteButton = ({
             Write
           </MenuItem>
           <MenuItem
-            color="white"
-            bg="gray.800"
-            _hover={{ bg: "gray.700" }}
+            color="text.primary"
+            bg="transparent"
+            _hover={{ bg: "bg.emphasis" }}
             onClick={() => {
               setWriteButtonType(WriteButtonType.CallAsViewFn);
               setIsError(false);
@@ -101,9 +127,9 @@ export const WriteButton = ({
             Call as View Fn
           </MenuItem>
           <MenuItem
-            color="white"
-            bg="gray.800"
-            _hover={{ bg: "gray.700" }}
+            color="text.primary"
+            bg="transparent"
+            _hover={{ bg: "bg.emphasis" }}
             onClick={() => {
               setWriteButtonType(WriteButtonType.SimulateOnTenderly);
               setIsError(false);
@@ -111,8 +137,23 @@ export const WriteButton = ({
           >
             Simulate on Tenderly
           </MenuItem>
+          {encodeCalldata && (
+            <MenuItem
+              color="text.primary"
+              bg="transparent"
+              _hover={{ bg: "bg.emphasis" }}
+              onClick={() => {
+                setWriteButtonType(WriteButtonType.EncodeCalldata);
+                setIsError(false);
+              }}
+            >
+              Encode Calldata
+            </MenuItem>
+          )}
         </MenuList>
       </Menu>
     </HStack>
   );
 };
+
+export const WriteButton = memo(WriteButtonComponent);

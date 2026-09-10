@@ -9,7 +9,6 @@ import {
   Center,
   useDisclosure,
   useBreakpointValue,
-  IconButton,
   Drawer,
   DrawerBody,
   DrawerCloseButton,
@@ -66,16 +65,27 @@ export const BaseLayout = ({ children }: LayoutParams) => {
                   {/* Mobile Hamburger Menu */}
                   {isMobile && (
                     <Box mb={8} display="flex" justifyContent="flex-start">
-                      <HStack p={0} pr={2} bg="whiteAlpha.100" rounded="md">
-                        <IconButton
-                          aria-label="Open menu"
-                          icon={<HamburgerIcon />}
-                          variant="ghost"
-                          color="white"
-                          colorScheme="whiteAlpha"
-                          onClick={onOpen}
-                          size="xs"
-                        />
+                      <HStack
+                        as="button"
+                        type="button"
+                        aria-label="Open wallet tools menu"
+                        onClick={onOpen}
+                        p={0}
+                        pr={2}
+                        h={6}
+                        bg="whiteAlpha.100"
+                        rounded="md"
+                        spacing={2}
+                        _hover={{ bg: "whiteAlpha.200", cursor: "pointer" }}
+                        _focusVisible={{ boxShadow: "outline" }}
+                      >
+                        <Center boxSize={6}>
+                          <HamburgerIcon
+                            aria-hidden="true"
+                            boxSize={3}
+                            color="white"
+                          />
+                        </Center>
                         <Text fontSize="xs">Wallet Tools</Text>
                       </HStack>
                     </Box>

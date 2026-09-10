@@ -21,7 +21,8 @@ import {
   zeroAddress,
   parseAbi,
   toHex,
-  toFunctionSelector,
+  concat,
+  encodeAbiParameters,
   decodeAbiParameters,
 } from "viem";
 import { mainnet } from "viem/chains";
@@ -33,8 +34,27 @@ import { getPublicClient } from "@/lib/publicClient";
 // instead of being auto-resolved by readContract.
 const publicClient = getPublicClient(mainnet.id, { ccipRead: false });
 
-// Universal Resolver ABI for resolve function (correct implementation)
+// Universal Resolver — used only to find the resolver address for a name.
+// We deliberately bypass UR.resolve() because the newer UR wraps the lookup
+// in a batch flow whose OffchainLookup points at the ENS batch gateway
+// (ccip-v3.ens.xyz), hiding the actual resolver's gateway. Calling the
+// resolver directly surfaces the real gateway URL the resolver wants to use.
 const UNIVERSAL_RESOLVER_ABI = [
+  {
+    inputs: [{ internalType: "bytes", name: "name", type: "bytes" }],
+    name: "findResolver",
+    outputs: [
+      { internalType: "address", name: "", type: "address" },
+      { internalType: "bytes32", name: "", type: "bytes32" },
+      { internalType: "uint256", name: "", type: "uint256" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+// Minimal ENSIP-10 resolver ABI: just enough to surface OffchainLookup.
+const RESOLVER_ABI = [
   {
     inputs: [
       { internalType: "address", name: "sender", type: "address" },
@@ -52,23 +72,7 @@ const UNIVERSAL_RESOLVER_ABI = [
       { internalType: "bytes", name: "data", type: "bytes" },
     ],
     name: "resolve",
-    outputs: [
-      { internalType: "bytes", name: "", type: "bytes" },
-      { internalType: "address", name: "", type: "address" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "bytes", name: "response", type: "bytes" },
-      { internalType: "bytes", name: "extraData", type: "bytes" },
-    ],
-    name: "resolveSingleCallback",
-    outputs: [
-      { internalType: "bytes", name: "", type: "bytes" },
-      { internalType: "address", name: "", type: "address" },
-    ],
+    outputs: [{ internalType: "bytes", name: "", type: "bytes" }],
     stateMutability: "view",
     type: "function",
   },
@@ -88,6 +92,7 @@ export default function CCIPRead() {
   const hasAnimatedTotalRef = useRef<boolean>(false);
   const [result, setResult] = useState<{
     resolvedAddress?: string;
+    gatewayUrl?: string;
     timing?: {
       lookup?: number;
       gateway?: number;
@@ -135,8 +140,9 @@ export default function CCIPRead() {
   }>({});
 
   // Custom implementation using the low-level call with CCIP Read
-  const handleResolve = async () => {
-    if (!ensName) {
+  const handleResolve = async (nameOverride?: string) => {
+    const nameToResolve = (nameOverride ?? ensName).trim();
+    if (!nameToResolve) {
       toast({
         title: "Error",
         description: "Please enter an ENS name",
@@ -149,7 +155,7 @@ export default function CCIPRead() {
 
     try {
       setLoading(true);
-      setCurrentEnsName(ensName);
+      setCurrentEnsName(nameToResolve);
       // Reset timers and progress
       timerRef.current = {};
       timerRef.current.start = performance.now();
@@ -200,30 +206,45 @@ export default function CCIPRead() {
       }
 
       // Normalize the ENS name
-      const normalizedName = normalize(ensName);
+      const normalizedName = normalize(nameToResolve);
 
       // Get the namehash
       const nameHash = namehash(normalizedName);
 
       let resolvedAddress: string | undefined;
 
+      // Step 0 (off-screen): find the resolver contract for this name via the
+      // Universal Resolver. We call the resolver directly afterwards so the
+      // OffchainLookup surfaces the resolver's actual gateway URL rather than
+      // the new UR's batched ccip-v3.ens.xyz proxy.
+      const dnsEncodedName = toHex(packetToBytes(normalizedName));
+      const addrCallData = encodeFunctionData({
+        abi: parseAbi(["function addr(bytes32 node)"]),
+        functionName: "addr",
+        args: [nameHash],
+      });
+      const [resolverAddress] = await publicClient.readContract({
+        address: mainnet.contracts.ensUniversalResolver.address,
+        abi: UNIVERSAL_RESOLVER_ABI,
+        functionName: "findResolver",
+        args: [dnsEncodedName],
+      });
+
+      let offchainLookupSeen = false;
       try {
-        // Step 1: Call the resolve function. For CCIP this will throw the `OffchainLookup` error
+        // Step 1: Call resolve() on the resolver itself. For CCIP this will
+        // throw the `OffchainLookup` error containing the resolver's gateway.
+        // If it returns successfully, the name is fully onchain and there is
+        // nothing to visualize on this page.
         await publicClient.readContract({
-          address: mainnet.contracts.ensUniversalResolver.address,
-          abi: UNIVERSAL_RESOLVER_ABI,
+          address: resolverAddress,
+          abi: RESOLVER_ABI,
           functionName: "resolve",
-          args: [
-            toHex(packetToBytes(normalizedName)),
-            encodeFunctionData({
-              abi: parseAbi(["function addr(bytes32 node)"]),
-              functionName: "addr",
-              args: [nameHash],
-            }),
-          ],
+          args: [dnsEncodedName, addrCallData],
         });
       } catch (error: any) {
         if (error.message.includes("OffchainLookup")) {
+          offchainLookupSeen = true;
           // Record lookup completion time immediately
           timerRef.current.lookup = performance.now();
           const lookupTime = Math.round(
@@ -253,10 +274,18 @@ export default function CCIPRead() {
           // Step 2: Get the return data from the error
           const errorDataArgs = error.cause.data.args;
           const sender = errorDataArgs[0];
-          const urls = errorDataArgs[1];
+          const urls = errorDataArgs[1] as string[];
           const callData = errorDataArgs[2];
           const callbackFunctionSelector = errorDataArgs[3];
           const extraData = errorDataArgs[4];
+
+          // Pick the first HTTP(S) gateway URL — some resolvers also list
+          // sentinel URLs (e.g. viem's `x-batch-gateway:true`) which are not
+          // fetchable.
+          const gatewayUrl = urls.find((u) => u.startsWith("http"));
+          if (!gatewayUrl) {
+            throw new Error("No HTTP gateway URL in OffchainLookup");
+          }
 
           // Record revert completion time
           timerRef.current.revert = performance.now();
@@ -267,6 +296,7 @@ export default function CCIPRead() {
           // Update UI state for revert completion
           setResult((prev) => ({
             ...prev,
+            gatewayUrl,
             progress: {
               ...prev?.progress,
               revert: {
@@ -278,19 +308,26 @@ export default function CCIPRead() {
                 completed: false,
               },
             },
-            lookupDetails: {
-              nameHash,
-              gatewayUrl: urls[0],
-            },
           }));
 
-          // Step 3: Make a request to the gateway url with the sender and callData received from the error
-          const response = await fetch(urls[0], {
-            method: "POST",
-            body: JSON.stringify({ sender, data: callData }),
-          });
+          // Step 3: Make a request to the gateway URL with sender + callData.
+          // ERC-3668: if the URL contains `{sender}`/`{data}` placeholders, do a
+          // GET with substitutions; otherwise POST a JSON body.
+          const hasTemplate =
+            gatewayUrl.includes("{sender}") || gatewayUrl.includes("{data}");
+          const response = hasTemplate
+            ? await fetch(
+                gatewayUrl
+                  .replace("{sender}", (sender as string).toLowerCase())
+                  .replace("{data}", callData as string)
+              )
+            : await fetch(gatewayUrl, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ sender, data: callData }),
+              });
           const data = await response.json();
-          const responseData = data.data;
+          const responseData: `0x${string}` = data.data;
 
           // Record gateway completion time
           timerRef.current.gateway = performance.now();
@@ -344,26 +381,27 @@ export default function CCIPRead() {
             },
           }));
 
-          // find the function to call corresponding to the `callbackFunctionSelector` in the UNIVERSAL_RESOLVER_ABI (it'll be `resolveSingleCallback()`)
-          const functionToCall = UNIVERSAL_RESOLVER_ABI.filter(
-            (
-              item
-            ): item is (typeof UNIVERSAL_RESOLVER_ABI)[number] & {
-              type: "function";
-            } => item.type === "function"
-          ).find((fn) => toFunctionSelector(fn) === callbackFunctionSelector);
-
-          if (!functionToCall) {
-            throw new Error("Callback function not found in ABI");
-          }
-
-          // Step 4: Call the callback function with the gateway response data and extra data from the error
-          const [result, resolverAddress] = await publicClient.readContract({
-            address: mainnet.contracts.ensUniversalResolver.address,
-            abi: UNIVERSAL_RESOLVER_ABI,
-            functionName: functionToCall.name,
-            args: [responseData, extraData],
+          // Step 4: Call the resolver's callback with (response, extraData).
+          // The callback function name is resolver-specific (we only have its
+          // 4-byte selector from the OffchainLookup), so we build raw calldata
+          // and use eth_call directly. Per ERC-3668 the callback signature is
+          // (bytes,bytes) with a return type matching the original call —
+          // here `resolve(bytes,bytes) returns (bytes)`.
+          const callbackCallData = concat([
+            callbackFunctionSelector as `0x${string}`,
+            encodeAbiParameters(
+              [{ type: "bytes" }, { type: "bytes" }],
+              [responseData, extraData as `0x${string}`]
+            ),
+          ]);
+          const callbackReturn = await publicClient.call({
+            to: resolverAddress,
+            data: callbackCallData,
           });
+          const [result] = decodeAbiParameters(
+            [{ type: "bytes" }],
+            callbackReturn.data ?? "0x"
+          );
 
           // Record verification completion time
           timerRef.current.verify = performance.now();
@@ -457,6 +495,19 @@ export default function CCIPRead() {
 
           return;
         }
+        throw error;
+      }
+
+      if (!offchainLookupSeen) {
+        toast({
+          title: "Not a CCIP name",
+          description: "This name resolves fully onchain — try jesse.base.eth.",
+          status: "info",
+          duration: 5000,
+          isClosable: true,
+        });
+        setResult(null);
+        return;
       }
 
       if (!resolvedAddress || resolvedAddress === zeroAddress) {
@@ -484,11 +535,16 @@ export default function CCIPRead() {
     }
   };
 
-  const handlePaste = () => {
-    // Use setTimeout to ensure the pasted content is available
-    setTimeout(() => {
-      handleResolve();
-    }, 100);
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    // Read the pasted text directly from the event so we don't race
+    // React's onChange state update (which the closure of handleResolve
+    // depends on). Without this, longer pastes lose the race and trigger
+    // the "Please enter an ENS name" toast.
+    const pasted = e.clipboardData.getData("text").trim();
+    if (!pasted) return;
+    e.preventDefault();
+    setEnsName(pasted);
+    handleResolve(pasted);
   };
 
   // Component for the animation sequence
@@ -518,7 +574,7 @@ export default function CCIPRead() {
         </Text>
 
         {/* Total time indicator */}
-        {result?.timing?.total && !isNaN(result.timing.total) && (
+        {!!result?.timing?.total && !isNaN(result.timing.total) && (
           <Box
             position="absolute"
             top="10px"
@@ -628,8 +684,8 @@ export default function CCIPRead() {
               ? result.progress?.lookup?.active
                 ? 0.4
                 : result.progress?.lookup?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -652,8 +708,8 @@ export default function CCIPRead() {
               ? result.progress?.lookup?.active
                 ? 0.4
                 : result.progress?.lookup?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />
@@ -679,7 +735,7 @@ export default function CCIPRead() {
         >
           Lookup {currentEnsName.length > 0 ? currentEnsName : "CCIP ENS"}
         </Text>
-        {result?.timing?.lookup && result?.progress?.lookup?.completed && (
+        {!!result?.timing?.lookup && result?.progress?.lookup?.completed && (
           <Text
             position="absolute"
             left="35%"
@@ -708,8 +764,8 @@ export default function CCIPRead() {
               ? result.progress?.revert?.active
                 ? 0.4
                 : result.progress?.revert?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -732,8 +788,8 @@ export default function CCIPRead() {
               ? result.progress?.revert?.active
                 ? 0.4
                 : result.progress?.revert?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />
@@ -773,8 +829,8 @@ export default function CCIPRead() {
               ? result.progress?.gateway?.active
                 ? 0.4
                 : result.progress?.gateway?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -797,8 +853,8 @@ export default function CCIPRead() {
               ? result.progress?.gateway?.active
                 ? 0.4
                 : result.progress?.gateway?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />
@@ -824,7 +880,7 @@ export default function CCIPRead() {
         >
           Ask Gateway
         </Text>
-        {result?.timing?.gateway && result?.progress?.gateway?.completed && (
+        {!!result?.timing?.gateway && result?.progress?.gateway?.completed && (
           <Text
             position="absolute"
             left="50%"
@@ -853,8 +909,8 @@ export default function CCIPRead() {
               ? result.progress?.return?.active
                 ? 0.4
                 : result.progress?.return?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -877,8 +933,8 @@ export default function CCIPRead() {
               ? result.progress?.return?.active
                 ? 0.4
                 : result.progress?.return?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />
@@ -904,7 +960,7 @@ export default function CCIPRead() {
         >
           Return Data
         </Text>
-        {result?.timing?.return && result?.progress?.return?.completed && (
+        {!!result?.timing?.return && result?.progress?.return?.completed && (
           <Text
             position="absolute"
             left="50%"
@@ -933,8 +989,8 @@ export default function CCIPRead() {
               ? result.progress?.verify?.active
                 ? 0.4
                 : result.progress?.verify?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -957,8 +1013,8 @@ export default function CCIPRead() {
               ? result.progress?.verify?.active
                 ? 0.4
                 : result.progress?.verify?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />
@@ -984,7 +1040,7 @@ export default function CCIPRead() {
         >
           Verify/Decode Data
         </Text>
-        {result?.timing?.verify && result?.progress?.verify?.completed && (
+        {!!result?.timing?.verify && result?.progress?.verify?.completed && (
           <Text
             position="absolute"
             left="35%"
@@ -1013,8 +1069,8 @@ export default function CCIPRead() {
               ? result.progress?.final?.active
                 ? 0.4
                 : result.progress?.final?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1
           }
           animation={
@@ -1037,8 +1093,8 @@ export default function CCIPRead() {
               ? result.progress?.final?.active
                 ? 0.4
                 : result.progress?.final?.completed
-                ? 1
-                : 0
+                  ? 1
+                  : 0
               : 1,
           }}
         />
@@ -1089,7 +1145,7 @@ export default function CCIPRead() {
           <Center>
             <Button
               colorScheme="blue"
-              onClick={handleResolve}
+              onClick={() => handleResolve()}
               isLoading={loading}
               loadingText="Resolving..."
               maxW="10rem"
@@ -1128,6 +1184,32 @@ export default function CCIPRead() {
                   >
                     {result?.resolvedAddress}
                   </Code>
+                )}
+              </Box>
+              <Box>
+                <Text fontWeight="bold" mb={2} color="purple.300">
+                  Gateway URL:
+                </Text>
+                {loading && !result?.gatewayUrl ? (
+                  <Skeleton height="32px" width="330px" />
+                ) : (
+                  result?.gatewayUrl && (
+                    <Link
+                      href={result.gatewayUrl}
+                      isExternal
+                      color="purple.200"
+                      _hover={{ textDecoration: "underline" }}
+                    >
+                      <Code
+                        p={2}
+                        borderRadius="md"
+                        bg="whiteAlpha.200"
+                        color="gray.100"
+                      >
+                        {result.gatewayUrl}
+                      </Code>
+                    </Link>
+                  )
                 )}
               </Box>
             </VStack>

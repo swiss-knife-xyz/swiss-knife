@@ -1,10 +1,10 @@
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
-  title: "Address Checksum | Swiss-Knife.xyz",
+  title: "Address Checksum | ETH.sh",
   description:
     "Convert Ethereum address from lowercase to checksum address and vice versa.",
-  images: "https://swiss-knife.xyz/og/converter-address-checksum.png",
+  images: "https://eth.sh/og/converter-address-checksum.png",
 });
 
 const AddressChecksumLayout = ({ children }: { children: React.ReactNode }) => {

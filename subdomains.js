@@ -1,7 +1,11 @@
 const subdomains = {
   CALLDATA: {
     base: "calldata",
-    paths: ["decoder"],
+    paths: ["decoder", "encoder", "viem-error-simulate", "cowswap"],
+  },
+  CONTRACT: {
+    base: "contract",
+    paths: [],
   },
   EXPLORER: {
     base: "explorer",
@@ -33,7 +37,7 @@ const subdomains = {
   },
   UNISWAP: {
     base: "uniswap",
-    paths: ["tick-to-price"],
+    paths: ["tick-to-price", "pool-price-to-target"],
   },
   DETERMINE_ADDRESS: {
     base: "determine-address",
@@ -50,6 +54,14 @@ const subdomains = {
   WALLET: {
     base: "wallet",
     paths: ["bridge", "ds-proxy", "signatures"],
+  },
+  MIGRATE: {
+    base: "migrate",
+    paths: [],
+  },
+  GWEI: {
+    base: "gwei",
+    paths: [],
   },
   ENS: {
     base: "ens",
@@ -77,6 +89,23 @@ const subdomains = {
   },
   SIWE: {
     base: "siwe",
+    paths: [],
+  },
+  FAUCET: {
+    base: "faucet",
+    paths: [],
+  },
+  SKILLS: {
+    base: "skills",
+    paths: [],
+  },
+  ORGS: {
+    base: "orgs",
+    paths: [],
+    isRelativePath: true,
+  },
+  PRIVACY: {
+    base: "privacy",
     paths: [],
   },
 };

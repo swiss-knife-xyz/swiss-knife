@@ -3,24 +3,22 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   Heading,
-  Table,
-  Tbody,
-  Tr,
-  Td,
   Textarea,
   Box,
   HStack,
+  VStack,
   Text,
   Spacer,
   Avatar,
   Spinner,
   Tooltip,
+  Icon,
 } from "@chakra-ui/react";
+import { FiTarget, FiUser, FiHash, FiCode, FiKey, FiPackage } from "react-icons/fi";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { getContractAddress, Hex, toBytes, isHex, isAddress } from "viem";
 import { Layout } from "@/components/Layout";
 import { InputField } from "@/components/InputField";
-import { Label } from "@/components/Label";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { resolveNameToAddress, resolveAddressToName, getNameAvatar, isResolvableName, slicedText } from "@/utils";
 import debounce from "lodash/debounce";
@@ -173,50 +171,78 @@ const DetermineContractAddress = () => {
 
   return (
     <Layout>
-      <Heading color={"custom.pale"}>Determine Contract Address</Heading>
+      <Box
+        p={6}
+        bg="rgba(0, 0, 0, 0.05)"
+        backdropFilter="blur(5px)"
+        borderRadius="xl"
+        border="1px solid"
+        borderColor="whiteAlpha.50"
+        maxW="800px"
+        mx="auto"
+      >
+        {/* Page Header */}
+        <Box mb={8} textAlign="center">
+          <HStack justify="center" spacing={3} mb={4}>
+            <Icon as={FiTarget} color="blue.400" boxSize={8} />
+            <Heading size="xl" color="gray.100" fontWeight="bold" letterSpacing="tight">
+              Determine Contract Address
+            </Heading>
+          </HStack>
+          <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
+            Calculate contract addresses for CREATE and CREATE2 deployments
+          </Text>
+        </Box>
 
-      <TabsSelector
-        tabs={["CREATE", "CREATE2"]}
-        selectedTabIndex={selectedTabIndex}
-        setSelectedTabIndex={setSelectedTabIndex}
-        mt="2rem"
-      />
+        <Box
+          p={4}
+          bg="whiteAlpha.50"
+          borderRadius="lg"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+        >
+          <TabsSelector
+            tabs={["CREATE", "CREATE2"]}
+            selectedTabIndex={selectedTabIndex}
+            setSelectedTabIndex={setSelectedTabIndex}
+            mb={6}
+          />
 
-      <Table mt={"2rem"} variant={"unstyled"}>
-        <Tbody>
-          <Tr>
-            <Label>Deployer</Label>
-            <Td>
-              <Box>
-                <HStack mb={2}>
-                  <Spacer />
-                  {isResolvingEns && <Spinner size="xs" />}
+          <VStack spacing={4} align="stretch">
+            {/* Deployer Address */}
+            <HStack
+              spacing={4}
+              p={4}
+              bg="whiteAlpha.50"
+              borderRadius="lg"
+              border="1px solid"
+              borderColor="whiteAlpha.100"
+            >
+              <Box minW="100px">
+                <VStack spacing={1} align="start">
+                  <HStack spacing={2}>
+                    <Icon as={FiUser} color="blue.400" boxSize={4} />
+                    <Text color="gray.300" fontWeight="medium" fontSize="sm">
+                      Deployer
+                    </Text>
+                  </HStack>
+                  {isResolvingEns && <Spinner size="xs" color="blue.400" />}
                   {ensName && !isResolvingEns && (
-                    <HStack px={2} bg="whiteAlpha.200" rounded="md">
+                    <HStack px={2} py={0.5} bg="whiteAlpha.200" rounded="md">
                       {ensAvatar && (
                         <Avatar
                           src={ensAvatar}
-                          w="1.2rem"
-                          h="1.2rem"
+                          w="0.875rem"
+                          h="0.875rem"
                           ignoreFallback
                         />
                       )}
-                      <Text fontSize="sm">{ensName}</Text>
+                      <Text fontSize="xs" color="gray.400">{ensName}</Text>
                     </HStack>
                   )}
-                  {resolvedAddress &&
-                    !isResolvingEns &&
-                    resolvedAddress !== deployerAddress && (
-                      <HStack spacing={1}>
-                        <Tooltip label={resolvedAddress} placement="top">
-                          <Text fontSize="xs" color="whiteAlpha.600" cursor="default">
-                            {slicedText(resolvedAddress)}
-                          </Text>
-                        </Tooltip>
-                        <CopyToClipboard textToCopy={resolvedAddress} size="xs" />
-                      </HStack>
-                    )}
-                </HStack>
+                </VStack>
+              </Box>
+              <Box flex={1}>
                 <InputField
                   autoFocus
                   placeholder="address or ENS"
@@ -225,30 +251,65 @@ const DetermineContractAddress = () => {
                     setDeployerAddress(e.target.value.trim());
                   }}
                 />
+                {resolvedAddress &&
+                  !isResolvingEns &&
+                  resolvedAddress !== deployerAddress && (
+                    <HStack spacing={1} mt={1}>
+                      <Tooltip label={resolvedAddress} placement="top">
+                        <Text fontSize="xs" color="gray.500" cursor="default">
+                          Resolved: {slicedText(resolvedAddress)}
+                        </Text>
+                      </Tooltip>
+                      <CopyToClipboard textToCopy={resolvedAddress} size="xs" />
+                    </HStack>
+                  )}
               </Box>
-            </Td>
-          </Tr>
+            </HStack>
 
-          {mode === "CREATE" && (
-            <Tr>
-              <Label>Nonce</Label>
-              <Td>
-                <InputField
-                  placeholder="nonce"
-                  value={nonce}
-                  onChange={(e) => {
-                    setNonce(e.target.value);
-                  }}
-                />
-              </Td>
-            </Tr>
-          )}
+            {mode === "CREATE" && (
+              <HStack
+                spacing={4}
+                p={4}
+                bg="whiteAlpha.50"
+                borderRadius="lg"
+                border="1px solid"
+                borderColor="whiteAlpha.100"
+              >
+                <Box minW="100px">
+                  <HStack spacing={2}>
+                    <Icon as={FiHash} color="blue.400" boxSize={4} />
+                    <Text color="gray.300" fontWeight="medium" fontSize="sm">
+                      Nonce
+                    </Text>
+                  </HStack>
+                </Box>
+                <Box flex={1}>
+                  <InputField
+                    placeholder="e.g. 0, 1, 2..."
+                    value={nonce}
+                    onChange={(e) => {
+                      setNonce(e.target.value);
+                    }}
+                  />
+                </Box>
+              </HStack>
+            )}
 
-          {mode === "CREATE2" && (
-            <>
-              <Tr>
-                <Label>Bytecode</Label>
-                <Td>
+            {mode === "CREATE2" && (
+              <>
+                <Box
+                  p={4}
+                  bg="whiteAlpha.50"
+                  borderRadius="lg"
+                  border="1px solid"
+                  borderColor="whiteAlpha.100"
+                >
+                  <HStack spacing={2} mb={3}>
+                    <Icon as={FiCode} color="blue.400" boxSize={4} />
+                    <Text color="gray.300" fontWeight="medium" fontSize="sm">
+                      Bytecode
+                    </Text>
+                  </HStack>
                   <Textarea
                     placeholder="0x..."
                     value={bytecode}
@@ -256,46 +317,79 @@ const DetermineContractAddress = () => {
                       setBytecode(e.target.value);
                     }}
                     minH="100px"
-                    bg="bg.900"
-                    borderColor="whiteAlpha.300"
-                    _hover={{ borderColor: "whiteAlpha.400" }}
+                    bg="whiteAlpha.50"
+                    border="1px solid"
+                    borderColor="whiteAlpha.200"
+                    _hover={{ borderColor: "whiteAlpha.300" }}
                     _focus={{
                       borderColor: "blue.400",
                       boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
                     }}
+                    color="gray.100"
+                    _placeholder={{ color: "gray.500" }}
                     fontFamily="mono"
                     fontSize="sm"
                   />
-                </Td>
-              </Tr>
-              <Tr>
-                <Label>Salt</Label>
-                <Td>
-                  <InputField
-                    placeholder="0x... (hex) or any string"
-                    value={salt}
-                    onChange={(e) => {
-                      setSalt(e.target.value);
-                    }}
-                  />
-                </Td>
-              </Tr>
-            </>
-          )}
+                </Box>
+                <HStack
+                  spacing={4}
+                  p={4}
+                  bg="whiteAlpha.50"
+                  borderRadius="lg"
+                  border="1px solid"
+                  borderColor="whiteAlpha.100"
+                >
+                  <Box minW="100px">
+                    <HStack spacing={2}>
+                      <Icon as={FiKey} color="blue.400" boxSize={4} />
+                      <Text color="gray.300" fontWeight="medium" fontSize="sm">
+                        Salt
+                      </Text>
+                    </HStack>
+                  </Box>
+                  <Box flex={1}>
+                    <InputField
+                      placeholder="0x... (hex) or any string"
+                      value={salt}
+                      onChange={(e) => {
+                        setSalt(e.target.value);
+                      }}
+                    />
+                  </Box>
+                </HStack>
+              </>
+            )}
 
-          <Tr>
-            <Label>Contract Address</Label>
-            <Td>
-              <InputField
-                placeholder="determined contract address"
-                value={contractAddress}
-                onChange={() => {}}
-                isReadOnly
-              />
-            </Td>
-          </Tr>
-        </Tbody>
-      </Table>
+            {/* Result */}
+            <HStack
+              spacing={4}
+              p={4}
+              bg="whiteAlpha.100"
+              borderRadius="lg"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+            >
+              <Box minW="100px">
+                <HStack spacing={2}>
+                  <Icon as={FiPackage} color="green.400" boxSize={4} />
+                  <Text color="gray.300" fontWeight="medium" fontSize="sm">
+                    Contract
+                  </Text>
+                </HStack>
+              </Box>
+              <Box flex={1}>
+                <InputField
+                  placeholder="determined contract address"
+                  value={contractAddress}
+                  onChange={() => {}}
+                  isReadOnly
+                  cursor="text"
+                />
+              </Box>
+            </HStack>
+          </VStack>
+        </Box>
+      </Box>
     </Layout>
   );
 };

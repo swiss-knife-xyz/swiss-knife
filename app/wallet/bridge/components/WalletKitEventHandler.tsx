@@ -224,7 +224,7 @@ export default function WalletKitEventHandler({
     // Function to handle title notification
     const startTitleNotification = () => {
       const originalTitle = document.title;
-      const notificationTitle = "🔔 (1) Request - Swiss Knife";
+      const notificationTitle = "🔔 (1) Request - ETH.sh";
       let isOriginalTitle = false;
 
       // Store the interval ID so we can clear it later

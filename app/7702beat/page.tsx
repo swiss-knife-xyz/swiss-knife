@@ -674,6 +674,12 @@ const dapps: SupportedApp[] = [
     supportedChainIds: [mainnet.id, base.id, bsc.id, optimism.id],
   },
   {
+    name: "Based Loans",
+    logoUrl: getFaviconUrl("https://based.loans/"),
+    siteUrl: "https://based.loans/",
+    supportedChainIds: [base.id],
+  },
+  {
     name: "Bungee",
     logoUrl: getFaviconUrl("https://bungee.exchange/"),
     siteUrl: "https://bungee.exchange/",
@@ -1749,7 +1755,8 @@ const SevenSevenZeroTwoBeat = () => {
     <Layout>
       <Box
         width="100%"
-        maxW="90vw"
+        maxW="1000px"
+        mx="auto"
         overflowX="hidden"
         position="relative"
         minH="100vh"

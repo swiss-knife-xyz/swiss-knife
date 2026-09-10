@@ -141,8 +141,10 @@ export function createImpersonatorEip1193Provider({
 
   const provider = Provider.from({
     ...emitter,
-    async request(args: { method: string; params?: any[] }) {
-      const { method, params } = args;
+    async request(args: { method: string; params?: unknown }) {
+      const { method } = args;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const params = args.params as any[] | undefined;
       const impersonatedAddress = getImpersonatedAddress();
       const currentChainId = getCurrentChainId();
 

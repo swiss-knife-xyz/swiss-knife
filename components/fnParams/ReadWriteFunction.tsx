@@ -15,6 +15,12 @@ import {
   Link,
   List,
   ListItem,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
   Text,
   Popover,
   PopoverContent,
@@ -55,7 +61,9 @@ import { generateTenderlyUrl, slicedText } from "@/utils";
 import { getTransactionError, getContractError } from "viem/utils";
 import { config } from "@/app/providers";
 import { WriteButton } from "../WriteButton";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
+import { convertBooleans } from "@/lib/convertBooleans";
 
 interface ReadWriteFunctionProps {
   client: PublicClient;
@@ -164,9 +172,14 @@ export enum WriteButtonType {
   Write = "Write",
   CallAsViewFn = "Call as View Fn",
   SimulateOnTenderly = "Simulate on Tenderly",
+  EncodeCalldata = "Encode Calldata",
 }
 
-export const ReadWriteFunction = ({
+/**
+ * Recursively converts boolean string values ("true"/"false") to actual
+ * booleans, handling nested arrays (bool[], bool[3]) and tuples.
+ */
+const ReadWriteFunctionComponent = ({
   client,
   index,
   type,
@@ -241,6 +254,8 @@ export const ReadWriteFunction = ({
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [enterPressed, setEnterPressed] = useState<boolean>(false);
+  const [calldataModalOpen, setCalldataModalOpen] = useState<boolean>(false);
+  const [encodedCalldata, setEncodedCalldata] = useState<string>("");
 
   const updateInputState = useCallback((index: number, value: string) => {
     setInputsState((prev: any) => ({
@@ -259,6 +274,10 @@ export const ReadWriteFunction = ({
     []
   );
 
+  const prepareArgs = useCallback(() => {
+    return inputs?.map((input, i) => convertBooleans(inputsState[i], input));
+  }, [inputs, inputsState]);
+
   const readFunction = useCallback(async () => {
     if (isError) {
       setIsError(false);
@@ -269,57 +288,77 @@ export const ReadWriteFunction = ({
       setRes(null);
 
       const abi = [_func] as unknown as Abi;
-      const args = inputs?.map((input, i) => inputsState[i]);
+      const args = prepareArgs();
 
+      const maxRetries = 3;
       try {
-        if (!isAbiDecoded) {
-          const result = await client.readContract({
-            address: address as Hex,
-            abi,
-            functionName,
-            args,
-          });
-          setRes(result);
-        } else {
-          const result = await client.call({
-            to: address as Hex,
-            data: encodeFunctionData({
-              abi,
-              functionName,
-              args,
-            }),
-            value: BigInt(payableETH),
-          });
-          console.log({
-            result,
-            abi,
-            functionName,
-            args,
-            outputs,
-            isAbiDecoded,
-          });
-          setRes(result.data);
-        }
-      } catch (e: any) {
-        console.error(e);
-        setIsError(true);
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            if (!isAbiDecoded) {
+              const result = await client.readContract({
+                address: address as Hex,
+                abi,
+                functionName,
+                args,
+              });
+              setRes(result);
+            } else {
+              const result = await client.call({
+                to: address as Hex,
+                data: encodeFunctionData({
+                  abi,
+                  functionName,
+                  args,
+                }),
+                value: BigInt(payableETH),
+              });
+              console.log({
+                result,
+                abi,
+                functionName,
+                args,
+                outputs,
+                isAbiDecoded,
+              });
+              setRes(result.data);
+            }
+            // Success - break out of retry loop
+            break;
+          } catch (e: any) {
+            // Check if this is a 429 rate limit error and we can retry
+            const is429 =
+              e?.cause?.message?.includes("429") ||
+              e?.message?.includes("429") ||
+              e?.cause?.message?.includes("rate limit") ||
+              e?.message?.includes("rate limit");
 
-        setRes(null);
+            if (is429 && attempt < maxRetries) {
+              // Exponential backoff: 1s, 2s, 4s
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * Math.pow(2, attempt))
+              );
+              continue;
+            }
 
-        if (e instanceof ContractFunctionExecutionError) {
-          // extract the error message
-          const errorMessage = e.cause?.message || e.message;
-          setErrorMsg(
-            getContractError(e, {
-              docsPath: "",
-              address: address as Hex,
-              abi,
-              functionName,
-              args,
-            }).shortMessage
-          );
-        } else {
-          setErrorMsg("An unknown error occurred");
+            console.error(e);
+            setIsError(true);
+            setRes(null);
+
+            if (e instanceof ContractFunctionExecutionError) {
+              setErrorMsg(
+                getContractError(e, {
+                  docsPath: "",
+                  address: address as Hex,
+                  abi,
+                  functionName,
+                  args,
+                }).shortMessage
+              );
+            } else {
+              setErrorMsg("An unknown error occurred");
+            }
+            break;
+          }
         }
       } finally {
         setLoading(false);
@@ -342,7 +381,7 @@ export const ReadWriteFunction = ({
         const calldata = await encodeFunctionData({
           abi: [_func] as const,
           functionName: functionName,
-          args: inputs?.map((input, i) => inputsState[i]),
+          args: prepareArgs(),
         });
 
         // send transaction to wallet
@@ -400,7 +439,7 @@ export const ReadWriteFunction = ({
         setRes(null);
 
         const abi = [_func] as unknown as Abi;
-        const args = inputs?.map((input, i) => inputsState[i]);
+        const args = prepareArgs();
 
         try {
           // TODO: add caller address in the settings modal
@@ -472,7 +511,7 @@ export const ReadWriteFunction = ({
     setLoading(true);
 
     const abi = [_func] as unknown as Abi;
-    const args = inputs?.map((input, i) => inputsState[i]);
+    const args = prepareArgs();
 
     const tenderlyUrl = generateTenderlyUrl(
       {
@@ -521,7 +560,7 @@ export const ReadWriteFunction = ({
       setConfirmedTxHash(null);
 
       const abi = [_func] as unknown as Abi;
-      const args = inputs?.map((input, i) => inputsState[i]);
+      const args = prepareArgs();
 
       // send transaction to tenderly fork
       try {
@@ -586,6 +625,29 @@ export const ReadWriteFunction = ({
     tenderlyForkId,
   ]);
 
+  const encodeCalldataFn = useCallback(() => {
+    if (isError) {
+      setIsError(false);
+    }
+
+    try {
+      const abi = [_func] as unknown as Abi;
+      const args = prepareArgs();
+
+      const calldata = encodeFunctionData({
+        abi,
+        functionName,
+        args,
+      });
+      setEncodedCalldata(calldata);
+      setCalldataModalOpen(true);
+    } catch (e: any) {
+      console.error(e);
+      setIsError(true);
+      setErrorMsg(e.message || "Failed to encode calldata");
+    }
+  }, [isError, _func, inputs, inputsState, functionName]);
+
   useEffect(() => {
     try {
       setFnSelector(FunctionFragment.from(_func).selector);
@@ -603,8 +665,13 @@ export const ReadWriteFunction = ({
 
   useEffect(() => {
     // if there are no inputs, then auto fetch the value
+    // stagger calls by 150ms per function to avoid RPC rate limits (429)
     if (type === "read" && (!inputs || (inputs && inputs.length === 0))) {
-      readFunction();
+      const delay = index * 150;
+      const timer = setTimeout(() => {
+        readFunction();
+      }, delay);
+      return () => clearTimeout(timer);
     }
   }, []);
 
@@ -770,6 +837,7 @@ export const ReadWriteFunction = ({
             writeFunction={writeFunction}
             callAsReadFunction={callAsReadFunction}
             simulateOnTenderly={simulateOnTenderly}
+            encodeCalldata={encodeCalldataFn}
             isDisabled={
               (inputs &&
                 inputs.some((_, i) => functionIsDisabled[i] === true)) ||
@@ -783,6 +851,7 @@ export const ReadWriteFunction = ({
         {type === "write" &&
           writeButtonType === WriteButtonType.SimulateOnTenderly && (
             <Popover
+              isLazy
               placement="bottom-start"
               isOpen={settingsIsOpen}
               onOpen={() => setSettingsIsOpen(true)}
@@ -1005,6 +1074,48 @@ export const ReadWriteFunction = ({
           </Center>
         )}
       </Box>
+
+      {/* Encode Calldata Modal */}
+      <Modal
+        isOpen={calldataModalOpen}
+        onClose={() => setCalldataModalOpen(false)}
+        isCentered
+        size="lg"
+      >
+        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
+        <ModalContent bg="bg.base" border="1px solid" borderColor="border.subtle">
+          <ModalHeader color="text.primary">Encoded Calldata</ModalHeader>
+          <ModalCloseButton
+            color="text.secondary"
+            _hover={{ color: "text.primary" }}
+          />
+          <ModalBody pb={6}>
+            <Box
+              p={4}
+              bg="bg.muted"
+              border="1px solid"
+              borderColor="border.default"
+              rounded="lg"
+              fontFamily="mono"
+              fontSize="sm"
+              wordBreak="break-all"
+              maxH="300px"
+              overflowY="auto"
+              color="text.primary"
+            >
+              {encodedCalldata}
+            </Box>
+            <HStack mt={4} justify="flex-end">
+              <CopyToClipboard
+                textToCopy={encodedCalldata}
+                labelText="Copy Calldata"
+              />
+            </HStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };
+
+export const ReadWriteFunction = React.memo(ReadWriteFunctionComponent);

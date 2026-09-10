@@ -1,10 +1,10 @@
-import { IndexLayout as IndexLayoutC } from "@/components/layouts/IndexLayout";
 import { getMetadata } from "@/utils";
+import { IndexLayout as IndexLayoutC } from "./IndexLayout";
 
 export const metadata = getMetadata({
-  title: "Swiss-Knife.xyz | All your Ethereum dev tools at one place!",
+  title: "ETH.sh | All your Ethereum dev tools at one place!",
   description: "All your Ethereum dev tools at one place!",
-  images: "https://swiss-knife.xyz/og/index.png",
+  images: "https://eth.sh/og/index.png",
 });
 
 const IndexLayout = ({ children }: { children: React.ReactNode }) => {

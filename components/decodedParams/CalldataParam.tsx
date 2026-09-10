@@ -24,7 +24,6 @@ export const CalldataParam = ({
     const res = await decodeRecursive({
       calldata: startHexWith0x(value as string),
     });
-    console.log({ DECODED_RESULT: res });
     setResult(res);
     setIsLoading(false);
   };

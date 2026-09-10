@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { createParser, useQueryState } from "next-usequerystate";
+import { createParser, useQueryState } from "nuqs";
 
 // Custom parser for SIWE messages that handles newlines via base64 encoding
 const parseAsBase64Message = createParser({

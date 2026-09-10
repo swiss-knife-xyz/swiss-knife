@@ -4,14 +4,14 @@ import { headers } from "next/headers";
 import { AppsLayout as AppsLayoutC } from "./components/AppsLayout";
 
 const _metadataInfo = {
-  title: "Web3 App Store | Swiss-Knife.xyz",
+  title: "Web3 App Store | ETH.sh",
   description:
-    "Your Web3 Operating System - Access any dapp with the power of Swiss-Knife decoder as middleware.",
-  images: "https://swiss-knife.xyz/og/apps.png",
+    "Your Web3 Operating System - Access any dapp with the power of ETH.sh decoder as middleware.",
+  images: "https://eth.sh/og/web3-app-store.png",
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const headersList = headers();
+  const headersList = await headers();
   const fullUrl = headersList.get("x-url-with-params");
   const url = fullUrl ? new URL(fullUrl) : null;
   const urlParam = url?.searchParams.get("url");
@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   // If URL param exists, use dynamic OG image
-  const ogImageUrl = `https://swiss-knife.xyz/api/og/app-store?url=${encodeURIComponent(
+  const ogImageUrl = `https://eth.sh/api/og/app-store?url=${encodeURIComponent(
     urlParam
   )}`;
 
@@ -36,10 +36,10 @@ export async function generateMetadata(): Promise<Metadata> {
       action: {
         type: "launch_frame",
         name: "Launch Dapp",
-        url: `https://apps.swiss-knife.xyz/?url=${encodeURIComponent(
+        url: `https://eth.sh/wallet/bridge/apps?url=${encodeURIComponent(
           urlParam
         )}`,
-        splashImageUrl: `https://swiss-knife.xyz/splashImage.png`,
+        splashImageUrl: `https://eth.sh/splashImage.png`,
         splashBackgroundColor: "#101010", // theme.ts: colors.bg[900]
       },
     },

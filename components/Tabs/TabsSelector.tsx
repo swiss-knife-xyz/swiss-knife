@@ -19,13 +19,12 @@ export default function TabsSelector({
     <Center flexDir="column">
       <HStack
         mt={mt ?? "1rem"}
-        minH="3rem"
-        px="1.5rem"
-        spacing={"8"}
-        bg="blackAlpha.400"
-        border="1px solid"
-        borderColor={"whiteAlpha.500"}
-        borderRadius="xl"
+        minH="2.75rem"
+        px="0.375rem"
+        spacing={1}
+        bg="whiteAlpha.100"
+        borderRadius="lg"
+        p={1}
         {...props}
       >
         {tabs.map((t, i) => (

@@ -1,12 +1,12 @@
 "use client";
 
+import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 
 const Transact = () => {
-  const router = useRouter();
+  const router = useTopLoaderRouter();
 
   useEffect(() => {
     router.push(`${getPath(subdomains.TRANSACT.base)}send-tx`);
