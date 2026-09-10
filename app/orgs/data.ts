@@ -777,6 +777,49 @@ export const ethereumOrgs: EthereumOrg[] = [
       },
     ],
   },
+  {
+    id: "geode-labs",
+    name: "Geode Labs",
+    shortName: "Geode",
+    handle: "@geodelabs",
+    website: "https://geode.build/",
+    twitter: "https://x.com/geodelabs",
+    logoDomain: "geode.build",
+    accent: "#8B5CF6",
+    category: "Global ecosystem development",
+    stage: "EF spin-out, active by Mar 2025",
+    role: "Global Ethereum talent, regional communities, and builder opportunity infrastructure.",
+    summary:
+      "Geode Labs is an Ethereum Foundation spin-out supporting Ethereum's global talent and regional communities through grants, educational and community infrastructure, ecosystem publications, and builder opportunity tools.",
+    evidence: [
+      "A March 21, 2025 announcement under its former name, Geodework, identifies the organization as an Ethereum Foundation spin-out dedicated to global Ethereum ecosystem development.",
+      "The official site lists Local Ethereum, the ETHStars Opportunity Board, and the Ethereum Job Board as publications and products supporting Ethereum's global talent layer.",
+      "Its grant program supports R&D, education, community infrastructure, and early experiments, with a public list of supported projects across multiple regions.",
+    ],
+    workstreams: [
+      "Grantmaking for Ethereum research, education, local communities, and early ecosystem experiments.",
+      "Community and builder opportunity infrastructure through ETHStars and the Ethereum Job Board.",
+      "Local Ethereum coverage of regional ecosystems, adoption, global R&D, and protocol-adjacent work.",
+    ],
+    watch: [
+      "Whether grants and opportunity tools help regional builders find sustained work and support beyond individual programs.",
+      "How funding sources, grant decisions, and recipient outcomes are documented as the program grows.",
+      "How Geode coordinates with EF and other regional builder programs while maintaining an independent ecosystem-development mandate.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://geode.build/" },
+      { label: "Grant program", href: "https://geode.build/grants" },
+      {
+        label: "Spin-out announcement",
+        href: "https://x.com/geodelabs/status/1903124993380323650",
+      },
+      {
+        label: "Local Ethereum",
+        href: "https://localethereum.substack.com/",
+      },
+      { label: "GitHub", href: "https://github.com/geodelabs" },
+    ],
+  },
 ];
 
 export const ethTreasuryCompanies: EthTreasuryCompany[] = [
@@ -863,6 +906,12 @@ export const roleMap = [
     orgIds: ["ethereum-applications-guild"],
   },
   {
+    label: "Global ecosystem development",
+    description:
+      "Regional communities, global talent, grants, builder opportunity tools",
+    orgIds: ["geode-labs"],
+  },
+  {
     label: "Unified liquidity",
     description:
       "Cross-L1/L2 synchronous composability and shared infrastructure",
@@ -912,6 +961,12 @@ export const roleMap = [
 ];
 
 export const sourceTrail: SourceLink[] = [
+  { label: "Geode Labs official site", href: "https://geode.build/" },
+  { label: "Geode grant program", href: "https://geode.build/grants" },
+  {
+    label: "Geode spin-out announcement",
+    href: "https://x.com/geodelabs/status/1903124993380323650",
+  },
   { label: "EF official site", href: "https://ethereum.foundation/ef" },
   {
     label: "EF new structure",
