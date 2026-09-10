@@ -67,7 +67,7 @@ import { SafeDappInfo } from "@/types/safeDapps";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart } from "@fortawesome/free-solid-svg-icons";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { zeroAddress } from "viem";
+import { stringify, zeroAddress } from "viem";
 import { impersonatorConnectorId } from "@/utils/impersonatorConnector/connector";
 import subdomains from "@/subdomains";
 
@@ -268,7 +268,8 @@ function AppStoreContent({
         });
 
         console.log("Decoded transaction data:", decodedData);
-        setDecodedTxData(decodedData);
+        // Keep display state JSON-safe for React devtools, preserving integer precision.
+        setDecodedTxData(JSON.parse(stringify(decodedData)));
       } catch (error) {
         console.error("Failed to decode transaction data:", error);
       } finally {

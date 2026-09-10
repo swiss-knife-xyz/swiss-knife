@@ -1352,12 +1352,6 @@ export default function WalletBridgePage() {
             ".chakra-react-select__menu-list": {
               zIndex: "9999 !important",
             },
-            ".chakra-modal__content": {
-              overflow: "visible !important",
-            },
-            ".chakra-modal__body": {
-              overflow: "visible !important",
-            },
           }}
         />
 

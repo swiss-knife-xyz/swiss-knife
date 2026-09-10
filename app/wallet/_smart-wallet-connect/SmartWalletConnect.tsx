@@ -479,12 +479,6 @@ export default function SmartWalletConnect({
             ".chakra-react-select__menu-list": {
               zIndex: "9999 !important",
             },
-            ".chakra-modal__content": {
-              overflow: "visible !important",
-            },
-            ".chakra-modal__body": {
-              overflow: "visible !important",
-            },
           }}
         />
 
@@ -608,14 +602,30 @@ export default function SmartWalletConnect({
                       </FormControl>
 
                       {validation.isValidating && (
-                        <Alert status="info" borderRadius="md">
+                        <Alert
+                            status="info"
+                            bg="blue.900"
+                            color="blue.100"
+                            border="1px solid"
+                            borderColor="blue.700"
+                            borderRadius="md"
+                            sx={{ "& .chakra-alert__icon": { color: "blue.300" } }}
+                          >
                           <AlertIcon />
                           Validating {config.shortName} address...
                         </Alert>
                       )}
 
                       {validation.error && (
-                        <Alert status="error" borderRadius="md">
+                        <Alert
+                            status="error"
+                            bg="red.900"
+                            color="red.100"
+                            border="1px solid"
+                            borderColor="red.700"
+                            borderRadius="md"
+                            sx={{ "& .chakra-alert__icon": { color: "red.300" } }}
+                          >
                           <AlertIcon />
                           {validation.error}
                         </Alert>
@@ -623,14 +633,30 @@ export default function SmartWalletConnect({
 
                       {validation.isContract === true &&
                         validation.isOwner === true && (
-                          <Alert status="success" borderRadius="md">
+                          <Alert
+                            status="success"
+                            bg="green.900"
+                            color="green.100"
+                            border="1px solid"
+                            borderColor="green.700"
+                            borderRadius="md"
+                            sx={{ "& .chakra-alert__icon": { color: "green.300" } }}
+                          >
                             <AlertIcon />
                             {config.shortName} address validated successfully
                           </Alert>
                         )}
 
                       {!isChainSupported && (
-                        <Alert status="warning" borderRadius="md">
+                        <Alert
+                            status="warning"
+                            bg="orange.900"
+                            color="orange.100"
+                            border="1px solid"
+                            borderColor="orange.700"
+                            borderRadius="md"
+                            sx={{ "& .chakra-alert__icon": { color: "orange.300" } }}
+                          >
                           <AlertIcon />
                           This chain is not supported. Please switch to a
                           supported chain:{" "}
@@ -642,7 +668,15 @@ export default function SmartWalletConnect({
                         isChainSupported &&
                         !validation.error &&
                         walletAddress.trim() === "" && (
-                          <Alert status="warning" borderRadius="md">
+                          <Alert
+                            status="warning"
+                            bg="orange.900"
+                            color="orange.100"
+                            border="1px solid"
+                            borderColor="orange.700"
+                            borderRadius="md"
+                            sx={{ "& .chakra-alert__icon": { color: "orange.300" } }}
+                          >
                             <AlertIcon />
                             Please provide {config.shortName} address to
                             continue.

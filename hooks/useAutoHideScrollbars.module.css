@@ -1,0 +1,42 @@
+.scrollbars,
+.scrollbars * {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 150ms ease;
+}
+
+.scrollbars[data-scrolling],
+.scrollbars [data-scrolling] {
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+.scrollbars::-webkit-scrollbar,
+.scrollbars *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbars::-webkit-scrollbar-track,
+.scrollbars *::-webkit-scrollbar-track,
+.scrollbars::-webkit-scrollbar-corner,
+.scrollbars *::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.scrollbars::-webkit-scrollbar-thumb,
+.scrollbars *::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.scrollbars[data-scrolling]::-webkit-scrollbar-thumb,
+.scrollbars [data-scrolling]::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollbars,
+  .scrollbars * {
+    transition: none;
+  }
+}

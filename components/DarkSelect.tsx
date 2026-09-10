@@ -41,8 +41,14 @@ export const DarkSelect = ({
 
   useEffect(() => {
     setIsMounted(true);
-    if (typeof document !== "undefined") {
-      setMenuPortalTarget(document.body);
+  }, []);
+
+  // Keep menus within a modal's focus trap and stacking context when present.
+  const setContainerRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      setMenuPortalTarget(
+        node.closest<HTMLElement>('[role="dialog"]') ?? document.body
+      );
     }
   }, []);
 
@@ -202,14 +208,14 @@ export const DarkSelect = ({
           alignItems="center"
           color="whiteAlpha.500"
         >
-          {placeholder || "Select..."}
+          {selectedOption?.label || placeholder || "Select..."}
         </Box>
       </Box>
     );
   }
 
   return (
-    <Box cursor="pointer" pos="relative" overflow="visible" {...boxProps}>
+    <Box ref={setContainerRef} cursor="pointer" pos="relative" overflow="visible" {...boxProps}>
       <SelectComponent
         instanceId={uniqueId}
         ref={selectRef}

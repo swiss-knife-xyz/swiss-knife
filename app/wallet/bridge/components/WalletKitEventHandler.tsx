@@ -1,3 +1,4 @@
+import { stringify } from "viem";
 import { useEffect } from "react";
 import { useToast } from "@chakra-ui/react";
 import { decodeRecursive } from "@/lib/decoder";
@@ -157,7 +158,8 @@ export default function WalletKitEventHandler({
             });
 
             console.log("Decoded transaction data:", decodedData);
-            setDecodedTxData(decodedData);
+            // Keep display state JSON-safe for React devtools, preserving integer precision.
+            setDecodedTxData(JSON.parse(stringify(decodedData)));
           }
         } catch (error) {
           console.error("Error decoding transaction data:", error);
