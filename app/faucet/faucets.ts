@@ -101,6 +101,23 @@ export const faucets: FaucetEntry[] = [
     tags: ["ethereum", "sepolia", "pow"],
   },
   {
+    id: "getsepolia-sepolia",
+    name: "Sepolia Faucet",
+    provider: "GetSepolia",
+    url: "https://getsepolia.2bd.net/",
+    chain: "Ethereum Sepolia",
+    token: "ETH",
+    amount: "0.02 ETH every 24h",
+    cooldownHours: 24,
+    category: "ethereum",
+    reliability: "community",
+    requirement:
+      "Recipient address; no account, wallet connection, or mainnet balance required",
+    notes:
+      "Open-source Sepolia faucet with a 24h limit per recipient and IP address.",
+    tags: ["getsepolia", "ethereum", "sepolia", "eth"],
+  },
+  {
     id: "devcon-pk910-sepolia",
     name: "Devcon Sepolia Faucet",
     provider: "pk910",
