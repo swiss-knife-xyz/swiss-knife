@@ -53,7 +53,7 @@ const subdomains = {
   },
   WALLET: {
     base: "wallet",
-    paths: ["bridge", "ds-proxy", "signatures"],
+    paths: ["bridge", "replace-tx", "ds-proxy", "signatures"],
   },
   MIGRATE: {
     base: "migrate",
