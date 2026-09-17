@@ -735,6 +735,49 @@ export const ethereumOrgs: EthereumOrg[] = [
     ],
   },
   {
+    id: "ethcoordinate",
+    name: "EthCoordinate",
+    shortName: "EthCoordinate",
+    handle: "@EthCoordinate",
+    website: "https://ethcoordinate.org/",
+    twitter: "https://x.com/EthCoordinate",
+    logoDomain: "ethcoordinate.org",
+    accent: "#60A5FA",
+    category: "Protocol coordination",
+    stage: "Announced Aug 2026",
+    role: "Ethereum governance coordination, upgrade tracking, and home-staker support.",
+    summary:
+      "EthCoordinate is an independent Ethereum organization that grew out of EthStaker, broadening its home-staking support into protocol coordination, stakeholder engagement, Forkcast upgrade tracking, and support for protocol economics research.",
+    evidence: [
+      "The August 11, 2026 launch announcement presents EthCoordinate as an evolution of EthStaker, bringing existing coordination and staking-support efforts under one organization.",
+      "Its about page commits to open calls, documentation, and repositories, and says the organization will avoid taking positions on roadmap items.",
+      "Its Forkcast page describes upgrade dashboards, AllCoreDevs summaries, client priorities, stakeholder impacts, and devnet tracking.",
+    ],
+    workstreams: [
+      "Coordinating AllCoreDevs calls, breakout discussions, agendas, notes, and stakeholder engagement around proposed Ethereum upgrades.",
+      "Developing and stewarding Forkcast while supporting research and discussion around Ethereum protocol economics.",
+      "Continuing EthStaker community support, documentation, and open-source home-staking tools such as Eth Docker, Wagyu Key Gen, and the deposit CLI.",
+    ],
+    watch: [
+      "How coordination responsibilities are shared with EF, client teams, and other independent Ethereum organizations.",
+      "How conflict-of-interest mechanisms preserve credible neutrality in protocol coordination.",
+      "Whether home-staker support and tooling remain well resourced as the organization's scope expands.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://ethcoordinate.org/" },
+      { label: "About and FAQ", href: "https://ethcoordinate.org/about" },
+      { label: "Forkcast", href: "https://ethcoordinate.org/forkcast" },
+      {
+        label: "Protocol coordination",
+        href: "https://ethcoordinate.org/initiatives/protocol-coordination",
+      },
+      {
+        label: "Launch announcement",
+        href: "https://x.com/EthCoordinate/status/2087163391282708641",
+      },
+    ],
+  },
+  {
     id: "european-ethereum-institute",
     name: "European Ethereum Institute",
     shortName: "EEI",
@@ -872,6 +915,12 @@ export const ethTreasuryCompanies: EthTreasuryCompany[] = [
 
 export const roleMap = [
   {
+    label: "Protocol coordination",
+    description:
+      "Governance operations, stakeholder engagement, upgrade tracking, and home-staker support",
+    orgIds: ["ethcoordinate"],
+  },
+  {
     label: "Stewardship",
     description: "Values, grants, public goods, long-horizon coordination",
     orgIds: ["ethereum-foundation"],
@@ -961,6 +1010,15 @@ export const roleMap = [
 ];
 
 export const sourceTrail: SourceLink[] = [
+  { label: "EthCoordinate about", href: "https://ethcoordinate.org/about" },
+  {
+    label: "EthCoordinate Forkcast",
+    href: "https://ethcoordinate.org/forkcast",
+  },
+  {
+    label: "EthCoordinate launch",
+    href: "https://x.com/EthCoordinate/status/2087163391282708641",
+  },
   { label: "Geode Labs official site", href: "https://geode.build/" },
   { label: "Geode grant program", href: "https://geode.build/grants" },
   {
