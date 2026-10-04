@@ -4,7 +4,7 @@ import { CompilerLayout as CompilerLayoutC } from "@/components/layouts/Compiler
 export const metadata = getMetadata({
   title: "Solidity | Swiss-Knife.xyz",
   description: "Solidity tools and utilities.",
-  images: "https://swiss-knife.xyz/og/",
+  images: "https://swiss-knife.xyz/og/solidity-compiler.png",
 });
 
 const SolidityLayout = ({ children }: { children: React.ReactNode }) => {

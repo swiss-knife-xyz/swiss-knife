@@ -2,18 +2,29 @@ import { MetadataRoute } from "next";
 import subdomains from "@/subdomains";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const allPaths: string[] = [];
+  const allPaths: string[] = ["https://swiss-knife.xyz/"];
 
-  Object.keys(subdomains).map((key) => {
-    const subdomain = subdomains[key];
+  // These category roots only redirect to a tool; advertise the destination instead.
+  const redirectRoots = new Set([
+    "calldata",
+    "converter",
+    "transact",
+    "uniswap",
+    "foundry",
+    "wallet",
+    "ens",
+    "safe",
+    "solidity",
+  ]);
 
-    allPaths.push(`https://${subdomain.base}.swiss-knife.xyz/`);
-
-    if (subdomain.paths) {
-      subdomain.paths.map((path: string) => {
-        allPaths.push(`https://${subdomain.base}.swiss-knife.xyz/${path}`);
-      });
+  Object.values(subdomains).forEach((subdomain) => {
+    if (!redirectRoots.has(subdomain.base)) {
+      allPaths.push(`https://${subdomain.base}.swiss-knife.xyz/`);
     }
+
+    subdomain.paths.forEach((path: string) => {
+      allPaths.push(`https://${subdomain.base}.swiss-knife.xyz/${path}`);
+    });
   });
 
   return allPaths.map((path) => ({
