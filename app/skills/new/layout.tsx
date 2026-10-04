@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  alternates: { canonical: null },
   title: "New Web3 AI Skills | ETH.sh",
   description:
     "A screenshot-ready view of newly added Web3 AI skills and MCP servers.",

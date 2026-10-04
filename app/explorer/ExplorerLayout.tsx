@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import {
   usePathname,
   useSearchParams,
@@ -278,7 +280,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
             <Box mb={8} textAlign="center">
               <HStack justify="center" spacing={3} mb={4}>
                 <Icon as={FiSearch} color="blue.400" boxSize={8} />
-                <Heading
+                <Heading as="h1"
                   size="xl"
                   color="gray.100"
                   fontWeight="bold"
@@ -535,7 +537,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
 
 export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<ToolLoading title="Explorer" description="Search addresses and transactions across EVM block explorers." />}>
       <ExplorerLayoutContent>{children}</ExplorerLayoutContent>
     </Suspense>
   );

@@ -4,6 +4,7 @@ import { getMetadata } from "@/utils";
 export const metadata = getMetadata({
   title: "Wallet | ETH.sh",
   description: "Wallet Bridge: connect your mobile wallet to any desktop dapp.",
+  canonical: "https://wallet.eth.sh/",
   images: "https://eth.sh/og/wallet-bridge.png",
 });
 

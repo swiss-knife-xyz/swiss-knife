@@ -73,6 +73,7 @@ export const getMetadata = (_metadata: {
   title: string;
   description: string;
   images: string;
+  canonical?: string;
 }) => {
   const metadata: Metadata = {
     metadataBase: new URL(
@@ -82,6 +83,7 @@ export const getMetadata = (_metadata: {
     ),
     title: _metadata.title,
     description: _metadata.description,
+    alternates: _metadata.canonical ? { canonical: _metadata.canonical } : undefined,
     twitter: {
       card: "summary_large_image",
       creator: "@swissknifexyz",
@@ -91,9 +93,21 @@ export const getMetadata = (_metadata: {
     },
     openGraph: {
       type: "website",
+      url: _metadata.canonical,
+      siteName: "ETH.sh",
+      locale: "en_US",
       title: _metadata.title,
       description: _metadata.description,
-      images: _metadata.images,
+      images: [{
+        url: _metadata.images,
+        alt: _metadata.title,
+        // Checked-in /og PNGs are 2144×1122; generated cards are 1200×630.
+        ...(_metadata.images.startsWith("https://eth.sh/og/")
+          ? { width: 2144, height: 1122 }
+          : _metadata.images.startsWith("https://eth.sh/api/og/")
+            ? { width: 1200, height: 630 }
+            : {}),
+      }],
     },
     robots: "index, follow",
   };

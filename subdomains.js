@@ -9,7 +9,7 @@ const subdomains = {
   },
   EXPLORER: {
     base: "explorer",
-    paths: ["address", "tx"],
+    paths: [],
   },
   CONVERTER: {
     base: "converter",
@@ -37,7 +37,7 @@ const subdomains = {
   },
   UNISWAP: {
     base: "uniswap",
-    paths: ["tick-to-price", "pool-price-to-target"],
+    paths: ["tick-to-price", "pool-price-to-target", "initialize-pool", "add-liquidity", "swap", "positions"],
   },
   DETERMINE_ADDRESS: {
     base: "determine-address",
@@ -53,7 +53,7 @@ const subdomains = {
   },
   WALLET: {
     base: "wallet",
-    paths: ["bridge", "ds-proxy", "signatures"],
+    paths: ["bridge", "ds-proxy", "coinbase-smart-wallet", "signatures"],
   },
   MIGRATE: {
     base: "migrate",
@@ -65,7 +65,7 @@ const subdomains = {
   },
   ENS: {
     base: "ens",
-    paths: ["history"],
+    paths: ["history", "ccip"],
   },
   "7702BEAT": {
     base: "7702beat",

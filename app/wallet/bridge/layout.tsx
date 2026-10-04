@@ -4,6 +4,7 @@ import { Metadata } from "next";
 const _metadataInfo = {
   title: "Wallet Bridge | ETH.sh",
   description: "Connect your mobile wallet to any desktop dapp.",
+  canonical: "https://wallet.eth.sh/bridge",
   images: "https://eth.sh/og/wallet-bridge.png",
 };
 

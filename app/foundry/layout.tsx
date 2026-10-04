@@ -5,6 +5,7 @@ export const metadata = getMetadata({
   title: "Foundry | ETH.sh",
   description:
     "Foundry tools to easily visualize and collapse stack traces, and more.",
+  canonical: "https://foundry.eth.sh/",
   images: "https://eth.sh/og/foundry.png",
 });
 

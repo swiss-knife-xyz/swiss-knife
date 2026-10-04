@@ -2,10 +2,11 @@ import { getMetadata } from "@/utils";
 import { Metadata } from "next";
 
 const _metadataInfo = {
-  title: "DSProxy Connect | Swiss-Knife.xyz",
+  title: "DSProxy Connect | ETH.sh",
   description:
     "Connect your DSProxy contract to any dapp via WalletConnect and execute transactions.",
-  images: "https://swiss-knife.xyz/og/wallet-ds-proxy.png",
+  canonical: "https://wallet.eth.sh/ds-proxy",
+  images: "https://eth.sh/og/wallet-ds-proxy.png",
 };
 
 export const metadata: Metadata = {

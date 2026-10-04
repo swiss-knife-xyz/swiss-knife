@@ -1,11 +1,13 @@
 import { getMetadata } from "@/utils";
 
 export async function generateMetadata({
-  params: { address },
+  params,
 }: {
-  params: { address: string };
+  params: Promise<{ address: string }>;
 }) {
+  const { address } = await params;
   return getMetadata({
+    canonical: `https://explorer.eth.sh/address/${address}`,
     title: `Address ${address} | ETH.sh`,
     description:
       "Quickly view any address/ens or transaction across ALL EVM explorers, in just a click!",

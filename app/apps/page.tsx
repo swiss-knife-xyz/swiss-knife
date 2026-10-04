@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -929,7 +931,7 @@ function AppStoreContent({
         )}
 
         <Center flexDir="column" gap={2}>
-          <Heading
+          <Heading as="h1"
             size="xl"
             color="gray.100"
             fontWeight="bold"
@@ -1397,7 +1399,7 @@ export default function WalletBridgeAppsPage() {
       signMessage={handleSignMessage}
       signTypedData={handleSignTypedData}
     >
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<ToolLoading title="Web3 App Store" description="Discover Web3 apps and inspect dapp requests with ETH.sh." />}>
         <AppStoreContent
           chainId={chainId}
           address={address}

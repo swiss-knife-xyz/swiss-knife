@@ -5,6 +5,7 @@ export const metadata = getMetadata({
   title: "Calldata Decoder | ETH.sh",
   description:
     "Decode any calldata, and view the parameters in a human-readable format, even without having the contract ABI with this Calldata Decoder.",
+  canonical: "https://calldata.eth.sh/",
   images: "https://eth.sh/og/calldata-decoder.png",
 });
 

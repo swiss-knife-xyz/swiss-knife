@@ -389,7 +389,7 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
         textAlign="center"
         display="block"
       >
-        <Heading
+        <Heading as="h1"
           size="2xl"
           fontWeight="extrabold"
           letterSpacing="tight"

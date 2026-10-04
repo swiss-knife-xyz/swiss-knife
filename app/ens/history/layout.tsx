@@ -5,6 +5,7 @@ export const metadata = getMetadata({
   title: "ENS History | ETH.sh",
   description:
     "Check IPFS content changes, ownership transfers and more over time.",
+  canonical: "https://ens.eth.sh/history",
   images: "https://eth.sh/og/ens-history.png",
 });
 

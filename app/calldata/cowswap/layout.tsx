@@ -4,6 +4,7 @@ export const metadata = getMetadata({
   title: "CoW Protocol TWAP Verifier | ETH.sh",
   description:
     "Decode a ComposableCoW TWAP order and verify its appData hash against the CoW API.",
+  canonical: "https://calldata.eth.sh/cowswap",
   images: "https://eth.sh/og/calldata-cowswap.png",
 });
 

@@ -193,7 +193,7 @@ const PoolPriceToTarget = () => {
       <Box mb={8} textAlign="center">
         <HStack justify="center" spacing={3} mb={4}>
           <Icon as={FiTarget} color="orange.400" boxSize={8} />
-          <Heading
+          <Heading as="h1"
             size="xl"
             color="gray.100"
             fontWeight="bold"

@@ -5,6 +5,7 @@ export const metadata = getMetadata({
   title: "Uniswap V4 | ETH.sh",
   description:
     "Calculator to convert Uniswap V4 tick to price for any token pair addresses.",
+  canonical: "https://uniswap.eth.sh/",
   images: "https://eth.sh/og/uniswap.png",
 });
 

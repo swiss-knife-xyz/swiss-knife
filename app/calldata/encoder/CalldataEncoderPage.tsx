@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import React, { Suspense, useState, useCallback, useEffect } from "react";
 import {
   Heading,
@@ -1644,7 +1646,7 @@ function CalldataEncoderPageContent() {
       <Box mb={8} textAlign="center">
         <HStack justify="center" spacing={3} mb={3}>
           <Icon as={FiCode} color="primary.400" boxSize={7} />
-          <Heading
+          <Heading as="h1"
             size="lg"
             color="text.primary"
             fontWeight="bold"
@@ -1870,7 +1872,7 @@ function CalldataEncoderPageContent() {
 
 export const CalldataEncoderPage = () => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<ToolLoading title="Calldata Encoder" description="Encode smart contract function arguments into Ethereum transaction calldata." />}>
       <CalldataEncoderPageContent />
     </Suspense>
   );

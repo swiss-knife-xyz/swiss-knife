@@ -7,7 +7,8 @@ const _metadataInfo = {
   title: "Web3 App Store | ETH.sh",
   description:
     "Your Web3 Operating System - Access any dapp with the power of ETH.sh decoder as middleware.",
-  images: "https://eth.sh/og/web3-app-store.png",
+  canonical: "https://apps.eth.sh/",
+  images: "https://eth.sh/og/apps.png",
 };
 
 export async function generateMetadata(): Promise<Metadata> {

@@ -2,10 +2,11 @@ import { getMetadata } from "@/utils";
 import { Metadata } from "next";
 
 const _metadataInfo = {
-  title: "USDC Pay | Swiss-Knife.xyz",
+  title: "USDC Pay | ETH.sh",
   description:
     "Send USDC on Base without gas fees using x402 payment protocol. Powered by PayAI facilitator for gasless transfers.",
-  images: "https://swiss-knife.xyz/og/usdc-pay.png",
+  canonical: "https://usdc-pay.eth.sh/",
+  images: "https://eth.sh/og/usdc-pay.png",
 };
 
 // source: https://github.com/farcasterxyz/frames-v2-demo/blob/main/src/app/frames/hello/page.tsx

@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState, useMemo } from "react";
 import {
@@ -236,7 +238,7 @@ function ContractDiffContent() {
         <Box mb={8} textAlign="center">
           <HStack justify="center" spacing={3} mb={4}>
             <Icon as={FiGitBranch} color="blue.400" boxSize={8} />
-            <Heading
+            <Heading as="h1"
               size="xl"
               color="gray.100"
               fontWeight="bold"
@@ -402,7 +404,7 @@ function ContractDiffContent() {
 
 export default function ContractDiff() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<ToolLoading title="Contract Diff" description="Compare source code from two deployed smart contracts." />}>
       <ContractDiffContent />
     </Suspense>
   );

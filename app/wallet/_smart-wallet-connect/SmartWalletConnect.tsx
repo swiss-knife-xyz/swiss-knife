@@ -534,7 +534,7 @@ export default function SmartWalletConnect({
             direction={{ base: "column", lg: "row" }}
             gap={{ base: 4, lg: 0 }}
           >
-            <Heading size={{ base: "xl", md: "xl" }}>
+            <Heading as="h1" size={{ base: "xl", md: "xl" }}>
               {config.emoji} {config.shortName} Connect
             </Heading>
             {isConnected && <ConnectButton />}

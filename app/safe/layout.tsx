@@ -5,6 +5,7 @@ export const metadata = getMetadata({
   title: "Safe | ETH.sh",
   description:
     "Tools for the Safe{Wallet} - MultiSend Calldata Decoder and EIP-712 Hash Visualizer",
+  canonical: "https://safe.eth.sh/",
   images: "https://eth.sh/og/safe.png",
 });
 

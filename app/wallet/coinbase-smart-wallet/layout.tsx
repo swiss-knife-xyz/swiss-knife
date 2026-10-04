@@ -2,10 +2,11 @@ import { getMetadata } from "@/utils";
 import { Metadata } from "next";
 
 const _metadataInfo = {
-  title: "Coinbase Smart Wallet | Swiss-Knife.xyz",
+  title: "Coinbase Smart Wallet | ETH.sh",
   description:
     "Connect your Coinbase Smart Wallet contract to any dapp via WalletConnect and execute transactions with your recovery address.",
-  images: "https://swiss-knife.xyz/og/base.png", // TODO: generate image
+  canonical: "https://wallet.eth.sh/coinbase-smart-wallet",
+  images: "https://eth.sh/og/base.png", // TODO: generate image
 };
 
 export const metadata: Metadata = {

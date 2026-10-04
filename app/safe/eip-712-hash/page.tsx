@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import { Suspense, useState, useEffect } from "react";
 import {
   Box,
@@ -155,7 +157,7 @@ function SevenOneTwoHashContent() {
     <Box maxW="800px" mx="auto" w="full">
       {/* Page Header */}
       <Box textAlign="center" mb={6}>
-        <Heading size="lg" color="gray.100" fontWeight="bold" letterSpacing="tight">
+        <Heading as="h1" size="lg" color="gray.100" fontWeight="bold" letterSpacing="tight">
           EIP-712 Hash Visualizer
         </Heading>
         <Text color="gray.400" fontSize="md" mt={2}>
@@ -294,7 +296,7 @@ function SevenOneTwoHashContent() {
 
 export default function SevenOneTwoHash() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<ToolLoading title="EIP-712 Hash Visualizer" description="Hash and verify EIP-712 typed data, domains and messages." />}>
       <SevenOneTwoHashContent />
     </Suspense>
   );

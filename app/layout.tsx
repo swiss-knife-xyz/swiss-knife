@@ -4,6 +4,7 @@ import { IndexLayout as IndexLayoutC } from "./IndexLayout";
 export const metadata = getMetadata({
   title: "ETH.sh | All your Ethereum dev tools at one place!",
   description: "All your Ethereum dev tools at one place!",
+  canonical: "https://eth.sh/",
   images: "https://eth.sh/og/index.png",
 });
 

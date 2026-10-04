@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import { useSearchParams } from "next/navigation";
 import React, {
   Suspense,
@@ -503,7 +505,7 @@ function SendTxContent() {
       <Box mb={8} textAlign="center">
         <HStack justify="center" spacing={3} mb={4}>
           <Icon as={FiSend} color="blue.400" boxSize={8} />
-          <Heading size="xl" color="gray.100" fontWeight="bold" letterSpacing="tight">
+          <Heading as="h1" size="xl" color="gray.100" fontWeight="bold" letterSpacing="tight">
             Send Transaction
           </Heading>
         </HStack>
@@ -799,7 +801,7 @@ function SendTxContent() {
 
 export default function SendTx() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<ToolLoading title="Send Transaction" description="Send custom calldata to contracts or deploy raw bytecode." />}>
       <SendTxContent />
     </Suspense>
   );

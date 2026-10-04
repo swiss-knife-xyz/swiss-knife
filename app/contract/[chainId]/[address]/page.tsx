@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { fetchContractAbi, getMetadata } from "@/utils";
+import { fetchContractAbi, getMetadata, getPath } from "@/utils";
 import { Layout } from "@/components/Layout";
 // Putting the page into separate component as it uses "use client" which doesn't work with `generateMetadata`
 import { ContractPage as ContractP } from "./ContractPage";
@@ -33,13 +33,14 @@ export async function generateMetadata({
   }
 
   const layoutMetadata = await layoutGenerateMetadata({
-    params: Promise.resolve({ address }),
+    params: Promise.resolve({ address, chainId }),
   });
 
   return getMetadata({
     title,
+    canonical: `https://contract.eth.sh/${chainId}/${address}`,
     description: layoutMetadata.description as string,
-    images: layoutMetadata.openGraph?.images as string,
+    images: "https://eth.sh/api/og/contract",
   });
 }
 
@@ -55,8 +56,8 @@ const ContractPage = async ({
   return (
     <Layout>
       <Box w="full" maxW="70rem" mx="auto">
-        <NextLink href="/contract">
-          <Heading mb={4} color={"custom.pale"} _hover={{ opacity: 0.8 }} cursor="pointer">
+        <NextLink href={getPath("contract")}>
+          <Heading as="h1" mb={4} color={"custom.pale"} _hover={{ opacity: 0.8 }} cursor="pointer">
             Contract Explorer
           </Heading>
         </NextLink>

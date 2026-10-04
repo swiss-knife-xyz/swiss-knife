@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useEffect, useState } from "react";
 import {
@@ -145,7 +147,7 @@ function ETHUnitConverterContent() {
       <Box mb={8} textAlign="center">
         <HStack justify="center" spacing={3} mb={4}>
           <Icon as={FiDollarSign} color="blue.400" boxSize={8} />
-          <Heading
+          <Heading as="h1"
             size="xl"
             color="gray.100"
             fontWeight="bold"
@@ -373,7 +375,7 @@ function ETHUnitConverterContent() {
 
 export default function ETHUnitConverter() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<ToolLoading title="ETH Unit Converter" description="Convert between ether, wei, gwei and USD." />}>
       <ETHUnitConverterContent />
     </Suspense>
   );

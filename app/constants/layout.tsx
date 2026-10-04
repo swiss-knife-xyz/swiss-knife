@@ -4,6 +4,7 @@ export const metadata = getMetadata({
   title: "Constants | ETH.sh",
   description:
     "Frequently used ethereum constants in one place like zero address, max uint256 value and more.",
+  canonical: "https://constants.eth.sh/",
   images: "https://eth.sh/og/constants.png",
 });
 

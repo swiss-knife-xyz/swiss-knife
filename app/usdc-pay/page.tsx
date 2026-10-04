@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import {
   Suspense,
   useState,
@@ -634,7 +636,7 @@ function USDCPayContent() {
             textAlign="center"
             mb={{ base: 0, md: 2 }}
           >
-            <Text
+            <Text as="h1"
               fontSize={{ base: "3xl", md: "4xl" }}
               fontWeight="900"
               color="white"
@@ -1070,7 +1072,7 @@ function USDCPayContent() {
 
 export default function USDCPay() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<ToolLoading title="USDC Pay" description="Send USDC on Base using the x402 payment protocol." />}>
       <USDCPayContent />
     </Suspense>
   );

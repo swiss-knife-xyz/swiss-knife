@@ -13,6 +13,8 @@ import {
 import { ExternalLink, MessageCircle } from "lucide-react";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
+import { getPublicPageUrls } from "@/lib/seo";
+import { getFaucetChainSeoEntries } from "@/app/faucet/chains";
 
 export const Footer = () => {
   return (
@@ -79,7 +81,7 @@ export const Footer = () => {
               </Heading>
               <Flex direction="column" gap={2} align="flex-start">
                 <ChakraLink
-                  href="#all-tools"
+                  href={`${getPath("")}#all-tools`}
                   color="text.secondary"
                   fontSize="sm"
                   _hover={{ color: "primary.400" }}
@@ -152,7 +154,7 @@ export const Footer = () => {
                   Calldata Decoder
                 </ChakraLink>
                 <ChakraLink
-                  href={`${getPath(subdomains.CONVERTER.base)}`}
+                  href={`${getPath(subdomains.CONVERTER.base)}eth`}
                   color="text.secondary"
                   fontSize="sm"
                   _hover={{ color: "primary.400" }}
@@ -170,7 +172,7 @@ export const Footer = () => {
                   Blockchain Explorer
                 </ChakraLink>
                 <ChakraLink
-                  href={`${getPath(subdomains.TRANSACT.base)}`}
+                  href={`${getPath(subdomains.TRANSACT.base)}send-tx`}
                   color="text.secondary"
                   fontSize="sm"
                   _hover={{ color: "primary.400" }}
@@ -219,6 +221,16 @@ export const Footer = () => {
             </Box>
           </Grid>
         </Flex>
+        <Box as="details" mt={8} color="text.secondary" fontSize="sm">
+          <Box as="summary" cursor="pointer">Public tools directory</Box>
+          <Flex as="nav" aria-label="Public tools directory" wrap="wrap" gap={4} mt={4}>
+            {[...getPublicPageUrls(), ...getFaucetChainSeoEntries().map(({ slug }) => `https://faucet.eth.sh/${slug}`)].map((url) => (
+              <ChakraLink key={url} href={url} _hover={{ color: "primary.400" }}>
+                {url.replace("https://", "").replace(/\/$/, "")}
+              </ChakraLink>
+            ))}
+          </Flex>
+        </Box>
       </Container>
     </Box>
   );

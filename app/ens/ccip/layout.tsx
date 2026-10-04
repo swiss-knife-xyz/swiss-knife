@@ -4,6 +4,7 @@ export const metadata = getMetadata({
   title: "ENS CCIP | ETH.sh",
   description:
     "Visualize off-chain ENS name resolution via CCIP and see the delay at each step (ERC-3668).",
+  canonical: "https://ens.eth.sh/ccip",
   images: "https://eth.sh/og/ens-ccip.png",
 });
 

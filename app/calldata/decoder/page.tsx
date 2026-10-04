@@ -88,8 +88,9 @@ export async function generateMetadata({
 
   return getMetadata({
     title,
+    canonical: "https://calldata.eth.sh/decoder",
     description: metadata.description as string,
-    images: metadata.openGraph?.images as string,
+    images: "https://eth.sh/og/calldata-decoder.png",
   });
 }
 

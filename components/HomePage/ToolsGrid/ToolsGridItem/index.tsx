@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Box, Heading, Flex, Text } from "@chakra-ui/react";
 import { getPath } from "@/utils";
+import { defaultTools } from "@/lib/seo";
 
 interface ToolsGridItemParams {
   subdomain: string;
@@ -14,7 +15,7 @@ interface ToolsGridItemParams {
 
 export const ToolsGridItem = ({ subdomain, info }: ToolsGridItemParams) => {
   return (
-    <Link href={getPath(subdomain, info.isRelativePath)} passHref role="group">
+    <Link href={`${getPath(subdomain, info.isRelativePath)}${defaultTools[subdomain] ?? ""}`} passHref role="group">
       <Box
         p={{ base: 4, md: 6 }}
         bg="bg.700"

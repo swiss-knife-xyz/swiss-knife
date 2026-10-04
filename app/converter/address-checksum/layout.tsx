@@ -4,6 +4,7 @@ export const metadata = getMetadata({
   title: "Address Checksum | ETH.sh",
   description:
     "Convert Ethereum address from lowercase to checksum address and vice versa.",
+  canonical: "https://converter.eth.sh/address-checksum",
   images: "https://eth.sh/og/converter-address-checksum.png",
 });
 

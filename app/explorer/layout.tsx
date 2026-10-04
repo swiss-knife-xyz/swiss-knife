@@ -5,6 +5,7 @@ export const metadata = getMetadata({
   title: "Explorer | ETH.sh",
   description:
     "Quickly view any address/ens or transaction across ALL EVM explorers, in just a click!",
+  canonical: "https://explorer.eth.sh/",
   images: "https://eth.sh/og/explorer.png",
 });
 

@@ -76,7 +76,7 @@ export default function Signatures() {
     <Box maxW="700px" mx="auto" w="full">
       {/* Header */}
       <Box mb={6} textAlign="center">
-        <Heading size="lg" color="gray.100" fontWeight="bold" letterSpacing="tight">
+        <Heading as="h1" size="lg" color="gray.100" fontWeight="bold" letterSpacing="tight">
           Signatures
         </Heading>
         <Text color="gray.400" fontSize="md" mt={2}>

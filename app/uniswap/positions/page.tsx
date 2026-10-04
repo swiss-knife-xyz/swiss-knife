@@ -132,7 +132,7 @@ const PositionsPage = () => {
         <Box>
           <HStack spacing={3} mb={2}>
             <Icon as={FiUser} color="blue.400" boxSize={6} />
-            <Heading
+            <Heading as="h1"
               size="lg"
               color="gray.100"
               fontWeight="bold"

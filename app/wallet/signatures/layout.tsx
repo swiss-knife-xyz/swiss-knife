@@ -1,9 +1,10 @@
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
-  title: "Signatures | Swiss-Knife.xyz",
+  title: "Signatures | ETH.sh",
   description: "Sign and Verify any message or 712 Typed Data",
-  images: "https://swiss-knife.xyz/og/wallet-signatures.png",
+  canonical: "https://wallet.eth.sh/signatures",
+  images: "https://eth.sh/og/wallet-signatures.png",
 });
 
 const WalletSignaturesLayout = ({

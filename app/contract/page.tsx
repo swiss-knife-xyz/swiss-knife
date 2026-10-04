@@ -117,7 +117,7 @@ const ContractPage = () => {
       <VStack spacing={8} w="full" maxW="800px" mx="auto" px={4}>
         {/* Header */}
         <Box textAlign="center" pt={4}>
-          <Heading size="xl" color="text.primary" mb={4}>
+          <Heading as="h1" size="xl" color="text.primary" mb={4}>
             Contract Explorer
           </Heading>
           <Text color="text.secondary" maxW="600px" mx="auto">

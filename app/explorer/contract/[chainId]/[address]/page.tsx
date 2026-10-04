@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { getPath } from "@/utils";
 
-export default function ExplorerContractPage({
+export default async function ExplorerContractPage({
   params,
 }: {
-  params: { address: string; chainId: string };
+  params: Promise<{ address: string; chainId: string }>;
 }) {
-  redirect(`${getPath("contract")}${params.chainId}/${params.address}`);
+  const { address, chainId } = await params;
+  redirect(`${getPath("contract")}${chainId}/${address}`);
 }

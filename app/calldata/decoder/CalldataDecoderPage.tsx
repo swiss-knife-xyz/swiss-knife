@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import {
@@ -645,7 +647,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       <Box mb={8} textAlign="center">
         <HStack justify="center" spacing={3} mb={4}>
           <Icon as={FiCode} color="blue.400" boxSize={8} />
-          <Heading
+          <Heading as="h1"
             size="xl"
             color="gray.100"
             fontWeight="bold"
@@ -914,7 +916,7 @@ export const CalldataDecoderPage = ({
   headerText?: string;
 }) => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<ToolLoading title={headerText ?? "Calldata Decoder"} description="Decode Ethereum transaction calldata into human-readable parameters." />}>
       <CalldataDecoderPageContent headerText={headerText} />
     </Suspense>
   );

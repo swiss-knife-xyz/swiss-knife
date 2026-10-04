@@ -185,7 +185,7 @@ const DetermineContractAddress = () => {
         <Box mb={8} textAlign="center">
           <HStack justify="center" spacing={3} mb={4}>
             <Icon as={FiTarget} color="blue.400" boxSize={8} />
-            <Heading size="xl" color="gray.100" fontWeight="bold" letterSpacing="tight">
+            <Heading as="h1" size="xl" color="gray.100" fontWeight="bold" letterSpacing="tight">
               Determine Contract Address
             </Heading>
           </HStack>

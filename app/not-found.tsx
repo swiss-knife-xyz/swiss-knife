@@ -1,21 +1,12 @@
-"use client";
-
-import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
-import { useEffect } from "react";
+import Link from "next/link";
 import { getPath } from "@/utils";
 
 export default function NotFound() {
-  const router = useTopLoaderRouter();
-
-  useEffect(() => {
-    // Redirect to the home page
-    router.replace(getPath(""));
-  }, [router]);
-
   return (
-    <div>
-      <h1>Redirecting...</h1>
-      <p>Error: Page not found. Redirecting to the home page.</p>
-    </div>
+    <main style={{ padding: "3rem", color: "#FAFAFA", background: "#0A0A0B", minHeight: "100vh" }}>
+      <h1>Page not found</h1>
+      <p>This URL does not match an ETH.sh tool.</p>
+      <Link href={getPath("")}>Browse Ethereum tools</Link>
+    </main>
   );
 }
