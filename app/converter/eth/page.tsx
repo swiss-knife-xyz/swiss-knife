@@ -12,7 +12,7 @@ import {
   Input,
   Box,
 } from "@chakra-ui/react";
-import { parseAsString, useQueryState } from "next-usequerystate";
+import { parseAsString, useQueryState } from "nuqs";
 import {
   parseEther,
   parseGwei,

@@ -26,7 +26,7 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
-import { parseAsInteger, useQueryState } from "next-usequerystate";
+import { parseAsInteger, useQueryState } from "nuqs";
 import { JsonFragment } from "ethers";
 import { Address, PublicClient } from "viem";
 import { getPublicClient } from "@/lib/publicClient";

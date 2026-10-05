@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { VStack, Center, Text, Box, HStack, Spacer } from "@chakra-ui/react";
-import { parseAsString, useQueryState } from "next-usequerystate";
+import { parseAsString, useQueryState } from "nuqs";
 import { SignMessage } from "./SignMessage";
 import { SignTypedData } from "./SignTypedData";
 import { exampleTypedDataJSON } from "./types";
