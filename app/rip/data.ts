@@ -28,6 +28,39 @@ export const archiveReviewedAt = "2026-10-07";
 
 export const shutdownProjects: ShutdownProject[] = [
   {
+    id: "artizen",
+    name: "Artizen",
+    category: "NFTs",
+    status: "Winding down",
+    announced: "2026-10-06",
+    dateKind: "Reporting",
+    dateNote:
+      "October 6 is the reporting date; the report dates the transition to payout-only operations to October 5. The official site describes a pause, while the X bio says active operations ended. Creator payouts and ART/USDC withdrawals remain available, with no final closure date published.",
+    summary:
+      "Artizen funded art, science, and culture projects through NFT sales and community-directed matching funds. It ended active operations, retaining a portal for creator payouts and wallet withdrawals.",
+    reason: "No public reason was specified in the available notices.",
+    website: "https://artizen.fund/",
+    social: "https://x.com/Artizen",
+    logo: "/external/rip/artizen.jpg",
+    sources: [
+      {
+        label: "Official operations-pause and payout notice",
+        url: "https://artizen.fund/",
+        kind: "Primary",
+      },
+      {
+        label: "Official X bio confirming active operations ended",
+        url: "https://x.com/Artizen",
+        kind: "Primary",
+      },
+      {
+        label: "Operations pause and payout-only transition report",
+        url: "https://cryptobriefing.com/artizen-pauses-operations-art-usdc-withdrawals/",
+        kind: "Reporting",
+      },
+    ],
+  },
+  {
     id: "poap",
     name: "POAP",
     category: "NFTs",

@@ -600,6 +600,14 @@
         "https://raw.githubusercontent.com/balancer/brand-assets/main/logo/circle-container/logo-balancer-black-128x128.png"
       ],
       "retrievedAt": "2026-10-07"
+    },
+    {
+      "id": "artizen",
+      "local": "/external/rip/artizen.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1705068362974547968/rbR0hAgc_400x400.jpg"
+      ],
+      "retrievedAt": "2026-10-08"
     }
   ],
   "failedDownloads": []
