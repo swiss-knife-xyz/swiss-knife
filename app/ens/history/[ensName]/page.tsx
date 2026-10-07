@@ -33,7 +33,20 @@ import {
 } from "@chakra-ui/react";
 import { ExternalLinkIcon, CopyIcon } from "@chakra-ui/icons";
 import { publicClient, resolveAddressToName, fetchContractAbi } from "@/utils";
-import { formatDistanceToNow, format, differenceInDays } from "date-fns";
+import { differenceInDays } from "date-fns";
+import {
+  parseHistoryTimestamp,
+  formatHistoryDate,
+  relativeHistoryDate,
+  readHistoryTimestamp,
+} from "../lib/dates";
+import {
+  indexedDomainDetails,
+  withCurrentContenthash,
+  registrationDetails,
+  type DomainDetails,
+  type DomainRegistration,
+} from "../lib/domain";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import axios from "axios";
 import { namehash } from "viem/ens";
@@ -59,26 +72,6 @@ import {
 
 const ENS_SUBGRAPH_URL = `https://gateway.thegraph.com/api/${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH`;
 
-interface DomainDetails {
-  id: string;
-  createdAt: number | null;
-  expiryDate: number | null;
-  owner: string | null;
-  registrant: string | null;
-  resolver: {
-    id: string;
-  } | null;
-  isSubdomain: boolean;
-  currentContenthash: ContenthashRecord | null;
-}
-
-interface DomainRegistration {
-  blockNumber: number;
-  expiryDate: number;
-  transactionID: string;
-  timestamp?: number;
-}
-
 // Unified history event interface
 interface HistoryEvent {
   id: string;
@@ -86,13 +79,13 @@ interface HistoryEvent {
   label: string;
   blockNumber: number;
   logIndex: number;
-  timestamp: number;
+  timestamp: number | null;
   transactionID: string;
   details: {
     summary?: string;
     hash?: ContenthashRecord;
     owner?: string;
-    expiryDate?: number;
+    expiryDate?: number | null;
   };
 }
 
@@ -269,11 +262,6 @@ const ENSHistory = () => {
     };
   }, [ensName]);
 
-  // Utility functions - moved to the top of the component
-  const formatDate = (timestamp: number) => {
-    return format(new Date(timestamp * 1000), "PPpp");
-  };
-
   const getEventBadge = (type: string, label: string) => {
     switch (type) {
       case "content":
@@ -309,7 +297,8 @@ const ENSHistory = () => {
     }
   };
 
-  const getContentChangeColor = (timestamp: number) => {
+  const getContentChangeColor = (timestamp: number | null) => {
+    if (timestamp === null) return undefined;
     const now = new Date();
     const eventDate = new Date(timestamp * 1000);
     const daysDiff = differenceInDays(now, eventDate);
@@ -420,12 +409,10 @@ const ENSHistory = () => {
               {domainDetails.createdAt ? (
                 <>
                   <StatNumber fontSize="md" mt={1}>
-                    {formatDistanceToNow(domainDetails.createdAt * 1000, {
-                      addSuffix: true,
-                    })}
+                    {relativeHistoryDate(domainDetails.createdAt)}
                   </StatNumber>
                   <StatHelpText fontSize="xs" mt={1}>
-                    {formatDate(domainDetails.createdAt)}
+                    {formatHistoryDate(domainDetails.createdAt)}
                   </StatHelpText>
                 </>
               ) : (
@@ -438,12 +425,10 @@ const ENSHistory = () => {
               <Stat>
                 <StatLabel fontWeight="medium">Expiry Date</StatLabel>
                 <StatNumber fontSize="md" mt={1}>
-                  {formatDistanceToNow(domainDetails.expiryDate * 1000, {
-                    addSuffix: true,
-                  })}
+                  {relativeHistoryDate(domainDetails.expiryDate)}
                 </StatNumber>
                 <StatHelpText fontSize="xs" mt={1}>
-                  {formatDate(domainDetails.expiryDate)}
+                  {formatHistoryDate(domainDetails.expiryDate)}
                 </StatHelpText>
               </Stat>
             ) : null}
@@ -468,7 +453,9 @@ const ENSHistory = () => {
                   />
                 ) : (
                   <Text fontSize="sm" color="gray.500">
-                    Not applicable for subdomains
+                    {domainDetails.isSubdomain
+                      ? "Not applicable for subdomains"
+                      : "Not indexed"}
                   </Text>
                 )}
               </StatNumber>
@@ -511,13 +498,13 @@ const ENSHistory = () => {
             <Stat>
               <StatLabel fontWeight="medium">Initial Expiry</StatLabel>
               <StatNumber fontSize="md" mt={1}>
-                {formatDistanceToNow(initialRegistration.expiryDate * 1000, {
-                  addSuffix: true,
-                })}
+                {relativeHistoryDate(initialRegistration.expiryDate)}
               </StatNumber>
-              <StatHelpText fontSize="xs" mt={1}>
-                {formatDate(initialRegistration.expiryDate)}
-              </StatHelpText>
+              {initialRegistration.expiryDate !== null && (
+                <StatHelpText fontSize="xs" mt={1}>
+                  {formatHistoryDate(initialRegistration.expiryDate)}
+                </StatHelpText>
+              )}
             </Stat>
           </SimpleGrid>
         </CardBody>
@@ -600,13 +587,13 @@ const ENSHistory = () => {
                       }
                     >
                       <Text fontWeight="medium">
-                        {formatDistanceToNow(event.timestamp * 1000, {
-                          addSuffix: true,
-                        })}
+                        {relativeHistoryDate(event.timestamp)}
                       </Text>
-                      <Text fontSize="xs" color="gray.500" mt={1}>
-                        {formatDate(event.timestamp)}
-                      </Text>
+                      {event.timestamp !== null && (
+                        <Text fontSize="xs" color="gray.500" mt={1}>
+                          {formatHistoryDate(event.timestamp)}
+                        </Text>
+                      )}
                     </Td>
                     <Td py={4}>{getEventBadge(event.type, event.label)}</Td>
                     <Td py={4}>
@@ -661,9 +648,10 @@ const ENSHistory = () => {
                           labelDirection="horizontal"
                         />
                       )}
-                      {event.details.expiryDate && (
+                      {event.details.expiryDate !== undefined && (
                         <Text>
-                          New expiry: {formatDate(event.details.expiryDate)}
+                          New expiry:{" "}
+                          {formatHistoryDate(event.details.expiryDate)}
                         </Text>
                       )}
                     </Td>
@@ -802,22 +790,7 @@ const ENSHistory = () => {
 
       const domain = domainResponse.data.data.domain;
       const domainId = domain.id;
-      const owner = domain.wrappedOwner?.id ?? domain.owner.id;
-
-      const parsedExpiry = parseInt(domain.expiryDate);
-      setDomainDetails({
-        id: domain.id,
-        createdAt: parseInt(domain.createdAt),
-        expiryDate:
-          Number.isFinite(parsedExpiry) && parsedExpiry > 0
-            ? parsedExpiry
-            : null,
-        owner,
-        registrant: domain.registrant?.id || null,
-        resolver: domain.resolver,
-        isSubdomain,
-        currentContenthash: null,
-      });
+      setDomainDetails(indexedDomainDetails(domain, isSubdomain));
 
       const request = async (
         query: string,
@@ -867,15 +840,20 @@ const ENSHistory = () => {
       const blocks = [
         ...new Set(indexedEvents.map((event) => event.blockNumber)),
       ];
-      const timestamps = new Map<number, number>();
+      const timestamps = new Map<number, number | null>();
       for (let start = 0; start < blocks.length; start += 8) {
         signal?.throwIfAborted();
         await Promise.all(
           blocks.slice(start, start + 8).map(async (blockNumber) => {
-            const block = await publicClient.getBlock({
-              blockNumber: BigInt(blockNumber),
-            });
-            timestamps.set(blockNumber, Number(block.timestamp));
+            timestamps.set(
+              blockNumber,
+              await readHistoryTimestamp(async () => {
+                const block = await publicClient.getBlock({
+                  blockNumber: BigInt(blockNumber),
+                });
+                return block.timestamp;
+              })
+            );
           })
         );
       }
@@ -908,7 +886,7 @@ const ENSHistory = () => {
                   : event.__typename,
           blockNumber: event.blockNumber,
           logIndex: Number(event.id.split("-").at(-1)) || 0,
-          timestamp: timestamps.get(event.blockNumber)!,
+          timestamp: timestamps.get(event.blockNumber) ?? null,
           transactionID: event.transactionID,
           details: {
             hash:
@@ -917,7 +895,14 @@ const ENSHistory = () => {
                 : undefined,
             owner:
               event.owner?.id ?? event.newOwner?.id ?? event.registrant?.id,
-            expiryDate: event.expiryDate ? Number(event.expiryDate) : undefined,
+            expiryDate: [
+              "NameRegistered",
+              "NameRenewed",
+              "NameWrapped",
+              "ExpiryExtended",
+            ].includes(event.__typename)
+              ? parseHistoryTimestamp(event.expiryDate)
+              : undefined,
             summary: eventSummary(event),
           },
         }))
@@ -931,23 +916,19 @@ const ENSHistory = () => {
         (event) => event.type === "NameRegistered"
       );
       const initial = registrations[registrations.length - 1];
-      if (initial?.details.expiryDate) {
-        setInitialRegistration({
-          blockNumber: initial.blockNumber,
-          expiryDate: initial.details.expiryDate,
-          timestamp: initial.timestamp,
-          transactionID: initial.transactionID,
-        });
-      }
+      setInitialRegistration(
+        registrationDetails(
+          initial
+            ? {
+                blockNumber: initial.blockNumber,
+                transactionID: initial.transactionID,
+                expiryDate: initial.details.expiryDate,
+              }
+            : undefined
+        )
+      );
       setDomainDetails((details) =>
-        details
-          ? {
-              ...details,
-              currentContenthash: currentHash
-                ? parseContenthash(currentHash)
-                : null,
-            }
-          : details
+        details ? withCurrentContenthash(details, currentHash) : details
       );
       setContentEvents(
         processedEvents.filter((event) => event.type === "content")
