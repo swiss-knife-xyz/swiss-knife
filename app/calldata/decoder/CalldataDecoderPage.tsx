@@ -131,7 +131,10 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   >(null);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
 
-  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+  // Establish the URL's mode before effects synchronize or clear query params.
+  const [selectedTabIndex, setSelectedTabIndex] = useState(() =>
+    calldataFromURL ? (addressFromURL ? 2 : 0) : txFromURL ? 3 : 0
+  );
   const [resultTabIndex, setResultTabIndex] = useState(0); // 0 = Calldata, 1 = Events
 
   const [abi, setAbi] = useState<any>();
@@ -157,12 +160,13 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     if (calldataFromURL && addressFromURL) {
       setSelectedTabIndex(2);
       decode({
+        _calldata: calldataFromURL,
         _address: addressFromURL,
-        _chainId:
-          chainIdFromURL === null ? undefined : parseInt(chainIdFromURL),
+        // Use the same parsed chain (including the Ethereum default) as Decode.
+        _chainId: chainId,
       });
     } else if (calldataFromURL) {
-      decode({});
+      decode({ _calldata: calldataFromURL });
     } else if (txFromURL) {
       setSelectedTabIndex(3);
       decodeFromTx(
