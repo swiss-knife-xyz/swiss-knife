@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Heading,
   Text,
-  Input,
   Box,
   VStack,
   HStack,
@@ -50,7 +49,7 @@ const Hexadecimal = () => {
   };
 
   const handleOnChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
     unit: "hexadecimal" | "decimal" | "binary" | "text",
     valueToHexadecimal: (value: string) => string
   ) => {
@@ -124,7 +123,8 @@ const Hexadecimal = () => {
       <Box mb={8} textAlign="center">
         <HStack justify="center" spacing={3} mb={4}>
           <Icon as={FiHash} color="blue.400" boxSize={8} />
-          <Heading as="h1"
+          <Heading
+            as="h1"
             size="xl"
             color="gray.100"
             fontWeight="bold"
@@ -272,6 +272,8 @@ const Hexadecimal = () => {
             </Box>
             <Box flex={1}>
               <InputField
+                multiline
+                aria-label="Text"
                 placeholder="Enter text to convert"
                 value={text || ""}
                 onChange={(e) =>
