@@ -1,7 +1,13 @@
 import { getMetadata } from "@/utils";
+import { decodeEnsRouteName } from "../lib/history";
 
-export async function generateMetadata({ params }: { params: Promise<{ ensName: string }> }) {
-  const { ensName } = await params;
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ ensName: string }>;
+}) {
+  const routeParams = await params;
+  const ensName = decodeEnsRouteName(routeParams.ensName);
   return getMetadata({
     title: `${ensName} ENS History | ETH.sh`,
     description: `Explore ownership and content history for ${ensName} on Ethereum Name Service.`,
@@ -10,6 +16,10 @@ export async function generateMetadata({ params }: { params: Promise<{ ensName: 
   });
 }
 
-export default function ENSRecordLayout({ children }: { children: React.ReactNode }) {
+export default function ENSRecordLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return children;
 }

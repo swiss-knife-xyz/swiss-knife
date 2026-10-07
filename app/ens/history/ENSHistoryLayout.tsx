@@ -18,17 +18,22 @@ import {
   SimpleGrid,
   Image,
   IconButton,
+  useToast,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
+import { decodeEnsRouteName, normalizeEnsInput } from "./lib/history";
 
 export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
   const router = useTopLoaderRouter();
+  const toast = useToast();
   const params = useParams();
 
   const ensNameFromParams =
-    typeof params.ensName === "string" ? params.ensName : undefined;
+    typeof params.ensName === "string"
+      ? decodeEnsRouteName(params.ensName)
+      : undefined;
 
   const [ensName, setEnsName] = useState<string>(ensNameFromParams ?? "");
   const [loading, setLoading] = useState(false);
@@ -86,7 +91,8 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
       ensName: "1inch.eth",
       description: "1inch DEX aggregator",
       category: "DeFi",
-      customFaviconUrl: "https://1inch.eth.limo/assets/favicon/favicon-32x32.png",
+      customFaviconUrl:
+        "https://1inch.eth.limo/assets/favicon/favicon-32x32.png",
     },
     {
       ensName: "kwenta.eth",
@@ -132,8 +138,7 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
     },
     {
       ensName: "ethpm.eth",
-      description:
-        "ethPM — decentralized prediction markets on zAMM.finance",
+      description: "ethPM — decentralized prediction markets on zAMM.finance",
       category: "DeFi",
     },
     {
@@ -374,7 +379,22 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }, 1_000);
 
-    router.push(`${getPath(subdomains.ENS.base)}history/${_ensName}`);
+    try {
+      const normalizedName = normalizeEnsInput(_ensName);
+      setEnsName(normalizedName);
+      router.push(
+        `${getPath(subdomains.ENS.base)}history/${encodeURIComponent(normalizedName)}`
+      );
+    } catch (error) {
+      setLoading(false);
+      toast({
+        title: "Invalid ENS name",
+        description:
+          error instanceof Error ? error.message : "Enter a valid ENS name",
+        status: "error",
+        isClosable: true,
+      });
+    }
   };
 
   return (
@@ -389,7 +409,8 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
         textAlign="center"
         display="block"
       >
-        <Heading as="h1"
+        <Heading
+          as="h1"
           size="2xl"
           fontWeight="extrabold"
           letterSpacing="tight"
@@ -398,13 +419,7 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
         >
           ENS Domain History
         </Heading>
-        <Text
-          mt={3}
-          color="gray.400"
-          fontSize="md"
-          maxW="600px"
-          mx="auto"
-        >
+        <Text mt={3} color="gray.400" fontSize="md" maxW="600px" mx="auto">
           Check IPFS content changes, ownership transfers and more over time.
         </Text>
       </Box>
@@ -418,7 +433,9 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
         mb={5}
       >
         <FormControl>
-          <FormLabel fontWeight="medium" color="gray.300" fontSize="sm">ENS Name</FormLabel>
+          <FormLabel fontWeight="medium" color="gray.300" fontSize="sm">
+            ENS Name
+          </FormLabel>
           <HStack spacing={3}>
             <Input
               placeholder="eternalsafe.eth"
@@ -455,7 +472,8 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
             </Text>
             {filteredCards.length === 0 && (
               <Text fontSize="sm" color="gray.500" fontStyle="italic">
-                No matching examples. Press Fetch to look up &quot;{ensName}&quot;.
+                No matching examples. Press Fetch to look up &quot;{ensName}
+                &quot;.
               </Text>
             )}
             {Object.entries(groupedCards).map(([category, cards]) => (
@@ -491,8 +509,8 @@ export const ENSHistoryLayout = ({ children }: { children: ReactNode }) => {
                             card.customFaviconUrl
                               ? card.customFaviconUrl
                               : card.useEnsAvatar
-                              ? `https://euc.li/${card.ensName}`
-                              : `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=https://${card.ensName}${card.limoSuffix ?? ".link"}`
+                                ? `https://euc.li/${card.ensName}`
+                                : `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=https://${card.ensName}${card.limoSuffix ?? ".link"}`
                           }
                           boxSize="40px"
                           borderRadius="full"
