@@ -36,12 +36,23 @@ export function CodeEditorTabs({
         },
       }}
     >
-      <HStack spacing={0} minW="max-content">
+      <HStack spacing={0} minW="max-content" role="tablist" aria-label="Open source files">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
           return (
             <HStack
               key={tab.id}
+              role="tab"
+              tabIndex={0}
+              aria-selected={isActive}
+              aria-label={tab.path}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onTabSelect(tab.id);
+                }
+              }}
+              _focusVisible={{ outline: "2px solid", outlineColor: "primary.400", outlineOffset: "-2px" }}
               spacing={1}
               px={3}
               py={1.5}

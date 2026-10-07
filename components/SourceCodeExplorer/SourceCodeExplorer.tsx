@@ -1,15 +1,15 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { Box, HStack, Text, VStack, IconButton, Tooltip, Badge, Icon } from "@chakra-ui/react";
+import { Box, HStack, Text, VStack, IconButton, Tooltip, Button, Icon } from "@chakra-ui/react";
 import { Editor, type OnMount } from "@monaco-editor/react";
-import { Search, Files } from "lucide-react";
+import { Search, Files, Columns2, Rows2 } from "lucide-react";
 import { FileExplorerTree } from "./FileExplorerTree";
 import { CodeEditorTabs } from "./CodeEditorTabs";
 import { SearchPanel } from "./SearchPanel";
 import { buildFileTree, findTargetFile, getLanguageForFile, detectLanguageFromContent } from "./utils";
 import { FileNode, TabData, SourceCodeExplorerProps, SearchOptions } from "./types";
-import TabsSelector from "@/components/Tabs/TabsSelector";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 
 // Monaco editor instance type from OnMount callback
@@ -18,30 +18,12 @@ type MonacoInstance = Parameters<OnMount>[1];
 
 const DiffViewOptions = ["Old", "Diff", "New"];
 
-// Process diff code to extract clean code and line decorations
-const processDiffCode = (
-  diffCode: string
-): { cleanCode: string; lineTypes: Map<number, "added" | "removed"> } => {
-  const lines = diffCode.split("\n");
-  const lineTypes = new Map<number, "added" | "removed">();
-  const cleanLines: string[] = [];
+const PierreDiff = dynamic(() => import("./PierreDiff"), {
+  ssr: false,
+  loading: () => <Text p={4} color="text.secondary" fontSize="sm">Loading diff…</Text>,
+});
 
-  lines.forEach((line) => {
-    if (line.startsWith("+→")) {
-      lineTypes.set(cleanLines.length + 1, "added");
-      cleanLines.push(line.slice(2));
-    } else if (line.startsWith("-→")) {
-      lineTypes.set(cleanLines.length + 1, "removed");
-      cleanLines.push(line.slice(2));
-    } else {
-      cleanLines.push(line);
-    }
-  });
-
-  return { cleanCode: cleanLines.join("\n"), lineTypes };
-};
-
-// Inject diff highlighting styles for Monaco decorations
+// Inject search highlighting styles for Monaco decorations
 const useDiffStyles = () => {
   useEffect(() => {
     const styleId = "monaco-diff-styles";
@@ -53,14 +35,6 @@ const useDiffStyles = () => {
     const style = document.createElement("style");
     style.id = styleId;
     style.textContent = `
-      .diff-line-added {
-        background: rgba(40, 167, 69, 0.3) !important;
-        width: 100% !important;
-      }
-      .diff-line-removed {
-        background: rgba(220, 53, 69, 0.3) !important;
-        width: 100% !important;
-      }
       .search-highlight {
         background: rgba(234, 179, 8, 0.35) !important;
         border: 1px solid rgba(234, 179, 8, 0.6);
@@ -82,18 +56,23 @@ export function SourceCodeExplorer({
   contractName,
   diffData,
   initialHeight = 400,
+  maxHeight,
   isFullscreen = false,
 }: SourceCodeExplorerProps) {
   const [tabs, setTabs] = useState<TabData[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>("");
   const [sidebarTab, setSidebarTab] = useState<"explorer" | "search">("explorer");
   const [height, setHeight] = useState(initialHeight);
-  const [sidebarWidth, setSidebarWidth] = useState(220);
+  const [sidebarWidth, setSidebarWidth] = useState(180);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [sidebarOverride, setSidebarOverride] = useState<boolean | null>(null);
+  const [selectedDiffStyle, setSelectedDiffStyle] = useState<"split" | "unified" | null>(null);
+  const [showAllLines, setShowAllLines] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const [diffViewMode, setDiffViewMode] = useState(1); // 0=Old, 1=Diff, 2=New
   // Track which sourceCode we've initialized for
-  const initializedForRef = useRef<string | null>(null);
+  const initializedForRef = useRef<Record<string, string> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOptions, setSearchOptions] = useState<SearchOptions>({ caseSensitive: false, regex: false });
   // Monaco editor instance ref
@@ -108,6 +87,18 @@ export function SourceCodeExplorer({
   const searchDecorationsRef = useRef<ReturnType<EditorInstance["createDecorationsCollection"]> | null>(null);
 
   const isDiffMode = !!diffData;
+  const sidebarOpen = sidebarOverride ?? (containerWidth >= 800);
+  const editorWidth = containerWidth - (sidebarOpen ? sidebarWidth + 4 : 36);
+  const diffStyle = selectedDiffStyle ?? (editorWidth >= 760 ? "split" : "unified");
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width));
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
 
   // Inject diff styles (always called to satisfy React hooks rules; harmless when not in diff mode)
   useDiffStyles();
@@ -130,11 +121,15 @@ export function SourceCodeExplorer({
     return diffData[activeTabId] || null;
   }, [diffData, activeTabId]);
 
-  // Process diff code for the active file
-  const processedDiff = useMemo(() => {
-    if (!activeFileDiff) return null;
-    return processDiffCode(activeFileDiff.diffCode);
-  }, [activeFileDiff]);
+  // Monaco unmounts while Pierre renders the diff; search must wait for a
+  // source editor to mount instead of targeting a disposed editor instance.
+  useEffect(() => {
+    if (activeFileDiff && diffViewMode === 1) {
+      editorRef.current = null;
+      monacoRef.current = null;
+      searchDecorationsRef.current = null;
+    }
+  }, [activeFileDiff, diffViewMode]);
 
   // Build file tree from source code
   const fileTree = useMemo(() => {
@@ -157,8 +152,8 @@ export function SourceCodeExplorer({
       return;
     }
 
-    // Create a key to identify this sourceCode (using first few file paths)
-    const sourceKey = Object.keys(sourceCode).slice(0, 3).join(",");
+    // Reset tabs when a new comparison supplies fresh source content.
+    const sourceKey = sourceCode;
 
     // Skip if already initialized for this sourceCode
     if (initializedForRef.current === sourceKey) {
@@ -171,7 +166,7 @@ export function SourceCodeExplorer({
       let firstChangedPath: string | null = null;
 
       for (const [path, data] of Object.entries(diffData)) {
-        if (data.changesCount > 0 && sourceCode[path]) {
+        if (data.changesCount > 0 && Object.hasOwn(sourceCode, path)) {
           if (!firstChangedPath) firstChangedPath = path;
           const fileName = path.split("/").pop() || path;
           changedTabs.push({
@@ -282,9 +277,9 @@ export function SourceCodeExplorer({
     if (!activeTab) return "";
     if (!activeFileDiff) return activeTab.content;
     if (diffViewMode === 0) return activeFileDiff.oldCode;
-    if (diffViewMode === 1) return processedDiff?.cleanCode || activeTab.content;
+    if (diffViewMode === 1) return activeFileDiff.diffCode;
     return activeFileDiff.newCode;
-  }, [activeTab, activeFileDiff, diffViewMode, processedDiff]);
+  }, [activeTab, activeFileDiff, diffViewMode]);
 
   // Get language for current file (falls back to content-based detection)
   const language = useMemo(() => {
@@ -468,39 +463,10 @@ export function SourceCodeExplorer({
         pendingLineRef.current = null;
       }
 
-      // Apply diff decorations when in diff view mode
-      if (isDiffMode && diffViewMode === 1 && processedDiff) {
-        const decorations: Array<{
-          range: InstanceType<typeof monaco.Range>;
-          options: {
-            isWholeLine: boolean;
-            className: string;
-            minimap: { color: string; position: number };
-          };
-        }> = [];
-
-        processedDiff.lineTypes.forEach((type, lineNumber) => {
-          decorations.push({
-            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-            options: {
-              isWholeLine: true,
-              className:
-                type === "added" ? "diff-line-added" : "diff-line-removed",
-              minimap: {
-                color: type === "added" ? "#2ea04370" : "#dc354570",
-                position: 1, // MinimapPosition.Inline
-              },
-            },
-          });
-        });
-
-        editor.createDecorationsCollection(decorations);
-      }
-
       // Apply search highlights on mount
       applySearchHighlights(editor, monaco);
     },
-    [isDiffMode, diffViewMode, processedDiff, applySearchHighlights, patchSolidityLanguage]
+    [applySearchHighlights, patchSolidityLanguage]
   );
 
   // Scroll to line when active tab changes and we have a pending line
@@ -525,11 +491,12 @@ export function SourceCodeExplorer({
 
   // Handle sidebar tab switch - clear search highlights when leaving search
   const handleSidebarTabChange = useCallback((tab: "explorer" | "search") => {
+    setSidebarOverride(sidebarTab === tab ? !sidebarOpen : true);
     setSidebarTab(tab);
     if (tab !== "search") {
       setSearchQuery("");
     }
-  }, []);
+  }, [sidebarTab, sidebarOpen]);
 
   // Apply search highlight decorations when query/content changes
   useEffect(() => {
@@ -580,7 +547,7 @@ export function SourceCodeExplorer({
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return;
       const containerLeft = containerRef.current.getBoundingClientRect().left;
-      const newWidth = Math.max(150, Math.min(500, e.clientX - containerLeft));
+      const newWidth = Math.max(140, Math.min(320, e.clientX - containerLeft));
       setSidebarWidth(newWidth);
     };
 
@@ -599,6 +566,7 @@ export function SourceCodeExplorer({
 
   // Handle search result click - open file and scroll to line
   const handleSearchResultClick = useCallback((path: string, content: string, lineNumber: number) => {
+    if (isDiffMode) setDiffViewMode(diffData?.[path]?.oldExists === false ? 2 : 0);
     // Store the line number to scroll to after file opens
     pendingLineRef.current = lineNumber;
 
@@ -628,7 +596,7 @@ export function SourceCodeExplorer({
       setActiveTabId(path);
       return [...prevTabs, newTab];
     });
-  }, [activeTabId]);
+  }, [activeTabId, isDiffMode, diffData]);
 
   if (!sourceCode || Object.keys(sourceCode).length === 0) {
     return (
@@ -641,10 +609,10 @@ export function SourceCodeExplorer({
   }
 
   return (
-    <Box ref={containerRef} h={isFullscreen ? "100%" : undefined}>
-      <HStack spacing={0} align="stretch" h={isFullscreen ? "100%" : `${height}px`} overflow="hidden">
+    <Box ref={containerRef} minW={0} w="full" h={isFullscreen ? "100%" : undefined}>
+      <HStack spacing={0} align="stretch" h={isFullscreen ? "100%" : `${height}px`} maxH={isFullscreen ? undefined : maxHeight} overflow="hidden">
       {/* Sidebar Panel */}
-      <HStack spacing={0} w={`${sidebarWidth}px`} minW="150px" h="100%" borderRight="none" borderColor="whiteAlpha.200" align="stretch" flexShrink={0}>
+      <HStack spacing={0} w={sidebarOpen ? `${sidebarWidth}px` : "36px"} minW={0} h="100%" borderRight="none" borderColor="whiteAlpha.200" align="stretch" flexShrink={0}>
         {/* Icon Tab Bar */}
         <VStack
           spacing={0}
@@ -657,18 +625,19 @@ export function SourceCodeExplorer({
           pt={1}
           align="center"
         >
-          <Tooltip label="Explorer" placement="right" hasArrow>
+          <Tooltip label={sidebarOpen && sidebarTab === "explorer" ? "Hide files" : "Show files"} placement="right" hasArrow>
             <IconButton
-              aria-label="Explorer"
+              aria-label="Toggle files"
+              aria-expanded={sidebarOpen && sidebarTab === "explorer"}
               icon={<Icon as={Files} boxSize={4} />}
               size="sm"
               variant="ghost"
               w="36px"
               h="36px"
               borderRadius={0}
-              color={sidebarTab === "explorer" ? "text.primary" : "text.tertiary"}
+              color={sidebarOpen && sidebarTab === "explorer" ? "text.primary" : "text.tertiary"}
               borderLeft="2px solid"
-              borderColor={sidebarTab === "explorer" ? "primary.400" : "transparent"}
+              borderColor={sidebarOpen && sidebarTab === "explorer" ? "primary.400" : "transparent"}
               _hover={{ color: "text.primary" }}
               onClick={() => handleSidebarTabChange("explorer")}
             />
@@ -682,9 +651,9 @@ export function SourceCodeExplorer({
               w="36px"
               h="36px"
               borderRadius={0}
-              color={sidebarTab === "search" ? "text.primary" : "text.tertiary"}
+              color={sidebarOpen && sidebarTab === "search" ? "text.primary" : "text.tertiary"}
               borderLeft="2px solid"
-              borderColor={sidebarTab === "search" ? "primary.400" : "transparent"}
+              borderColor={sidebarOpen && sidebarTab === "search" ? "primary.400" : "transparent"}
               _hover={{ color: "text.primary" }}
               onClick={() => handleSidebarTabChange("search")}
             />
@@ -692,7 +661,7 @@ export function SourceCodeExplorer({
         </VStack>
 
         {/* Sidebar Content */}
-        <Box flex={1} bg="bg.muted" overflow="hidden" h="100%">
+        <Box flex={1} minW={0} bg="bg.muted" overflow="hidden" h="100%" display={sidebarOpen ? "block" : "none"}>
           {sidebarTab === "explorer" ? (
             <Box h="100%" display="flex" flexDirection="column">
               {/* Explorer Header */}
@@ -739,6 +708,7 @@ export function SourceCodeExplorer({
       {/* Sidebar Resize Handle */}
       <Box
         w="4px"
+        display={sidebarOpen ? "block" : "none"}
         cursor="ew-resize"
         bg={isResizingSidebar ? "primary.400" : "whiteAlpha.100"}
         _hover={{ bg: "primary.400" }}
@@ -749,7 +719,7 @@ export function SourceCodeExplorer({
       />
 
       {/* Editor Panel */}
-      <VStack spacing={0} flex={1} align="stretch" overflow="hidden">
+      <VStack spacing={0} flex={1} minW={0} align="stretch" overflow="hidden">
         {/* Tabs */}
         <CodeEditorTabs
           tabs={tabs}
@@ -758,35 +728,51 @@ export function SourceCodeExplorer({
           onTabClose={handleTabClose}
         />
 
-        {/* Diff View Mode Selector */}
-        {isDiffMode && activeFileDiff && activeFileDiff.changesCount > 0 && (
-          <HStack
-            px={3}
-            py={1.5}
-            borderBottom="1px solid"
-            borderColor="whiteAlpha.100"
-            bg="whiteAlpha.50"
-            position="relative"
-            justify="center"
-          >
-            <TabsSelector
-              mt={0}
-              tabs={DiffViewOptions}
-              selectedTabIndex={diffViewMode}
-              setSelectedTabIndex={setDiffViewMode}
-            />
-            <Box position="absolute" right={3}>
-              <CopyToClipboard
-                textToCopy={diffViewMode === 1 && activeFileDiff ? activeFileDiff.diffCode : displayedContent}
-                labelText={diffViewMode === 0 ? "Copy Old Code" : diffViewMode === 2 ? "Copy New Code" : "Copy Code with Diff"}
+        {/* Keep source, layout and context controls together. */}
+        {isDiffMode && activeFileDiff && (
+          <HStack px={2} py={1.5} spacing={2} flexWrap="wrap"
+            borderBottom="1px solid" borderColor="whiteAlpha.100" bg="bg.subtle">
+            <HStack spacing={0.5} role="group" aria-label="Source view">
+              {DiffViewOptions.map((mode, index) => (
+                <Button key={mode} size="xs" h={7} variant={diffViewMode === index ? "solid" : "ghost"}
+                  aria-pressed={diffViewMode === index} onClick={() => setDiffViewMode(index)}>
+                  {mode}
+                </Button>
+              ))}
+            </HStack>
+            {diffViewMode === 1 && (
+              <>
+                <Box w="1px" h={4} bg="border.default" />
+                <HStack spacing={0.5} role="group" aria-label="Diff layout">
+                  {(["split", "unified"] as const).map((mode) => (
+                    <Button key={mode} size="xs" h={7} variant={diffStyle === mode ? "solid" : "ghost"}
+                      leftIcon={<Icon as={mode === "split" ? Columns2 : Rows2} boxSize={3} aria-hidden="true" />}
+                      aria-pressed={diffStyle === mode} onClick={() => setSelectedDiffStyle(mode)}>
+                      {mode === "split" ? "Split" : "Unified"}
+                    </Button>
+                  ))}
+                </HStack>
+                <Button size="xs" h={7} variant="ghost" aria-pressed={showAllLines}
+                  aria-label={showAllLines ? "Show changes only" : "Show all lines"}
+                  onClick={() => setShowAllLines((value) => !value)}>
+                  {showAllLines ? "Changes" : "All lines"}
+                </Button>
+              </>
+            )}
+            <Box ml="auto">
+              <CopyToClipboard size="xs" h={7}
+                aria-label={diffViewMode === 0 ? "Copy old source" : diffViewMode === 2 ? "Copy new source" : "Copy diff"}
+                textToCopy={diffViewMode === 1 ? activeFileDiff.diffCode : displayedContent}
               />
             </Box>
           </HStack>
         )}
 
         {/* Monaco Editor */}
-        <Box flex={1} overflow="hidden">
-          {activeTab ? (
+        <Box flex={1} minW={0} minH={0} overflow="hidden">
+          {activeTab && activeFileDiff && diffViewMode === 1 ? (
+            <PierreDiff path={activeTab.path} diff={activeFileDiff} diffStyle={diffStyle} showAllLines={showAllLines} />
+          ) : activeTab ? (
             <Editor
               key={isDiffMode ? `${activeTabId}-${diffViewMode}` : activeTabId}
               theme="vs-dark"

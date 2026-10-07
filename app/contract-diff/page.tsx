@@ -3,7 +3,7 @@
 import { ToolLoading } from "@/components/ToolLoading";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState, useMemo } from "react";
+import { Suspense, useCallback, useEffect, useState, useMemo, useRef } from "react";
 import {
   Heading,
   Text,
@@ -22,7 +22,7 @@ import {
 import {
   parseAsInteger,
   parseAsString,
-  useQueryState,
+  useQueryStates,
 } from "nuqs";
 import { diffLines } from "diff";
 import { FiGitBranch, FiFile } from "react-icons/fi";
@@ -52,11 +52,11 @@ const getColoredOutput = (
 ): Record<string, DiffFileData> => {
   if (sourceCodes.length < 2) return {};
 
-  const contracts = Object.keys(sourceCodes[0]);
+  const contracts = Array.from(new Set([...Object.keys(sourceCodes[0]), ...Object.keys(sourceCodes[1])]));
   return contracts
     .map((contract) => {
-      const oldCode = sourceCodes[0][contract];
-      const newCode = sourceCodes[1][contract] || "";
+      const oldCode = sourceCodes[0][contract] ?? "";
+      const newCode = sourceCodes[1][contract] ?? "";
 
       const diff = diffLines(oldCode, newCode);
 
@@ -66,8 +66,9 @@ const getColoredOutput = (
       let linesRemoved = 0;
 
       diff.forEach((part) => {
-        const lines = part.value.split("\n").filter((line) => line.length > 0);
-        lines.forEach((line, idx) => {
+        const lines = part.value.split("\n");
+        if (lines[lines.length - 1] === "") lines.pop();
+        lines.forEach((line) => {
           if (part.added) {
             diffCode += `+→${line}\n`;
             linesAdded++;
@@ -83,6 +84,8 @@ const getColoredOutput = (
       return {
         [contract]: {
           oldCode,
+          oldExists: Object.hasOwn(sourceCodes[0], contract),
+          newExists: Object.hasOwn(sourceCodes[1], contract),
           diffCode,
           newCode,
           changesCount: linesAdded + linesRemoved,
@@ -98,21 +101,14 @@ function ContractDiffContent() {
   const searchParams = useSearchParams();
   const contractOldFromUrl = searchParams.get("contractOld");
   const contractNewFromUrl = searchParams.get("contractNew");
-  const [contractOld, setContractOld] = useQueryState<string>(
-    "contractOld",
-    parseAsString.withDefault(WETH_MAINNET)
-  );
-  const [contractNew, setContractNew] = useQueryState<string>(
-    "contractNew",
-    parseAsString.withDefault(WETH_BASE_MAINNET)
-  );
-  const [chainIdOld, setChainIdOld] = useQueryState<number>(
-    "chainIdOld",
-    parseAsInteger.withDefault(mainnet.id)
-  );
-  const [chainIdNew, setChainIdNew] = useQueryState<number>(
-    "chainIdNew",
-    parseAsInteger.withDefault(base.id)
+  const [{ contractOld, contractNew, chainIdOld, chainIdNew }, setComparison] = useQueryStates(
+    {
+      contractOld: parseAsString.withDefault(WETH_MAINNET),
+      contractNew: parseAsString.withDefault(WETH_BASE_MAINNET),
+      chainIdOld: parseAsInteger.withDefault(mainnet.id),
+      chainIdNew: parseAsInteger.withDefault(base.id),
+    },
+    { clearOnDefault: false }
   );
 
   // Derive select options directly from URL state (single source of truth)
@@ -136,23 +132,39 @@ function ContractDiffContent() {
   // Update URL state directly when user changes dropdown
   const handleNetworkOldChange = useCallback(
     (option: SelectedOptionState) => {
-      if (option) setChainIdOld(Number(option.value));
+      if (option) setComparison({ chainIdOld: Number(option.value) });
     },
-    [setChainIdOld]
+    [setComparison]
   );
   const handleNetworkNewChange = useCallback(
     (option: SelectedOptionState) => {
-      if (option) setChainIdNew(Number(option.value));
+      if (option) setComparison({ chainIdNew: Number(option.value) });
     },
-    [setChainIdNew]
+    [setComparison]
   );
 
   const toast = useToast();
 
   const [sourceCodes, setSourceCodes] = useState<Record<string, string>[]>([]);
 
+  const [comparedInputs, setComparedInputs] = useState<string | null>(null);
+  const currentInputs = JSON.stringify([contractOld, contractNew, chainIdOld, chainIdNew]);
+  const resultsStale = comparedInputs !== null && comparedInputs !== currentInputs;
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (sourceCodes.length !== 2) return;
+    const frame = requestAnimationFrame(() => {
+      resultsRef.current?.scrollIntoView({
+        block: "start",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [sourceCodes]);
 
   // Escape key exits fullscreen; lock body scroll while fullscreen
   useEffect(() => {
@@ -171,29 +183,30 @@ function ContractDiffContent() {
   const contracts = [contractOld, contractNew];
 
   const diffContracts = async () => {
+    if (isLoading) return;
     setIsLoading(true);
-    const sourceCodes = await Promise.all(
-      [chainIdOld, chainIdNew].map((chainId, i) =>
-        getSourceCode(chainId, contracts[i])
-      )
-    );
-    // filter out undefined
-    const validSourceCodes = sourceCodes.filter(
-      (sourceCode): sourceCode is Record<string, string> =>
-        sourceCode !== undefined
-    );
-    if (validSourceCodes.length === 2) {
-      setSourceCodes(validSourceCodes);
-    } else {
+    try {
+      // Persist all four values, even untouched example defaults, for sharing.
+      await setComparison({ contractOld, contractNew, chainIdOld, chainIdNew });
+      const fetchedSources = await Promise.all(
+        [chainIdOld, chainIdNew].map((chainId, i) => getSourceCode(chainId, contracts[i]))
+      );
+      if (fetchedSources.some((source) => !source || Object.values(source).every((code) => !code.trim()))) {
+        throw new Error("Source code is unavailable");
+      }
+      setSourceCodes(fetchedSources as Record<string, string>[]);
+      setComparedInputs(currentInputs);
+    } catch {
       toast({
-        title: "Error",
-        description: "Could not fetch source code",
+        title: "Could not compare contracts",
+        description: "Check the addresses and networks, and make sure both contracts have verified source code.",
         status: "error",
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const contractsDiff = useMemo(
@@ -201,10 +214,10 @@ function ContractDiffContent() {
     [sourceCodes]
   );
 
-  // Build sourceCode for SourceCodeExplorer from the old contract's source
+  // Include both versions so added and deleted files remain navigable.
   const explorerSourceCode = useMemo(() => {
     if (sourceCodes.length < 2) return undefined;
-    return sourceCodes[0];
+    return { ...sourceCodes[1], ...sourceCodes[0] };
   }, [sourceCodes]);
 
   // Auto-diff if all params are present in the URL
@@ -222,9 +235,9 @@ function ContractDiffContent() {
   }, []);
 
   return (
-    <Layout maxW="container.2xl">
+    <Layout maxW="container.2xl" minW={0}>
       <Box
-        p={6}
+        p={{ base: 3, md: 5 }}
         bg="rgba(0, 0, 0, 0.05)"
         backdropFilter="blur(5px)"
         borderRadius="xl"
@@ -275,11 +288,11 @@ function ContractDiffContent() {
                       </Text>
                     </HStack>
                     <InputField
-                      autoFocus
+                      aria-label="Old contract address"
                       placeholder="Contract address"
                       value={contractOld}
                       onChange={(e) => {
-                        setContractOld(e.target.value);
+                        setComparison({ contractOld: e.target.value });
                       }}
                     />
                     <DarkSelect
@@ -312,9 +325,10 @@ function ContractDiffContent() {
                     </HStack>
                     <InputField
                       placeholder="Contract address"
+                      aria-label="New contract address"
                       value={contractNew}
                       onChange={(e) => {
-                        setContractNew(e.target.value);
+                        setComparison({ contractNew: e.target.value });
                       }}
                     />
                     <DarkSelect
@@ -350,6 +364,8 @@ function ContractDiffContent() {
         {explorerSourceCode && Object.keys(contractsDiff).length > 0 && (() => {
           const resultsContent = (
             <Box
+              ref={resultsRef}
+              scrollMarginTop={4}
               mt={isFullscreen ? 0 : 6}
               border={isFullscreen ? "none" : "1px solid"}
               borderColor="whiteAlpha.200"
@@ -363,6 +379,7 @@ function ContractDiffContent() {
               display="flex"
               flexDirection="column"
             >
+              {resultsStale && <Text px={3} py={2} fontSize="xs" color="text.secondary" bg="bg.muted" role="status">Inputs changed. Compare again to update these results.</Text>}
               {/* Fullscreen toolbar */}
               <HStack
                 px={3}
@@ -370,9 +387,16 @@ function ContractDiffContent() {
                 borderBottom="1px solid"
                 borderColor="whiteAlpha.100"
                 bg="whiteAlpha.50"
-                justify="flex-end"
+                justify="space-between"
                 flexShrink={0}
               >
+                <HStack spacing={3} minW={0}>
+                  <Text fontSize="xs" color="text.secondary">
+                    {Object.keys(contractsDiff).length} {Object.keys(contractsDiff).length === 1 ? "file" : "files"} · {Object.values(contractsDiff).filter((file) => file.changesCount > 0).length} changed
+                  </Text>
+                  <Text fontSize="xs" color="green.400">+{Object.values(contractsDiff).reduce((sum, file) => sum + file.linesAdded, 0)}</Text>
+                  <Text fontSize="xs" color="red.400">−{Object.values(contractsDiff).reduce((sum, file) => sum + file.linesRemoved, 0)}</Text>
+                </HStack>
                 <Tooltip label={isFullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen"} placement="bottom" hasArrow>
                   <IconButton
                     aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
@@ -385,11 +409,12 @@ function ContractDiffContent() {
                   />
                 </Tooltip>
               </HStack>
-              <Box flex={1} overflow="hidden">
+              <Box flex={1} minW={0} minH={0} overflow="hidden">
                 <SourceCodeExplorer
                   sourceCode={explorerSourceCode}
                   diffData={contractsDiff}
                   initialHeight={700}
+                  maxHeight="calc(100dvh - 96px)"
                   isFullscreen={isFullscreen}
                 />
               </Box>

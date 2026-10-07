@@ -29,6 +29,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@number-flow/react": "^0.5.10",
     "@openchainxyz/abi-guesser": "^1.0.2",
+    "@pierre/diffs": "^1.5.2",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@reown/walletkit": "^1.2.1",
     "@shazow/whatsabi": "^0.15.4",

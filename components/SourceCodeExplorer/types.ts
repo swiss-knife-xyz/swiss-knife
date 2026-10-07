@@ -24,6 +24,8 @@ export interface TabData {
 
 export interface DiffFileData {
   oldCode: string;
+  oldExists?: boolean;
+  newExists?: boolean;
   diffCode: string; // with +→ and -→ markers
   newCode: string;
   changesCount: number;
@@ -39,6 +41,8 @@ export interface SourceCodeExplorerProps {
   diffData?: Record<string, DiffFileData>;
   /** Initial height in pixels (default: 400) */
   initialHeight?: number;
+  /** Optional viewport cap for the editor pane, excluding outer toolbars. */
+  maxHeight?: string;
   /** Whether the parent container is in fullscreen mode */
   isFullscreen?: boolean;
 }
