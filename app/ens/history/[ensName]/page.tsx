@@ -37,7 +37,11 @@ import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import axios from "axios";
 import { namehash } from "viem/ens";
-import contentHash from "content-hash";
+import {
+  parseContenthash,
+  shortenContenthash,
+  type ContenthashRecord,
+} from "../lib/contenthash";
 import {
   decodeEnsRouteName,
   normalizeEnsInput,
@@ -65,7 +69,7 @@ interface DomainDetails {
     id: string;
   } | null;
   isSubdomain: boolean;
-  currentContenthash: string | null;
+  currentContenthash: ContenthashRecord | null;
 }
 
 interface DomainRegistration {
@@ -86,7 +90,7 @@ interface HistoryEvent {
   transactionID: string;
   details: {
     summary?: string;
-    hash?: string;
+    hash?: ContenthashRecord;
     owner?: string;
     expiryDate?: number;
   };
@@ -270,15 +274,6 @@ const ENSHistory = () => {
     return format(new Date(timestamp * 1000), "PPpp");
   };
 
-  const shortenHash = (hash: string) => {
-    if (!hash) return "";
-    if (hash.startsWith("0x"))
-      return `${hash.substring(0, 10)}...${hash.slice(-4)}`;
-    return `ipfs://${hash.substring(0, 10)}...${hash.substring(
-      hash.length - 4
-    )}`;
-  };
-
   const getEventBadge = (type: string, label: string) => {
     switch (type) {
       case "content":
@@ -332,10 +327,13 @@ const ENSHistory = () => {
     if (!domainDetails) return null;
 
     // Read current content independently of historical resolver events.
-    const ipfsHash = domainDetails.currentContenthash;
+    const currentContent = domainDetails.currentContenthash;
 
-    // Create the .eth.link URL if we have an IPFS hash
-    const ethLimoUrl = ipfsHash && ensName ? `https://${ensName}.link` : null;
+    // Only IPFS records receive the existing name gateway link.
+    const ethLimoUrl =
+      currentContent?.protocol === "ipfs" && ensName
+        ? `https://${ensName}.link`
+        : null;
 
     return (
       <Card
@@ -348,12 +346,12 @@ const ENSHistory = () => {
           <Heading size="sm">🔍 Domain Details</Heading>
         </CardHeader>
         <CardBody>
-          {/* IPFS Content Section - Added prominently at the top */}
-          {ipfsHash && (
+          {/* Current resolver content, independent of historical events. */}
+          {currentContent && (
             <Box mb={6}>
               <Flex alignItems="center" mb={2}>
                 <Heading size="sm" mr={2}>
-                  IPFS Content
+                  Content Hash
                 </Heading>
                 {ethLimoUrl && (
                   <Tooltip label="Open in .eth.link gateway">
@@ -370,10 +368,23 @@ const ENSHistory = () => {
                   </Tooltip>
                 )}
               </Flex>
-              <Tooltip label={ipfsHash} placement="bottom" hasArrow>
-                <Code p={2} borderRadius="md" width="100%" position="relative">
+              <Tooltip
+                label={currentContent.display}
+                placement="bottom"
+                hasArrow
+              >
+                <Code
+                  p={2}
+                  borderRadius="md"
+                  width="100%"
+                  position="relative"
+                  bg="bg.subtle"
+                  color="text.primary"
+                >
                   <Flex align="center">
                     <Text
+                      color="inherit"
+                      minW={0}
                       fontFamily="mono"
                       fontSize="sm"
                       overflow="hidden"
@@ -381,11 +392,13 @@ const ENSHistory = () => {
                       whiteSpace="nowrap"
                       flex="1"
                     >
-                      {shortenHash(ipfsHash)}
+                      {shortenContenthash(currentContent)}
                     </Text>
                     <IconButton
                       icon={<CopyIcon />}
-                      onClick={() => navigator.clipboard.writeText(ipfsHash)}
+                      onClick={() =>
+                        navigator.clipboard.writeText(currentContent.value)
+                      }
                       size="xs"
                       variant="ghost"
                       aria-label="Copy full hash"
@@ -464,7 +477,7 @@ const ENSHistory = () => {
         </CardBody>
       </Card>
     );
-  }, [domainDetails, contentEvents, ensName]);
+  }, [domainDetails, ensName]);
 
   // Memoize the initial registration section
   const memoizedInitialRegistration = useMemo(() => {
@@ -599,7 +612,7 @@ const ENSHistory = () => {
                     <Td py={4}>
                       {event.type === "content" && event.details.hash && (
                         <Flex align="center">
-                          <Tooltip label={event.details.hash}>
+                          <Tooltip label={event.details.hash.display}>
                             <Text
                               fontFamily="mono"
                               fontSize="sm"
@@ -609,22 +622,24 @@ const ENSHistory = () => {
                               textOverflow="ellipsis"
                               whiteSpace="nowrap"
                             >
-                              {shortenHash(event.details.hash)}
+                              {shortenContenthash(event.details.hash)}
                             </Text>
                           </Tooltip>
                           <IconButton
                             icon={<CopyIcon />}
                             onClick={() =>
-                              navigator.clipboard.writeText(event.details.hash!)
+                              navigator.clipboard.writeText(
+                                event.details.hash!.value
+                              )
                             }
                             size="xs"
                             variant="ghost"
                             aria-label="Copy full hash"
                           />
-                          {!event.details.hash.startsWith("0x") && (
+                          {event.details.hash.gatewayUrl && (
                             <Link
                               ml={2}
-                              href={`https://${event.details.hash}.ipfs.inbrowser.link`}
+                              href={event.details.hash.gatewayUrl}
                               isExternal
                             >
                               <ExternalLinkIcon fontSize={"md"} />
@@ -674,22 +689,6 @@ const ENSHistory = () => {
     );
   }, [historyEvents, contentEvents, isContentLoaded]);
 
-  const decodeContentHash = (encoded: string): string | null => {
-    try {
-      if (!encoded.startsWith("0xe3")) {
-        // Not an IPFS link
-        return null;
-      }
-
-      const ipfsv0 = contentHash.decode(encoded);
-      const ipfsv1 = contentHash.helpers.cidV0ToV1Base32(ipfsv0);
-      return ipfsv1;
-    } catch (error) {
-      console.error("Error decoding content hash:", error);
-      return null;
-    }
-  };
-
   const fetchResolverBackedDomainDetails = async (
     normalizedName: string,
     isSubdomain: boolean
@@ -700,7 +699,7 @@ const ENSHistory = () => {
     ]);
 
     const decodedContenthash = rawContenthash
-      ? decodeContentHash(rawContenthash)
+      ? parseContenthash(rawContenthash)
       : null;
 
     if (!owner && !decodedContenthash) {
@@ -914,7 +913,7 @@ const ENSHistory = () => {
           details: {
             hash:
               event.hash && event.hash !== "0x"
-                ? (decodeContentHash(event.hash) ?? event.hash)
+                ? parseContenthash(event.hash)!
                 : undefined,
             owner:
               event.owner?.id ?? event.newOwner?.id ?? event.registrant?.id,
@@ -945,7 +944,7 @@ const ENSHistory = () => {
           ? {
               ...details,
               currentContenthash: currentHash
-                ? decodeContentHash(currentHash)
+                ? parseContenthash(currentHash)
                 : null,
             }
           : details
