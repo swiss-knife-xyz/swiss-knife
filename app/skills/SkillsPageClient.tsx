@@ -135,7 +135,7 @@ const ResourceLogo = ({
   size?: number;
 }) => {
   const [hasError, setHasError] = useState(false);
-  const faviconUrl = getFaviconUrl(resource.logoDomain);
+  const logoUrl = resource.logoSrc ?? getFaviconUrl(resource.logoDomain);
   const imageSize = Math.max(22, size - 10);
   const hasCustomLogoBg = Boolean(resource.logoBg);
 
@@ -157,7 +157,7 @@ const ResourceLogo = ({
       overflow="hidden"
       flexShrink={0}
     >
-      {hasError || !faviconUrl ? (
+      {hasError || !logoUrl ? (
         <Text
           color={hasCustomLogoBg ? "whiteAlpha.900" : "gray.800"}
           fontSize="10px"
@@ -167,7 +167,7 @@ const ResourceLogo = ({
         </Text>
       ) : (
         <Image
-          src={faviconUrl}
+          src={logoUrl}
           alt={`${resource.name} logo`}
           w={`${imageSize}px`}
           h={`${imageSize}px`}
