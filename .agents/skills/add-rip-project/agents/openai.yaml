@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add R.I.P. Project"
+  short_description: "Research Web3 shutdowns, dates and project logos"
+  default_prompt: "Use $add-rip-project to research this shutdown announcement, verify its dates and scope, recover the official logo, and update the R.I.P. directory with sourced information."
