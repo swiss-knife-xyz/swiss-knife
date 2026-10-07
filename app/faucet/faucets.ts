@@ -479,6 +479,22 @@ export const faucets: FaucetEntry[] = [
     tags: ["gaszip", "hyperevm", "hyperliquid", "testnet", "hype"],
   },
   {
+    id: "alchemy-hyperevm",
+    name: "Hyperliquid Testnet Faucet",
+    provider: "Alchemy",
+    url: "https://www.alchemy.com/faucets/hyperliquid-testnet",
+    chain: "HyperEVM Testnet",
+    token: "HYPE",
+    amount: "0.2 HYPE every 12h",
+    cooldownHours: 12,
+    category: "appchain",
+    reliability: "provider",
+    requirement:
+      "Wallet address; at least 0.01 HYPE on Hyperliquid mainnet and low testnet balance; no account required",
+    notes: "Alchemy's direct faucet for HyperEVM testnet gas tokens.",
+    tags: ["alchemy", "hyperevm", "hyperliquid", "testnet", "hype"],
+  },
+  {
     id: "gaszip-bnb-testnet",
     name: "BSC Testnet Faucet",
     provider: "Gas.zip",
