@@ -1,0 +1,763 @@
+{
+  "balancer": {
+    "funding": {
+      "slug": "balancer",
+      "expectedId": "parent#balancer",
+      "entity": "Balancer",
+      "scopeNote": "Funding recorded for Balancer. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "balancer",
+      "expectedId": "parent#balancer",
+      "entity": "Balancer",
+      "scopeNote": "DefiLlama revenue for Balancer. Protocol revenue includes treasury/team and token-holder receipts; it is not company revenue or profit."
+    }
+  },
+  "dango": {
+    "funding": {
+      "slug": "dango",
+      "expectedId": "parent#dango",
+      "entity": "Dango",
+      "scopeNote": "Funding recorded for Dango. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "dango",
+      "expectedId": "parent#dango",
+      "entity": "Dango",
+      "scopeNote": "DefiLlama revenue for Dango. Protocol revenue includes treasury/team and token-holder receipts; it is not company revenue or profit."
+    }
+  },
+  "odos": {
+    "funding": {
+      "slug": "odos",
+      "expectedId": "3951",
+      "entity": "ODOS",
+      "scopeNote": "Odos Series A amount was not disclosed. DefiLlama lists the same round twice with overlapping investors (August 30 and September 1, 2024); it is counted once using the earlier provider-recorded date. The exact closing date is not independently verified.",
+      "excludedRoundKeys": ["2024-09-01:Series A:null"]
+    },
+    "revenue": {
+      "slug": "odos",
+      "expectedId": "3951",
+      "entity": "ODOS",
+      "scopeNote": "DefiLlama revenue for ODOS. Protocol revenue includes treasury/team and token-holder receipts; it is not company revenue or profit."
+    }
+  },
+  "ionic-protocol": {
+    "funding": {
+      "slug": "ionic-protocol",
+      "expectedId": "4070",
+      "entity": "Ionic Protocol",
+      "scopeNote": "Funding recorded for Ionic Protocol. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "satori-finance": {
+    "funding": {
+      "slug": "satori-finance",
+      "expectedId": "parent#satori-finance",
+      "entity": "Satori Finance",
+      "scopeNote": "Funding recorded for Satori Finance. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "satori-finance",
+      "expectedId": "parent#satori-finance",
+      "entity": "Satori Finance",
+      "scopeNote": "DefiLlama revenue for Satori Finance. Protocol revenue includes treasury/team and token-holder receipts; it is not company revenue or profit."
+    }
+  },
+  "phi": {
+    "funding": {
+      "slug": "phi",
+      "expectedId": "6900",
+      "entity": "Phi",
+      "scopeNote": "Funding recorded for Phi. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "carrot": {
+    "funding": {
+      "slug": "carrot",
+      "expectedId": "parent#carrot",
+      "entity": "Carrot",
+      "scopeNote": "Funding recorded for Carrot. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "remora-markets": {
+    "funding": {
+      "slug": "remora-markets",
+      "expectedId": "6669",
+      "entity": "Remora Markets",
+      "scopeNote": "Funding recorded for Remora Markets. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "ventuals": {
+    "funding": {
+      "slug": "ventuals",
+      "expectedId": "7011",
+      "entity": "Ventuals",
+      "scopeNote": "Funding recorded for Ventuals. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "ventuals",
+      "expectedId": "7011",
+      "entity": "Ventuals",
+      "scopeNote": "DefiLlama revenue for Ventuals. Protocol revenue includes treasury/team and token-holder receipts; it is not company revenue or profit."
+    }
+  },
+  "fantasy-top": {
+    "funding": {
+      "slug": "fantasy.top",
+      "expectedId": "4570",
+      "entity": "fantasy.top",
+      "scopeNote": "Funding recorded for fantasy.top. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "fantasy.top",
+      "expectedId": "4570",
+      "entity": "fantasy.top",
+      "scopeNote": "DefiLlama revenue for fantasy.top. Protocol revenue includes treasury/team and token-holder receipts; it is not company revenue or profit."
+    }
+  },
+  "opulous": {
+    "funding": {
+      "slug": "opulous",
+      "expectedId": "2209",
+      "entity": "Opulous",
+      "scopeNote": "Funding recorded for Opulous. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "seamless-protocol": {
+    "funding": {
+      "slug": "seamless-protocol",
+      "expectedId": "parent#seamless-protocol",
+      "entity": "Seamless Protocol",
+      "scopeNote": "Funding recorded for Seamless Protocol. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "seamless-protocol",
+      "expectedId": "parent#seamless-protocol",
+      "entity": "Seamless Protocol",
+      "scopeNote": "DefiLlama revenue for Seamless Protocol. Protocol revenue includes treasury/team and token-holder receipts; it is not company revenue or profit."
+    }
+  },
+  "abstract": {
+    "funding": {
+      "slug": "abstract",
+      "expectedId": "5691",
+      "entity": "Abstract",
+      "scopeNote": "Funding recorded for Abstract. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "abstract",
+      "expectedId": "chain#abstract",
+      "entity": "Abstract",
+      "scopeNote": "DefiLlama chain revenue for Abstract measures burned coins; it is not team or company income."
+    }
+  },
+  "blast": {
+    "funding": {
+      "slug": "blast-l2",
+      "expectedId": "parent#blast-l2",
+      "entity": "Blast L2",
+      "scopeNote": "Funding recorded for Blast L2. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "blast",
+      "expectedId": "chain#blast",
+      "entity": "Blast",
+      "scopeNote": "DefiLlama rollup revenue for Blast is gas fees minus L1 batch costs; it is not company income."
+    },
+    "manualFunding": {
+      "entity": "Blast",
+      "scopeNote": "Funding for the Blast L2, not Blur financing or bridged user deposits. Only sourced rounds are summed; this is not a verified lifetime total. Dates are announcement/reporting dates unless stated otherwise.",
+      "rounds": [
+        {
+          "date": "2023-11-21",
+          "amountUsd": 20000000,
+          "round": "Funding round",
+          "source": {
+            "url": "https://www.theblock.co/news/ecosystems/2023-11-21-blur-ethereum-layer-2-blast-live-20-million-raise-263926",
+            "label": "The Block Blast funding report",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "oxium": {
+    "funding": {
+      "slug": "oxium",
+      "expectedId": "6301",
+      "entity": "Oxium",
+      "scopeNote": "Funding recorded for Oxium. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "oxium",
+      "expectedId": "6301",
+      "entity": "Oxium",
+      "scopeNote": "DefiLlama revenue for Oxium. Protocol revenue includes treasury/team and token-holder receipts; it is not company revenue or profit."
+    }
+  },
+  "nftfi": {
+    "funding": {
+      "slug": "nftfi",
+      "expectedId": "2255",
+      "entity": "NFTfi",
+      "scopeNote": "Funding recorded for NFTfi. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "ranger-finance": {
+    "funding": {
+      "slug": "ranger-finance-perps",
+      "expectedId": "7291",
+      "entity": "Ranger Finance Perps",
+      "scopeNote": "Funding recorded for Ranger Finance Perps. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "bitmart": {
+    "funding": {
+      "slug": "bitmart",
+      "expectedId": "3577",
+      "entity": "BitMart",
+      "scopeNote": "Funding recorded for BitMart. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "step-app": {
+    "funding": {
+      "slug": "step-app",
+      "expectedId": "3138",
+      "entity": "Step App",
+      "scopeNote": "Funding recorded for Step App. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "foundation": {
+    "funding": {
+      "slug": "foundation",
+      "expectedId": "3168",
+      "entity": "Foundation",
+      "scopeNote": "Funding recorded for Foundation. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "foundation",
+      "expectedId": "3168",
+      "entity": "Foundation",
+      "scopeNote": "DefiLlama revenue for Foundation. Protocol revenue includes treasury/team and token-holder receipts; it is not company revenue or profit."
+    }
+  },
+  "slingshot": {
+    "funding": {
+      "slug": "slingshot",
+      "expectedId": "3681",
+      "entity": "Slingshot",
+      "scopeNote": "Funding recorded for Slingshot. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "zerolend": {
+    "funding": {
+      "slug": "zerolend",
+      "expectedId": "parent#zerolend",
+      "entity": "ZeroLend",
+      "scopeNote": "Funding recorded for ZeroLend. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "zerolend",
+      "expectedId": "parent#zerolend",
+      "entity": "ZeroLend",
+      "scopeNote": "DefiLlama revenue for ZeroLend. Protocol revenue includes treasury/team and token-holder receipts; it is not company revenue or profit."
+    }
+  },
+  "radiant-capital": {
+    "funding": {
+      "slug": "radiant",
+      "expectedId": "parent#radiant",
+      "entity": "Radiant",
+      "scopeNote": "Funding recorded for Radiant. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "radiant",
+      "expectedId": "parent#radiant",
+      "entity": "Radiant",
+      "scopeNote": "DefiLlama revenue for Radiant. Protocol revenue includes treasury/team and token-holder receipts; it is not company revenue or profit."
+    }
+  },
+  "everclear": {
+    "funding": {
+      "slug": "everclear",
+      "expectedId": "7114",
+      "entity": "Everclear",
+      "scopeNote": "Funding recorded for Everclear. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "pingu-exchange": {
+    "funding": {
+      "slug": "pingu-exchange",
+      "expectedId": "4102",
+      "entity": "Pingu Exchange",
+      "scopeNote": "Funding recorded for Pingu Exchange. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "colony": {
+    "funding": {
+      "slug": "colony",
+      "expectedId": "1004",
+      "entity": "Colony",
+      "scopeNote": "Funding recorded for Colony. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "voodoo": {
+    "funding": {
+      "slug": "voodoo-trade",
+      "expectedId": "parent#voodoo-trade",
+      "entity": "Voodoo Trade",
+      "scopeNote": "Funding recorded for Voodoo Trade. Only sourced rounds are counted; this is not a verified lifetime total."
+    },
+    "revenue": {
+      "slug": "voodoo-trade-base",
+      "expectedId": "3792",
+      "entity": "Voodoo Trade Base",
+      "scopeNote": "DefiLlama revenue for Voodoo Trade on Base only, excluding its separate Fantom product. Protocol revenue is not company revenue or profit."
+    }
+  },
+  "rage-trade": {
+    "funding": {
+      "slug": "rage-trade",
+      "expectedId": "4447",
+      "entity": "Rage Trade",
+      "scopeNote": "Funding recorded for Rage Trade. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "stream-finance": {
+    "funding": {
+      "slug": "stream-finance",
+      "expectedId": "2984",
+      "entity": "Stream Finance",
+      "scopeNote": "Funding recorded for Stream Finance. Only sourced rounds are counted; this is not a verified lifetime total."
+    }
+  },
+  "angle-stablecoins": {
+    "revenue": {
+      "slug": "angle",
+      "expectedId": "756",
+      "entity": "Angle",
+      "scopeNote": "Angle stablecoin protocol revenue only. Does not include Merkl."
+    },
+    "manualFunding": {
+      "entity": "Angle Labs",
+      "scopeNote": "Angle Labs’ 2021 seed funding for the stablecoin protocol; no later Merkl financing is attributed to this retired product. Only sourced rounds are summed; this is not a verified lifetime total. Dates are announcement/reporting dates unless stated otherwise.",
+      "rounds": [
+        {
+          "date": "2021-09-28",
+          "amountUsd": 5000000,
+          "round": "Seed",
+          "source": {
+            "url": "https://decrypt.co/82094",
+            "label": "Decrypt Angle Labs seed report",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "poap": {
+    "manualFunding": {
+      "entity": "poap",
+      "scopeNote": "Only these sourced rounds are counted; earlier or undisclosed funding may be missing. Dates refer to announcements or reporting, not exact closing dates.",
+      "rounds": [
+        {
+          "date": "2022-01-18",
+          "amountUsd": 10000000,
+          "round": "Seed",
+          "source": {
+            "url": "https://blog.poap.xyz/poap-inc-raises-10m-to-accelerate-human-development/",
+            "label": "POAP funding announcement",
+            "kind": "Primary"
+          }
+        }
+      ]
+    }
+  },
+  "yupp": {
+    "manualFunding": {
+      "entity": "yupp",
+      "scopeNote": "Seed round announced June 13, 2025; reporting says it closed in 2024. The exact closing date is not verified.",
+      "rounds": [
+        {
+          "date": "2025-06-13",
+          "amountUsd": 33000000,
+          "round": "Seed",
+          "source": {
+            "url": "https://a16zcrypto.com/posts/article/investing-in-yupp/",
+            "label": "a16z investment announcement",
+            "kind": "Primary"
+          }
+        }
+      ]
+    }
+  },
+  "parsec": {
+    "manualFunding": {
+      "entity": "parsec",
+      "scopeNote": "Only these sourced rounds are counted; earlier or undisclosed funding may be missing. Dates refer to announcements or reporting, not exact closing dates.",
+      "rounds": [
+        {
+          "date": "2023-10-11",
+          "amountUsd": 4000000,
+          "round": "Seed extension",
+          "source": {
+            "url": "https://www.theblock.co/news/deals/2023-10-11-crypto-parsec-funding-uniswap-galaxy-255983",
+            "label": "The Block funding report",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "tally": {
+    "manualFunding": {
+      "entity": "tally",
+      "scopeNote": "Only these sourced rounds are counted; earlier or undisclosed funding may be missing. Dates refer to announcements or reporting, not exact closing dates.",
+      "rounds": [
+        {
+          "date": "2025-04-22",
+          "amountUsd": 8000000,
+          "round": "Series A",
+          "source": {
+            "url": "https://www.coindesk.com/tech/2025/04/22/dao-infrastructure-provider-tally-raises-usd8m-to-scale-on-chain-governance",
+            "label": "CoinDesk funding report",
+            "kind": "Reporting"
+          }
+        },
+        {
+          "date": "2021-08-12",
+          "amountUsd": 6000000,
+          "round": "Funding round",
+          "source": {
+            "url": "https://finance.yahoo.com/news/daos-vcs-put-6m-behind-153327894.html",
+            "label": "CoinDesk funding report via Yahoo Finance",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "entropy": {
+    "manualFunding": {
+      "entity": "entropy",
+      "scopeNote": "Only these sourced rounds are counted; earlier or undisclosed funding may be missing. Dates refer to announcements or reporting, not exact closing dates.",
+      "rounds": [
+        {
+          "date": "2022-06-08",
+          "amountUsd": 25000000,
+          "round": "Seed",
+          "source": {
+            "url": "https://www.theblock.co/news/deals/2022-06-08-entropy-announces-25-million-seed-round-150930",
+            "label": "The Block funding report",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "proof-of-play": {
+    "manualFunding": {
+      "entity": "proof-of-play",
+      "scopeNote": "Only these sourced rounds are counted; earlier or undisclosed funding may be missing. Dates refer to announcements or reporting, not exact closing dates.",
+      "rounds": [
+        {
+          "date": "2023-09-21",
+          "amountUsd": 33000000,
+          "round": "Seed",
+          "source": {
+            "url": "https://decrypt.co/198093/pirate-nation-studio-raises-33-million-build-fully-on-chain-games",
+            "label": "Decrypt funding report",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "botanix": {
+    "manualFunding": {
+      "entity": "Botanix Labs",
+      "scopeNote": "Botanix Labs funding: $8.5m seed announced May 7, 2024, closed in April 2024; $3m pre-seed closed in June 2023. Only month-level timing is verified for the earlier round. These sourced rounds total $11.5m; this is not a verified lifetime total.",
+      "rounds": [
+        {
+          "date": "2024-05-07",
+          "amountUsd": 8500000,
+          "round": "Seed",
+          "source": {
+            "url": "https://www.theblock.co/news/deals/2024-05-07-botanix-labs-raise-bitcoin-defi-292873",
+            "label": "The Block funding report",
+            "kind": "Reporting"
+          }
+        },
+        {
+          "date": "2023-06",
+          "amountUsd": 3000000,
+          "round": "Pre-seed (SAFE)",
+          "source": {
+            "url": "https://www.theblock.co/news/deals/2024-05-07-botanix-labs-raise-bitcoin-defi-292873",
+            "label": "The Block funding report",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "leap-wallet": {
+    "manualFunding": {
+      "entity": "Leap Wallet",
+      "scopeNote": "$3.2m seed round announced April 5, 2022, structured as a private token sale. A separately reported $50,000 Terraform Labs grant in late 2021 is not included in this round sum. Only this sourced round is counted, not a verified lifetime total.",
+      "rounds": [
+        {
+          "date": "2022-04-05",
+          "amountUsd": 3200000,
+          "round": "Seed / private token sale",
+          "source": {
+            "url": "https://www.theblock.co/news/deals/2022-04-05-terra-wallet-leap-funding-token-sale-140650",
+            "label": "The Block funding report",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "zapper": {
+    "manualFunding": {
+      "entity": "Zapper",
+      "scopeNote": "Zapper funding, not transaction volume. The Series A is verified only to May 2021, so no exact day is asserted. Only sourced rounds are counted, not a verified lifetime total.",
+      "rounds": [
+        {
+          "date": "2021-05",
+          "amountUsd": 15000000,
+          "round": "Series A",
+          "source": {
+            "url": "https://www.theblock.co/news/defi/2026-07-08-defi-dashboard-zapper-shut-down-after-7-years-407634",
+            "label": "The Block closure and funding report",
+            "kind": "Reporting"
+          }
+        },
+        {
+          "date": "2020-08-27",
+          "amountUsd": 1500000,
+          "round": "Seed",
+          "source": {
+            "url": "https://www.theblock.co/news/deals/2020-08-27-defi-zapper-seed-round-76200",
+            "label": "The Block seed funding report",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "legend": {
+    "manualFunding": {
+      "entity": "Legend Labs",
+      "scopeNote": "Funding for Jayson Hobby’s Legend DeFi app (legend.xyz), not the unrelated Legend Trade platform. Only sourced rounds are summed; this is not a verified lifetime total. Dates are announcement/reporting dates unless stated otherwise.",
+      "rounds": [
+        {
+          "date": "2025-02-11",
+          "amountUsd": 15000000,
+          "round": "Seed",
+          "source": {
+            "url": "https://paragraph.com/@legendapp/legend-secures-15m-in-funding-to-bring-defi-mainstream",
+            "label": "Legend seed announcement",
+            "kind": "Primary"
+          }
+        }
+      ]
+    }
+  },
+  "syndicate-labs": {
+    "manualFunding": {
+      "entity": "Syndicate",
+      "scopeNote": "Syndicate’s own financing, not capital pooled by investment clubs. These two rounds total $26m; earlier funding is omitted because individual dates and amounts were not verified here. The strategic announcement separately reports over $28m raised cumulatively. Only sourced rounds are summed; this is not a verified lifetime total. Dates are announcement/reporting dates unless stated otherwise.",
+      "rounds": [
+        {
+          "date": "2022-05-03",
+          "amountUsd": 6000000,
+          "round": "Strategic",
+          "source": {
+            "url": "https://paragraph.com/@syndicate-2/50-customers-partners-and-daos-invest-in-syndicate",
+            "label": "Syndicate strategic investment announcement",
+            "kind": "Primary"
+          }
+        },
+        {
+          "date": "2021-08-31",
+          "amountUsd": 20000000,
+          "round": "Series A",
+          "source": {
+            "url": "https://paragraph.com/@syndicate-2/syndicate-raises-20m-series-a-to-scale-community-driven-investing-platform",
+            "label": "Syndicate Series A announcement",
+            "kind": "Primary"
+          }
+        }
+      ]
+    }
+  },
+  "code4rena": {
+    "manualFunding": {
+      "entity": "Code4rena DAO",
+      "scopeNote": "Paradigm’s $6m purchase of DAO tokens, not equity financing or audit-contest prize payouts. Only sourced rounds are summed; this is not a verified lifetime total. Dates are announcement/reporting dates unless stated otherwise.",
+      "rounds": [
+        {
+          "date": "2023-03-16",
+          "amountUsd": 6000000,
+          "round": "DAO token purchase",
+          "source": {
+            "url": "https://www.theblock.co/news/business/2023-03-16-paradigm-funds-auditing-dao-code4rena-with-6-million-token-purchase-220140",
+            "label": "The Block report on Paradigm token purchase",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "openrank": {
+    "manualFunding": {
+      "entity": "Karma3 Labs / OpenRank",
+      "scopeNote": "Karma3 Labs funding to build OpenRank. Only sourced rounds are summed; this is not a verified lifetime total. Dates are announcement/reporting dates unless stated otherwise.",
+      "rounds": [
+        {
+          "date": "2024-03-01",
+          "amountUsd": 4500000,
+          "round": "Seed",
+          "source": {
+            "url": "https://paragraph.com/@openrank/YG8iMFAIQWk46WTu82Wo",
+            "label": "Karma3 Labs seed announcement",
+            "kind": "Primary"
+          }
+        }
+      ]
+    }
+  },
+  "powerloom": {
+    "manualFunding": {
+      "entity": "Powerloom Protocol",
+      "scopeNote": "Powerloom’s 2021 seed funding, excluding later node sales without a verified raise amount. Only sourced rounds are summed; this is not a verified lifetime total. Dates are announcement/reporting dates unless stated otherwise.",
+      "rounds": [
+        {
+          "date": "2021-10-06",
+          "amountUsd": 3100000,
+          "round": "Seed",
+          "source": {
+            "url": "https://medium.com/powerloom/powerloom-seed-round-4d54116d9613",
+            "label": "Powerloom co-founder seed announcement",
+            "kind": "Primary"
+          }
+        }
+      ]
+    }
+  },
+  "hyli": {
+    "manualFunding": {
+      "entity": "Hyli / Hylé",
+      "scopeNote": "The May 2024 round raised $2.6m. The company announcement’s $3.4m is cumulative funding, not the amount of this round. Earlier $0.8m is excluded because its round timing was not verified here. briqNFT sales revenue is excluded. Only sourced rounds are summed; this is not a verified lifetime total. Dates are announcement/reporting dates unless stated otherwise.",
+      "rounds": [
+        {
+          "date": "2024-05-14",
+          "amountUsd": 2600000,
+          "round": "Seed",
+          "source": {
+            "url": "https://www.theblock.co/news/business/2024-05-14-framework-ventures-leads-2-6-million-funding-round-for-zk-proof-verification-project-hyle-294187",
+            "label": "The Block Hylé funding report",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "artizen": {
+    "manualFunding": {
+      "entity": "Artizen",
+      "scopeNote": "Funding for the Artizen platform, not the money its creators raised or grants paid out. Only sourced rounds are summed; this is not a verified lifetime total. Dates are announcement/reporting dates unless stated otherwise.",
+      "rounds": [
+        {
+          "date": "2023-05-11",
+          "amountUsd": 2200000,
+          "round": "Funding round",
+          "source": {
+            "url": "https://decrypt.co/139682/artizen-fund-raises-2-2-million-to-fuel-nft-cultural-artifacts",
+            "label": "Decrypt Artizen funding report",
+            "kind": "Reporting"
+          }
+        }
+      ]
+    }
+  },
+  "sophon-chain": {
+    "manualFunding": {
+      "entity": "Sophon",
+      "scopeNote": "Includes $10m venture funding plus a node-license sale of 20,800 wETH, reported at approximately $60m at the time. The node-sale USD equivalent and summed total are approximate; this is not $60m of equity financing. The October 2024 Binance Labs token investment has an undisclosed amount and is excluded from the sum. Only sourced rounds are summed; this is not a verified lifetime total. Dates are announcement/reporting dates unless stated otherwise.",
+      "rounds": [
+        {
+          "date": "2024-10-03",
+          "round": "Binance Labs token investment",
+          "source": {
+            "url": "https://www.theblock.co/news/deals/2024-10-03-binance-labs-zksync-elastic-chain-sophon-token-319355",
+            "label": "The Block Binance Labs investment report",
+            "kind": "Reporting"
+          }
+        },
+        {
+          "date": "2024-05-08",
+          "amountUsd": 60000000,
+          "round": "Node-license sale (USD equivalent)",
+          "source": {
+            "url": "https://www.theblock.co/news/deals/2024-05-08-zksync-hyperchain-sophon-raises-60-million-via-node-sale-293182",
+            "label": "The Block node-sale report",
+            "kind": "Reporting"
+          },
+          "amountApproximate": true
+        },
+        {
+          "date": "2024-03-29",
+          "amountUsd": 10000000,
+          "round": "Funding round",
+          "source": {
+            "url": "https://chainwire.org/2024/03/29/blockhain-sophon-secures-10m-in-funding-from-renowned-investors-while-shrouded-in-mystery/",
+            "label": "Sophon funding press release",
+            "kind": "Primary"
+          }
+        }
+      ]
+    }
+  },
+  "ctrl-wallet": {
+    "manualFunding": {
+      "entity": "XDEFI / Ctrl Wallet",
+      "scopeNote": "Historical financing for XDEFI, subsequently renamed Ctrl. The seed is verified only to March 2021. The $6m Series A used SAFT and equity sales. The IDO consists of 8,227,931 USDC from the private crowd sale plus 11,221,801 USDC from the Dutch auction, represented at nominal $1 per USDC, not mark-to-market proceeds. November 23 is the IDO recap date, not its closing date. Only sourced rounds are summed; this is not a verified lifetime total. Dates are announcement/reporting dates unless stated otherwise.",
+      "rounds": [
+        {
+          "date": "2021-11-23",
+          "amountUsd": 19449732,
+          "round": "IDO / crowd sale and Dutch auction",
+          "source": {
+            "url": "https://www.xdefi.io/xdefi-wallet-crypto-successfully-raises-over-us19m/",
+            "label": "XDEFI IDO proceeds recap",
+            "kind": "Primary"
+          }
+        },
+        {
+          "date": "2021-09-29",
+          "amountUsd": 6000000,
+          "round": "Series A / SAFT and equity",
+          "source": {
+            "url": "https://www.theblock.co/news/deals/2021-09-29-metamask-challenger-xdefi-wallet-funding-118987",
+            "label": "The Block XDEFI Series A report",
+            "kind": "Reporting"
+          }
+        },
+        {
+          "date": "2021-03",
+          "amountUsd": 1200000,
+          "round": "Seed",
+          "source": {
+            "url": "https://www.xdefi.io/pt-br/article/tokenomics-de-token-de-xdefi-economia/",
+            "label": "XDEFI tokenomics round history",
+            "kind": "Primary"
+          }
+        }
+      ]
+    }
+  }
+}

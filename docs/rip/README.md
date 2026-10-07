@@ -22,4 +22,33 @@ The supplied-source ledger and candidate exclusions preserve coverage and uncert
 
 Timeline is the first and default view. It groups filtered records by month and shows each project's summary and explicitly labeled date. Dates use service end where known, otherwise announcement; undated records appear in a separate section. Expanded details expose reasons, date caveats, primary sources and original sites. Grid shows a compact stack of each project's logo, name and date. Both views share search and category/status filters and show newest dates first. Category dropdown counts describe only this curated archive.
 
-Useful future views include a year histogram that filters the directory, and lifespans for projects with reliable launch dates. Funding comparisons should wait for verified amounts and consistent definitions; a zero or missing value must never imply a project had no funding.
+Funding adds sortable financial columns with the same search/category/status filters. On narrow screens, rows become compact financial cards. Project details show individual funding rounds, source links, revenue periods, coverage and scope notes. Timeline remains the default view.
+
+## Financial evidence
+
+`financial-sources.json` contains manually reviewed provider mappings and sourced announcement/reporting rounds. `financial-snapshot.json` preserves the captured DefiLlama funding records and daily revenue series. `app/rip/financial-data.json` contains only the derived figures needed by the UI; raw daily histories are not sent to the browser.
+
+Funding sums only amounts in sourced rounds, in USD, and is **not a verified lifetime total**. DefiLlama public protocol profiles provide funding records; primary company/investor announcements supplement coverage, with reputable original reporting used where needed. Round labels are preserved without inferring financing instruments. Unknown amounts remain absent, not zero. Approximate USD equivalents are marked with ≈ on both the round and its summed funding figure; node and token sales retain their financing labels. Ctrl/XDEFI’s USDC IDO proceeds use nominal $1 per USDC, as explained in its scope note. Latest sourced raise means the latest round in these sources, not proof that no subsequent financing occurred. Dates are provider-recorded or announcement/reporting dates, not independently verified closing dates. Yupp's announcement date is explicitly distinguished from its reported 2024 closing year.
+
+Revenue uses DefiLlama's `dailyRevenue` series, not fees, TVL, trade volume, token valuations or company income. Definitions vary by adapter: protocol revenue generally includes treasury/team and token-holder receipts, while chain metrics may represent burned fees or gas fees minus settlement costs. Per-record scope notes and methodology links explain this. [DefiLlama definitions](https://docs.llama.fi/analysts/data-definitions) and [funding methodology](https://github.com/DefiLlama/DefiLlama-Adapters/discussions/7093) describe provider limitations.
+
+Peaks sum complete UTC calendar months/years in the captured history, retain negative daily revenue and require every day to have a finite value. Missing/null days disqualify a period; they are never filled with zero. Current days/periods are excluded. Past service-end dates cap observations; closed projects without an exact end date use the announcement as a conservative cutoff. Ongoing wind-downs use the financial review date. These are **peak observed** figures, not verified lifetime peaks; annual revenue is never extrapolated from a month. Coverage can begin late or end before shutdown. No complete year is displayed as “No complete period.” No verified evidence is displayed as “Not verified,” not “Not disclosed” unless a sourced round explicitly has no amount.
+
+Mappings use exact provider IDs and names, not fuzzy name matching. Legend Trade is not the archived Legend app; Rodeo lending is not the archived social collecting platform. Parent financing/revenue is not assigned to retired products such as Magic Eden Wallet. Slingshot's own pre-acquisition funding is in scope. Angle revenue covers the stablecoin protocol, excluding Merkl. Funding coverage is partial even where figures exist; unverified projects stay visible with explicit gaps.
+
+Regenerate derived figures without network access:
+
+```sh
+pnpm exec tsx scripts/refreshRipFinancials.ts --from-snapshot
+```
+
+Refresh mapped DefiLlama records locally using an explicit review date:
+
+```sh
+pnpm exec tsx scripts/refreshRipFinancials.ts --as-of=YYYY-MM-DD
+pnpm exec prettier --write app/rip/financial-data.json docs/rip/financial-snapshot.json
+```
+
+The refresh validates source identities and responses before writing; failed requests preserve existing figures. Manual announcements remain curated and are not fetched/reverified by that command. Review scopes and manual evidence when refreshing. Validate with `node --import tsx --test app/rip/data.test.ts app/rip/financials.test.ts`.
+
+Useful future views include a year histogram that filters the directory, and lifespans for projects with reliable launch dates.

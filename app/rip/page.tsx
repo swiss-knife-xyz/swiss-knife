@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
 import {
   Badge,
@@ -22,6 +22,12 @@ import {
   ModalOverlay,
   ModalFooter,
   Text,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
   VStack,
 } from "@chakra-ui/react";
 import {
@@ -32,6 +38,7 @@ import {
   LayoutGrid,
   Globe,
   Search,
+  Table2,
 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { DarkSelect } from "@/components/DarkSelect";
@@ -40,6 +47,544 @@ import {
   shutdownProjects,
   type ShutdownProject,
 } from "./data";
+import {
+  financials,
+  financialReviewedAt,
+  disclosedFunding,
+  fundingIsApproximate,
+  financialSortValue,
+  type FinancialSort,
+  type RevenuePeak,
+} from "./financials";
+
+const moneyFormat = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 2,
+});
+const compactMoneyFormat = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  notation: "compact",
+  maximumFractionDigits: 2,
+});
+function money(amount?: number) {
+  return amount === undefined
+    ? "Not verified"
+    : compactMoneyFormat.format(amount);
+}
+function periodLabel(period: string) {
+  return period.length === 4
+    ? period
+    : new Intl.DateTimeFormat("en", {
+        month: "short",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(new Date(`${period}-01T00:00:00Z`));
+}
+
+function fundingDate(date: string) {
+  if (date.length === 4) return date;
+  if (date.length === 7) return periodLabel(date);
+  return formatDate(date);
+}
+
+function FinancialDetails({ project }: { project: ShutdownProject }) {
+  const record = financials[project.id];
+  const funding = record?.funding;
+  const revenue = record?.revenue;
+  return (
+    <Box mt={5} borderTop="1px solid" borderColor="border.default" pt={4}>
+      <Text fontSize="sm" fontWeight="semibold" mb={3}>
+        Funding & revenue
+      </Text>
+      <Text fontSize="xs" color="text.tertiary" mb={2}>
+        Financial sources reviewed {formatDate(financialReviewedAt)} · USD
+      </Text>
+      <Text fontSize="sm" fontWeight="medium">
+        Disclosed funding:{" "}
+        {disclosedFunding(record) === undefined
+          ? funding
+            ? "Amount not disclosed"
+            : "Not verified"
+          : `${fundingIsApproximate(record) ? "≈ " : ""}${moneyFormat.format(disclosedFunding(record)!)}`}
+      </Text>
+      <Text fontSize="xs" color="text.secondary" mt={1} lineHeight="1.6">
+        {funding?.scopeNote ??
+          "No funding figure has been verified for this project or product. This does not mean it raised no money."}
+      </Text>
+      {funding?.rounds.map((round, index) => (
+        <Box
+          key={`${round.date}-${index}`}
+          py={2}
+          mt={1}
+          borderBottom="1px solid"
+          borderColor="border.default"
+        >
+          <Flex justify="space-between" gap={3} fontSize="xs">
+            <Text>
+              {round.round} · {fundingDate(round.date)}
+            </Text>
+            <Text fontWeight="medium">
+              {round.amountUsd === undefined
+                ? "Amount not disclosed"
+                : `${round.amountApproximate ? "≈ " : ""}${moneyFormat.format(round.amountUsd)}`}
+            </Text>
+          </Flex>
+          <Link
+            href={round.source.url}
+            isExternal
+            color="primary.400"
+            fontSize="xs"
+          >
+            {round.source.label} ↗
+          </Link>
+          <Text fontSize="10px" color="text.tertiary">
+            {round.source.kind}
+          </Text>
+        </Box>
+      ))}
+      <Grid templateColumns="1fr 1fr" gap={3} mt={4}>
+        {[
+          { label: "Peak observed month", peak: revenue?.peakMonth },
+          { label: "Peak observed year", peak: revenue?.peakYear },
+        ].map(({ label, peak }) => (
+          <Box key={label}>
+            <Text fontSize="xs" color="text.tertiary">
+              {label}
+            </Text>
+            <Text fontSize="sm" fontWeight="medium" mt={1}>
+              {peak
+                ? moneyFormat.format(peak.amountUsd)
+                : revenue
+                  ? "No complete period"
+                  : "Not verified"}
+            </Text>
+            {peak && (
+              <Text fontSize="xs" color="text.secondary" mt={1}>
+                {periodLabel(peak.period)}
+              </Text>
+            )}
+          </Box>
+        ))}
+      </Grid>
+      <Text fontSize="xs" color="text.secondary" mt={3} lineHeight="1.6">
+        {revenue?.scopeNote ??
+          "No revenue history has been verified for this project or product."}
+      </Text>
+      {revenue && (
+        <Box fontSize="xs" color="text.tertiary" mt={2}>
+          <Text lineHeight="1.6">
+            Available history: {formatDate(revenue.coverageStart)} –{" "}
+            {formatDate(revenue.coverageEnd)}. Peaks use fully covered UTC
+            calendar months and years, retain negative days, and exclude the
+            current day and periods beyond the archive’s closure cutoff. Missing
+            days are not treated as zero. These are observed peaks within
+            available history, not verified lifetime peaks or annualized
+            estimates.
+          </Text>
+          <Link
+            href={revenue.source.url}
+            isExternal
+            color="primary.400"
+            display="inline-block"
+            mt={2}
+          >
+            {revenue.source.label} ↗
+          </Link>
+          {revenue.methodologyUrl && (
+            <Link
+              href={revenue.methodologyUrl}
+              isExternal
+              color="primary.400"
+              display="block"
+              mt={1}
+            >
+              Protocol methodology ↗
+            </Link>
+          )}
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+function FinancialTable({
+  projects,
+  onSelect,
+}: {
+  projects: ShutdownProject[];
+  onSelect: (project: ShutdownProject) => void;
+}) {
+  const [sort, setSort] = useState<FinancialSort>("funding");
+  const [ascending, setAscending] = useState(false);
+  const sorted = useMemo(
+    () =>
+      [...projects].sort((a, b) => {
+        if (sort === "name")
+          return a.name.localeCompare(b.name) * (ascending ? 1 : -1);
+        const av = financialSortValue(a.id, sort),
+          bv = financialSortValue(b.id, sort);
+        if (av === undefined)
+          return bv === undefined ? a.name.localeCompare(b.name) : 1;
+        if (bv === undefined) return -1;
+        const result =
+          typeof av === "number" && typeof bv === "number"
+            ? av - bv
+            : String(av).localeCompare(String(bv));
+        return result * (ascending ? 1 : -1) || a.name.localeCompare(b.name);
+      }),
+    [projects, sort, ascending]
+  );
+  const columns: { key: FinancialSort; label: string }[] = [
+    { key: "name", label: "Project" },
+    { key: "funding", label: "Disclosed funding" },
+    { key: "raise", label: "Latest sourced raise" },
+    { key: "month", label: "Peak monthly revenue" },
+    { key: "year", label: "Peak annual revenue" },
+  ];
+  function changeSort(key: FinancialSort) {
+    if (sort === key) setAscending((value) => !value);
+    else {
+      setSort(key);
+      setAscending(key === "name");
+    }
+  }
+  function sourceButton(
+    project: ShutdownProject,
+    label: string,
+    content: ReactNode,
+    available: boolean
+  ) {
+    return available ? (
+      <Button
+        variant="unstyled"
+        h="auto"
+        display="block"
+        fontWeight="normal"
+        textAlign="left"
+        aria-label={`View ${project.name} ${label} sources`}
+        onClick={() => onSelect(project)}
+        _hover={{ textDecoration: "underline" }}
+        _focusVisible={{
+          outline: "2px solid",
+          outlineColor: "primary.400",
+          outlineOffset: "3px",
+        }}
+      >
+        {content}
+      </Button>
+    ) : (
+      content
+    );
+  }
+  function peakCell(
+    project: ShutdownProject,
+    peak?: RevenuePeak,
+    hasHistory?: boolean
+  ) {
+    return sourceButton(
+      project,
+      "revenue",
+      <Box>
+        <Text
+          color={peak ? "text.primary" : "text.tertiary"}
+          fontSize="sm"
+          title={peak ? moneyFormat.format(peak.amountUsd) : undefined}
+        >
+          {peak
+            ? money(peak.amountUsd)
+            : hasHistory
+              ? "No complete period"
+              : "Not verified"}
+        </Text>
+        {peak && (
+          <Text color="text.tertiary" fontSize="xs" mt={1}>
+            {periodLabel(peak.period)}
+          </Text>
+        )}
+      </Box>,
+      !!hasHistory
+    );
+  }
+  function fundingCell(project: ShutdownProject) {
+    const record = financials[project.id],
+      amount = disclosedFunding(record);
+    const prefix = fundingIsApproximate(record) ? "≈ " : "";
+    return sourceButton(
+      project,
+      "funding",
+      <Box>
+        <Text
+          fontSize="sm"
+          color={amount === undefined ? "text.tertiary" : "text.primary"}
+          title={
+            amount === undefined
+              ? undefined
+              : `${prefix}${moneyFormat.format(amount)}`
+          }
+        >
+          {amount === undefined && record?.funding
+            ? "Amount not disclosed"
+            : `${prefix}${money(amount)}`}
+        </Text>
+        {record?.funding && (
+          <Text color="text.tertiary" fontSize="xs" mt={1}>
+            {record.funding.rounds.length} sourced{" "}
+            {record.funding.rounds.length === 1 ? "round" : "rounds"}
+          </Text>
+        )}
+      </Box>,
+      !!record?.funding
+    );
+  }
+  const coverage = projects.filter(
+    (p) => financials[p.id]?.funding || financials[p.id]?.revenue
+  ).length;
+  return (
+    <Box mt={5}>
+      <Flex display={{ base: "flex", md: "none" }} gap={2} mb={3}>
+        <DarkSelect
+          ariaLabel="Sort financial table"
+          selectedOption={{
+            value: sort,
+            label: columns.find((c) => c.key === sort)!.label,
+          }}
+          options={columns.map((c) => ({ value: c.key, label: c.label }))}
+          setSelectedOption={(option) => {
+            const key = String(option?.value ?? "funding") as FinancialSort;
+            setSort(key);
+            setAscending(key === "name");
+          }}
+          boxProps={{ flex: 1, minW: 0, fontSize: "xs" }}
+        />
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-label={ascending ? "Sort descending" : "Sort ascending"}
+          onClick={() => setAscending((value) => !value)}
+        >
+          {ascending ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </Button>
+      </Flex>
+      <Box display={{ base: "none", md: "block" }} overflowX="auto">
+        <Table
+          size="sm"
+          minW="780px"
+          sx={{
+            th: { borderColor: "border.default" },
+            td: { borderColor: "border.default", py: 4 },
+          }}
+        >
+          <Thead>
+            <Tr>
+              {columns.map((column) => (
+                <Th
+                  key={column.key}
+                  aria-sort={
+                    sort === column.key
+                      ? ascending
+                        ? "ascending"
+                        : "descending"
+                      : "none"
+                  }
+                  px={3}
+                >
+                  <Button
+                    size="xs"
+                    fontSize="11px"
+                    fontWeight="medium"
+                    variant="ghost"
+                    color={
+                      sort === column.key ? "text.primary" : "text.tertiary"
+                    }
+                    px={2}
+                    mx={-2}
+                    borderRadius="md"
+                    _hover={{ bg: "whiteAlpha.100", color: "text.primary" }}
+                    onClick={() => changeSort(column.key)}
+                    rightIcon={
+                      sort === column.key ? (
+                        ascending ? (
+                          <ChevronUp size={12} />
+                        ) : (
+                          <ChevronDown size={12} />
+                        )
+                      ) : undefined
+                    }
+                  >
+                    {column.label}
+                  </Button>
+                </Th>
+              ))}
+            </Tr>
+          </Thead>
+          <Tbody>
+            {sorted.map((project) => {
+              const record = financials[project.id];
+              return (
+                <Tr key={project.id} _hover={{ bg: "whiteAlpha.50" }}>
+                  <Td px={3}>
+                    <Button
+                      variant="link"
+                      color="text.primary"
+                      fontSize="sm"
+                      onClick={() => onSelect(project)}
+                      aria-label={`View ${project.name} financial details`}
+                    >
+                      <HStack spacing={2.5} textAlign="left">
+                        <ProjectLogo project={project} size={30} />
+                        <Box>
+                          <Text>{project.name}</Text>
+                          <Text
+                            fontSize="10px"
+                            color="text.tertiary"
+                            fontWeight="normal"
+                            mt={1}
+                          >
+                            {project.category}
+                          </Text>
+                        </Box>
+                      </HStack>
+                    </Button>
+                  </Td>
+                  <Td px={3}>{fundingCell(project)}</Td>
+                  <Td px={3}>
+                    <Text
+                      fontSize="xs"
+                      color={
+                        record?.funding ? "text.secondary" : "text.tertiary"
+                      }
+                    >
+                      {record?.funding?.rounds[0]
+                        ? fundingDate(record.funding.rounds[0].date)
+                        : "Not verified"}
+                    </Text>
+                  </Td>
+                  <Td px={3}>
+                    {peakCell(
+                      project,
+                      record?.revenue?.peakMonth,
+                      !!record?.revenue
+                    )}
+                  </Td>
+                  <Td px={3}>
+                    {peakCell(
+                      project,
+                      record?.revenue?.peakYear,
+                      !!record?.revenue
+                    )}
+                  </Td>
+                </Tr>
+              );
+            })}
+          </Tbody>
+        </Table>
+      </Box>
+      <Box display={{ base: "block", md: "none" }}>
+        {sorted.map((project) => {
+          const record = financials[project.id];
+          return (
+            <Box
+              key={project.id}
+              py={4}
+              borderTop="1px solid"
+              borderColor="border.default"
+            >
+              <Button
+                variant="link"
+                color="text.primary"
+                fontSize="sm"
+                onClick={() => onSelect(project)}
+                aria-label={`View ${project.name} financial details`}
+              >
+                <HStack spacing={3}>
+                  <ProjectLogo project={project} size={32} />
+                  <Text>{project.name}</Text>
+                  <ArrowUpRight size={14} />
+                </HStack>
+              </Button>
+              <Grid templateColumns="1fr 1fr" gap={4} mt={4}>
+                {[
+                  { label: "Disclosed funding", content: fundingCell(project) },
+                  {
+                    label: "Latest sourced raise",
+                    content: (
+                      <Text fontSize="xs" color="text.secondary">
+                        {record?.funding?.rounds[0]
+                          ? fundingDate(record.funding.rounds[0].date)
+                          : "Not verified"}
+                      </Text>
+                    ),
+                  },
+                  {
+                    label: "Peak monthly revenue",
+                    content: peakCell(
+                      project,
+                      record?.revenue?.peakMonth,
+                      !!record?.revenue
+                    ),
+                  },
+                  {
+                    label: "Peak annual revenue",
+                    content: peakCell(
+                      project,
+                      record?.revenue?.peakYear,
+                      !!record?.revenue
+                    ),
+                  },
+                ].map(({ label, content }) => (
+                  <Box key={label}>
+                    <Text fontSize="10px" color="text.tertiary" mb={1}>
+                      {label}
+                    </Text>
+                    {content}
+                  </Box>
+                ))}
+              </Grid>
+            </Box>
+          );
+        })}
+      </Box>
+      <Box mt={6}>
+        <Text fontSize="xs" color="text.secondary" lineHeight="1.7" mb={2}>
+          USD · Funding covers sourced rounds, not verified lifetime totals.
+          Revenue shows peaks observed in complete calendar periods from
+          DefiLlama’s available history; protocol revenue is not company revenue
+          or profit. Open a project for dates, scope and sources.
+        </Text>
+        <Text fontSize="xs" color="text.tertiary" mb={4}>
+          {coverage} of {projects.length} matching projects have financial
+          evidence · Reviewed {formatDate(financialReviewedAt)}
+        </Text>
+        <Box as="details" fontSize="xs" color="text.secondary" mb={4}>
+          <Box as="summary" cursor="pointer">
+            Data definitions & limitations
+          </Box>
+          <Text mt={2} lineHeight="1.7">
+            Funding dates are provider-recorded or announcement/reporting dates,
+            not verified closing dates. Round labels do not establish whether
+            financing was equity, tokens or grants. Undisclosed amounts are
+            excluded from sums. Missing figures mean not verified, not zero.
+            Revenue excludes incomplete periods and never multiplies a peak
+            month by 12. Histories can omit earlier activity. Chain metrics can
+            measure burned fees or gas fees less settlement costs rather than
+            team income; each project’s details specify scope.
+          </Text>
+          <Link
+            href="https://docs.llama.fi/analysts/data-definitions"
+            isExternal
+            color="primary.400"
+            mt={2}
+            display="inline-block"
+          >
+            DefiLlama definitions ↗
+          </Link>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
 
 const dateFormat = new Intl.DateTimeFormat("en", {
   month: "short",
@@ -377,6 +922,7 @@ function ProjectModal({
               </Text>
             </Box>
           )}
+          <FinancialDetails project={project} />
           <Flex justify="space-between" align="center" mt={5} mb={2}>
             <Text fontSize="xs" color="text.tertiary" fontWeight="medium">
               Sources
@@ -616,7 +1162,7 @@ export default function RipPage() {
   const [status, setStatus] = useState("all");
   const [selectedProject, setSelectedProject] =
     useState<ShutdownProject | null>(null);
-  const [view, setView] = useState<"timeline" | "grid">("timeline");
+  const [view, setView] = useState<"timeline" | "grid" | "table">("timeline");
   const basis = "milestones";
   const filtered = useMemo(
     () =>
@@ -728,6 +1274,7 @@ export default function RipPage() {
               [
                 { key: "timeline", label: "Timeline", icon: CalendarDays },
                 { key: "grid", label: "Grid", icon: LayoutGrid },
+                { key: "table", label: "Funding", icon: Table2 },
               ] as const
             ).map((v) => (
               <Button
@@ -818,6 +1365,8 @@ export default function RipPage() {
             Clear filters
           </Button>
         </Box>
+      ) : view === "table" ? (
+        <FinancialTable projects={filtered} onSelect={setSelectedProject} />
       ) : view === "grid" ? (
         <Grid
           templateColumns={{
