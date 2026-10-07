@@ -980,6 +980,31 @@ const skillResourcesData: SkillResource[] = [
       "https://ctrl.build/api/mcp",
     ],
   },
+  {
+    id: "aeon",
+    name: "Aeon",
+    provider: "Aeon",
+    url: "https://www.aeon.fun",
+    logoDomain: "aeon.fun",
+    toolTypes: ["Skill", "MCP", "Plugin"],
+    categories: ["Security", "Developer", "DeFi"],
+    tags: [
+      "Smart contract audits",
+      "V4 hooks",
+      "Token forensics",
+      "Autonomous agents",
+    ],
+    install: "/plugin marketplace add aeonfun/aeon",
+    description:
+      "Open-source autonomous agent framework that runs skills unattended on GitHub Actions. Its onchain skills audit a contract repo or live address (invariant modeling, Slither, fuzzer-proven findings, responsible disclosure), generate, simulate, audit and deploy Uniswap v4 hooks and list them in a public hook registry, run rug, honeypot, holder and LP-lock checks on Base tokens, and decode any Base transaction into plain English. Skills run inside an Aeon instance; the plugin sets one up, and the hosted MCP lets an agent list and run its skills.",
+    sourceUrls: [
+      "https://github.com/aeonfun/aeon",
+      "https://github.com/aeonfun/aeon/tree/main/skills/sc-audit",
+      "https://github.com/aeonfun/aeon/tree/main/skills/deploy-uni-hook",
+      "https://www.aeon.fun/hooks",
+      "https://www.aeon.fun/connect/mcp",
+    ],
+  },
 ];
 
 const prioritizedResourceIds = [
