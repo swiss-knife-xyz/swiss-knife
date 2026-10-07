@@ -184,6 +184,10 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       ),
     [result]
   );
+  const decodedJson = useMemo(
+    () => (result ? stringify(result, undefined, 2) : ""),
+    [result]
+  );
   const pageTitle = headerText ?? "Calldata Decoder";
 
   useEffect(() => {
@@ -752,8 +756,8 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       {/* Calldata Result - show directly for non-Tx modes, or when Calldata tab selected for Tx mode */}
       {result && (selectedTabIndex !== 3 || resultTabIndex === 0) && (
         <Box maxW="800px" mx="auto">
-          {/* Copy params button - outside the box */}
-          <HStack mb={2} justify="flex-end">
+          {/* Copy controls - outside the box */}
+          <HStack mb={2} justify="flex-end" flexWrap="wrap">
             <CopyToClipboard
               textToCopy={JSON.stringify(
                 {
@@ -764,6 +768,10 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                 2
               )}
               labelText="Copy params"
+            />
+            <CopyToClipboard
+              textToCopy={decodedJson}
+              labelText="Copy decoded JSON"
             />
           </HStack>
           <Box
