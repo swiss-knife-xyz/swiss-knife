@@ -743,6 +743,40 @@ export const faucets: FaucetEntry[] = [
     tags: ["ethereum", "sepolia", "paid"],
   },
   {
+    id: "testnet-eth-merchant-sepolia",
+    name: "Buy Sepolia ETH",
+    provider: "Testnet ETH Merchant",
+    url: "https://merchant-production-c224.up.railway.app/buy-sepolia-eth",
+    chain: "Ethereum Sepolia",
+    token: "ETH",
+    amount: "Paid backup",
+    cooldownHours: 0,
+    category: "ethereum",
+    reliability: "community",
+    requirement:
+      "Payment in Base or Solana mainnet USDC via an x402-compatible client",
+    notes:
+      "1–100 ETH per order at 0.18 USDC per ETH; Solana payers must supply an EVM recipient address.",
+    tags: ["ethereum", "sepolia", "eth", "paid", "x402", "usdc"],
+  },
+  {
+    id: "testnet-eth-merchant-hoodi",
+    name: "Buy Hoodi ETH",
+    provider: "Testnet ETH Merchant",
+    url: "https://merchant-production-c224.up.railway.app/buy-hoodi-eth",
+    chain: "Ethereum Hoodi",
+    token: "ETH",
+    amount: "Paid backup",
+    cooldownHours: 0,
+    category: "ethereum",
+    reliability: "community",
+    requirement:
+      "Payment in Base or Solana mainnet USDC via an x402-compatible client",
+    notes:
+      "2–400 ETH per order at 0.025 USDC per ETH; Solana payers must supply an EVM recipient address.",
+    tags: ["ethereum", "hoodi", "eth", "paid", "x402", "usdc"],
+  },
+  {
     id: "cdp-base-sepolia",
     name: "CDP Faucet",
     provider: "Coinbase Developer Platform",
