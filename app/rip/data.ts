@@ -28,6 +28,63 @@ export const archiveReviewedAt = "2026-10-07";
 
 export const shutdownProjects: ShutdownProject[] = [
   {
+    id: "poap",
+    name: "POAP",
+    category: "NFTs",
+    status: "Winding down",
+    announced: "2026-08-03",
+    dateNote:
+      "Maintenance mode began March 16, with existing issuers retaining access. The August wind-down announcement gives no final cutoff for hosted tools; existing collectibles remain onchain.",
+    summary:
+      "Proof of Attendance Protocol created digital mementos for events and communities. Its co-founder announced the company would wind down after more than five years.",
+    reason:
+      "Crypto funding and distribution dynamics made a sustainable business difficult without compromising the project's ethos.",
+    website: "https://poap.xyz",
+    social: "https://x.com/poapxyz",
+    logo: "/external/rip/poap.jpg",
+    sources: [
+      {
+        label: "Co-founder wind-down announcement",
+        url: "https://x.com/izonline/status/2084273977938080092",
+        kind: "Primary",
+      },
+      {
+        label: "Official maintenance-mode notice",
+        url: "https://x.com/poapxyz/status/2032182456481202614",
+        kind: "Primary",
+      },
+    ],
+  },
+  {
+    id: "balancer",
+    name: "Balancer",
+    category: "DeFi",
+    status: "Winding down",
+    announced: "2026-09-14",
+    closed: "2026-11-30",
+    dateNote:
+      "Wind-down approved September 29. Applicable pools become withdrawals-only October 30; extended v3 pools stop trading with the November 30 Vault pause. Withdrawals remain available, unpausable pools may continue, and treasury distribution and entity closures extend beyond the trading sunset.",
+    summary:
+      "Automated market maker whose DAO approved a phased protocol sunset and distribution of its treasury to BAL holders.",
+    reason:
+      "Restructuring failed to produce sustained revenue growth; v3 did not replace v2 revenue, and the 2025 exploit further hindered traction.",
+    website: "https://balancer.fi",
+    social: "https://x.com/Balancer",
+    logo: "/external/rip/balancer.png",
+    sources: [
+      {
+        label: "BIP-928 wind-down plan",
+        url: "https://forum.balancer.fi/t/bip-928-orderly-winddown-of-balancer-and-distribution-of-the-treasury/7107",
+        kind: "Primary",
+      },
+      {
+        label: "Approved vote and execution update",
+        url: "https://forum.balancer.fi/t/bip-928-orderly-winddown-of-balancer-and-distribution-of-the-treasury/7107/23",
+        kind: "Primary",
+      },
+    ],
+  },
+  {
     id: "dango",
     name: "Dango",
     category: "Trading",

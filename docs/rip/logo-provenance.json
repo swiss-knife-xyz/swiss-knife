@@ -584,6 +584,22 @@
         "width": 595,
         "height": 283
       }
+    },
+    {
+      "id": "poap",
+      "local": "/external/rip/poap.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1958974153194627072/O5yLmm7G_400x400.jpg"
+      ],
+      "retrievedAt": "2026-10-07"
+    },
+    {
+      "id": "balancer",
+      "local": "/external/rip/balancer.png",
+      "sources": [
+        "https://raw.githubusercontent.com/balancer/brand-assets/main/logo/circle-container/logo-balancer-black-128x128.png"
+      ],
+      "retrievedAt": "2026-10-07"
     }
   ],
   "failedDownloads": []

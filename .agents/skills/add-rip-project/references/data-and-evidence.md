@@ -33,7 +33,7 @@ When only a month/year is known, leave exact date fields absent and explain the 
 
 ## Evidence notes and exclusions
 
-Keep durable source URLs and short findings in `docs/rip/`; temporary retrieval files are not the only evidence record. Preserve source dates separately from retrieval dates. Record inaccessible articles, missing thread continuations and conflicting reports explicitly.
+For ordinary additions, the durable evidence record is `sources` and `dateNote` in `app/rip/data.ts`, with asset sources in the existing logo ledger. Do not create a new research Markdown file for each project or batch, or copy the same findings into multiple places. Report retrieval limits in the final response; retain them in `dateNote` only when they affect the published claims. Preserve source dates separately from retrieval dates. Use existing exclusion ledgers when an unresolved or excluded candidate warrants retention. Separate documents are for explicitly requested deliverables or substantial audits whose findings need a durable home beyond these records.
 
 Existing exclusions illustrate decisions, not a permanent blacklist. If later primary evidence justifies adding an excluded project, update the relevant notes and the false-positive test together. Examples worth checking in the historical audit: GENSO's operator transfer superseded its termination plan; Moonbeam's migration deadline was not a verified final block; Angle's stablecoin wind-down did not close Merkl.
 
@@ -42,7 +42,7 @@ Existing exclusions illustrate decisions, not a permanent blacklist. If later pr
 - `app/rip/data.ts`: public records and justified review-date changes.
 - `public/external/rip/`: recovered authentic marks.
 - `docs/rip/logo-provenance.json`: matching IDs, local paths and source URLs.
-- `docs/rip/`: focused research/exclusion notes; update README totals if its catalog count changes. Do not rewrite historical audit counts as if they were current audits.
+- `docs/rip/`: reuse existing ledgers where needed; do not add routine research Markdown. Update README totals if its catalog count changes. Do not rewrite historical audit counts as if they were current audits.
 - `app/rip/data.test.ts`: adjust an exclusion only when new evidence supersedes it; keep identity/date/logo checks intact.
 - `app/api/og/rip/route.tsx`: curated `featuredProjectIds` are independent of timeline order. Routine new entries should not alter the featured set; reconcile renamed/deleted featured records without silently substituting others.
 - `app/rip/layout.tsx`: already contains page-specific metadata and OG/Twitter images. Routine data updates do not require new metadata or routing configuration.

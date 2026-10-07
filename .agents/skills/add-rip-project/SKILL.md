@@ -25,7 +25,7 @@ Maintain a concise, source-backed archive of Web3 projects and products that shu
 5. Resolve announcement date, service-end date, status and stated reason separately. Preserve unknown dates; distinguish a withdrawal/migration deadline from an actual halt. A scheduled date passing is not confirmation of completed closure.
 6. Add or update the record with concise, neutral copy and direct evidence URLs. Attribute the reason to the announcement; do not invent insolvency, failure or causal conclusions. Keep scope and date caveats in `dateNote`.
 7. Download an authentic logo and record its provenance. Inspect it visually; ensure it belongs to the named project and renders legibly on the dark page. Follow the reference for local paths and framing.
-8. Record useful evidence and unresolved candidates under `docs/rip/`. For roundups, account for each candidate as added, already covered, excluded or unresolved. For an audit, report the scope and retrieval limits rather than claiming everything is independently confirmed.
+8. Keep routine research in the record's `sources`, `dateNote` and concise copy, plus the existing logo ledger. Do not create per-project or per-batch research Markdown files for ordinary additions. For roundups, report each candidate as added, already covered, excluded or unresolved; update an existing exclusion ledger only when useful for future decisions. Create a separate document only when explicitly requested or when a substantial audit needs durable findings that do not fit the records or existing ledgers.
 
 For research-only requests, deliver findings without modifying directory records. Routine additions should preserve Timeline/Grid, filters, modal design, subdomain routing and the curated OG order. Do not commit or push unless requested.
 
@@ -34,7 +34,7 @@ For research-only requests, deliver findings without modifying directory records
 - Include a named Web3 project or product when credible evidence establishes an actual shutdown or an announced wind-down.
 - Bankruptcy proceedings, token delistings, inactivity, pivots, rebrands and bearish commentary alone are insufficient.
 - Use product scope when the parent or successor continues; avoid counting a company and the same discontinued product twice without a distinct reason.
-- Preserve excluded/unresolved candidates with reasons and sources. Revisit them when new evidence arrives; exclusion is not permanent proof that a project cannot later close.
+- Report excluded/unresolved candidates with reasons and sources; use an existing exclusion ledger when retaining them serves future research. Revisit them when new evidence arrives; exclusion is not permanent proof that a project cannot later close.
 
 ## Verify and report
 
@@ -43,4 +43,4 @@ For research-only requests, deliver findings without modifying directory records
 - Run `git diff --check`. Run `pnpm build` for larger changes or before a requested commit.
 - Inspect affected Timeline/Grid entries and the modal when logos, names or copy change; check narrow screens when layout is affected. If visual verification is unavailable, say so.
 - Inspect `/api/og/rip` only when its curated content or rendering changes.
-- Report added/updated IDs, exclusions, material uncertainty, source links and completed checks. Keep the final response concise; detailed research belongs in `docs/rip/`.
+- Report added/updated IDs, exclusions, material uncertainty, source links and completed checks concisely. Do not duplicate evidence already captured in the records into extra documentation.
