@@ -9,6 +9,7 @@ const directorySubdomains = [
   subdomains.FAUCET.base,
   subdomains.SKILLS.base,
   subdomains.ORGS.base,
+  subdomains.RIP.base,
   subdomains.PRIVACY.base,
 ] as string[];
 

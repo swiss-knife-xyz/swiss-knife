@@ -104,6 +104,10 @@ const subdomains = {
     paths: [],
     isRelativePath: true,
   },
+  RIP: {
+    base: "rip",
+    paths: [],
+  },
   PRIVACY: {
     base: "privacy",
     paths: [],

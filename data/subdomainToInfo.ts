@@ -155,4 +155,10 @@ export const subdomainToInfo = {
     description:
       "Compare Ethereum privacy protocols by chains, assets, fees, wait times, and privacy model",
   },
+  [subdomains.RIP.base]: {
+    emoji: "🪦",
+    label: "R.I.P.",
+    description:
+      "Web3 projects that shut down, with timelines and original announcements",
+  },
 };

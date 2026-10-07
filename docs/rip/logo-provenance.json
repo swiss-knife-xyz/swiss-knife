@@ -1,0 +1,590 @@
+{
+  "retrievedAt": "2026-10-07",
+  "assets": [
+    {
+      "id": "paystream",
+      "local": "/external/rip/paystream.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1975018741122342912/oMlYU0cG.jpg"
+      ]
+    },
+    {
+      "id": "fireplace",
+      "local": "/external/rip/fireplace.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/2009380081400250368/-ZW9NOom.jpg",
+        "https://pbs.twimg.com/profile_images/2009380081400250368/-ZW9NOom_200x200.jpg"
+      ]
+    },
+    {
+      "id": "dogechain",
+      "local": "/external/rip/dogechain.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1529510825152483330/hb8hQIWP.jpg"
+      ]
+    },
+    {
+      "id": "nftfi",
+      "local": "/external/rip/nftfi.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/2018383994258362368/RYWZJmDL.jpg",
+        "https://pbs.twimg.com/profile_images/2018383994258362368/RYWZJmDL_400x400.jpg"
+      ]
+    },
+    {
+      "id": "step-app",
+      "local": "/external/rip/step-app.png",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1730586787628634112/hKToaF65.png"
+      ]
+    },
+    {
+      "id": "proof-of-play",
+      "local": "/external/rip/proof-of-play.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1954952845108621312/NkoaOYew.jpg"
+      ]
+    },
+    {
+      "id": "moonbeam",
+      "local": "/external/rip/moonbeam.png",
+      "sources": ["https://moonbeam.network/moonbeam-icon-512.png"]
+    },
+    {
+      "id": "foundation",
+      "local": "/external/rip/foundation.svg",
+      "sources": ["https://www.foundation.app/icon.svg?5f3c35a8bae74651"]
+    },
+    {
+      "id": "zerolend",
+      "local": "/external/rip/zerolend.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1742465326934327296/dhKg5pH3.jpg"
+      ]
+    },
+    {
+      "id": "code4rena",
+      "local": "/external/rip/code4rena.png",
+      "sources": ["https://code4rena.com/logos/c4/apple-touch-icon.png"]
+    },
+    {
+      "id": "genso-online",
+      "local": "/external/rip/genso-online.webp",
+      "sources": ["https://genso.game/assets/img/site_logo.webp"]
+    },
+    {
+      "id": "entropy",
+      "local": "/external/rip/entropy.png",
+      "sources": ["https://avatars.githubusercontent.com/u/85176716?s=280&v=4"],
+      "discoveredOn": "https://github.com/entropyxyz"
+    },
+    {
+      "id": "zapper",
+      "local": "/external/rip/zapper.png",
+      "sources": ["https://avatars.githubusercontent.com/u/64584890?s=280&v=4"],
+      "discoveredOn": "https://github.com/Zapper-fi"
+    },
+    {
+      "id": "magic-eden-wallet",
+      "local": "/external/rip/magic-eden-wallet.png",
+      "sources": ["https://avatars.githubusercontent.com/u/89287574?s=280&v=4"],
+      "discoveredOn": "https://github.com/magiceden"
+    },
+    {
+      "id": "trepa",
+      "local": "/external/rip/trepa.png",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1983769743870787584/JHIHhLLT_400x400.png"
+      ]
+    },
+    {
+      "id": "blast",
+      "local": "/external/rip/blast.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1805963937449381888/aNF8BIJo_400x400.jpg"
+      ]
+    },
+    {
+      "id": "abstract",
+      "local": "/external/rip/abstract.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1947751080705630208/0OQFUJxI_400x400.jpg"
+      ]
+    },
+    {
+      "id": "oxium",
+      "local": "/external/rip/oxium.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1920860695169478656/QvLZRUwe_400x400.jpg"
+      ]
+    },
+    {
+      "id": "0xppl",
+      "local": "/external/rip/0xppl.png",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1791368663901298688/oCzIFoo1_400x400.png"
+      ]
+    },
+    {
+      "id": "charmverse",
+      "local": "/external/rip/charmverse.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1468946046453792769/Bsm9UNai_400x400.jpg"
+      ]
+    },
+    {
+      "id": "rage-trade",
+      "local": "/external/rip/rage-trade.png",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1518891395636944897/gLh94IR3_400x400.png"
+      ]
+    },
+    {
+      "id": "stream-finance",
+      "local": "/external/rip/stream-finance.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1795174921208840193/PwY-rnFd_400x400.jpg"
+      ]
+    },
+    {
+      "id": "catalog",
+      "local": "/external/rip/catalog.svg",
+      "sources": ["https://fin.catalog.works/logos/catalog-logo.svg"]
+    },
+    {
+      "id": "voodoo",
+      "local": "/external/rip/voodoo.svg",
+      "sources": ["https://voodoo.trade/images/logo.svg"]
+    },
+    {
+      "id": "pingu-exchange",
+      "local": "/external/rip/pingu-exchange.png",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1969166356009373696/TQYJNyzA_200x200.png"
+      ]
+    },
+    {
+      "id": "colony",
+      "local": "/external/rip/colony.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1420713285964472323/KVlK-mGq_200x200.jpg"
+      ]
+    },
+    {
+      "id": "over-protocol",
+      "local": "/external/rip/over-protocol.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1972555619480813568/lja4JVG7_200x200.jpg"
+      ]
+    },
+    {
+      "id": "xenea-wallet",
+      "local": "/external/rip/xenea-wallet.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1823995210797604864/1xxJfwVd_200x200.jpg"
+      ]
+    },
+    {
+      "id": "dango",
+      "local": "/external/rip/dango.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1940431337912971264/h2G3EAC1_200x200.jpg"
+      ]
+    },
+    {
+      "id": "odos",
+      "local": "/external/rip/odos.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1917255155717693440/qysV1uvu_200x200.jpg"
+      ]
+    },
+    {
+      "id": "ctrl-wallet",
+      "local": "/external/rip/ctrl-wallet.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1814860901331378176/WQeY1-ND_200x200.jpg"
+      ]
+    },
+    {
+      "id": "ionic-protocol",
+      "local": "/external/rip/ionic-protocol.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1678497382328070149/IVEwmLxj_200x200.jpg"
+      ]
+    },
+    {
+      "id": "soundness-labs",
+      "local": "/external/rip/soundness-labs.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1891772706573402112/AdijW9Bk_200x200.jpg"
+      ]
+    },
+    {
+      "id": "swellchain",
+      "local": "/external/rip/swellchain.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1994224204309516288/jPbHjc3c_200x200.jpg"
+      ]
+    },
+    {
+      "id": "satori-finance",
+      "local": "/external/rip/satori-finance.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1521290732643831809/PAzBqfRG_200x200.jpg"
+      ]
+    },
+    {
+      "id": "fishing-frenzy-uncharted",
+      "local": "/external/rip/fishing-frenzy-uncharted.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1985225774878928896/Wq6xRTWC_200x200.jpg"
+      ]
+    },
+    {
+      "id": "botanix",
+      "local": "/external/rip/botanix.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1949580425451507712/gCJjGLl8_200x200.jpg"
+      ]
+    },
+    {
+      "id": "hyli",
+      "local": "/external/rip/hyli.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1922631454745395201/xlK0MJbf_200x200.jpg"
+      ]
+    },
+    {
+      "id": "syndicate-labs",
+      "local": "/external/rip/syndicate-labs.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1884391900490391555/NKTXOQ2a_200x200.jpg"
+      ]
+    },
+    {
+      "id": "phi",
+      "local": "/external/rip/phi.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1984580938819649541/OpTwJl5w_200x200.jpg"
+      ]
+    },
+    {
+      "id": "carrot",
+      "local": "/external/rip/carrot.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1996652426724585473/4OvTPWz1_200x200.jpg"
+      ]
+    },
+    {
+      "id": "luckio",
+      "local": "/external/rip/luckio.png",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1914799649799467008/IwKDx9yQ_200x200.png"
+      ]
+    },
+    {
+      "id": "mint-blockchain",
+      "local": "/external/rip/mint-blockchain.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1875897543915425792/tuY9uJfz_200x200.jpg"
+      ]
+    },
+    {
+      "id": "megaphone",
+      "local": "/external/rip/megaphone.png",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1968875553555144704/KAzd3atY_200x200.png"
+      ]
+    },
+    {
+      "id": "intergaze",
+      "local": "/external/rip/intergaze.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1871226178847080448/t-vg_Jq4_200x200.jpg"
+      ]
+    },
+    {
+      "id": "leap-wallet",
+      "local": "/external/rip/leap-wallet.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1771942341072318464/yrLlUePo_200x200.jpg"
+      ]
+    },
+    {
+      "id": "milkyway-l1",
+      "local": "/external/rip/milkyway-l1.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1730636092364517378/vY7AUjuW_200x200.jpg"
+      ]
+    },
+    {
+      "id": "remora-markets",
+      "local": "/external/rip/remora-markets.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1899088150338609153/pZFmOjPp_200x200.jpg"
+      ]
+    },
+    {
+      "id": "parsec",
+      "local": "/external/rip/parsec.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1407856708261646338/ODpD974X_200x200.jpg"
+      ]
+    },
+    {
+      "id": "loopring-l2",
+      "local": "/external/rip/loopring-l2.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1187288603170426880/vV5r_bLF_200x200.jpg"
+      ]
+    },
+    {
+      "id": "sophon-chain",
+      "local": "/external/rip/sophon-chain.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/2061320442472988672/dzAHfNcJ_200x200.jpg"
+      ]
+    },
+    {
+      "id": "ventuals",
+      "local": "/external/rip/ventuals.png",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1931109324480229376/EB_PojFW_200x200.png"
+      ]
+    },
+    {
+      "id": "fantasy-top",
+      "local": "/external/rip/fantasy-top.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/2001752956958359552/ev-b4TAh_200x200.jpg"
+      ]
+    },
+    {
+      "id": "opulous",
+      "local": "/external/rip/opulous.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1857020307128602624/DKFFP_E8_200x200.jpg"
+      ]
+    },
+    {
+      "id": "angle-stablecoins",
+      "local": "/external/rip/angle-stablecoins.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1744264234375041024/JgazvaMn_200x200.jpg"
+      ]
+    },
+    {
+      "id": "pudgy-party",
+      "local": "/external/rip/pudgy-party.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/2051673348409540610/APzljq9u_200x200.jpg"
+      ]
+    },
+    {
+      "id": "tally",
+      "local": "/external/rip/tally.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1948029128654921728/2HKFKIVJ_200x200.jpg"
+      ]
+    },
+    {
+      "id": "powerloom",
+      "local": "/external/rip/powerloom.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1725595719086530560/n--iy1A9_200x200.jpg"
+      ]
+    },
+    {
+      "id": "seamless-protocol",
+      "local": "/external/rip/seamless-protocol.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1931057550604075008/yUHfGGEz_200x200.jpg"
+      ]
+    },
+    {
+      "id": "nifty-gateway",
+      "local": "/external/rip/nifty-gateway.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/2000994978068357125/AL9qnvxi_200x200.jpg"
+      ]
+    },
+    {
+      "id": "corn-network",
+      "local": "/external/rip/corn-network.jpg",
+      "sources": ["https://icons.llamao.fi/icons/chains/rsz_corn.jpg"],
+      "discoveredOn": "https://defillama.com/chain/Corn"
+    },
+    {
+      "id": "radiant-capital",
+      "local": "/external/rip/radiant-capital.jpg",
+      "sources": [
+        "https://icons.llamao.fi/icons/protocols/radiant-capital.jpg"
+      ],
+      "discoveredOn": "https://defillama.com/protocol/radiant-capital"
+    },
+    {
+      "id": "everclear",
+      "local": "/external/rip/everclear.jpg",
+      "sources": ["https://icons.llamao.fi/icons/protocols/everclear.jpg"],
+      "discoveredOn": "https://defillama.com/protocol/everclear"
+    },
+    {
+      "id": "openrank",
+      "local": "/external/rip/openrank.png",
+      "sources": [
+        "https://framerusercontent.com/images/2Su6agIBfMKkbPknlIfZYdyVxmE.png"
+      ],
+      "discoveredOn": "https://openrank.com"
+    },
+    {
+      "id": "family-wallet",
+      "local": "/external/rip/family-wallet.png",
+      "sources": ["https://family.co/favicon.png"],
+      "discoveredOn": "https://family.co"
+    },
+    {
+      "id": "rodeo",
+      "local": "/external/rip/rodeo.svg",
+      "sources": [
+        "https://www.foundation-labs.xyz/_astro/logo.B8tOzpzJ_Z1MmhMJ.svg"
+      ],
+      "discoveredOn": "https://www.foundation-labs.xyz/"
+    },
+    {
+      "id": "polynomial-chain-trade",
+      "local": "/external/rip/polynomial-chain-trade.png",
+      "sources": [
+        "https://framerusercontent.com/images/qx4g2Z4RzJJdsiHMeV3Z2r55IAs.png"
+      ],
+      "discoveredOn": "https://polynomial.fi"
+    },
+    {
+      "id": "rova",
+      "local": "/external/rip/rova.png",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1899599133897302016/QKyF_Odw.png"
+      ],
+      "discoveredOn": "https://ngntipkolamrenang.twstalker.com/rovadotxyz"
+    },
+    {
+      "id": "legend",
+      "local": "/external/rip/legend.jpg",
+      "sources": [
+        "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/59/fe/52/59fe5296-d9e0-869d-78d0-86f285951d40/AppIcon_-_Prod-0-1x_U007ephone-0-1-0-85-220-0.png/512x512bb.jpg"
+      ],
+      "discoveredOn": "https://apps.apple.com/es/app/legend-xyz/id6504718187"
+    },
+    {
+      "id": "ranger-finance",
+      "local": "/external/rip/ranger-finance.png",
+      "sources": [
+        "https://avatars.githubusercontent.com/u/156018052?s=280&v=4"
+      ],
+      "discoveredOn": "https://github.com/ranger-finance"
+    },
+    {
+      "id": "slingshot",
+      "local": "/external/rip/slingshot.png",
+      "sources": ["https://avatars.githubusercontent.com/u/72108769?s=280&v=4"],
+      "discoveredOn": "https://github.com/slingshot-finance"
+    },
+    {
+      "id": "ux-chain",
+      "local": "/external/rip/ux-chain.png",
+      "sources": [
+        "https://ugc.production.linktr.ee/64b6fa55-6f96-412e-996f-18142b7b584a_UX-logo.png?io=true&size=avatar-v3_0"
+      ],
+      "discoveredOn": "https://linktr.ee/UXchain"
+    },
+    {
+      "id": "bitmart",
+      "local": "/external/rip/bitmart-token.png",
+      "sources": [
+        "https://s2.coinmarketcap.com/static/img/coins/200x200/2933.png"
+      ],
+      "discoveredOn": "https://coinmarketcap.com/currencies/bitmart-token/",
+      "identityProof": "https://www.bitmart.com/en-US/support/articles/7922665245339/360000817854/360007426853",
+      "note": "Native standalone BMX image matches BitMart corporate B emblem; inspected."
+    },
+    {
+      "id": "buck",
+      "local": "/external/rip/buck.png",
+      "sources": [
+        "https://s2.coinmarketcap.com/static/img/coins/200x200/39335.png"
+      ],
+      "discoveredOn": "https://coinmarketcap.com/currencies/buck-token/"
+    },
+    {
+      "id": "yupp",
+      "local": "/external/rip/yupp.png",
+      "sources": ["https://www.google.com/s2/favicons?domain=yupp.ai&sz=128"],
+      "discoveredOn": "https://yupp.ai",
+      "note": "Cached favicon for official domain."
+    },
+    {
+      "id": "dl-news",
+      "local": "/external/rip/dl-news.svg",
+      "sources": ["https://www.dlnews.com/favicon-light.svg"],
+      "discoveredOn": "https://www.dlnews.com"
+    },
+    {
+      "id": "webn-group",
+      "local": "/external/rip/webn-group.png",
+      "sources": [
+        "https://www.google.com/s2/favicons?domain=wng.co&sz=128",
+        "https://res.cloudinary.com/dw9ihbvcz/image/upload/v1776725426/incubator-list-logos/webn-group.jpg"
+      ],
+      "discoveredOn": "https://incubatorlist.com/webn-group"
+    },
+    {
+      "id": "creed",
+      "local": "/external/rip/creed.png",
+      "sources": [
+        "https://media.licdn.com/dms/image/v2/D4D0BAQHMtWrYbfR74A/company-logo_100_100/company-logo_100_100/0/1719255934081?e=2147483647&v=beta&t=jKgr0eBR5OcdGpNdiF07LfKpgXXviomQzfNAsr-QmL0"
+      ],
+      "discoveredOn": "https://www.linkedin.com/posts/creed-dao_over-the-past-three-years-creed-operated-activity-7437884231374139393-2BG2"
+    },
+    {
+      "id": "coinflare",
+      "local": "/external/rip/coinflare.png",
+      "sources": ["https://www.coinflare.com/favicon.ico"],
+      "discoveredOn": "https://www.coinflare.com/campaign/"
+    },
+    {
+      "id": "goat-gaming",
+      "local": "/external/rip/goat-gaming.png",
+      "sources": [
+        "https://substackcdn.com/image/fetch/$s_!j7N6!,w_256,h_256,c_fill,f_png,q_auto:good/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa25ab416-a2c4-445e-9f2f-9207d3229a59_1280x1280.png"
+      ],
+      "discoveredOn": "https://playgoatgaming.substack.com/p/a-farewell-to-goat-gaming"
+    },
+    {
+      "id": "bloktopia",
+      "local": "/external/rip/bloktopia.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1678715662951239680/_LzAw44f_400x400.jpg"
+      ],
+      "discoveredOn": "https://x.com/bloktopia"
+    },
+    {
+      "id": "gifts-fun",
+      "local": "/external/rip/gifts-fun.png",
+      "sources": [
+        "https://substack-post-media.s3.amazonaws.com/public/images/40b11eaf-7ded-47c9-ac75-83a86ec7ed96_1024x1024.png"
+      ],
+      "discoveredOn": "https://playgoatgaming.substack.com/p/grabgifts-is-now-giftsfun",
+      "note": "Original official branded graphic preserved unaltered. No standalone icon recovered. CSS can frame wordmark.",
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      },
+      "logoBounds": {
+        "left": 215,
+        "top": 88,
+        "width": 595,
+        "height": 283
+      }
+    }
+  ],
+  "failedDownloads": []
+}

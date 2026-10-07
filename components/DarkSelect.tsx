@@ -14,6 +14,8 @@ import { SelectedOption, SelectedOptionState } from "@/types";
 
 interface Props {
   placeholder?: string;
+  ariaLabel?: string;
+  optionCounts?: Record<string, number>;
   options: OptionsOrGroups<SelectedOption, GroupBase<SelectedOption>>;
   selectedOption: SelectedOptionState;
   setSelectedOption: (value: SelectedOptionState) => void;
@@ -24,6 +26,8 @@ interface Props {
 
 export const DarkSelect = ({
   placeholder,
+  ariaLabel,
+  optionCounts,
   options,
   selectedOption,
   setSelectedOption,
@@ -157,7 +161,7 @@ export const DarkSelect = ({
   const customComponents = {
     Option: (props: OptionProps<SelectedOption, false>) => (
       <chakraComponents.Option {...props}>
-        <HStack spacing={2}>
+        <HStack spacing={2} w={optionCounts ? "full" : undefined}>
           {props.data.image && (
             <Image
               src={props.data.image}
@@ -170,6 +174,11 @@ export const DarkSelect = ({
             />
           )}
           <span>{props.data.label}</span>
+          {optionCounts?.[String(props.data.value)] !== undefined && (
+            <Box as="span" ml="auto" color="whiteAlpha.500" fontSize="xs" flexShrink={0}>
+              {optionCounts[String(props.data.value)]}
+            </Box>
+          )}
         </HStack>
       </chakraComponents.Option>
     ),
@@ -217,6 +226,7 @@ export const DarkSelect = ({
   return (
     <Box ref={setContainerRef} cursor="pointer" pos="relative" overflow="visible" {...boxProps}>
       <SelectComponent
+        aria-label={ariaLabel}
         instanceId={uniqueId}
         ref={selectRef}
         options={options}
