@@ -2,14 +2,15 @@ import React, { useState } from "react";
 import { HStack, Skeleton } from "@chakra-ui/react";
 import { ethFormatOptions, ETHSelectedOptionState, convertTo } from "@/utils";
 import { InputField } from "../InputField";
-import { DarkSelect } from "../DarkSelect";
+import { DarkSelect, type FormatSelectProps } from "../DarkSelect";
 import { motion } from "framer-motion";
 
 interface Params {
+  formatSelectProps?: FormatSelectProps;
   value: any;
 }
 
-export const IntParam = ({ value: _value }: Params) => {
+export const IntParam = ({ value: _value, formatSelectProps }: Params) => {
   // for skeleton loading
   const showSkeleton = _value === undefined || _value === null;
   const value = !showSkeleton ? (_value as BigInt).toString() : "1234";
@@ -51,9 +52,11 @@ export const IntParam = ({ value: _value }: Params) => {
           onChange={() => {}}
         />
         <DarkSelect
+          {...formatSelectProps}
           boxProps={{
             w: "9rem",
             fontSize: "small",
+            ...formatSelectProps?.boxProps,
           }}
           selectedOption={selectedEthFormatOption}
           setSelectedOption={(option) =>

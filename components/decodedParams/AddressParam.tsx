@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
+  type ButtonProps,
   HStack,
   Box,
   Text,
@@ -15,7 +16,12 @@ import {
   IconButton,
   Tooltip,
 } from "@chakra-ui/react";
-import { resolveAddressToName, getNameAvatar, getPath, fetchContractAbi } from "@/utils";
+import {
+  resolveAddressToName,
+  getNameAvatar,
+  getPath,
+  fetchContractAbi,
+} from "@/utils";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import subdomains from "@/subdomains";
@@ -33,6 +39,8 @@ interface Params {
   showLink?: boolean;
   chainId?: number;
   name?: string;
+  explorerButtonProps?: Pick<ButtonProps, "borderRadius">;
+  modeButtonProps?: Pick<ButtonProps, "borderRadius">;
 }
 
 const skeletonAddress = "0x1111222233334444000000000000000000000000";
@@ -44,6 +52,8 @@ export const AddressParam = ({
   showLink,
   chainId,
   name,
+  explorerButtonProps,
+  modeButtonProps,
 }: Params) => {
   const showSkeleton = _address === null || _address === undefined;
   const address = !showSkeleton ? _address : skeletonAddress;
@@ -81,6 +91,16 @@ export const AddressParam = ({
 
   const value = getDisplayValue();
   const isShowingLabel = displayMode === "label" && addressBookLabel;
+  const showAddToAddressBook = !addressBookLabel && isAddressBookReady;
+  const hasLeadingIcon = isShowingLabel || (displayMode === "ens" && ensAvatar);
+  const inputLeftPadding =
+    availableModes.length > 1
+      ? hasLeadingIcon
+        ? 6.5
+        : 5
+      : hasLeadingIcon
+        ? 2.5
+        : 1;
 
   // Cycle through available modes
   const cycleDisplayMode = () => {
@@ -188,7 +208,12 @@ export const AddressParam = ({
   }, [showSkeleton]);
 
   // Get the value to copy (always the address for copying)
-  const copyValue = displayMode === "address" ? address : (displayMode === "ens" ? ensName : address);
+  const copyValue =
+    displayMode === "address"
+      ? address
+      : displayMode === "ens"
+        ? ensName
+        : address;
 
   return showSkeleton ? (
     <Box>
@@ -248,28 +273,11 @@ export const AddressParam = ({
           </HStack>
         )}
         <HStack>
-          {/* Save to address book button - on left side when not saved */}
-          {!addressBookLabel && isAddressBookReady && (
-            <Tooltip label="Save to Address Book" placement="top">
-              <IconButton
-                aria-label="Save to address book"
-                icon={
-                  <HStack spacing={0.5}>
-                    <BookOpen size={12} />
-                    <AddIcon boxSize={2} />
-                  </HStack>
-                }
-                size="xs"
-                variant="ghost"
-                color="whiteAlpha.400"
-                _hover={{ color: "white", bg: "whiteAlpha.200" }}
-                onClick={() => setIsLabelModalOpen(true)}
-              />
-            </Tooltip>
-          )}
-          <InputGroup>
+          <InputGroup minW={0}>
             {/* Toggle button + icon inside input */}
-            {(availableModes.length > 1 || isShowingLabel || (displayMode === "ens" && ensAvatar)) ? (
+            {availableModes.length > 1 ||
+            isShowingLabel ||
+            (displayMode === "ens" && ensAvatar) ? (
               <InputLeftElement width="auto" h="full" pl={2}>
                 <HStack spacing={2}>
                   {availableModes.length > 1 && (
@@ -278,13 +286,12 @@ export const AddressParam = ({
                       size="xs"
                       px="2"
                       h="5"
+                      {...modeButtonProps}
                     >
                       {getToggleButtonText()}
                     </Button>
                   )}
-                  {isShowingLabel && (
-                    <BookOpen size={16} color="#9F7AEA" />
-                  )}
+                  {isShowingLabel && <BookOpen size={16} color="#9F7AEA" />}
                   {displayMode === "ens" && ensAvatar && (
                     <Avatar src={ensAvatar} w={"1.2rem"} h={"1.2rem"} />
                   )}
@@ -298,20 +305,35 @@ export const AddressParam = ({
               border="1px solid"
               borderColor={isShowingLabel ? "purple.500" : "whiteAlpha.200"}
               borderRadius="lg"
-              _hover={{ borderColor: isShowingLabel ? "purple.400" : "whiteAlpha.400" }}
+              _hover={{
+                borderColor: isShowingLabel ? "purple.400" : "whiteAlpha.400",
+              }}
               color={isShowingLabel ? "purple.100" : "white"}
-              pl={
-                availableModes.length > 1 && (isShowingLabel || (displayMode === "ens" && ensAvatar))
-                  ? "6.5rem"
-                  : availableModes.length > 1
-                  ? "5rem"
-                  : (isShowingLabel || (displayMode === "ens" && ensAvatar))
-                  ? 10
-                  : 4
-              }
+              pl={`${inputLeftPadding}rem`}
+              pr={showAddToAddressBook ? 16 : 10}
             />
-            <InputRightElement pr={1}>
-              <CopyToClipboard textToCopy={copyValue ?? ""} />
+            <InputRightElement width="auto" h="full" pr={1}>
+              <HStack spacing={1}>
+                {showAddToAddressBook && (
+                  <Tooltip label="Save to Address Book" placement="top">
+                    <IconButton
+                      aria-label="Save to address book"
+                      icon={
+                        <HStack spacing={0.5}>
+                          <BookOpen size={12} />
+                          <AddIcon boxSize={2} />
+                        </HStack>
+                      }
+                      size="xs"
+                      variant="ghost"
+                      color="whiteAlpha.400"
+                      _hover={{ color: "white", bg: "whiteAlpha.200" }}
+                      onClick={() => setIsLabelModalOpen(true)}
+                    />
+                  </Tooltip>
+                )}
+                <CopyToClipboard textToCopy={copyValue ?? ""} />
+              </HStack>
             </InputRightElement>
           </InputGroup>
           {/* Edit address book button - on right side when saved */}
@@ -337,7 +359,7 @@ export const AddressParam = ({
               target="_blank"
               _hover={{ textDecoration: "none" }}
             >
-              <Button size={"xs"}>
+              <Button size="xs" {...explorerButtonProps}>
                 <HStack>
                   <ExternalLinkIcon />
                 </HStack>

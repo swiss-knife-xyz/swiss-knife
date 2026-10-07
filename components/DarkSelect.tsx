@@ -12,7 +12,7 @@ import {
 } from "chakra-react-select";
 import { SelectedOption, SelectedOptionState } from "@/types";
 
-interface Props {
+export interface DarkSelectProps {
   placeholder?: string;
   ariaLabel?: string;
   optionCounts?: Record<string, number>;
@@ -20,9 +20,16 @@ interface Props {
   selectedOption: SelectedOptionState;
   setSelectedOption: (value: SelectedOptionState) => void;
   boxProps?: BoxProps;
+  size?: "sm" | "md" | "lg";
+  controlProps?: Pick<BoxProps, "h" | "minH" | "borderRadius" | "fontSize">;
   isCreatable?: boolean;
   disableMouseNavigation?: boolean;
 }
+
+export type FormatSelectProps = Pick<
+  DarkSelectProps,
+  "size" | "controlProps" | "boxProps"
+>;
 
 export const DarkSelect = ({
   placeholder,
@@ -32,9 +39,11 @@ export const DarkSelect = ({
   selectedOption,
   setSelectedOption,
   boxProps,
+  size = "md",
+  controlProps,
   isCreatable,
   disableMouseNavigation,
-}: Props) => {
+}: DarkSelectProps) => {
   const [menuPortalTarget, setMenuPortalTarget] = useState<HTMLElement | null>(
     null
   );
@@ -89,6 +98,7 @@ export const DarkSelect = ({
       bg: "whiteAlpha.50",
       borderColor: state.isFocused ? "blue.400" : "whiteAlpha.200",
       borderRadius: "lg",
+      ...controlProps,
       boxShadow: state.isFocused
         ? "0 0 0 1px var(--chakra-colors-blue-400)"
         : "none",
@@ -113,7 +123,8 @@ export const DarkSelect = ({
       bg: "#18181B",
       border: "1px solid",
       borderColor: "whiteAlpha.200",
-      borderRadius: "lg",
+      borderRadius: controlProps?.borderRadius ?? "lg",
+      ...(controlProps?.fontSize ? { fontSize: controlProps.fontSize } : {}),
       boxShadow: "lg",
       zIndex: 9999,
     }),
@@ -138,6 +149,14 @@ export const DarkSelect = ({
     input: (provided: any) => ({
       ...provided,
       color: "white",
+      bg: "transparent",
+      boxShadow: "none",
+      _focus: { outline: "none", boxShadow: "none", bg: "transparent" },
+      _focusVisible: {
+        outline: "none",
+        boxShadow: "none",
+        bg: "transparent",
+      },
     }),
     placeholder: (provided: any) => ({
       ...provided,
@@ -175,7 +194,13 @@ export const DarkSelect = ({
           )}
           <span>{props.data.label}</span>
           {optionCounts?.[String(props.data.value)] !== undefined && (
-            <Box as="span" ml="auto" color="whiteAlpha.500" fontSize="xs" flexShrink={0}>
+            <Box
+              as="span"
+              ml="auto"
+              color="whiteAlpha.500"
+              fontSize="xs"
+              flexShrink={0}
+            >
               {optionCounts[String(props.data.value)]}
             </Box>
           )}
@@ -211,7 +236,8 @@ export const DarkSelect = ({
           border="1px solid"
           borderColor="whiteAlpha.200"
           borderRadius="lg"
-          h="40px"
+          h={size === "sm" ? "32px" : size === "lg" ? "48px" : "40px"}
+          {...controlProps}
           px={4}
           display="flex"
           alignItems="center"
@@ -224,7 +250,13 @@ export const DarkSelect = ({
   }
 
   return (
-    <Box ref={setContainerRef} cursor="pointer" pos="relative" overflow="visible" {...boxProps}>
+    <Box
+      ref={setContainerRef}
+      cursor="pointer"
+      pos="relative"
+      overflow="visible"
+      {...boxProps}
+    >
       <SelectComponent
         aria-label={ariaLabel}
         instanceId={uniqueId}
@@ -239,7 +271,7 @@ export const DarkSelect = ({
         defaultValue={selectedOption}
         menuIsOpen={menuIsOpen}
         placeholder={placeholder}
-        size="md"
+        size={size}
         tagVariant="solid"
         chakraStyles={commonChakraStyles}
         styles={{

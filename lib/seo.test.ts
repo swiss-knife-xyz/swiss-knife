@@ -99,7 +99,7 @@ test("USDC Pay uses its existing visible title as an H1", () => {
 test("query-dependent tools expose a semantic crawlable loading shell before hydration", () => {
   for (const path of ["apps/page.tsx", "calldata/encoder/CalldataEncoderPage.tsx", "explorer/ExplorerLayout.tsx", "contract-diff/page.tsx", "converter/eth/page.tsx", "transact/send-tx/page.tsx", "calldata/decoder/CalldataDecoderPage.tsx", "safe/eip-712-hash/page.tsx", "usdc-pay/page.tsx", "siwe/page.tsx"]) {
     const source = readFileSync(new URL(`../app/${path}`, import.meta.url), "utf8");
-    assert.ok(source.includes("fallback={<ToolLoading"), path);
+    assert.match(source, /fallback=\{\s*<ToolLoading\b/, path);
   }
 });
 

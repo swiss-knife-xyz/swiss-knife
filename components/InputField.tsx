@@ -5,7 +5,11 @@ import {
   InputProps,
   Textarea,
   TextareaProps,
+  Tooltip,
+  Box,
+  Portal,
 } from "@chakra-ui/react";
+import { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 
@@ -13,6 +17,8 @@ interface SingleLineInputFieldProps extends InputProps {
   multiline?: false;
   placeholder: string;
   value?: string;
+  copyValue?: string;
+  valueTooltip?: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   InputLeftElement?: React.ReactNode;
 }
@@ -21,6 +27,8 @@ interface MultilineInputFieldProps extends TextareaProps {
   multiline: true;
   placeholder: string;
   value?: string;
+  copyValue?: string;
+  valueTooltip?: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   InputLeftElement?: React.ReactNode;
 }
@@ -29,6 +37,10 @@ type InputFieldProps = SingleLineInputFieldProps | MultilineInputFieldProps;
 
 export const InputField = (props: InputFieldProps) => {
   const { value, isInvalid, InputLeftElement: LeftElement } = props;
+  const [tooltipPointer, setTooltipPointer] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const styles = {
     pr: "3rem",
     bg: "whiteAlpha.50",
@@ -55,7 +67,7 @@ export const InputField = (props: InputFieldProps) => {
 
   let control;
   if (props.multiline) {
-    const { multiline, InputLeftElement, ...rest } = props;
+    const { multiline, InputLeftElement, copyValue, valueTooltip, ...rest } = props;
     control = (
       <Textarea
         {...styles}
@@ -66,7 +78,7 @@ export const InputField = (props: InputFieldProps) => {
       />
     );
   } else {
-    const { multiline, InputLeftElement, ...rest } = props;
+    const { multiline, InputLeftElement, copyValue, valueTooltip, ...rest } = props;
     control = (
       <Input
         {...styles}
@@ -80,10 +92,61 @@ export const InputField = (props: InputFieldProps) => {
   return (
     <InputGroup>
       {LeftElement}
-      {control}
+      {props.valueTooltip ? (
+        <Box
+          display="contents"
+          onPointerMove={(event) => {
+            if (event.pointerType === "mouse") {
+              setTooltipPointer({ x: event.clientX, y: event.clientY });
+            }
+          }}
+          onPointerLeave={() => setTooltipPointer(null)}
+        >
+          <Tooltip
+            label={props.valueTooltip}
+            placement="top"
+            fontFamily="mono"
+            bg="bg.subtle"
+            color="text.secondary"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+            isDisabled={!!tooltipPointer}
+          >
+            {control}
+          </Tooltip>
+          {tooltipPointer && (
+            <Portal>
+              <Box
+                role="tooltip"
+                position="fixed"
+                left={`${tooltipPointer.x}px`}
+                top={`${tooltipPointer.y - 12}px`}
+                transform="translate(-50%, -100%)"
+                pointerEvents="none"
+                zIndex="tooltip"
+                bg="bg.subtle"
+                color="text.secondary"
+                border="1px solid"
+                borderColor="whiteAlpha.200"
+                px={2}
+                py={1}
+                borderRadius="md"
+                fontFamily="mono"
+                fontSize="sm"
+                boxShadow="md"
+                whiteSpace="nowrap"
+              >
+                {props.valueTooltip}
+              </Box>
+            </Portal>
+          )}
+        </Box>
+      ) : (
+        control
+      )}
       <InputRightElement pr={1} h={props.multiline ? "10" : "full"}>
         {!isInvalid ? (
-          <CopyToClipboard textToCopy={value ?? ""} />
+          <CopyToClipboard textToCopy={props.copyValue ?? value ?? ""} />
         ) : (
           <AlertCircle size={18} color="var(--chakra-colors-red-400)" />
         )}

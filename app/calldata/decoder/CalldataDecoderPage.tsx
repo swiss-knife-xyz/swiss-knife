@@ -21,6 +21,9 @@ import {
   Link,
   Button,
   Icon,
+  Tabs,
+  TabList,
+  Tab,
 } from "@chakra-ui/react";
 import {
   ChevronDownIcon,
@@ -28,11 +31,7 @@ import {
   ExternalLinkIcon,
 } from "@chakra-ui/icons";
 import { FiCode, FiFileText, FiMapPin, FiLink } from "react-icons/fi";
-import {
-  parseAsInteger,
-  parseAsString,
-  useQueryState,
-} from "nuqs";
+import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 import { Hex, Chain, stringify } from "viem";
 import { getPublicClient } from "@/lib/publicClient";
 import {
@@ -50,14 +49,58 @@ import { resolveERC3770Address, startHexWith0x } from "@/utils";
 import { Editor } from "@monaco-editor/react";
 
 import { InputField } from "@/components/InputField";
-import { renderParams } from "@/components/renderParams";
-import { TreeView } from "@/components/decodedParams/TreeView";
+import { CalldataTree } from "./components/CalldataTree";
 import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
+
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { decodeEvents, decodeRecursive } from "@/lib/decoder";
 import { getDisplayFunctionName } from "@/utils/functionNames";
+
+function DecoderTabs({
+  tabs,
+  selectedTabIndex,
+  setSelectedTabIndex,
+}: {
+  tabs: string[];
+  selectedTabIndex: number;
+  setSelectedTabIndex: (index: number) => void;
+}) {
+  return (
+    <Tabs
+      index={selectedTabIndex}
+      onChange={setSelectedTabIndex}
+      variant="unstyled"
+    >
+      <TabList
+        w="full"
+        maxW="full"
+        flexWrap="wrap"
+        borderBottom="1px solid"
+        borderColor="whiteAlpha.200"
+        gap={1}
+      >
+        {tabs.map((label) => (
+          <Tab
+            key={label}
+            px={{ base: 2, md: 4 }}
+            py={2}
+            fontSize="sm"
+            borderBottom="2px solid"
+            borderColor="transparent"
+            color="whiteAlpha.700"
+            _selected={{ borderColor: "text.primary", color: "text.primary" }}
+            _hover={{ bg: "whiteAlpha.100", color: "white" }}
+            _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
+          >
+            {label}
+          </Tab>
+        ))}
+      </TabList>
+    </Tabs>
+  );
+}
 
 function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const toast = useToast();
@@ -178,10 +221,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
 
   const resolvedFunctionName = useMemo(
     () =>
-      getDisplayFunctionName(
-        result?.functionName,
-        result?.guessedFunctionName
-      ),
+      getDisplayFunctionName(result?.functionName, result?.guessedFunctionName),
     [result]
   );
   const decodedJson = useMemo(
@@ -308,7 +348,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       const transaction = await publicClient.getTransaction({
         hash: txHash as Hex,
       });
-      
+
       // Start decoding calldata first (priority)
       decode({
         _calldata: transaction.input,
@@ -318,32 +358,35 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
 
       // Decode events in the background (non-blocking)
       setIsLoadingEvents(true);
-      publicClient.getTransactionReceipt({
-        hash: txHash as Hex,
-      }).then(async (txReceipt) => {
-        try {
-          console.log("decodeEvents about to be called (background)");
-          const events = await decodeEvents({
-            logs: txReceipt.logs.map((log) => ({
-              topics: log.topics,
-              data: log.data,
-            })),
-            chainId: chain.id,
-            address: transaction.to!,
-          });
-          console.log({ DECODED_EVENTS: events });
-          setDecodedEvents(events);
-        } catch (e: any) {
-          console.log("Failed to decode events:", e.message);
+      publicClient
+        .getTransactionReceipt({
+          hash: txHash as Hex,
+        })
+        .then(async (txReceipt) => {
+          try {
+            console.log("decodeEvents about to be called (background)");
+            const events = await decodeEvents({
+              logs: txReceipt.logs.map((log) => ({
+                topics: log.topics,
+                data: log.data,
+              })),
+              chainId: chain.id,
+              address: transaction.to!,
+            });
+            console.log({ DECODED_EVENTS: events });
+            setDecodedEvents(events);
+          } catch (e: any) {
+            console.log("Failed to decode events:", e.message);
+            setDecodedEvents([]);
+          } finally {
+            setIsLoadingEvents(false);
+          }
+        })
+        .catch((e) => {
+          console.log("Failed to get tx receipt:", e.message);
           setDecodedEvents([]);
-        } finally {
           setIsLoadingEvents(false);
-        }
-      }).catch((e) => {
-        console.log("Failed to get tx receipt:", e.message);
-        setDecodedEvents([]);
-        setIsLoadingEvents(false);
-      });
+        });
     } catch {
       setIsLoading(false);
       setIsLoadingEvents(false);
@@ -636,22 +679,13 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   };
 
   return (
-    <Box
-      p={6}
-      bg="rgba(0, 0, 0, 0.05)"
-      backdropFilter="blur(5px)"
-      borderRadius="xl"
-      border="1px solid"
-      borderColor="whiteAlpha.50"
-      w="full"
-      maxW="1200px"
-      mx="auto"
-    >
+    <Box p={{ base: 0, md: 2 }} w="full" minW={0} mx="auto">
       {/* Page Header */}
       <Box mb={8} textAlign="center">
         <HStack justify="center" spacing={3} mb={4}>
           <Icon as={FiCode} color="blue.400" boxSize={8} />
-          <Heading as="h1"
+          <Heading
+            as="h1"
             size="xl"
             color="gray.100"
             fontWeight="bold"
@@ -666,81 +700,101 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
         </Text>
       </Box>
 
-      {/* Tab Selector */}
-      <Box mb={6}>
-        <TabsSelector
-          tabs={["No ABI", "from ABI", "from Address", "from Tx"]}
-          selectedTabIndex={selectedTabIndex}
-          setSelectedTabIndex={setSelectedTabIndex}
-        />
-      </Box>
-
-      {/* Input Section */}
-      <VStack spacing={4} align="stretch" maxW="800px" mx="auto" mb={6}>
-        {/* Calldata Input - shown for all tabs except "from Tx" */}
-        {selectedTabIndex !== 3 && (
-          <HStack
-            spacing={4}
-            p={4}
-            bg="whiteAlpha.50"
-            borderRadius="lg"
-            border="1px solid"
-            borderColor="whiteAlpha.200"
-            flexWrap={{ base: "wrap", md: "nowrap" }}
-          >
-            <Box minW="140px">
-              <HStack spacing={2}>
-                <Icon as={FiCode} color="blue.400" boxSize={4} />
-                <Text color="gray.300" fontWeight="medium">
-                  Calldata
-                </Text>
-              </HStack>
-            </Box>
-            <Box flex={1} minW="200px">
-              <InputField
-                autoFocus
-                placeholder="0x..."
-                value={calldata}
-                onChange={(e) => setCalldata(e.target.value)}
-                onPaste={(e) => {
-                  e.preventDefault();
-                  setPasted(true);
-                  setCalldata(e.clipboardData.getData("text"));
-                }}
-              />
-            </Box>
-          </HStack>
-        )}
-
-        {/* Tab-specific content */}
-        {renderTabsBody()}
-
-        {/* Decode Button */}
-        <Box textAlign="center" pt={2}>
-          <DarkButton
-            onClick={() => {
-              switch (selectedTabIndex) {
-                case 0:
-                  return decode({});
-                case 1:
-                  return decode({ _abi: abi });
-                case 2:
-                  return decode({});
-                case 3:
-                  return decodeFromTx();
-              }
-            }}
-            isLoading={isLoading}
-          >
-            Decode
-          </DarkButton>
+      <Box id="decoder-input">
+        {/* Tab Selector */}
+        <Box mb={6}>
+          <TabsSelector
+            tabs={["No ABI", "from ABI", "from Address", "from Tx"]}
+            selectedTabIndex={selectedTabIndex}
+            setSelectedTabIndex={setSelectedTabIndex}
+          />
         </Box>
-      </VStack>
+
+        {/* Input Section */}
+        <VStack
+          spacing={4}
+          align="stretch"
+          w="full"
+          maxW="800px"
+          mx="auto"
+          mb={6}
+        >
+          {/* Calldata Input - shown for all tabs except "from Tx" */}
+          {selectedTabIndex !== 3 && (
+            <HStack
+              spacing={4}
+              p={4}
+              bg="whiteAlpha.50"
+              borderRadius="lg"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+              flexWrap={{ base: "wrap", md: "nowrap" }}
+            >
+              <Box minW="140px">
+                <HStack spacing={2}>
+                  <Icon as={FiCode} color="blue.400" boxSize={4} />
+                  <Text
+                    as="label"
+                    htmlFor="decoder-calldata"
+                    color="gray.300"
+                    fontWeight="medium"
+                  >
+                    Calldata
+                  </Text>
+                </HStack>
+              </Box>
+              <Box flex={1} minW="200px">
+                <InputField
+                  id="decoder-calldata"
+                  aria-label="Calldata"
+                  spellCheck={false}
+                  autoFocus
+                  placeholder="0x..."
+                  value={calldata}
+                  onChange={(e) => setCalldata(e.target.value)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    setPasted(true);
+                    setCalldata(e.clipboardData.getData("text"));
+                  }}
+                />
+              </Box>
+            </HStack>
+          )}
+
+          {/* Tab-specific content */}
+          {renderTabsBody()}
+
+          {/* Decode Button */}
+          <Box textAlign="center" pt={2}>
+            <DarkButton
+              onClick={() => {
+                switch (selectedTabIndex) {
+                  case 0:
+                    return decode({});
+                  case 1:
+                    return decode({ _abi: abi });
+                  case 2:
+                    return decode({
+                      _address: contractAddress,
+                      _chainId: chainId,
+                    });
+                  case 3:
+                    return decodeFromTx();
+                }
+              }}
+              isLoading={isLoading}
+            >
+              Decode
+            </DarkButton>
+          </Box>
+        </VStack>
+      </Box>
 
       {/* Result Tabs for "from Tx" mode */}
       {selectedTabIndex === 3 && result && (
         <Box mb={4}>
-          <TabsSelector
+          <DecoderTabs
             tabs={[
               "Calldata",
               isLoadingEvents
@@ -755,34 +809,32 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
 
       {/* Calldata Result - show directly for non-Tx modes, or when Calldata tab selected for Tx mode */}
       {result && (selectedTabIndex !== 3 || resultTabIndex === 0) && (
-        <Box maxW="800px" mx="auto">
+        <Box w="full" minW={0}>
           {/* Copy controls - outside the box */}
-          <HStack mb={2} justify="flex-end" flexWrap="wrap">
-            <CopyToClipboard
-              textToCopy={JSON.stringify(
-                {
-                  function: result.signature,
-                  params: JSON.parse(stringify(result.rawArgs)),
-                },
-                undefined,
-                2
-              )}
-              labelText="Copy params"
-            />
-            <CopyToClipboard
-              textToCopy={decodedJson}
-              labelText="Copy decoded JSON"
-            />
+          <HStack mb={3} justify="space-between" flexWrap="wrap">
+            <Text fontSize="sm" fontWeight="semibold" color="text.secondary">
+              Decoded calldata
+            </Text>
+            <HStack spacing={1} flexWrap="wrap">
+              <CopyToClipboard
+                textToCopy={JSON.stringify(
+                  {
+                    function: result.signature,
+                    params: JSON.parse(stringify(result.rawArgs)),
+                  },
+                  undefined,
+                  2
+                )}
+                labelText="Copy params"
+              />
+              <CopyToClipboard
+                textToCopy={decodedJson}
+                labelText="Copy decoded JSON"
+              />
+            </HStack>
           </HStack>
-          <Box
-            p={4}
-            bg="whiteAlpha.50"
-            borderRadius="lg"
-            border="1px solid"
-            borderColor="whiteAlpha.200"
-            data-tree-wrapper="true"
-          >
-            <TreeView
+          <Box minW={0}>
+            <CalldataTree
               args={result.args}
               chainId={chainId}
               functionName={resolvedFunctionName.name ?? result.functionName}
@@ -794,9 +846,15 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
 
       {/* Decoded Events Section - only show when Events tab selected in Tx mode */}
       {selectedTabIndex === 3 && resultTabIndex === 1 && (
-        <Box maxW="800px" mx="auto">
+        <Box w="full" minW={0}>
           {isLoadingEvents ? (
-            <Box p={6} bg="whiteAlpha.50" borderRadius="lg" border="1px solid" borderColor="whiteAlpha.200">
+            <Box
+              p={6}
+              bg="whiteAlpha.50"
+              borderRadius="lg"
+              border="1px solid"
+              borderColor="whiteAlpha.200"
+            >
               <HStack spacing={3}>
                 <Box
                   w={4}
@@ -833,7 +891,13 @@ type DecodedEventsViewProps = {
 function DecodedEventsView({ events, chainId }: DecodedEventsViewProps) {
   if (!events || events.length === 0) {
     return (
-      <Box p={6} bg="whiteAlpha.50" borderRadius="lg" border="1px solid" borderColor="whiteAlpha.200">
+      <Box
+        p={6}
+        bg="whiteAlpha.50"
+        borderRadius="lg"
+        border="1px solid"
+        borderColor="whiteAlpha.200"
+      >
         <Text color="whiteAlpha.500" textAlign="center">
           No events found for this transaction
         </Text>
@@ -910,8 +974,8 @@ function EventItem({ event, index, chainId }: EventItemProps) {
 
       {/* Collapsible Content */}
       <Collapse in={isOpen} animateOpacity>
-        <Box p={4} bg="whiteAlpha.50" data-tree-wrapper="true">
-          <TreeView args={event.args} chainId={chainId} />
+        <Box minW={0}>
+          <CalldataTree args={event.args} chainId={chainId} />
         </Box>
       </Collapse>
     </Box>
@@ -924,7 +988,14 @@ export const CalldataDecoderPage = ({
   headerText?: string;
 }) => {
   return (
-    <Suspense fallback={<ToolLoading title={headerText ?? "Calldata Decoder"} description="Decode Ethereum transaction calldata into human-readable parameters." />}>
+    <Suspense
+      fallback={
+        <ToolLoading
+          title={headerText ?? "Calldata Decoder"}
+          description="Decode Ethereum transaction calldata into human-readable parameters."
+        />
+      }
+    >
       <CalldataDecoderPageContent headerText={headerText} />
     </Suspense>
   );

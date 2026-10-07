@@ -6,10 +6,11 @@ import { hexToBigInt, hexToString } from "viem";
 import bigInt from "big-integer";
 import { startHexWith0x } from "@/utils";
 import { InputField } from "@/components/InputField";
-import { DarkSelect } from "@/components/DarkSelect";
+import { DarkSelect, type FormatSelectProps } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 
 interface Params {
+  formatSelectProps?: FormatSelectProps;
   arg: {
     rawValue: string;
     value: {
@@ -23,7 +24,11 @@ interface Params {
  * A simplified bytes param component for the tree view.
  * Uses a dropdown for format selection like UintParam.
  */
-export const TreeBytesParam = ({ arg: _arg, chainId }: Params) => {
+export const TreeBytesParam = ({
+  arg: _arg,
+  chainId,
+  formatSelectProps,
+}: Params) => {
   const arg = _arg ?? {
     rawValue: "0x",
     value: { decoded: null },
@@ -108,9 +113,11 @@ export const TreeBytesParam = ({ arg: _arg, chainId }: Params) => {
       {isValidHex && (
         <Box flexShrink={0}>
           <DarkSelect
+            {...formatSelectProps}
             boxProps={{
               minW: "7rem",
               fontSize: "xs",
+              ...formatSelectProps?.boxProps,
             }}
             selectedOption={selectedFormat}
             setSelectedOption={setSelectedFormat}
