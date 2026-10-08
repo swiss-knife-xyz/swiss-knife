@@ -1005,6 +1005,25 @@ const skillResourcesData: SkillResource[] = [
       "https://www.aeon.fun/connect/mcp",
     ],
   },
+  {
+    id: "cultos-cli",
+    name: "Cult OS CLI",
+    provider: "Cult OS",
+    url: "https://www.npmjs.com/package/@cultos/cli",
+    logoDomain: "cultos.dev",
+    logoSrc: "https://www.cultos.dev/favicon.png",
+    logoBg: "#000000",
+    toolTypes: ["CLI", "API"],
+    categories: ["Developer", "Commerce", "Data", "Infrastructure"],
+    tags: ["x402", "Base", "Solana", "USDC", "HTTP", "MQTT", "Virtuals ACP"],
+    install: "npm install -g @cultos/cli",
+    description:
+      "CLI for building paid APIs and machines that sell data through x402 on Base or Solana. Agents can scaffold a seller, check its payment setup, verify a capped first sale and inspect HTTP marketplace listings. Also connects repository work to Virtuals ACP for hiring agents and verifying deliveries.",
+    sourceUrls: [
+      "https://www.npmjs.com/package/@cultos/cli",
+      "https://github.com/thesmithdao/cultos",
+    ],
+  },
 ];
 
 const prioritizedResourceIds = [
