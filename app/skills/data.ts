@@ -1028,7 +1028,7 @@ const skillResourcesData: SkillResource[] = [
     id: "vfat-mcp",
     name: "VFAT MCP",
     provider: "VFAT",
-    url: "https://mcp.vfat.io/",
+    url: "https://vfat.io/",
     logoDomain: "vfat.io",
     toolTypes: ["MCP"],
     categories: ["DeFi", "Data", "Cross-chain"],
@@ -1036,7 +1036,7 @@ const skillResourcesData: SkillResource[] = [
     install: "https://mcp.vfat.io/mcp",
     description:
       "Official remote VFAT MCP for multichain yield farming and liquidity management. Agents can discover yield opportunities, inspect wallet portfolios and position performance, quote swaps and bridges, and prepare deposits, withdrawals, harvests, compounds, and rebalances as unsigned calldata or wallet-verifiable ERC-8410 execution plans. Uses Streamable HTTP without an API key; never signs or broadcasts transactions.",
-    sourceUrls: ["https://mcp.vfat.io/", "https://vfat.io/"],
+    sourceUrls: ["https://vfat.io/", "https://mcp.vfat.io/"],
   },
 ];
 
