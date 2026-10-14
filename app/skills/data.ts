@@ -1038,6 +1038,23 @@ const skillResourcesData: SkillResource[] = [
       "Official remote VFAT MCP for multichain yield farming and liquidity management. Agents can discover yield opportunities, inspect wallet portfolios and position performance, quote swaps and bridges, and prepare deposits, withdrawals, harvests, compounds, and rebalances as unsigned calldata or wallet-verifiable ERC-8410 execution plans. Uses Streamable HTTP without an API key; never signs or broadcasts transactions.",
     sourceUrls: ["https://vfat.io/mcp", "https://vfat.io/docs/mcp"],
   },
+  {
+    id: "galleon-defi-skills",
+    name: "Galleon DeFi Skills",
+    provider: "Galleon Labs",
+    url: "https://github.com/galleonlabs/crypto-defi-skills",
+    logoDomain: "galleonlabs.io",
+    toolTypes: ["Skill", "CLI", "Plugin"],
+    categories: ["DeFi", "Data", "Security", "Cross-chain"],
+    tags: ["Lending", "Liquidity", "Unsigned txs", "Prediction markets"],
+    install: "npx skills add galleonlabs/crypto-defi-skills",
+    description:
+      "49 MIT-licensed agent skills in 17 independently versioned packs for DeFi research, unsigned planning and verification: Aave and Morpho position risk, ERC-4626 and ERC-7540 vault exits, Uniswap and Aerodrome liquidity, LI.FI and Across route reconciliation, Polymarket resolution rules, and Safe and governance review. Works with Claude Code, Codex, Cursor, Gemini CLI, Hermes and OpenClaw. The package CLIs do not sign or submit transactions.",
+    sourceUrls: [
+      "https://github.com/galleonlabs/crypto-defi-skills",
+      "https://github.com/galleonlabs/crypto-defi-skills/blob/main/docs/AGENT-INDEX.md",
+    ],
+  },
 ];
 
 const prioritizedResourceIds = [
