@@ -38,6 +38,23 @@ export type SkillResource = {
 
 const skillResourcesData: SkillResource[] = [
   {
+    id: "namespace-skills",
+    name: "Namespace Skills",
+    provider: "Namespace",
+    url: "https://github.com/thenamespace/skills",
+    logoDomain: "namespace.ninja",
+    toolTypes: ["Skill"],
+    categories: ["Developer", "Infrastructure"],
+    tags: ["ENS", "Subnames", "Identity", "React"],
+    install: "npx skills add thenamespace/skills --yes",
+    description:
+      "Seven skills for integrating ENS and Namespace into apps and agents. Covers the ENS protocol, gasless offchain subnames, onchain subname minting, Celo Names, Resolvio profile and reverse resolution, React components, and avatar/header uploads.",
+    sourceUrls: [
+      "https://github.com/thenamespace/skills",
+      "https://docs.namespace.ninja",
+    ],
+  },
+  {
     id: "hyperliquid-cli",
     name: "Hyperliquid CLI",
     provider: "hypurrclaw",
