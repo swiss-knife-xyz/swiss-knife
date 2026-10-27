@@ -38,6 +38,29 @@ export type SkillResource = {
 
 const skillResourcesData: SkillResource[] = [
   {
+    id: "namera-skills",
+    name: "Namera Skills",
+    provider: "Namera",
+    url: "https://github.com/thenamespace/namera/tree/main/skills/namera",
+    logoDomain: "namera.ai",
+    toolTypes: ["Skill", "MCP", "CLI", "API"],
+    categories: ["Wallet", "Developer", "Infrastructure"],
+    tags: [
+      "Agent wallets",
+      "Session keys",
+      "Spending limits",
+      "Gas sponsorship",
+      "EVM",
+    ],
+    install: "npx skills add thenamespace/namera --skill namera --yes",
+    description:
+      "Wallets for AI agents with session keys, spending limits, and gas sponsorship. Manage accounts, send transactions, and sign messages.",
+    sourceUrls: [
+      "https://github.com/thenamespace/namera/tree/main/skills/namera",
+      "https://namera.ai/docs",
+    ],
+  },
+  {
     id: "namespace-skills",
     name: "Namespace Skills",
     provider: "Namespace",
