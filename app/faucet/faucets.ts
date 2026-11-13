@@ -743,6 +743,23 @@ export const faucets: FaucetEntry[] = [
     tags: ["ethereum", "sepolia", "paid"],
   },
   {
+    id: "sellpolia-sepolia",
+    name: "Buy Sepolia ETH",
+    provider: "SellPolia",
+    url: "https://sellpolia.com/app",
+    chain: "Ethereum Sepolia",
+    token: "ETH",
+    amount: "Paid backup",
+    cooldownHours: 0,
+    category: "ethereum",
+    reliability: "community",
+    requirement:
+      "Payment in native ETH/BNB or USDC, USDT, or DAI on Ethereum, Base, Arbitrum, or BNB Chain",
+    notes:
+      "Not a free faucet; the live market currently quotes $0.25 per Sepolia ETH, with delivery handled by the operator after payment is indexed.",
+    tags: ["ethereum", "sepolia", "eth", "paid", "sellpolia"],
+  },
+  {
     id: "testnet-eth-merchant-sepolia",
     name: "Buy Sepolia ETH",
     provider: "Testnet ETH Merchant",
