@@ -38,6 +38,25 @@ export type SkillResource = {
 
 const skillResourcesData: SkillResource[] = [
   {
+    id: "yield-xyz-agentkit",
+    name: "Yield.xyz AgentKit",
+    provider: "Yield.xyz",
+    url: "https://github.com/stakekit/agentkit",
+    logoDomain: "yield.xyz",
+    toolTypes: ["Skill", "MCP", "Plugin"],
+    categories: ["DeFi", "Developer"],
+    tags: ["Yield", "Staking", "Lending", "Unsigned transactions"],
+    install: "npx skills add https://github.com/stakekit/agentkit",
+    description:
+      "Official skills, plugins, and remote MCP for discovering DeFi yields, checking APY, risk, TVL history and wallet balances, and building unsigned enter, exit, and manage transactions. Optional Privy and MoonPay connectors add signing and broadcasting; a builder skill generates integration code. Shared MCP access has a metered free tier, with x402 payments or a billed API key for additional usage.",
+    sourceUrls: [
+      "https://github.com/stakekit/agentkit",
+      "https://docs.yield.xyz/documentation/ai-agents/agentkit/index",
+      "https://docs.yield.xyz/documentation/ai-agents/agentkit/agent-skills",
+      "https://docs.yield.xyz/documentation/ai-agents/mcp-server",
+    ],
+  },
+  {
     id: "namespace-skills",
     name: "Namespace Skills",
     provider: "Namespace",
@@ -1089,6 +1108,7 @@ const prioritizedResourceIds = [
   "morpho-agents",
   "fluid-skill",
   "pendle-ai",
+  "yield-xyz-agentkit",
   "panoptic-mcp",
   "opensea-skill",
   "across-skills",
