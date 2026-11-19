@@ -12,6 +12,9 @@ interface InputFieldProps extends InputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFunctionIsDisabled: (value: boolean) => void;
   isError: boolean;
+  allowBytesBuilder?: boolean;
+  immediateUpdates?: boolean;
+  rawValues?: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   isArrayChild?: boolean;
 }
@@ -26,6 +29,9 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   onChange,
   setFunctionIsDisabled,
   isError,
+  allowBytesBuilder,
+  immediateUpdates,
+  rawValues,
   onKeyDown,
   isArrayChild,
   value,
@@ -84,6 +90,11 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   // Handle parent state updates with debouncing
   useEffect(() => {
     if (!isEqual(tupleInputsState, prevTupleInputStateRef.current)) {
+      if (immediateUpdates) {
+        prevTupleInputStateRef.current = tupleInputsState;
+        onChange({ target: { value: Object.values(tupleInputsState) } } as any);
+        return;
+      }
       const timeoutId = setTimeout(() => {
         onChange({
           target: {
@@ -95,7 +106,7 @@ export const TupleInput: React.FC<InputFieldProps> = ({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [tupleInputsState, onChange]);
+  }, [tupleInputsState, onChange, immediateUpdates]);
 
   // Handle disabled state updates with debouncing
   useEffect(() => {
@@ -157,6 +168,9 @@ export const TupleInput: React.FC<InputFieldProps> = ({
                 updateTupleReadIsDisabled(i, value),
               onKeyDown,
               isError,
+              allowBytesBuilder,
+              immediateUpdates,
+              rawValues,
             })}
           </Box>
         ))}

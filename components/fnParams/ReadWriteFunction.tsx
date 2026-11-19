@@ -1334,6 +1334,7 @@ const ReadWriteFunctionComponent = ({
                   chainId,
                   input,
                   value: inputsState[i] ?? "",
+                  allowBytesBuilder: true,
                   onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                     updateInputState(i, e.target.value),
                   setFunctionIsDisabled: (value: boolean) =>
