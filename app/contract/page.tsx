@@ -127,6 +127,8 @@ const ContractPage = () => {
           </Text>
         </Box>
 
+        <Link href={getPath(subdomains.EXPLORER.base)}>Explorer Directory</Link>
+
         {/* Input Section */}
         <Box
           w="full"

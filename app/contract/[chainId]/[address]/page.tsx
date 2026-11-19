@@ -36,12 +36,15 @@ export async function generateMetadata({
     params: Promise.resolve({ address, chainId }),
   });
 
-  return getMetadata({
-    title,
-    canonical: `https://contract.eth.sh/${chainId}/${address}`,
-    description: layoutMetadata.description as string,
-    images: "https://eth.sh/api/og/contract",
-  });
+  return {
+    ...getMetadata({
+      title,
+      canonical: `https://explorer.eth.sh/${chainId}/${address}`,
+      description: layoutMetadata.description as string,
+      images: "https://eth.sh/api/og/contract",
+    }),
+    robots: { index: false, follow: true },
+  };
 }
 
 const ContractPage = async ({
@@ -57,10 +60,19 @@ const ContractPage = async ({
     <Layout minW={0}>
       <Box w="full" maxW="70rem" mx="auto">
         <NextLink href={getPath("contract")}>
-          <Heading as="h1" mb={4} color={"custom.pale"} _hover={{ opacity: 0.8 }} cursor="pointer">
+          <Heading
+            as="h1"
+            mb={4}
+            color={"custom.pale"}
+            _hover={{ opacity: 0.8 }}
+            cursor="pointer"
+          >
             Contract Explorer
           </Heading>
         </NextLink>
+      </Box>
+      <Box textAlign="center" mb={4}>
+        <NextLink href={getPath("explorers")}>Explorer Directory</NextLink>
       </Box>
       <ContractP
         params={{

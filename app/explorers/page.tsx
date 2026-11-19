@@ -19,7 +19,7 @@ import { FiClock, FiFileText, FiCode, FiArrowRight } from "react-icons/fi";
 import {
   RecentSearch,
   RECENT_SEARCHES_KEY,
-} from "@/app/explorer/ExplorerLayout";
+} from "@/app/explorers/ExplorerLayout";
 
 const Card = ({
   title,

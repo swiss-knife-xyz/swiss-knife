@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import sitemap from "../app/sitemap";
+import { getPublicPageUrls } from "./seo";
+import { getSitemapUrls, getRobotsText } from "./crawlerDiscovery";
+const sitemap = () => getPublicPageUrls().map(url => ({url}));
 import { getMetadata } from "../utils";
 import { getPath } from "../utils";
 import { readFileSync } from "node:fs";
@@ -26,7 +28,7 @@ function layouts(dir = new URL("../app/", import.meta.url)): URL[] {
 }
 
 const headingPages = [
-  "calldata/cowswap/CoWSwapVerifyPage.tsx", "uniswap/tick-to-price/page.tsx", "storage-slots/page.tsx", "siwe/page.tsx", "explorer/ExplorerLayout.tsx",
+  "calldata/cowswap/CoWSwapVerifyPage.tsx", "uniswap/tick-to-price/page.tsx", "storage-slots/page.tsx", "siwe/page.tsx", "explorers/ExplorerLayout.tsx",
   "contract/page.tsx", "contract/[chainId]/[address]/page.tsx", "determine-address/page.tsx",
   "epoch-converter/page.tsx", "contract-diff/page.tsx", "character-counter/page.tsx", "constants/page.tsx",
   "converter/eth/page.tsx", "converter/hexadecimal/page.tsx", "converter/keccak256/page.tsx", "converter/padding/page.tsx", "converter/address-checksum/page.tsx",
@@ -57,7 +59,7 @@ import { generateMetadata as decoderMetadata } from "../app/calldata/decoder/pag
 test("dynamic contract metadata canonical preserves chain and address", async () => {
   const address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
   const metadata = await contractMetadata({ params: Promise.resolve({ address, chainId: "1" }) } as any);
-  assert.equal(metadata.alternates?.canonical, `https://contract.eth.sh/1/${address}`);
+  assert.equal(metadata.alternates?.canonical, `https://explorer.eth.sh/1/${address}`);
 });
 
 test("decoder metadata keeps a string image URL and query-free canonical", async () => {
@@ -66,27 +68,27 @@ test("decoder metadata keeps a string image URL and query-free canonical", async
   assert.equal(typeof (metadata.openGraph as any).images[0].url, "string");
 });
 
-import { generateMetadata as addressMetadata } from "../app/explorer/address/[address]/layout";
-import { generateMetadata as txMetadata } from "../app/explorer/tx/[tx]/layout";
-import ExplorerContractAlias from "../app/explorer/contract/[chainId]/[address]/page";
+import { generateMetadata as addressMetadata } from "../app/explorers/address/[address]/layout";
+import { generateMetadata as txMetadata } from "../app/explorers/tx/[tx]/layout";
+import ExplorerContractAlias from "../app/explorers/contract/[chainId]/[address]/page";
 
 test("explorer metadata awaits Next 16 params and canonicals identify the record", async () => {
   const address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
   const tx = `0x${"1".repeat(64)}`;
-  assert.equal((await addressMetadata({ params: Promise.resolve({ address }) } as any)).alternates?.canonical, `https://explorer.eth.sh/address/${address}`);
-  assert.equal((await txMetadata({ params: Promise.resolve({ tx }) } as any)).alternates?.canonical, `https://explorer.eth.sh/tx/${tx}`);
+  assert.equal((await addressMetadata({ params: Promise.resolve({ address }) } as any)).alternates?.canonical, `https://eth.sh/explorers/address/${address}`);
+  assert.equal((await txMetadata({ params: Promise.resolve({ tx }) } as any)).alternates?.canonical, `https://eth.sh/explorers/tx/${tx}`);
 });
 
 test("legacy explorer contract alias awaits params before redirecting", async () => {
   const address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
   await assert.rejects(async () => ExplorerContractAlias({ params: Promise.resolve({ address, chainId: "1" }) } as any), (error: any) => {
-    assert.ok(error.digest.includes(`https://contract.eth.sh/1/${address}`));
+    assert.ok(error.digest.includes(`https://explorer.eth.sh/1/${address}`));
     return true;
   });
 });
 
 test("explorer record pages unwrap promised params before generating outbound links", () => {
-  for (const path of ["explorer/address/[address]", "explorer/tx/[tx]"]) {
+  for (const path of ["explorers/address/[address]", "explorers/tx/[tx]"]) {
     assert.match(readFileSync(new URL(`../app/${path}/page.tsx`, import.meta.url), "utf8"), /use\(params\)/);
   }
 });
@@ -97,7 +99,7 @@ test("USDC Pay uses its existing visible title as an H1", () => {
 });
 
 test("query-dependent tools expose a semantic crawlable loading shell before hydration", () => {
-  for (const path of ["apps/page.tsx", "calldata/encoder/CalldataEncoderPage.tsx", "explorer/ExplorerLayout.tsx", "contract-diff/page.tsx", "converter/eth/page.tsx", "transact/send-tx/page.tsx", "calldata/decoder/CalldataDecoderPage.tsx", "safe/eip-712-hash/page.tsx", "usdc-pay/page.tsx", "siwe/page.tsx"]) {
+  for (const path of ["apps/page.tsx", "calldata/encoder/CalldataEncoderPage.tsx", "explorers/ExplorerLayout.tsx", "contract-diff/page.tsx", "converter/eth/page.tsx", "transact/send-tx/page.tsx", "calldata/decoder/CalldataDecoderPage.tsx", "safe/eip-712-hash/page.tsx", "usdc-pay/page.tsx", "siwe/page.tsx"]) {
     const source = readFileSync(new URL(`../app/${path}`, import.meta.url), "utf8");
     assert.match(source, /fallback=\{\s*<ToolLoading\b/, path);
   }
@@ -118,7 +120,7 @@ test("private inspection and test views opt out of indexing in the nearest layou
     assert.match(source, /follow: false/);
     assert.match(source, /canonical: null/);
   }
-  const robots = readFileSync(new URL("../app/robots.ts", import.meta.url), "utf8");
+  const robots = getRobotsText("eth.sh");
   assert.ok(robots.includes("https://eth.sh/sitemap.xml"));
   assert.ok(robots.includes("/api/"));
   assert.ok(robots.includes("/api/og/"));
@@ -158,7 +160,7 @@ test("sitemap lists real public leaf pages, not parameter placeholders or redire
   for (const url of urls) {
     const parsed = new URL(url);
     if (parsed.hostname === "eth.sh") continue;
-    const base = parsed.hostname.split(".")[0];
+    const base = parsed.hostname === "explorer.eth.sh" ? "contract" : parsed.hostname.split(".")[0];
     const pathname = base === "faucet" && parsed.pathname !== "/" ? "/[chain]" : parsed.pathname;
     const path = `../app/${base}${pathname === "/" ? "" : pathname}/page.tsx`;
     assert.doesNotThrow(() => readFileSync(new URL(path, import.meta.url)), url);
@@ -188,9 +190,9 @@ test("static getMetadata layouts declare their own canonical instead of inheriti
 });
 
 test("metadata emits canonical, complete Open Graph identity and descriptive image", () => {
-  const metadata = getMetadata({ title: "Contract | ETH.sh", description: "Interact with contracts", images: "https://eth.sh/og/index.png", canonical: "https://contract.eth.sh/" } as any);
-  assert.equal(metadata.alternates?.canonical, "https://contract.eth.sh/");
-  assert.equal((metadata.openGraph as any).url, "https://contract.eth.sh/");
+  const metadata = getMetadata({ title: "Contract | ETH.sh", description: "Interact with contracts", images: "https://eth.sh/og/index.png", canonical: "https://explorer.eth.sh/" } as any);
+  assert.equal(metadata.alternates?.canonical, "https://explorer.eth.sh/");
+  assert.equal((metadata.openGraph as any).url, "https://explorer.eth.sh/");
   assert.equal((metadata.openGraph as any).siteName, "ETH.sh");
   assert.equal((metadata.openGraph as any).locale, "en_US");
   assert.equal((metadata.openGraph as any).images[0].alt, "Contract | ETH.sh");
@@ -227,10 +229,10 @@ test("ENS record views have their own canonical rather than the history landing 
 test("legacy explorer contract alias redirects at HTTP config before React streaming", () => {
   const rules = nextConfig.redirects?.() ?? [];
   for (const [host, source] of [["explorer.eth.sh", "/contract/:chainId/:address"], ["eth.sh", "/explorer/contract/:chainId/:address"]]) {
-    const rule = rules.find((entry: any) => entry.source === source);
+    const rule = rules.find((entry: any) => entry.source === source && new RegExp(`^${entry.has?.[0]?.value}$`).test(host));
     assert.ok(rule);
-    assert.equal(rule.has?.[0]?.value, host);
-    assert.equal(rule.destination, "https://contract.eth.sh/:chainId/:address");
+    assert.ok(new RegExp(`^${rule.has?.[0]?.value}$`).test(host));
+    assert.equal(rule.destination, "https://explorer.eth.sh/:chainId/:address");
     assert.equal(rule.permanent, true);
   }
 });
@@ -250,14 +252,14 @@ test("orgs legacy host root redirects to the supported apex directory", () => {
 
 test("contract legacy link redirects only on the contract host", () => {
   const redirects = nextConfig.redirects();
-  const alias = redirects.find((route: any) => route.source === "/contract" && route.has?.[0]?.value === "contract.eth.sh");
+  const alias = redirects.find((route: any) => route.source === "/contract" && new RegExp(`^${route.has?.[0]?.value}$`).test("contract.eth.sh"));
   assert.ok(alias, "contract host /contract alias is missing");
-  assert.equal(alias.destination, "https://contract.eth.sh/");
+  assert.equal(alias.destination, "https://explorer.eth.sh/");
   assert.equal(alias.permanent, true);
 });
 
 test("subdomain rewrites leave crawler endpoints and OG assets on the root app", () => {
-  const route = nextConfig.rewrites().beforeFiles.find((route: any) => route.has?.[0]?.value === "contract.eth.sh");
+  const route = nextConfig.rewrites().beforeFiles.find((route: any) => new RegExp(`^${route.has?.[0]?.value}$`).test("explorer.eth.sh"));
   assert.ok(route);
   const pattern = new RegExp(`^${route.source.replace('/:path(', '(')}$`);
   for (const path of ["/og/contract.png", "/robots.txt", "/sitemap.xml", "/frame/wallet-bridge.png", "/api/og/orgs", "/_next/static/test.js"]) {
