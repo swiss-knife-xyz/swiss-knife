@@ -55,8 +55,8 @@ test("crawler discovery is scoped to the requesting host", async () => {
   const r = await request("explorer.eth.sh", "/sitemap.xml?address=private");
   assert.equal(r.status, 200);
   assert.deepEqual(
-    [...r.body.matchAll(/<loc>(.*?)<\/loc>/g)].map((x) => x[1]),
-    ["https://explorer.eth.sh/"]
+    [...r.body.matchAll(/<loc>(.*?)<\/loc>/g)].map((x) => x[1]).sort(),
+    ["https://explorer.eth.sh/", "https://explorer.eth.sh/trace"]
   );
   assert.match(r.headers["cache-control"], /no-store/);
   const robots = await request("explorer.eth.sh", "/robots.txt");
@@ -163,7 +163,7 @@ test("host sitemap exact sets and unknown-host discovery exclusion", async () =>
       "https://eth.sh/explorers",
       "https://eth.sh/orgs",
     ],
-    "explorer.eth.sh": ["https://explorer.eth.sh/"],
+    "explorer.eth.sh": ["https://explorer.eth.sh/trace", "https://explorer.eth.sh/"],
     "solidity.eth.sh": ["https://solidity.eth.sh/compiler"],
     "contract.eth.sh": [],
     "orgs.eth.sh": [],
@@ -205,6 +205,20 @@ if (process.env.FULL_HTTP === "1") {
     for (const [host, path, canonical, title, link] of [
       [
         "explorer.eth.sh",
+        "/trace",
+        "https://explorer.eth.sh/trace",
+        "Transaction tracer",
+        "https://explorer.eth.sh/",
+      ],
+      [
+        "explorer.eth.sh",
+        "/trace?chain=1&hash=0xe5182dd515bf1e872376372ef0c3a0996102e49f6a8195489598931ed9171893",
+        "https://explorer.eth.sh/trace",
+        "Transaction tracer",
+        "https://explorer.eth.sh/",
+      ],
+      [
+        "explorer.eth.sh",
         "/",
         "https://explorer.eth.sh/",
         "Contract Explorer",
@@ -241,7 +255,7 @@ if (process.env.FULL_HTTP === "1") {
         host + path
       );
       assert.ok(r.body.includes(`href="${link}"`), host + path);
-      if (path.includes(address))
+      if (path.includes(address) || path.includes("hash="))
         assert.match(r.body, /name="robots" content="noindex, follow"/);
       else assert.match(r.body, /name="robots" content="index, follow"/);
     }

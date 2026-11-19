@@ -66,8 +66,11 @@ export const getPublicClient = (
 // Escape hatch for the rare case where a caller has an explicit RPC URL
 // string (e.g. user-supplied RPC under test in /7702beat). Prefer
 // `getPublicClient(chainId)` for normal flows so env-configured RPCs apply.
-export const createPublicClientForRpcUrl = (rpcUrl: string): PublicClient =>
-  createPublicClient({ transport: http(rpcUrl) }) as PublicClient;
+export const createPublicClientForRpcUrl = (
+  rpcUrl: string,
+  options?: { fetchFn?: typeof fetch; timeout?: number; retryCount?: number }
+): PublicClient =>
+  createPublicClient({ transport: http(rpcUrl, options) }) as PublicClient;
 
 const getRpcUrlsForChain = (chainId: number) => {
   const primaryRpcUrl = getRpcUrlForChain(chainId);

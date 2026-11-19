@@ -52,7 +52,7 @@ const nextConfig = {
           .flatMap((subdomain) => [
             {
               source:
-                "/:path((?!_next|api|og(?:/|$)|frame(?:/|$)|robots\\.txt$|sitemap\\.xml$|favicon\\.ico$|apple-touch-icon\\.png$|chainIcons|tokenIcons|external|icon.png|logo.png|splashImage.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
+                `/:path((?!${subdomain.base === "contract" ? "trace(?:/|$)|" : ""}_next|api|og(?:/|$)|frame(?:/|$)|robots\\.txt$|sitemap\\.xml$|favicon\\.ico$|apple-touch-icon\\.png$|chainIcons|tokenIcons|external|icon.png|logo.png|splashImage.png|worker).*)`, // Exclude API routes, static assets and worker from subdomain rewrites
               has: [
                 {
                   type: "host",

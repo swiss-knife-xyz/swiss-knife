@@ -49,6 +49,11 @@ export {
 } from "@/lib/nameResolution";
 
 export const getPath = (subdomain: string, isRelativePath: boolean = false) => {
+  if (subdomain === "trace") {
+    return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+      ? "/trace/"
+      : "https://explorer.eth.sh/trace/";
+  }
   if (subdomain.length === 0) {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? "/"

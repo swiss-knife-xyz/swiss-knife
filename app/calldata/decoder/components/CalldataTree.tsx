@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { Badge, Box, Button, Flex, HStack, Icon, Text } from "@chakra-ui/react";
-import { ChevronDownIcon, ChevronRightIcon } from "@chakra-ui/icons";
+import { TreeBranchHeader } from "@/components/decodedParams/TreeView/TreeBranchHeader";
 import { FiTerminal, FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import {
   TypeIcon,
@@ -102,94 +102,9 @@ function Value({ arg, chainId }: { arg: Arg; chainId?: number }) {
   );
 }
 
-function BranchHeader({
-  id,
-  level,
-  children,
-  extra,
-  label,
-}: {
-  id: string;
-  level: number;
-  children: React.ReactNode;
-  extra?: React.ReactNode;
-  label: string;
-}) {
+function BranchHeader(props: Omit<React.ComponentProps<typeof TreeBranchHeader>, "open" | "onToggle">) {
   const { expanded, toggle } = useContext(TreeState);
-  const open = expanded.has(id);
-  return (
-    <Box
-      position="sticky"
-      top={`${level * 28}px`}
-      zIndex={100 - level}
-      _before={
-        level > 0
-          ? {
-              content: '""',
-              position: "absolute",
-              left: { base: "-9px", md: "-13px" },
-              top: "14px",
-              width: { base: "9px", md: "13px" },
-              borderTop: "1px solid",
-              borderColor: "whiteAlpha.200",
-              pointerEvents: "none",
-            }
-          : undefined
-      }
-    >
-      <Flex
-        role="button"
-        tabIndex={0}
-        aria-expanded={open}
-        aria-label={`${label}`}
-        onClick={() => toggle(id)}
-        onKeyDown={(event) => {
-          if (
-            event.target === event.currentTarget &&
-            (event.key === "Enter" || event.key === " ")
-          ) {
-            event.preventDefault();
-            toggle(id);
-          }
-        }}
-        bg="bg.subtle"
-        minH="28px"
-        h="28px"
-        gap={{ base: 1, md: 2 }}
-        align="center"
-        px={1}
-        overflowX="auto"
-        overflowY="hidden"
-        sx={{
-          scrollbarWidth: "none",
-          "& > *": { flexShrink: 0 },
-          "&::-webkit-scrollbar": { display: "none" },
-        }}
-        cursor="pointer"
-        borderBottom="1px solid"
-        borderColor="whiteAlpha.100"
-        _hover={{ bg: "bg.muted" }}
-        _focusVisible={{
-          outline: "2px solid",
-          outlineColor: "blue.400",
-          outlineOffset: "-2px",
-        }}
-        data-calldata-header={id}
-      >
-        {open ? (
-          <ChevronDownIcon boxSize={4} color="text.tertiary" />
-        ) : (
-          <ChevronRightIcon boxSize={4} color="text.tertiary" />
-        )}
-        {children}
-        {extra && (
-          <Box ml="auto" onClick={(event) => event.stopPropagation()}>
-            {extra}
-          </Box>
-        )}
-      </Flex>
-    </Box>
-  );
+  return <TreeBranchHeader {...props} open={expanded.has(props.id)} onToggle={() => toggle(props.id)} />;
 }
 
 function Parameter({
@@ -388,6 +303,7 @@ function Parameter({
         </Box>
       )}
       <Box
+        id={`tree-children-${id}`}
         hidden={!expanded.has(id)}
         ml={{ base: 1, md: 2 }}
         pl={{ base: 2, md: 3 }}
@@ -551,6 +467,7 @@ export function CalldataTree({
               </BranchHeader>
             )}
             <Box
+              id="tree-children-root"
               hidden={hasRoot && !expanded.has("root")}
               pt={hasRoot ? 1 : 0}
               ml={hasRoot ? { base: 1, md: 2 } : 0}

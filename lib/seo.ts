@@ -9,6 +9,7 @@ export const defaultTools: Record<string, string> = {
 
 export function getCanonicalUrl(appPath: string): string {
   const [base, ...parts] = appPath.replace(/^\/+|\/+$/g, "").split("/");
+  if (base === "trace") return `https://explorer.eth.sh/trace${parts.length ? `/${parts.join("/")}` : ""}`;
   const subdomain = Object.values(subdomains).find((item) => item.base === base);
   if (!subdomain || subdomain.isRelativePath) {
     return `https://eth.sh${base ? `/${[base, ...parts].join("/")}` : "/"}`;
@@ -30,7 +31,7 @@ export function getToolEntryRedirect(base: string, host: string | null): string 
 }
 
 export function getPublicPageUrls(): string[] {
-  const paths = ["/", "/robin-bridge"];
+  const paths = ["/", "/robin-bridge", "/trace"];
   for (const { base, paths: tools } of Object.values(subdomains)) {
     if (!defaultTools[base]) paths.push(`/${base}`);
     for (const tool of tools) paths.push(`/${base}/${tool}`);
