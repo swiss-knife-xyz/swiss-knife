@@ -1,11 +1,11 @@
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
-  title: "EIP-712 Hash Verifier | ETH.sh",
+  title: "Safe Transaction & EIP-712 Hash Verifier | ETH.sh",
   description:
-    "Hash & Verify EIP-712 typed data: Domain Hash, Message Hash, and EIP-712 Signature Hash.",
+    "Calculate Safe 1.3.0 / 1.4.1 transaction hashes locally from manual parameters, or verify arbitrary EIP-712 typed data, domain and message hashes.",
   canonical: "https://safe.eth.sh/eip-712-hash",
-  images: "https://eth.sh/og/safe-eip-712-hash.png",
+  images: "https://eth.sh/api/og/safe-hash",
 });
 
 const EIP712HashLayout = ({ children }: { children: React.ReactNode }) => {
