@@ -6,13 +6,16 @@ export async function generateMetadata({
   params: Promise<{ address: string; chainId: string }>;
 }) {
   const { address, chainId } = await params;
-  return getMetadata({
-    canonical: `https://contract.eth.sh/${chainId}/${address}`,
-    title: `Contract ${address} | ETH.sh`,
-    description:
-      "Best UI to interact with smart contracts. Read & Write contract functions with human readable output!",
-    images: "https://eth.sh/api/og/contract", // FIXME: add meta image for contract explorer page
-  });
+  return {
+    ...getMetadata({
+      canonical: `https://explorer.eth.sh/${chainId}/${address}`,
+      title: `Contract ${address} | ETH.sh`,
+      description:
+        "Best UI to interact with smart contracts. Read & Write contract functions with human readable output!",
+      images: "https://eth.sh/api/og/contract", // FIXME: add meta image for contract explorer page
+    }),
+    robots: { index: false, follow: true },
+  };
 }
 
 const ContractLayout = ({ children }: { children: React.ReactNode }) => {

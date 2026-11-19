@@ -289,7 +289,7 @@ export const AddressInput = ({
             displayName={addressLabels[0] || ensName || undefined}
             address={resolvedAddress}
             chainId={chainId}
-            href={`${getPath(subdomains.EXPLORER.base)}address/${resolvedAddress}/contract?chainId=${chainId}`}
+            href={`${getPath(subdomains.CONTRACT.base)}${chainId ?? 1}/${resolvedAddress}`}
             aria-label={`Open address ${resolvedAddress}`}
             title="Open address"
             isExternal

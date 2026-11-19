@@ -34,12 +34,15 @@ export async function generateMetadata({
     params: Promise.resolve({ address, chainId }),
   });
 
-  return getMetadata({
-    title,
-    canonical: `https://contract.eth.sh/${chainId}/${address}`,
-    description: layoutMetadata.description as string,
-    images: "https://eth.sh/api/og/contract",
-  });
+  return {
+    ...getMetadata({
+      title,
+      canonical: `https://explorer.eth.sh/${chainId}/${address}`,
+      description: layoutMetadata.description as string,
+      images: "https://eth.sh/api/og/contract",
+    }),
+    robots: { index: false, follow: true },
+  };
 }
 
 const ContractPage = async ({

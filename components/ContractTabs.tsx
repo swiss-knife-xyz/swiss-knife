@@ -702,10 +702,11 @@ export function ContractTabs({
         {tabList()}
       </Box>
       <Box minW={0}>
+        <HStack justify="space-between" flexWrap="wrap" mb={4} gap={2}>
         <Heading
           as="h1"
           fontSize={{ base: "xl", md: "2xl" }}
-          mb={4}
+          mb={0}
           color="custom.pale"
         >
           <Link
@@ -717,6 +718,8 @@ export function ContractTabs({
             Contract Explorer
           </Link>
         </Heading>
+        <Link as={NextLink} href={getPath("explorers")} fontSize="sm" color="text.secondary" ml="auto">Explorer Directory</Link>
+        </HStack>
         <Button
           display={{ base: "inline-flex", md: "none" }}
           size="sm"
