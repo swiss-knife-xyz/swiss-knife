@@ -962,39 +962,13 @@ export const ContractPage = ({
   // Track the current chainId to avoid unnecessary client updates
   const currentChainIdRef = useRef<number>(chainId);
 
-  // Sync selectedNetworkOption when chainId prop changes (e.g., navigation)
+  // Keep the client bound to the loaded route, never the network draft.
   useEffect(() => {
-    const newOption = getNetworkOption();
-    setSelectedNetworkOption(newOption);
-    // Also update client when chainId changes from props
-    if (chainIdToChain[chainId] && chainId !== currentChainIdRef.current) {
+    if (chainId !== currentChainIdRef.current) {
       currentChainIdRef.current = chainId;
-      setClient(getPublicClient(chainId));
+      setClient(chainIdToChain[chainId] ? getPublicClient(chainId) : null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chainId]);
-
-  // Set chainId and client when network option changes
-  useEffect(() => {
-    if (selectedNetworkOption) {
-      const newChainId = parseInt(selectedNetworkOption.value.toString());
-
-      // Only push new route and update client if chainId actually changed
-      if (newChainId !== chainId) {
-        router.push(
-          `${getPath(
-            subdomains.EXPLORER.base
-          )}contract/${newChainId}/${address}`
-        );
-      }
-
-      // Only create new client if chainId actually changed
-      if (newChainId !== currentChainIdRef.current) {
-        currentChainIdRef.current = newChainId;
-        setClient(getPublicClient(newChainId));
-      }
-    }
-  }, [selectedNetworkOption, chainId, router, address]);
 
   // Fetch ABI when address or chainId changes
   useEffect(() => {
@@ -1177,25 +1151,43 @@ export const ContractPage = ({
     );
   };
 
-  // State for address input
+  // Draft inputs never drive clients or fetches; the loaded route remains authoritative.
   const [addressInput, setAddressInput] = useState(address);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const pendingRouteRef = useRef<string | null>(null);
 
-  // Sync address input when address prop changes (e.g., navigation)
+  // Back/forward and deep-link navigation replace both drafts together.
   useEffect(() => {
     setAddressInput(address);
-  }, [address]);
+    setSelectedNetworkOption(getNetworkOption());
+    setInputError(null);
+    pendingRouteRef.current = null;
+  }, [address, chainId, getNetworkOption]);
 
   const handleAddressSubmit = () => {
     const trimmedAddress = addressInput.trim();
-    if (trimmedAddress && trimmedAddress !== address) {
-      router.push(
-        `${getPath(subdomains.CONTRACT.base)}${chainId}/${trimmedAddress}`
-      );
+    if (!/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) {
+      setInputError("Please enter a valid contract address");
+      return;
     }
+    const draftChainId = Number(selectedNetworkOption?.value);
+    if (!chainIdToChain[draftChainId] || !networkOptions.some(option => option.value === draftChainId)) {
+      setInputError("Please select a valid network");
+      return;
+    }
+    setInputError(null);
+    if (trimmedAddress.toLowerCase() === address.toLowerCase() && draftChainId === chainId) return;
+
+    const route = `${getPath(subdomains.CONTRACT.base)}${draftChainId}/${trimmedAddress}`;
+    // Ignore a double click / repeated Enter while Next is applying this route.
+    if (pendingRouteRef.current === route) return;
+    pendingRouteRef.current = route;
+    router.push(route);
   };
 
-  const handleAddressKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+  const handleAddressKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.nativeEvent.isComposing && !e.repeat) {
+      e.preventDefault();
       handleAddressSubmit();
     }
   };
@@ -1234,9 +1226,14 @@ export const ContractPage = ({
                 <Input
                   placeholder="0x..."
                   value={addressInput}
-                  onChange={(e) => setAddressInput(e.target.value)}
+                  aria-label="Contract Address"
+                  isInvalid={Boolean(inputError)}
+                  aria-describedby={inputError ? "contract-load-error" : undefined}
+                  onChange={(e) => {
+                    setAddressInput(e.target.value);
+                    setInputError(null);
+                  }}
                   onKeyDown={handleAddressKeyDown}
-                  onBlur={handleAddressSubmit}
                   fontFamily="mono"
                   fontSize="sm"
                   bg="bg.muted"
@@ -1252,12 +1249,24 @@ export const ContractPage = ({
                 Network
               </Text>
               <DarkSelect
+                ariaLabel="Network"
                 selectedOption={selectedNetworkOption}
-                setSelectedOption={setSelectedNetworkOption}
+                setSelectedOption={(option) => {
+                  setSelectedNetworkOption(option);
+                  setInputError(null);
+                }}
                 options={networkOptions}
               />
             </Box>
+            <Button type="button" onClick={handleAddressSubmit} alignSelf="end">
+              Load
+            </Button>
           </HStack>
+          {inputError && (
+            <Text id="contract-load-error" role="alert" color="red.400" fontSize="sm" mb={4}>
+              {inputError}
+            </Text>
+          )}
 
           {/* Contract Info Row - Only show when ABI is loaded */}
           {abi && abi.name.length > 0 && (
