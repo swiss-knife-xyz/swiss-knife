@@ -45,7 +45,7 @@ import {
   ContractFunctionExecutionError,
   PublicClient,
   Hex,
-  encodeFunctionData,
+  encodeFunctionData as encodeAbiFunctionData,
   Abi,
   toHex,
   zeroAddress,
@@ -64,12 +64,13 @@ import { WriteButton } from "../WriteButton";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
 import { convertBooleans } from "@/lib/convertBooleans";
+import type { InferredFunctionInfo } from "@/lib/inferredContract";
 
 interface ReadWriteFunctionProps {
   client: PublicClient;
   index: number;
   type: "read" | "write";
-  func: Omit<JsonFragment, "name" | "outputs"> & {
+  func: Omit<JsonFragment, "name" | "outputs"> & InferredFunctionInfo & {
     name: HighlightedContent;
     outputs?: readonly JsonFragmentType[];
     highlightedOutputs?: ExtendedJsonFragmentType[];
@@ -200,7 +201,22 @@ const ReadWriteFunctionComponent = ({
     stateMutability,
     highlightedOutputs,
   } = __func;
-  const functionName = extractStringFromReactNode(__name);
+  const inputsUnknown = __func.inputInference?.source === "unknown";
+  // A display-only selector label is not a valid ABI function identifier.
+  const displayName = extractStringFromReactNode(__name);
+  const functionName = __func.inputInference && displayName.startsWith("selector: ")
+    ? "inferred"
+    : displayName;
+  const encodeFunctionData = useCallback((parameters: Parameters<typeof encodeAbiFunctionData>[0]): Hex => {
+    if (__func.inputInference?.source === "unknown") {
+      throw new Error("Input types are unknown; supply an ABI or use Raw Calldata.");
+    }
+    const encoded = encodeAbiFunctionData(parameters);
+    // Bytecode supplies the real selector even when no function name is known.
+    return __func.inputInference && __func.selector
+      ? `${__func.selector}${encoded.slice(10)}` as Hex
+      : encoded;
+  }, [__func]);
 
   const _func = React.useMemo(
     () =>
@@ -279,6 +295,7 @@ const ReadWriteFunctionComponent = ({
   }, [inputs, inputsState]);
 
   const readFunction = useCallback(async () => {
+    if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
     }
@@ -367,6 +384,7 @@ const ReadWriteFunctionComponent = ({
   }, [isError, functionName, client, address, _func, inputs, inputsState]);
 
   const writeFunction = useCallback(async () => {
+    if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
     }
@@ -430,6 +448,7 @@ const ReadWriteFunctionComponent = ({
 
   const callAsReadFunction = useCallback(
     async (bypassSettingError: boolean = false) => {
+      if (inputsUnknown) return;
       if (isError) {
         setIsError(false);
       }
@@ -504,6 +523,7 @@ const ReadWriteFunctionComponent = ({
   );
 
   const simulateOnTenderly = useCallback(async () => {
+    if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
     }
@@ -626,6 +646,7 @@ const ReadWriteFunctionComponent = ({
   ]);
 
   const encodeCalldataFn = useCallback(() => {
+    if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
     }
@@ -650,7 +671,9 @@ const ReadWriteFunctionComponent = ({
 
   useEffect(() => {
     try {
-      setFnSelector(FunctionFragment.from(_func).selector);
+      setFnSelector(__func.inputInference && __func.selector
+        ? __func.selector
+        : FunctionFragment.from(_func).selector);
     } catch (e) {
       console.error(e);
     }
@@ -666,7 +689,7 @@ const ReadWriteFunctionComponent = ({
   useEffect(() => {
     // if there are no inputs, then auto fetch the value
     // stagger calls by 150ms per function to avoid RPC rate limits (429)
-    if (type === "read" && (!inputs || (inputs && inputs.length === 0))) {
+    if (!inputsUnknown && type === "read" && (!inputs || (inputs && inputs.length === 0))) {
       const delay = index * 150;
       const timer = setTimeout(() => {
         readFunction();
@@ -818,7 +841,7 @@ const ReadWriteFunctionComponent = ({
             ml={4}
             onClick={readFunction}
             isDisabled={
-              inputs && inputs.some((_, i) => functionIsDisabled[i] === true)
+              inputsUnknown || (inputs && inputs.some((_, i) => functionIsDisabled[i] === true))
             }
             size={"sm"}
             title={res !== null ? "refetch" : "fetch"}
@@ -839,7 +862,7 @@ const ReadWriteFunctionComponent = ({
             simulateOnTenderly={simulateOnTenderly}
             encodeCalldata={encodeCalldataFn}
             isDisabled={
-              (inputs &&
+              inputsUnknown || (inputs &&
                 inputs.some((_, i) => functionIsDisabled[i] === true)) ||
               payableETHIsDisabled
             }
@@ -941,6 +964,12 @@ const ReadWriteFunctionComponent = ({
         <Box ml={12} mb={2} fontSize={"sm"} color="whiteAlpha.600">
           [selector: {fnSelector}]
         </Box>
+      )}
+      {/* Inference is not a verified ABI, including an explicit unknown-input state. */}
+      {__func.inputInference && (
+        <Text role="note" ml={4} mb={2} fontSize="sm" color="orange.300">
+          {__func.inputInference.message}
+        </Text>
       )}
       {/* If multiple outputs */}
       {highlightedOutputs && highlightedOutputs.length > 1 && (

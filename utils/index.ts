@@ -163,7 +163,8 @@ export const slicedText = (txt: string, charCount: number = 6) => {
 };
 import { NextRequest } from "next/server";
 import { InterfaceAbi } from "ethers";
-import { fetchFunctionInterface } from "@/lib/decoder";
+import { fetchFunctionInterfaces } from "@/lib/decoder";
+import { inferFunctionInputs } from "@/lib/inferredContract";
 import { whatsabi } from "@shazow/whatsabi";
 
 export default function getIP(request: Request | NextRequest) {
@@ -568,28 +569,12 @@ export const processContractBytecode = async ({
 
       const hexSelector = startHexWith0x(func.selector);
 
-      // Try to fetch function interface
-      const functionInterface = await fetchFunctionInterface({
-        selector: hexSelector,
-      });
-
-      let name: string | undefined;
-      if (functionInterface) {
-        name = functionInterface.split("(")[0].trim();
-      }
-
-      // evmole returns a bare comma-separated arg list (e.g. "address,uint256").
-      // Wrap in parens so parseEVMoleInputTypes treats it as a tuple, then
-      // unwrap the synthetic outer tuple to get a flat ABI inputs array.
-      const inputs = func.arguments
-        ? (parseEVMoleInputTypes(`(${func.arguments})`)[0] as any)
-            ?.components ?? []
-        : [];
+      const signatures = await fetchFunctionInterfaces({ selector: hexSelector });
+      const inferred = inferFunctionInputs(hexSelector, func.arguments, signatures);
 
       return {
         type: "function",
-        name: name || `selector: ${hexSelector}`,
-        inputs,
+        ...inferred,
         stateMutability,
         selector: hexSelector,
       };
