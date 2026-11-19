@@ -1020,9 +1020,12 @@ const ReadWriteFunctionComponent = ({
       bg={!inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
       {/* Function name and refetch button */}
-      <HStack mb={!fnSelector ? 2 : undefined}>
+      <HStack mb={!fnSelector ? 2 : undefined} flexWrap="wrap" rowGap={2}>
         <HStack
           flexGrow={1}
+          flexBasis={{ base: "100%", lg: "auto" }}
+          minW={0}
+          flexWrap="wrap"
           onClick={() => setIsCollapsed(!isCollapsed)}
           cursor={"pointer"}
         >

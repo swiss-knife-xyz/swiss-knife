@@ -327,7 +327,7 @@ export const ExplorerGridBase = ({
                 ⭐ Favorites
               </Text>
               <DndProvider backend={HTML5Backend}>
-                <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={4}>
+                <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} gap={4}>
                   {favoriteExplorerNames.map((explorerName, i) => (
                     <FavoriteExplorerGridItem
                       key={i}
@@ -347,7 +347,7 @@ export const ExplorerGridBase = ({
           </>
         )}
         <Box py={4}>
-          <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={4}>
+          <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} gap={4}>
             {filteredExplorerNames
               .filter((name) => !favoriteExplorerNames.includes(name))
               .map((explorerName, i) => (

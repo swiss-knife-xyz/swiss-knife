@@ -113,7 +113,7 @@ const ContractPage = () => {
   };
 
   return (
-    <Layout>
+    <Layout minW={0}>
       <VStack spacing={8} w="full" maxW="800px" mx="auto" px={4}>
         {/* Header */}
         <Box textAlign="center" pt={4}>

@@ -673,12 +673,12 @@ const ReadWriteSection = ({
         boxShadow="md"
         bg="bg.900"
       >
-        <HStack mb={2}>
-          <Spacer />
-          <Box fontWeight="bold" mr={allCollapsed ? "-9rem" : "-8rem"}>
+        <HStack mb={2} flexWrap="wrap" justify={{ base: "space-between", lg: undefined }}>
+          <Spacer display={{ base: "none", lg: "block" }} />
+          <Box fontWeight="bold" mr={{ base: 0, lg: allCollapsed ? "-9rem" : "-8rem" }}>
             <>{type === "read" ? "Read" : "Write"} Contract</>
           </Box>
-          <Spacer />
+          <Spacer display={{ base: "none", lg: "block" }} />
           <Button
             size="sm"
             onClick={() => {
@@ -1072,9 +1072,11 @@ const LoadedContractPage = ({
                 bg="rgba(59,130,246,0.08)"
                 borderWidth="1px"
                 borderColor="rgba(59,130,246,0.20)"
+                flexWrap={{ base: "wrap", lg: "nowrap" }}
+                rowGap={2}
               >
                 <AlertIcon color="primary.400" />
-                <HStack spacing={1} flexWrap="wrap" flex={1}>
+                <HStack spacing={1} flexWrap="wrap" flex={1} minW={0} flexBasis={{ base: "calc(100% - 40px)", lg: "auto" }}>
                   <Text color="text.secondary" fontSize="sm">
                     This is a Proxy Contract for implementation:
                   </Text>
@@ -1086,11 +1088,12 @@ const LoadedContractPage = ({
                     color="primary.400"
                     fontSize="sm"
                     fontFamily="mono"
+                    maxW="full"
                     _hover={{ color: "primary.300" }}
                     isExternal
                   >
                     <HStack spacing={1} display="inline-flex" align="center">
-                      <Text>{implementationAddress}</Text>
+                      <Text wordBreak="break-all">{implementationAddress}</Text>
                       <ExternalLink size={12} />
                     </HStack>
                   </Link>
@@ -1152,7 +1155,7 @@ const LoadedContractPage = ({
             implementationAbi={implementationAbi?.isDecoded ? null : implementationAbi?.abi ?? null}
             abiMode={isInteractingAsProxy ? "implementation" : "contract"}
             onPrefill={handlePrefill} hasActivePrefill={prefill.call !== null} />
-          <Grid templateColumns="repeat(2, 1fr)" gap={6}>
+          <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "repeat(2, minmax(0, 1fr))" }} gap={6}>
             <ReadWriteSection
               key={`read:${isInteractingAsProxy}`}
               prefilledCall={prefill.call?.abiMode === (isInteractingAsProxy ? "implementation" : "contract") ? prefill.call : null}
@@ -1228,7 +1231,7 @@ const LoadedContractPage = ({
 
   return (
     <AbiExpandedProvider>
-      <Box flexDir={"column"} minW={abi ? "60rem" : "40rem"}>
+      <Box flexDir={"column"} minW={{ base: 0, lg: abi ? "60rem" : "40rem" }}>
         <Center flexDir={"column"}>
           {/* Contract Header Card */}
           <Box
@@ -1243,7 +1246,7 @@ const LoadedContractPage = ({
         >
           {/* Top row: Address and Chain */}
           <HStack spacing={4} mb={4} flexWrap={{ base: "wrap", md: "nowrap" }}>
-            <Box flex={1} minW="280px">
+            <Box flex={1} minW={{ base: "100%", md: "280px" }}>
               <HStack spacing={2} mb={1.5} align="center">
                 <Text color="text.tertiary" fontSize="xs" fontWeight="medium" textTransform="uppercase" letterSpacing="0.05em">
                   Contract Address
@@ -1332,7 +1335,7 @@ const LoadedContractPage = ({
             </VStack>
 
             {/* Read/Write sections skeleton */}
-            <Grid templateColumns="repeat(2, 1fr)" gap={6}>
+            <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "repeat(2, minmax(0, 1fr))" }} gap={6}>
               {/* Read section skeleton */}
               <Box>
                 <Box p={3} bg="bg.muted" rounded="lg" mb={3} border="1px solid" borderColor="border.default">

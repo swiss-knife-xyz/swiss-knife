@@ -253,16 +253,27 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <Layout>
-      <HStack alignItems={"stretch"} h="full">
+    <Layout minW={0}>
+      <HStack alignItems={"stretch"} h="full" flexDir={{ base: "column", md: "row" }}>
         {(pathname.includes("/address/") ||
           pathname.includes("/contract/")) && (
-          <Sidebar
-            heading="Explorer"
-            items={SidebarItems}
-            subdomain={subdomains.EXPLORER.base}
-            exactPathMatch
-          />
+          <Box
+            flexShrink={0}
+            sx={{
+              "& > div": {
+                width: { base: "100%", md: "220px" },
+                minHeight: { base: 0, md: "100vh" },
+                paddingY: { base: 2, md: "2rem" },
+              },
+            }}
+          >
+            <Sidebar
+              heading="Explorer"
+              items={SidebarItems}
+              subdomain={subdomains.EXPLORER.base}
+              exactPathMatch
+            />
+          </Box>
         )}
         <Center flexDir="column" w="full" py={6}>
           <Box
