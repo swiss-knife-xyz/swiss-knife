@@ -20,6 +20,9 @@ interface InputFieldProps extends InputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFunctionIsDisabled: (value: boolean) => void;
   isError: boolean;
+  allowBytesBuilder?: boolean;
+  immediateUpdates?: boolean;
+  rawValues?: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
@@ -43,6 +46,9 @@ const ArrayElement = ({
   removeFromArrayInputState,
   updateArrayReadIsDisabled,
   isError,
+  allowBytesBuilder,
+  immediateUpdates,
+  rawValues,
   onKeyDown,
   fixedLength,
 }: {
@@ -56,6 +62,9 @@ const ArrayElement = ({
   removeFromArrayInputState: (id: string) => void;
   updateArrayReadIsDisabled: (id: string, value: boolean) => void;
   isError: boolean;
+  allowBytesBuilder?: boolean;
+  immediateUpdates?: boolean;
+  rawValues?: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   fixedLength?: number;
 }) => {
@@ -105,6 +114,9 @@ const ArrayElement = ({
             },
             onKeyDown,
             isError,
+            allowBytesBuilder,
+            immediateUpdates,
+            rawValues,
             isArrayChild: true,
           })}
         </Box>
@@ -119,6 +131,9 @@ export const ArrayInput = ({
   onChange,
   setFunctionIsDisabled,
   isError,
+  allowBytesBuilder,
+  immediateUpdates,
+  rawValues,
   onKeyDown,
   value,
 }: InputFieldProps) => {
@@ -223,6 +238,9 @@ export const ArrayInput = ({
           removeFromArrayInputState={removeFromArrayInputState}
           updateArrayReadIsDisabled={updateArrayReadIsDisabled}
           isError={isError}
+          allowBytesBuilder={allowBytesBuilder}
+          immediateUpdates={immediateUpdates}
+          rawValues={rawValues}
           onKeyDown={onKeyDown}
         />
       ))}
