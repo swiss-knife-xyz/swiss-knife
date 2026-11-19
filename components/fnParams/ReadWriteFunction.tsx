@@ -29,6 +29,7 @@ import {
   Spinner,
   Tooltip,
   Input,
+  Select,
 } from "@chakra-ui/react";
 import {
   ChevronDownIcon,
@@ -65,6 +66,9 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
 import { convertBooleans } from "@/lib/convertBooleans";
 import type { InferredFunctionInfo } from "@/lib/inferredContract";
+import { getPath } from "@/utils";
+import subdomains from "@/subdomains";
+import { erc165Interfaces } from "@/data/erc165Interfaces";
 
 interface ReadWriteFunctionProps {
   client: PublicClient;
@@ -220,22 +224,22 @@ const ReadWriteFunctionComponent = ({
 
   const _func = React.useMemo(
     () =>
-      ({ ...__func, name: functionName, type: "function" } as JsonFragment & {
+      ({ ...__func, name: functionName, type: "function" }) as JsonFragment & {
         type: "function";
-      }),
+      },
     [__func, functionName]
   );
 
   const outputs = _outputs
     ? _outputs
     : isAbiDecoded
-    ? [
-        {
-          type: "calldata", // set output type as custom calldata
-          name: "",
-        },
-      ]
-    : [];
+      ? [
+          {
+            type: "calldata", // set output type as custom calldata
+            name: "",
+          },
+        ]
+      : [];
 
   let tenderlyForkIdCache: string | null = null;
   if (localStorage !== undefined) {
@@ -250,6 +254,15 @@ const ReadWriteFunctionComponent = ({
   const [payableETHIsDisabled, setPayableETHIsDisabled] =
     useState<boolean>(false);
   const [inputsState, setInputsState] = useState<any>({});
+  const isSupportsInterface =
+    functionName === "supportsInterface" &&
+    inputs?.length === 1 &&
+    inputs[0].type === "bytes4";
+  const selectedInterface = isSupportsInterface
+    ? erc165Interfaces.find(
+        (entry) => entry.id === inputsState[0]?.toLowerCase()
+      )
+    : undefined;
   const [functionIsDisabled, setFunctionIsDisabled] = useState<any>({});
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
     WriteButtonType.Write
@@ -272,6 +285,13 @@ const ReadWriteFunctionComponent = ({
   const [enterPressed, setEnterPressed] = useState<boolean>(false);
   const [calldataModalOpen, setCalldataModalOpen] = useState<boolean>(false);
   const [encodedCalldata, setEncodedCalldata] = useState<string>("");
+  const [encodingError, setEncodingError] = useState("");
+
+  useEffect(() => {
+    setEncodedCalldata("");
+    setCalldataModalOpen(false);
+    setEncodingError("");
+  }, [inputsState, functionName, inputs, address, chainId, isAbiDecoded]);
 
   const updateInputState = useCallback((index: number, value: string) => {
     setInputsState((prev: any) => ({
@@ -601,7 +621,7 @@ const ReadWriteFunctionComponent = ({
         from:
           settingsSenderAddr.length > 0
             ? settingsSenderAddr
-            : userAddress ?? zeroAddress,
+            : (userAddress ?? zeroAddress),
         to: address,
         value: payableETH,
         data: encodeFunctionData({
@@ -710,10 +730,9 @@ const ReadWriteFunctionComponent = ({
 
   const encodeCalldataFn = useCallback(() => {
     if (inputsUnknown) return;
-    if (isError) {
-      setIsError(false);
-    }
-
+    setEncodingError("");
+    setEncodedCalldata("");
+    setCalldataModalOpen(false);
     try {
       const abi = [_func] as unknown as Abi;
       const args = prepareArgs();
@@ -725,12 +744,12 @@ const ReadWriteFunctionComponent = ({
       });
       setEncodedCalldata(calldata);
       setCalldataModalOpen(true);
-    } catch (e: any) {
-      console.error(e);
-      setIsError(true);
-      setErrorMsg(e.message || "Failed to encode calldata");
+    } catch (e: unknown) {
+      setEncodingError(
+        e instanceof Error ? e.message : "Failed to encode calldata"
+      );
     }
-  }, [isError, _func, inputs, inputsState, functionName]);
+  }, [_func, prepareArgs, functionName, inputsUnknown, encodeFunctionData]);
 
   useEffect(() => {
     try {
@@ -898,6 +917,17 @@ const ReadWriteFunctionComponent = ({
             </Box>
           )}
         </HStack>
+        {(type === "read" ||
+          writeButtonType !== WriteButtonType.EncodeCalldata) && (
+          <Button
+            size="sm"
+            flexShrink={0}
+            onClick={encodeCalldataFn}
+            isDisabled={inputs?.some((_, i) => functionIsDisabled[i] === true)}
+          >
+            Encode Calldata
+          </Button>
+        )}
         {/* Read/Write Buttons */}
         {!loading && type === "read" && (
           <Button
@@ -1022,6 +1052,18 @@ const ReadWriteFunctionComponent = ({
             </Popover>
           )}
       </HStack>
+      {encodingError && (
+        <Text role="alert" color="red.300" p={2} wordBreak="break-word">
+          {encodingError}
+        </Text>
+      )}
+      {isAbiDecoded && (
+        <Text fontSize="sm" color="yellow.300" px={2} mb={2}>
+          Inferred signature — not verified. Function name, parameters and
+          outputs may be incorrect. Selector matches can collide; verify against
+          source before use.
+        </Text>
+      )}
       {/* Function Selector */}
       {fnSelector && (
         <Box ml={12} mb={2} fontSize={"sm"} color="whiteAlpha.600">
@@ -1122,6 +1164,34 @@ const ReadWriteFunctionComponent = ({
             />
           </Box>
         )}
+        {isSupportsInterface && (
+          <Box ml={4} my={3}>
+            <Select
+              aria-label="ERC-165 interface preset"
+              size="sm"
+              value={selectedInterface?.id ?? ""}
+              onChange={(e) => updateInputState(0, e.target.value)}
+            >
+              <option value="">Manual bytes4 / choose a known interface</option>
+              {erc165Interfaces.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.label} — {entry.id}
+                </option>
+              ))}
+            </Select>
+            {selectedInterface && (
+              <Link fontSize="sm" href={selectedInterface.source} isExternal>
+                Interface specification <ExternalLinkIcon />
+              </Link>
+            )}
+            <Text fontSize="xs" mt={2} color="whiteAlpha.700">
+              Presets fill the input only; use Read to query. Not every ERC uses
+              ERC-165: ERC-20 does not require ERC-165. A true response is a
+              contract claim, not proof of compliance. Check ERC-165 support and
+              rejection of 0xffffffff per the standard.
+            </Text>
+          </Box>
+        )}
         {inputs && inputs.length > 0 && (
           <Box ml={4}>
             {inputs.map((input, i) => (
@@ -1219,13 +1289,24 @@ const ReadWriteFunctionComponent = ({
         size="lg"
       >
         <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
-        <ModalContent bg="bg.base" border="1px solid" borderColor="border.subtle">
+        <ModalContent
+          bg="bg.base"
+          border="1px solid"
+          borderColor="border.subtle"
+        >
           <ModalHeader color="text.primary">Encoded Calldata</ModalHeader>
           <ModalCloseButton
             color="text.secondary"
             _hover={{ color: "text.primary" }}
           />
           <ModalBody pb={6}>
+            {isAbiDecoded && (
+              <Text color="yellow.300" mb={3}>
+                Encoded using an inferred signature — not verified. Check the
+                function name and parameter types against source before using
+                this calldata.
+              </Text>
+            )}
             <Box
               p={4}
               bg="bg.muted"
@@ -1241,7 +1322,17 @@ const ReadWriteFunctionComponent = ({
             >
               {encodedCalldata}
             </Box>
-            <HStack mt={4} justify="flex-end">
+            <Text mb={3} fontSize="sm">
+              Encoding is local: it does not call, simulate or send a
+              transaction. Payable value is not part of calldata.
+            </Text>
+            <HStack mt={4} justify="flex-end" flexWrap="wrap">
+              <Link
+                href={`${getPath(subdomains.CALLDATA.base)}decoder?calldata=${encodedCalldata}`}
+                isExternal
+              >
+                Open in decoder <ExternalLinkIcon />
+              </Link>
               <CopyToClipboard
                 textToCopy={encodedCalldata}
                 labelText="Copy Calldata"
