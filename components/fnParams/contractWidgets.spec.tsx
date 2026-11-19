@@ -35,7 +35,12 @@ const client = {
   simulateContract: vi.fn(),
 };
 const address = "0x0000000000000000000000000000000000000001";
-function show(func: JsonFragment, type: "read" | "write" = "read") {
+const clipboardWrite = vi.fn();
+function show(
+  func: JsonFragment,
+  type: "read" | "write" = "read",
+  initialCall?: { args: unknown[]; value: string }
+) {
   return render(
     <ChakraProvider>
       <ReadWriteFunction
@@ -45,12 +50,17 @@ function show(func: JsonFragment, type: "read" | "write" = "read") {
         type={type}
         address={address}
         chainId={1}
+        initialCall={initialCall}
       />
     </ChakraProvider>
   );
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: clipboardWrite },
+  });
   HTMLElement.prototype.scrollTo = vi.fn();
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: vi.fn() });
   vi.stubGlobal("matchMedia", () => ({
@@ -157,6 +167,39 @@ it("keeps a single encoding action when the existing write dropdown selects Enco
   );
   fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
   expect(await screen.findByRole("dialog")).toBeTruthy();
+  expect(client.call).not.toHaveBeenCalled();
+  expect(client.simulateContract).not.toHaveBeenCalled();
+});
+
+it("prefills real nested tuple/array/bool/fixed-array widgets and re-encodes without a wallet call", async () => {
+  const iface = new Interface([
+    "function configure((bool enabled,uint256[2] limits,string note)[] settings,bytes data) payable",
+  ]);
+  const func = JSON.parse(iface.fragments[0].format("json"));
+  show(func, "write", {
+    args: [
+      [
+        ["true", ["0", "9007199254740993"], "hello"],
+        ["false", ["1", "2"], ""],
+      ],
+      "0x",
+    ],
+    value: "23",
+  });
+  expect(screen.getByDisplayValue("9007199254740993")).toBeTruthy();
+  expect(screen.getByDisplayValue("hello")).toBeTruthy();
+  const expected = iface.encodeFunctionData("configure", [
+    [
+      [true, [0n, 9007199254740993n], "hello"],
+      [false, [1n, 2n], ""],
+    ],
+    "0x",
+  ]);
+  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  expect(await screen.findByText(expected)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Copy Review Link" }));
+  const shared = new URL(clipboardWrite.mock.lastCall![0]);
+  expect(new URLSearchParams(shared.hash.slice(1)).get("value")).toBe("23");
   expect(client.call).not.toHaveBeenCalled();
   expect(client.simulateContract).not.toHaveBeenCalled();
 });

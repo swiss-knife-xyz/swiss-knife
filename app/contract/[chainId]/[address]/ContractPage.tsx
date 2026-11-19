@@ -62,6 +62,8 @@ import { Editor } from "@monaco-editor/react";
 import { Code, Download, ExternalLink, FileText, Maximize2, Minimize2 } from "lucide-react";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { SourceCodeExplorer } from "@/components/SourceCodeExplorer";
+import { ContractCallPrefill, type PrefilledCall } from "@/components/fnParams/ContractCallPrefill";
+import { contractFunctionSignature } from "@/lib/contractCall";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -389,6 +391,9 @@ const ReadWriteSection = ({
   address,
   chainId,
   isAbiDecoded,
+  prefilledCall,
+  prefillRevision,
+  abiMode,
 }: {
   type: "read" | "write";
   abi: AbiType;
@@ -397,6 +402,9 @@ const ReadWriteSection = ({
   address: string;
   chainId: number;
   isAbiDecoded?: boolean;
+  prefilledCall: PrefilledCall | null;
+  prefillRevision: number;
+  abiMode: "contract" | "implementation";
 }) => {
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
 
@@ -718,8 +726,13 @@ const ReadWriteSection = ({
           />
         )}
         {client &&
-          functions?.map((func, index) => (
-            <Box key={index} ref={(el) => { functionRefs.current[index] = el; }}>
+          functions?.map((func, index) => {
+            let initialCall: PrefilledCall | undefined;
+            try {
+              if (prefilledCall?.signature === contractFunctionSignature(func)) initialCall = prefilledCall;
+            } catch { /* Unknown inferred shapes cannot be prefilled. */ }
+            return (
+            <Box key={`${index}:${initialCall ? prefillRevision : "ordinary"}`} ref={(el) => { functionRefs.current[index] = el; }}>
               <ReadWriteFunction
                 client={client}
                 index={index + 1}
@@ -729,9 +742,11 @@ const ReadWriteSection = ({
                 chainId={chainId}
                 isAbiDecoded={isAbiDecoded || false}
                 readAllCollapsed={allCollapsed}
+                initialCall={initialCall}
+                abiMode={abiMode}
               />
             </Box>
-          ))}
+          ); })}
       </Box>
     </Box>
   );
@@ -748,7 +763,7 @@ const proxyOptions = [
   { label: "Contract", value: "contract" },
 ] as const;
 
-export const ContractPage = ({
+const LoadedContractPage = ({
   params: { address, chainId },
 }: {
   params: {
@@ -795,6 +810,15 @@ export const ContractPage = ({
     null
   );
   const [proxyAbi, setProxyAbi] = useState<AbiType | null>(null);
+  const [prefill, setPrefill] = useState<{ call: PrefilledCall | null; revision: number }>({ call: null, revision: 0 });
+  const handlePrefill = useCallback((call: PrefilledCall | null) => {
+    if (call && proxyAbi && implementationAbi) {
+      const implementation = call.abiMode === "implementation";
+      setAbi(implementation ? implementationAbi : proxyAbi);
+      setIsInteractingAsProxy(implementation);
+    }
+    setPrefill(previous => ({ call, revision: previous.revision + 1 }));
+  }, [proxyAbi, implementationAbi]);
   const [isInteractingAsProxy, setIsInteractingAsProxy] =
     useState<boolean>(false);
 
@@ -1079,10 +1103,11 @@ export const ContractPage = ({
                     }}
                     selectedOption={{
                       label: isInteractingAsProxy ? "Proxy" : "Contract",
-                      value: isInteractingAsProxy ? "proxy" : "Contract",
+                      value: isInteractingAsProxy ? "proxy" : "contract",
                     }}
                     setSelectedOption={(option) => {
                       if (option) {
+                        setPrefill(previous => ({ call: null, revision: previous.revision + 1 }));
                         const isProxy = option.value === "proxy";
                         setAbi(isProxy ? implementationAbi : proxyAbi);
                         setIsInteractingAsProxy(isProxy);
@@ -1121,8 +1146,18 @@ export const ContractPage = ({
             )}
           </VStack>
 
+          <ContractCallPrefill address={address} chainId={chainId}
+            selectedAbi={abi.isDecoded ? null : abi.abi}
+            contractAbi={(proxyAbi ?? abi).isDecoded ? null : (proxyAbi ?? abi).abi}
+            implementationAbi={implementationAbi?.isDecoded ? null : implementationAbi?.abi ?? null}
+            abiMode={isInteractingAsProxy ? "implementation" : "contract"}
+            onPrefill={handlePrefill} hasActivePrefill={prefill.call !== null} />
           <Grid templateColumns="repeat(2, 1fr)" gap={6}>
             <ReadWriteSection
+              key={`read:${isInteractingAsProxy}`}
+              prefilledCall={prefill.call?.abiMode === (isInteractingAsProxy ? "implementation" : "contract") ? prefill.call : null}
+              prefillRevision={prefill.revision}
+              abiMode={isInteractingAsProxy ? "implementation" : "contract"}
               type="read"
               abi={abi}
               client={client}
@@ -1132,6 +1167,10 @@ export const ContractPage = ({
               isAbiDecoded={isAbiDecoded}
             />
             <ReadWriteSection
+              key={`write:${isInteractingAsProxy}`}
+              prefilledCall={prefill.call?.abiMode === (isInteractingAsProxy ? "implementation" : "contract") ? prefill.call : null}
+              prefillRevision={prefill.revision}
+              abiMode={isInteractingAsProxy ? "implementation" : "contract"}
               type="write"
               abi={abi}
               client={client}
@@ -1358,3 +1397,7 @@ export const ContractPage = ({
     </AbiExpandedProvider>
   );
 };
+
+// Never pair a new route with the previous route's ABI, prefill or pending preview.
+export const ContractPage = (props: { params: { address: string; chainId: number } }) =>
+  <LoadedContractPage key={`${props.params.chainId}:${props.params.address.toLowerCase()}`} {...props} />;

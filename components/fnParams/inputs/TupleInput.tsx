@@ -30,7 +30,12 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   isArrayChild,
   value,
 }) => {
-  const [tupleInputsState, setTupleInputsState] = useState<TupleInputState>({});
+  const [tupleInputsState, setTupleInputsState] = useState<TupleInputState>(
+    () =>
+      Array.isArray(value)
+        ? Object.fromEntries(value.map((v, i) => [i, v]))
+        : {}
+  );
   const [tupleReadIsDisabled, setTupleReadIsDisabled] = useState<
     Record<number, boolean>
   >({});
@@ -118,8 +123,8 @@ export const TupleInput: React.FC<InputFieldProps> = ({
         !isArrayChild
           ? "whiteAlpha.200"
           : isError && isAnyChildInvalid
-          ? "red.300"
-          : "transparent"
+            ? "red.300"
+            : "transparent"
       }
       rounded="md"
       bg={"whiteAlpha.50"}

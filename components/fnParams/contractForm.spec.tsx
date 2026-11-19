@@ -82,7 +82,8 @@ function form(
   func: JsonFragment = transfer,
   type: "read" | "write" = "read",
   inferred = false,
-  collapsed = false
+  collapsed = false,
+  abiMode: "contract" | "implementation" = "contract"
 ) {
   return (
     <ChakraProvider>
@@ -95,6 +96,7 @@ function form(
         chainId={1}
         isAbiDecoded={inferred}
         readAllCollapsed={collapsed}
+        abiMode={abiMode}
       />
     </ChakraProvider>
   );
@@ -149,6 +151,29 @@ it("encodes the current read ABI/arguments locally, offers exact copy and a deco
   expect(client.simulateContract).not.toHaveBeenCalled();
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it("shares current calldata, loaded route, ABI mode and wei value as a review-only fragment", async () => {
+  render(form(transfer, "read", false, false, "implementation"));
+  fill("to", address);
+  fill("amount", "9007199254740993");
+  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Copy Review Link" })
+  );
+  const url = new URL(copied.mock.lastCall![0]);
+  expect(url.pathname).toBe(`/contract/1/${address}`);
+  const params = new URLSearchParams(url.hash.slice(1));
+  expect(params.get("data")).toBe(
+    new Interface([transfer]).encodeFunctionData("transfer", [
+      address,
+      9007199254740993n,
+    ])
+  );
+  expect(params.get("abi")).toBe("implementation");
+  expect(params.get("value")).toBe("0");
+  expect(params.get("function")).toBe("transfer(address,uint256)");
+  expect(wallet.sendTransaction).not.toHaveBeenCalled();
 });
 
 it("removes old calldata when arguments or the selected function change", async () => {
