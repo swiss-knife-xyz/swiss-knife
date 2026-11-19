@@ -58,6 +58,8 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { decodeEvents, decodeRecursive } from "@/lib/decoder";
 import { getDisplayFunctionName } from "@/utils/functionNames";
 
+const noMetadataNetwork = { label: "No network (skip chain lookup)", value: 0 };
+
 function DecoderTabs({
   tabs,
   selectedTabIndex,
@@ -145,8 +147,15 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   );
   const [chainId, setChainId] = useQueryState<number>(
     "chainId",
-    parseAsInteger.withDefault(1)
+    parseAsInteger.withDefault(1).withOptions({ clearOnDefault: false })
   );
+  const [metadataNetwork, setMetadataNetwork] = useState<SelectedOptionState>(
+    networkOptions.find((option) => String(option.value) === chainIdFromURL) ??
+      noMetadataNetwork
+  );
+  const metadataChainId = metadataNetwork?.value
+    ? Number(metadataNetwork.value)
+    : undefined;
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>(networkOptions[networkOptionsIndex]);
 
@@ -179,7 +188,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   useUpdateEffect(() => {
     if (selectedTabIndex === 0) {
       setContractAddress(null);
-      setChainId(null);
+      setChainId(metadataChainId ?? null);
       setFromTxInput(null);
     } else if (selectedTabIndex === 1) {
       setContractAddress(null);
@@ -196,7 +205,9 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   }, [selectedTabIndex]);
 
   useEffect(() => {
-    if (selectedTabIndex === 2) {
+    if (selectedTabIndex === 0) {
+      setChainId(metadataChainId ?? null);
+    } else if (selectedTabIndex === 2) {
       setChainId(parseInt(selectedNetworkOption!.value.toString()));
     } else if (selectedTabIndex === 3) {
       if (txShowSelectNetwork) {
@@ -207,7 +218,12 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     } else if (!abi) {
       setChainId(null);
     }
-  }, [txShowSelectNetwork, selectedNetworkOption, selectedTabIndex]);
+  }, [
+    txShowSelectNetwork,
+    selectedNetworkOption,
+    selectedTabIndex,
+    metadataChainId,
+  ]);
 
   // not using useEffect because else it loads the page with selectedTabIndex = 0 as default, and removes the address & chainId
   useUpdateEffect(() => {
@@ -219,7 +235,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     // remove from url params if calldata updated
     if (selectedTabIndex === 0 || selectedTabIndex === 1) {
       setContractAddress(null);
-      setChainId(null);
+      if (selectedTabIndex === 1) setChainId(null);
     }
   }, [calldata]);
 
@@ -670,7 +686,20 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const renderTabsBody = () => {
     switch (selectedTabIndex) {
       case 0:
-        return null;
+        return (
+          <Box>
+            <Text fontSize="sm" color="gray.400" mb={2}>
+              Optionally select a network to look up token symbols and contract
+              names. Addresses remain available if metadata cannot be found.
+            </Text>
+            <DarkSelect
+              ariaLabel="Token metadata network (optional)"
+              options={[noMetadataNetwork, ...networkOptions]}
+              selectedOption={metadataNetwork}
+              setSelectedOption={setMetadataNetwork}
+            />
+          </Box>
+        );
       case 1:
         return <FromABIBody />;
       case 2:
@@ -840,7 +869,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
           <Box minW={0}>
             <CalldataTree
               args={result.args}
-              chainId={chainId}
+              chainId={selectedTabIndex === 0 ? metadataChainId : chainId}
               functionName={resolvedFunctionName.name ?? result.functionName}
               isFunctionNameGuessed={resolvedFunctionName.isGuessed}
             />
