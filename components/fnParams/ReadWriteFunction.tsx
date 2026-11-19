@@ -383,7 +383,32 @@ const ReadWriteFunctionComponent = ({
     }
   }, [isError, functionName, client, address, _func, inputs, inputsState]);
 
-  const writeFunction = useCallback(async () => {
+  const [writePreview, setWritePreview] = useState<{
+    key: string;
+    data: Hex;
+    result: unknown;
+  } | null>(null);
+  const writeContextKey = JSON.stringify([
+    chainId, address, _func, inputsState, payableETH, userAddress,
+    chain?.id, walletClient?.account?.address, walletClient?.chain?.id,
+    client.chain?.id, writeButtonType, isAbiDecoded,
+  ]);
+  const writeContextRef = useRef(writeContextKey);
+  writeContextRef.current = writeContextKey;
+  const simulationId = useRef(0);
+  const writeInFlight = useRef(false);
+  const cancelWritePreview = useCallback(() => {
+    simulationId.current++;
+    setWritePreview(null);
+    if (!writeInFlight.current) setLoading(false);
+  }, []);
+  useEffect(() => {
+    cancelWritePreview();
+    return () => { simulationId.current++; };
+  }, [writeContextKey, client, cancelWritePreview]);
+
+  const sendWriteTransaction = useCallback(async (calldata: Hex, key: string) => {
+    if (key !== writeContextRef.current || writeInFlight.current) return;
     if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
@@ -394,16 +419,13 @@ const ReadWriteFunctionComponent = ({
       setTxHash(null);
       setConfirmedTxHash(null);
 
+      writeInFlight.current = true;
+      setWritePreview(null);
       try {
-        // encode calldata
-        const calldata = await encodeFunctionData({
-          abi: [_func] as const,
-          functionName: functionName,
-          args: prepareArgs(),
-        });
-
-        // send transaction to wallet
+        // Use the exact calldata reviewed by the user.
         const hash = await walletClient.sendTransaction({
+          account: walletClient.account,
+          chain: walletClient.chain,
           to: address as Hex,
           data: calldata,
           value: BigInt(payableETH),
@@ -416,6 +438,7 @@ const ReadWriteFunctionComponent = ({
 
         await waitForTransactionReceipt(config, {
           hash,
+          chainId,
         });
 
         setConfirmedTxHash(hash);
@@ -432,19 +455,59 @@ const ReadWriteFunctionComponent = ({
           }).shortMessage
         );
       } finally {
+        writeInFlight.current = false;
         setLoading(false);
       }
     }
-  }, [
-    isError,
-    functionName,
-    walletClient,
-    address,
-    _func,
-    inputs,
-    inputsState,
-    payableETH,
-  ]);
+  }, [isError, functionName, walletClient, address, payableETH, chainId, inputsUnknown]);
+
+  const writeFunction = useCallback(async () => {
+    if (inputsUnknown || !walletClient || loading || writeInFlight.current) return;
+    const key = writeContextKey;
+    const id = ++simulationId.current;
+    const isCurrent = () => id === simulationId.current && key === writeContextRef.current;
+    setWritePreview(null);
+    setIsError(false);
+    setTxHash(null);
+    setConfirmedTxHash(null);
+    setLoading(true);
+    try {
+      if (chain?.id !== chainId || walletClient.chain?.id !== chainId ||
+          !userAddress || walletClient.account.address.toLowerCase() !== userAddress.toLowerCase()) {
+        throw new Error("Wallet account or network changed. Reconnect on the selected chain and retry.");
+      }
+      const args = prepareArgs();
+      const data = encodeFunctionData({ abi: [_func] as const, functionName, args });
+      // Inferred bytecode has no trustworthy return ABI. Keep its existing write path.
+      if (!isAbiDecoded && _outputs && _outputs.length > 0) {
+        if (client.chain?.id !== chainId) {
+          throw new Error("Simulation client does not match the selected chain.");
+        }
+        const simulation = await client.simulateContract({
+          abi: [_func] as unknown as Abi,
+          functionName,
+          address: address as Hex,
+          account: walletClient.account,
+          chain: walletClient.chain,
+          args,
+          value: BigInt(payableETH),
+        });
+        if (isCurrent()) setWritePreview({ key, data, result: simulation.result });
+      } else if (isCurrent()) {
+        await sendWriteTransaction(data, key);
+      }
+    } catch (error: any) {
+      if (isCurrent()) {
+        setIsError(true);
+        setErrorMsg(`Write preview failed. Nothing sent to wallet. ${error.shortMessage || error.message || "Simulation unavailable; retry the write."}`);
+      }
+    } finally {
+      // A stale request must not overwrite a newer attempt's loading state.
+      if (id === simulationId.current) setLoading(false);
+    }
+  }, [inputsUnknown, walletClient, loading, writeContextKey, chain, chainId,
+    userAddress, prepareArgs, _func, functionName, isAbiDecoded, _outputs,
+    client, address, payableETH, sendWriteTransaction]);
 
   const callAsReadFunction = useCallback(
     async (bypassSettingError: boolean = false) => {
@@ -1103,6 +1166,50 @@ const ReadWriteFunctionComponent = ({
           </Center>
         )}
       </Box>
+
+      <Modal
+        isOpen={writePreview !== null && writePreview.key === writeContextKey}
+        onClose={cancelWritePreview}
+        isCentered
+        size="lg"
+      >
+        <ModalOverlay />
+        <ModalContent bg="bg.base">
+          <ModalHeader>Predicted return (simulation)</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Text mb={4}>
+              Predicted using the current chain state and your wallet sender. This is
+              not a receipt or a guarantee: state may change before execution. No
+              transaction has been sent. Your wallet will ask for confirmation next.
+            </Text>
+            <Box fontSize="sm" mb={4} wordBreak="break-all">
+              <Text>Chain: {chainId}</Text>
+              <Text>Contract: {address}</Text>
+              <Text>Sender: {userAddress}</Text>
+              <Text>Value (wei): {payableETH}</Text>
+            </Box>
+            <Box role="status" aria-live="polite" fontFamily="mono" whiteSpace="pre-wrap" overflowWrap="anywhere">
+              {_outputs?.map((output, i) => (
+                <Box key={i} mb={3}>
+                  <Text fontWeight="bold">{output.name || `Output ${i + 1}`} ({output.type})</Text>
+                  {JSON.stringify(
+                    _outputs.length === 1 ? writePreview?.result : (writePreview?.result as unknown[])?.[i],
+                    (_, value) => typeof value === "bigint" ? value.toString() : value,
+                    2
+                  )}
+                </Box>
+              ))}
+            </Box>
+            <HStack mt={4} justify="flex-end" flexWrap="wrap">
+              <Button onClick={cancelWritePreview}>Cancel</Button>
+              <Button colorScheme="blue" onClick={() => {
+                if (writePreview) void sendWriteTransaction(writePreview.data, writePreview.key);
+              }}>Continue to wallet</Button>
+            </HStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
 
       {/* Encode Calldata Modal */}
       <Modal

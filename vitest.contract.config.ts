@@ -5,7 +5,7 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
   test: {
     environment: "jsdom",
-    include: ["components/fnParams/inferredContract.spec.tsx"],
+    include: ["components/fnParams/*.spec.tsx"],
     maxWorkers: 1,
   },
 });
