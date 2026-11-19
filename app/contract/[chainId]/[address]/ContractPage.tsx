@@ -64,6 +64,7 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { SourceCodeExplorer } from "@/components/SourceCodeExplorer";
 import { ContractCallPrefill, type PrefilledCall } from "@/components/fnParams/ContractCallPrefill";
 import { contractFunctionSignature } from "@/lib/contractCall";
+import { AddressInspectorProvider, InspectAddressButton } from "@/components/AddressInspector";
 
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -1080,6 +1081,7 @@ const LoadedContractPage = ({
                   <Text color="text.secondary" fontSize="sm">
                     This is a Proxy Contract for implementation:
                   </Text>
+                  <InspectAddressButton address={implementationAddress} />
                   <Link
                     href={`${getPath(
                       subdomains.EXPLORER.base
@@ -1403,4 +1405,6 @@ const LoadedContractPage = ({
 
 // Never pair a new route with the previous route's ABI, prefill or pending preview.
 export const ContractPage = (props: { params: { address: string; chainId: number } }) =>
-  <LoadedContractPage key={`${props.params.chainId}:${props.params.address.toLowerCase()}`} {...props} />;
+  <AddressInspectorProvider key={`${props.params.chainId}:${props.params.address.toLowerCase()}`} chainId={props.params.chainId}>
+    <LoadedContractPage {...props} />
+  </AddressInspectorProvider>;

@@ -6,7 +6,6 @@ import {
   Box,
   HStack,
   Spacer,
-  Link,
   Button,
   Tag,
 } from "@chakra-ui/react";
@@ -32,6 +31,7 @@ import { Address, zeroAddress, erc20Abi } from "viem";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import { AddressBookButton } from "@/components/AddressBook";
 import { getPublicClient } from "@/lib/publicClient";
+import { InspectAddressButton } from "@/components/AddressInspector";
 
 const resolveGlow = keyframes`
   0%, 100% {
@@ -246,7 +246,7 @@ export const AddressInput = ({
 
   return (
     <Box>
-      <HStack mb={2}>
+      <HStack mb={2} flexWrap="wrap" rowGap={2}>
         <InputInfo input={input} />
         {addressLabels.length > 0 && (
           <HStack py="2">
@@ -283,18 +283,21 @@ export const AddressInput = ({
             </motion.div>
           )}
         </AnimatePresence>
+        <InspectAddressButton address={value} />
         {resolvedAddress && (
-          <Link
+          <Button
+            as="a"
+            size="xs"
             href={`${getPath(
               subdomains.EXPLORER.base
             )}address/${resolvedAddress}/contract?chainId=${chainId}`}
             title="View on explorer"
-            isExternal
+            aria-label={`Open address ${resolvedAddress} in explorer`}
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            <Button size="xs">
-              <ExternalLinkIcon />
-            </Button>
-          </Link>
+            <ExternalLinkIcon />
+          </Button>
         )}
       </HStack>
       <Box>

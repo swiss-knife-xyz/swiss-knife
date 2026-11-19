@@ -11,7 +11,6 @@ import {
   InputRightElement,
   InputLeftElement,
   Tag,
-  Link,
   Skeleton,
   IconButton,
   Tooltip,
@@ -33,6 +32,7 @@ import { erc20Abi } from "viem";
 import { useAddressBook } from "@/hooks/useAddressBook";
 import { AddressLabelModal } from "@/components/AddressBook";
 import { getPublicClient } from "@/lib/publicClient";
+import { InspectAddressButton } from "@/components/AddressInspector";
 
 interface Params {
   address: any;
@@ -272,8 +272,8 @@ export const AddressParam = ({
             )}
           </HStack>
         )}
-        <HStack>
-          <InputGroup minW={0}>
+        <HStack flexWrap={{ base: "wrap", md: "nowrap" }} rowGap={2}>
+          <InputGroup flex={1} minW={{ base: "100%", md: 0 }}>
             {/* Toggle button + icon inside input */}
             {availableModes.length > 1 ||
             isShowingLabel ||
@@ -350,21 +350,23 @@ export const AddressParam = ({
               />
             </Tooltip>
           )}
+          {!showSkeleton && <InspectAddressButton address={address} />}
           {showLink && (
-            <Link
+            <Button
+              as="a"
+              size="xs"
+              {...explorerButtonProps}
               href={`${getPath(
                 subdomains.EXPLORER.base,
                 subdomains.EXPLORER.isRelativePath
               )}address/${address}${!!chainId ? "?chainId=" + chainId : ""}`}
               target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open address ${address} in explorer`}
               _hover={{ textDecoration: "none" }}
             >
-              <Button size="xs" {...explorerButtonProps}>
-                <HStack>
-                  <ExternalLinkIcon />
-                </HStack>
-              </Button>
-            </Link>
+              <ExternalLinkIcon />
+            </Button>
           )}
         </HStack>
 
