@@ -38,6 +38,49 @@ export type SkillResource = {
 
 const skillResourcesData: SkillResource[] = [
   {
+    id: "namera-skills",
+    name: "Namera Skills",
+    provider: "Namera",
+    url: "https://github.com/thenamespace/namera/tree/main/skills/namera",
+    logoDomain: "namera.ai",
+    toolTypes: ["Skill", "MCP", "CLI", "API"],
+    categories: ["Wallet", "Developer", "Infrastructure"],
+    tags: [
+      "Agent wallets",
+      "Session keys",
+      "Spending limits",
+      "Gas sponsorship",
+      "EVM",
+    ],
+    install: "npx skills add thenamespace/namera --skill namera --yes",
+    description:
+      "Open-beta EVM agent-wallet toolkit with a skill, CLI, local stdio MCP, and API access. Agents inspect accounts, submit transactions, and sign messages within authorized session-key permissions and spending limits. Optional gas sponsorship is subject to account limits. The skill install is separate from CLI installation and browser authorization for MCP.",
+    sourceUrls: [
+      "https://github.com/thenamespace/namera/tree/main/skills/namera",
+      "https://namera.ai/docs",
+      "https://namera.ai/docs/mcp",
+      "https://namera.ai/docs/cli/guides/transactions/sponsor-gas",
+    ],
+  },
+  {
+    id: "stalkchain-data-mcp",
+    name: "StalkChain Data",
+    provider: "StalkChain",
+    url: "https://stalkchain.com/mcp",
+    logoDomain: "stalkchain.com",
+    toolTypes: ["MCP"],
+    categories: ["Data", "Wallet", "Cross-chain"],
+    tags: ["Wallet research", "Token holders", "Trader activity", "Alerts"],
+    install: "https://data.stalkchain.com/mcp/directory",
+    description:
+      "Remote crypto-research MCP for public wallet holdings, token holders, and tracked-trader activity. Chain coverage varies by tool and includes Solana, Ethereum, Base, BNB Chain, and other supported chains. Uses browser OAuth and metered StalkChain account credits. The directory profile is documented for research and email-alert management; creating or deleting alerts changes account state.",
+    sourceUrls: [
+      "https://stalkchain.com/mcp",
+      "https://github.com/StalkChain/fomo-mcp-api",
+      "https://github.com/StalkC/stalkchain-plugin",
+    ],
+  },
+  {
     id: "yield-xyz-agentkit",
     name: "Yield.xyz AgentKit",
     provider: "Yield.xyz",
