@@ -57,6 +57,7 @@ import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { decodeEvents, decodeRecursive } from "@/lib/decoder";
 import { getDisplayFunctionName } from "@/utils/functionNames";
+import { decoderSamples } from "./samples";
 
 function DecoderTabs({
   tabs,
@@ -792,6 +793,40 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
               Decode
             </DarkButton>
           </Box>
+          {!result &&
+            !isLoading &&
+            !calldata &&
+            !fromTxInput &&
+            !contractAddress &&
+            !abi && (
+              <HStack justify="center" flexWrap="wrap" spacing={1}>
+                <Text fontSize="sm" color="gray.500" mr={1}>
+                  Try a real transaction:
+                </Text>
+                {decoderSamples.map((sample) => (
+                  <Button
+                    key={sample.id}
+                    size="sm"
+                    variant="ghost"
+                    colorScheme="blue"
+                    onClick={() => {
+                      setSelectedTabIndex(3);
+                      setFromTxInput(sample.explorerUrl);
+                      setSelectedNetworkOption(
+                        networkOptions.find(
+                          (option) => option.value === sample.chainId
+                        )!
+                      );
+                      setTxShowSelectNetwork(true);
+                      setChainId(sample.chainId);
+                      decodeFromTx(sample.explorerUrl, sample.chainId);
+                    }}
+                  >
+                    {sample.label}
+                  </Button>
+                ))}
+              </HStack>
+            )}
         </VStack>
       </Box>
 
