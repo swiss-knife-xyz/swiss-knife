@@ -15,7 +15,7 @@ import subdomains from "@/subdomains";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { Arg, DecodeBytesParamResult, DecodeTupleParamResult } from "@/types";
 
-export const renderParamTypes = (arg: Arg, chainId?: number) => {
+export const renderParamTypes = (arg: Arg, chainId?: number, isArrayChild = false) => {
   if (arg.baseType.includes("uint")) {
     return <UintParam value={arg.value} />;
   } else if (arg.baseType.includes("int")) {
@@ -42,6 +42,7 @@ export const renderParamTypes = (arg: Arg, chainId?: number) => {
   } else if (arg.baseType === "tuple") {
     return (
       <TupleParam
+        isArrayChild={isArrayChild}
         arg={{
           ...arg,
           value: arg.value as DecodeTupleParamResult,
