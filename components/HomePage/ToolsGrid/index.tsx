@@ -33,6 +33,7 @@ const directoryEntries = directorySubdomains.map(
 );
 
 const usefulToolEntries = [
+  ["rpc", { emoji: "🔎", label: "Raw RPC Console", description: "Query blockchain data with JSON-RPC", isRelativePath: true }],
   [
     migrateSubdomain,
     {

@@ -7,6 +7,7 @@
     "build": "next build",
     "build:robin-oft-artifacts": "tsx scripts/buildRobinOftArtifacts.ts",
     "test": "tsx --test",
+    "test:rpc": "vitest run --config vitest.rpc.config.ts",
     "test:gas-cost": "vitest run --config vitest.gas-cost.config.ts",
     "test:safe-hash": "vitest run --config vitest.safe-hash.config.ts",
     "test:tuples": "vitest run --config vitest.tuples.config.ts",
