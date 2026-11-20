@@ -158,6 +158,10 @@ export const toolOgCards = {
       "from Safe wallets without an ABI ✨",
     ],
   },
+  "mock-tokens": {
+    title: "Deploy Mock Tokens",
+    description: ["Create ERC20, ERC721 and ERC1155 tokens", "for testing on EVM networks."],
+  },
   "rpc-console": {
     title: "RPC Console",
     description: ["Query blockchain data with JSON-RPC", "across Ethereum and EVM chains."],

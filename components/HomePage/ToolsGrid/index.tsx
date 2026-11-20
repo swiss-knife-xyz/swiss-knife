@@ -34,6 +34,16 @@ const directoryEntries = directorySubdomains.map(
 
 const usefulToolEntries = [
   [
+    "mock-tokens",
+    {
+      emoji: "🧪",
+      label: "Deploy Mock Tokens",
+      description:
+        "Mintable ERC20, ERC721 & ERC1155 — explicit testnet or mainnet and gas review",
+      isRelativePath: true,
+    },
+  ],
+  [
     migrateSubdomain,
     {
       ...subdomainToInfo[migrateSubdomain],
