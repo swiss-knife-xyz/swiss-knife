@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:mock-token-artifacts": "tsx scripts/buildMockTokenArtifacts.ts",
+    "test:mock-tokens": "vitest run --config vitest.mock-tokens.config.ts",
+    "test:mock-tokens-evm": "tsx scripts/testMockTokensEvm.ts",
     "build:robin-oft-artifacts": "tsx scripts/buildRobinOftArtifacts.ts",
     "test": "tsx --test",
     "test:contract": "vitest run --config vitest.contract.config.ts",
