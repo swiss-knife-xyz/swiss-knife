@@ -37,7 +37,7 @@ import { useAddressBook } from "@/hooks/useAddressBook";
 import { AddressBookInlineButton } from "@/components/AddressBook";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { JsonFragment } from "ethers";
-import { Address, PublicClient } from "viem";
+import { Address, PublicClient, isAddress } from "viem";
 import { getPublicClient } from "@/lib/publicClient";
 import { whatsabi } from "@shazow/whatsabi";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -85,7 +85,6 @@ const useDebouncedValue = (value: any, delay: number) => {
 type AbiType = {
   abi: JsonFragment[];
   name: string;
-  // Provenance belongs to this ABI, not the outer proxy/address.
   isDecoded?: boolean;
 };
 
@@ -773,6 +772,11 @@ const LoadedContractPage = ({
   };
 }) => {
   const router = useTopLoaderRouter();
+  // Use the loaded route, never the editable address or pending network selection.
+  const explorer = chainIdToChain[chainId]?.blockExplorers?.default;
+  const explorerUrl = explorer?.url && isAddress(address)
+    ? `${explorer.url}/address/${address}`
+    : undefined;
 
   // Find network option, default to first option (mainnet) if not found
   const getNetworkOption = useCallback(() => {
@@ -801,7 +805,8 @@ const LoadedContractPage = ({
   });
 
   const [abi, setAbi] = useState<AbiType | null>(null);
-  const isAbiDecoded = abi?.isDecoded === true;
+  // Provenance belongs to the selected ABI, not the outer proxy address.
+  const isAbiDecoded = abi?.isDecoded ?? false;
   const [isFetchingAbi, setIsFetchingAbi] = useState<boolean>(false);
   const [unableToFetchAbi, setUnableToFetchAbi] = useState<boolean>(false);
   const [implementationAddress, setImplementationAddress] = useState<
@@ -875,6 +880,8 @@ const LoadedContractPage = ({
           name: fetchedAbi.name,
         });
       }
+
+
     } catch (e) {
       console.log("Error fetching verified ABI:", e);
 
@@ -890,6 +897,8 @@ const LoadedContractPage = ({
         if (contractCode === "0x") {
           throw new Error("No contract code found at address");
         }
+
+
 
         // check if contract is a proxy
         const resGetImplementation = await getImplementationFromBytecodeIfProxy(
@@ -1253,6 +1262,20 @@ const LoadedContractPage = ({
                 <Text color="text.tertiary" fontSize="xs" fontWeight="medium" textTransform="uppercase" letterSpacing="0.05em">
                   Contract Address
                 </Text>
+                {explorerUrl && (
+                  <Link
+                    href={explorerUrl}
+                    isExternal
+                    rel="noopener noreferrer"
+                    aria-label={`View contract on ${explorer.name} (opens in a new tab)`}
+                    title={`View contract on ${explorer.name} (opens in a new tab)`}
+                    display="inline-flex"
+                    color="text.tertiary"
+                    _hover={{ color: "text.primary" }}
+                  >
+                    <ExternalLink size={14} aria-hidden="true" />
+                  </Link>
+                )}
                 {/* Address Book Button - self-contained to avoid parent re-renders */}
                 <AddressBookInlineButton
                   address={address}

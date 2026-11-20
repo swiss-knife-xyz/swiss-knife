@@ -3,6 +3,12 @@ const subdomains = require("./subdomains.js");
 require("dotenv/config");
 
 const nextConfig = {
+  experimental: {
+    // Keep compilation serial and release compiler heaps between stages.
+    webpackMemoryOptimizations: true,
+    webpackBuildWorker: true,
+    cpus: 1,
+  },
   reactStrictMode: true,
   // Enable Turbopack with empty config (webpack config still applies when needed)
   turbopack: {},
@@ -51,8 +57,7 @@ const nextConfig = {
           .filter((subdomain) => subdomain.base !== "explorers")
           .flatMap((subdomain) => [
             {
-              source:
-                `/:path((?!${subdomain.base === "contract" ? "(?:trace|verify)(?:/|$)|" : ""}_next|api|og(?:/|$)|frame(?:/|$)|robots\\.txt$|sitemap\\.xml$|favicon\\.ico$|apple-touch-icon\\.png$|chainIcons|tokenIcons|external|icon.png|logo.png|splashImage.png|worker).*)`, // Exclude API routes, static assets and worker from subdomain rewrites
+              source: `/:path((?!${subdomain.base === "contract" ? "(?:trace|verify)(?:/|$)|" : ""}_next|api|og(?:/|$)|frame(?:/|$)|robots\\.txt$|sitemap\\.xml$|favicon\\.ico$|apple-touch-icon\\.png$|chainIcons|tokenIcons|external|icon.png|logo.png|splashImage.png|worker).*)`, // Exclude API routes, static assets and worker from subdomain rewrites
               has: [
                 {
                   type: "host",

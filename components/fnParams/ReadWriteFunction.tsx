@@ -847,6 +847,9 @@ const ReadWriteFunctionComponent = ({
 
   const encodeCalldataFn = useCallback(() => {
     if (inputsUnknown) return;
+    if (isError) {
+      setIsError(false);
+    }
     setEncodingError("");
     setEncodedCalldata("");
     setCalldataModalOpen(false);
@@ -866,7 +869,7 @@ const ReadWriteFunctionComponent = ({
         e instanceof Error ? e.message : "Failed to encode calldata"
       );
     }
-  }, [_func, prepareArgs, functionName, inputsUnknown, encodeFunctionData]);
+  }, [_func, prepareArgs, functionName]);
 
   useEffect(() => {
     try {

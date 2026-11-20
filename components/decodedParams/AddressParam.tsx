@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Button,
   type ButtonProps,
@@ -62,7 +62,18 @@ export const AddressParam = ({
   const [ensAvatar, setEnsAvatar] = useState("");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("address");
 
-  const [addressLabels, setAddressLabels] = useState<string[]>([]);
+  const [labelResult, setLabelResult] = useState<{
+    address: string;
+    chainId?: number;
+    labels: string[];
+  }>();
+  // Never display the previous address/network's metadata, even before effects run.
+  const addressLabels =
+    labelResult &&
+    labelResult.address === address &&
+    labelResult.chainId === chainId
+      ? labelResult.labels
+      : [];
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Get label from global address book
@@ -124,44 +135,45 @@ export const AddressParam = ({
     }
   };
 
-  const fetchSetAddressLabels = useCallback(async () => {
-    setAddressLabels([]);
+  useEffect(() => {
+    if (address === skeletonAddress) return;
+    let cancelled = false;
 
-    try {
-      if (!chainId) throw new Error("Chain ID not provided");
+    const fetchLabels = async (): Promise<string[]> => {
+      try {
+        if (!chainId) throw new Error("Chain ID not provided");
+        const client = getPublicClient(chainId);
+        await client.getBytecode({ address: address as Address });
+        if (cancelled) return [];
 
-      const client = getPublicClient(chainId);
+        // Reuse the existing token symbol / verified contract name lookup.
+        try {
+          const symbol = await client.readContract({
+            address: address as Address,
+            abi: erc20Abi,
+            functionName: "symbol",
+          });
+          return symbol ? [symbol] : [];
+        } catch {
+          if (cancelled) return [];
+          const fetchedAbi = await fetchContractAbi({ address, chainId });
+          return fetchedAbi?.name ? [fetchedAbi.name] : [];
+        }
+      } catch {
+        return cancelled ? [] : fetchAddressLabels(address, chainId);
+      }
+    };
 
-      // check if the address is a contract
-      const res = await client.getBytecode({
-        address: address as Address,
+    fetchLabels()
+      .then((labels) => {
+        if (!cancelled) setLabelResult({ address, chainId, labels });
+      })
+      .catch(() => {
+        if (!cancelled) setLabelResult({ address, chainId, labels: [] });
       });
-
-      // try fetching the contract symbol() if it's a token
-      try {
-        const symbol = await client.readContract({
-          address: address as Address,
-          abi: erc20Abi,
-          functionName: "symbol",
-        });
-        setAddressLabels([symbol]);
-      } catch {
-        // else try fetching the contract name if it's verified
-        const fetchedAbi = await fetchContractAbi({ address, chainId });
-        if (fetchedAbi) {
-          setAddressLabels([fetchedAbi.name]);
-        }
-      }
-    } catch {
-      try {
-        const labels = await fetchAddressLabels(address, chainId);
-        if (labels.length > 0) {
-          setAddressLabels(labels);
-        }
-      } catch {
-        setAddressLabels([]);
-      }
-    }
+    return () => {
+      cancelled = true;
+    };
   }, [address, chainId]);
 
   useEffect(() => {
@@ -184,12 +196,6 @@ export const AddressParam = ({
       setDisplayMode("label");
     }
   }, [addressBookLabel]);
-
-  useEffect(() => {
-    if (address !== skeletonAddress) {
-      fetchSetAddressLabels();
-    }
-  }, [address, chainId, fetchSetAddressLabels]);
 
   useEffect(() => {
     if (ensName) {

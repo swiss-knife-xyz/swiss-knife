@@ -56,7 +56,11 @@ test("crawler discovery is scoped to the requesting host", async () => {
   assert.equal(r.status, 200);
   assert.deepEqual(
     [...r.body.matchAll(/<loc>(.*?)<\/loc>/g)].map((x) => x[1]).sort(),
-    ["https://explorer.eth.sh/", "https://explorer.eth.sh/trace"]
+    [
+      "https://explorer.eth.sh/",
+      "https://explorer.eth.sh/trace",
+      "https://explorer.eth.sh/verify",
+    ]
   );
   assert.match(r.headers["cache-control"], /no-store/);
   const robots = await request("explorer.eth.sh", "/robots.txt");
@@ -160,10 +164,16 @@ test("host sitemap exact sets and unknown-host discovery exclusion", async () =>
     "eth.sh": [
       "https://eth.sh/",
       "https://eth.sh/robin-bridge",
+      "https://eth.sh/mock-tokens",
+      "https://eth.sh/rpc",
       "https://eth.sh/explorers",
       "https://eth.sh/orgs",
     ],
-    "explorer.eth.sh": ["https://explorer.eth.sh/trace", "https://explorer.eth.sh/"],
+    "explorer.eth.sh": [
+      "https://explorer.eth.sh/trace",
+      "https://explorer.eth.sh/verify",
+      "https://explorer.eth.sh/",
+    ],
     "solidity.eth.sh": ["https://solidity.eth.sh/compiler"],
     "contract.eth.sh": [],
     "orgs.eth.sh": [],

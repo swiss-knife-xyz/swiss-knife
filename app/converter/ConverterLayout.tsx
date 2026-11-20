@@ -14,6 +14,7 @@ import subdomains from "@/subdomains";
 
 const SidebarItems: SidebarItem[] = [
   { name: "ETH", path: "eth", icon: FiDollarSign },
+  { name: "Gas Cost", path: "gas-cost", icon: FiDollarSign },
   { name: "Hexadecimal", path: "hexadecimal", icon: FiHash },
   { name: "Keccak256", path: "keccak256", icon: FiLock },
   { name: "Padding", path: "padding", icon: FiAlignLeft },
