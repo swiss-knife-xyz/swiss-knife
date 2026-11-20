@@ -33,6 +33,15 @@ const directoryEntries = directorySubdomains.map(
 
 const usefulToolEntries = [
   [
+    "rpc",
+    {
+      emoji: "🔎",
+      label: "Raw RPC Console",
+      description: "Read-only JSON-RPC queries and batches — fixed public chain providers, no wallet",
+      isRelativePath: true,
+    },
+  ],
+  [
     "mock-tokens",
     {
       emoji: "🧪",

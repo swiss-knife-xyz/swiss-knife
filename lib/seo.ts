@@ -31,7 +31,7 @@ export function getToolEntryRedirect(base: string, host: string | null): string 
 }
 
 export function getPublicPageUrls(): string[] {
-  const paths = ["/", "/robin-bridge", "/trace", "/verify", "/mock-tokens"];
+  const paths = ["/", "/robin-bridge", "/trace", "/verify", "/mock-tokens", "/rpc"];
   for (const { base, paths: tools } of Object.values(subdomains)) {
     if (!defaultTools[base]) paths.push(`/${base}`);
     for (const tool of tools) paths.push(`/${base}/${tool}`);
