@@ -8,6 +8,7 @@
     "build:robin-oft-artifacts": "tsx scripts/buildRobinOftArtifacts.ts",
     "test": "tsx --test",
     "test:contract": "vitest run --config vitest.contract.config.ts",
+    "test:contract-load": "vitest run --config vitest.contract-load.config.ts",
     "start": "next start",
     "lint": "next lint",
     "fetch-dapps": "tsx scripts/fetchSafeDapps.ts"
@@ -95,6 +96,7 @@
     "@layerzerolabs/oapp-evm": "0.3.2",
     "@layerzerolabs/oft-evm": "3.2.1",
     "@openzeppelin/contracts": "5.0.2",
+    "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.0",
     "@types/cors": "^2.8.17",
     "@types/diff": "^5.2.3",
