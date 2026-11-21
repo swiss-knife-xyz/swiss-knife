@@ -1389,17 +1389,25 @@ const LoadedContractPage = ({
           {abi && (
             <>
               <Box h="1px" bg="border.default" mb={4} />
-              <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "auto minmax(0, 1fr) auto" }} gap={3} alignItems="center">
+              <Grid
+                templateColumns={{
+                  base: "minmax(0, 1fr)",
+                  md: "minmax(0, 1fr) auto auto",
+                  lg: "auto minmax(0, 1fr) auto",
+                }}
+                gap={3}
+                alignItems="center"
+              >
                 {/* Left side: Contract name + proxy selector */}
                 <HStack spacing={3} flexWrap="wrap" minW={0}>
-                  <HStack spacing={2}>
-                    <Text color="text.secondary" fontSize="sm">Contract:</Text>
+                  <HStack spacing={2} minW={0}>
+                    <Text color="text.secondary" fontSize="sm" flexShrink={0}>Contract:</Text>
                     <Text color="text.primary" fontWeight="semibold" fontSize="sm" overflowWrap="anywhere" minW={0}>{abi.name || slicedText(address)}</Text>
                   </HStack>
                 </HStack>
 
                 {/* Contract tools */}
-                <HStack spacing={2} flexWrap="wrap" minW={0} justify={{ base: "flex-start", lg: "center" }} rowGap={2}>
+                <HStack spacing={2} flexWrap="wrap" minW={0} justify={{ base: "flex-start", md: "center" }} rowGap={2}>
                   <AbiSourceCodeToggle />
                   <ContractCallPrefill
                     address={address}
@@ -1414,7 +1422,7 @@ const LoadedContractPage = ({
                 </HStack>
 
                 {/* Right side: Connect button */}
-                <Box minW={0} justifySelf={{ base: "start", lg: "end" }}>
+                <Box minW={0} justifySelf={{ base: "start", md: "end" }}>
                   <ConnectButton expectedChainId={chainId} />
                 </Box>
               </Grid>
