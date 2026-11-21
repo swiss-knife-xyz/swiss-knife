@@ -568,3 +568,64 @@ it("ignores metadata from a previous address on the same chain", async () => {
   expect(screen.queryByText("STALE")).toBeNull();
   expect(screen.getByDisplayValue(nextAddress)).toBeTruthy();
 });
+
+it("never carries an ENS name or copy value to the next decoded address", async () => {
+  const first = "0xab7def16d63c49422bd8692e118ab780eb5410e6";
+  const second = "0x20400f8774d5e1a3c34a5e7b1891cd41a77e75c9";
+  const nextName = deferred<string | null>();
+  mocks.resolve.mockImplementation((a: string) =>
+    a === first ? Promise.resolve("walletchan.eth") : nextName.promise
+  );
+  const view = render(param(undefined, first));
+  await screen.findByDisplayValue("walletchan.eth");
+  view.rerender(param(undefined, second));
+  expect(screen.queryByDisplayValue("walletchan.eth")).toBeNull();
+  expect(screen.getByDisplayValue(second)).toBeTruthy();
+  expect(document.querySelector('[data-copy="walletchan.eth"]')).toBeNull();
+  await act(async () => nextName.resolve(null));
+  expect(screen.getByDisplayValue(second)).toBeTruthy();
+});
+
+it("ignores a previous address's late ENS response", async () => {
+  const oldName = deferred<string | null>();
+  const second = "0x20400f8774d5e1a3c34a5e7b1891cd41a77e75c9";
+  mocks.resolve.mockImplementation((a: string) =>
+    a === address ? oldName.promise : Promise.resolve("current.eth")
+  );
+  const view = render(param(undefined, address));
+  view.rerender(param(undefined, second));
+  await screen.findByDisplayValue("current.eth");
+  await act(async () => oldName.resolve("walletchan.eth"));
+  expect(screen.queryByDisplayValue("walletchan.eth")).toBeNull();
+  expect(screen.getByDisplayValue("current.eth")).toBeTruthy();
+});
+
+it("clears the previous result while decoding and after a failed replacement", async () => {
+  render(page());
+  await decode();
+  const pending = deferred<any>();
+  mocks.decode.mockReturnValueOnce(pending.promise);
+  fireEvent.change(screen.getByRole("textbox", { name: "Calldata" }), {
+    target: { value: "0x87654321" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Decode" }));
+  expect(screen.queryByText("Decoded calldata")).toBeNull();
+  expect(screen.queryByDisplayValue(address)).toBeNull();
+  await act(async () => pending.reject(new Error("Invalid replacement calldata")));
+  expect(screen.queryByText("Decoded calldata")).toBeNull();
+  await screen.findByText("Invalid replacement calldata");
+});
+
+it("ignores late avatars and failed ENS lookups after changing addresses", async () => {
+  const avatar = deferred<string | null>();
+  mocks.resolve.mockResolvedValueOnce("walletchan.eth").mockRejectedValueOnce(new Error("ENS unavailable"));
+  mocks.avatar.mockReturnValueOnce(avatar.promise);
+  const view = render(param(undefined, address));
+  await screen.findByDisplayValue("walletchan.eth");
+  await waitFor(() => expect(mocks.avatar).toHaveBeenCalledWith("walletchan.eth"));
+  const second = "0x20400f8774d5e1a3c34a5e7b1891cd41a77e75c9";
+  view.rerender(param(undefined, second));
+  await act(async () => avatar.resolve("https://example.test/old-avatar.png"));
+  expect(screen.getByDisplayValue(second)).toBeTruthy();
+  expect(document.querySelector('img[src="https://example.test/old-avatar.png"]')).toBeNull();
+});

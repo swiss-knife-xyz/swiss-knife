@@ -656,10 +656,13 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   }) => {
     if (id === undefined) {
       id = ++requestId.current;
+      setDecodedEvents(null);
+      setResultTabIndex(0);
       setIsLoadingEvents(false);
     }
     const __calldata = _calldata || calldata;
 
+    setResult(undefined);
     setIsLoading(true);
     console.log("DECODING...");
     try {
@@ -705,6 +708,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     }
     leaveExample();
     const id = ++requestId.current;
+    setResult(undefined);
     console.log("decodeFromTx called");
     setIsLoading(true);
     setDecodedEvents(null);

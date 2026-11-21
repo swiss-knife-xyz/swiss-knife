@@ -48,7 +48,19 @@ const skeletonAddress = "0x1111222233334444000000000000000000000000";
 
 type DisplayMode = "label" | "ens" | "address";
 
-export const AddressParam = ({
+// Metadata and display choices belong to one address/network/source. Remount
+// before rendering a different identity, rather than clearing old data in an effect.
+export const AddressParam = (props: Params) => {
+  const example = useContext(ExampleSnapshotContext);
+  return (
+    <AddressParamContent
+      key={JSON.stringify([props.address, props.chainId, !!example])}
+      {...props}
+    />
+  );
+};
+
+const AddressParamContent = ({
   address: _address,
   showLink,
   chainId,
@@ -71,10 +83,10 @@ export const AddressParam = ({
   }>();
   // Never display the previous address/network's metadata, even before effects run.
   const addressLabels = example
-    ? example.addresses[`${chainId}:${address.toLowerCase()}`]?.labels ?? []
+    ? (example.addresses[`${chainId}:${address.toLowerCase()}`]?.labels ?? [])
     : labelResult &&
-    labelResult.address === address &&
-    labelResult.chainId === chainId
+        labelResult.address === address &&
+        labelResult.chainId === chainId
       ? labelResult.labels
       : [];
   const [isLoaded, setIsLoaded] = useState(false);
@@ -180,34 +192,41 @@ export const AddressParam = ({
   }, [address, chainId, example]);
 
   useEffect(() => {
+    let cancelled = false;
     if (!example && address !== skeletonAddress) {
-      resolveAddressToName(address).then((res) => {
-        if (res) {
-          setEnsName(res);
-          // Default to showing ENS if no address book label
-          if (!addressBookLabel) {
-            setDisplayMode("ens");
+      resolveAddressToName(address)
+        .then((res) => {
+          if (!cancelled && res) {
+            setEnsName(res);
           }
-        }
-      });
+        })
+        .catch(() => {});
     }
+    return () => {
+      cancelled = true;
+    };
   }, [address, example]);
 
-  // Set display mode to label when address book label becomes available
+  // Resolve the preference from current metadata, not the address-book value
+  // captured when an asynchronous ENS lookup started.
   useEffect(() => {
-    if (addressBookLabel) {
-      setDisplayMode("label");
-    }
-  }, [addressBookLabel]);
+    setDisplayMode(addressBookLabel ? "label" : ensName ? "ens" : "address");
+  }, [addressBookLabel, ensName]);
 
   useEffect(() => {
+    let cancelled = false;
     if (!example && ensName) {
-      getNameAvatar(ensName).then((res) => {
-        if (res) {
-          setEnsAvatar(res);
-        }
-      });
+      getNameAvatar(ensName)
+        .then((res) => {
+          if (!cancelled && res) {
+            setEnsAvatar(res);
+          }
+        })
+        .catch(() => {});
     }
+    return () => {
+      cancelled = true;
+    };
   }, [ensName, example]);
 
   useEffect(() => {

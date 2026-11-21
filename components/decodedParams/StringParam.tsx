@@ -34,8 +34,18 @@ interface Params {
   disableRich?: boolean;
 }
 
-// FIXME: passing chainId leads to infinite calls to fetch labels and ENS
-export const StringParam = ({
+// URL previews and view choices must never carry over to another parameter.
+export const StringParam = (props: Params) => {
+  const example = useContext(ExampleSnapshotContext);
+  return (
+    <StringParamContent
+      key={JSON.stringify([props.value, props.chainId, !!example])}
+      {...props}
+    />
+  );
+};
+
+const StringParamContent = ({
   value: _value,
   chainId,
   disableRich,
@@ -53,10 +63,13 @@ export const StringParam = ({
   } | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const capturedUrl = example && Object.hasOwn(example.urls, value)
-    ? example.urls[value]
-    : undefined;
-  const urlContent = example ? JSON.stringify(capturedUrl?.json) : liveUrlContent;
+  const capturedUrl =
+    example && Object.hasOwn(example.urls, value)
+      ? example.urls[value]
+      : undefined;
+  const urlContent = example
+    ? JSON.stringify(capturedUrl?.json)
+    : liveUrlContent;
   const isUrlImageOrJson = example
     ? capturedUrl && {
         isJson: capturedUrl.json !== undefined,
@@ -252,7 +265,9 @@ export const StringParam = ({
           if (isUrlImageOrJson?.isJson && urlContent) {
             return <RichJsonTable _value={urlContent} chainId={chainId} />;
           } else if (isUrlImageOrJson?.isImage) {
-            return <ResizableImage src={capturedUrl?.image ?? resolveIPFS(value)} />;
+            return (
+              <ResizableImage src={capturedUrl?.image ?? resolveIPFS(value)} />
+            );
           } else {
             return <SimpleString />;
           }
@@ -395,7 +410,9 @@ export const StringParam = ({
           }
         })
         .catch(() => {});
-      return () => { cancelled = true; };
+      return () => {
+        cancelled = true;
+      };
     }
   }, [example, isUrl, value]);
 
