@@ -39,6 +39,9 @@ interface Params {
   explorersData: ExplorersData;
   explorerType: ExplorerType;
   addressOrTx: string;
+  syncFiltersToUrl?: boolean;
+  showFilters?: boolean;
+  initialChainIds?: number[];
 }
 
 const chainIdOptions = [
@@ -58,11 +61,14 @@ export const ExplorerGridBase = ({
   explorersData,
   explorerType,
   addressOrTx,
+  syncFiltersToUrl = true,
+  showFilters = true,
+  initialChainIds = [],
 }: Params) => {
   const searchParams = useSearchParams();
 
   const [searchExplorer, setSearchExplorer] = useState<string>("");
-  const [chainIdsSelected, setChainIdsSelected] = useState<number[]>([]);
+  const [chainIdsSelected, setChainIdsSelected] = useState<number[]>(initialChainIds);
 
   const [favoriteExplorerNames, setFavoriteExplorerNames] = useLocalStorage<
     string[]
@@ -75,12 +81,15 @@ export const ExplorerGridBase = ({
   );
 
   const forContractsFromURL = searchParams.get("forContracts");
-  const [forContracts, setForContracts] = useQueryState<boolean>(
+  const [urlForContracts, setUrlForContracts] = useQueryState<boolean>(
     "forContracts",
     parseAsBoolean.withDefault(
       forContractsFromURL ? forContractsFromURL === "true" : false
     )
   );
+  const [localForContracts, setLocalForContracts] = useState(false);
+  const forContracts = syncFiltersToUrl ? urlForContracts : localForContracts;
+  const setForContracts = syncFiltersToUrl ? setUrlForContracts : setLocalForContracts;
 
   const toggleFavorite = (explorerName: string) => {
     if (!explorersData[explorerName]) return;
@@ -100,10 +109,11 @@ export const ExplorerGridBase = ({
   );
 
   useEffect(() => {
-    setForContracts(
+    if (!syncFiltersToUrl) return;
+    setUrlForContracts(
       forContractsFromURL ? forContractsFromURL === "true" : false
     );
-  }, [forContractsFromURL, setForContracts]);
+  }, [forContractsFromURL, setUrlForContracts, syncFiltersToUrl]);
 
   const filteredExplorerNames = useMemo(
     () => Object.keys(explorersData)
@@ -145,7 +155,7 @@ export const ExplorerGridBase = ({
             <Input
               placeholder="Search explorers..."
               aria-label="Search explorers"
-              pr={explorerType === ExplorerType.ADDRESS ? (searchExplorer ? 32 : 24) : (searchExplorer ? 24 : 16)}
+              pr={!showFilters ? (searchExplorer ? 12 : 4) : explorerType === ExplorerType.ADDRESS ? (searchExplorer ? 32 : 24) : (searchExplorer ? 24 : 16)}
               value={searchExplorer}
               onChange={(e) => setSearchExplorer(e.target.value)}
               bg="whiteAlpha.50"
@@ -165,7 +175,7 @@ export const ExplorerGridBase = ({
                   <CloseIcon boxSize={3} />
                 </Button>
               )}
-              <Popover isLazy lazyBehavior="unmount">
+              {showFilters && <Popover isLazy lazyBehavior="unmount">
                 <PopoverTrigger>
                   <Button
                     aria-label={`Chains${chainIdsSelected.length ? ` (${chainIdsSelected.length})` : ""}`}
@@ -257,8 +267,8 @@ export const ExplorerGridBase = ({
                   </PopoverBody>
                 </PopoverContent>
                 </Portal>
-              </Popover>
-              {explorerType === ExplorerType.ADDRESS && (
+              </Popover>}
+              {showFilters && explorerType === ExplorerType.ADDRESS && (
                 <Tooltip
                   label="Filter explorers only for contracts"
                   placement="top"

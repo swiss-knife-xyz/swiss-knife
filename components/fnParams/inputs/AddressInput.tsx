@@ -6,10 +6,10 @@ import {
   Box,
   HStack,
   Spacer,
-  Link,
   Button,
   Tag,
 } from "@chakra-ui/react";
+import { ContractAddressLink } from "@/components/ContractTabs";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   fetchContractAbi,
@@ -284,17 +284,18 @@ export const AddressInput = ({
           )}
         </AnimatePresence>
         {resolvedAddress && (
-          <Link
-            href={`${getPath(
-              subdomains.EXPLORER.base
-            )}address/${resolvedAddress}/contract?chainId=${chainId}`}
-            title="View on explorer"
+          <Button
+            as={ContractAddressLink}
+            address={resolvedAddress}
+            chainId={chainId}
+            href={`${getPath(subdomains.EXPLORER.base)}address/${resolvedAddress}/contract?chainId=${chainId}`}
+            aria-label={`Open address ${resolvedAddress}`}
+            title="Open address"
             isExternal
+            size="xs"
           >
-            <Button size="xs">
-              <ExternalLinkIcon />
-            </Button>
-          </Link>
+            <ExternalLinkIcon />
+          </Button>
         )}
       </HStack>
       <Box>

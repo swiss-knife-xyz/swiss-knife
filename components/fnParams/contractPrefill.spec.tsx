@@ -20,7 +20,7 @@ const abi = JSON.parse(
 );
 const address = "0x0000000000000000000000000000000000000001";
 const onPrefill = vi.fn();
-function show() {
+function show(restoreFromUrl = true) {
   return render(
     <ChakraProvider>
       <ContractCallPrefill
@@ -31,6 +31,7 @@ function show() {
         implementationAbi={null}
         abiMode="contract"
         onPrefill={onPrefill}
+        restoreFromUrl={restoreFromUrl}
       />
     </ChakraProvider>
   );
@@ -166,4 +167,21 @@ it("closes without applying calldata and returns focus to the toolbar button", a
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   await waitFor(() => expect(document.activeElement).toBe(trigger));
   expect(onPrefill).not.toHaveBeenCalledWith(expect.objectContaining({ signature: expect.anything() }));
+});
+
+
+it("does not import the original page fragment into a newly opened address tab", async () => {
+  const data = new Interface(abi).encodeFunctionData("transfer(uint256)", [37]);
+  const url = createContractCallLink(window.location.origin + "/contract/", 1, address, {
+    data, value: "0", abiMode: "contract", signature: "transfer(uint256)",
+  });
+  window.history.replaceState(null, "", url);
+  show(false);
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
+  expect(onPrefill).not.toHaveBeenCalled();
+  fireEvent.change(await openRawCalldata(), { target: { value: data } });
+  fireEvent.click(screen.getByRole("button", { name: "Fill parameters" }));
+  await waitFor(() => expect(onPrefill).toHaveBeenCalledWith(
+    expect.objectContaining({ signature: "transfer(uint256)", args: ["37"] }), expect.any(Function)
+  ));
 });

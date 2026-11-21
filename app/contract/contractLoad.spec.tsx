@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { ContractPage } from "./[chainId]/[address]/ContractPage";
@@ -100,7 +101,7 @@ function page(chainId = 1, loadedAddress = address) {
   );
 }
 async function loaded() {
-  await screen.findByText("Loaded contract");
+  await within(document.querySelector('[id^="address-panel-"]:not([hidden])') as HTMLElement).findByText("Loaded contract");
   expect(fetchAbi).toHaveBeenCalledTimes(1);
   fetchAbi.mockClear();
   source.mockClear();
@@ -147,7 +148,7 @@ it("stages address and network through blur/tab without navigating, fetching or 
   expect(fetchAbi).not.toHaveBeenCalled();
   expect(source).not.toHaveBeenCalled();
   expect(getClient).not.toHaveBeenCalled();
-  expect(screen.getByText("Loaded contract")).toBeTruthy();
+  expect(within(document.querySelector('[id^="address-panel-"]:not([hidden])') as HTMLElement).getByText("Loaded contract")).toBeTruthy();
   expect(screen.getByTestId("saved-address").textContent).toBe(address);
   expect(screen.getByTestId("wallet-chain").textContent).toBe("1");
 });
@@ -201,13 +202,13 @@ it.each(["", "0x1234", "vitalik.eth", `0x${"z".repeat(40)}`])(
     ).toBe("alert");
     expect(push).not.toHaveBeenCalled();
     expect(fetchAbi).not.toHaveBeenCalled();
-    expect(screen.getByText("Loaded contract")).toBeTruthy();
+    expect(within(document.querySelector('[id^="address-panel-"]:not([hidden])') as HTMLElement).getByText("Loaded contract")).toBeTruthy();
   }
 );
 
 it("loads a valid non-mainnet deep link immediately without any submit or navigation", async () => {
   render(page(8453, draft));
-  await screen.findByText("Loaded contract");
+  await within(document.querySelector('[id^="address-panel-"]:not([hidden])') as HTMLElement).findByText("Loaded contract");
   expect(fetchAbi).toHaveBeenCalledExactlyOnceWith({
     address: draft,
     chainId: 8453,

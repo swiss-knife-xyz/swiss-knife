@@ -36,6 +36,7 @@ type Props = {
   abiMode: CallReview["abiMode"];
   onPrefill: (call: PrefilledCall | null, onScrollStart?: () => void) => void;
   hasActivePrefill?: boolean;
+  restoreFromUrl?: boolean;
 };
 
 export function ContractCallPrefill({
@@ -44,6 +45,7 @@ export function ContractCallPrefill({
   implementationAbi,
   abiMode,
   onPrefill,
+  restoreFromUrl = true,
 }: Props) {
   const [data, setData] = useState("");
   const [error, setError] = useState("");
@@ -107,7 +109,10 @@ export function ContractCallPrefill({
   );
 
   useEffect(() => {
-    const restore = () => {
+    if (!restoreFromUrl) return;
+    const restore = (event?: Event) => {
+      // Workspace history restores the mounted form, including its edited params.
+      if (event instanceof PopStateEvent && event.state?.contractWorkspaceTab) return;
       pendingPrefill.current = null;
       try {
         const shared = parseContractCallFragment(window.location.hash);
@@ -144,7 +149,7 @@ export function ContractCallPrefill({
       window.removeEventListener("hashchange", restore);
       window.removeEventListener("popstate", restore);
     };
-  }, [contractAbi, implementationAbi, decode, fail, onPrefill]);
+  }, [contractAbi, implementationAbi, decode, fail, onPrefill, restoreFromUrl]);
 
   useEffect(() => {
     if (!isDecoding) return;
@@ -168,7 +173,7 @@ export function ContractCallPrefill({
   const fadeMotion = {
     initial: { opacity: 0 },
     animate: { opacity: 1 },
-    exit: { opacity: 0 },
+    exit: { opacity: 0, transition: { duration: 0 } },
     transition: { duration: 0.15 },
   };
 

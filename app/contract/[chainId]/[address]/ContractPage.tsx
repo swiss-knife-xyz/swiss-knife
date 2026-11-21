@@ -65,6 +65,8 @@ import { SourceCodeExplorer } from "@/components/SourceCodeExplorer";
 import { ContractCallPrefill, type PrefilledCall } from "@/components/fnParams/ContractCallPrefill";
 import { contractFunctionSignature } from "@/lib/contractCall";
 
+import { ContractTabs, ContractAddressLink, useContractTab } from "@/components/ContractTabs";
+
 const useDebouncedValue = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -693,19 +695,19 @@ const ReadWriteSection = ({
     <Box
       minW={0}
       w="full"
-      id={`contract-${type}-functions`}
+      id={`contract-${chainId}-${address.toLowerCase()}-${type}-functions`}
       role="tabpanel"
-      aria-labelledby={`contract-${type}-tab`}
+      aria-labelledby={`contract-${chainId}-${address.toLowerCase()}-${type}-tab`}
       display={{ base: mobileActive ? "block" : "none", lg: "block" }}
     >
       <Box
         ref={stickyHeaderRef}
         position="sticky"
-        top={{ base: 0, lg: abi.name.length > 0 ? "40px" : "0" }}
+        top={{ base: 12, md: 0 }}
         zIndex={1}
         p={2}
         boxShadow="md"
-        bg="bg.900"
+        bg="bg.base"
       >
         <HStack mb={3} justify="space-between" flexWrap="wrap" gap={2}>
           <Box fontWeight="bold">
@@ -809,6 +811,8 @@ const LoadedContractPage = ({
     chainId: number;
   };
 }) => {
+  const contractTab = useContractTab();
+  const setTabName = contractTab?.setName;
   const router = useTopLoaderRouter();
 
   // Find network option, default to first option (mainnet) if not found
@@ -838,6 +842,9 @@ const LoadedContractPage = ({
   });
 
   const [abi, setAbi] = useState<AbiType | null>(null);
+  useEffect(() => {
+    if (abi?.name) setTabName?.(abi.name);
+  }, [abi?.name, setTabName]);
   const isAbiDecoded = abi?.isDecoded === true;
   const [isFetchingAbi, setIsFetchingAbi] = useState<boolean>(false);
   const [unableToFetchAbi, setUnableToFetchAbi] = useState<boolean>(false);
@@ -1133,7 +1140,9 @@ const LoadedContractPage = ({
                   <Text color="text.secondary" fontSize="sm">
                     Proxy implementation:
                   </Text>
-                  <Link
+                  <ContractAddressLink
+                    address={implementationAddress}
+                    chainId={chainId}
                     href={`${getPath(
                       subdomains.EXPLORER.base
                     )}contract/${chainId}/${implementationAddress}`}
@@ -1147,7 +1156,7 @@ const LoadedContractPage = ({
                   >
                     <Text as="span">{implementationAddress}</Text>{" "}
                     <Icon as={ExternalLink} boxSize={3} verticalAlign="middle" />
-                  </Link>
+                  </ContractAddressLink>
                 </Box>
                 <HStack spacing={2} gridColumn={{ base: 2, lg: "auto" }} minW={0} flexWrap="wrap">
                   <Text color="text.primary" fontSize="sm">Interact as</Text>
@@ -1210,9 +1219,9 @@ const LoadedContractPage = ({
             {(["read", "write"] as const).map(type => (
               <Button
                 key={type}
-                id={`contract-${type}-tab`}
+                id={`contract-${chainId}-${address.toLowerCase()}-${type}-tab`}
                 role="tab"
-                aria-controls={`contract-${type}-functions`}
+                aria-controls={`contract-${chainId}-${address.toLowerCase()}-${type}-functions`}
                 aria-selected={mobileFunctionType === type}
                 tabIndex={mobileFunctionType === type ? 0 : -1}
                 flex={1}
@@ -1313,6 +1322,7 @@ const LoadedContractPage = ({
         <Center flexDir={"column"}>
           {/* Contract Header Card */}
           <Box
+            sx={{ containerType: "inline-size" }}
             w="full"
             maxW="70rem"
           bg="bg.subtle"
@@ -1390,10 +1400,10 @@ const LoadedContractPage = ({
             <>
               <Box h="1px" bg="border.default" mb={4} />
               <Grid
-                templateColumns={{
-                  base: "minmax(0, 1fr)",
-                  md: "minmax(0, 1fr) auto auto",
-                  lg: "auto minmax(0, 1fr) auto",
+                templateColumns="minmax(0, 1fr)"
+                sx={{
+                  "@container (min-width: 620px)": { gridTemplateColumns: "minmax(0, 1fr) auto auto" },
+                  "@container (min-width: 900px)": { gridTemplateColumns: "auto minmax(0, 1fr) auto" },
                 }}
                 gap={3}
                 alignItems="center"
@@ -1407,9 +1417,10 @@ const LoadedContractPage = ({
                 </HStack>
 
                 {/* Contract tools */}
-                <HStack spacing={2} flexWrap="wrap" minW={0} justify={{ base: "flex-start", md: "center" }} rowGap={2}>
+                <HStack spacing={2} flexWrap="wrap" minW={0} justify="flex-start" sx={{ "@container (min-width: 620px)": { justifyContent: "center" } }} rowGap={2}>
                   <AbiSourceCodeToggle />
                   <ContractCallPrefill
+                    restoreFromUrl={contractTab?.initial ?? true}
                     address={address}
                     chainId={chainId}
                     selectedAbi={abi.abi}
@@ -1422,7 +1433,7 @@ const LoadedContractPage = ({
                 </HStack>
 
                 {/* Right side: Connect button */}
-                <Box minW={0} justifySelf={{ base: "start", md: "end" }}>
+                <Box minW={0} justifySelf="start" sx={{ "@container (min-width: 620px)": { justifySelf: "end" } }}>
                   <ConnectButton expectedChainId={chainId} />
                 </Box>
               </Grid>
@@ -1505,4 +1516,9 @@ const LoadedContractPage = ({
 
 // Never pair a new route with the previous route's ABI, prefill or pending preview.
 export const ContractPage = (props: { params: { address: string; chainId: number } }) =>
-  <LoadedContractPage key={`${props.params.chainId}:${props.params.address.toLowerCase()}`} {...props} />;
+  <ContractTabs key={`${props.params.chainId}:${props.params.address.toLowerCase()}`} initial={props.params} renderContract={params => <LoadedContractPage params={params} />} />;
+
+
+export const ContractWorkspace = () => (
+  <ContractTabs renderContract={params => <LoadedContractPage params={params} />} />
+);
