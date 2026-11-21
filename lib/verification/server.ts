@@ -1,242 +1,79 @@
-// Server-only dependency: importing this module from a client build is unsupported.
-import { randomBytes } from "node:crypto";
+// Server-only: upstream credentials and provider job IDs never reach the client.
+import { randomBytes, createHash } from "node:crypto";
 import {
-  importBlockscoutSource,
-  verificationInput,
-  VERIFICATION_CHAINS,
-  VerificationError,
   VERIFICATION_MESSAGES,
-  type ImportedSource,
-  type VerificationChain,
+  VerificationError,
+  PROVIDERS,
+  providersFor,
+  explorerUrl,
+  verificationInput,
+  type VerificationProvider,
   type VerificationReview,
   type VerificationStatus,
   type VerificationState,
 } from "./source";
-
-const ETHERSCAN_ENDPOINT = "https://api.etherscan.io/v2/api";
+import { ProviderClient, type ProviderKeys } from "./providers";
+import { MemoryJobStore, type JobStore, type VerificationJob } from "./store";
+import { record } from "./normalize";
+import { readJson, isSameOrigin } from "./transport";
 const MINUTE = 60_000;
 const headers = {
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
 };
-type Job = {
-  id: string;
-  chainId: VerificationChain;
-  address: string;
-  destinationUrl: string;
-  expires: number;
-  state: VerificationState;
-  source?: ImportedSource;
-  guid?: string;
-  lastCheck: number;
-};
 type Dependencies = {
   key: () => string | undefined;
+  keys?: () => ProviderKeys;
   fetch?: typeof fetch;
   now?: () => number;
+  store?: JobStore;
 };
-
-/** Bounded streaming read: never parse unlimited provider or caller data. */
-async function readJson(
-  body: ReadableStream<Uint8Array> | null,
-  max: number,
-  signal: AbortSignal
-): Promise<unknown> {
-  if (!body) throw new VerificationError("UNAVAILABLE");
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let bytes = 0;
-  let abort: (() => void) | undefined;
-  try {
-    const aborted = new Promise<never>((_, reject) => {
-      abort = () => {
-        void reader.cancel().catch(() => {});
-        reject(new VerificationError("UNAVAILABLE"));
-      };
-      signal.addEventListener("abort", abort, { once: true });
-      if (signal.aborted) abort();
-    });
-    for (;;) {
-      const { done, value } = await Promise.race([reader.read(), aborted]);
-      if (done) break;
-      bytes += value.byteLength;
-      if (bytes > max) throw new VerificationError("UNAVAILABLE");
-      chunks.push(value);
-    }
-    signal.throwIfAborted();
-    const joined = new Uint8Array(bytes);
-    let offset = 0;
-    for (const chunk of chunks) {
-      joined.set(chunk, offset);
-      offset += chunk.length;
-    }
-    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(joined));
-  } finally {
-    if (abort) signal.removeEventListener("abort", abort);
-    await reader.cancel().catch(() => {});
-    reader.releaseLock();
-  }
+const errorCode = (e: unknown) =>
+  e instanceof VerificationError ? e.code : ("UNAVAILABLE" as const);
+function provider(value: unknown): value is VerificationProvider {
+  return typeof value === "string" && Object.hasOwn(PROVIDERS, value);
 }
-/** Next may normalize request.url to localhost; CSRF binds Origin to real Host.
- * Forwarded host/protocol headers are deliberately not trusted for authorization.
- */
-function isSameOrigin(request: Request) {
-  try {
-    const header = request.headers.get("origin");
-    if (!header) return false;
-    const origin = new URL(header);
-    const host = request.headers.get("host") ?? new URL(request.url).host;
-    return (
-      header === origin.origin &&
-      origin.host === host.toLowerCase() &&
-      (origin.protocol === "https:" ||
-        (origin.protocol === "http:" &&
-          ["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname)))
-    );
-  } catch {
-    return false;
-  }
+function overall(job: VerificationJob): VerificationState {
+  const states = job.targets.map((t) => t.state);
+  if (states.every((s) => s === "already_verified")) return "already_verified";
+  if (states.every((s) => ["verified", "already_verified"].includes(s)))
+    return "verified";
+  if (states.includes("pending")) return "pending";
+  if (states.includes("submitting")) return "submitting";
+  if (states.includes("ready")) return "ready";
+  if (states.includes("unknown")) return "unknown";
+  return "failed";
 }
-function object(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-/**
- * Ephemeral, bounded per-instance reviews/jobs; no browser-provided source, GUID,
- * key, RPC, URL or arbitrary Etherscan action. No logging of fetch errors/URLs.
- * Restart/instance changes fail closed; explorer links are the recovery path.
- */
 export class VerificationService {
-  private jobs = new Map<string, Job>();
   private starts: number[] = [];
-  private active = false;
-  private etherscanStarts: number[] = [];
-  private reserveEtherscan() {
-    const now = this.now();
-    this.etherscanStarts = this.etherscanStarts.filter((at) => now - at < 1000);
-    if (this.etherscanStarts.length >= 2)
-      throw new VerificationError("RATE_LIMITED");
-    this.etherscanStarts.push(now);
-  }
-  private fetcher: typeof fetch;
+  private active = 0;
   private now: () => number;
+  private store: JobStore;
+  private fetcher: typeof fetch;
   constructor(private dependencies: Dependencies) {
-    this.fetcher = dependencies.fetch ?? fetch;
     this.now = dependencies.now ?? Date.now;
+    this.fetcher = dependencies.fetch ?? fetch;
+    this.store = dependencies.store ?? new MemoryJobStore(this.now);
   }
-  private status(job: Job): VerificationStatus {
-    return { id: job.id, state: job.state, destinationUrl: job.destinationUrl };
-  }
-  private acquire() {
-    const now = this.now();
-    this.starts = this.starts.filter((at) => now - at < MINUTE);
-    if (this.active || this.starts.length >= 12)
-      throw new VerificationError("RATE_LIMITED");
-    this.starts.push(now);
-    this.active = true;
-  }
-  private async upstream(
-    url: string,
-    init: RequestInit,
-    max: number,
-    signal: AbortSignal
-  ) {
-    // Call sites construct URLs exclusively from fixed constants and validated data.
-    const response = await this.fetcher(url, {
-      ...init,
-      redirect: "error",
-      credentials: "omit",
-      cache: "no-store",
-      signal,
-    });
-    if (!response.ok) {
-      await response.body?.cancel();
-      throw new VerificationError(
-        response.status === 429 ? "RATE_LIMITED" : "UNAVAILABLE"
-      );
-    }
-    return readJson(response.body, max, signal);
-  }
-  private async etherscan(
-    job: Job,
-    action: "verifysourcecode" | "checkverifystatus",
-    signal: AbortSignal,
-    form?: URLSearchParams
-  ) {
-    const key = this.dependencies.key();
-    if (!key || !/^[A-Za-z0-9_-]{8,128}$/.test(key))
-      throw new VerificationError("NOT_CONFIGURED");
-    // Official V2 API: query auth. Only this server-to-Etherscan request has it.
-    // Never serialize this URL, response text, exception or upstream GUID to clients/logs.
-    const url = new URL(ETHERSCAN_ENDPOINT);
-    url.search = new URLSearchParams({
-      chainid: job.chainId,
-      module: "contract",
-      action,
-      apikey: key,
-    }).toString();
-    if (action === "checkverifystatus") url.searchParams.set("guid", job.guid!);
-    const raw = await this.upstream(
-      url.href,
-      {
-        method: form ? "POST" : "GET",
-        ...(form
-          ? {
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: form.toString(),
-            }
-          : {}),
-      },
-      16_384,
-      signal
-    );
-    if (
-      !object(raw) ||
-      !["0", "1"].includes(String(raw.status)) ||
-      typeof raw.result !== "string"
-    )
-      throw new VerificationError("UNAVAILABLE");
-    // Only a small known vocabulary ever crosses the trust boundary.
-    const result = raw.result;
-    if (
-      /^(?:(?:Contract source code|Source code) already verified|Already Verified)$/i.test(
-        result
-      )
-    )
-      return { state: "already_verified" as const };
-    if (
-      action === "verifysourcecode" &&
-      raw.status === "1" &&
-      !result.includes(key) &&
-      /^[A-Za-z0-9]{16,128}$/.test(result)
-    )
-      return { state: "pending" as const, guid: result };
-    if (
-      action === "checkverifystatus" &&
-      raw.status === "1" &&
-      result === "Pass - Verified"
-    )
-      return { state: "verified" as const };
-    if (
-      action === "checkverifystatus" &&
-      raw.status === "0" &&
-      /^(Pending in queue|In progress)$/.test(result)
-    )
-      return { state: "pending" as const };
-    if (/rate limit|too many requests/i.test(result))
-      throw new VerificationError("RATE_LIMITED");
-    if (
-      raw.status === "0" &&
-      /^(Fail -|Error! Unable to verify|Unable to verify|Invalid constructor arguments)/i.test(
-        result
-      )
-    )
-      return { state: "failed" as const };
-    throw new VerificationError("UNAVAILABLE");
+  private status(job: VerificationJob): VerificationStatus {
+    return {
+      id: job.id,
+      state: overall(job),
+      destinationUrl: job.targets[0].destinationUrl,
+      targets: job.targets.map(
+        ({ provider, state, destinationUrl, error }) => ({
+          provider,
+          state,
+          destinationUrl,
+          ...(error ? { error } : {}),
+        })
+      ),
+    };
   }
   async handle(request: Request): Promise<Response> {
-    let acquired = false;
+    let acquired = false,
+      release: (() => Promise<void>) | undefined;
     try {
       if (
         request.method !== "POST" ||
@@ -247,29 +84,46 @@ export class VerificationService {
         )
       )
         throw new VerificationError("INVALID_INPUT");
-      this.acquire();
+      this.starts = this.starts.filter((at) => this.now() - at < MINUTE);
+      if (this.active >= 4 || this.starts.length >= 60)
+        throw new VerificationError("RATE_LIMITED");
+      this.active++;
       acquired = true;
+      this.starts.push(this.now());
       const signal = AbortSignal.any([
         request.signal,
         AbortSignal.timeout(20_000),
       ]);
-      let body: unknown;
+      let body: any;
       try {
-        body = await readJson(request.body, 2048, signal);
+        body = await readJson(request.body, 4096, signal);
       } catch {
         throw new VerificationError("INVALID_INPUT");
       }
-      if (!object(body)) throw new VerificationError("INVALID_INPUT");
-      const { chainId, address } = verificationInput(
-        body.chainId,
-        body.address
-      );
+      if (!record(body)) throw new VerificationError("INVALID_INPUT");
       const allowed =
         body.operation === "preview"
-          ? ["operation", "chainId", "address"]
+          ? [
+              "operation",
+              "chainId",
+              "address",
+              "sourceProvider",
+              "destinations",
+              "targetChainId",
+              "targetAddress",
+              "constructorArguments",
+            ]
           : body.operation === "submit"
-            ? ["operation", "chainId", "address", "id", "confirmed"]
-            : body.operation === "status"
+            ? [
+                "operation",
+                "chainId",
+                "address",
+                "id",
+                "confirmed",
+                "providers",
+                "retry",
+              ]
+            : ["status", "resume"].includes(body.operation)
               ? ["operation", "chainId", "address", "id"]
               : [];
       if (
@@ -277,125 +131,309 @@ export class VerificationService {
         Object.keys(body).some((k) => !allowed.includes(k))
       )
         throw new VerificationError("INVALID_INPUT");
-      const now = this.now();
-      for (const [id, job] of this.jobs)
-        if (job.expires <= now) this.jobs.delete(id);
+      const { chainId, address } = verificationInput(
+        body.chainId,
+        body.address
+      );
+      const configured = this.dependencies.keys?.() ?? {};
+      // Only fetch the Etherscan key when a route actually needs it. Blockscout
+      // and Sourcify imports remain usable without Etherscan configuration.
+      let ethKey: string | undefined;
+      const needsEth =
+        body.operation !== "preview" ||
+        body.sourceProvider === "etherscan" ||
+        body.sourceProvider === "auto" ||
+        body.destinations?.includes("etherscan");
+      if (needsEth) ethKey = this.dependencies.key();
+      const credentials = {
+        ...configured,
+        ...(ethKey ? { etherscan: ethKey } : {}),
+      };
+      const client = new ProviderClient(
+        this.fetcher,
+        credentials,
+        signal,
+        (p) =>
+          this.store.reserve(
+            p,
+            createHash("sha256")
+              .update(credentials[p] ?? "public")
+              .digest("hex")
+              .slice(0, 24)
+          )
+      );
       if (body.operation === "preview") {
-        if (this.jobs.size >= 16) throw new VerificationError("RATE_LIMITED");
-        const chain = VERIFICATION_CHAINS[chainId];
-        const raw = await this.upstream(
-          `${chain.blockscout}/api/v2/smart-contracts/${address}`,
-          { method: "GET" },
-          4_000_000,
-          signal
+        const requested = body.sourceProvider ?? "blockscout";
+        if (
+          requested !== "auto" &&
+          (!provider(requested) || !providersFor(chainId).includes(requested))
+        )
+          throw new VerificationError("UNSUPPORTED_ROUTE");
+        const targetInput = verificationInput(
+          body.targetChainId ?? chainId,
+          body.targetAddress ?? address
         );
-        const source = importBlockscoutSource(raw);
-        const totalBytes = [...this.jobs.values()].reduce(
-          (sum, job) => sum + (job.source?.sourceCode.length ?? 0),
-          source.sourceCode.length
-        );
-        if (totalBytes > 8_000_000) throw new VerificationError("RATE_LIMITED");
-        const id = randomBytes(32).toString("hex");
-        const job: Job = {
-          id,
+        const targetChainId = targetInput.chainId,
+          targetAddress = targetInput.address;
+        const differentDeployment =
+          targetChainId !== chainId || targetAddress !== address;
+        if (
+          differentDeployment &&
+          (typeof body.constructorArguments !== "string" ||
+            !/^(?:0x)?(?:[a-fA-F0-9]{2})*$/.test(body.constructorArguments) ||
+            body.constructorArguments.length > 1024)
+        )
+          throw new VerificationError("INVALID_INPUT");
+        const destinations = body.destinations ?? ["etherscan"];
+        if (
+          !Array.isArray(destinations) ||
+          !destinations.length ||
+          destinations.length > 4 ||
+          new Set(destinations).size !== destinations.length ||
+          destinations.some(
+            (p) => !provider(p) || !providersFor(targetChainId).includes(p)
+          )
+        )
+          throw new VerificationError("UNSUPPORTED_ROUTE");
+        let source, sourceProvider: VerificationProvider | undefined;
+        const candidates =
+          requested === "auto"
+            ? (
+                [
+                  "blockscout",
+                  "sourcify",
+                  "etherscan",
+                  "routescan",
+                ] as VerificationProvider[]
+              ).filter((p) => providersFor(chainId).includes(p))
+            : [requested as VerificationProvider];
+        let lastError: unknown;
+        for (const p of candidates) {
+          try {
+            source = await client.source(p, chainId, address);
+            sourceProvider = p;
+            break;
+          } catch (e) {
+            lastError = e;
+            if (requested !== "auto") throw e;
+          }
+        }
+        if (!source || !sourceProvider)
+          throw lastError ?? new VerificationError("UNSUPPORTED_SOURCE");
+        if (differentDeployment)
+          source = {
+            ...source,
+            constructorArguments: body.constructorArguments.replace(/^0x/, ""),
+          };
+        const job: VerificationJob = {
+          targetChainId,
+          targetAddress,
+          id: randomBytes(32).toString("hex"),
           chainId,
           address,
+          sourceProvider,
           source,
-          destinationUrl: `${chain.etherscan}/address/${address}#code`,
-          state: "ready",
-          expires: now + 10 * MINUTE,
-          lastCheck: 0,
+          expires: this.now() + 10 * MINUTE,
+          targets: [],
         };
-        this.jobs.set(id, job);
+        // Independent lookups: a missing key or unavailable explorer doesn't hide
+        // other destinations. The import itself never submits verification.
+        job.targets = await Promise.all(
+          destinations.map(async (p: VerificationProvider) => {
+            const target = {
+              provider: p,
+              destinationUrl: explorerUrl(p, targetChainId, targetAddress),
+            };
+            try {
+              return {
+                ...target,
+                state:
+                  (p === sourceProvider && !differentDeployment) ||
+                  (await client.verified(p, targetChainId, targetAddress))
+                    ? ("already_verified" as const)
+                    : ("ready" as const),
+              };
+            } catch (e) {
+              return {
+                ...target,
+                state: "ready" as const,
+                error: errorCode(e),
+              };
+            }
+          })
+        );
+        await this.store.set(job);
         const review: VerificationReview = {
           ...source,
-          id,
+          id: job.id,
           chainId,
           address,
-          sourceUrl: `${chain.blockscout}/address/${address}?tab=contract`,
-          destinationUrl: job.destinationUrl,
+          sourceProvider,
+          targetChainId,
+          targetAddress,
+          sourceUrl: explorerUrl(sourceProvider, chainId, address),
+          destinationUrl: job.targets[0].destinationUrl,
+          targets: this.status(job).targets,
           expiresAt: new Date(job.expires).toISOString(),
         };
         return Response.json(review, { headers });
       }
       if (typeof body.id !== "string" || !/^[a-f0-9]{64}$/.test(body.id))
         throw new VerificationError("INVALID_INPUT");
-      const job = this.jobs.get(body.id);
-      if (!job || job.chainId !== chainId || job.address !== address)
+      release = await this.store.lock(body.id);
+      if (!release) throw new VerificationError("RATE_LIMITED");
+      const job = await this.store.get(body.id);
+      if (
+        !job ||
+        job.expires <= this.now() ||
+        job.chainId !== chainId ||
+        job.address !== address
+      )
         throw new VerificationError("EXPIRED");
+      if (body.operation === "resume") {
+        const review: VerificationReview = {
+          ...job.source,
+          id: job.id,
+          chainId,
+          address,
+          sourceProvider: job.sourceProvider,
+          targetChainId: job.targetChainId,
+          targetAddress: job.targetAddress,
+          sourceUrl: explorerUrl(job.sourceProvider, chainId, address),
+          destinationUrl: job.targets[0].destinationUrl,
+          targets: this.status(job).targets,
+          expiresAt: new Date(job.expires).toISOString(),
+        };
+        return Response.json({ review, status: this.status(job) }, { headers });
+      }
       if (body.operation === "submit") {
         if (body.confirmed !== true)
           throw new VerificationError("CONFIRM_REQUIRED");
-        if (job.state !== "ready")
-          return Response.json(this.status(job), { headers });
-        // Check configuration before consuming consent; never retry a possibly sent POST.
-        const configuredKey = this.dependencies.key();
-        if (!configuredKey || !/^[A-Za-z0-9_-]{8,128}$/.test(configuredKey))
-          throw new VerificationError("NOT_CONFIGURED");
-        this.reserveEtherscan();
-        const source = job.source!;
-        const form = new URLSearchParams({
-          contractaddress: address,
-          sourceCode: source.sourceCode,
-          contractname: source.contractName,
-          compilerversion: source.compilerVersion,
-          constructorArguments: source.constructorArguments,
-          codeformat: "solidity-standard-json-input",
-          licenseType: source.licenseType,
-        });
-        job.state = "submitting";
-        job.source = undefined;
-        job.expires = now + 24 * 60 * MINUTE;
-        try {
-          const result = await this.etherscan(
-            job,
-            "verifysourcecode",
-            signal,
-            form
+        const selected = body.providers ?? job.targets.map((t) => t.provider);
+        if (
+          !Array.isArray(selected) ||
+          !selected.length ||
+          selected.length > 4 ||
+          new Set(selected).size !== selected.length ||
+          selected.some(
+            (p) => !provider(p) || !job.targets.some((t) => t.provider === p)
+          ) ||
+          (body.retry != null && typeof body.retry !== "boolean")
+        )
+          throw new VerificationError("INVALID_INPUT");
+        // Submit Sourcify last, as it may forward to other providers itself.
+        const targets = job.targets
+          .filter((t) => selected.includes(t.provider))
+          .sort(
+            (a, b) =>
+              Number(a.provider === "sourcify") -
+              Number(b.provider === "sourcify")
           );
-          job.state = result.state;
-          job.guid = "guid" in result ? result.guid : undefined;
-        } catch {
-          job.state = "unknown";
-          throw new VerificationError("UNKNOWN_DELIVERY");
+        for (const target of targets) {
+          if (
+            target.state !== "ready" &&
+            !(body.retry === true && target.state === "failed")
+          )
+            continue;
+          try {
+            // Recheck at submission time, including when the review was stale or
+            // another verifier has published this source in the meantime.
+            if (
+              await client.verified(
+                target.provider,
+                job.targetChainId,
+                job.targetAddress
+              )
+            ) {
+              target.state = "already_verified";
+              delete target.error;
+              await this.store.set(job);
+              continue;
+            }
+          } catch (e) {
+            target.error = errorCode(e);
+            await this.store.set(job);
+            continue;
+          }
+          // Persist the consumed intent before sending. A lost response or worker
+          // termination can be checked later, never silently resent.
+          target.state = "submitting";
+          delete target.error;
+          job.expires = this.now() + 24 * 60 * MINUTE;
+          await this.store.set(job);
+          try {
+            const result = await client.submit(
+              target.provider,
+              job.targetChainId,
+              job.targetAddress,
+              job.source
+            );
+            target.state = result.state;
+            target.guid = result.guid;
+            target.error = result.error;
+          } catch (e) {
+            const code = errorCode(e);
+            const rejected = [
+              "API_KEY_REQUIRED",
+              "NOT_CONFIGURED",
+              "PROVIDER_REJECTED",
+              "RATE_LIMITED",
+            ].includes(code);
+            target.state = rejected ? "ready" : "unknown";
+            target.error = rejected ? code : "UNKNOWN_DELIVERY";
+          }
+          await this.store.set(job);
         }
-      } else if (job.state === "pending") {
-        if (now - job.lastCheck < 5000)
-          throw new VerificationError("RATE_LIMITED");
-        this.reserveEtherscan();
-        job.lastCheck = now;
-        const result = await this.etherscan(job, "checkverifystatus", signal);
-        job.state = result.state;
+      } else {
+        for (const target of job.targets) {
+          if (!["pending", "unknown", "submitting"].includes(target.state))
+            continue;
+          if (target.lastCheck != null && this.now() - target.lastCheck < 5000)
+            continue;
+          target.lastCheck = this.now();
+          try {
+            const result = await client.status(
+              target.provider,
+              job.targetChainId,
+              job.targetAddress,
+              target.guid
+            );
+            target.state = result.state;
+            target.error = result.error;
+          } catch (e) {
+            target.error = errorCode(e);
+          }
+          await this.store.set(job);
+        }
       }
       return Response.json(this.status(job), { headers });
-    } catch (error) {
-      // Do not echo any error message, cause, provider result, request URL or key.
-      const code =
-        error instanceof VerificationError ? error.code : "UNAVAILABLE";
+    } catch (e) {
+      const code = errorCode(e);
       const status =
         code === "RATE_LIMITED"
           ? 429
-          : code === "INVALID_INPUT" || code === "CONFIRM_REQUIRED"
+          : ["INVALID_INPUT", "CONFIRM_REQUIRED", "UNSUPPORTED_ROUTE"].includes(
+                code
+              )
             ? 400
             : code === "EXPIRED"
               ? 410
               : code === "NOT_CONFIGURED"
                 ? 503
-                : code === "UNKNOWN_DELIVERY"
-                  ? 502
-                  : 422;
+                : 422;
       return Response.json(
         { error: { code, message: VERIFICATION_MESSAGES[code] } },
         {
           status,
           headers: {
             ...headers,
-            ...(status === 429 ? { "Retry-After": "60" } : {}),
+            ...(status === 429 ? { "Retry-After": "10" } : {}),
           },
         }
       );
     } finally {
-      if (acquired) this.active = false;
+      if (release) await release().catch(() => {});
+      if (acquired) this.active--;
     }
   }
 }

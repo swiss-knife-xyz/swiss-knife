@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 const title = "Cross-explorer Verification | ETH.sh";
 const description =
-  "Import Blockscout-verified Solidity source and exact compiler settings. Review and explicitly submit to Etherscan for the same chain and address, then check verification status.";
+  "Transfer verified Solidity source between Etherscan, Blockscout, Routescan and Sourcify across mainnets and testnets. Select explorers and track verification results.";
 const image = "https://eth.sh/api/og/verify";
 export const metadata: Metadata = {
   title,

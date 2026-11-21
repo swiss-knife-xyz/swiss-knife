@@ -18,6 +18,8 @@ test("actual POST route uses private runtime configuration, never exposes the se
     )
       return Response.json(fixture);
     assert.ok(String(url).startsWith("https://api.etherscan.io/v2/api?"));
+    if (String(url).includes("getsourcecode"))
+      return Response.json({ status: "1", result: [{ SourceCode: "" }] });
     return Response.json({
       status: "1",
       result: String(url).includes("checkverifystatus")
@@ -53,9 +55,10 @@ test("actual POST route uses private runtime configuration, never exposes the se
       confirmed: true,
     });
     assert.equal(submitted.body.state, "pending");
+    await new Promise((resolve) => setTimeout(resolve, 1100));
     const status = await send("status", { id: review.body.id });
     assert.equal(status.body.state, "verified");
-    assert.equal(calls.length, 3);
+    assert.equal(calls.length, 5);
     assert.equal(calls[0].url.includes(sentinel), false);
     for (const call of calls.slice(1)) {
       const url = new URL(call.url);

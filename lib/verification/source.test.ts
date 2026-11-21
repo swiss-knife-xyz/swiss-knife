@@ -4,7 +4,7 @@ import { importBlockscoutSource, verificationInput } from "./source";
 
 import { address, fixture } from "./fixtures";
 
-test("input only accepts paired allowlisted chains and exact valid addresses", () => {
+test("input only accepts registered networks and exact valid addresses", () => {
   assert.deepEqual(verificationInput("1", address), { chainId: "1", address });
   for (const [chain, candidate] of [
     ["999999", address],
@@ -14,7 +14,10 @@ test("input only accepts paired allowlisted chains and exact valid addresses", (
     [1, address],
     ["1", "0x1234"],
   ]) {
-    assert.throws(() => verificationInput(chain, candidate), /supported chain/);
+    assert.throws(
+      () => verificationInput(chain, candidate),
+      /valid contract address/
+    );
   }
 });
 
@@ -57,7 +60,7 @@ test("rejects incomplete, different-address twin, changed, malformed or unsuppor
   for (const variant of variants)
     assert.throws(
       () => importBlockscoutSource({ ...fixture, ...variant }),
-      /complete supported Solidity/
+      /Complete Solidity source/
     );
 });
 
@@ -76,4 +79,13 @@ test("imports every file and exact compiler settings without compilationTarget",
   });
   assert.equal(input.language, "Solidity");
   assert.equal(source.licenseType, "3");
+});
+
+test("normalizes Blockscout compiler versions without a v prefix for Etherscan", () => {
+  const source = importBlockscoutSource({
+    ...fixture,
+    compiler_version: "0.8.24+commit.e11b9ed9",
+  });
+  assert.equal(source.compilerVersion, "v0.8.24+commit.e11b9ed9");
+  assert.equal(source.sourceCode, importBlockscoutSource(fixture).sourceCode);
 });
