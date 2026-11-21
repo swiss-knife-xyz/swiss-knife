@@ -176,7 +176,7 @@ const StorageSlotInput = ({
         <FormLabel fontSize="sm" color="text.secondary" mb={1.5}>Storage slot</FormLabel>
         <Input
           autoComplete="off"
-          value={storageSlot}
+          value={storageSlot ?? ""}
           onChange={(e) => {
             setStorageSlot(e.target.value);
           }}
