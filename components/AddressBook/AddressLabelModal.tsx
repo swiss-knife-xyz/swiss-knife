@@ -21,38 +21,49 @@ import { DeleteIcon } from "@chakra-ui/icons";
 import { BookOpen } from "lucide-react";
 import { useAddressBook } from "@/hooks/useAddressBook";
 import { slicedText } from "@/utils";
+import { isAddress } from "viem";
 
 interface AddressLabelModalProps {
   isOpen: boolean;
   onClose: () => void;
-  address: string;
+  address?: string;
   existingLabel?: string | null;
   defaultLabel?: string;
+  defaultAddress?: string;
 }
 
 export function AddressLabelModal({
   isOpen,
   onClose,
-  address,
+  address = "",
   existingLabel,
   defaultLabel = "",
+  defaultAddress = "",
 }: AddressLabelModalProps) {
   const { addAddress, updateAddress, removeAddress } = useAddressBook();
   const [label, setLabel] = useState("");
+  const [newAddress, setNewAddress] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const toast = useToast();
 
   const isEditing = !!existingLabel;
+  const addressToSave = address || newAddress.trim();
+  const isValidAddress = isAddress(addressToSave) || /^\S+\.\S+$/.test(addressToSave);
 
   // Reset label when modal opens
   useEffect(() => {
     if (isOpen) {
       setLabel(existingLabel || defaultLabel);
+      setNewAddress(defaultAddress);
     }
-  }, [isOpen, existingLabel, defaultLabel]);
+  }, [isOpen, existingLabel, defaultLabel, defaultAddress]);
 
   const handleSave = async () => {
+    if (!isValidAddress) {
+      toast({ title: "Enter an address or ENS name", status: "warning", duration: 3000 });
+      return;
+    }
     if (!label.trim()) {
       toast({
         title: "Label required",
@@ -73,7 +84,7 @@ export function AddressLabelModal({
           duration: 2000,
         });
       } else {
-        await addAddress(address, label.trim());
+        await addAddress(addressToSave, label.trim());
         toast({
           title: "Address saved",
           status: "success",
@@ -116,7 +127,7 @@ export function AddressLabelModal({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && label.trim()) {
+    if (e.key === "Enter" && label.trim() && isValidAddress) {
       handleSave();
     }
   };
@@ -146,7 +157,7 @@ export function AddressLabelModal({
               <Text fontSize="sm" color="text.secondary">
                 Address
               </Text>
-              <Text
+              {address ? <Text
                 fontSize="sm"
                 fontFamily="mono"
                 color="text.primary"
@@ -157,6 +168,18 @@ export function AddressLabelModal({
               >
                 {address.length > 20 ? slicedText(address) : address}
               </Text>
+              : <Input
+                  aria-label="Address or ENS name"
+                  placeholder="0x... or name.eth"
+                  value={newAddress}
+                  onChange={(event) => setNewAddress(event.target.value)}
+                  autoFocus
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  fontFamily="mono"
+                />}
             </VStack>
 
             <VStack align="stretch" spacing={1}>
@@ -168,7 +191,7 @@ export function AddressLabelModal({
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 onKeyDown={handleKeyDown}
-                autoFocus
+                autoFocus={Boolean(address)}
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -211,7 +234,7 @@ export function AddressLabelModal({
               colorScheme="purple"
               onClick={handleSave}
               isLoading={isSaving}
-              isDisabled={!label.trim()}
+              isDisabled={!label.trim() || !isValidAddress}
             >
               {isEditing ? "Update" : "Save"}
             </Button>

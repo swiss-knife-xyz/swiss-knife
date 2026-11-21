@@ -31,6 +31,11 @@ module.exports = function checkPhoneLayout() {
       element.getAttribute("placeholder") ||
       element.textContent?.trim() ||
       element.tagName;
+    if (element.tagName === "INPUT" && ["address / ens / transaction", "Search explorers..."].includes(element.getAttribute("placeholder"))) {
+      const style = getComputedStyle(element);
+      const textWidth = rect.width - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0);
+      if (textWidth < 120) failures.push(`${label}: insufficient room for search text (${textWidth.toFixed(1)}px)`);
+    }
     if (rect.left < -1 || rect.right > width + 1) {
       failures.push(
         `${label}: horizontal bounds ${rect.left.toFixed(1)}..${rect.right.toFixed(1)}`

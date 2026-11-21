@@ -35,6 +35,13 @@ function show() {
     </ChakraProvider>
   );
 }
+async function openRawCalldata() {
+  if (!screen.queryByRole("dialog", { name: "Enter raw calldata" })) {
+    fireEvent.click(await screen.findByRole("button", { name: "Enter raw calldata" }));
+  }
+  return screen.findByRole("textbox", { name: "Calldata to decode" });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   window.history.replaceState(null, "", "/contract/1/" + address);
@@ -42,33 +49,43 @@ beforeEach(() => {
 afterEach(cleanup);
 it("pasted calldata fills only the matched overload on explicit decode; invalid input clears the selection", async () => {
   show();
+  expect(screen.queryByRole("textbox", { name: "Calldata to decode" })).toBeNull();
   const data = new Interface(abi).encodeFunctionData("transfer(uint256)", [
     9007199254740993n,
   ]);
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Calldata to decode" }),
+    await openRawCalldata(),
     { target: { value: data } }
   );
   expect(onPrefill).not.toHaveBeenCalledWith(
     expect.objectContaining({ signature: expect.anything() })
   );
-  fireEvent.click(screen.getByRole("button", { name: "Decode into form" }));
+  fireEvent.click(screen.getByRole("button", { name: "Fill parameters" }));
+  await waitFor(() => {
   expect(onPrefill).toHaveBeenLastCalledWith(
     expect.objectContaining({
       signature: "transfer(uint256)",
       args: ["9007199254740993"],
       value: "0",
       abiMode: "contract",
-    })
+    }),
+    expect.any(Function)
   );
-  expect(screen.getByText(/Review only/)).toBeTruthy();
+  });
+  expect(screen.getByRole("button", { name: /Decoding…/ }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("dialog", { name: "Enter raw calldata" })).toBeTruthy();
+  const onScrollStart = onPrefill.mock.lastCall?.[1];
+  onScrollStart();
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Enter raw calldata" })).toBeNull());
+  expect(screen.queryByText(/Review only/)).toBeNull();
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Calldata to decode" }),
+    await openRawCalldata(),
     { target: { value: "0xdeadbeef" } }
   );
-  fireEvent.click(screen.getByRole("button", { name: "Decode into form" }));
-  expect(onPrefill).toHaveBeenLastCalledWith(null);
+  fireEvent.click(screen.getByRole("button", { name: "Fill parameters" }));
   expect(await screen.findByRole("alert")).toBeTruthy();
+  expect(onPrefill).toHaveBeenLastCalledWith(null);
+  expect(screen.getByRole("dialog", { name: "Enter raw calldata" })).toBeTruthy();
 });
 it("restores a shared link without a click and fails closed for mismatching review signature/context", async () => {
   const data = new Interface(abi).encodeFunctionData(
@@ -136,4 +153,17 @@ it("rejects a tampered shared signature and unsupported version without prefill"
   await waitFor(() =>
     expect(screen.getByRole("alert").textContent).toMatch(/unsupported/i)
   );
+});
+
+
+it("closes without applying calldata and returns focus to the toolbar button", async () => {
+  show();
+  const trigger = screen.getByRole("button", { name: "Enter raw calldata" });
+  trigger.focus();
+  const input = await openRawCalldata();
+  fireEvent.change(input, { target: { value: new Interface(abi).encodeFunctionData("transfer(uint256)", [42]) } });
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(trigger));
+  expect(onPrefill).not.toHaveBeenCalledWith(expect.objectContaining({ signature: expect.anything() }));
 });

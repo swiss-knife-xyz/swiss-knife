@@ -89,7 +89,7 @@ export const ArrayParam = ({ arg: _arg, chainId }: Params) => {
         </HStack>
         <Collapse in={isOpen} animateOpacity>
           <Stack
-            ml={2}
+            ml={{ base: 0, md: 2 }}
             px={4}
             pb={4}
             spacing={4}
@@ -102,7 +102,7 @@ export const ArrayParam = ({ arg: _arg, chainId }: Params) => {
             {Array.isArray(arg.value) &&
               arg.value.map((ar, i: number) => {
                 return (
-                  <Box key={i} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
+                  <Box key={i} p={{ base: 2, md: 4 }} bg={"whiteAlpha.50"} rounded={"lg"}>
                     <HStack mt={-2}>
                       <Text fontSize={"sm"}>{ar.baseType}</Text>
                       <Text

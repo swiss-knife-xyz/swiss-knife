@@ -21,6 +21,7 @@ import {
   canto,
   celo,
   celoAlfajores,
+  celoSepolia,
   citreaTestnet,
   confluxESpace,
   cronos,
@@ -38,6 +39,7 @@ import {
   goerli,
   harmonyOne,
   holesky,
+  hoodi,
   iotex,
   klaytn,
   kroma,
@@ -59,6 +61,7 @@ import {
   optimismSepolia,
   polygon,
   polygonMumbai,
+  polygonAmoy,
   polygonZkEvm,
   polygonZkEvmTestnet,
   ronin,
@@ -238,6 +241,7 @@ export const c: { [name: string]: Chain } = {
   canto,
   celo,
   celoAlfajores,
+  celoSepolia,
   citrea,
   citreaTestnet,
   confluxESpace,
@@ -256,6 +260,7 @@ export const c: { [name: string]: Chain } = {
   goerli,
   harmonyOne,
   holesky,
+  hoodi,
   iotex,
   klaytn,
   kroma,
@@ -281,6 +286,7 @@ export const c: { [name: string]: Chain } = {
   robinhood,
   polygon,
   polygonMumbai,
+  polygonAmoy,
   polygonZkEvm,
   polygonZkEvmTestnet,
   ronin,
@@ -301,6 +307,24 @@ export const c: { [name: string]: Chain } = {
   zora,
   zoraTestnet,
 };
+
+// Retired testnets stay in the shared registry for historical links, but should
+// not be offered by Explorer providers that generate their network lists.
+export const retiredExplorerChainIds = new Set<number>([
+  goerli.id,
+  holesky.id,
+  arbitrumGoerli.id,
+  baseGoerli.id,
+  optimismGoerli.id,
+  polygonMumbai.id,
+  polygonZkEvmTestnet.id,
+  celoAlfajores.id,
+  lineaTestnet.id,
+  zoraTestnet.id,
+]);
+export const explorerChains = Object.values(c).filter(
+  (chain) => !retiredExplorerChainIds.has(chain.id)
+);
 
 // Extended Chain type to include optional Routescan flag
 type ExtendedChain = Chain & { isRoutescan?: boolean };
@@ -442,33 +466,68 @@ export const erc3770ShortNameToChain = (() => {
 export const chainIdToImage = (() => {
   const basePath = "/chainIcons";
 
-  let res: {
-    [chainId: number]: string;
-  } = {
-    // source: https://github.com/rainbow-me/rainbowkit/tree/main/packages/rainbowkit/src/components/RainbowKitProvider/chainIcons
-    [arbitrum.id]: `${basePath}/arbitrum.svg`,
-    [avalanche.id]: `${basePath}/avalanche.svg`,
-    [base.id]: `${basePath}/base.svg`,
-    [berachain.id]: `${basePath}/berachain.svg`,
-    [bsc.id]: `${basePath}/bsc.svg`,
-    [cronos.id]: `${basePath}/cronos.svg`,
-    [goerli.id]: `${basePath}/ethereum.svg`,
-    [citrea.id]: `${basePath}/citrea.svg`,
-    [ink.id]: `${basePath}/ink.svg`,
-    [linea.id]: `${basePath}/linea.svg`,
-    [mainnet.id]: `${basePath}/ethereum.svg`,
-    [megaeth.id]: `${basePath}/megaeth.svg`,
-    [monad.id]: `${basePath}/monad.svg`,
-    [optimism.id]: `${basePath}/optimism.svg`,
-    [polygon.id]: `${basePath}/polygon.svg`,
-    [sei.id]: `${basePath}/sei.svg`,
-    [seiTestnet.id]: `${basePath}/sei.svg`,
-    [sepolia.id]: `${basePath}/ethereum.svg`,
-    [unichain.id]: `${basePath}/unichain.svg`,
-    [worldchain.id]: `${basePath}/worldchain.svg`,
-    [48900]: `${basePath}/zircuit.svg`, // Zircuit
-    [zora.id]: `${basePath}/zora.svg`,
-  };
+  const res: Record<number, string> = {};
+  // Share each network's local artwork with its testnets instead of fetching
+  // favicons from retired explorer domains. Asset sources are in chainIcons/SOURCES.md.
+  const iconFamilies: [string, readonly Chain[]][] = [
+    ["ethereum.svg", [mainnet, goerli, sepolia, holesky, hoodi]],
+    ["arbitrum.svg", [arbitrum, arbitrumGoerli, arbitrumSepolia]],
+    ["arbitrum-nova.svg", [arbitrumNova]],
+    ["avalanche.svg", [avalanche, avalancheFuji]],
+    ["aurora.svg", [aurora]],
+    ["base.svg", [base, baseGoerli, baseSepolia]],
+    ["berachain.svg", [berachain]],
+    ["blast.svg", [blast, blastSepolia]],
+    ["boba.svg", [boba]],
+    ["bsc.svg", [bsc, bscTestnet]],
+    ["celo.webp", [celo, celoAlfajores, celoSepolia]],
+    ["citrea.svg", [citrea, citreaTestnet]],
+    ["conflux.svg", [confluxESpace]],
+    ["cronos.svg", [cronos, cronosTestnet]],
+    ["dogechain.svg", [dogechain]],
+    ["evmos.png", [evmos]],
+    ["fantom.svg", [fantom, fantomTestnet]],
+    ["filecoin.webp", [filecoin]],
+    ["fraxtal.svg", [fraxtal, fraxtalTestnet]],
+    ["fuse.svg", [fuse]],
+    ["gnosis.webp", [gnosis]],
+    ["harmony.svg", [harmonyOne]],
+    ["ink.svg", [ink]],
+    ["iotex.svg", [iotex]],
+    ["kaia.svg", [klaytn]],
+    ["kroma.svg", [kroma, kromaSepolia]],
+    ["linea.svg", [linea, lineaTestnet]],
+    ["manta-pacific.svg", [manta, mantaTestnet]],
+    ["mantle.svg", [mantle]],
+    ["megaeth.svg", [megaeth]],
+    ["metis-andromeda.svg", [metis]],
+    ["monad.svg", [monad]],
+    ["moonbeam.svg", [moonbeam, moonbaseAlpha]],
+    ["moonriver.svg", [moonriver]],
+    ["okex.svg", [okc]],
+    ["opbnb.png", [opBNB, opBNBTestnet]],
+    ["optimism.svg", [optimism, optimismGoerli, optimismSepolia]],
+    ["plasma.svg", [plasma]],
+    ["polygon.svg", [polygon, polygonMumbai, polygonAmoy]],
+    ["polygon-zkevm.svg", [polygonZkEvm, polygonZkEvmTestnet]],
+    ["robinhood.svg", [robinhood]],
+    ["ronin.svg", [ronin]],
+    ["scroll.webp", [scroll, scrollSepolia]],
+    ["sei.svg", [sei, seiTestnet]],
+    ["sonic.svg", [sonic]],
+    ["taiko.svg", [taikoJolnir, taikoTestnetSepolia]],
+    ["telos.svg", [telos]],
+    ["unichain.svg", [unichain]],
+    ["wanchain.png", [wanchain]],
+    ["wemix.svg", [wemix, wemixTestnet]],
+    ["worldchain.svg", [worldchain]],
+    ["zksync.webp", [zkSync, zkSyncSepoliaTestnet]],
+    ["zora.svg", [zora, zoraTestnet]],
+  ];
+  for (const [file, chains] of iconFamilies) {
+    for (const chain of chains) res[chain.id] = `${basePath}/${file}`;
+  }
+  res[48900] = `${basePath}/zircuit.svg`;
 
   Object.keys(chainIdToChain).map((_chainId) => {
     const chainId = Number(_chainId);

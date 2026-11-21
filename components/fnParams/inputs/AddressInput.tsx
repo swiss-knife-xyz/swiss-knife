@@ -246,10 +246,10 @@ export const AddressInput = ({
 
   return (
     <Box>
-      <HStack mb={2}>
+      <HStack mb={2} minW={0} flexWrap="wrap" rowGap={1}>
         <InputInfo input={input} />
         {addressLabels.length > 0 && (
-          <HStack py="2">
+          <HStack py="2" flexWrap="wrap">
             <Text fontSize={"xs"} opacity={0.6}>
               Tags:{" "}
             </Text>
@@ -269,7 +269,7 @@ export const AddressInput = ({
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <HStack px={2} bg="whiteAlpha.200" rounded="md">
+              <HStack px={2} bg="whiteAlpha.200" rounded="md" minW={0} maxW="full">
                 {ensAvatar && (
                   <Avatar
                     src={ensAvatar}
@@ -278,7 +278,7 @@ export const AddressInput = ({
                     ignoreFallback
                   />
                 )}
-                <Box>{ensName}</Box>
+                <Box overflowWrap="anywhere" fontSize="sm">{ensName}</Box>
               </HStack>
             </motion.div>
           )}
@@ -326,7 +326,7 @@ export const AddressInput = ({
         </Box>
 
         {!hideQuickFillButtons && (
-          <HStack my={2}>
+          <HStack my={2} flexWrap="wrap" rowGap={1}>
             <Spacer />
             <AddressBookButton
               onSelect={(address: string) => {

@@ -62,8 +62,8 @@ const ArrayElement = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <HStack mt={2} p={3} bg="whiteAlpha.50" rounded={"lg"}>
-      <Box w="full">
+    <HStack minW={0} mt={2} p={{ base: 1.5, md: 3 }} bg="whiteAlpha.50" rounded={"lg"}>
+      <Box w="full" minW={0}>
         <HStack w="full">
           <HStack
             cursor={"pointer"}

@@ -298,7 +298,7 @@ export const IntInput = ({
 
   // Render helpers
   const renderInputField = () => (
-    <Box position="relative" width="100%">
+    <Box position="relative" width="100%" minW={0} flex={1}>
       <motion.div
         initial={false}
         animate={{
@@ -392,7 +392,7 @@ export const IntInput = ({
 
   const renderUnixTimeControls = () => (
     <Box>
-      <HStack mt="1" ml="4" fontSize="sm" color="whiteAlpha.800">
+      <HStack flexWrap="wrap" mt="1" ml={{ base: 0, md: 4 }} fontSize="sm" color="whiteAlpha.800">
         <Box>
           {
             (showLocalTime
@@ -431,7 +431,7 @@ export const IntInput = ({
   );
 
   const renderCurrentTimeTab = () => (
-    <HStack mt="8">
+    <HStack mt={4} flexWrap="wrap" gap={2}>
       <Button
         size="sm"
         onClick={() => {
@@ -452,7 +452,7 @@ export const IntInput = ({
   );
 
   const renderFutureTimeTab = () => (
-    <HStack mt="3">
+    <HStack mt="3" flexWrap="wrap" gap={2}>
       <Button
         size="sm"
         onClick={() => {
@@ -508,11 +508,13 @@ export const IntInput = ({
         : {})}
     >
       <InputInfo input={input} />
-      <HStack>
+      <HStack flexDirection={{ base: "column", sm: "row" }} align="stretch" spacing={2}>
         {renderInputField()}
         <DarkSelect
           boxProps={{
-            minW: "9rem",
+            minW: 0,
+            w: { base: "full", sm: "9rem" },
+            flexShrink: 0,
             fontSize: "small",
           }}
           selectedOption={selectedEthFormatOption}
