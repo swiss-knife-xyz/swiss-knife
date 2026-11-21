@@ -62,7 +62,7 @@ export const getPath = (subdomain: string, isRelativePath: boolean = false) => {
   } else {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? `/${subdomain}/`
-      : `https://${subdomain === "contract" ? "explorer" : subdomain}.eth.sh/`;
+      : `https://${subdomain}.eth.sh/`;
   }
 };
 

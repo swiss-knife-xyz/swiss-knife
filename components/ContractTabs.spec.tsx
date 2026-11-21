@@ -101,7 +101,7 @@ beforeEach(() => {
   window.history.replaceState(
     {},
     "",
-    `/contract/1/${root}?context=test#original`
+    `/explorer/1/${root}?context=test#original`
   );
   code.mockResolvedValue("0x6000");
   client.mockReturnValue({ getCode: code });
@@ -149,7 +149,7 @@ it("keeps drafts and expanded results mounted while selecting and deduplicating 
   expect(
     mounts.mock.calls.filter(([value]) => value === contract)
   ).toHaveLength(1);
-  expect(window.location.pathname).toBe(`/contract/1/${contract}`);
+  expect(window.location.pathname).toBe(`/explorer/1/${contract}`);
   expect(window.location.search).toBe("");
   expect(window.location.hash).toBe("");
 });
@@ -320,7 +320,7 @@ it("loads an example in the new tab without navigating or retaining an empty slo
     address: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
   });
   expect(window.location.pathname).toBe(
-    "/contract/1/0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    "/explorer/1/0xE592427A0AEce92De3Edee1F18E0157C05861564"
   );
 });
 
@@ -393,12 +393,12 @@ it("uses the home URL for blank tabs and updates it after an address is loaded",
   mount();
   fireEvent.click(screen.getByRole("button", { name: "New address tab" }));
   const input = await screen.findByPlaceholderText("0x... or eth:0x...");
-  expect(window.location.pathname).toBe("/contract/");
+  expect(window.location.pathname).toBe("/explorer/");
   expect(window.location.hash).toBe("");
   fireEvent.change(input, { target: { value: account } });
   fireEvent.click(screen.getByRole("button", { name: "Explore Contract" }));
   await screen.findByRole("tab", { name: /Linked contract/ });
-  expect(window.location.pathname).toBe(`/contract/1/${account}`);
+  expect(window.location.pathname).toBe(`/explorer/1/${account}`);
 });
 
 it("persists multiple tabs, restores them on refresh and clears storage after closing all", async () => {
@@ -425,7 +425,7 @@ it("persists multiple tabs, restores them on refresh and clears storage after cl
   expect(screen.getAllByRole("tab")).toHaveLength(1);
   expect(localStorage.getItem(CONTRACT_TABS_STORAGE_KEY)).toBeNull();
   expect(screen.queryByRole("button", { name: "Close all tabs" })).toBeNull();
-  expect(window.location.pathname).toBe("/contract/");
+  expect(window.location.pathname).toBe("/explorer/");
 });
 
 it("ignores invalid saved tabs and remains usable when storage writes fail", async () => {

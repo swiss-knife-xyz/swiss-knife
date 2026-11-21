@@ -396,7 +396,7 @@ export function ContractTabs({
     }
     const tab = tabs.find((item) => item.id === active);
     if (!tab) return;
-    const base = new URL(getPath("contract"), window.location.origin);
+    const base = new URL(getPath("explorer"), window.location.origin);
     const target =
       tabUrls.current.get(active) ??
       (tab.kind === "new"
@@ -703,22 +703,30 @@ export function ContractTabs({
       </Box>
       <Box minW={0}>
         <HStack justify="space-between" flexWrap="wrap" mb={4} gap={2}>
-        <Heading
-          as="h1"
-          fontSize={{ base: "xl", md: "2xl" }}
-          mb={0}
-          color="custom.pale"
-        >
+          <Heading
+            as="h1"
+            fontSize={{ base: "xl", md: "2xl" }}
+            mb={0}
+            color="custom.pale"
+          >
+            <Link
+              as={NextLink}
+              href={getPath("explorer")}
+              color="inherit"
+              _hover={{ opacity: 0.8, textDecoration: "none" }}
+            >
+              Contract Explorer
+            </Link>
+          </Heading>
           <Link
             as={NextLink}
-            href={getPath("contract")}
-            color="inherit"
-            _hover={{ opacity: 0.8, textDecoration: "none" }}
+            href={getPath("explorers")}
+            fontSize="sm"
+            color="text.secondary"
+            ml="auto"
           >
-            Contract Explorer
+            Explorer Directory
           </Link>
-        </Heading>
-        <Link as={NextLink} href={getPath("explorers")} fontSize="sm" color="text.secondary" ml="auto">Explorer Directory</Link>
         </HStack>
         <Button
           display={{ base: "inline-flex", md: "none" }}

@@ -8,7 +8,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
-import ContractHome from "@/app/contract/page";
+import ContractHome from "@/app/explorer/page";
 import { ExplorerLayout } from "./ExplorerLayout";
 import DirectoryHome from "./page";
 import { ExplorerGridBase } from "@/components/explorer/ExplorerGridBase";
@@ -129,7 +129,7 @@ it("contract landing keeps the existing interactive form and opens chain/address
   );
 });
 
-it("directory home links back to contract and its examples remain directory searches", () => {
+it("directory home keeps its examples as directory searches", () => {
   render(
     wrap(
       <ExplorerLayout>
@@ -137,9 +137,7 @@ it("directory home links back to contract and its examples remain directory sear
       </ExplorerLayout>
     )
   );
-  expect(
-    screen.getByRole("link", { name: "Contract Explorer" }).getAttribute("href")
-  ).toBe("https://explorer.eth.sh/");
+  expect(screen.queryByRole("link", { name: "Contract Explorer" })).toBeNull();
   expect(
     screen
       .getByRole("link", { name: /UniV3 Position Manager/ })

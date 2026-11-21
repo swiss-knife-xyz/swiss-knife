@@ -45,7 +45,7 @@ async function openRawCalldata() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  window.history.replaceState(null, "", "/contract/1/" + address);
+  window.history.replaceState(null, "", "/explorer/1/" + address);
 });
 afterEach(cleanup);
 it("pasted calldata fills only the matched overload on explicit decode; invalid input clears the selection", async () => {
@@ -94,7 +94,7 @@ it("restores a shared link without a click and fails closed for mismatching revi
     [address, 12]
   );
   const url = createContractCallLink(
-    window.location.origin + "/contract/",
+    window.location.origin + "/explorer/",
     1,
     address,
     {
@@ -126,7 +126,7 @@ it("rejects a nonpayable overload with shared value even if a same-named payable
   window.history.replaceState(
     null,
     "",
-    createContractCallLink(window.location.origin + "/contract/", 1, address, {
+    createContractCallLink(window.location.origin + "/explorer/", 1, address, {
       data,
       value: "1",
       abiMode: "contract",
@@ -140,7 +140,7 @@ it("rejects a nonpayable overload with shared value even if a same-named payable
 it("rejects a tampered shared signature and unsupported version without prefill", async () => {
   const data = new Interface(abi).encodeFunctionData("transfer(uint256)", [12]);
   const url = createContractCallLink(
-    window.location.origin + "/contract/",
+    window.location.origin + "/explorer/",
     1,
     address,
     { data, value: "0", abiMode: "contract", signature: "wrong(uint256)" }
@@ -172,7 +172,7 @@ it("closes without applying calldata and returns focus to the toolbar button", a
 
 it("does not import the original page fragment into a newly opened address tab", async () => {
   const data = new Interface(abi).encodeFunctionData("transfer(uint256)", [37]);
-  const url = createContractCallLink(window.location.origin + "/contract/", 1, address, {
+  const url = createContractCallLink(window.location.origin + "/explorer/", 1, address, {
     data, value: "0", abiMode: "contract", signature: "transfer(uint256)",
   });
   window.history.replaceState(null, "", url);

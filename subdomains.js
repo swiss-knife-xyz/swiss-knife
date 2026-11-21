@@ -4,7 +4,7 @@ const subdomains = {
     paths: ["decoder", "encoder", "viem-error-simulate", "cowswap"],
   },
   CONTRACT: {
-    base: "contract",
+    base: "explorer",
     paths: [],
   },
   EXPLORER: {

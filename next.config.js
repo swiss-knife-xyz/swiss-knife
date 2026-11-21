@@ -48,7 +48,7 @@ const nextConfig = {
         },
         // set up subdomains (exclude api routes, static assets and worker from subdomain rewrites)
         ...Object.values(subdomains)
-          .filter((subdomain) => subdomain.base !== "explorers")
+          .filter((subdomain) => !subdomain.isRelativePath)
           .flatMap((subdomain) => [
             {
               source:
@@ -56,7 +56,7 @@ const nextConfig = {
               has: [
                 {
                   type: "host",
-                  value: `${subdomain.base === "contract" ? "explorer" : subdomain.base}\\.eth\\.sh`,
+                  value: `${subdomain.base}\\.eth\\.sh`,
                 },
               ],
               destination: `/${subdomain.base}/:path*`,
@@ -75,116 +75,6 @@ const nextConfig = {
   },
   redirects() {
     return [
-      ...[
-        "explorer.eth.sh",
-        "explorer.swiss-knife.xyz",
-        "eth.sh",
-        "swiss-knife.xyz",
-      ].flatMap((host) =>
-        (host === "eth.sh" || host === "swiss-knife.xyz"
-          ? ["/explorer", "/explorers"]
-          : [""]
-        ).flatMap((prefix) => [
-          {
-            source: `${prefix}/address/:address/contract`,
-            has: [
-              { type: "host", value: host.replaceAll(".", "\\.") },
-              { type: "query", key: "chainId", value: "(?<chainId>\\d+)" },
-            ],
-            destination: "https://explorer.eth.sh/:chainId/:address",
-            permanent: true,
-          },
-          {
-            source: `${prefix}/address/:address/contract/:chainId`,
-            has: [{ type: "host", value: host.replaceAll(".", "\\.") }],
-            destination: "https://explorer.eth.sh/:chainId/:address",
-            permanent: true,
-          },
-          {
-            source: `${prefix}/address/:address/contract`,
-            has: [{ type: "host", value: host.replaceAll(".", "\\.") }],
-            destination: "https://explorer.eth.sh/1/:address",
-            permanent: true,
-          },
-        ])
-      ),
-      // Never point contract.eth.sh back to explorer's old /contract prefix:
-      // browsers may have cached that prefix's permanent hop to contract.eth.sh.
-      ...[
-        "eth.sh",
-        "explorer.eth.sh",
-        "explorer.swiss-knife.xyz",
-        "contract.eth.sh",
-        "contract.swiss-knife.xyz",
-        "swiss-knife.xyz",
-      ].flatMap((host) => [
-        ...[
-          "/contract/:chainId/:address",
-          "/explorer/contract/:chainId/:address",
-          "/explorers/contract/:chainId/:address",
-        ].map((source) => ({
-          source,
-          has: [{ type: "host", value: host.replaceAll(".", "\\.") }],
-          destination: "https://explorer.eth.sh/:chainId/:address",
-          permanent: true,
-        })),
-        {
-          source: "/contract",
-          has: [{ type: "host", value: host.replaceAll(".", "\\.") }],
-          destination: "https://explorer.eth.sh/",
-          permanent: true,
-        },
-      ]),
-      ...["contract.eth.sh", "contract.swiss-knife.xyz"].flatMap((host) => [
-        {
-          source: "/",
-          has: [{ type: "host", value: host.replaceAll(".", "\\.") }],
-          destination: "https://explorer.eth.sh/",
-          permanent: true,
-        },
-        {
-          source: "/:chainId(\\d+)/:address",
-          has: [{ type: "host", value: host.replaceAll(".", "\\.") }],
-          destination: "https://explorer.eth.sh/:chainId/:address",
-          permanent: true,
-        },
-      ]),
-      ...["eth.sh", "swiss-knife.xyz"].map((host) => ({
-        source: "/explorer/:path*",
-        has: [{ type: "host", value: host.replaceAll(".", "\\.") }],
-        destination: "https://eth.sh/explorers/:path*",
-        permanent: true,
-      })),
-      ...["explorer.eth.sh", "explorer.swiss-knife.xyz"].flatMap((host) => [
-        ...["address/:address", "tx/:tx", "explorers/:path*"].map((path) => ({
-          source: `/${path}`,
-          has: [{ type: "host", value: host.replaceAll(".", "\\.") }],
-          destination: `https://eth.sh/${path.startsWith("explorers/") ? path : `explorers/${path}`}`,
-          permanent: true,
-        })),
-        // A single segment was the directory's address/ENS search, not a chain link.
-        {
-          source: "/:slug(0x[a-fA-F0-9]{40}|0x[a-fA-F0-9]{64}|[^/]+\\.eth)",
-          has: [{ type: "host", value: host.replaceAll(".", "\\.") }],
-          destination: "https://eth.sh/explorers/:slug",
-          permanent: true,
-        },
-      ]),
-      {
-        source: "/",
-        has: [
-          { type: "host", value: "explorer\\.eth\\.sh" },
-          { type: "query", key: "forContracts" },
-        ],
-        destination: "https://eth.sh/explorers",
-        permanent: true,
-      },
-      {
-        source: "/",
-        has: [{ type: "host", value: "explorer\\.swiss-knife\\.xyz" }],
-        destination: "https://eth.sh/explorers",
-        permanent: true,
-      },
       {
         source: "/",
         has: [{ type: "host", value: "orgs.eth.sh" }],

@@ -28,13 +28,13 @@ test("share link restores chain/address route and versioned review-only fragment
     signature: "transfer(uint256)",
   };
   const url = calls.createContractCallLink(
-    "https://explorer.eth.sh/contract/",
+    "https://explorer.eth.sh/",
     8453,
     address,
     payload
   );
   const parsed = new URL(url);
-  assert.equal(parsed.pathname, `/contract/8453/${address}`);
+  assert.equal(parsed.pathname, `/8453/${address}`);
   assert.equal(parsed.search, "");
   assert.deepEqual(calls.parseContractCallFragment(parsed.hash), payload);
   assert.equal(calls.parseContractCallFragment("#other"), null);
@@ -42,7 +42,7 @@ test("share link restores chain/address route and versioned review-only fragment
 test("rejects invalid or oversized link payloads, duplicate fields and unsupported versions", () => {
   const data = new Interface(abi).encodeFunctionData("transfer(uint256)", [0]);
   const good = new URL(
-    calls.createContractCallLink("https://eth.sh/contract/", 1, address, {
+    calls.createContractCallLink("https://explorer.eth.sh/", 1, address, {
       data,
       value: "0",
       abiMode: "contract",
@@ -66,7 +66,7 @@ test("rejects invalid or oversized link payloads, duplicate fields and unsupport
     )
   );
   assert.throws(() =>
-    calls.createContractCallLink("https://eth.sh/contract/", 0, address, {
+    calls.createContractCallLink("https://explorer.eth.sh/", 0, address, {
       data,
       value: "0",
       abiMode: "contract",
@@ -214,7 +214,7 @@ test("rejects ambiguous inferred input shapes for the same selector", () => {
 test("unfinished form links preserve blanks and validate the selected function shape", () => {
   for (const args of [[null, null], [address, null]]) {
     const payload = { args, signature: "transfer(address,uint256)", value: "0", abiMode: "contract" as const };
-    const link = calls.createContractCallLink("https://eth.sh/contract/", 1, address, payload);
+    const link = calls.createContractCallLink("https://explorer.eth.sh/", 1, address, payload);
     const restored = calls.parseContractCallFragment(new URL(link).hash)!;
     assert.deepEqual(restored, payload);
     assert.ok("args" in restored);

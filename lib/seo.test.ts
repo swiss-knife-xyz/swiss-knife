@@ -29,7 +29,7 @@ function layouts(dir = new URL("../app/", import.meta.url)): URL[] {
 
 const headingPages = [
   "calldata/cowswap/CoWSwapVerifyPage.tsx", "uniswap/tick-to-price/page.tsx", "storage-slots/page.tsx", "siwe/page.tsx", "explorers/ExplorerLayout.tsx",
-  "contract/page.tsx", "contract/[chainId]/[address]/page.tsx", "determine-address/page.tsx",
+  "explorer/page.tsx", "explorer/[chainId]/[address]/page.tsx", "determine-address/page.tsx",
   "epoch-converter/page.tsx", "contract-diff/page.tsx", "character-counter/page.tsx", "constants/page.tsx",
   "converter/eth/page.tsx", "converter/hexadecimal/page.tsx", "converter/keccak256/page.tsx", "converter/padding/page.tsx", "converter/address-checksum/page.tsx",
   "calldata/decoder/CalldataDecoderPage.tsx", "calldata/encoder/CalldataEncoderPage.tsx", "calldata/viem-error-simulate/page.tsx",
@@ -39,7 +39,9 @@ const headingPages = [
 ];
 test("tool title headings expose an H1 without promoting navigation headings", () => {
   for (const path of headingPages) {
-    assert.match(readFileSync(new URL(`../app/${path}`, import.meta.url), "utf8"), /<Heading\s+as="h1"/, path);
+    const sourcePath = path === "explorer/page.tsx" ? "components/ContractStart.tsx"
+      : path === "explorer/[chainId]/[address]/page.tsx" ? "components/ContractTabs.tsx" : `app/${path}`;
+    assert.match(readFileSync(new URL(`../${sourcePath}`, import.meta.url), "utf8"), /<Heading\s+as="h1"/, path);
   }
 });
 
@@ -53,7 +55,7 @@ test("public tool leaves have page-specific canonical metadata and dedicated OG 
   }
 });
 
-import { generateMetadata as contractMetadata } from "../app/contract/[chainId]/[address]/layout";
+import { generateMetadata as contractMetadata } from "../app/explorer/[chainId]/[address]/layout";
 import { generateMetadata as decoderMetadata } from "../app/calldata/decoder/page";
 
 test("dynamic contract metadata canonical preserves chain and address", async () => {
@@ -70,7 +72,6 @@ test("decoder metadata keeps a string image URL and query-free canonical", async
 
 import { generateMetadata as addressMetadata } from "../app/explorers/address/[address]/layout";
 import { generateMetadata as txMetadata } from "../app/explorers/tx/[tx]/layout";
-import ExplorerContractAlias from "../app/explorers/contract/[chainId]/[address]/page";
 
 test("explorer metadata awaits Next 16 params and canonicals identify the record", async () => {
   const address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
@@ -79,13 +80,7 @@ test("explorer metadata awaits Next 16 params and canonicals identify the record
   assert.equal((await txMetadata({ params: Promise.resolve({ tx }) } as any)).alternates?.canonical, `https://eth.sh/explorers/tx/${tx}`);
 });
 
-test("legacy explorer contract alias awaits params before redirecting", async () => {
-  const address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-  await assert.rejects(async () => ExplorerContractAlias({ params: Promise.resolve({ address, chainId: "1" }) } as any), (error: any) => {
-    assert.ok(error.digest.includes(`https://explorer.eth.sh/1/${address}`));
-    return true;
-  });
-});
+
 
 test("explorer record pages unwrap promised params before generating outbound links", () => {
   for (const path of ["explorers/address/[address]", "explorers/tx/[tx]"]) {
@@ -160,7 +155,7 @@ test("sitemap lists real public leaf pages, not parameter placeholders or redire
   for (const url of urls) {
     const parsed = new URL(url);
     if (parsed.hostname === "eth.sh") continue;
-    const base = parsed.hostname === "explorer.eth.sh" ? "contract" : parsed.hostname.split(".")[0];
+    const base = parsed.hostname.split(".")[0];
     const pathname = base === "faucet" && parsed.pathname !== "/" ? "/[chain]" : parsed.pathname;
     const path = `../app/${base}${pathname === "/" ? "" : pathname}/page.tsx`;
     assert.doesNotThrow(() => readFileSync(new URL(path, import.meta.url)), url);
@@ -201,8 +196,8 @@ test("metadata emits canonical, complete Open Graph identity and descriptive ima
 });
 
 test("contract detail back link targets the tool root on both hosts", () => {
-  const page = readFileSync(new URL("../app/contract/[chainId]/[address]/page.tsx", import.meta.url), "utf8");
-  assert.ok(page.includes('href={getPath("contract")}'));
+  const page = readFileSync(new URL("../components/ContractTabs.tsx", import.meta.url), "utf8");
+  assert.ok(page.includes('href={getPath("explorer")}'));
 });
 
 import { ToolsGridItem } from "../components/HomePage/ToolsGrid/ToolsGridItem";
@@ -226,16 +221,7 @@ test("ENS record views have their own canonical rather than the history landing 
   assert.ok(source.includes("https://ens.eth.sh/history/"));
 });
 
-test("legacy explorer contract alias redirects at HTTP config before React streaming", () => {
-  const rules = nextConfig.redirects?.() ?? [];
-  for (const [host, source] of [["explorer.eth.sh", "/contract/:chainId/:address"], ["eth.sh", "/explorer/contract/:chainId/:address"]]) {
-    const rule = rules.find((entry: any) => entry.source === source && new RegExp(`^${entry.has?.[0]?.value}$`).test(host));
-    assert.ok(rule);
-    assert.ok(new RegExp(`^${rule.has?.[0]?.value}$`).test(host));
-    assert.equal(rule.destination, "https://explorer.eth.sh/:chainId/:address");
-    assert.equal(rule.permanent, true);
-  }
-});
+
 
 test("non-OG API responses are explicitly non-indexable", () => {
   const rules = nextConfig.headers?.() ?? [];
@@ -250,13 +236,7 @@ test("orgs legacy host root redirects to the supported apex directory", () => {
   assert.equal(route.destination, "https://eth.sh/orgs");
 });
 
-test("contract legacy link redirects only on the contract host", () => {
-  const redirects = nextConfig.redirects();
-  const alias = redirects.find((route: any) => route.source === "/contract" && new RegExp(`^${route.has?.[0]?.value}$`).test("contract.eth.sh"));
-  assert.ok(alias, "contract host /contract alias is missing");
-  assert.equal(alias.destination, "https://explorer.eth.sh/");
-  assert.equal(alias.permanent, true);
-});
+
 
 test("subdomain rewrites leave crawler endpoints and OG assets on the root app", () => {
   const route = nextConfig.rewrites().beforeFiles.find((route: any) => new RegExp(`^${route.has?.[0]?.value}$`).test("explorer.eth.sh"));

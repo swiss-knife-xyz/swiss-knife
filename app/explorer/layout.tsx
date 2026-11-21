@@ -1,15 +1,15 @@
-import type { Metadata } from "next";
+import { getMetadata } from "@/utils";
 
-export const metadata: Metadata = {
-  title: "Explorer Directory | ETH.sh",
-  alternates: { canonical: null },
-  robots: { index: false, follow: true },
+export const metadata = getMetadata({
+  title: "Contract | ETH.sh",
+  description:
+    "Interact with any smart contract - read & write functions, storage slots, and raw calldata. Works with both verified and unverified contracts.",
+  canonical: "https://explorer.eth.sh/",
+  images: "https://eth.sh/api/og/contract",
+});
+
+const ContractLayout = ({ children }: { children: React.ReactNode }) => {
+  return <>{children}</>;
 };
 
-export default function AliasLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return children;
-}
+export default ContractLayout;

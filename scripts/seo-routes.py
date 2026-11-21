@@ -28,9 +28,6 @@ def check(host, path, status, location=None, canonical=None, noindex=False, robo
     if robots: passed = passed and response.headers.get("X-Robots-Tag") == "noindex, nofollow"
     records.append({"host": host, "path": path, "status": response.status, "location": actual_location, "expectedCanonical": canonical, "passed": bool(passed)})
 
-check("contract.eth.sh", "/contract", 308, "https://explorer.eth.sh/")
-check("eth.sh", "/contract", 308, "https://explorer.eth.sh/")
-check("contract.eth.sh", f"/1/{address}", 308, f"https://explorer.eth.sh/1/{address}")
 check("explorer.eth.sh", "/", 200, canonical="https://explorer.eth.sh/")
 check("explorer.eth.sh", f"/1/{address}", 200, canonical=f"https://explorer.eth.sh/1/{address}")
 check("eth.sh", "/explorers", 200, canonical="https://eth.sh/explorers")
@@ -42,16 +39,12 @@ for base, tool in {"calldata": "decoder", "converter": "eth", "ens": "history", 
     check(f"{base}.eth.sh", "/", 308, f"https://{base}.eth.sh/{tool}")
 check("orgs.eth.sh", "/", 308, "https://eth.sh/orgs")
 check("eth.sh", "/orgs", 200, canonical="https://eth.sh/orgs")
-check("explorer.eth.sh", f"/contract/1/{address}", 308, f"https://explorer.eth.sh/1/{address}")
-check("eth.sh", f"/explorer/contract/1/{address}", 308, f"https://explorer.eth.sh/1/{address}")
-check("explorer.eth.sh", f"/address/{address}", 308, f"https://eth.sh/explorers/address/{address}")
 check("eth.sh", f"/explorers/address/{address}", 200, canonical=f"https://eth.sh/explorers/address/{address}")
-check("explorer.eth.sh", "/tx/0x" + "a" * 64, 308, "https://eth.sh/explorers/tx/0x" + "a" * 64)
 check("eth.sh", "/explorers/tx/0x" + "a" * 64, 200, canonical="https://eth.sh/explorers/tx/0x" + "a" * 64)
 check("ens.eth.sh", "/history/vitalik.eth", 200, canonical="https://ens.eth.sh/history/vitalik.eth")
-for host in ["eth.sh", "contract.eth.sh", "determine-address.eth.sh", "solidity.eth.sh", "usdc-pay.eth.sh"]:
+for host in ["eth.sh", "explorer.eth.sh", "determine-address.eth.sh", "solidity.eth.sh", "usdc-pay.eth.sh"]:
     check(host, "/robots.txt", 200)
-    check(host, "/sitemap.xml", 404 if host == "contract.eth.sh" else 200)
+    check(host, "/sitemap.xml", 200)
     check(host, "/og/index.png", 200)
     check(host, "/not-a-tool-seo-audit", 404)
 check("wallet.eth.sh", "/signatures/view", 200, noindex=True)

@@ -63,7 +63,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const userInputFromUrl = segments[0] === "contract" ? segments[2] : (segments[1] ?? segments[0]);
+  const userInputFromUrl = segments[1] ?? segments[0];
 
   const [userInput, setUserInput] = useState<string>(userInputFromUrl ?? "");
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
@@ -130,19 +130,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
         }
       } else if (isAddress(__userInput)) {
         addRecentSearch(__userInput, "address");
-        let newUrl: string;
-
-        if (!pathname.includes("/contract")) {
-          newUrl = `${getPath(
-            subdomains.EXPLORER.base,
-            subdomains.EXPLORER.isRelativePath
-          )}address/${__userInput}`;
-        } else {
-          newUrl = `${getPath(
-            subdomains.EXPLORER.base,
-            subdomains.EXPLORER.isRelativePath
-          )}contract/${segments[1]}/${__userInput}`;
-        }
+        const newUrl = `${getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}address/${__userInput}`;
         if (new URL(newUrl, "https://eth.sh").pathname.toLowerCase() !== pathname.toLowerCase()) {
           navigateToSearch(newUrl);
         } else {
@@ -169,9 +157,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
             const newUrl = `${getPath(
               subdomains.EXPLORER.base,
               subdomains.EXPLORER.isRelativePath
-            )}address/${ensResolvedAddress}${
-              pathname.includes("/contract") ? `/contract/${segments[1]}` : ""
-            }`;
+            )}address/${ensResolvedAddress}`;
             if (new URL(newUrl, "https://eth.sh").pathname.toLowerCase() !== pathname.toLowerCase()) {
               navigateToSearch(newUrl);
             } else {
@@ -314,7 +300,6 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                   </HStack>
                 )}
 
-            <Box textAlign="center" mb={4}><NLink href={getPath("contract")}>Contract Explorer</NLink></Box>
 
             {/* Search Section */}
             <Box w="full" gridRow={2} gridColumn="1 / -1">
@@ -323,6 +308,16 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                   <InputGroup flex={1} minW={0}>
                     <Input
                       placeholder="address / ens / transaction"
+                      name="explorer-lookup"
+                      aria-label="Blockchain address, ENS name, or transaction hash"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      data-1p-ignore
+                      data-lpignore="true"
+                      data-bwignore="true"
+                      data-form-type="other"
                       value={userInput}
                       onChange={(e) => {
                         setUserInput(e.target.value);
@@ -359,7 +354,6 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                       }}
                       color="gray.100"
                       _placeholder={{ color: "gray.500" }}
-                      aria-label="Address, ENS name, or transaction hash"
                       fontSize="md"
                       fontFamily="mono"
                       h="44px"
