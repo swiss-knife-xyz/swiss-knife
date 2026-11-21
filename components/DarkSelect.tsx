@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useId, useCallback } from "react";
-import { Box, BoxProps, HStack, Image } from "@chakra-ui/react";
+import { Box, BoxProps, HStack, Image, useToken } from "@chakra-ui/react";
 import {
   Select as RSelect,
   CreatableSelect,
@@ -16,6 +16,7 @@ export interface DarkSelectProps {
   placeholder?: string;
   ariaLabel?: string;
   optionCounts?: Record<string, number>;
+  showOptionValue?: boolean;
   options: OptionsOrGroups<SelectedOption, GroupBase<SelectedOption>>;
   selectedOption: SelectedOptionState;
   setSelectedOption: (value: SelectedOptionState) => void;
@@ -24,6 +25,11 @@ export interface DarkSelectProps {
   controlProps?: Pick<BoxProps, "h" | "minH" | "borderRadius" | "fontSize">;
   isCreatable?: boolean;
   disableMouseNavigation?: boolean;
+  editableValue?: string;
+  onEditableValueChange?: (value: string) => void;
+  openMenuOnFocus?: boolean;
+  isInvalid?: boolean;
+  onKeyDown?: React.KeyboardEventHandler;
 }
 
 export type FormatSelectProps = Pick<
@@ -35,6 +41,7 @@ export const DarkSelect = ({
   placeholder,
   ariaLabel,
   optionCounts,
+  showOptionValue,
   options,
   selectedOption,
   setSelectedOption,
@@ -43,11 +50,20 @@ export const DarkSelect = ({
   controlProps,
   isCreatable,
   disableMouseNavigation,
+  editableValue,
+  onEditableValueChange,
+  openMenuOnFocus,
+  isInvalid,
+  onKeyDown,
 }: DarkSelectProps) => {
+  // Body-portaled menus stay below modal overlays; menus inside dialogs keep
+  // their existing portal target and participate in that dialog's stack.
+  const [dropdownZIndex] = useToken("zIndices", ["dropdown"]);
   const [menuPortalTarget, setMenuPortalTarget] = useState<HTMLElement | null>(
     null
   );
   const [menuIsOpen, setMenuIsOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const selectRef = useRef<any>(null);
   const uniqueId = useId();
@@ -71,10 +87,16 @@ export const DarkSelect = ({
 
   const handleMenuClose = () => {
     setMenuIsOpen(false);
+    setIsEditing(false);
   };
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
+      // Enter selects a suggestion while the menu is open; it must not also
+      // submit the containing contract function.
+      if (editableValue !== undefined && menuIsOpen && event.key === "Enter")
+        return;
+      onKeyDown?.(event);
       if (disableMouseNavigation) {
         if (
           event.key === "ArrowUp" ||
@@ -85,7 +107,7 @@ export const DarkSelect = ({
         }
       }
     },
-    [disableMouseNavigation]
+    [disableMouseNavigation, editableValue, menuIsOpen, onKeyDown]
   );
 
   const commonChakraStyles = {
@@ -96,7 +118,11 @@ export const DarkSelect = ({
     control: (provided: any, state: any) => ({
       ...provided,
       bg: "whiteAlpha.50",
-      borderColor: state.isFocused ? "blue.400" : "whiteAlpha.200",
+      borderColor: isInvalid
+        ? "red.400"
+        : state.isFocused
+          ? "blue.400"
+          : "whiteAlpha.200",
       borderRadius: "lg",
       ...controlProps,
       boxShadow: state.isFocused
@@ -126,12 +152,12 @@ export const DarkSelect = ({
       borderRadius: controlProps?.borderRadius ?? "lg",
       ...(controlProps?.fontSize ? { fontSize: controlProps.fontSize } : {}),
       boxShadow: "lg",
-      zIndex: 9999,
+      zIndex: dropdownZIndex,
     }),
     menu: (provided: any) => ({
       ...provided,
       position: "absolute",
-      zIndex: 9999,
+      zIndex: dropdownZIndex,
     }),
     option: (provided: any, state: any) => ({
       ...provided,
@@ -149,6 +175,9 @@ export const DarkSelect = ({
     input: (provided: any) => ({
       ...provided,
       color: "white",
+      // Editable selects display their hex in the input itself. React Select
+      // normally hides that input after selection in favour of SingleValue.
+      ...(editableValue !== undefined ? { fontFamily: "mono", opacity: 1 } : {}),
       bg: "transparent",
       boxShadow: "none",
       _focus: { outline: "none", boxShadow: "none", bg: "transparent" },
@@ -180,7 +209,10 @@ export const DarkSelect = ({
   const customComponents = {
     Option: (props: OptionProps<SelectedOption, false>) => (
       <chakraComponents.Option {...props}>
-        <HStack spacing={2} w={optionCounts ? "full" : undefined}>
+        <HStack
+          spacing={3}
+          w={optionCounts || showOptionValue ? "full" : undefined}
+        >
           {props.data.image && (
             <Image
               src={props.data.image}
@@ -192,7 +224,21 @@ export const DarkSelect = ({
               flexShrink={0}
             />
           )}
-          <span>{props.data.label}</span>
+          <Box as="span" minW={0}>
+            {props.data.label}
+          </Box>
+          {showOptionValue && (
+            <Box
+              as="span"
+              ml="auto"
+              fontFamily="mono"
+              fontSize="xs"
+              color="whiteAlpha.600"
+              flexShrink={0}
+            >
+              {String(props.data.value)}
+            </Box>
+          )}
           {optionCounts?.[String(props.data.value)] !== undefined && (
             <Box
               as="span"
@@ -263,9 +309,33 @@ export const DarkSelect = ({
         ref={selectRef}
         options={options}
         value={selectedOption}
-        onChange={
-          setSelectedOption as (value: SingleValue<SelectedOption>) => void
-        }
+        inputValue={editableValue}
+        controlShouldRenderValue={editableValue === undefined}
+        onInputChange={(next, meta) => {
+          if (meta.action === "input-change" && editableValue !== undefined) {
+            setIsEditing(true);
+            onEditableValueChange?.(next);
+          }
+        }}
+        openMenuOnFocus={openMenuOnFocus}
+        {...(editableValue !== undefined
+          ? {
+              filterOption: (
+                option: { label: string; value: string },
+                query: string
+              ) =>
+                !isEditing ||
+                query === String(selectedOption?.value) ||
+                `${option.label} ${option.value}`
+                  .toLowerCase()
+                  .includes(query.toLowerCase()),
+            }
+          : {})}
+        onChange={(option) => {
+          setIsEditing(false);
+          setSelectedOption(option as SingleValue<SelectedOption>);
+        }}
+        onFocus={() => setIsEditing(false)}
         onMenuOpen={handleMenuOpen}
         onMenuClose={handleMenuClose}
         defaultValue={selectedOption}
@@ -277,13 +347,16 @@ export const DarkSelect = ({
         styles={{
           menuPortal: (provided: any) => ({
             ...provided,
-            zIndex: 9999,
+            zIndex: dropdownZIndex,
           }),
         }}
         closeMenuOnSelect
         useBasicStyles
         menuPortalTarget={menuPortalTarget}
         isSearchable
+        {...(editableValue !== undefined ? {
+          noOptionsMessage: () => "Custom interface IDs are accepted",
+        } : {})}
         menuPosition="fixed"
         onKeyDown={handleKeyDown}
         isDisabled={disableMouseNavigation}

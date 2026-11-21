@@ -115,7 +115,8 @@ export const TupleInput: React.FC<InputFieldProps> = ({
 
   return (
     <Box
-      p={2}
+      minW={0}
+      p={{ base: 1.5, md: 2 }}
       mb={!isCollapsed ? 4 : undefined}
       pb={!isCollapsed ? 4 : undefined}
       border="2px solid"
@@ -139,8 +140,8 @@ export const TupleInput: React.FC<InputFieldProps> = ({
         <InputInfo input={input} />
       </HStack>
       <Box
-        ml={2}
-        pl={4}
+        ml={{ base: 0, md: 2 }}
+        pl={{ base: 2, md: 4 }}
         borderLeft={"1px"}
         borderColor={"whiteAlpha.100"}
         display={isCollapsed ? "none" : undefined}

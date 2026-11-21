@@ -13,15 +13,18 @@ function mount({
   ancestor = null,
   documentWidth = 320,
   controls = true,
+  placeholder = "Contract Address",
+  paddingRight = "0px",
 } = {}) {
   global.window = { innerWidth: 320 };
   const control = {
     tagName: "INPUT",
+    style: { paddingRight },
     textContent: "",
     parentElement: ancestor,
     getBoundingClientRect: () => controlRect,
     getAttribute: (name) =>
-      name === "placeholder" ? "Contract Address" : null,
+      name === "placeholder" ? placeholder : null,
     closest: () => null,
   };
   global.document = {
@@ -71,4 +74,13 @@ test("rejects controls clipped by a narrower scroll ancestor", () => {
     },
   });
   assert.throws(checkPhoneLayout, /Contract Address: clipped by ancestor/);
+});
+
+test("rejects a search field squeezed by adjacent action buttons", () => {
+  mount({ controlRect: rect(16, 170), placeholder: "address / ens / transaction", paddingRight: "64px" });
+  assert.throws(checkPhoneLayout, /insufficient room for search text/);
+});
+test("accepts a full-width search field with room for its embedded button", () => {
+  mount({ placeholder: "address / ens / transaction", paddingRight: "64px" });
+  assert.equal(checkPhoneLayout().controls, 1);
 });
