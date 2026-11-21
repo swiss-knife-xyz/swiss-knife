@@ -1,5 +1,5 @@
 import { Address } from "viem";
-import { base, baseSepolia } from "viem/chains";
+import { base, baseSepolia, mainnet } from "viem/chains";
 import { robinhood } from "@/data/common";
 import { UniversalRouterAbi } from "@/lib/uniswap/abi/UniversalRouter";
 
@@ -12,6 +12,7 @@ export const StateViewAddress: Record<number, Address> = {
 };
 
 export const Permit2Address: Record<number, Address> = {
+  [mainnet.id]: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
   [baseSepolia.id]: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
   [base.id]: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
   [robinhood.id]: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
@@ -24,6 +25,7 @@ export const UniV4PositionManagerAddress: Record<number, Address> = {
 };
 
 export const UniversalRouterAddress: Record<number, Address> = {
+  [mainnet.id]: "0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af",
   [baseSepolia.id]: "0x492E6456D9528771018DeB9E87ef7750EF184104",
   [base.id]: "0x6fF5693b99212Da76ad316178A184AB56D299b43",
   [robinhood.id]: "0x8876789976dEcBfCbBbe364623C63652db8C0904",
@@ -907,6 +909,7 @@ export const quoterAbi = [
 
 export const quoterAddress: Record<number, Address> = {
   // our unofficial quoter
+  [mainnet.id]: "0x2d66ce93dC44CC21Fa68996cC3AD219a9d133E48",
   [baseSepolia.id]: "0xF0f351A4472b3F54A0232538969d1Ea6BaAFCfEE",
   [base.id]: "0xad23E08D7F40e2844fF01A6d19D0e4a57381D6a6",
 };
