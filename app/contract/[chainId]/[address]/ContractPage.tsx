@@ -59,7 +59,7 @@ import { DarkButton } from "@/components/DarkButton";
 import { processContractBytecode } from "@/utils/index";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { Editor } from "@monaco-editor/react";
-import { Code, Download, ExternalLink, FileText, Maximize2, Minimize2 } from "lucide-react";
+import { Code, CornerDownLeft, Download, ExternalLink, FileText, Maximize2, Minimize2 } from "lucide-react";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { SourceCodeExplorer } from "@/components/SourceCodeExplorer";
 
@@ -1208,7 +1208,7 @@ export const ContractPage = ({
           mb={4}
         >
           {/* Top row: Address and Chain */}
-          <HStack spacing={4} mb={4} flexWrap={{ base: "wrap", md: "nowrap" }}>
+          <HStack spacing={4} mb={4} alignItems="flex-end" flexWrap={{ base: "wrap", md: "nowrap" }}>
             <Box flex={1} minW="280px">
               <HStack spacing={2} mb={1.5} align="center">
                 <Text color="text.tertiary" fontSize="xs" fontWeight="medium" textTransform="uppercase" letterSpacing="0.05em">
@@ -1227,6 +1227,7 @@ export const ContractPage = ({
                   placeholder="0x..."
                   value={addressInput}
                   aria-label="Contract Address"
+                  h={10}
                   isInvalid={Boolean(inputError)}
                   aria-describedby={inputError ? "contract-load-error" : undefined}
                   onChange={(e) => {
@@ -1250,6 +1251,7 @@ export const ContractPage = ({
               </Text>
               <DarkSelect
                 ariaLabel="Network"
+                controlProps={{ h: 10, minH: 10 }}
                 selectedOption={selectedNetworkOption}
                 setSelectedOption={(option) => {
                   setSelectedNetworkOption(option);
@@ -1258,7 +1260,7 @@ export const ContractPage = ({
                 options={networkOptions}
               />
             </Box>
-            <Button type="button" onClick={handleAddressSubmit} alignSelf="end">
+            <Button type="button" onClick={handleAddressSubmit} h={10} flexShrink={0} rightIcon={<CornerDownLeft size={14} aria-hidden="true" />}>
               Load
             </Button>
           </HStack>
