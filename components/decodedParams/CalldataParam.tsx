@@ -8,9 +8,11 @@ import { BytesParam } from "./BytesParam";
 export const CalldataParam = ({
   value,
   chainId,
+  variant = "surface",
 }: {
   value: any;
   chainId?: number;
+  variant?: "surface" | "plain";
 }) => {
   // abi.encode bytes
   const [result, setResult] = useState<any>();
@@ -33,9 +35,16 @@ export const CalldataParam = ({
   }, [value]);
 
   return result ? (
-    <Stack mt={2} p={4} spacing={4} bg={"whiteAlpha.50"} rounded={"lg"}>
+    <Stack
+      mt={2}
+      p={variant === "surface" ? 4 : 0}
+      spacing={4}
+      bg={variant === "surface" ? "whiteAlpha.50" : undefined}
+      rounded={variant === "surface" ? "lg" : undefined}
+      minW={0}
+    >
       {result.args.map((arg: any, i: number) => {
-        return renderParams(i, arg, chainId);
+        return renderParams(i, arg, chainId, variant);
       })}
     </Stack>
   ) : !isLoading ? (
