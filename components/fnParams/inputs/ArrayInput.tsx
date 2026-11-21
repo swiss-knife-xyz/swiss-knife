@@ -51,6 +51,7 @@ const ArrayElement = ({
   rawValues,
   onKeyDown,
   fixedLength,
+  focusOnMount,
 }: {
   id: string;
   index: number;
@@ -67,11 +68,31 @@ const ArrayElement = ({
   rawValues?: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   fixedLength?: number;
+  focusOnMount: boolean;
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const fieldRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!focusOnMount) return;
+    const frame = requestAnimationFrame(() => {
+      const root = fieldRef.current;
+      const field =
+        root?.querySelector<HTMLElement>(
+          'input:not([disabled]):not([readonly]):not([type="hidden"]):not([value="[ ]"]), textarea:not([disabled]):not([readonly]), select:not([disabled])'
+        ) ?? root?.querySelector<HTMLElement>("button:not([disabled])");
+      field?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusOnMount]);
 
   return (
-    <HStack minW={0} mt={2} p={{ base: 1.5, md: 3 }} bg="whiteAlpha.50" rounded={"lg"}>
+    <HStack
+      minW={0}
+      mt={2}
+      p={{ base: 1.5, md: 3 }}
+      bg="whiteAlpha.50"
+      rounded={"lg"}
+    >
       <Box w="full" minW={0}>
         <HStack w="full">
           <HStack
@@ -98,7 +119,7 @@ const ArrayElement = ({
             <DeleteIcon />
           </Button>
         </HStack>
-        <Box display={isCollapsed ? "none" : undefined}>
+        <Box ref={fieldRef} display={isCollapsed ? "none" : undefined}>
           {renderInputFields({
             chainId,
             input: {
@@ -156,6 +177,8 @@ export const ArrayInput = ({
     Record<string, boolean>
   >({});
 
+  const nextElementId = useRef(0);
+  const focusRequestedId = useRef<string | null>(null);
   const prevArrayInputStateRef = useRef(arrayInputState);
   const prevArrayReadIsDisabledRef = useRef(arrayReadIsDisabled);
 
@@ -178,7 +201,8 @@ export const ArrayInput = ({
 
   const addNewArrayElement = useCallback(() => {
     // unique id so that react re-renders the correct element when it is removed
-    const newId = `element-${Date.now()}`;
+    const newId = `element-${++nextElementId.current}`;
+    focusRequestedId.current = newId;
     setArrayInputsState((prev) => ({
       ...prev,
       [newId]: { id: newId, value: "" },
@@ -233,6 +257,7 @@ export const ArrayInput = ({
           input={input}
           childType={baseType}
           fixedLength={fixedLength}
+          focusOnMount={id === focusRequestedId.current}
           value={element.value}
           updateArrayInputState={updateArrayInputState}
           removeFromArrayInputState={removeFromArrayInputState}

@@ -863,6 +863,7 @@ function CalldataEncoderPageContent() {
             {renderInputFields({
               chainId,
               input,
+              allowBytesBuilder: true,
               value: inputsState[i] || "",
               onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                 updateInputState(i, e.target.value),

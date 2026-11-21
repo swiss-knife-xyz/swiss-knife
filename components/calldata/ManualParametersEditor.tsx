@@ -7,6 +7,7 @@ import {
   VStack,
   Text,
   IconButton,
+  Input,
   Spacer,
 } from "@chakra-ui/react";
 import { AddIcon, DeleteIcon } from "@chakra-ui/icons";
@@ -177,12 +178,24 @@ export function ManualParametersEditor({
   setManualParams,
   encode,
   rawValues = false,
+  variant = "surface",
 }: {
   manualParams: ManualParam[];
   setManualParams: React.Dispatch<React.SetStateAction<ManualParam[]>>;
   encode: () => void;
   rawValues?: boolean;
+  variant?: "surface" | "plain";
 }) {
+  const NameInput = variant === "plain" ? Input : InputField;
+  const nameInputStyles =
+    variant === "plain"
+      ? {
+          bg: "whiteAlpha.50",
+          borderColor: "whiteAlpha.200",
+          borderRadius: "lg",
+          _hover: { bg: "whiteAlpha.100", borderColor: "whiteAlpha.400" },
+        }
+      : {};
   const addManualParam = () => {
     setManualParams((prev) => [
       ...prev,
@@ -327,10 +340,10 @@ export function ManualParametersEditor({
       {manualParams.map((param, i) => (
         <Box
           key={`${manualParams.length}-${i}-${param.type}-${JSON.stringify(param.components?.map((c) => c.type))}`}
-          p={{ base: 2, md: 4 }}
-          bg="whiteAlpha.50"
+          p={{ base: variant === "plain" ? 3 : 2, md: 4 }}
+          bg={variant === "plain" ? "transparent" : "whiteAlpha.50"}
           border="1px solid"
-          borderColor="border.subtle"
+          borderColor={variant === "plain" ? "border.default" : "border.subtle"}
           borderRadius="lg"
           position="relative"
         >
@@ -338,6 +351,7 @@ export function ManualParametersEditor({
           <HStack mb={3} justify="space-between" align="start" spacing={3}>
             <HStack spacing={3} flex={1} minW={0} flexWrap="wrap">
               <Box
+                display={variant === "plain" ? "none" : undefined}
                 bg="whiteAlpha.100"
                 px={2}
                 py={0.5}
@@ -351,6 +365,10 @@ export function ManualParametersEditor({
               </Box>
               <Box w={{ base: "full", md: "200px" }} minW={0}>
                 <DarkSelect
+                  size={variant === "plain" ? "sm" : "md"}
+                  controlProps={
+                    variant === "plain" ? { h: 8, minH: 8 } : undefined
+                  }
                   isCreatable
                   ariaLabel={`Parameter ${i + 1} type`}
                   placeholder="Select type..."
@@ -364,7 +382,10 @@ export function ManualParametersEditor({
                 />
               </Box>
               <Box w={{ base: "full", md: "180px" }} minW={0}>
-                <InputField
+                <NameInput
+                  {...nameInputStyles}
+                  h={variant === "plain" ? 8 : undefined}
+                  minH={variant === "plain" ? 8 : undefined}
                   placeholder="name (optional)"
                   value={param.name}
                   onChange={(e) => updateManualParamName(i, e.target.value)}
@@ -418,6 +439,12 @@ export function ManualParametersEditor({
                         </Box>
                         <Box w={{ base: "full", md: "160px" }} minW={0}>
                           <DarkSelect
+                            size={variant === "plain" ? "sm" : "md"}
+                            controlProps={
+                              variant === "plain"
+                                ? { h: 8, minH: 8 }
+                                : undefined
+                            }
                             isCreatable
                             ariaLabel={`Parameter ${i + 1} field ${ci + 1} type`}
                             placeholder="Type"
@@ -441,7 +468,10 @@ export function ManualParametersEditor({
                           />
                         </Box>
                         <Box w={{ base: "full", md: "180px" }} minW={0}>
-                          <InputField
+                          <NameInput
+                            {...nameInputStyles}
+                            h={variant === "plain" ? 8 : undefined}
+                            minH={variant === "plain" ? 8 : undefined}
                             placeholder="name (optional)"
                             value={comp.name}
                             onChange={(e) =>
@@ -471,6 +501,7 @@ export function ManualParametersEditor({
                           chainId: 1,
                           immediateUpdates: true,
                           rawValues,
+                          allowBytesBuilder: true,
                           input: {
                             type: comp.type,
                             name: comp.name || `field_${ci}`,
@@ -536,6 +567,10 @@ export function ManualParametersEditor({
                       </Box>
                       <Box w={{ base: "full", md: "160px" }} minW={0}>
                         <DarkSelect
+                          size={variant === "plain" ? "sm" : "md"}
+                          controlProps={
+                            variant === "plain" ? { h: 8, minH: 8 } : undefined
+                          }
                           isCreatable
                           ariaLabel={`Parameter ${i + 1} field ${ci + 1} type`}
                           placeholder="Type"
@@ -559,7 +594,10 @@ export function ManualParametersEditor({
                         />
                       </Box>
                       <Box w={{ base: "full", md: "180px" }} minW={0}>
-                        <InputField
+                        <NameInput
+                          {...nameInputStyles}
+                          h={variant === "plain" ? 8 : undefined}
+                          minH={variant === "plain" ? 8 : undefined}
                           placeholder="name (optional)"
                           value={comp.name}
                           onChange={(e) =>
@@ -599,6 +637,7 @@ export function ManualParametersEditor({
                   chainId: 1,
                   immediateUpdates: true,
                   rawValues,
+                  allowBytesBuilder: true,
                   input: {
                     type: param.type,
                     name: param.name || `param_${i}`,
@@ -625,6 +664,7 @@ export function ManualParametersEditor({
                 chainId: 1,
                 immediateUpdates: true,
                 rawValues,
+                allowBytesBuilder: true,
                 input: { type: param.type, name: param.name || `param_${i}` },
                 value: param.value || "",
                 onChange: (e: React.ChangeEvent<HTMLInputElement>) =>

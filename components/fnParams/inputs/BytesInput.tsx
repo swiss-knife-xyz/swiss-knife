@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   Box,
   Button,
@@ -17,6 +18,7 @@ interface InputFieldProps extends InputProps {
   input: JsonFragment;
   value?: string;
   suggestions?: SelectedOption[];
+  headerAction?: ReactNode;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -25,6 +27,7 @@ export const BytesInput = ({
   value,
   onChange,
   suggestions,
+  headerAction,
   ...props
 }: InputFieldProps) => {
   // Parse fixed size from type (e.g. "bytes32" → 32, "bytes" → null)
@@ -49,17 +52,31 @@ export const BytesInput = ({
         columnGap={2}
         rowGap={1}
         alignItems="center"
+        sx={
+          headerAction
+            ? {
+                "&:hover input, &:hover .bytes-builder-action": {
+                  borderColor: props.isInvalid ? "red.500" : "whiteAlpha.400",
+                },
+                "&:focus-within input, &:focus-within .bytes-builder-action": {
+                  borderColor: props.isInvalid ? "red.500" : "blue.400",
+                },
+              }
+            : undefined
+        }
       >
         <HStack
           gridColumn={1}
           gridRow={1}
           justify="space-between"
-          align="baseline"
+          align={headerAction ? "center" : "baseline"}
           spacing={3}
-          flexWrap="wrap"
+          flexWrap={headerAction ? "nowrap" : "wrap"}
           mb={0}
         >
-          <InputInfo input={input} />
+          <Box minW={0} flex={headerAction ? 1 : undefined}>
+            <InputInfo input={input} />
+          </Box>
           {selectedSuggestion && (
             <Text
               fontSize="sm"
@@ -71,6 +88,7 @@ export const BytesInput = ({
               {selectedSuggestion.label}
             </Text>
           )}
+          {headerAction}
         </HStack>
         {suggestions ? (
           <>
@@ -111,6 +129,14 @@ export const BytesInput = ({
             placeholder=""
             onChange={onChange}
             {...props}
+            {...(headerAction
+              ? {
+                  bg: "bg.subtle",
+                  borderTopRightRadius: 0,
+                  _hover: { bg: "bg.subtle" },
+                  _focus: { bg: "bg.subtle", boxShadow: "none" },
+                }
+              : {})}
           />
         )}
       </Box>

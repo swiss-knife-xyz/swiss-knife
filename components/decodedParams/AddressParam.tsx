@@ -353,6 +353,7 @@ export const AddressParam = ({
           {showLink && (
             <Button
               as={ContractAddressLink}
+              displayName={addressBookLabel || addressLabels[0] || ensName || undefined}
               address={address}
               chainId={chainId}
               href={`${getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}address/${address}${chainId ? "?chainId=" + chainId : ""}`}

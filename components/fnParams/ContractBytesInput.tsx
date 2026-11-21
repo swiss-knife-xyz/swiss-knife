@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import {
   Alert,
   AlertIcon,
@@ -16,12 +16,13 @@ import {
   ModalCloseButton,
   ModalBody,
   ModalFooter,
-  Select,
   Text,
   VStack,
 } from "@chakra-ui/react";
 import type { JsonFragmentType } from "ethers";
 import type { Hex } from "viem";
+import { Wrench } from "lucide-react";
+import { DarkSelect } from "@/components/DarkSelect";
 import { BytesInput } from "./inputs/BytesInput";
 import {
   ManualParametersEditor,
@@ -62,7 +63,7 @@ function validateBuilderValues(input: ManualParamType, value: unknown): void {
   }
 }
 
-/** Opt-in contract wrapper. Shared BytesInput and encoder fields remain raw-only. */
+/** Typed builder shared by contract fields, the encoder and nested byte payloads. */
 export function ContractBytesInput({
   input,
   value,
@@ -78,35 +79,70 @@ export function ContractBytesInput({
   const [isOpen, setIsOpen] = useState(false);
   return (
     <Box>
-      <BytesInput input={input} value={value} onChange={onChange} {...props} />
-      <Button size="sm" variant="outline" onClick={() => setIsOpen(true)}>
-        Build bytes{input.name ? `: ${input.name}` : ""}
-      </Button>
-      {isOpen && (
-        <BytesBuilderDialog
-          fieldName={input.name || "bytes"}
-          onClose={() => setIsOpen(false)}
-          onApply={(bytes) => {
-            onChange({
-              target: { value: bytes },
-            } as React.ChangeEvent<HTMLInputElement>);
-            setIsOpen(false);
-          }}
-        />
-      )}
+      <BytesInput
+        input={input}
+        value={value}
+        onChange={onChange}
+        {...props}
+        headerAction={
+          <Button
+            className="bytes-builder-action"
+            leftIcon={<Wrench size={12} aria-hidden="true" />}
+            size="xs"
+            variant="outline"
+            flexShrink={0}
+            position="relative"
+            zIndex={1}
+            h={7}
+            bg="bg.subtle"
+            borderColor={props.isInvalid ? "red.500" : "whiteAlpha.200"}
+            borderBottom={0}
+            borderTopRadius="lg"
+            borderBottomRadius={0}
+            _hover={{ bg: "bg.muted", color: "text.primary" }}
+            _active={{ bg: "bg.emphasis" }}
+            _after={{
+              content: '""',
+              position: "absolute",
+              bottom: "-1px",
+              left: 0,
+              right: 0,
+              h: "2px",
+              bg: "bg.subtle",
+            }}
+            onClick={() => setIsOpen(true)}
+          >
+            Build bytes
+          </Button>
+        }
+      />
+      <BytesBuilderDialog
+        isOpen={isOpen}
+        fieldName={input.name || "bytes"}
+        onClose={() => setIsOpen(false)}
+        onApply={(bytes) => {
+          onChange({
+            target: { value: bytes },
+          } as React.ChangeEvent<HTMLInputElement>);
+          setIsOpen(false);
+        }}
+      />
     </Box>
   );
 }
 
 function BytesBuilderDialog({
+  isOpen,
   fieldName,
   onClose,
   onApply,
 }: {
+  isOpen: boolean;
   fieldName: string;
   onClose: () => void;
   onApply: (bytes: Hex) => void;
 }) {
+  const functionNameId = useId();
   const [mode, setMode] = useState("parameters");
   const [functionName, setFunctionName] = useState("");
   const [params, setParams] = useState<ManualParam[]>([
@@ -114,6 +150,25 @@ function BytesBuilderDialog({
   ]);
   const [result, setResult] = useState<Hex>();
   const [error, setError] = useState("");
+  const [generation, setGeneration] = useState(0);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const outputRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!generation) return;
+    const frame = requestAnimationFrame(() => {
+      const body = bodyRef.current;
+      const output = outputRef.current;
+      if (!body || !output) return;
+      body.scrollTo({
+        top:
+          body.scrollTop +
+          output.getBoundingClientRect().top -
+          body.getBoundingClientRect().top,
+        behavior: "smooth",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [generation]);
   const invalidate = () => {
     setResult(undefined);
     setError("");
@@ -140,6 +195,7 @@ function BytesBuilderDialog({
               values
             )
       );
+      setGeneration((previous) => previous + 1);
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -149,46 +205,65 @@ function BytesBuilderDialog({
     }
   };
   return (
-    <Modal isOpen onClose={onClose} size="4xl" scrollBehavior="inside">
-      <ModalOverlay />
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="2xl"
+      isCentered
+      scrollBehavior="inside"
+    >
+      <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
       <ModalContent
         mx={{ base: 2, md: 4 }}
-        maxW="min(56rem, calc(100vw - 1rem))"
+        maxW="min(42rem, calc(100vw - 1rem))"
+        bg="bg.muted"
+        border="1px solid"
+        borderColor="border.default"
+        rounded="lg"
       >
-        <ModalHeader pr={12}>Build bytes for {fieldName}</ModalHeader>
+        <ModalHeader fontSize="md" pt={5} pb={4} pr={12}>
+          Build bytes for {fieldName}
+        </ModalHeader>
         <ModalCloseButton />
-        <ModalBody>
+        <ModalBody ref={bodyRef} pt={0}>
           <VStack align="stretch" spacing={4} minW={0}>
-            <Text fontSize="sm">
-              Local encoding only. Your raw field stays unchanged until you
-              apply the generated bytes. Inner bytes fields accept raw hex;
-              builders do not nest. Integers use exact raw base units (decimal
-              or 0x), without unit conversion. Addresses must be raw hex; no ENS
-              or address metadata lookups run in this builder.
-            </Text>
             <FormControl>
-              <FormLabel htmlFor="bytes-builder-mode">Payload format</FormLabel>
-              <Select
-                id="bytes-builder-mode"
-                value={mode}
-                onChange={(e) => {
-                  invalidate();
-                  setMode(e.target.value);
+              <FormLabel fontSize="sm" color="text.secondary">
+                Payload format
+              </FormLabel>
+              <DarkSelect
+                ariaLabel="Payload format"
+                options={[
+                  { label: "ABI parameters", value: "parameters" },
+                  { label: "Function calldata", value: "function" },
+                ]}
+                selectedOption={{
+                  label:
+                    mode === "function"
+                      ? "Function calldata"
+                      : "ABI parameters",
+                  value: mode,
                 }}
-              >
-                <option value="parameters">ABI parameters (no selector)</option>
-                <option value="function">
-                  Function calldata (selector + arguments)
-                </option>
-              </Select>
+                setSelectedOption={(option) => {
+                  if (!option) return;
+                  invalidate();
+                  setMode(String(option.value));
+                }}
+                size="sm"
+              />
             </FormControl>
             {mode === "function" && (
               <FormControl>
-                <FormLabel htmlFor="bytes-builder-name">
+                <FormLabel
+                  htmlFor={functionNameId}
+                  fontSize="sm"
+                  color="text.secondary"
+                >
                   Function name
                 </FormLabel>
                 <Input
-                  id="bytes-builder-name"
+                  id={functionNameId}
+                  size="sm"
                   value={functionName}
                   placeholder="e.g. transfer"
                   onChange={(e) => {
@@ -200,6 +275,7 @@ function BytesBuilderDialog({
             )}
             <ManualParametersEditor
               rawValues
+              variant="plain"
               manualParams={params}
               setManualParams={(next) => {
                 invalidate();
@@ -207,9 +283,13 @@ function BytesBuilderDialog({
               }}
               encode={generate}
             />
-            <Button onClick={generate}>Generate bytes</Button>
+            <Box display="flex" justifyContent="center">
+              <Button size="sm" fontSize="md" onClick={generate}>
+                Generate bytes
+              </Button>
+            </Box>
             {error && (
-              <Alert status="error" alignItems="start">
+              <Alert status="error" alignItems="start" rounded="md">
                 <AlertIcon />
                 <Text whiteSpace="pre-wrap" overflowWrap="anywhere">
                   {error}
@@ -217,14 +297,18 @@ function BytesBuilderDialog({
               </Alert>
             )}
             {result !== undefined && (
-              <Box>
-                <Text fontWeight="bold">
-                  {mode === "function"
-                    ? "Function calldata · selector + arguments"
-                    : "ABI parameters · no selector"}
+              <Box ref={outputRef}>
+                <Text fontSize="sm" fontWeight="semibold" mb={2}>
+                  Encoded bytes
                 </Text>
                 <Text
                   as="pre"
+                  bg="bg.base"
+                  border="1px solid"
+                  borderColor="border.default"
+                  rounded="md"
+                  p={3}
+                  fontFamily="mono"
                   fontSize="xs"
                   whiteSpace="pre-wrap"
                   overflowWrap="anywhere"
@@ -238,16 +322,19 @@ function BytesBuilderDialog({
             )}
           </VStack>
         </ModalBody>
-        <ModalFooter gap={3} flexWrap="wrap">
-          <Button onClick={onClose}>Cancel</Button>
+        <ModalFooter gap={2} pt={4} pb={5} flexWrap="wrap">
+          <Button size="sm" onClick={onClose}>
+            Cancel
+          </Button>
           <Button
-            colorScheme="blue"
+            size="sm"
+            bg="bg.emphasis"
             isDisabled={result === undefined}
             onClick={() => {
               if (result !== undefined) onApply(result);
             }}
           >
-            Apply bytes
+            Set bytes value
           </Button>
         </ModalFooter>
       </ModalContent>
