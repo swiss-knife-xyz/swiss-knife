@@ -809,32 +809,47 @@ const ReadWriteFunctionComponent = ({
       bg={!inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
       {/* Function name and refetch button */}
-      <HStack mb={!fnSelector ? 2 : undefined}>
-        <HStack
+      <HStack mb={!fnSelector ? 2 : undefined} alignItems="flex-start">
+        <Box
+          as="button"
+          type="button"
           flexGrow={1}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          cursor={"pointer"}
+          minW={0}
+          textAlign="left"
+          aria-label={`Toggle ${displayName}`}
+          aria-expanded={!isCollapsed}
+          onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+          cursor="pointer"
+          borderRadius="md"
+          _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
         >
           <HStack>
-            <Box fontSize={"2xl"}>
-              {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </Box>
-            <HStack alignItems={"flex-end"}>
-              <Box fontSize={"md"} fontWeight={"normal"}>
-                {index}.
+            <HStack>
+              <Box fontSize={"2xl"}>
+                {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
               </Box>
-              <Box fontWeight={"bold"}>
-                {renderHighlightedText(__func.name)}
+              <HStack alignItems={"flex-end"}>
+                <Box fontSize={"md"} fontWeight={"normal"}>
+                  {index}.
+                </Box>
+                <Box fontWeight={"bold"}>
+                  {renderHighlightedText(__func.name)}
+                </Box>
+              </HStack>
+            </HStack>{" "}
+            {/* If single output, then show inline */}
+            {__func.outputs && __func.outputs.length === 1 && (
+              <Box fontSize={"sm"} color="whiteAlpha.600">
+                (→&nbsp;{__func.outputs[0].type})
               </Box>
-            </HStack>
-          </HStack>{" "}
-          {/* If single output, then show inline */}
-          {__func.outputs && __func.outputs.length === 1 && (
-            <Box fontSize={"sm"} color="whiteAlpha.600">
-              (→&nbsp;{__func.outputs[0].type})
+            )}
+          </HStack>
+          {fnSelector && (
+            <Box ml={12} mb={2} fontSize="sm" color="whiteAlpha.600">
+              [selector: {fnSelector}]
             </Box>
           )}
-        </HStack>
+        </Box>
         {/* Read/Write Buttons */}
         {!loading && type === "read" && (
           <Button
@@ -959,12 +974,6 @@ const ReadWriteFunctionComponent = ({
             </Popover>
           )}
       </HStack>
-      {/* Function Selector */}
-      {fnSelector && (
-        <Box ml={12} mb={2} fontSize={"sm"} color="whiteAlpha.600">
-          [selector: {fnSelector}]
-        </Box>
-      )}
       {/* Explain unavailable actions without repeating notices on usable functions. */}
       {inputsUnknown && (
         <Text role="note" ml={4} mb={2} fontSize="sm" color="orange.300">
