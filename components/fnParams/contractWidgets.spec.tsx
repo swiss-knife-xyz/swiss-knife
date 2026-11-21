@@ -36,7 +36,12 @@ const client = {
   simulateContract: vi.fn(),
 };
 const address = "0x0000000000000000000000000000000000000001";
-function show(func: JsonFragment, type: "read" | "write" = "read") {
+const clipboardWrite = vi.fn();
+function show(
+  func: JsonFragment,
+  type: "read" | "write" = "read",
+  initialCall?: { args: unknown[]; value: string }
+) {
   return render(
     <ChakraProvider>
       <ReadWriteFunction
@@ -46,12 +51,17 @@ function show(func: JsonFragment, type: "read" | "write" = "read") {
         type={type}
         address={address}
         chainId={1}
+        initialCall={initialCall}
       />
     </ChakraProvider>
   );
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: clipboardWrite },
+  });
   HTMLElement.prototype.scrollTo = vi.fn();
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: vi.fn() });
   vi.stubGlobal("matchMedia", () => ({
@@ -173,6 +183,44 @@ it("keeps a single encoding action when the existing write dropdown selects Enco
   expect(client.simulateContract).not.toHaveBeenCalled();
 });
 
+it("prefills real nested tuple/array/bool/fixed-array widgets and re-encodes without a wallet call", async () => {
+  const iface = new Interface([
+    "function configure((bool enabled,uint256[2] limits,string note)[] settings,bytes data) payable",
+  ]);
+  const func = JSON.parse(iface.fragments[0].format("json"));
+  show(func, "write", {
+    args: [
+      [
+        ["true", ["0", "9007199254740993"], "hello"],
+        ["false", ["1", "2"], ""],
+      ],
+      "0x",
+    ],
+    value: "23",
+  });
+  expect(screen.getByDisplayValue("9007199254740993")).toBeTruthy();
+  expect(screen.getByDisplayValue("hello")).toBeTruthy();
+  const expected = iface.encodeFunctionData("configure", [
+    [
+      [true, [0n, 9007199254740993n], "hello"],
+      [false, [1n, 2n], ""],
+    ],
+    "0x",
+  ]);
+  fireEvent.click(screen.getByRole("button", { name: "Options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
+  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  expect(await screen.findByText(expected)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  fireEvent.click(screen.getByRole("button", { name: "Share configure function call" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Copy function call link" }));
+  const shared = new URL(clipboardWrite.mock.lastCall![0]);
+  expect(new URLSearchParams(shared.hash.slice(1)).get("value")).toBe("23");
+  expect(client.call).not.toHaveBeenCalled();
+  expect(client.simulateContract).not.toHaveBeenCalled();
+});
+
 it("zero-input write encodes selector-only without connection, signing or reads", async () => {
   const func: JsonFragment = {
     type: "function",
@@ -260,4 +308,18 @@ it("keeps Read and reload mounted and disabled while each request is pending", a
   expect(client.readContract).toHaveBeenCalledTimes(2);
   await act(async () => finish(43n));
   await waitFor(() => expect(button.disabled).toBe(false));
+});
+
+
+it("does not auto-read a selector-only call restored into a zero-input form", async () => {
+  vi.useFakeTimers();
+  try {
+    show({ type: "function", name: "ping", stateMutability: "view", inputs: [], outputs: [] }, "read", { args: [], value: "0" });
+    await act(async () => { vi.advanceTimersByTime(200); });
+    expect(client.readContract).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Read" }));
+    expect(client.readContract).toHaveBeenCalledOnce();
+  } finally {
+    vi.useRealTimers();
+  }
 });

@@ -7,8 +7,10 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: [
+      "components/fnParams/contractPrefill.spec.tsx",
       "components/fnParams/contractForm.spec.tsx",
       "components/fnParams/contractWidgets.spec.tsx",
+      "app/contract/contractCallFlow.spec.tsx",
       "app/contract/contractProvenance.spec.tsx",
     ],
     maxWorkers: 1,

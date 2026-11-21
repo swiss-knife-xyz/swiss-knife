@@ -50,7 +50,7 @@ export const renderInputFields = ({
       value === null ||
       value.toString().trim().length === 0);
 
-  if (input.type?.endsWith("[]")) {
+  if (/\[\d*\]$/.test(input.type ?? "")) {
     return (
       <ArrayInput
         chainId={chainId}
@@ -224,8 +224,8 @@ export const renderParamTypes = ({
           value === null || value === undefined
             ? value
             : value
-            ? "true"
-            : "false"
+              ? "true"
+              : "false"
         }
       />
     );

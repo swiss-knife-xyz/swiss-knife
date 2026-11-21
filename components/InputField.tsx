@@ -90,7 +90,7 @@ export const InputField = (props: InputFieldProps) => {
   }
 
   return (
-    <InputGroup>
+    <InputGroup minW={0} w="full">
       {LeftElement}
       {props.valueTooltip ? (
         <Box

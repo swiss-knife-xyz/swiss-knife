@@ -18,20 +18,23 @@ export const CalldataParam = ({
   const [result, setResult] = useState<any>();
   const [isLoading, setIsLoading] = useState(true);
 
-  const decode = async () => {
-    if (!value) {
-      return;
-    }
-
-    const res = await decodeRecursive({
-      calldata: startHexWith0x(value as string),
-    });
-    setResult(res);
-    setIsLoading(false);
-  };
-
   useEffect(() => {
-    decode();
+    let cancelled = false;
+    setResult(undefined);
+    setIsLoading(true);
+    if (value) {
+      decodeRecursive({ calldata: startHexWith0x(value as string) })
+        .then((res) => {
+          if (!cancelled) {
+            setResult(res);
+            setIsLoading(false);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setIsLoading(false);
+        });
+    }
+    return () => { cancelled = true; };
   }, [value]);
 
   return result ? (

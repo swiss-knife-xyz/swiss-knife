@@ -44,6 +44,7 @@ const ArrayElement = ({
   updateArrayReadIsDisabled,
   isError,
   onKeyDown,
+  fixedLength,
 }: {
   id: string;
   index: number;
@@ -56,12 +57,13 @@ const ArrayElement = ({
   updateArrayReadIsDisabled: (id: string, value: boolean) => void;
   isError: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  fixedLength?: number;
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <HStack mt={2} p={3} bg="whiteAlpha.50" rounded={"lg"}>
-      <Box w="full">
+    <HStack minW={0} mt={2} p={{ base: 1.5, md: 3 }} bg="whiteAlpha.50" rounded={"lg"}>
+      <Box w="full" minW={0}>
         <HStack w="full">
           <HStack
             cursor={"pointer"}
@@ -80,6 +82,7 @@ const ArrayElement = ({
           <Spacer />
           <Button
             mb={1}
+            isDisabled={fixedLength !== undefined}
             size="xs"
             onClick={() => removeFromArrayInputState(id)}
           >
@@ -117,11 +120,23 @@ export const ArrayInput = ({
   setFunctionIsDisabled,
   isError,
   onKeyDown,
+  value,
 }: InputFieldProps) => {
   // removes [] from the end of the array type
-  const baseType = input.type!.substring(0, input.type!.length - 2);
+  const baseType = input.type!.replace(/\[\d*\]$/, "");
+  const fixedMatch = input.type!.match(/\[(\d+)\]$/);
+  const fixedLength = fixedMatch ? Number(fixedMatch[1]) : undefined;
 
-  const [arrayInputState, setArrayInputsState] = useState<ArrayInputState>({});
+  const [arrayInputState, setArrayInputsState] = useState<ArrayInputState>(
+    () => {
+      const values = Array.isArray(value)
+        ? value
+        : Array.from({ length: fixedLength ?? 0 }, () => "");
+      return Object.fromEntries(
+        values.map((v, i) => [`initial-${i}`, { id: `initial-${i}`, value: v }])
+      );
+    }
+  );
   const [arrayReadIsDisabled, setArrayReadIsDisabled] = useState<
     Record<string, boolean>
   >({});
@@ -202,6 +217,7 @@ export const ArrayInput = ({
           chainId={chainId}
           input={input}
           childType={baseType}
+          fixedLength={fixedLength}
           value={element.value}
           updateArrayInputState={updateArrayInputState}
           removeFromArrayInputState={removeFromArrayInputState}
@@ -211,7 +227,12 @@ export const ArrayInput = ({
         />
       ))}
       <Center mt={2}>
-        <Button onClick={addNewArrayElement}>+ Add</Button>
+        <Button
+          onClick={addNewArrayElement}
+          isDisabled={fixedLength !== undefined}
+        >
+          + Add
+        </Button>
       </Center>
     </Box>
   );

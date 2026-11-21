@@ -30,7 +30,12 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   isArrayChild,
   value,
 }) => {
-  const [tupleInputsState, setTupleInputsState] = useState<TupleInputState>({});
+  const [tupleInputsState, setTupleInputsState] = useState<TupleInputState>(
+    () =>
+      Array.isArray(value)
+        ? Object.fromEntries(value.map((v, i) => [i, v]))
+        : {}
+  );
   const [tupleReadIsDisabled, setTupleReadIsDisabled] = useState<
     Record<number, boolean>
   >({});
@@ -110,7 +115,8 @@ export const TupleInput: React.FC<InputFieldProps> = ({
 
   return (
     <Box
-      p={2}
+      minW={0}
+      p={{ base: 1.5, md: 2 }}
       mb={!isCollapsed ? 4 : undefined}
       pb={!isCollapsed ? 4 : undefined}
       border="2px solid"
@@ -118,8 +124,8 @@ export const TupleInput: React.FC<InputFieldProps> = ({
         !isArrayChild
           ? "whiteAlpha.200"
           : isError && isAnyChildInvalid
-          ? "red.300"
-          : "transparent"
+            ? "red.300"
+            : "transparent"
       }
       rounded="md"
       bg={"whiteAlpha.50"}
@@ -134,8 +140,8 @@ export const TupleInput: React.FC<InputFieldProps> = ({
         <InputInfo input={input} />
       </HStack>
       <Box
-        ml={2}
-        pl={4}
+        ml={{ base: 0, md: 2 }}
+        pl={{ base: 2, md: 4 }}
         borderLeft={"1px"}
         borderColor={"whiteAlpha.100"}
         display={isCollapsed ? "none" : undefined}
