@@ -194,9 +194,9 @@ it("restores a payable overload into the actual page/form and generates the same
       }) as HTMLInputElement
     ).value
   ).toBe("");
-  fireEvent.click(
-    screen.getAllByRole("button", { name: "Encode Calldata" })[0]
-  );
+  fireEvent.click(screen.getAllByRole("button", { name: "Options" })[0]);
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
+  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
   fireEvent.click(
     await screen.findByRole("button", { name: "Copy Review Link" })
   );
@@ -289,7 +289,8 @@ it("editing pasted calldata invalidates the imported form and its warning before
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
 });
 
-it("invalidating imported data cancels a pending write preview before it can offer wallet continuation", async () => {
+it("invalidating imported data discards a pending simulation without a second wallet request", async () => {
+  wallet.sendTransaction.mockImplementationOnce(() => new Promise(() => {}));
   fetchAbi.mockResolvedValue({
     abi: abi.map((f: any) => ({ ...f, outputs: [{ type: "uint256" }] })),
     name: "Verified contract",
@@ -317,7 +318,8 @@ it("invalidating imported data cancels a pending write preview before it can off
   expect(
     screen.queryByRole("button", { name: "Continue to wallet" })
   ).toBeNull();
-  expect(wallet.sendTransaction).not.toHaveBeenCalled();
+  expect(screen.queryByRole("region", { name: "Transaction status" })).toBeNull();
+  expect(wallet.sendTransaction).toHaveBeenCalledOnce();
 });
 
 it("fragment back/forward invalidates old prefill without a wallet request", async () => {

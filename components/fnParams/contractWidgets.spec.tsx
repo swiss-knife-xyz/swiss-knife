@@ -207,6 +207,8 @@ it("prefills real nested tuple/array/bool/fixed-array widgets and re-encodes wit
     ],
     "0x",
   ]);
+  fireEvent.click(screen.getByRole("button", { name: "Options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
   fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
   expect(await screen.findByText(expected)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Copy Review Link" }));
