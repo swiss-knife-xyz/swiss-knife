@@ -605,13 +605,18 @@ export const getImplementationFromBytecodeIfProxy = async ({
     }
   | undefined
 > => {
-  const result = await whatsabi.autoload(address, { provider: client });
-  const followProxies = await result.followProxies;
-  if (followProxies) {
-    const proxies = await followProxies();
-    const implementationAddress = proxies.address;
+  // Proxy detection only needs on-chain data. ABI/signature loaders would
+  // repeat failed explorer requests and can block bytecode inference.
+  const result = await whatsabi.autoload(address, {
+    provider: client,
+    abiLoader: false,
+    signatureLookup: false,
+  });
+  if (result.followProxies && result.proxies.length > 0) {
+    const implementation = await result.followProxies();
+    if (implementation.address.toLowerCase() === address.toLowerCase()) return;
     return {
-      implementationAddress,
+      implementationAddress: implementation.address,
       proxyName: result.proxies[0].name,
     };
   }

@@ -59,7 +59,7 @@ import { DarkButton } from "@/components/DarkButton";
 import { processContractBytecode } from "@/utils/index";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { Editor } from "@monaco-editor/react";
-import { Code, Download, ExternalLink, FileText, Maximize2, Minimize2 } from "lucide-react";
+import { Code, CornerDownLeft, Download, ExternalLink, FileText, Maximize2, Minimize2 } from "lucide-react";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { SourceCodeExplorer } from "@/components/SourceCodeExplorer";
 import { ContractCallPrefill, type PrefilledCall } from "@/components/fnParams/ContractCallPrefill";
@@ -341,7 +341,7 @@ const AbiSourceCodeContent = ({
             {currentAbi?.isDecoded ? (
               <Alert status="info" mb={3} rounded="lg" fontSize="sm" flexShrink={0}>
                 <AlertIcon />
-                Inferred ABI — not verified. Function names, parameter types and outputs may be incorrect; selector matches can collide. Verify against source before use.
+                This contract isn’t verified. Its functions were inferred from bytecode and signature lookups, so some names or input types may differ from the original contract.
               </Alert>
             ) : null}
             <Box
@@ -1140,7 +1140,7 @@ const LoadedContractPage = ({
               >
                 <AlertIcon color="primary.400" />
                 <Text color="text.secondary" fontSize="sm">
-                  Inferred ABI — not verified. Function names, parameter types and outputs are reconstructed candidates, not confirmed declarations. Selector collisions and incomplete bytecode analysis can produce incorrect signatures. Verify against source before use.
+                  This contract isn’t verified. Its functions were inferred from bytecode and signature lookups, so some names or input types may differ from the original contract.
                 </Text>
               </Alert>
             )}
@@ -1242,7 +1242,7 @@ const LoadedContractPage = ({
           mb={4}
         >
           {/* Top row: Address and Chain */}
-          <HStack spacing={4} mb={4} flexWrap={{ base: "wrap", md: "nowrap" }}>
+          <HStack spacing={4} mb={4} alignItems="flex-end" flexWrap={{ base: "wrap", md: "nowrap" }}>
             <Box flex={1} minW="280px">
               <HStack spacing={2} mb={1.5} align="center">
                 <Text color="text.tertiary" fontSize="xs" fontWeight="medium" textTransform="uppercase" letterSpacing="0.05em">
@@ -1261,6 +1261,7 @@ const LoadedContractPage = ({
                   placeholder="0x..."
                   value={addressInput}
                   aria-label="Contract Address"
+                  h={10}
                   isInvalid={Boolean(inputError)}
                   aria-describedby={inputError ? "contract-load-error" : undefined}
                   onChange={(e) => {
@@ -1284,6 +1285,7 @@ const LoadedContractPage = ({
               </Text>
               <DarkSelect
                 ariaLabel="Network"
+                controlProps={{ h: 10, minH: 10 }}
                 selectedOption={selectedNetworkOption}
                 setSelectedOption={(option) => {
                   setSelectedNetworkOption(option);
@@ -1292,7 +1294,7 @@ const LoadedContractPage = ({
                 options={networkOptions}
               />
             </Box>
-            <Button type="button" onClick={handleAddressSubmit} alignSelf="end">
+            <Button type="button" onClick={handleAddressSubmit} h={10} flexShrink={0} rightIcon={<CornerDownLeft size={14} aria-hidden="true" />}>
               Load
             </Button>
           </HStack>
