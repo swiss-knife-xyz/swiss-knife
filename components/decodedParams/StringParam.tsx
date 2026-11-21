@@ -192,8 +192,13 @@ const StringParamContent = ({
     }
 
     return (
-      <Table variant={"unstyled"}>
-        <Tbody>
+      <Table
+        variant="unstyled"
+        w="full"
+        minW={0}
+        display={{ base: "block", md: "table" }}
+      >
+        <Tbody display={{ base: "block", md: "table-row-group" }}>
           {Object.keys(jsonValue).map((key) => {
             const __value: any = jsonValue[key];
             // avoids the quotes from the string
@@ -215,10 +220,23 @@ const StringParamContent = ({
 
             if (type) {
               return (
-                <Tr key={key}>
-                  <Td colSpan={2}>
+                <Tr key={key} display={{ base: "block", md: "table-row" }}>
+                  <Td
+                    colSpan={2}
+                    display={{ base: "block", md: "table-cell" }}
+                    px={{ base: 0, md: 6 }}
+                    py={{ base: 3, md: 4 }}
+                  >
                     <Box>
-                      <Text fontWeight={"bold"}>{key}</Text>
+                      <Text
+                        fontSize={{ base: "xs", md: "md" }}
+                        fontWeight={{ base: "medium", md: "bold" }}
+                        color={{ base: "text.secondary", md: "inherit" }}
+                        overflowWrap="anywhere"
+                        mb={2}
+                      >
+                        {key}
+                      </Text>
                       {renderParamTypes(
                         {
                           name: key,
@@ -236,9 +254,27 @@ const StringParamContent = ({
             }
 
             return (
-              <Tr key={key}>
-                <Td fontWeight={"bold"}>{key}</Td>
-                <Td>
+              <Tr key={key} display={{ base: "block", md: "table-row" }}>
+                <Td
+                  display={{ base: "block", md: "table-cell" }}
+                  fontSize={{ base: "xs", md: "md" }}
+                  fontWeight={{ base: "medium", md: "bold" }}
+                  color={{ base: "text.secondary", md: "inherit" }}
+                  overflowWrap="anywhere"
+                  px={{ base: 0, md: 6 }}
+                  pt={{ base: 3, md: 4 }}
+                  pb={{ base: 1, md: 4 }}
+                >
+                  {key}
+                </Td>
+                <Td
+                  display={{ base: "block", md: "table-cell" }}
+                  w={{ base: "full", md: "auto" }}
+                  minW={0}
+                  px={{ base: 0, md: 6 }}
+                  pt={{ base: 0, md: 4 }}
+                  pb={{ base: 3, md: 4 }}
+                >
                   <StringParam
                     value={isString ? __value : JSON.stringify(__value)}
                   />
