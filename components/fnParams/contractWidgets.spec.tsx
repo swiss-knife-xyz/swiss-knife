@@ -1,6 +1,7 @@
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -85,6 +86,9 @@ it("real bytes4 widget receives a preset, permits manual replacement and encodes
   fireEvent.click(await screen.findByRole("option", { name: /ERC-1155.*0xd9b67a26/ }));
   const input = preset as HTMLInputElement;
   expect(input.value).toBe("0xd9b67a26");
+  fireEvent.blur(input);
+  expect(getComputedStyle(input).opacity).toBe("1");
+  fireEvent.focus(input);
   fireEvent.change(input, { target: { value: "0xffffffff" } });
   fireEvent.blur(input);
   expect(input.value).toBe("0xffffffff");
@@ -229,4 +233,31 @@ it.each([
   show({ type: "function", name, stateMutability: "view", inputs: [{ type, name: "interfaceId" }], outputs: [{ type: "bool" }] });
   expect(screen.queryByRole("combobox", { name: "interfaceId" })).toBeNull();
   expect(screen.getByRole("textbox")).toBeTruthy();
+});
+
+
+it("keeps Read and reload mounted and disabled while each request is pending", async () => {
+  let finish!: (value: bigint) => void;
+  client.readContract.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  show({ type: "function", name: "getValue", stateMutability: "view",
+    inputs: [{ type: "uint256", name: "value" }], outputs: [{ type: "uint256" }] });
+  const input = screen.getAllByRole("textbox")[0];
+  fireEvent.change(input, { target: { value: "1" } });
+  const button = screen.getByRole("button", { name: "Read" }) as HTMLButtonElement;
+  fireEvent.click(button);
+  expect(button.isConnected).toBe(true);
+  expect(button.disabled).toBe(true);
+  expect(button.querySelector(".chakra-spinner")).toBeTruthy();
+  await act(async () => finish(42n));
+  await waitFor(() => expect(button.disabled).toBe(false));
+  expect(button.textContent).toBe("Read");
+  fireEvent.change(input, { target: { value: "2" } });
+  fireEvent.click(button);
+  expect(button.isConnected).toBe(true);
+  expect(button.disabled).toBe(true);
+  expect(button.querySelector(".chakra-spinner")).toBeTruthy();
+  fireEvent.click(button);
+  expect(client.readContract).toHaveBeenCalledTimes(2);
+  await act(async () => finish(43n));
+  await waitFor(() => expect(button.disabled).toBe(false));
 });

@@ -339,7 +339,7 @@ const AbiSourceCodeContent = ({
             {currentAbi?.isDecoded ? (
               <Alert status="info" mb={3} rounded="lg" fontSize="sm" flexShrink={0}>
                 <AlertIcon />
-                Inferred ABI — not verified. Function names, parameter types and outputs may be incorrect; selector matches can collide. Verify against source before use.
+                This contract isn’t verified. Its functions were inferred from bytecode and signature lookups, so some names or input types may differ from the original contract.
               </Alert>
             ) : null}
             <Box
@@ -1115,7 +1115,7 @@ export const ContractPage = ({
               >
                 <AlertIcon color="primary.400" />
                 <Text color="text.secondary" fontSize="sm">
-                  Inferred ABI — not verified. Function names, parameter types and outputs are reconstructed candidates, not confirmed declarations. Selector collisions and incomplete bytecode analysis can produce incorrect signatures. Verify against source before use.
+                  This contract isn’t verified. Its functions were inferred from bytecode and signature lookups, so some names or input types may differ from the original contract.
                 </Text>
               </Alert>
             )}

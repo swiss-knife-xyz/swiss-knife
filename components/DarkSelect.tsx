@@ -175,7 +175,9 @@ export const DarkSelect = ({
     input: (provided: any) => ({
       ...provided,
       color: "white",
-      ...(editableValue !== undefined ? { fontFamily: "mono" } : {}),
+      // Editable selects display their hex in the input itself. React Select
+      // normally hides that input after selection in favour of SingleValue.
+      ...(editableValue !== undefined ? { fontFamily: "mono", opacity: 1 } : {}),
       bg: "transparent",
       boxShadow: "none",
       _focus: { outline: "none", boxShadow: "none", bg: "transparent" },

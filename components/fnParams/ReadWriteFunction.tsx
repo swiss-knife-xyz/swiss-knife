@@ -35,7 +35,6 @@ import {
   ChevronUpIcon,
   ExternalLinkIcon,
   InfoIcon,
-  RepeatIcon,
   SettingsIcon,
   WarningTwoIcon,
 } from "@chakra-ui/icons";
@@ -928,7 +927,7 @@ const ReadWriteFunctionComponent = ({
               <Box fontSize={"2xl"}>
                 {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
               </Box>
-              <HStack alignItems={"flex-end"}>
+              <HStack alignItems="center">
                 <Box fontSize={"md"} fontWeight={"normal"}>
                   {index}.
                 </Box>
@@ -936,8 +935,8 @@ const ReadWriteFunctionComponent = ({
                   {renderHighlightedText(__func.name)}
                 </Box>
                 {isAbiDecoded && (
-                  <Tooltip label="Inferred signature — not verified. Function names and parameter types may be incorrect; selector matches can collide." hasArrow>
-                    <WarningTwoIcon aria-label="Inferred signature — not verified" tabIndex={0} color="yellow.300" boxSize={3.5} />
+                  <Tooltip label="Inferred from bytecode and signature lookups. Check the input types before use." hasArrow>
+                    <WarningTwoIcon aria-label="Inferred signature, not verified" tabIndex={0} color="yellow.300" boxSize={3.5} flexShrink={0} />
                   </Tooltip>
                 )}
               </HStack>
@@ -966,21 +965,24 @@ const ReadWriteFunctionComponent = ({
           </Button>
         )}
         {/* Read/Write Buttons */}
-        {!loading && type === "read" && (
+        {type === "read" && (
           <Button
             onClick={readFunction}
+            isLoading={loading}
+            w="4rem"
+            flexShrink={0}
             isDisabled={
               inputsUnknown || (inputs && inputs.some((_, i) => functionIsDisabled[i] === true))
             }
             size={"sm"}
-            title={res !== null ? "refetch" : "fetch"}
+            title="Read function"
             variant="outline"
             bg="bg.muted"
             color={isError ? "red.300" : "text.primary"}
             borderColor={isError ? "red.400" : "border.strong"}
             _hover={{ bg: "whiteAlpha.100" }}
           >
-            {res !== null ? <RepeatIcon /> : "Read"}
+            Read
           </Button>
         )}
         {type === "write" && (
@@ -1290,13 +1292,6 @@ const ReadWriteFunctionComponent = ({
             _hover={{ color: "text.primary" }}
           />
           <ModalBody pb={6}>
-            {isAbiDecoded && (
-              <Text color="yellow.300" mb={3}>
-                Encoded using an inferred signature — not verified. Check the
-                function name and parameter types against source before using
-                this calldata.
-              </Text>
-            )}
             <Box
               p={4}
               bg="bg.muted"

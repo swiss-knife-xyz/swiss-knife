@@ -196,17 +196,17 @@ it("encodes nested tuple/array booleans for writes without a connected wallet ac
   expect(client.simulateContract).not.toHaveBeenCalled();
 });
 
-it("warns about inferred names/parameters even when collapsed and repeats the caveat in encoded output", async () => {
+it("keeps the inferred indicator visible when collapsed without repeating it in encoded output", async () => {
   render(form(transfer, "read", true, true));
-  const warning = screen.getByLabelText("Inferred signature — not verified");
+  const warning = screen.getByLabelText("Inferred signature, not verified");
   expect(warning.closest('[style*="display: none"]')).toBeNull();
   fireEvent.click(screen.getByText("transfer"));
   fill("to", address);
   fill("amount", "1");
   fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
   expect(await screen.findByRole("dialog")).toBeTruthy();
-  expect(screen.getByRole("dialog").textContent).toMatch(
-    /inferred.*not verified/i
+  expect(screen.getByRole("dialog").textContent).not.toMatch(
+    /Encoded using an inferred signature/i
   );
   expect(client.readContract).not.toHaveBeenCalled();
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
