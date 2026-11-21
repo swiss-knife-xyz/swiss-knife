@@ -45,7 +45,7 @@ import {
   ContractFunctionExecutionError,
   PublicClient,
   Hex,
-  encodeFunctionData,
+  encodeFunctionData as encodeAbiFunctionData,
   Abi,
   toHex,
   zeroAddress,
@@ -64,12 +64,13 @@ import { WriteButton } from "../WriteButton";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
 import { convertBooleans } from "@/lib/convertBooleans";
+import type { InferredFunctionInfo } from "@/lib/inferredContract";
 
 interface ReadWriteFunctionProps {
   client: PublicClient;
   index: number;
   type: "read" | "write";
-  func: Omit<JsonFragment, "name" | "outputs"> & {
+  func: Omit<JsonFragment, "name" | "outputs"> & InferredFunctionInfo & {
     name: HighlightedContent;
     outputs?: readonly JsonFragmentType[];
     highlightedOutputs?: ExtendedJsonFragmentType[];
@@ -200,7 +201,22 @@ const ReadWriteFunctionComponent = ({
     stateMutability,
     highlightedOutputs,
   } = __func;
-  const functionName = extractStringFromReactNode(__name);
+  const inputsUnknown = __func.inputInference?.source === "unknown";
+  // A display-only selector label is not a valid ABI function identifier.
+  const displayName = extractStringFromReactNode(__name);
+  const functionName = __func.inputInference && displayName.startsWith("selector: ")
+    ? "inferred"
+    : displayName;
+  const encodeFunctionData = useCallback((parameters: Parameters<typeof encodeAbiFunctionData>[0]): Hex => {
+    if (__func.inputInference?.source === "unknown") {
+      throw new Error("Input types are unknown; supply an ABI or use Raw Calldata.");
+    }
+    const encoded = encodeAbiFunctionData(parameters);
+    // Bytecode supplies the real selector even when no function name is known.
+    return __func.inputInference && __func.selector
+      ? `${__func.selector}${encoded.slice(10)}` as Hex
+      : encoded;
+  }, [__func]);
 
   const _func = React.useMemo(
     () =>
@@ -279,6 +295,7 @@ const ReadWriteFunctionComponent = ({
   }, [inputs, inputsState]);
 
   const readFunction = useCallback(async () => {
+    if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
     }
@@ -367,6 +384,7 @@ const ReadWriteFunctionComponent = ({
   }, [isError, functionName, client, address, _func, inputs, inputsState]);
 
   const writeFunction = useCallback(async () => {
+    if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
     }
@@ -430,6 +448,7 @@ const ReadWriteFunctionComponent = ({
 
   const callAsReadFunction = useCallback(
     async (bypassSettingError: boolean = false) => {
+      if (inputsUnknown) return;
       if (isError) {
         setIsError(false);
       }
@@ -504,6 +523,7 @@ const ReadWriteFunctionComponent = ({
   );
 
   const simulateOnTenderly = useCallback(async () => {
+    if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
     }
@@ -626,6 +646,7 @@ const ReadWriteFunctionComponent = ({
   ]);
 
   const encodeCalldataFn = useCallback(() => {
+    if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
     }
@@ -650,7 +671,9 @@ const ReadWriteFunctionComponent = ({
 
   useEffect(() => {
     try {
-      setFnSelector(FunctionFragment.from(_func).selector);
+      setFnSelector(__func.inputInference && __func.selector
+        ? __func.selector
+        : FunctionFragment.from(_func).selector);
     } catch (e) {
       console.error(e);
     }
@@ -666,7 +689,7 @@ const ReadWriteFunctionComponent = ({
   useEffect(() => {
     // if there are no inputs, then auto fetch the value
     // stagger calls by 150ms per function to avoid RPC rate limits (429)
-    if (type === "read" && (!inputs || (inputs && inputs.length === 0))) {
+    if (!inputsUnknown && type === "read" && (!inputs || (inputs && inputs.length === 0))) {
       const delay = index * 150;
       const timer = setTimeout(() => {
         readFunction();
@@ -735,9 +758,9 @@ const ReadWriteFunctionComponent = ({
             <Box
               key={i}
               mt={2}
-              bg={outputs.length > 1 ? "whiteAlpha.200" : undefined}
-              p={outputs.length > 1 ? 4 : 0}
-              rounded={"md"}
+              pt={outputs.length > 1 ? 3 : 0}
+              borderTopWidth={i > 0 ? "1px" : 0}
+              borderColor="whiteAlpha.100"
             >
               {outputs.length > 1 && (
                 <InputInfo
@@ -780,45 +803,60 @@ const ReadWriteFunctionComponent = ({
       mb={2}
       p={2}
       pb={!inputs || inputs.length === 0 ? undefined : 4}
-      border="2px solid"
+      border="1px solid"
       borderColor="whiteAlpha.200"
       rounded="md"
       bg={!inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
       {/* Function name and refetch button */}
-      <HStack mb={!fnSelector ? 2 : undefined}>
-        <HStack
+      <HStack mb={!fnSelector ? 2 : undefined} alignItems="flex-start">
+        <Box
+          as="button"
+          type="button"
           flexGrow={1}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          cursor={"pointer"}
+          minW={0}
+          textAlign="left"
+          aria-label={`Toggle ${displayName}`}
+          aria-expanded={!isCollapsed}
+          onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+          cursor="pointer"
+          borderRadius="md"
+          _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
         >
           <HStack>
-            <Box fontSize={"2xl"}>
-              {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </Box>
-            <HStack alignItems={"flex-end"}>
-              <Box fontSize={"md"} fontWeight={"normal"}>
-                {index}.
+            <HStack>
+              <Box fontSize={"2xl"}>
+                {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
               </Box>
-              <Box fontWeight={"bold"}>
-                {renderHighlightedText(__func.name)}
+              <HStack alignItems={"flex-end"}>
+                <Box fontSize={"md"} fontWeight={"normal"}>
+                  {index}.
+                </Box>
+                <Box fontWeight={"bold"}>
+                  {renderHighlightedText(__func.name)}
+                </Box>
+              </HStack>
+            </HStack>{" "}
+            {/* If single output, then show inline */}
+            {__func.outputs && __func.outputs.length === 1 && (
+              <Box fontSize={"sm"} color="whiteAlpha.600">
+                (→&nbsp;{__func.outputs[0].type})
               </Box>
-            </HStack>
-          </HStack>{" "}
-          {/* If single output, then show inline */}
-          {__func.outputs && __func.outputs.length === 1 && (
-            <Box fontSize={"sm"} color="whiteAlpha.600">
-              (→&nbsp;{__func.outputs[0].type})
+            )}
+          </HStack>
+          {fnSelector && (
+            <Box ml={12} mb={2} fontSize="sm" color="whiteAlpha.600">
+              [selector: {fnSelector}]
             </Box>
           )}
-        </HStack>
+        </Box>
         {/* Read/Write Buttons */}
         {!loading && type === "read" && (
           <Button
             ml={4}
             onClick={readFunction}
             isDisabled={
-              inputs && inputs.some((_, i) => functionIsDisabled[i] === true)
+              inputsUnknown || (inputs && inputs.some((_, i) => functionIsDisabled[i] === true))
             }
             size={"sm"}
             title={res !== null ? "refetch" : "fetch"}
@@ -839,7 +877,7 @@ const ReadWriteFunctionComponent = ({
             simulateOnTenderly={simulateOnTenderly}
             encodeCalldata={encodeCalldataFn}
             isDisabled={
-              (inputs &&
+              inputsUnknown || (inputs &&
                 inputs.some((_, i) => functionIsDisabled[i] === true)) ||
               payableETHIsDisabled
             }
@@ -936,11 +974,11 @@ const ReadWriteFunctionComponent = ({
             </Popover>
           )}
       </HStack>
-      {/* Function Selector */}
-      {fnSelector && (
-        <Box ml={12} mb={2} fontSize={"sm"} color="whiteAlpha.600">
-          [selector: {fnSelector}]
-        </Box>
+      {/* Explain unavailable actions without repeating notices on usable functions. */}
+      {inputsUnknown && (
+        <Text role="note" ml={4} mb={2} fontSize="sm" color="orange.300">
+          {__func.inputInference?.message}
+        </Text>
       )}
       {/* If multiple outputs */}
       {highlightedOutputs && highlightedOutputs.length > 1 && (
@@ -1060,8 +1098,10 @@ const ReadWriteFunctionComponent = ({
               (type === "read" ||
                 writeButtonType === WriteButtonType.CallAsViewFn) &&
               (loading || (!loading && res !== null && res !== undefined)) && (
-                <Box p={4} bg="whiteAlpha.100" rounded={"md"}>
-                  <Box fontWeight={"bold"}>Result:</Box>
+                <Box pt={3} borderTopWidth="1px" borderColor="whiteAlpha.100">
+                  <Text fontSize="xs" color="whiteAlpha.600" mb={2}>
+                    Result
+                  </Text>
                   {renderRes()}
                 </Box>
               )

@@ -64,11 +64,22 @@ export const renderParamTypes = (arg: Arg, chainId?: number) => {
   }
 };
 
-export const renderParams = (key: number, arg: Arg, chainId?: number) => {
+export const renderParams = (
+  key: number,
+  arg: Arg,
+  chainId?: number,
+  variant: "surface" | "plain" = "surface"
+) => {
   const type = arg.type.includes("tuple") ? "tuple" : arg.type;
 
   return (
-    <Stack key={key} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
+    <Stack
+      key={key}
+      p={variant === "surface" ? 4 : 0}
+      bg={variant === "surface" ? "whiteAlpha.50" : undefined}
+      rounded={variant === "surface" ? "lg" : undefined}
+      minW={0}
+    >
       {arg.name ? (
         <Box>
           <HStack>
