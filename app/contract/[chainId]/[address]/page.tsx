@@ -54,10 +54,10 @@ const ContractPage = async ({
 }) => {
   const { address, chainId } = await params;
   return (
-    <Layout>
+    <Layout minW={0}>
       <Box w="full" maxW="70rem" mx="auto">
         <NextLink href={getPath("contract")}>
-          <Heading as="h1" mb={4} color={"custom.pale"} _hover={{ opacity: 0.8 }} cursor="pointer">
+          <Heading as="h1" fontSize={{ base: "xl", md: "2xl" }} mb={4} color={"custom.pale"} _hover={{ opacity: 0.8 }} cursor="pointer">
             Contract Explorer
           </Heading>
         </NextLink>

@@ -196,6 +196,8 @@ it("restores a payable overload into the actual page/form and generates the same
   await waitFor(() =>
     expect((amount as HTMLInputElement).value).toBe("9007199254740993")
   );
+  expect(screen.getByRole("tab", { name: "Write" }).getAttribute("aria-selected")).toBe("true");
+  expect(screen.getByRole("tabpanel", { name: "Write" })).toBeTruthy();
   expect(
     (screen.getByRole("textbox", { name: "Payable wei" }) as HTMLInputElement)
       .value
@@ -447,4 +449,22 @@ it.each([[null, null], [address, null]])("restores an unfinished function form %
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
   expect(client.simulateContract).not.toHaveBeenCalled();
   expect(client.readContract).not.toHaveBeenCalled();
+});
+
+it("switches mobile Read/Write tabs without losing edited function inputs", async () => {
+  render(page());
+  const read = await screen.findByRole("tab", { name: "Read" });
+  const write = screen.getByRole("tab", { name: "Write" });
+  expect(read.getAttribute("aria-selected")).toBe("true");
+  expect(screen.queryByRole("tabpanel", { name: "Write" })).toBeNull();
+  fireEvent.keyDown(read, { key: "ArrowRight" });
+  expect(write.getAttribute("aria-selected")).toBe("true");
+  fireEvent.click((await screen.findAllByRole("button", { name: "Toggle transfer" }))[0]);
+  const amount = await screen.findByRole("textbox", { name: "amount" });
+  fireEvent.change(amount, { target: { value: "123456789" } });
+  fireEvent.click(read);
+  expect(screen.queryByRole("textbox", { name: "amount" })).toBeNull();
+  fireEvent.click(write);
+  expect((screen.getByRole("textbox", { name: "amount" }) as HTMLInputElement).value).toBe("123456789");
+  expect(wallet.sendTransaction).not.toHaveBeenCalled();
 });

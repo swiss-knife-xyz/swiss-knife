@@ -130,7 +130,7 @@ const AbiSourceCodeToggle = () => {
       leftIcon={<Code size={14} />}
       rightIcon={isExpanded ? <ChevronUpIcon boxSize={4} /> : <ChevronDownIcon boxSize={4} />}
       px={3}
-      h={7}
+      h={{ base: 9, md: 7 }}
       fontSize="xs"
     >
       ABI & Source Code
@@ -394,6 +394,7 @@ const ReadWriteSection = ({
   prefilledCall,
   prefillRevision,
   onPrefillScrollStart,
+  mobileActive,
   abiMode,
 }: {
   type: "read" | "write";
@@ -406,6 +407,7 @@ const ReadWriteSection = ({
   prefilledCall: PrefilledCall | null;
   prefillRevision: number;
   onPrefillScrollStart?: () => void;
+  mobileActive: boolean;
   abiMode: "contract" | "implementation";
 }) => {
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
@@ -418,9 +420,10 @@ const ReadWriteSection = ({
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
 
   const functionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const scrolledPrefillRevision = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!prefilledCall || !client) return;
+    if (!prefilledCall || !client || !mobileActive || scrolledPrefillRevision.current === prefillRevision) return;
     const index = functions.findIndex(func => {
       try { return contractFunctionSignature(func) === prefilledCall.signature; }
       catch { return false; }
@@ -430,6 +433,7 @@ const ReadWriteSection = ({
       const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       const target = functionRefs.current[index];
       if (!target) return;
+      scrolledPrefillRevision.current = prefillRevision;
       target.scrollIntoView?.({
         behavior: reduceMotion ? "instant" : "smooth",
         block: "start",
@@ -437,7 +441,7 @@ const ReadWriteSection = ({
       onPrefillScrollStart?.();
     });
     return () => cancelAnimationFrame(frame);
-  }, [prefilledCall, prefillRevision, functions, client, onPrefillScrollStart]);
+  }, [prefilledCall, prefillRevision, functions, client, onPrefillScrollStart, mobileActive]);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -632,8 +636,8 @@ const ReadWriteSection = ({
   const renderSearchBox = () => {
     return (
       <Center w="full">
-        <HStack w="70%">
-          <InputGroup>
+        <HStack w={{ base: "full", md: "70%" }} minW={0}>
+          <InputGroup minW={0}>
             <Input
               placeholder="Search functions"
               value={searchQuery}
@@ -686,24 +690,30 @@ const ReadWriteSection = ({
   };
 
   return (
-    <Box minW={0} w="full">
+    <Box
+      minW={0}
+      w="full"
+      id={`contract-${type}-functions`}
+      role="tabpanel"
+      aria-labelledby={`contract-${type}-tab`}
+      display={{ base: mobileActive ? "block" : "none", lg: "block" }}
+    >
       <Box
         ref={stickyHeaderRef}
         position="sticky"
-        top={abi.name.length > 0 ? "40px" : "0"}
+        top={{ base: 0, lg: abi.name.length > 0 ? "40px" : "0" }}
         zIndex={1}
         p={2}
         boxShadow="md"
         bg="bg.900"
       >
-        <HStack mb={2}>
-          <Spacer />
-          <Box fontWeight="bold" mr={allCollapsed ? "-9rem" : "-8rem"}>
+        <HStack mb={3} justify="space-between" flexWrap="wrap" gap={2}>
+          <Box fontWeight="bold">
             <>{type === "read" ? "Read" : "Write"} Contract</>
           </Box>
-          <Spacer />
           <Button
             size="sm"
+            flexShrink={0}
             onClick={() => {
               setAllCollapsed(!allCollapsed);
             }}
@@ -863,6 +873,19 @@ const LoadedContractPage = ({
     return !abi.name.includes("...");
   }, [abi?.name]);
   const [writeFunctions, setWriteFunctions] = useState<JsonFragment[]>([]);
+  const [mobileFunctionType, setMobileFunctionType] = useState<"read" | "write">("read");
+
+  // Shared links and decoded calldata reveal their destination before scrolling.
+  useEffect(() => {
+    if (!prefill.call) return;
+    const func = abi?.abi.find(func => {
+      try { return func.type === "function" && contractFunctionSignature(func) === prefill.call!.signature; }
+      catch { return false; }
+    });
+    if (func) setMobileFunctionType(
+      func.stateMutability === "view" || func.stateMutability === "pure" ? "read" : "write"
+    );
+  }, [prefill.call, prefill.revision, abi]);
 
   // Source code state
   const [sourceCode, setSourceCode] = useState<SourceCodeType>(undefined);
@@ -1097,14 +1120,18 @@ const LoadedContractPage = ({
               <Alert
                 status="info"
                 rounded="lg"
+                display="grid"
+                gridTemplateColumns={{ base: "auto minmax(0, 1fr)", lg: "auto minmax(0, 1fr) auto" }}
+                gap={2}
+                alignItems="start"
                 bg="rgba(59,130,246,0.08)"
                 borderWidth="1px"
                 borderColor="rgba(59,130,246,0.20)"
               >
-                <AlertIcon color="primary.400" />
-                <HStack spacing={1} flexWrap="wrap" flex={1}>
+                <AlertIcon color="primary.400" mr={0} mt={1} />
+                <Box minW={0}>
                   <Text color="text.secondary" fontSize="sm">
-                    This is a Proxy Contract for implementation:
+                    Proxy implementation:
                   </Text>
                   <Link
                     href={`${getPath(
@@ -1114,20 +1141,20 @@ const LoadedContractPage = ({
                     color="primary.400"
                     fontSize="sm"
                     fontFamily="mono"
+                    overflowWrap="anywhere"
                     _hover={{ color: "primary.300" }}
                     isExternal
                   >
-                    <HStack spacing={1} display="inline-flex" align="center">
-                      <Text>{implementationAddress}</Text>
-                      <ExternalLink size={12} />
-                    </HStack>
+                    <Text as="span">{implementationAddress}</Text>{" "}
+                    <Icon as={ExternalLink} boxSize={3} verticalAlign="middle" />
                   </Link>
-                </HStack>
-                <HStack spacing={2} ml={2}>
+                </Box>
+                <HStack spacing={2} gridColumn={{ base: 2, lg: "auto" }} minW={0} flexWrap="wrap">
                   <Text color="text.primary" fontSize="sm">Interact as</Text>
                   <DarkSelect
                     boxProps={{
-                      minW: "120px",
+                      minW: { base: 0, sm: "120px" },
+                      flex: { base: 1, sm: "initial" },
                     }}
                     selectedOption={{
                       label: isInteractingAsProxy ? "Proxy" : "Contract",
@@ -1162,6 +1189,46 @@ const LoadedContractPage = ({
             )}
           </VStack>
 
+          <HStack
+            role="tablist"
+            aria-label="Contract functions"
+            display={{ base: "flex", lg: "none" }}
+            spacing={1}
+            p={1}
+            mb={3}
+            bg="whiteAlpha.100"
+            rounded="lg"
+            onKeyDown={event => {
+              const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+              if (!keys.includes(event.key)) return;
+              event.preventDefault();
+              const index = event.key === "Home" ? 0 : event.key === "End" ? 1 : mobileFunctionType === "read" ? 1 : 0;
+              setMobileFunctionType(index === 0 ? "read" : "write");
+              event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index]?.focus();
+            }}
+          >
+            {(["read", "write"] as const).map(type => (
+              <Button
+                key={type}
+                id={`contract-${type}-tab`}
+                role="tab"
+                aria-controls={`contract-${type}-functions`}
+                aria-selected={mobileFunctionType === type}
+                tabIndex={mobileFunctionType === type ? 0 : -1}
+                flex={1}
+                minH={10}
+                size="sm"
+                variant="ghost"
+                bg={mobileFunctionType === type ? "whiteAlpha.200" : "transparent"}
+                color={mobileFunctionType === type ? "text.primary" : "text.secondary"}
+                _hover={{ bg: "whiteAlpha.200" }}
+                onClick={() => setMobileFunctionType(type)}
+              >
+                {type === "read" ? "Read" : "Write"}
+              </Button>
+            ))}
+          </HStack>
+
           <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "repeat(2, minmax(0, 1fr))" }} gap={6} w="full" minW={0}>
             <ReadWriteSection
               key={`read:${isInteractingAsProxy}`}
@@ -1170,6 +1237,7 @@ const LoadedContractPage = ({
               onPrefillScrollStart={prefill.onScrollStart}
               abiMode={isInteractingAsProxy ? "implementation" : "contract"}
               type="read"
+              mobileActive={mobileFunctionType === "read"}
               abi={abi}
               client={client}
               functions={readFunctions}
@@ -1184,6 +1252,7 @@ const LoadedContractPage = ({
               onPrefillScrollStart={prefill.onScrollStart}
               abiMode={isInteractingAsProxy ? "implementation" : "contract"}
               type="write"
+              mobileActive={mobileFunctionType === "write"}
               abi={abi}
               client={client}
               functions={writeFunctions}
@@ -1250,12 +1319,12 @@ const LoadedContractPage = ({
           border="1px solid"
           borderColor="border.default"
           borderRadius="xl"
-          p={5}
+          p={{ base: 3, md: 5 }}
           mb={4}
         >
           {/* Top row: Address and Chain */}
-          <HStack spacing={4} mb={4} alignItems="flex-end" flexWrap={{ base: "wrap", md: "nowrap" }}>
-            <Box flex={1} minW="280px">
+          <Grid templateColumns={{ base: "minmax(0, 1fr) auto", md: "minmax(0, 1fr) 200px auto" }} gap={{ base: 3, md: 4 }} mb={4} alignItems="end">
+            <Box gridColumn={{ base: "1 / -1", md: "auto" }} minW={0}>
               <HStack spacing={2} mb={1.5} align="center">
                 <Text color="text.tertiary" fontSize="xs" fontWeight="medium" textTransform="uppercase" letterSpacing="0.05em">
                   Contract Address
@@ -1291,7 +1360,7 @@ const LoadedContractPage = ({
                 />
               </InputGroup>
             </Box>
-            <Box minW="200px" maxW="240px">
+            <Box minW={0}>
               <Text color="text.tertiary" fontSize="xs" fontWeight="medium" mb={1.5} textTransform="uppercase" letterSpacing="0.05em">
                 Network
               </Text>
@@ -1309,7 +1378,7 @@ const LoadedContractPage = ({
             <Button type="button" onClick={handleAddressSubmit} h={10} flexShrink={0} rightIcon={<CornerDownLeft size={14} aria-hidden="true" />}>
               Load
             </Button>
-          </HStack>
+          </Grid>
           {inputError && (
             <Text id="contract-load-error" role="alert" color="red.400" fontSize="sm" mb={4}>
               {inputError}
@@ -1320,17 +1389,17 @@ const LoadedContractPage = ({
           {abi && (
             <>
               <Box h="1px" bg="border.default" mb={4} />
-              <HStack spacing={4} flexWrap="wrap" justify="space-between" align="center">
+              <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "auto minmax(0, 1fr) auto" }} gap={3} alignItems="center">
                 {/* Left side: Contract name + proxy selector */}
-                <HStack spacing={3} flexWrap="wrap">
+                <HStack spacing={3} flexWrap="wrap" minW={0}>
                   <HStack spacing={2}>
                     <Text color="text.secondary" fontSize="sm">Contract:</Text>
-                    <Text color="text.primary" fontWeight="semibold" fontSize="sm">{abi.name || slicedText(address)}</Text>
+                    <Text color="text.primary" fontWeight="semibold" fontSize="sm" overflowWrap="anywhere" minW={0}>{abi.name || slicedText(address)}</Text>
                   </HStack>
                 </HStack>
 
                 {/* Contract tools */}
-                <HStack spacing={2} flexWrap="wrap">
+                <HStack spacing={2} flexWrap="wrap" minW={0} justify={{ base: "flex-start", lg: "center" }} rowGap={2}>
                   <AbiSourceCodeToggle />
                   <ContractCallPrefill
                     address={address}
@@ -1345,8 +1414,10 @@ const LoadedContractPage = ({
                 </HStack>
 
                 {/* Right side: Connect button */}
-                <ConnectButton expectedChainId={chainId} />
-              </HStack>
+                <Box minW={0} justifySelf={{ base: "start", lg: "end" }}>
+                  <ConnectButton expectedChainId={chainId} />
+                </Box>
+              </Grid>
             </>
           )}
         </Box>

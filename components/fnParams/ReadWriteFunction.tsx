@@ -150,7 +150,7 @@ const EnhancedFunctionOutput: React.FC<{
 
   return (
     <Box
-      ml={4}
+      ml={{ base: 0, md: 4 }}
       maxW="30rem"
       sx={{
         wordBreak: "break-word",
@@ -997,8 +997,8 @@ const ReadWriteFunctionComponent = ({
       bg={initialCall ? "whiteAlpha.50" : !inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
       {/* Function name and refetch button */}
-      <HStack mb={!fnSelector ? 2 : undefined} alignItems="flex-start" flexWrap="wrap" rowGap={2}>
-        <Box flex="1 1 16rem" minW={0}>
+      <HStack mb={!fnSelector ? 2 : undefined} alignItems="flex-start" flexWrap="wrap" rowGap={1}>
+        <Box flex={{ base: "1 1 100%", sm: "1 1 16rem" }} minW={0}>
           <HStack alignItems="center" spacing={2} flexWrap="wrap" rowGap={1}>
             <HStack
               as="button"
@@ -1022,7 +1022,7 @@ const ReadWriteFunctionComponent = ({
               <IconButton
                 aria-label={`Share ${displayName} function call`}
                 icon={<LinkIcon boxSize={3.5} />}
-                size="xs"
+                size={{ base: "sm", md: "xs" }}
                 variant="ghost"
                 color="text.secondary"
                 flexShrink={0}
@@ -1034,32 +1034,40 @@ const ReadWriteFunctionComponent = ({
                 <WarningTwoIcon aria-label="Inferred signature, not verified" tabIndex={0} color="yellow.300" boxSize={3.5} flexShrink={0} />
               </Tooltip>
             )}
-            {__func.outputs && __func.outputs.length === 1 && (
-              <Box fontSize="sm" color="whiteAlpha.600">
-                (→&nbsp;{__func.outputs[0].type})
+          </HStack>
+          <HStack mt={1} ml={{ base: 8, md: 12 }} spacing={3} flexWrap="wrap" rowGap={1} color="whiteAlpha.600" fontSize="xs">
+            {fnSelector && (
+              <Box
+                as="button"
+                type="button"
+                textAlign="left"
+                aria-label={`Toggle ${displayName} selector`}
+                aria-expanded={!isCollapsed}
+                onClick={() => setIsCollapsed(collapsed => !collapsed)}
+                borderRadius="md"
+                _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
+              >
+                [selector: {fnSelector}]
               </Box>
             )}
+            {__func.outputs && __func.outputs.length > 0 && (
+              <Text whiteSpace="nowrap">
+                → {__func.outputs.length === 1 ? __func.outputs[0].type : `${__func.outputs.length} outputs`}
+              </Text>
+            )}
           </HStack>
-          {fnSelector && (
-            <Box
-              as="button"
-              type="button"
-              display="block"
-              textAlign="left"
-              aria-label={`Toggle ${displayName} selector`}
-              aria-expanded={!isCollapsed}
-              onClick={() => setIsCollapsed(collapsed => !collapsed)}
-              ml={12} mb={2} fontSize="sm" color="whiteAlpha.600"
-              borderRadius="md"
-              _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
-            >
-              [selector: {fnSelector}]
+          {highlightedOutputs && highlightedOutputs.length > 1 && (
+            <Box display={{ base: "none", md: "block" }} mt={1}>
+              <EnhancedFunctionOutput highlightedOutputs={highlightedOutputs} />
             </Box>
           )}
         </Box>
+        <HStack flex={{ base: "1 1 100%", sm: "0 0 auto" }} justify="flex-end" spacing={1.5} flexWrap="wrap" rowGap={2} mt={{ base: 1, sm: 0 }}>
         {type === "read" && (
           <Button
             size="sm"
+            h={8}
+            px={2.5}
             flexShrink={0}
             onClick={encodeCalldataFn}
             isDisabled={inputsUnknown || inputs?.some((_, i) => functionIsDisabled[i] === true)}
@@ -1072,7 +1080,9 @@ const ReadWriteFunctionComponent = ({
           <Button
             onClick={readFunction}
             isLoading={loading}
-            w="4rem"
+            w="3.5rem"
+            h={8}
+            px={2.5}
             flexShrink={0}
             isDisabled={
               inputsUnknown ||
@@ -1133,7 +1143,8 @@ const ReadWriteFunctionComponent = ({
                 </Box>
               </PopoverTrigger>
               <PopoverContent
-                minW="30rem"
+                w="min(30rem, calc(100vw - 2rem))"
+                minW={0}
                 border={"1px solid"}
                 borderColor={"whiteAlpha.400"}
                 bg="bg.900"
@@ -1198,6 +1209,7 @@ const ReadWriteFunctionComponent = ({
               </PopoverContent>
             </Popover>
           )}
+        </HStack>
       </HStack>
       {encodingError && (
         <Text role="alert" color="red.300" p={2} wordBreak="break-word">
@@ -1206,17 +1218,10 @@ const ReadWriteFunctionComponent = ({
       )}
       {/* Explain unavailable actions without repeating notices on usable functions. */}
       {inputsUnknown && (
-        <Text role="note" ml={4} mb={2} fontSize="sm" color="orange.300">
+        <Text role="note" ml={{ base: 0, md: 4 }} mb={2} fontSize="sm" color="orange.300">
           {__func.inputInference?.message}
         </Text>
       )}
-      {/* If multiple outputs */}
-      {highlightedOutputs && highlightedOutputs.length > 1 && (
-        <Box ml={4} maxW="30rem" mb={4}>
-          <EnhancedFunctionOutput highlightedOutputs={highlightedOutputs} />
-        </Box>
-      )}
-
       {/* Compact transaction status with an independently loaded return value. */}
       {((writeStatus && writeStatus.key === writeContextKey) ||
         (writePreview && writePreview.key === writeContextKey) || txHash || confirmedTxHash) && (
@@ -1307,7 +1312,7 @@ const ReadWriteFunctionComponent = ({
       <Box display={isCollapsed ? "none" : undefined}>
         {/* Input fields */}
         {(payable || stateMutability === "payable") && (
-          <Box ml={4} p={4} bg="whiteAlpha.100" rounded={"lg"}>
+          <Box ml={{ base: 0, md: 4 }} p={{ base: 2, md: 4 }} bg="whiteAlpha.100" rounded={"lg"}>
             <IntInput
               input={{
                 name: "Payable ETH",
@@ -1331,7 +1336,7 @@ const ReadWriteFunctionComponent = ({
           </Box>
         )}
         {inputs && inputs.length > 0 && (
-          <Box ml={4}>
+          <Box ml={{ base: 0, md: 4 }}>
             {inputs.map((input, i) => (
               <Box key={i} mt={2}>
                 {renderInputFields({
@@ -1355,7 +1360,7 @@ const ReadWriteFunctionComponent = ({
           </Box>
         )}
         {/* Output fields for Read or Call as View Fn */}
-        <Box mt={2} ml={4} mb={inputs && inputs.length > 0 ? 0 : 4}>
+        <Box mt={2} ml={{ base: 0, md: 4 }} mb={inputs && inputs.length > 0 ? 0 : 4}>
           {inputs && inputs.length > 0
             ? // Show skeleton (res = null) if loading
               (type === "read" ||
@@ -1379,12 +1384,12 @@ const ReadWriteFunctionComponent = ({
       </Box>
 
 
-      <Modal isOpen={share !== null} onClose={() => setShare(null)} isCentered size="lg">
+      <Modal isOpen={share !== null} onClose={() => setShare(null)} isCentered size="lg" scrollBehavior="inside">
         <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
-        <ModalContent bg="bg.base" border="1px solid" borderColor="border.subtle">
+        <ModalContent mx={{ base: 3, sm: 4 }} maxW={{ base: "calc(100vw - 1.5rem)", sm: "lg" }} bg="bg.base" border="1px solid" borderColor="border.subtle">
           <ModalHeader pb={2}>Share function call</ModalHeader>
           <ModalCloseButton />
-          <ModalBody pb={5}>
+          <ModalBody pb={5} px={{ base: 3, sm: 6 }}>
             <Text fontSize="sm" color="text.secondary" mb={4}>
               Share this function with its current parameters.
             </Text>
@@ -1432,6 +1437,8 @@ const ReadWriteFunctionComponent = ({
       >
         <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
         <ModalContent
+          mx={{ base: 3, sm: 4 }}
+          maxW={{ base: "calc(100vw - 1.5rem)", sm: "lg" }}
           bg="bg.base"
           border="1px solid"
           borderColor="border.subtle"
@@ -1441,7 +1448,7 @@ const ReadWriteFunctionComponent = ({
             color="text.secondary"
             _hover={{ color: "text.primary" }}
           />
-          <ModalBody pb={6}>
+          <ModalBody pb={6} px={{ base: 3, sm: 6 }}>
             <Box
               position="relative"
               bg="bg.muted"

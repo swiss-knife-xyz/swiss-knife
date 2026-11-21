@@ -109,9 +109,9 @@ export const UintParam = ({
           direction={{ base: "column", md: "row" }}
           width="100%"
           gap={2}
-          alignItems="flex-start"
+          alignItems="stretch"
         >
-          <Box flex="1" minW="0" maxW="100%">
+          <Box flex="1" minW="0" w="full" maxW="100%">
             <InputField
               InputLeftElement={
                 <>

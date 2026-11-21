@@ -187,7 +187,7 @@ export function ContractCallPrefill({
         }}
         leftIcon={<ClipboardPaste size={14} aria-hidden="true" />}
         px={3}
-        h={7}
+        h={{ base: 9, md: 7 }}
         fontSize="xs"
         aria-haspopup="dialog"
         onClick={() => setIsOpen(true)}

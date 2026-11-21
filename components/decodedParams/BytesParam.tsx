@@ -115,7 +115,7 @@ export const BytesParam = ({ arg: _arg, chainId }: Params) => {
             ) : null}
             <Stack
               mt={decodedFn.name ? 2 : 0}
-              p={4}
+              p={{ base: 2, md: 4 }}
               spacing={2}
               bg={"whiteAlpha.50"}
               rounded={"lg"}
@@ -161,7 +161,7 @@ export const BytesParam = ({ arg: _arg, chainId }: Params) => {
       />
     </HStack>
   ) : (
-    <Stack mt={2} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
+    <Stack mt={2} p={{ base: 2, md: 4 }} bg={"whiteAlpha.50"} rounded={"lg"}>
       <HStack w="full">
         <Text
           fontSize={"xl"}
@@ -171,14 +171,14 @@ export const BytesParam = ({ arg: _arg, chainId }: Params) => {
         >
           {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </Text>
-        <Box flex="1">
+        <Box flex="1" minW={0}>
           <StringParam value={arg.rawValue} />
         </Box>
       </HStack>
       <Collapse in={isOpen} animateOpacity>
         <Stack
-          ml={2}
-          px={4}
+          ml={{ base: 0, md: 2 }}
+          px={{ base: 2, md: 4 }}
           pb={4}
           borderLeft="1px"
           borderBottom="1px"
