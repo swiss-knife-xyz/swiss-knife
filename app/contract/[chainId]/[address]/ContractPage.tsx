@@ -82,6 +82,8 @@ const useDebouncedValue = (value: any, delay: number) => {
 type AbiType = {
   abi: JsonFragment[];
   name: string;
+  // Provenance belongs to this ABI, not the outer proxy/address.
+  isDecoded?: boolean;
 };
 
 type SourceCodeType = Record<string, string> | undefined;
@@ -147,7 +149,6 @@ const AbiSourceCodeContent = ({
   proxySourceCode,
   implementationSourceCode,
   implementationAddress,
-  isAbiDecoded,
   isLoadingSourceCode,
 }: {
   abi: AbiType | null;
@@ -157,7 +158,6 @@ const AbiSourceCodeContent = ({
   proxySourceCode: SourceCodeType;
   implementationSourceCode: SourceCodeType;
   implementationAddress: string | null;
-  isAbiDecoded: boolean;
   isLoadingSourceCode: boolean;
 }) => {
   const context = useContext(AbiExpandedContext);
@@ -336,10 +336,10 @@ const AbiSourceCodeContent = ({
         ) : (
           // ABI View
           <Box h={isFullscreen ? "100%" : undefined} display="flex" flexDirection="column">
-            {isAbiDecoded && !isProxy ? (
+            {currentAbi?.isDecoded ? (
               <Alert status="info" mb={3} rounded="lg" fontSize="sm" flexShrink={0}>
                 <AlertIcon />
-                ABI reconstructed from bytecode (contract not verified)
+                This contract isn’t verified. Its functions were inferred from bytecode and signature lookups, so some names or input types may differ from the original contract.
               </Alert>
             ) : null}
             <Box
@@ -785,7 +785,7 @@ export const ContractPage = ({
   });
 
   const [abi, setAbi] = useState<AbiType | null>(null);
-  const [isAbiDecoded, setIsAbiDecoded] = useState<boolean>(false);
+  const isAbiDecoded = abi?.isDecoded === true;
   const [isFetchingAbi, setIsFetchingAbi] = useState<boolean>(false);
   const [unableToFetchAbi, setUnableToFetchAbi] = useState<boolean>(false);
   const [implementationAddress, setImplementationAddress] = useState<
@@ -850,8 +850,6 @@ export const ContractPage = ({
           name: fetchedAbi.name,
         });
       }
-
-      setIsAbiDecoded(false);
     } catch (e) {
       console.log("Error fetching verified ABI:", e);
 
@@ -868,8 +866,6 @@ export const ContractPage = ({
           throw new Error("No contract code found at address");
         }
 
-        setIsAbiDecoded(true);
-
         // check if contract is a proxy
         const resGetImplementation = await getImplementationFromBytecodeIfProxy(
           {
@@ -881,10 +877,7 @@ export const ContractPage = ({
         if (resGetImplementation) {
           const { implementationAddress, proxyName } = resGetImplementation;
 
-          let implementation: {
-            abi: JsonFragment[];
-            name: string;
-          } = {
+          let implementation: AbiType = {
             abi: [],
             name: slicedText(implementationAddress),
           };
@@ -919,6 +912,7 @@ export const ContractPage = ({
             implementation = {
               abi: processedImplementation as JsonFragment[],
               name: slicedText(implementationAddress),
+              isDecoded: true,
             };
           }
           // get proxy abi
@@ -933,6 +927,7 @@ export const ContractPage = ({
           setProxyAbi({
             abi: proxyAbi as JsonFragment[],
             name: proxyName,
+            isDecoded: true,
           });
 
           setIsInteractingAsProxy(true);
@@ -948,6 +943,7 @@ export const ContractPage = ({
           setAbi({
             abi: sortedAbi as JsonFragment[],
             name: slicedText(address),
+            isDecoded: true,
           });
         }
       } catch (evmoleError) {
@@ -1040,7 +1036,6 @@ export const ContractPage = ({
             proxySourceCode={proxySourceCode}
             implementationSourceCode={implementationSourceCode}
             implementationAddress={implementationAddress}
-            isAbiDecoded={isAbiDecoded}
             isLoadingSourceCode={isLoadingSourceCode}
           />
 
@@ -1120,7 +1115,7 @@ export const ContractPage = ({
               >
                 <AlertIcon color="primary.400" />
                 <Text color="text.secondary" fontSize="sm">
-                  Contract not verified, used whatsabi & evmole to determine functions
+                  This contract isn’t verified. Its functions were inferred from bytecode and signature lookups, so some names or input types may differ from the original contract.
                 </Text>
               </Alert>
             )}

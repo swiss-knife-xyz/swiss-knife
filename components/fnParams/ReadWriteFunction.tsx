@@ -35,8 +35,8 @@ import {
   ChevronUpIcon,
   ExternalLinkIcon,
   InfoIcon,
-  RepeatIcon,
   SettingsIcon,
+  WarningTwoIcon,
 } from "@chakra-ui/icons";
 import { useWalletClient, useAccount } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
@@ -65,6 +65,14 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
 import { convertBooleans } from "@/lib/convertBooleans";
 import type { InferredFunctionInfo } from "@/lib/inferredContract";
+import { getPath } from "@/utils";
+import subdomains from "@/subdomains";
+import { erc165Interfaces } from "@/data/erc165Interfaces";
+
+const interfacePresetOptions = erc165Interfaces.map(({ label, id }) => ({
+  label: label.replace(" (optional)", ""),
+  value: id,
+}));
 
 interface ReadWriteFunctionProps {
   client: PublicClient;
@@ -220,22 +228,22 @@ const ReadWriteFunctionComponent = ({
 
   const _func = React.useMemo(
     () =>
-      ({ ...__func, name: functionName, type: "function" } as JsonFragment & {
+      ({ ...__func, name: functionName, type: "function" }) as JsonFragment & {
         type: "function";
-      }),
+      },
     [__func, functionName]
   );
 
   const outputs = _outputs
     ? _outputs
     : isAbiDecoded
-    ? [
-        {
-          type: "calldata", // set output type as custom calldata
-          name: "",
-        },
-      ]
-    : [];
+      ? [
+          {
+            type: "calldata", // set output type as custom calldata
+            name: "",
+          },
+        ]
+      : [];
 
   let tenderlyForkIdCache: string | null = null;
   if (localStorage !== undefined) {
@@ -250,6 +258,10 @@ const ReadWriteFunctionComponent = ({
   const [payableETHIsDisabled, setPayableETHIsDisabled] =
     useState<boolean>(false);
   const [inputsState, setInputsState] = useState<any>({});
+  const isSupportsInterface =
+    functionName === "supportsInterface" &&
+    inputs?.length === 1 &&
+    inputs[0].type === "bytes4";
   const [functionIsDisabled, setFunctionIsDisabled] = useState<any>({});
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
     WriteButtonType.Write
@@ -272,6 +284,13 @@ const ReadWriteFunctionComponent = ({
   const [enterPressed, setEnterPressed] = useState<boolean>(false);
   const [calldataModalOpen, setCalldataModalOpen] = useState<boolean>(false);
   const [encodedCalldata, setEncodedCalldata] = useState<string>("");
+  const [encodingError, setEncodingError] = useState("");
+
+  useEffect(() => {
+    setEncodedCalldata("");
+    setCalldataModalOpen(false);
+    setEncodingError("");
+  }, [inputsState, functionName, inputs, address, chainId, isAbiDecoded]);
 
   const updateInputState = useCallback((index: number, value: string) => {
     setInputsState((prev: any) => ({
@@ -619,7 +638,7 @@ const ReadWriteFunctionComponent = ({
         from:
           settingsSenderAddr.length > 0
             ? settingsSenderAddr
-            : userAddress ?? zeroAddress,
+            : (userAddress ?? zeroAddress),
         to: address,
         value: payableETH,
         data: encodeFunctionData({
@@ -728,10 +747,9 @@ const ReadWriteFunctionComponent = ({
 
   const encodeCalldataFn = useCallback(() => {
     if (inputsUnknown) return;
-    if (isError) {
-      setIsError(false);
-    }
-
+    setEncodingError("");
+    setEncodedCalldata("");
+    setCalldataModalOpen(false);
     try {
       const abi = [_func] as unknown as Abi;
       const args = prepareArgs();
@@ -743,12 +761,12 @@ const ReadWriteFunctionComponent = ({
       });
       setEncodedCalldata(calldata);
       setCalldataModalOpen(true);
-    } catch (e: any) {
-      console.error(e);
-      setIsError(true);
-      setErrorMsg(e.message || "Failed to encode calldata");
+    } catch (e: unknown) {
+      setEncodingError(
+        e instanceof Error ? e.message : "Failed to encode calldata"
+      );
     }
-  }, [isError, _func, inputs, inputsState, functionName]);
+  }, [_func, prepareArgs, functionName, inputsUnknown, encodeFunctionData]);
 
   useEffect(() => {
     try {
@@ -909,13 +927,18 @@ const ReadWriteFunctionComponent = ({
               <Box fontSize={"2xl"}>
                 {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
               </Box>
-              <HStack alignItems={"flex-end"}>
+              <HStack alignItems="center">
                 <Box fontSize={"md"} fontWeight={"normal"}>
                   {index}.
                 </Box>
                 <Box fontWeight={"bold"}>
                   {renderHighlightedText(__func.name)}
                 </Box>
+                {isAbiDecoded && (
+                  <Tooltip label="Inferred from bytecode and signature lookups. Check the input types before use." hasArrow>
+                    <WarningTwoIcon aria-label="Inferred signature, not verified" tabIndex={0} color="yellow.300" boxSize={3.5} flexShrink={0} />
+                  </Tooltip>
+                )}
               </HStack>
             </HStack>{" "}
             {/* If single output, then show inline */}
@@ -931,19 +954,35 @@ const ReadWriteFunctionComponent = ({
             </Box>
           )}
         </Box>
-        {/* Read/Write Buttons */}
-        {!loading && type === "read" && (
+        {type === "read" && (
           <Button
-            ml={4}
+            size="sm"
+            flexShrink={0}
+            onClick={encodeCalldataFn}
+            isDisabled={inputsUnknown || inputs?.some((_, i) => functionIsDisabled[i] === true)}
+          >
+            Encode Calldata
+          </Button>
+        )}
+        {/* Read/Write Buttons */}
+        {type === "read" && (
+          <Button
             onClick={readFunction}
+            isLoading={loading}
+            w="4rem"
+            flexShrink={0}
             isDisabled={
               inputsUnknown || (inputs && inputs.some((_, i) => functionIsDisabled[i] === true))
             }
             size={"sm"}
-            title={res !== null ? "refetch" : "fetch"}
-            colorScheme={!isError ? "blue" : "red"}
+            title="Read function"
+            variant="outline"
+            bg="bg.muted"
+            color={isError ? "red.300" : "text.primary"}
+            borderColor={isError ? "red.400" : "border.strong"}
+            _hover={{ bg: "whiteAlpha.100" }}
           >
-            {res !== null ? <RepeatIcon /> : "Read"}
+            Read
           </Button>
         )}
         {type === "write" && (
@@ -1055,6 +1094,11 @@ const ReadWriteFunctionComponent = ({
             </Popover>
           )}
       </HStack>
+      {encodingError && (
+        <Text role="alert" color="red.300" p={2} wordBreak="break-word">
+          {encodingError}
+        </Text>
+      )}
       {/* Explain unavailable actions without repeating notices on usable functions. */}
       {inputsUnknown && (
         <Text role="note" ml={4} mb={2} fontSize="sm" color="orange.300">
@@ -1188,6 +1232,7 @@ const ReadWriteFunctionComponent = ({
                 {renderInputFields({
                   chainId,
                   input,
+                  suggestions: isSupportsInterface && i === 0 ? interfacePresetOptions : undefined,
                   value: inputsState[i] || "",
                   onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                     updateInputState(i, e.target.value),
@@ -1236,7 +1281,11 @@ const ReadWriteFunctionComponent = ({
         size="lg"
       >
         <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
-        <ModalContent bg="bg.base" border="1px solid" borderColor="border.subtle">
+        <ModalContent
+          bg="bg.base"
+          border="1px solid"
+          borderColor="border.subtle"
+        >
           <ModalHeader color="text.primary">Encoded Calldata</ModalHeader>
           <ModalCloseButton
             color="text.secondary"
@@ -1258,7 +1307,13 @@ const ReadWriteFunctionComponent = ({
             >
               {encodedCalldata}
             </Box>
-            <HStack mt={4} justify="flex-end">
+            <HStack mt={4} justify="flex-end" flexWrap="wrap">
+              <Link
+                href={`${getPath(subdomains.CALLDATA.base)}decoder?calldata=${encodedCalldata}`}
+                isExternal
+              >
+                Open in decoder <ExternalLinkIcon />
+              </Link>
               <CopyToClipboard
                 textToCopy={encodedCalldata}
                 labelText="Copy Calldata"
