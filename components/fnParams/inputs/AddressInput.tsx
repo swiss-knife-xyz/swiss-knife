@@ -286,6 +286,7 @@ export const AddressInput = ({
         {resolvedAddress && (
           <Button
             as={ContractAddressLink}
+            displayName={addressLabels[0] || ensName || undefined}
             address={resolvedAddress}
             chainId={chainId}
             href={`${getPath(subdomains.EXPLORER.base)}address/${resolvedAddress}/contract?chainId=${chainId}`}

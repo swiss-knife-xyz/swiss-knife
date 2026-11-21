@@ -1344,6 +1344,7 @@ const ReadWriteFunctionComponent = ({
                   input,
                   suggestions: isSupportsInterface && i === 0 ? interfacePresetOptions : undefined,
                   value: inputsState[i] ?? "",
+                  allowBytesBuilder: true,
                   onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                     updateInputState(i, e.target.value),
                   setFunctionIsDisabled: (value: boolean) =>

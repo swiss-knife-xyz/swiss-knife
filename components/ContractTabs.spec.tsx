@@ -64,6 +64,7 @@ function Contract({ address, chainId }: { address: string; chainId: number }) {
       {expanded && <p>Saved read result</p>}
       <ContractAddressLink
         address={contract}
+        displayName="Known contract tag"
         chainId={chainId}
         href="/existing-link"
         target="_blank"
@@ -445,4 +446,28 @@ it("ignores invalid saved tabs and remains usable when storage writes fail", asy
   );
   await screen.findByRole("tab", { name: /Linked contract/ });
   expect(screen.getAllByRole("tab")).toHaveLength(2);
+});
+
+it("uses the known address tag while loading, then replaces it with the fetched contract name", async () => {
+  let finish!: (code: string) => void;
+  code.mockReturnValue(
+    new Promise<string>((resolve) => {
+      finish = resolve;
+    })
+  );
+  mount();
+  fireEvent.click(
+    within(screen.getByRole("tabpanel")).getByText("Open linked contract")
+  );
+  expect(
+    screen
+      .getByRole("tab", { name: /Known contract tag/ })
+      .getAttribute("aria-selected")
+  ).toBe("true");
+  expect(screen.getByRole("status")).toBeTruthy();
+  await act(async () => {
+    finish("0x6000");
+  });
+  await screen.findByRole("tab", { name: /Linked contract/ });
+  expect(screen.queryByRole("tab", { name: /Known contract tag/ })).toBeNull();
 });

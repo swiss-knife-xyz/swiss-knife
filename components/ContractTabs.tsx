@@ -67,7 +67,7 @@ type Tab = AddressTab | StartTab;
 type TabContext = {
   chainId: number;
   initial: boolean;
-  openAddress: (address: string, chainId: number) => void;
+  openAddress: (address: string, chainId: number, displayName?: string) => void;
   setName: (name: string) => void;
 };
 const ContractTabContext = createContext<TabContext | null>(null);
@@ -80,9 +80,9 @@ const keyFor = ({ address, chainId }: ContractTabAddress) =>
 // Address controls open workspace tabs here and remain ordinary links elsewhere.
 export const ContractAddressLink = forwardRef<
   HTMLAnchorElement,
-  LinkProps & { address: string; chainId?: number }
+  LinkProps & { address: string; chainId?: number; displayName?: string }
 >(function ContractAddressLink(
-  { address, chainId, onClick, children, ...props },
+  { address, chainId, displayName, onClick, children, ...props },
   ref
 ) {
   const tab = useContractTab();
@@ -111,7 +111,7 @@ export const ContractAddressLink = forwardRef<
         )
           return;
         event.preventDefault();
-        tab.openAddress(address, chainId ?? tab.chainId);
+        tab.openAddress(address, chainId ?? tab.chainId, displayName);
       }}
     >
       {children}
@@ -412,13 +412,18 @@ export function ContractTabs({
     tabUrls.current.set(active, window.location.href);
   }, [active, tabs]);
   const openAddress = useCallback(
-    (address: string, chainId: number) => {
+    (address: string, chainId: number, displayName?: string) => {
       if (!isAddress(address) || !chainIdToChain[chainId]) return;
       const id = keyFor({ address, chainId });
+      const name = displayName?.trim();
       setTabs((previous) =>
         previous.some((tab) => tab.id === id)
-          ? previous
-          : [...previous, { id, address, chainId }]
+          ? previous.map((tab) =>
+              tab.kind !== "new" && tab.id === id && !tab.name && name
+                ? { ...tab, name }
+                : tab
+            )
+          : [...previous, { id, address, chainId, ...(name ? { name } : {}) }]
       );
       select(id);
       requestAnimationFrame(() =>
@@ -465,7 +470,12 @@ export function ContractTabs({
     [select]
   );
   const onName = useCallback((id: string, name: string) => {
-    if (!name.trim()) return;
+    if (
+      !name.trim() ||
+      isAddress(name.trim()) ||
+      /^0x[\da-f]+(?:\.{3}|…)[\da-f]+$/i.test(name.trim())
+    )
+      return;
     setTabs((previous) =>
       previous.some((tab) => tab.id === id && tab.name !== name)
         ? previous.map((tab) =>
@@ -580,19 +590,21 @@ export function ContractTabs({
                     ? "New tab"
                     : tab.name || slicedText(tab.address)}
                 </Text>
-                {tab.name && (
-                  <Text
-                    fontSize="xs"
-                    fontFamily="mono"
-                    fontWeight="normal"
-                    lineHeight="18px"
-                    color="text.secondary"
-                    maxW="full"
-                    isTruncated
-                  >
-                    {slicedText(tab.address)}
-                  </Text>
-                )}
+                {tab.name &&
+                  !isAddress(tab.name) &&
+                  !/^0x[\da-f]+(?:\.{3}|…)[\da-f]+$/i.test(tab.name.trim()) && (
+                    <Text
+                      fontSize="xs"
+                      fontFamily="mono"
+                      fontWeight="normal"
+                      lineHeight="18px"
+                      color="text.secondary"
+                      maxW="full"
+                      isTruncated
+                    >
+                      {slicedText(tab.address)}
+                    </Text>
+                  )}
                 {tab.kind !== "new" && (
                   <HStack spacing={1.5} minW={0} align="center" pt={0.5}>
                     <Image
