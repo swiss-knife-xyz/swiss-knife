@@ -80,13 +80,18 @@ it("real bytes4 widget receives a preset, permits manual replacement and encodes
     outputs: [{ type: "bool" }],
   };
   show(func);
-  fireEvent.change(
-    screen.getByRole("combobox", { name: "ERC-165 interface preset" }),
-    { target: { value: "0xd9b67a26" } }
-  );
-  const input = screen.getByRole("textbox") as HTMLInputElement;
+  const preset = await screen.findByRole("combobox", { name: "interfaceId" });
+  fireEvent.focus(preset);
+  fireEvent.click(await screen.findByRole("option", { name: /ERC-1155.*0xd9b67a26/ }));
+  const input = preset as HTMLInputElement;
   expect(input.value).toBe("0xd9b67a26");
   fireEvent.change(input, { target: { value: "0xffffffff" } });
+  fireEvent.blur(input);
+  expect(input.value).toBe("0xffffffff");
+  fireEvent.focus(input);
+  expect(await screen.findByRole("option", { name: /ERC-721.*0x80ac58cd/ })).toBeTruthy();
+  fireEvent.blur(input);
+  expect(screen.queryByRole("link", { name: /Interface specification/ })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
   expect(
     await screen.findByText(
@@ -181,4 +186,47 @@ it("zero-input write encodes selector-only without connection, signing or reads"
   expect(client.readContract).not.toHaveBeenCalled();
   expect(client.call).not.toHaveBeenCalled();
   expect(fetch).not.toHaveBeenCalled();
+});
+
+
+it("opens interface suggestions on focus and selects with Enter without reading", async () => {
+  show({ type: "function", name: "supportsInterface", stateMutability: "view",
+    inputs: [{ type: "bytes4", name: "interfaceId" }], outputs: [{ type: "bool" }] });
+  const input = await screen.findByRole("combobox", { name: "interfaceId" });
+  fireEvent.focus(input);
+  await screen.findByRole("option", { name: /ERC-721.*0x80ac58cd/ });
+  fireEvent.keyDown(input, { key: "ArrowDown", code: "ArrowDown" });
+  fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+  expect((input as HTMLInputElement).value).toBe("0x80ac58cd");
+  expect(client.readContract).not.toHaveBeenCalled();
+  expect(client.call).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "[zero]" }));
+  expect((input as HTMLInputElement).value).toBe("0x00000000");
+});
+
+it("allows replacing a known hex value directly and rejects invalid hex on encoding", async () => {
+  show({ type: "function", name: "supportsInterface", stateMutability: "view",
+    inputs: [{ type: "bytes4", name: "interfaceId" }], outputs: [{ type: "bool" }] });
+  const input = await screen.findByRole("combobox", { name: "interfaceId" });
+  fireEvent.focus(input);
+  fireEvent.click(await screen.findByRole("option", { name: /ERC-721.*0x80ac58cd/ }));
+  expect((input as HTMLInputElement).value).toBe("0x80ac58cd");
+  fireEvent.focus(input);
+  // Focusing a selected preset still offers all other known interfaces.
+  expect(await screen.findByRole("option", { name: /ERC-1155.*0xd9b67a26/ })).toBeTruthy();
+  fireEvent.change(input, { target: { value: "not hex" } });
+  fireEvent.blur(input);
+  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await screen.findByRole("alert");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(client.readContract).not.toHaveBeenCalled();
+});
+
+it.each([
+  { name: "other", type: "bytes4" },
+  { name: "supportsInterface", type: "bytes32" },
+])("keeps ordinary bytes fields unchanged for $name($type)", async ({ name, type }) => {
+  show({ type: "function", name, stateMutability: "view", inputs: [{ type, name: "interfaceId" }], outputs: [{ type: "bool" }] });
+  expect(screen.queryByRole("combobox", { name: "interfaceId" })).toBeNull();
+  expect(screen.getByRole("textbox")).toBeTruthy();
 });

@@ -196,58 +196,6 @@ it("encodes nested tuple/array booleans for writes without a connected wallet ac
   expect(client.simulateContract).not.toHaveBeenCalled();
 });
 
-const supportsInterface: JsonFragment = {
-  type: "function",
-  name: "supportsInterface",
-  stateMutability: "view",
-  inputs: [{ name: "interfaceId", type: "bytes4" }],
-  outputs: [{ type: "bool" }],
-};
-
-it("offers sourced interface IDs only for supportsInterface(bytes4), retaining manual entry without calling", async () => {
-  render(form(supportsInterface));
-  const preset = screen.getByRole("combobox", {
-    name: "ERC-165 interface preset",
-  });
-  fireEvent.change(preset, { target: { value: "0x80ac58cd" } });
-  expect(
-    (screen.getByRole("textbox", { name: "interfaceId" }) as HTMLInputElement)
-      .value
-  ).toBe("0x80ac58cd");
-  expect(
-    screen
-      .getByRole("link", { name: /Interface specification/ })
-      .getAttribute("href")
-  ).toBe("https://eips.ethereum.org/EIPS/eip-721");
-  expect(screen.getByText(/ERC-20 does not require ERC-165/)).toBeTruthy();
-  expect(screen.queryByRole("option", { name: /^ERC-20 / })).toBeNull();
-  fill("interfaceId", "0x12345678");
-  expect((preset as HTMLSelectElement).value).toBe("");
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
-  expect(
-    await screen.findByText(
-      "0x01ffc9a71234567800000000000000000000000000000000000000000000000000000000"
-    )
-  ).toBeTruthy();
-  expect(client.readContract).not.toHaveBeenCalled();
-  expect(client.call).not.toHaveBeenCalled();
-  expect(wallet.sendTransaction).not.toHaveBeenCalled();
-});
-
-it.each([
-  { ...supportsInterface, name: "other" },
-  { ...supportsInterface, inputs: [{ name: "interfaceId", type: "bytes32" }] },
-  {
-    ...supportsInterface,
-    inputs: [...supportsInterface.inputs!, { type: "uint256", name: "other" }],
-  },
-])("does not offer presets on unrelated signatures: %j", (func) => {
-  render(form(func));
-  expect(
-    screen.queryByRole("combobox", { name: "ERC-165 interface preset" })
-  ).toBeNull();
-});
-
 it("warns about inferred names/parameters even when collapsed and repeats the caveat in encoded output", async () => {
   render(form(transfer, "read", true, true));
   const warning = screen.getByLabelText("Inferred signature — not verified");

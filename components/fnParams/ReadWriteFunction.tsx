@@ -29,7 +29,6 @@ import {
   Spinner,
   Tooltip,
   Input,
-  Select,
 } from "@chakra-ui/react";
 import {
   ChevronDownIcon,
@@ -70,6 +69,11 @@ import type { InferredFunctionInfo } from "@/lib/inferredContract";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { erc165Interfaces } from "@/data/erc165Interfaces";
+
+const interfacePresetOptions = erc165Interfaces.map(({ label, id }) => ({
+  label: label.replace(" (optional)", ""),
+  value: id,
+}));
 
 interface ReadWriteFunctionProps {
   client: PublicClient;
@@ -259,11 +263,6 @@ const ReadWriteFunctionComponent = ({
     functionName === "supportsInterface" &&
     inputs?.length === 1 &&
     inputs[0].type === "bytes4";
-  const selectedInterface = isSupportsInterface
-    ? erc165Interfaces.find(
-        (entry) => entry.id === inputsState[0]?.toLowerCase()
-      )
-    : undefined;
   const [functionIsDisabled, setFunctionIsDisabled] = useState<any>({});
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
     WriteButtonType.Write
@@ -1224,34 +1223,6 @@ const ReadWriteFunctionComponent = ({
             />
           </Box>
         )}
-        {isSupportsInterface && (
-          <Box ml={4} my={3}>
-            <Select
-              aria-label="ERC-165 interface preset"
-              size="sm"
-              value={selectedInterface?.id ?? ""}
-              onChange={(e) => updateInputState(0, e.target.value)}
-            >
-              <option value="">Manual bytes4 / choose a known interface</option>
-              {erc165Interfaces.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {entry.label} — {entry.id}
-                </option>
-              ))}
-            </Select>
-            {selectedInterface && (
-              <Link fontSize="sm" href={selectedInterface.source} isExternal>
-                Interface specification <ExternalLinkIcon />
-              </Link>
-            )}
-            <Text fontSize="xs" mt={2} color="whiteAlpha.700">
-              Presets fill the input only; use Read to query. Not every ERC uses
-              ERC-165: ERC-20 does not require ERC-165. A true response is a
-              contract claim, not proof of compliance. Check ERC-165 support and
-              rejection of 0xffffffff per the standard.
-            </Text>
-          </Box>
-        )}
         {inputs && inputs.length > 0 && (
           <Box ml={4}>
             {inputs.map((input, i) => (
@@ -1259,6 +1230,7 @@ const ReadWriteFunctionComponent = ({
                 {renderInputFields({
                   chainId,
                   input,
+                  suggestions: isSupportsInterface && i === 0 ? interfacePresetOptions : undefined,
                   value: inputsState[i] || "",
                   onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                     updateInputState(i, e.target.value),

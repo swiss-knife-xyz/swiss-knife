@@ -2,10 +2,14 @@ import { Box, Button, HStack, InputProps, Spacer } from "@chakra-ui/react";
 import { InputField } from "@/components/InputField";
 import { InputInfo } from "./InputInfo";
 import { JsonFragment } from "ethers";
+import { DarkSelect } from "@/components/DarkSelect";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
+import type { SelectedOption } from "@/types";
 
 interface InputFieldProps extends InputProps {
   input: JsonFragment;
   value?: string;
+  suggestions?: SelectedOption[];
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -13,6 +17,7 @@ export const BytesInput = ({
   input,
   value,
   onChange,
+  suggestions,
   ...props
 }: InputFieldProps) => {
   // Parse fixed size from type (e.g. "bytes32" → 32, "bytes" → null)
@@ -28,7 +33,48 @@ export const BytesInput = ({
   return (
     <Box>
       <InputInfo input={input} />
-      <InputField value={value} placeholder="" onChange={onChange} {...props} />
+      {suggestions ? (
+        <HStack spacing={2}>
+          <DarkSelect
+            ariaLabel={String(input.name || input.type)}
+            placeholder="0x…"
+            options={suggestions}
+            showOptionValue
+            selectedOption={
+              suggestions.find(
+                (option) =>
+                  String(option.value).toLowerCase() === value?.toLowerCase()
+              ) ?? null
+            }
+            setSelectedOption={(option) =>
+              onChange({
+                target: { value: String(option?.value ?? "") },
+              } as React.ChangeEvent<HTMLInputElement>)
+            }
+            editableValue={value ?? ""}
+            onEditableValueChange={(next) =>
+              onChange({
+                target: { value: next },
+              } as React.ChangeEvent<HTMLInputElement>)
+            }
+            openMenuOnFocus
+            isInvalid={props.isInvalid}
+            onKeyDown={(event) =>
+              props.onKeyDown?.(event as React.KeyboardEvent<HTMLInputElement>)
+            }
+            controlProps={{ h: 10, minH: 10 }}
+            boxProps={{ flex: 1, minW: 0 }}
+          />
+          <CopyToClipboard textToCopy={value ?? ""} />
+        </HStack>
+      ) : (
+        <InputField
+          value={value}
+          placeholder=""
+          onChange={onChange}
+          {...props}
+        />
+      )}
       <HStack my={2}>
         <Spacer />
         {fixedSize ? (

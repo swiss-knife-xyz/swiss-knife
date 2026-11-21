@@ -19,6 +19,7 @@ import {
 } from "../decodedParams";
 import { isAddress } from "viem";
 import { CalldataParam } from "../decodedParams/CalldataParam";
+import type { SelectedOption } from "@/types";
 
 export interface RenderInputFieldsProps {
   chainId: number;
@@ -29,6 +30,7 @@ export interface RenderInputFieldsProps {
   isError: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   isArrayChild?: boolean;
+  suggestions?: SelectedOption[];
 }
 
 export const renderInputFields = ({
@@ -40,6 +42,7 @@ export const renderInputFields = ({
   isError,
   onKeyDown,
   isArrayChild,
+  suggestions,
 }: RenderInputFieldsProps) => {
   const isInvalid =
     isError &&
@@ -63,6 +66,7 @@ export const renderInputFields = ({
   } else if (input.type?.includes("bytes")) {
     return (
       <BytesInput
+        suggestions={suggestions}
         input={input}
         value={value}
         onChange={onChange}
