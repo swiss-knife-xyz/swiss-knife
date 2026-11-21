@@ -821,9 +821,9 @@ const ReadWriteFunctionComponent = ({
             <Box
               key={i}
               mt={2}
-              bg={outputs.length > 1 ? "whiteAlpha.200" : undefined}
-              p={outputs.length > 1 ? 4 : 0}
-              rounded={"md"}
+              pt={outputs.length > 1 ? 3 : 0}
+              borderTopWidth={i > 0 ? "1px" : 0}
+              borderColor="whiteAlpha.100"
             >
               {outputs.length > 1 && (
                 <InputInfo
@@ -866,38 +866,53 @@ const ReadWriteFunctionComponent = ({
       mb={2}
       p={2}
       pb={!inputs || inputs.length === 0 ? undefined : 4}
-      border="2px solid"
+      border="1px solid"
       borderColor="whiteAlpha.200"
       rounded="md"
       bg={!inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
       {/* Function name and refetch button */}
-      <HStack mb={!fnSelector ? 2 : undefined}>
-        <HStack
+      <HStack mb={!fnSelector ? 2 : undefined} alignItems="flex-start">
+        <Box
+          as="button"
+          type="button"
           flexGrow={1}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          cursor={"pointer"}
+          minW={0}
+          textAlign="left"
+          aria-label={`Toggle ${displayName}`}
+          aria-expanded={!isCollapsed}
+          onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+          cursor="pointer"
+          borderRadius="md"
+          _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
         >
           <HStack>
-            <Box fontSize={"2xl"}>
-              {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </Box>
-            <HStack alignItems={"flex-end"}>
-              <Box fontSize={"md"} fontWeight={"normal"}>
-                {index}.
+            <HStack>
+              <Box fontSize={"2xl"}>
+                {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
               </Box>
-              <Box fontWeight={"bold"}>
-                {renderHighlightedText(__func.name)}
+              <HStack alignItems={"flex-end"}>
+                <Box fontSize={"md"} fontWeight={"normal"}>
+                  {index}.
+                </Box>
+                <Box fontWeight={"bold"}>
+                  {renderHighlightedText(__func.name)}
+                </Box>
+              </HStack>
+            </HStack>{" "}
+            {/* If single output, then show inline */}
+            {__func.outputs && __func.outputs.length === 1 && (
+              <Box fontSize={"sm"} color="whiteAlpha.600">
+                (→&nbsp;{__func.outputs[0].type})
               </Box>
-            </HStack>
-          </HStack>{" "}
-          {/* If single output, then show inline */}
-          {__func.outputs && __func.outputs.length === 1 && (
-            <Box fontSize={"sm"} color="whiteAlpha.600">
-              (→&nbsp;{__func.outputs[0].type})
+            )}
+          </HStack>
+          {fnSelector && (
+            <Box ml={12} mb={2} fontSize="sm" color="whiteAlpha.600">
+              [selector: {fnSelector}]
             </Box>
           )}
-        </HStack>
+        </Box>
         {/* Read/Write Buttons */}
         {!loading && type === "read" && (
           <Button
@@ -1022,16 +1037,10 @@ const ReadWriteFunctionComponent = ({
             </Popover>
           )}
       </HStack>
-      {/* Function Selector */}
-      {fnSelector && (
-        <Box ml={12} mb={2} fontSize={"sm"} color="whiteAlpha.600">
-          [selector: {fnSelector}]
-        </Box>
-      )}
-      {/* Inference is not a verified ABI, including an explicit unknown-input state. */}
-      {__func.inputInference && (
+      {/* Explain unavailable actions without repeating notices on usable functions. */}
+      {inputsUnknown && (
         <Text role="note" ml={4} mb={2} fontSize="sm" color="orange.300">
-          {__func.inputInference.message}
+          {__func.inputInference?.message}
         </Text>
       )}
       {/* If multiple outputs */}
@@ -1152,8 +1161,10 @@ const ReadWriteFunctionComponent = ({
               (type === "read" ||
                 writeButtonType === WriteButtonType.CallAsViewFn) &&
               (loading || (!loading && res !== null && res !== undefined)) && (
-                <Box p={4} bg="whiteAlpha.100" rounded={"md"}>
-                  <Box fontWeight={"bold"}>Result:</Box>
+                <Box pt={3} borderTopWidth="1px" borderColor="whiteAlpha.100">
+                  <Text fontSize="xs" color="whiteAlpha.600" mb={2}>
+                    Result
+                  </Text>
                   {renderRes()}
                 </Box>
               )

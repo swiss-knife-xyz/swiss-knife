@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useId, useCallback } from "react";
-import { Box, BoxProps, HStack, Image } from "@chakra-ui/react";
+import { Box, BoxProps, HStack, Image, useToken } from "@chakra-ui/react";
 import {
   Select as RSelect,
   CreatableSelect,
@@ -44,6 +44,9 @@ export const DarkSelect = ({
   isCreatable,
   disableMouseNavigation,
 }: DarkSelectProps) => {
+  // Body-portaled menus stay below modal overlays; menus inside dialogs keep
+  // their existing portal target and participate in that dialog's stack.
+  const [dropdownZIndex] = useToken("zIndices", ["dropdown"]);
   const [menuPortalTarget, setMenuPortalTarget] = useState<HTMLElement | null>(
     null
   );
@@ -126,12 +129,12 @@ export const DarkSelect = ({
       borderRadius: controlProps?.borderRadius ?? "lg",
       ...(controlProps?.fontSize ? { fontSize: controlProps.fontSize } : {}),
       boxShadow: "lg",
-      zIndex: 9999,
+      zIndex: dropdownZIndex,
     }),
     menu: (provided: any) => ({
       ...provided,
       position: "absolute",
-      zIndex: 9999,
+      zIndex: dropdownZIndex,
     }),
     option: (provided: any, state: any) => ({
       ...provided,
@@ -277,7 +280,7 @@ export const DarkSelect = ({
         styles={{
           menuPortal: (provided: any) => ({
             ...provided,
-            zIndex: 9999,
+            zIndex: dropdownZIndex,
           }),
         }}
         closeMenuOnSelect
