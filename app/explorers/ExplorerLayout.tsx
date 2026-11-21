@@ -110,6 +110,12 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
     });
   };
 
+  // Preserve directory filters when resolving a bookmarked ENS/raw-address search.
+  const navigateToSearch = (url: string) => {
+    const query = searchParams.toString();
+    router.push(`${url}${query ? `?${query}` : ""}`);
+  };
+
   const handleSearch = async (_userInput?: string) => {
     setIsLoading(true);
     setResolvedEnsName(null);
@@ -124,8 +130,8 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
           subdomains.EXPLORER.base,
           subdomains.EXPLORER.isRelativePath
         )}tx/${__userInput}`;
-        if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
-          router.push(newUrl);
+        if (new URL(newUrl, "https://eth.sh").pathname.toLowerCase() !== pathname.toLowerCase()) {
+          navigateToSearch(newUrl);
         } else {
           // Have a delay so the loading spinner shows up
           setTimeout(() => {
@@ -147,8 +153,8 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
             subdomains.EXPLORER.isRelativePath
           )}contract/${segments[1]}/${__userInput}`;
         }
-        if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
-          router.push(newUrl);
+        if (new URL(newUrl, "https://eth.sh").pathname.toLowerCase() !== pathname.toLowerCase()) {
+          navigateToSearch(newUrl);
         } else {
           // Have a delay so the loading spinner shows up
           setTimeout(() => {
@@ -176,8 +182,8 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
             )}address/${ensResolvedAddress}${
               pathname.includes("/contract") ? `/contract/${segments[1]}` : ""
             }`;
-            if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
-              router.push(newUrl);
+            if (new URL(newUrl, "https://eth.sh").pathname.toLowerCase() !== pathname.toLowerCase()) {
+              navigateToSearch(newUrl);
             } else {
               setIsLoading(false);
             }
@@ -303,7 +309,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                       subdomains.EXPLORER.isRelativePath
                     )}
                   >
-                    Explorer
+                    Explorer Directory
                   </NLink>
                 </Heading>
               </HStack>
@@ -311,6 +317,8 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                 Search Address or Transaction
               </Text>
             </Box>
+
+            <Box textAlign="center" mb={4}><NLink href={getPath("contract")}>Contract Explorer</NLink></Box>
 
             {/* Search Section */}
             <Box w="full" maxW="800px" mx="auto">
@@ -548,7 +556,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
 
 export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
   return (
-    <Suspense fallback={<ToolLoading title="Explorer" description="Search addresses and transactions across EVM block explorers." />}>
+    <Suspense fallback={<ToolLoading title="Explorer Directory" description="Search addresses and transactions across EVM block explorers." />}>
       <ExplorerLayoutContent>{children}</ExplorerLayoutContent>
     </Suspense>
   );

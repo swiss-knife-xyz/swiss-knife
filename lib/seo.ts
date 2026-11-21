@@ -13,7 +13,7 @@ export function getCanonicalUrl(appPath: string): string {
   if (!subdomain || subdomain.isRelativePath) {
     return `https://eth.sh${base ? `/${[base, ...parts].join("/")}` : "/"}`;
   }
-  return `https://${base}.eth.sh/${parts.join("/")}`;
+  return `https://${base === "contract" ? "explorer" : base}.eth.sh/${parts.join("/")}`;
 }
 
 /** Redirect live aliases canonically, but keep local/preview navigation on its origin. */

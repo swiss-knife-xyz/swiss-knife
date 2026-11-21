@@ -169,7 +169,7 @@ export const Footer = () => {
                   _hover={{ color: "primary.400" }}
                   transition="color 0.2s"
                 >
-                  Blockchain Explorer
+                  Explorer Directory
                 </ChakraLink>
                 <ChakraLink
                   href={`${getPath(subdomains.TRANSACT.base)}send-tx`}

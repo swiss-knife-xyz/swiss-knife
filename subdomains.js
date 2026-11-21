@@ -8,8 +8,9 @@ const subdomains = {
     paths: [],
   },
   EXPLORER: {
-    base: "explorer",
+    base: "explorers",
     paths: [],
+    isRelativePath: true,
   },
   CONVERTER: {
     base: "converter",

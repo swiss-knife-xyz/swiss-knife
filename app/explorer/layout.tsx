@@ -1,16 +1,15 @@
-import { getMetadata } from "@/utils";
-import { ExplorerLayout as ExplorerLayoutC } from "./ExplorerLayout";
+import type { Metadata } from "next";
 
-export const metadata = getMetadata({
-  title: "Explorer | ETH.sh",
-  description:
-    "Quickly view any address/ens or transaction across ALL EVM explorers, in just a click!",
-  canonical: "https://explorer.eth.sh/",
-  images: "https://eth.sh/og/explorer.png",
-});
-
-const ExplorerLayout = ({ children }: { children: React.ReactNode }) => {
-  return <ExplorerLayoutC>{children}</ExplorerLayoutC>;
+export const metadata: Metadata = {
+  title: "Explorer Directory | ETH.sh",
+  alternates: { canonical: null },
+  robots: { index: false, follow: true },
 };
 
-export default ExplorerLayout;
+export default function AliasLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
+}

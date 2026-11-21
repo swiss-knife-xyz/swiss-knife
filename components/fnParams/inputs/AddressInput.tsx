@@ -289,8 +289,8 @@ export const AddressInput = ({
             as="a"
             size="xs"
             href={`${getPath(
-              subdomains.EXPLORER.base
-            )}address/${resolvedAddress}/contract?chainId=${chainId}`}
+              subdomains.CONTRACT.base
+            )}${chainId ?? 1}/${resolvedAddress}`}
             title="View on explorer"
             aria-label={`Open address ${resolvedAddress} in explorer`}
             target="_blank"
