@@ -129,6 +129,7 @@ const ContractPage = () => {
 
         <HStack spacing={5} flexWrap="wrap" justify="center">
           <Link href={getPath("trace")}>Transaction Tracer</Link>
+          <Link href={getPath("verify")}>Cross-explorer Verification</Link>
           <Link href={getPath(subdomains.EXPLORER.base)}>Explorer Directory</Link>
         </HStack>
 

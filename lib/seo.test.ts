@@ -162,8 +162,8 @@ test("sitemap lists real public leaf pages, not parameter placeholders or redire
     if (parsed.hostname === "eth.sh") continue;
     const base = parsed.hostname === "explorer.eth.sh" ? "contract" : parsed.hostname.split(".")[0];
     const pathname = base === "faucet" && parsed.pathname !== "/" ? "/[chain]" : parsed.pathname;
-    const path = parsed.hostname === "explorer.eth.sh" && parsed.pathname === "/trace"
-      ? "../app/trace/page.tsx"
+    const path = parsed.hostname === "explorer.eth.sh" && ["/trace", "/verify"].includes(parsed.pathname)
+      ? `../app${parsed.pathname}/page.tsx`
       : `../app/${base}${pathname === "/" ? "" : pathname}/page.tsx`;
     assert.doesNotThrow(() => readFileSync(new URL(path, import.meta.url)), url);
     assert.ok(!["calldata", "converter", "ens", "foundry", "safe", "solidity", "transact", "uniswap", "wallet"].includes(base) || parsed.pathname !== "/", url);
