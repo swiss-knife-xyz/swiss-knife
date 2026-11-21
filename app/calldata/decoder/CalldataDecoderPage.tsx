@@ -50,6 +50,7 @@ import { Editor } from "@monaco-editor/react";
 
 import { InputField } from "@/components/InputField";
 import { CalldataTree } from "./components/CalldataTree";
+import { SignatureRegistryForm } from "@/components/SignatureRegistryForm";
 import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 
@@ -794,6 +795,12 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
           </Box>
         </VStack>
       </Box>
+
+      {/* Also available when decoding fails; never seed a guessed signature. */}
+      <SignatureRegistryForm
+        key={`${selectedTabIndex}:${fromTxInput}:${chainId}:${contractAddress}`}
+        selector={selectedTabIndex === 3 ? "" : calldata.slice(0, 10)}
+      />
 
       {/* Result Tabs for "from Tx" mode */}
       {selectedTabIndex === 3 && result && (
