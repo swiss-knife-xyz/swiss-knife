@@ -5,7 +5,7 @@ const subdomains = {
   },
   CONTRACT: {
     base: "explorer",
-    paths: [],
+    paths: ["verify"],
   },
   EXPLORER: {
     base: "explorers",

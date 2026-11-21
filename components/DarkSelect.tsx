@@ -29,6 +29,7 @@ export interface DarkSelectProps {
   onEditableValueChange?: (value: string) => void;
   openMenuOnFocus?: boolean;
   isInvalid?: boolean;
+  isDisabled?: boolean;
   onKeyDown?: React.KeyboardEventHandler;
 }
 
@@ -54,6 +55,7 @@ export const DarkSelect = ({
   onEditableValueChange,
   openMenuOnFocus,
   isInvalid,
+  isDisabled,
   onKeyDown,
 }: DarkSelectProps) => {
   // Body-portaled menus stay below modal overlays; menus inside dialogs keep
@@ -177,7 +179,9 @@ export const DarkSelect = ({
       color: "white",
       // Editable selects display their hex in the input itself. React Select
       // normally hides that input after selection in favour of SingleValue.
-      ...(editableValue !== undefined ? { fontFamily: "mono", opacity: 1 } : {}),
+      ...(editableValue !== undefined
+        ? { fontFamily: "mono", opacity: 1 }
+        : {}),
       bg: "transparent",
       boxShadow: "none",
       _focus: { outline: "none", boxShadow: "none", bg: "transparent" },
@@ -354,12 +358,14 @@ export const DarkSelect = ({
         useBasicStyles
         menuPortalTarget={menuPortalTarget}
         isSearchable
-        {...(editableValue !== undefined ? {
-          noOptionsMessage: () => "Custom interface IDs are accepted",
-        } : {})}
+        {...(editableValue !== undefined
+          ? {
+              noOptionsMessage: () => "Custom interface IDs are accepted",
+            }
+          : {})}
         menuPosition="fixed"
         onKeyDown={handleKeyDown}
-        isDisabled={disableMouseNavigation}
+        isDisabled={isDisabled || disableMouseNavigation}
         components={customComponents}
       />
     </Box>

@@ -5,6 +5,7 @@ import { defaultTools } from "@/lib/seo";
 
 interface ToolsGridItemParams {
   subdomain: string;
+  path?: string;
   info: {
     emoji: string;
     label: string;
@@ -13,9 +14,17 @@ interface ToolsGridItemParams {
   };
 }
 
-export const ToolsGridItem = ({ subdomain, info }: ToolsGridItemParams) => {
+export const ToolsGridItem = ({
+  subdomain,
+  path,
+  info,
+}: ToolsGridItemParams) => {
   return (
-    <Link href={`${getPath(subdomain, info.isRelativePath)}${defaultTools[subdomain] ?? ""}`} passHref role="group">
+    <Link
+      href={`${getPath(subdomain, info.isRelativePath)}${path ?? defaultTools[subdomain] ?? ""}`}
+      passHref
+      role="group"
+    >
       <Box
         p={{ base: 4, md: 6 }}
         bg="bg.700"

@@ -139,3 +139,21 @@
   affordance on the treasury heading.
 - 2026-07-03: Added a brief blue row flash when organization anchor links are
   opened so cross-reference jumps have clear visual confirmation.
+
+## Cross-explorer verification
+
+- Scope: `/explorer/verify`, a developer tool within the existing ETH.sh theme.
+- Direction: compact, precise, quiet. Reuse the current Inter/mono font stacks,
+  semantic background/text/border tokens, 4px spacing scale and Chakra controls.
+- Layout: one source form followed by a review with destination rows. On mobile,
+  inputs stack and each destination retains its own readable result and action.
+- Identity: choose several explorers from one imported source; no decorative
+  hero, side accent border, nested status cards or extra banners.
+- Details: source/settings, API keys and alternate deployment inputs stay secondary.
+- Accessibility: labelled inputs, keyboard dropdowns, native detail toggles, named
+  external links, text status labels and reduced-motion-aware scrolling.
+- Audit (2026-11-22): 8/10. Verified empty, review, alternate deployment and status
+  layouts at 320, 390, 768 and 1280px, with no horizontal page overflow. Retained
+  the established app type/palette rather than introducing a standalone style.
+- Changelog (2026-11-22): expanded provider/network selection and independent
+  destination states while preserving the existing tool-page visual language.
