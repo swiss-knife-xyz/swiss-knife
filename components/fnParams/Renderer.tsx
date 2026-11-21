@@ -190,7 +190,7 @@ export const renderParamTypes = ({
       />
     );
   } else if (type === "calldata") {
-    return <CalldataParam value={value} chainId={chainId} />;
+    return <CalldataParam value={value} chainId={chainId} variant="plain" />;
   } else if (type.includes("uint")) {
     return <UintParam value={value} />;
   } else if (type.includes("int")) {

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { encodeFunctionData, parseAbi, type PublicClient } from "viem";
-import { processContractBytecode } from "@/utils";
+import { processContractBytecode, getImplementationFromBytecodeIfProxy } from "@/utils";
 import { ReadWriteFunction } from "./ReadWriteFunction";
 
 // No connected wallet, signing, real RPCs, address resolution or production APIs.
@@ -73,7 +73,7 @@ describe("inferred contract actual form path", () => {
   it("uses every parameter of a unique selector-matching signature when bytecode types are unavailable", async () => {
     show(await inferred(undefined));
     expect(screen.getAllByRole("textbox")).toHaveLength(2);
-    expect(screen.getByText(/signature database/i)).toBeTruthy();
+    expect(screen.queryByRole("note")).toBeNull();
     expect(call).not.toHaveBeenCalled();
   });
 
@@ -109,7 +109,7 @@ describe("inferred contract actual form path", () => {
     signatures = [];
     show(await inferred(args));
     expect(screen.queryAllByRole("textbox")).toHaveLength(args ? 1 : 0);
-    expect(screen.getByRole("note").textContent).toMatch(/bytecode/);
+    expect(screen.queryByRole("note")).toBeNull();
     if (!args) {
       await waitFor(() => expect(call).toHaveBeenCalledOnce());
       expect(call.mock.calls[0][0].data).toBe(selector);
@@ -147,5 +147,39 @@ describe("inferred contract actual form path", () => {
     fireEvent.click(screen.getByRole("button", { name: "Read" }));
     await waitFor(() => expect(readContract).toHaveBeenCalledOnce());
     expect(call).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("proxy discovery without external ABI services", () => {
+  const address = "0x0000000000000000000000000000000000000001";
+  const implementation = "0x0000000000000000000000000000000000000002";
+
+  it("checks non-proxy bytecode without calling ABI or signature services", async () => {
+    const request = vi.fn(async ({ method }: { method: string }) => {
+      if (method === "eth_getCode") return "0x60006000f3";
+      throw new Error(`Unexpected RPC: ${method}`);
+    });
+    const result = await getImplementationFromBytecodeIfProxy({
+      client: { request } as unknown as PublicClient, address,
+    });
+    expect(result).toBeUndefined();
+    expect(request).toHaveBeenCalledOnce();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("resolves an EIP-1167 implementation while external services are unavailable", async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error("Failed to fetch"));
+    const proxyCode = `0x363d3d373d3d3d363d73${implementation.slice(2)}5af43d82803e903d91602b57fd5bf3`;
+    const request = vi.fn(async ({ method, params }: { method: string; params: string[] }) => {
+      if (method !== "eth_getCode") throw new Error(`Unexpected RPC: ${method}`);
+      return params[0].toLowerCase() === address ? proxyCode : "0x60006000f3";
+    });
+    const result = await getImplementationFromBytecodeIfProxy({
+      client: { request } as unknown as PublicClient, address,
+    });
+    expect(result?.implementationAddress.toLowerCase()).toBe(implementation);
+    expect(result?.proxyName).toBeTruthy();
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

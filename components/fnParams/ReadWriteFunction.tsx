@@ -758,9 +758,9 @@ const ReadWriteFunctionComponent = ({
             <Box
               key={i}
               mt={2}
-              bg={outputs.length > 1 ? "whiteAlpha.200" : undefined}
-              p={outputs.length > 1 ? 4 : 0}
-              rounded={"md"}
+              pt={outputs.length > 1 ? 3 : 0}
+              borderTopWidth={i > 0 ? "1px" : 0}
+              borderColor="whiteAlpha.100"
             >
               {outputs.length > 1 && (
                 <InputInfo
@@ -803,7 +803,7 @@ const ReadWriteFunctionComponent = ({
       mb={2}
       p={2}
       pb={!inputs || inputs.length === 0 ? undefined : 4}
-      border="2px solid"
+      border="1px solid"
       borderColor="whiteAlpha.200"
       rounded="md"
       bg={!inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
@@ -965,10 +965,10 @@ const ReadWriteFunctionComponent = ({
           [selector: {fnSelector}]
         </Box>
       )}
-      {/* Inference is not a verified ABI, including an explicit unknown-input state. */}
-      {__func.inputInference && (
+      {/* Explain unavailable actions without repeating notices on usable functions. */}
+      {inputsUnknown && (
         <Text role="note" ml={4} mb={2} fontSize="sm" color="orange.300">
-          {__func.inputInference.message}
+          {__func.inputInference?.message}
         </Text>
       )}
       {/* If multiple outputs */}
@@ -1089,8 +1089,10 @@ const ReadWriteFunctionComponent = ({
               (type === "read" ||
                 writeButtonType === WriteButtonType.CallAsViewFn) &&
               (loading || (!loading && res !== null && res !== undefined)) && (
-                <Box p={4} bg="whiteAlpha.100" rounded={"md"}>
-                  <Box fontWeight={"bold"}>Result:</Box>
+                <Box pt={3} borderTopWidth="1px" borderColor="whiteAlpha.100">
+                  <Text fontSize="xs" color="whiteAlpha.600" mb={2}>
+                    Result
+                  </Text>
                   {renderRes()}
                 </Box>
               )
