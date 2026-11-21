@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { ExampleSnapshotContext } from "./ExampleSnapshotContext";
+import React, { useContext, useEffect, useState } from "react";
 import { InputField } from "../InputField";
 import {
   Textarea,
@@ -39,17 +40,29 @@ export const StringParam = ({
   chainId,
   disableRich,
 }: Params) => {
+  const example = useContext(ExampleSnapshotContext);
   const showSkeleton = _value === undefined || _value === null;
   const value = !showSkeleton ? _value : "abcdef1234";
 
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   const [richSelectedTabIndex, setRichSelectedTabIndex] = useState(0);
-  const [urlContent, setUrlContent] = useState<string | null>(null);
-  const [isUrlImageOrJson, setIsUrlImageOrJson] = useState<{
+  const [liveUrlContent, setUrlContent] = useState<string | null>(null);
+  const [liveUrlType, setIsUrlImageOrJson] = useState<{
     isImage?: boolean;
     isJson?: boolean;
   } | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const capturedUrl = example && Object.hasOwn(example.urls, value)
+    ? example.urls[value]
+    : undefined;
+  const urlContent = example ? JSON.stringify(capturedUrl?.json) : liveUrlContent;
+  const isUrlImageOrJson = example
+    ? capturedUrl && {
+        isJson: capturedUrl.json !== undefined,
+        isImage: Boolean(capturedUrl.image),
+      }
+    : liveUrlType;
 
   let displayValue = value;
   let isJson = false;
@@ -239,7 +252,7 @@ export const StringParam = ({
           if (isUrlImageOrJson?.isJson && urlContent) {
             return <RichJsonTable _value={urlContent} chainId={chainId} />;
           } else if (isUrlImageOrJson?.isImage) {
-            return <ResizableImage src={resolveIPFS(value)} />;
+            return <ResizableImage src={capturedUrl?.image ?? resolveIPFS(value)} />;
           } else {
             return <SimpleString />;
           }
@@ -271,7 +284,11 @@ export const StringParam = ({
           );
         } else if (isUrlImageOrJson?.isJson && urlContent) {
           // Raw JSON from URL
-          const formattedUrlContent = JSON.stringify(urlContent, null, 4);
+          const formattedUrlContent = JSON.stringify(
+            example ? capturedUrl?.json : urlContent,
+            null,
+            4
+          );
           const lineCount = (formattedUrlContent?.split("\n").length ?? 1) + 1;
           const editorHeight = `${Math.min(500, Math.max(80, lineCount * 19 + 10))}px`;
           return (
@@ -283,18 +300,29 @@ export const StringParam = ({
                   size="xs"
                 />
               </HStack>
-              <Editor
-                height={editorHeight}
-                theme="vs-dark"
-                defaultLanguage="json"
-                value={formattedUrlContent}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                }}
-              />
+              {example ? (
+                <Textarea
+                  className="scroll"
+                  fontFamily="mono"
+                  height={editorHeight}
+                  value={formattedUrlContent}
+                  isReadOnly
+                  aria-label="Raw JSON"
+                />
+              ) : (
+                <Editor
+                  height={editorHeight}
+                  theme="vs-dark"
+                  defaultLanguage="json"
+                  value={formattedUrlContent}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                  }}
+                />
+              )}
             </Box>
           );
         } else {
@@ -333,11 +361,13 @@ export const StringParam = ({
     setUrlContent(null);
     setIsUrlImageOrJson(null);
 
-    if (isUrl) {
+    if (!example && isUrl) {
+      let cancelled = false;
       // Check if the URL returns an image or JSON
       axios
         .get(resolveIPFS(value))
         .then((res) => {
+          if (cancelled) return;
           let _urlContent = res.data;
           setUrlContent(_urlContent);
           try {
@@ -365,8 +395,9 @@ export const StringParam = ({
           }
         })
         .catch(() => {});
+      return () => { cancelled = true; };
     }
-  }, [isUrl, value]);
+  }, [example, isUrl, value]);
 
   useEffect(() => {
     if (!showSkeleton) {

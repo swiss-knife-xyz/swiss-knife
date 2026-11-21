@@ -124,11 +124,19 @@ async function decode() {
   fireEvent.click(screen.getByRole("button", { name: "Decode" }));
   await screen.findByText("Decoded calldata");
 }
-function selectChain(value: string) {
-  fireEvent.change(
-    screen.getByRole("combobox", { name: "Token metadata network (optional)" }),
-    { target: { value } }
-  );
+const lookupName = "Network lookup";
+const gearName = "Network lookup settings";
+// The optional metadata network is only reachable through the gear panel.
+async function openLookup() {
+  if (!screen.queryByRole("combobox", { name: lookupName })) {
+    fireEvent.click(screen.getByRole("button", { name: gearName }));
+  }
+  return (await screen.findByRole("combobox", {
+    name: lookupName,
+  })) as HTMLSelectElement;
+}
+async function selectChain(value: string) {
+  fireEvent.change(await openLookup(), { target: { value } });
 }
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -177,22 +185,116 @@ it("decodes manually without a network and keeps the raw address without chain R
   expect(mocks.decode).toHaveBeenCalledWith(
     expect.objectContaining({ address: undefined, abi: undefined })
   );
-  expect(
-    screen.getByRole("combobox", { name: "Token metadata network (optional)" })
-  ).toBeTruthy();
+  expect((await openLookup()).value).toBe("0");
+});
+
+it("keeps calldata as the only inline field and hides network lookup behind an accessible gear", async () => {
+  render(page());
+  expect(screen.queryByRole("combobox")).toBeNull();
+  expect(screen.queryByText(/Optionally select a network/)).toBeNull();
+  const gear = screen.getByRole("button", { name: gearName });
+  expect(gear.getAttribute("aria-expanded")).toBe("false");
+
+  fireEvent.click(gear);
+  expect(gear.getAttribute("aria-expanded")).toBe("true");
+  const dialog = await screen.findByRole("dialog", { name: lookupName });
+  expect(gear.getAttribute("aria-controls")).toBe(dialog.id);
+  const select = (await screen.findByRole("combobox", {
+    name: lookupName,
+  })) as HTMLSelectElement;
+  // Opening moves focus into the panel.
+  await waitFor(() => expect(document.activeElement).toBe(select));
+  expect(select.value).toBe("0");
+  expect(select.selectedOptions[0].textContent).toBe("None");
+
+  fireEvent.change(select, { target: { value: "8453" } });
+  fireEvent.keyDown(select, { key: "Escape" });
+  await waitFor(() =>
+    expect(screen.queryByRole("combobox", { name: lookupName })).toBeNull()
+  );
+  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+  expect(gear.getAttribute("aria-expanded")).toBe("false");
+  await waitFor(() => expect(document.activeElement).toBe(gear));
+
+  // The selection survives close/reopen and still drives decoding metadata + URL.
+  expect((await openLookup()).value).toBe("8453");
+  await decode();
+  await screen.findByText("BASE-TOKEN");
+  expect(mocks.decode).toHaveBeenCalledWith(
+    expect.objectContaining({ chainId: undefined, address: undefined })
+  );
+  await waitFor(() =>
+    expect(mocks.url.mock.lastCall![0].searchParams.get("chainId")).toBe(
+      "8453"
+    )
+  );
+});
+
+it("closes the network panel with Escape on the gear and returns focus to it", async () => {
+  render(page());
+  const gear = screen.getByRole("button", { name: gearName });
+  gear.focus();
+  fireEvent.click(gear);
+  const select = await screen.findByRole("combobox", { name: lookupName });
+  await waitFor(() => expect(document.activeElement).toBe(select));
+  gear.focus();
+  fireEvent.keyDown(gear, { key: "Escape" });
+  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+  expect(gear.getAttribute("aria-expanded")).toBe("false");
+  expect(document.activeElement).toBe(gear);
+  // Clicking the gear again toggles it closed as well.
+  fireEvent.click(gear);
+  await screen.findByRole("dialog", { name: lookupName });
+  fireEvent.click(gear);
+  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+});
+
+it("lets an open nested select list consume Escape before the panel closes", async () => {
+  render(page());
+  const select = await openLookup();
+  // react-select marks its input aria-expanded while its list is open.
+  select.setAttribute("aria-expanded", "true");
+  fireEvent.keyDown(select, { key: "Escape" });
+  expect(screen.getByRole("dialog", { name: lookupName })).toBeTruthy();
+  select.setAttribute("aria-expanded", "false");
+  fireEvent.keyDown(select, { key: "Escape" });
+  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+});
+
+it("dismisses the network panel on an outside press or when focus leaves it", async () => {
+  render(page());
+  await openLookup();
+  fireEvent.mouseDown(screen.getByRole("dialog", { name: lookupName }));
+  expect(screen.getByRole("dialog", { name: lookupName })).toBeTruthy();
+  fireEvent.mouseDown(screen.getByRole("button", { name: "Decode" }));
+  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+
+  const select = await openLookup();
+  // React's onBlur listens to the bubbling focusout event.
+  fireEvent.focusOut(select, {
+    relatedTarget: screen.getByRole("button", { name: "Decode" }),
+  });
+  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+});
+
+it("keeps the required Chain selector inline for the address mode", () => {
+  render(page());
+  fireEvent.click(screen.getByText("from Address"));
+  expect(screen.queryByRole("button", { name: gearName })).toBeNull();
+  expect(screen.getByRole("combobox", { name: "Network" })).toBeTruthy();
 });
 
 it("refreshes metadata on chain changes without decoding again or replacing the address", async () => {
   render(page());
-  selectChain("1");
+  await selectChain("1");
   await decode();
   await screen.findByText("ETH-TOKEN");
-  selectChain("8453");
+  await selectChain("8453");
   await screen.findByText("BASE-TOKEN");
   expect(screen.queryByText("ETH-TOKEN")).toBeNull();
   expect(screen.getByDisplayValue(address)).toBeTruthy();
   expect(mocks.decode).toHaveBeenCalledTimes(1);
-  selectChain("0");
+  await selectChain("0");
   await waitFor(() => expect(screen.queryByText("BASE-TOKEN")).toBeNull());
   expect(screen.getByDisplayValue(address)).toBeTruthy();
 });
@@ -224,13 +326,7 @@ it.each(["1", "8453"])(
   async (chain) => {
     render(page(`?calldata=0x12345678&chainId=${chain}`));
     await screen.findByText(chain === "1" ? "ETH-TOKEN" : "BASE-TOKEN");
-    expect(
-      (
-        screen.getByRole("combobox", {
-          name: "Token metadata network (optional)",
-        }) as HTMLSelectElement
-      ).value
-    ).toBe(chain);
+    expect((await openLookup()).value).toBe(chain);
     expect(mocks.getClient).toHaveBeenCalledWith(Number(chain));
     expect(mocks.getClient).not.toHaveBeenCalledWith(chain === "1" ? 8453 : 1);
     expect(mocks.decode).toHaveBeenCalledTimes(1);
@@ -239,7 +335,7 @@ it.each(["1", "8453"])(
 
 it("keeps the selected network when editing or pasting calldata and serializes Ethereum explicitly", async () => {
   render(page());
-  selectChain("1");
+  await selectChain("1");
   await decode();
   await screen.findByText("ETH-TOKEN");
   await waitFor(() =>
@@ -261,7 +357,7 @@ it("keeps the selected network when editing or pasting calldata and serializes E
     )
   );
   expect(mocks.url.mock.lastCall![0].searchParams.get("chainId")).toBe("1");
-  selectChain("0");
+  await selectChain("0");
   await waitFor(() =>
     expect(mocks.url.mock.lastCall![0].searchParams.has("chainId")).toBe(false)
   );
@@ -272,13 +368,7 @@ it("treats an unsupported URL chain as no network while retaining manual decodin
   await screen.findByText("Decoded calldata");
   expect(screen.getByDisplayValue(address)).toBeTruthy();
   expect(mocks.getClient).not.toHaveBeenCalled();
-  expect(
-    (
-      screen.getByRole("combobox", {
-        name: "Token metadata network (optional)",
-      }) as HTMLSelectElement
-    ).value
-  ).toBe("0");
+  expect((await openLookup()).value).toBe("0");
 });
 
 it("passes the metadata chain to addresses nested in arrays, tuples and decoded bytes", async () => {
@@ -301,7 +391,7 @@ it("passes the metadata chain to addresses nested in arrays, tuples and decoded 
   ];
   mocks.decode.mockResolvedValue({ args, rawArgs: [], functionName: "batch" });
   render(page());
-  selectChain("8453");
+  await selectChain("8453");
   await decode();
   await waitFor(() =>
     expect(screen.getAllByText("BASE-TOKEN")).toHaveLength(3)
@@ -341,7 +431,7 @@ it("keeps manual decoding, copy and explorer access when metadata is unavailable
   });
   mocks.labels.mockRejectedValue(new Error("Metadata down"));
   render(page());
-  selectChain("8453");
+  await selectChain("8453");
   await decode();
   await waitFor(() => expect(mocks.labels).toHaveBeenCalledWith(address, 8453));
   expect(screen.getByDisplayValue(address)).toBeTruthy();
@@ -442,33 +532,21 @@ it("preserves the address-and-network deep-link decoding path", async () => {
   expect(mocks.decode).toHaveBeenCalledWith(
     expect.objectContaining({ address, chainId: 8453 })
   );
-  expect(
-    screen.queryByRole("combobox", {
-      name: "Token metadata network (optional)",
-    })
-  ).toBeNull();
+  expect(screen.queryByRole("combobox", { name: lookupName })).toBeNull();
+  expect(screen.queryByRole("button", { name: gearName })).toBeNull();
 });
 
 it("restores the optional metadata network when returning from manual ABI mode", async () => {
   render(page());
-  selectChain("8453");
+  await selectChain("8453");
   await decode();
   await screen.findByText("BASE-TOKEN");
   fireEvent.click(screen.getByText("from ABI"));
   expect(screen.getByText("Input ABI")).toBeTruthy();
-  expect(
-    screen.queryByRole("combobox", {
-      name: "Token metadata network (optional)",
-    })
-  ).toBeNull();
+  expect(screen.queryByRole("combobox", { name: lookupName })).toBeNull();
+  expect(screen.queryByRole("button", { name: gearName })).toBeNull();
   fireEvent.click(screen.getByText("No ABI"));
-  expect(
-    (
-      screen.getByRole("combobox", {
-        name: "Token metadata network (optional)",
-      }) as HTMLSelectElement
-    ).value
-  ).toBe("8453");
+  expect((await openLookup()).value).toBe("8453");
   await screen.findByText("BASE-TOKEN");
   expect(mocks.decode).toHaveBeenCalledTimes(1);
 });

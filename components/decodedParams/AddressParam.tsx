@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { ExampleSnapshotContext } from "./ExampleSnapshotContext";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Button,
   type ButtonProps,
@@ -55,6 +56,7 @@ export const AddressParam = ({
   explorerButtonProps,
   modeButtonProps,
 }: Params) => {
+  const example = useContext(ExampleSnapshotContext);
   const showSkeleton = _address === null || _address === undefined;
   const address = !showSkeleton ? _address : skeletonAddress;
 
@@ -68,8 +70,9 @@ export const AddressParam = ({
     labels: string[];
   }>();
   // Never display the previous address/network's metadata, even before effects run.
-  const addressLabels =
-    labelResult &&
+  const addressLabels = example
+    ? example.addresses[`${chainId}:${address.toLowerCase()}`]?.labels ?? []
+    : labelResult &&
     labelResult.address === address &&
     labelResult.chainId === chainId
       ? labelResult.labels
@@ -136,7 +139,7 @@ export const AddressParam = ({
   };
 
   useEffect(() => {
-    if (address === skeletonAddress) return;
+    if (example || address === skeletonAddress) return;
     let cancelled = false;
 
     const fetchLabels = async (): Promise<string[]> => {
@@ -174,10 +177,10 @@ export const AddressParam = ({
     return () => {
       cancelled = true;
     };
-  }, [address, chainId]);
+  }, [address, chainId, example]);
 
   useEffect(() => {
-    if (address !== skeletonAddress) {
+    if (!example && address !== skeletonAddress) {
       resolveAddressToName(address).then((res) => {
         if (res) {
           setEnsName(res);
@@ -188,7 +191,7 @@ export const AddressParam = ({
         }
       });
     }
-  }, [address]);
+  }, [address, example]);
 
   // Set display mode to label when address book label becomes available
   useEffect(() => {
@@ -198,14 +201,14 @@ export const AddressParam = ({
   }, [addressBookLabel]);
 
   useEffect(() => {
-    if (ensName) {
+    if (!example && ensName) {
       getNameAvatar(ensName).then((res) => {
         if (res) {
           setEnsAvatar(res);
         }
       });
     }
-  }, [ensName]);
+  }, [ensName, example]);
 
   useEffect(() => {
     if (!showSkeleton) {

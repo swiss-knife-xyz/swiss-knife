@@ -10,6 +10,12 @@ import {
   FormLabel,
   Input,
   Link,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalHeader,
+  ModalOverlay,
   Stack,
   Text,
 } from "@chakra-ui/react";
@@ -76,147 +82,215 @@ function RegistryForm({ target }: { target: string }) {
     }
   }
 
+  const labelProps = {
+    fontSize: "xs",
+    fontWeight: "medium",
+    color: "whiteAlpha.700",
+    mb: 1,
+  } as const;
+
+  function close() {
+    // Never dismiss mid-submission; closing never submits.
+    if (busy || submitting.current) return;
+    reset();
+    setOpen(false);
+  }
+
   return (
-    <Box my={4} w="full" minW={0}>
+    <Box w="full" minW={0} display="flex" justifyContent="flex-end">
       <Button
         size="sm"
-        variant="outline"
-        aria-expanded={open}
-        aria-controls={`${id}-panel`}
+        variant="ghost"
+        color="whiteAlpha.700"
+        fontWeight="medium"
+        _hover={{ bg: "whiteAlpha.100", color: "white" }}
+        aria-haspopup="dialog"
         isDisabled={busy}
         onClick={() => {
           reset();
-          setOpen(!open);
+          setOpen(true);
         }}
       >
-        {open ? "Close signature submission" : "Add a missing signature"}
+        Add a missing signature
       </Button>
-      {open && (
-        <Box
-          id={`${id}-panel`}
-          mt={3}
-          p={4}
-          borderWidth="1px"
-          borderRadius="md"
-          minW={0}
+      <Modal
+        isOpen={open}
+        onClose={close}
+        isCentered
+        scrollBehavior="inside"
+        size={{ base: "full", sm: "lg" }}
+        closeOnEsc={!busy}
+        closeOnOverlayClick={!busy}
+      >
+        <ModalOverlay />
+        <ModalContent
+          bg="bg.muted"
+          borderWidth={{ base: 0, sm: "1px" }}
+          borderColor="whiteAlpha.200"
+          borderRadius={{ base: 0, sm: "lg" }}
+          mx={{ base: 0, sm: 4 }}
+          maxH={{ base: "100dvh", sm: "calc(100dvh - 4rem)" }}
         >
-          <Stack
-            as="form"
-            spacing={3}
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (busy) return;
-              reset();
-              try {
-                setPreview(previewSignatureImport(signature, selector));
-              } catch (err) {
-                setError(
-                  err instanceof Error ? err.message : "Invalid signature."
-                );
-              }
-            }}
-          >
-            <Text fontSize="sm">
-              Know the original function signature? Submit it to{" "}
-              <Link
-                href="https://docs.sourcify.dev/docs/repository/signature-database/"
-                isExternal
-                textDecoration="underline"
-              >
-                Sourcify
-              </Link>
-              , the public registry replacing OpenChain. Do not submit guesses
-              or private signatures. A selector match can collide and does not
-              verify a contract&apos;s ABI or make a call safe.
-            </Text>
-            <FormControl>
-              <FormLabel htmlFor={`${id}-selector`}>4-byte selector</FormLabel>
-              <Input
-                id={`${id}-selector`}
-                fontFamily="mono"
-                value={selector}
-                isReadOnly={!!target}
-                isDisabled={busy}
-                maxLength={10}
-                placeholder="0xa9059cbb"
-                onChange={(e) => {
-                  reset();
-                  setSelector(e.target.value);
-                }}
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel htmlFor={`${id}-signature`}>
-                Canonical function signature
-              </FormLabel>
-              <Input
-                id={`${id}-signature`}
-                fontFamily="mono"
-                value={signature}
-                isDisabled={busy}
-                maxLength={2048}
-                autoComplete="off"
-                placeholder="transfer(address,uint256)"
-                onChange={(e) => {
-                  reset();
-                  setSignature(e.target.value);
-                }}
-              />
-            </FormControl>
-            <Button type="submit" alignSelf="start" isDisabled={busy}>
-              Preview public submission
-            </Button>
-            {preview && (
-              <Stack spacing={3} minW={0}>
-                <Text fontSize="sm">POST destination:</Text>
-                <Code whiteSpace="normal" overflowWrap="anywhere">
-                  {preview.destination}
-                </Code>
-                <Text fontSize="sm">
-                  Exact JSON payload (no calldata, address, wallet or chain
-                  data):
-                </Text>
-                <Code whiteSpace="pre-wrap" overflowWrap="anywhere">
-                  {JSON.stringify(preview.body)}
-                </Code>
-                <Text fontSize="sm">Matching selector: {preview.selector}</Text>
-                <Checkbox
-                  isChecked={consent}
+          <ModalHeader as="h2" fontSize="md" fontWeight="semibold" pr={12}>
+            Add a missing signature
+          </ModalHeader>
+          <ModalCloseButton isDisabled={busy} />
+          <ModalBody pb={6} textAlign="left">
+            <Stack
+              as="form"
+              spacing={3}
+              fontSize="sm"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (busy) return;
+                reset();
+                try {
+                  setPreview(previewSignatureImport(signature, selector));
+                } catch (err) {
+                  setError(
+                    err instanceof Error ? err.message : "Invalid signature."
+                  );
+                }
+              }}
+            >
+              <Text color="whiteAlpha.800">
+                Publish a known signature to{" "}
+                <Link
+                  href="https://docs.sourcify.dev/docs/repository/signature-database/"
+                  isExternal
+                  textDecoration="underline"
+                >
+                  Sourcify
+                </Link>
+                &apos;s public registry.
+              </Text>
+              <FormControl>
+                <FormLabel htmlFor={`${id}-selector`} {...labelProps}>
+                  4-byte selector
+                </FormLabel>
+                <Input
+                  id={`${id}-selector`}
+                  size="sm"
+                  borderRadius="md"
+                  fontFamily="mono"
+                  value={selector}
+                  isReadOnly={!!target}
                   isDisabled={busy}
-                  onChange={(e) => setConsent(e.target.checked)}
+                  maxLength={10}
+                  placeholder="0xa9059cbb"
+                  onChange={(e) => {
+                    reset();
+                    setSelector(e.target.value);
+                  }}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel htmlFor={`${id}-signature`} {...labelProps}>
+                  Canonical function signature
+                </FormLabel>
+                <Input
+                  id={`${id}-signature`}
+                  size="sm"
+                  borderRadius="md"
+                  fontFamily="mono"
+                  value={signature}
+                  isDisabled={busy}
+                  maxLength={2048}
+                  autoComplete="off"
+                  placeholder="transfer(address,uint256)"
+                  onChange={(e) => {
+                    reset();
+                    setSignature(e.target.value);
+                  }}
+                />
+              </FormControl>
+              <Button
+                type="submit"
+                size="sm"
+                alignSelf="start"
+                isDisabled={busy}
+              >
+                Preview public submission
+              </Button>
+              {preview && (
+                <Stack
+                  spacing={2}
+                  minW={0}
+                  pt={3}
+                  borderTopWidth="1px"
+                  borderColor="whiteAlpha.200"
                 >
-                  I want to publish this signature to Sourcify. Its public
-                  service will receive the signature and my IP address.
-                </Checkbox>
-                <Button
-                  type="button"
-                  alignSelf="start"
-                  maxW="full"
-                  whiteSpace="normal"
-                  height="auto"
-                  minH={10}
-                  isDisabled={!consent || busy}
-                  isLoading={busy}
-                  onClick={submit}
-                >
-                  Submit signature to Sourcify
-                </Button>
-              </Stack>
-            )}
-            {error && (
-              <Text role="alert" color="red.400">
-                {error}
-              </Text>
-            )}
-            {message && (
-              <Text role="status">
-                {message} This is not ABI verification; decoding is not changed
-                automatically.
-              </Text>
-            )}
-          </Stack>
-        </Box>
-      )}
+                  <Text {...labelProps} mb={0}>
+                    POST destination
+                  </Text>
+                  <Code
+                    fontSize="xs"
+                    bg="whiteAlpha.100"
+                    whiteSpace="normal"
+                    overflowWrap="anywhere"
+                  >
+                    {preview.destination}
+                  </Code>
+                  <Text {...labelProps} mb={0}>
+                    Exact JSON payload (no calldata, address, wallet or chain
+                    data)
+                  </Text>
+                  <Code
+                    fontSize="xs"
+                    bg="whiteAlpha.100"
+                    whiteSpace="pre-wrap"
+                    overflowWrap="anywhere"
+                  >
+                    {JSON.stringify(preview.body)}
+                  </Code>
+                  <Text fontSize="xs" color="whiteAlpha.700">
+                    Matching selector:{" "}
+                    <Code fontSize="xs" bg="transparent" p={0}>
+                      {preview.selector}
+                    </Code>
+                  </Text>
+                  <Checkbox
+                    size="sm"
+                    pt={1}
+                    isChecked={consent}
+                    isDisabled={busy}
+                    onChange={(e) => setConsent(e.target.checked)}
+                  >
+                    I want to publish this signature to Sourcify. Its public
+                    service will receive the signature and my IP address.
+                  </Checkbox>
+                  <Button
+                    type="button"
+                    size="sm"
+                    colorScheme="blue"
+                    alignSelf="start"
+                    maxW="full"
+                    whiteSpace="normal"
+                    height="auto"
+                    minH={8}
+                    isDisabled={!consent || busy}
+                    isLoading={busy}
+                    onClick={submit}
+                  >
+                    Submit signature to Sourcify
+                  </Button>
+                </Stack>
+              )}
+              {error && (
+                <Text role="alert" color="red.400">
+                  {error}
+                </Text>
+              )}
+              {message && (
+                <Text role="status">
+                  {message} This is not ABI verification; decoding is not
+                  changed automatically.
+                </Text>
+              )}
+            </Stack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }
