@@ -169,6 +169,7 @@ export default function ContractStart({
         </Box>
       )}
 
+      {!embedded && <Link href={getPath(subdomains.EXPLORER.base)} fontSize="sm" color="text.secondary">Explorer Directory</Link>}
       {/* Input Section */}
       <Box
         w="full"

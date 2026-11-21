@@ -167,7 +167,7 @@ it.each(["Load", "Enter"])(
       fireEvent.blur(input);
       fireEvent.keyDown(input, { key: "Enter", repeat: true });
     }
-    expect(push).toHaveBeenCalledExactlyOnceWith(`/contract/8453/${draft}`);
+    expect(push).toHaveBeenCalledExactlyOnceWith(`/explorer/8453/${draft}`);
     expect(fetchAbi).not.toHaveBeenCalled();
     rerender(page(8453, draft));
     await waitFor(() =>
@@ -233,7 +233,7 @@ it.each(["address", "network"])(
     }
     fireEvent.click(screen.getByRole("button", { name: "Load" }));
     expect(push).toHaveBeenCalledExactlyOnceWith(
-      `/contract/${field === "network" ? 8453 : 1}/${field === "address" ? draft : address}`
+      `/explorer/${field === "network" ? 8453 : 1}/${field === "address" ? draft : address}`
     );
   }
 );
@@ -259,7 +259,7 @@ it("rejects a missing network and clears the validation error when corrected", a
   fireEvent.change(network, { target: { value: "8453" } });
   expect(screen.queryByText("Please select a valid network")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Load" }));
-  expect(push).toHaveBeenCalledExactlyOnceWith(`/contract/8453/${address}`);
+  expect(push).toHaveBeenCalledExactlyOnceWith(`/explorer/8453/${address}`);
 });
 
 it("replaces both dirty drafts on address-only history navigation without redirecting", async () => {
@@ -310,5 +310,5 @@ it("does not submit an IME composition or a repeating Enter key", async () => {
   expect(push).not.toHaveBeenCalled();
   expect(fetchAbi).not.toHaveBeenCalled();
   fireEvent.keyDown(input, { key: "Enter" });
-  expect(push).toHaveBeenCalledExactlyOnceWith(`/contract/8453/${draft}`);
+  expect(push).toHaveBeenCalledExactlyOnceWith(`/explorer/8453/${draft}`);
 });

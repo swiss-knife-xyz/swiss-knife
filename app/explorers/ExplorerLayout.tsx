@@ -63,7 +63,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const userInputFromUrl = segments[0] === "contract" ? segments[2] : (segments[1] ?? segments[0]);
+  const userInputFromUrl = segments[1] ?? segments[0];
 
   const [userInput, setUserInput] = useState<string>(userInputFromUrl ?? "");
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
@@ -100,6 +100,12 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
     });
   };
 
+  // Preserve directory filters when resolving a bookmarked ENS/raw-address search.
+  const navigateToSearch = (url: string) => {
+    const query = searchParams.toString();
+    router.push(`${url}${query ? `?${query}` : ""}`);
+  };
+
   const handleSearch = async (_userInput?: string) => {
     setIsLoading(true);
     setResolvedEnsName(null);
@@ -114,8 +120,8 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
           subdomains.EXPLORER.base,
           subdomains.EXPLORER.isRelativePath
         )}tx/${__userInput}`;
-        if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
-          router.push(newUrl);
+        if (new URL(newUrl, "https://eth.sh").pathname.toLowerCase() !== pathname.toLowerCase()) {
+          navigateToSearch(newUrl);
         } else {
           // Have a delay so the loading spinner shows up
           setTimeout(() => {
@@ -124,21 +130,9 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
         }
       } else if (isAddress(__userInput)) {
         addRecentSearch(__userInput, "address");
-        let newUrl: string;
-
-        if (!pathname.includes("/contract")) {
-          newUrl = `${getPath(
-            subdomains.EXPLORER.base,
-            subdomains.EXPLORER.isRelativePath
-          )}address/${__userInput}`;
-        } else {
-          newUrl = `${getPath(
-            subdomains.EXPLORER.base,
-            subdomains.EXPLORER.isRelativePath
-          )}contract/${segments[1]}/${__userInput}`;
-        }
-        if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
-          router.push(newUrl);
+        const newUrl = `${getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}address/${__userInput}`;
+        if (new URL(newUrl, "https://eth.sh").pathname.toLowerCase() !== pathname.toLowerCase()) {
+          navigateToSearch(newUrl);
         } else {
           // Have a delay so the loading spinner shows up
           setTimeout(() => {
@@ -163,11 +157,9 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
             const newUrl = `${getPath(
               subdomains.EXPLORER.base,
               subdomains.EXPLORER.isRelativePath
-            )}address/${ensResolvedAddress}${
-              pathname.includes("/contract") ? `/contract/${segments[1]}` : ""
-            }`;
-            if (newUrl.toLowerCase() !== pathname.toLowerCase()) {
-              router.push(newUrl);
+            )}address/${ensResolvedAddress}`;
+            if (new URL(newUrl, "https://eth.sh").pathname.toLowerCase() !== pathname.toLowerCase()) {
+              navigateToSearch(newUrl);
             } else {
               setIsLoading(false);
             }
@@ -261,7 +253,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
               <HStack spacing={2} minW={0}>
                 <Heading as="h1" fontSize={{ base: "xl", md: "2xl" }} fontWeight="semibold">
                   <NLink href={getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}>
-                    Explorer
+                    Explorer Directory
                   </NLink>
                 </Heading>
                 <Tooltip label="Select from address book" hasArrow>
@@ -308,6 +300,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                   </HStack>
                 )}
 
+
             {/* Search Section */}
             <Box w="full" gridRow={2} gridColumn="1 / -1">
               <VStack spacing={3} align="stretch">
@@ -315,6 +308,16 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                   <InputGroup flex={1} minW={0}>
                     <Input
                       placeholder="address / ens / transaction"
+                      name="explorer-lookup"
+                      aria-label="Blockchain address, ENS name, or transaction hash"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      data-1p-ignore
+                      data-lpignore="true"
+                      data-bwignore="true"
+                      data-form-type="other"
                       value={userInput}
                       onChange={(e) => {
                         setUserInput(e.target.value);
@@ -351,7 +354,6 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                       }}
                       color="gray.100"
                       _placeholder={{ color: "gray.500" }}
-                      aria-label="Address, ENS name, or transaction hash"
                       fontSize="md"
                       fontFamily="mono"
                       h="44px"
@@ -415,7 +417,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
 
 export const ExplorerLayout = ({ children }: { children: ReactNode }) => {
   return (
-    <Suspense fallback={<ToolLoading title="Explorer" description="Search addresses and transactions across EVM block explorers." />}>
+    <Suspense fallback={<ToolLoading title="Explorer Directory" description="Search addresses and transactions across EVM block explorers." />}>
       <ExplorerLayoutContent>{children}</ExplorerLayoutContent>
     </Suspense>
   );

@@ -139,7 +139,7 @@ function shared(
   value = "23"
 ) {
   return createContractCallLink(
-    window.location.origin + "/contract/",
+    window.location.origin + "/explorer/",
     1,
     address,
     {
@@ -166,7 +166,7 @@ async function openRawCalldata() {
 beforeEach(() => {
   vi.clearAllMocks();
   fetchAbi.mockResolvedValue({ abi, name: "Verified contract" });
-  window.history.replaceState(null, "", `/contract/1/${address}`);
+  window.history.replaceState(null, "", `/explorer/1/${address}`);
   HTMLElement.prototype.scrollTo = vi.fn();
   HTMLElement.prototype.scrollIntoView = vi.fn();
   window.scrollTo = vi.fn();
@@ -343,7 +343,7 @@ it("fragment back/forward invalidates old prefill without a wallet request", asy
   window.history.replaceState(null, "", shared());
   render(page());
   await waitForPrefill();
-  window.history.replaceState(null, "", `/contract/1/${address}`);
+  window.history.replaceState(null, "", `/explorer/1/${address}`);
   window.dispatchEvent(new PopStateEvent("popstate"));
   await waitFor(() =>
     expect(
@@ -363,7 +363,7 @@ it("route changes do not render the previous ABI while the new destination loads
   const view = render(page());
   await waitForPrefill();
   fetchAbi.mockImplementation(() => new Promise(() => {}));
-  window.history.replaceState(null, "", `/contract/8453/${implementation}`);
+  window.history.replaceState(null, "", `/explorer/8453/${implementation}`);
   view.rerender(page(8453, implementation));
   expect(
     screen.queryByRole("textbox", { name: "amount", hidden: true })
@@ -437,7 +437,7 @@ it("decodes an inferred ABI and prefills only the function with the matching on-
 });
 
 it.each([[null, null], [address, null]])("restores an unfinished function form %j without executing it", async (first, second) => {
-  const url = createContractCallLink(window.location.origin + "/contract/", 1, address, {
+  const url = createContractCallLink(window.location.origin + "/explorer/", 1, address, {
     args: [first, second], value: "0", abiMode: "contract", signature: "transfer(address,uint256)",
   });
   window.history.replaceState(null, "", url);

@@ -55,7 +55,7 @@ export const getPath = (subdomain: string, isRelativePath: boolean = false) => {
       : "https://eth.sh/";
   }
 
-  if (isRelativePath) {
+  if (isRelativePath || subdomain === "explorers") {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? `/${subdomain}/`
       : `https://eth.sh/${subdomain}/`;

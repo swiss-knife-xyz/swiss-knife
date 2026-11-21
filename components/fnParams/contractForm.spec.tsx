@@ -163,7 +163,7 @@ it("shares current calldata, loaded route, ABI mode and wei value as a review-on
     await screen.findByRole("button", { name: "Copy function call link" })
   );
   const url = new URL(copied.mock.lastCall![0]);
-  expect(url.pathname).toBe(`/contract/1/${address}`);
+  expect(url.pathname).toBe(`/explorer/1/${address}`);
   const params = new URLSearchParams(url.hash.slice(1));
   expect(params.get("data")).toBe(
     new Interface([transfer]).encodeFunctionData("transfer", [

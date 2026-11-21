@@ -4,12 +4,13 @@ const subdomains = {
     paths: ["decoder", "encoder", "viem-error-simulate", "cowswap"],
   },
   CONTRACT: {
-    base: "contract",
+    base: "explorer",
     paths: [],
   },
   EXPLORER: {
-    base: "explorer",
+    base: "explorers",
     paths: [],
+    isRelativePath: true,
   },
   CONVERTER: {
     base: "converter",
