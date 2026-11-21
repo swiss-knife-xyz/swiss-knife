@@ -38,6 +38,7 @@ import {
   InfoIcon,
   RepeatIcon,
   SettingsIcon,
+  WarningTwoIcon,
 } from "@chakra-ui/icons";
 import { useWalletClient, useAccount } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
@@ -405,8 +406,12 @@ const ReadWriteFunctionComponent = ({
 
   const [writePreview, setWritePreview] = useState<{
     key: string;
-    data: Hex;
-    result: unknown;
+    status: "loading" | "ready" | "error";
+    result?: unknown;
+  } | null>(null);
+  const [writeStatus, setWriteStatus] = useState<{
+    key: string;
+    phase: "wallet" | "submitted" | "confirmed" | "rejected" | "error";
   } | null>(null);
   const writeContextKey = JSON.stringify([
     chainId, address, _func, inputsState, payableETH, userAddress,
@@ -420,6 +425,9 @@ const ReadWriteFunctionComponent = ({
   const cancelWritePreview = useCallback(() => {
     simulationId.current++;
     setWritePreview(null);
+    setWriteStatus(null);
+    setTxHash(null);
+    setConfirmedTxHash(null);
     if (!writeInFlight.current) setLoading(false);
   }, []);
   useEffect(() => {
@@ -430,6 +438,8 @@ const ReadWriteFunctionComponent = ({
   const sendWriteTransaction = useCallback(async (calldata: Hex, key: string) => {
     if (key !== writeContextRef.current || writeInFlight.current) return;
     if (inputsUnknown) return;
+    const requestId = simulationId.current;
+    const isCurrent = () => key === writeContextRef.current && requestId === simulationId.current;
     if (isError) {
       setIsError(false);
     }
@@ -440,9 +450,9 @@ const ReadWriteFunctionComponent = ({
       setConfirmedTxHash(null);
 
       writeInFlight.current = true;
-      setWritePreview(null);
+      setWriteStatus({ key, phase: "wallet" });
       try {
-        // Use the exact calldata reviewed by the user.
+        // Send the exact calldata encoded from the submitted inputs.
         const hash = await walletClient.sendTransaction({
           account: walletClient.account,
           chain: walletClient.chain,
@@ -451,29 +461,33 @@ const ReadWriteFunctionComponent = ({
           value: BigInt(payableETH),
         });
 
-        setLoading(false);
-
+        if (!isCurrent()) return;
+        setWriteStatus({ key, phase: "submitted" });
         setTxIsTenderlySimulation(false);
         setTxHash(hash);
 
-        await waitForTransactionReceipt(config, {
+        const receipt = await waitForTransactionReceipt(config, {
           hash,
           chainId,
         });
-
+        if (!isCurrent()) return;
+        if (receipt.status === "reverted") throw new Error("Transaction reverted.");
+        setWriteStatus({ key, phase: "confirmed" });
         setConfirmedTxHash(hash);
       } catch (e: any) {
-        console.error(e);
+        if (!isCurrent()) return;
+        const transactionError = getTransactionError(e, {
+          account: walletClient.account,
+          docsPath: "",
+        });
+        const rejected = e.code === 4001 || e.cause?.code === 4001 ||
+          /rejected|denied/i.test(transactionError.shortMessage || e.message || "");
+        setWriteStatus({ key, phase: rejected ? "rejected" : "error" });
         setIsError(true);
 
         setRes(null);
 
-        setErrorMsg(
-          getTransactionError(e, {
-            account: walletClient.account,
-            docsPath: "",
-          }).shortMessage
-        );
+        setErrorMsg(transactionError.shortMessage);
       } finally {
         writeInFlight.current = false;
         setLoading(false);
@@ -487,10 +501,10 @@ const ReadWriteFunctionComponent = ({
     const id = ++simulationId.current;
     const isCurrent = () => id === simulationId.current && key === writeContextRef.current;
     setWritePreview(null);
+    setWriteStatus(null);
     setIsError(false);
     setTxHash(null);
     setConfirmedTxHash(null);
-    setLoading(true);
     try {
       if (chain?.id !== chainId || walletClient.chain?.id !== chainId ||
           !userAddress || walletClient.account.address.toLowerCase() !== userAddress.toLowerCase()) {
@@ -498,32 +512,37 @@ const ReadWriteFunctionComponent = ({
       }
       const args = prepareArgs();
       const data = encodeFunctionData({ abi: [_func] as const, functionName, args });
-      // Inferred bytecode has no trustworthy return ABI. Keep its existing write path.
-      if (!isAbiDecoded && _outputs && _outputs.length > 0) {
-        if (client.chain?.id !== chainId) {
-          throw new Error("Simulation client does not match the selected chain.");
-        }
-        const simulation = await client.simulateContract({
-          abi: [_func] as unknown as Abi,
-          functionName,
-          address: address as Hex,
-          account: walletClient.account,
-          chain: walletClient.chain,
-          args,
-          value: BigInt(payableETH),
-        });
-        if (isCurrent()) setWritePreview({ key, data, result: simulation.result });
-      } else if (isCurrent()) {
-        await sendWriteTransaction(data, key);
+      const canSimulate = !isAbiDecoded && _outputs && _outputs.length > 0;
+      if (canSimulate && client.chain?.id !== chainId) {
+        throw new Error("Simulation client does not match the selected chain.");
       }
+      // Request wallet confirmation immediately; simulation never gates sending.
+      const sending = sendWriteTransaction(data, key);
+      if (canSimulate) {
+        setWritePreview({ key, status: "loading" });
+        void (async () => {
+          try {
+            const simulation = await client.simulateContract({
+              abi: [_func] as unknown as Abi,
+              functionName,
+              address: address as Hex,
+              account: walletClient.account,
+              chain: walletClient.chain,
+              args,
+              value: BigInt(payableETH),
+            });
+            if (isCurrent()) setWritePreview({ key, status: "ready", result: simulation.result });
+          } catch {
+            if (isCurrent()) setWritePreview({ key, status: "error" });
+          }
+        })();
+      }
+      await sending;
     } catch (error: any) {
       if (isCurrent()) {
         setIsError(true);
-        setErrorMsg(`Write preview failed. Nothing sent to wallet. ${error.shortMessage || error.message || "Simulation unavailable; retry the write."}`);
+        setErrorMsg(error.shortMessage || error.message || "Unable to request wallet confirmation.");
       }
-    } finally {
-      // A stale request must not overwrite a newer attempt's loading state.
-      if (id === simulationId.current) setLoading(false);
     }
   }, [inputsUnknown, walletClient, loading, writeContextKey, chain, chainId,
     userAddress, prepareArgs, _func, functionName, isAbiDecoded, _outputs,
@@ -840,9 +859,9 @@ const ReadWriteFunctionComponent = ({
             <Box
               key={i}
               mt={2}
-              bg={outputs.length > 1 ? "whiteAlpha.200" : undefined}
-              p={outputs.length > 1 ? 4 : 0}
-              rounded={"md"}
+              pt={outputs.length > 1 ? 3 : 0}
+              borderTopWidth={i > 0 ? "1px" : 0}
+              borderColor="whiteAlpha.100"
             >
               {outputs.length > 1 && (
                 <InputInfo
@@ -885,45 +904,65 @@ const ReadWriteFunctionComponent = ({
       mb={2}
       p={2}
       pb={!inputs || inputs.length === 0 ? undefined : 4}
-      border="2px solid"
+      border="1px solid"
       borderColor="whiteAlpha.200"
       rounded="md"
       bg={!inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
       {/* Function name and refetch button */}
-      <HStack mb={!fnSelector ? 2 : undefined}>
-        <HStack
+      <HStack mb={!fnSelector ? 2 : undefined} alignItems="flex-start">
+        <Box
+          as="button"
+          type="button"
           flexGrow={1}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          cursor={"pointer"}
+          minW={0}
+          textAlign="left"
+          aria-label={`Toggle ${displayName}`}
+          aria-expanded={!isCollapsed}
+          onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+          cursor="pointer"
+          borderRadius="md"
+          _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
         >
           <HStack>
-            <Box fontSize={"2xl"}>
-              {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </Box>
-            <HStack alignItems={"flex-end"}>
-              <Box fontSize={"md"} fontWeight={"normal"}>
-                {index}.
+            <HStack>
+              <Box fontSize={"2xl"}>
+                {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
               </Box>
-              <Box fontWeight={"bold"}>
-                {renderHighlightedText(__func.name)}
+              <HStack alignItems={"flex-end"}>
+                <Box fontSize={"md"} fontWeight={"normal"}>
+                  {index}.
+                </Box>
+                <Box fontWeight={"bold"}>
+                  {renderHighlightedText(__func.name)}
+                </Box>
+                {isAbiDecoded && (
+                  <Tooltip label="Inferred signature — not verified. Function names and parameter types may be incorrect; selector matches can collide." hasArrow>
+                    <WarningTwoIcon aria-label="Inferred signature — not verified" tabIndex={0} color="yellow.300" boxSize={3.5} />
+                  </Tooltip>
+                )}
+              </HStack>
+            </HStack>{" "}
+            {/* If single output, then show inline */}
+            {__func.outputs && __func.outputs.length === 1 && (
+              <Box fontSize={"sm"} color="whiteAlpha.600">
+                (→&nbsp;{__func.outputs[0].type})
               </Box>
-            </HStack>
-          </HStack>{" "}
-          {/* If single output, then show inline */}
-          {__func.outputs && __func.outputs.length === 1 && (
-            <Box fontSize={"sm"} color="whiteAlpha.600">
-              (→&nbsp;{__func.outputs[0].type})
+            )}
+          </HStack>
+          {fnSelector && (
+            <Box ml={12} mb={2} fontSize="sm" color="whiteAlpha.600">
+              [selector: {fnSelector}]
             </Box>
           )}
-        </HStack>
+        </Box>
         {(type === "read" ||
           writeButtonType !== WriteButtonType.EncodeCalldata) && (
           <Button
             size="sm"
             flexShrink={0}
             onClick={encodeCalldataFn}
-            isDisabled={inputs?.some((_, i) => functionIsDisabled[i] === true)}
+            isDisabled={inputsUnknown || inputs?.some((_, i) => functionIsDisabled[i] === true)}
           >
             Encode Calldata
           </Button>
@@ -1057,23 +1096,10 @@ const ReadWriteFunctionComponent = ({
           {encodingError}
         </Text>
       )}
-      {isAbiDecoded && (
-        <Text fontSize="sm" color="yellow.300" px={2} mb={2}>
-          Inferred signature — not verified. Function name, parameters and
-          outputs may be incorrect. Selector matches can collide; verify against
-          source before use.
-        </Text>
-      )}
-      {/* Function Selector */}
-      {fnSelector && (
-        <Box ml={12} mb={2} fontSize={"sm"} color="whiteAlpha.600">
-          [selector: {fnSelector}]
-        </Box>
-      )}
-      {/* Inference is not a verified ABI, including an explicit unknown-input state. */}
-      {__func.inputInference && (
+      {/* Explain unavailable actions without repeating notices on usable functions. */}
+      {inputsUnknown && (
         <Text role="note" ml={4} mb={2} fontSize="sm" color="orange.300">
-          {__func.inputInference.message}
+          {__func.inputInference?.message}
         </Text>
       )}
       {/* If multiple outputs */}
@@ -1083,53 +1109,85 @@ const ReadWriteFunctionComponent = ({
         </Box>
       )}
 
-      {/* Transaction status for Write */}
-      {txHash && !confirmedTxHash && (
-        <Box mb={4} ml={4}>
-          <HStack p={4} bg="blue.500" rounded={"md"}>
-            <HStack>
-              <Spinner />
-              <Box fontWeight={"bold"}>Transaction initiated:</Box>
-            </HStack>
-            <Box>
-              <Link
-                href={`${chain?.blockExplorers?.default.url}/tx/${txHash}`}
-                isExternal
-              >
-                <HStack>
-                  <Box>{slicedText(txHash, 10)}</Box>
-                  <ExternalLinkIcon />
-                </HStack>
-              </Link>
-            </Box>
-          </HStack>
-        </Box>
-      )}
-      {confirmedTxHash && (
-        <Box mt={4} ml={4}>
-          <Box p={4} bg="green.500" rounded={"md"}>
-            <HStack>
-              <Box fontWeight={"bold"}>✅ Transaction confirmed:</Box>
-              <Box>
-                {txIsTenderlySimulation ? (
-                  <Box>{slicedText(confirmedTxHash, 10)}</Box>
-                ) : (
-                  <Link
-                    href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash}`}
-                    isExternal
-                  >
-                    <HStack>
-                      <Box>{slicedText(confirmedTxHash, 10)}</Box>
-                      <ExternalLinkIcon />
-                    </HStack>
-                  </Link>
-                )}
-              </Box>
-            </HStack>
-            {txIsTenderlySimulation && (
-              <Center fontSize={"sm"}>(view on your tenderly dashboard)</Center>
+      {/* Compact transaction status with an independently loaded return value. */}
+      {((writeStatus && writeStatus.key === writeContextKey) ||
+        (writePreview && writePreview.key === writeContextKey) || txHash || confirmedTxHash) && (
+        <Box
+          role="region"
+          aria-label="Transaction status"
+          mt={3}
+          mb={4}
+          mx={{ base: 0, md: 4 }}
+          minW={0}
+        >
+          <HStack spacing={2} flexWrap="wrap" fontSize="sm" px={4} py={3} bg="whiteAlpha.50" rounded="md">
+            {writeStatus?.key === writeContextKey && writeStatus.phase === "wallet" && <Spinner size="xs" />}
+            <Text fontWeight="medium">
+              {writeStatus?.key === writeContextKey && writeStatus.phase === "rejected"
+                ? "Request rejected"
+                : writeStatus?.key === writeContextKey && writeStatus.phase === "error"
+                  ? "Transaction failed"
+                  : confirmedTxHash ? "Transaction confirmed"
+                    : txHash ? "Transaction submitted" : "Confirm in your wallet"}
+            </Text>
+            {(confirmedTxHash || txHash) && (
+              txIsTenderlySimulation ? <Text>{slicedText(confirmedTxHash || txHash!, 10)}</Text> : (
+                <Link href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash || txHash}`} isExternal>
+                  <HStack spacing={1}><Text>{slicedText(confirmedTxHash || txHash!, 10)}</Text><ExternalLinkIcon /></HStack>
+                </Link>
+              )
             )}
-          </Box>
+          </HStack>
+          {writePreview && writePreview.key === writeContextKey && (
+            <Box mt={3} p={4} bg="whiteAlpha.50" borderWidth="1px" borderColor="whiteAlpha.200" rounded="md">
+              <HStack spacing={2} mb={2}>
+                <Text fontSize="sm" fontWeight="bold">Function return value:</Text>
+                <Tooltip
+                  label="Predicted output from a read-only simulation using the same function inputs. This value is not taken from the transaction receipt and may differ when the transaction executes."
+                  hasArrow
+                  placement="top"
+                >
+                  <Box
+                    as="button"
+                    type="button"
+                    aria-label="About function return values"
+                    display="inline-flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    boxSize={6}
+                    fontSize="xs"
+                    color="whiteAlpha.600"
+                    borderRadius="sm"
+                    _hover={{ color: "white" }}
+                    _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
+                  >
+                    <InfoIcon />
+                  </Box>
+                </Tooltip>
+              </HStack>
+              <Box role="status" aria-live="polite" fontSize="sm" overflowWrap="anywhere">
+                {writePreview.status === "loading" ? (
+                  <Text color="whiteAlpha.600">Fetching simulated return…</Text>
+                ) : writePreview.status === "error" ? (
+                  <Text color="whiteAlpha.600">Simulated return unavailable</Text>
+                ) : _outputs?.map((output, i) => (
+                  <HStack key={i} spacing={2} alignItems="baseline" flexWrap="wrap">
+                    <Text fontFamily="mono" fontSize="xs" color="whiteAlpha.600">
+                      {output.name ? `${output.name} (${output.type})` : output.type}
+                    </Text>
+                    <Text as="span" fontFamily="mono" whiteSpace="pre-wrap">
+                      {JSON.stringify(
+                        _outputs.length === 1 ? writePreview.result : (writePreview.result as unknown[])?.[i],
+                        (_, value) => typeof value === "bigint" ? value.toString() : value,
+                        2
+                      )}
+                    </Text>
+                  </HStack>
+                ))}
+              </Box>
+            </Box>
+          )}
+          {txIsTenderlySimulation && confirmedTxHash && <Text fontSize="xs" mt={1}>(view on your Tenderly dashboard)</Text>}
         </Box>
       )}
       {isError && errorMsg && type === "write" && (
@@ -1222,8 +1280,10 @@ const ReadWriteFunctionComponent = ({
               (type === "read" ||
                 writeButtonType === WriteButtonType.CallAsViewFn) &&
               (loading || (!loading && res !== null && res !== undefined)) && (
-                <Box p={4} bg="whiteAlpha.100" rounded={"md"}>
-                  <Box fontWeight={"bold"}>Result:</Box>
+                <Box pt={3} borderTopWidth="1px" borderColor="whiteAlpha.100">
+                  <Text fontSize="xs" color="whiteAlpha.600" mb={2}>
+                    Result
+                  </Text>
                   {renderRes()}
                 </Box>
               )
@@ -1236,50 +1296,6 @@ const ReadWriteFunctionComponent = ({
           </Center>
         )}
       </Box>
-
-      <Modal
-        isOpen={writePreview !== null && writePreview.key === writeContextKey}
-        onClose={cancelWritePreview}
-        isCentered
-        size="lg"
-      >
-        <ModalOverlay />
-        <ModalContent bg="bg.base">
-          <ModalHeader>Predicted return (simulation)</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <Text mb={4}>
-              Predicted using the current chain state and your wallet sender. This is
-              not a receipt or a guarantee: state may change before execution. No
-              transaction has been sent. Your wallet will ask for confirmation next.
-            </Text>
-            <Box fontSize="sm" mb={4} wordBreak="break-all">
-              <Text>Chain: {chainId}</Text>
-              <Text>Contract: {address}</Text>
-              <Text>Sender: {userAddress}</Text>
-              <Text>Value (wei): {payableETH}</Text>
-            </Box>
-            <Box role="status" aria-live="polite" fontFamily="mono" whiteSpace="pre-wrap" overflowWrap="anywhere">
-              {_outputs?.map((output, i) => (
-                <Box key={i} mb={3}>
-                  <Text fontWeight="bold">{output.name || `Output ${i + 1}`} ({output.type})</Text>
-                  {JSON.stringify(
-                    _outputs.length === 1 ? writePreview?.result : (writePreview?.result as unknown[])?.[i],
-                    (_, value) => typeof value === "bigint" ? value.toString() : value,
-                    2
-                  )}
-                </Box>
-              ))}
-            </Box>
-            <HStack mt={4} justify="flex-end" flexWrap="wrap">
-              <Button onClick={cancelWritePreview}>Cancel</Button>
-              <Button colorScheme="blue" onClick={() => {
-                if (writePreview) void sendWriteTransaction(writePreview.data, writePreview.key);
-              }}>Continue to wallet</Button>
-            </HStack>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
 
       {/* Encode Calldata Modal */}
       <Modal

@@ -179,15 +179,7 @@ export const UintParam = ({
             width={
               formatSelectProps?.boxProps?.w ?? { base: "100%", md: "auto" }
             }
-            zIndex="9999"
             position="relative"
-            className="uint-select-container"
-            sx={{
-              "& .chakra-react-select__menu": {
-                zIndex: 9999,
-                position: "absolute !important",
-              },
-            }}
           >
             <DarkSelect
               {...formatSelectProps}
@@ -195,8 +187,6 @@ export const UintParam = ({
                 minW: { base: "100%", md: "8rem" },
                 maxW: { base: "100%", md: "8rem" },
                 fontSize: "xs",
-                position: "static",
-                zIndex: 9999,
                 ...formatSelectProps?.boxProps,
               }}
               selectedOption={selectedEthFormatOption}

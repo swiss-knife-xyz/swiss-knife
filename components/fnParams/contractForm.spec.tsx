@@ -247,7 +247,7 @@ it.each([
 
 it("warns about inferred names/parameters even when collapsed and repeats the caveat in encoded output", async () => {
   render(form(transfer, "read", true, true));
-  const warning = screen.getByText(/Inferred signature.*not verified/i);
+  const warning = screen.getByLabelText("Inferred signature — not verified");
   expect(warning.closest('[style*="display: none"]')).toBeNull();
   fireEvent.click(screen.getByText("transfer"));
   fill("to", address);
