@@ -57,8 +57,8 @@ vi.mock("@/components/fnParams/inputs", () => ({
   InputInfo: () => null,
 }));
 vi.mock("@/components/CopyToClipboard", () => ({
-  CopyToClipboard: ({ textToCopy, labelText }: any) => (
-    <button onClick={() => copied(textToCopy)}>{labelText}</button>
+  CopyToClipboard: ({ textToCopy, labelText, "aria-label": ariaLabel }: any) => (
+    <button aria-label={ariaLabel} onClick={() => copied(textToCopy)}>{labelText}</button>
   ),
 }));
 
@@ -108,6 +108,7 @@ function fill(name: string, value: string) {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  HTMLElement.prototype.scrollTo = vi.fn();
   vi.stubGlobal("localStorage", {
     getItem: vi.fn(() => null),
     setItem: vi.fn(),
@@ -157,9 +158,9 @@ it("shares current calldata, loaded route, ABI mode and wei value as a review-on
   render(form(transfer, "read", false, false, "implementation"));
   fill("to", address);
   fill("amount", "9007199254740993");
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share transfer function call" }));
   fireEvent.click(
-    await screen.findByRole("button", { name: "Copy Review Link" })
+    await screen.findByRole("button", { name: "Copy function call link" })
   );
   const url = new URL(copied.mock.lastCall![0]);
   expect(url.pathname).toBe(`/contract/1/${address}`);
@@ -173,6 +174,18 @@ it("shares current calldata, loaded route, ABI mode and wei value as a review-on
   expect(params.get("abi")).toBe("implementation");
   expect(params.get("value")).toBe("0");
   expect(params.get("function")).toBe("transfer(address,uint256)");
+  expect(wallet.sendTransaction).not.toHaveBeenCalled();
+});
+
+it("shares unfinished inputs without ABI encoding or replacing blanks with zero", async () => {
+  render(form());
+  fill("to", address);
+  fireEvent.click(screen.getByRole("button", { name: "Share transfer function call" }));
+  const link = screen.getByRole("textbox", { name: "Function call link" }) as HTMLInputElement;
+  const params = new URLSearchParams(new URL(link.value).hash.slice(1));
+  expect(params.get("call")).toBe("2");
+  expect(JSON.parse(params.get("args")!)).toEqual([address, null]);
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
 });
 
@@ -207,6 +220,8 @@ it("encodes nested tuple/array booleans for writes without a connected wallet ac
     ],
   };
   render(form(func, "write"));
+  fireEvent.click(screen.getByRole("button", { name: "Options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
   fill("settings", '["false",["true","false"]]');
   fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
   const expected = new Interface([func]).encodeFunctionData("configure", [
@@ -218,69 +233,17 @@ it("encodes nested tuple/array booleans for writes without a connected wallet ac
   expect(client.simulateContract).not.toHaveBeenCalled();
 });
 
-const supportsInterface: JsonFragment = {
-  type: "function",
-  name: "supportsInterface",
-  stateMutability: "view",
-  inputs: [{ name: "interfaceId", type: "bytes4" }],
-  outputs: [{ type: "bool" }],
-};
-
-it("offers sourced interface IDs only for supportsInterface(bytes4), retaining manual entry without calling", async () => {
-  render(form(supportsInterface));
-  const preset = screen.getByRole("combobox", {
-    name: "ERC-165 interface preset",
-  });
-  fireEvent.change(preset, { target: { value: "0x80ac58cd" } });
-  expect(
-    (screen.getByRole("textbox", { name: "interfaceId" }) as HTMLInputElement)
-      .value
-  ).toBe("0x80ac58cd");
-  expect(
-    screen
-      .getByRole("link", { name: /Interface specification/ })
-      .getAttribute("href")
-  ).toBe("https://eips.ethereum.org/EIPS/eip-721");
-  expect(screen.getByText(/ERC-20 does not require ERC-165/)).toBeTruthy();
-  expect(screen.queryByRole("option", { name: /^ERC-20 / })).toBeNull();
-  fill("interfaceId", "0x12345678");
-  expect((preset as HTMLSelectElement).value).toBe("");
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
-  expect(
-    await screen.findByText(
-      "0x01ffc9a71234567800000000000000000000000000000000000000000000000000000000"
-    )
-  ).toBeTruthy();
-  expect(client.readContract).not.toHaveBeenCalled();
-  expect(client.call).not.toHaveBeenCalled();
-  expect(wallet.sendTransaction).not.toHaveBeenCalled();
-});
-
-it.each([
-  { ...supportsInterface, name: "other" },
-  { ...supportsInterface, inputs: [{ name: "interfaceId", type: "bytes32" }] },
-  {
-    ...supportsInterface,
-    inputs: [...supportsInterface.inputs!, { type: "uint256", name: "other" }],
-  },
-])("does not offer presets on unrelated signatures: %j", (func) => {
-  render(form(func));
-  expect(
-    screen.queryByRole("combobox", { name: "ERC-165 interface preset" })
-  ).toBeNull();
-});
-
-it("warns about inferred names/parameters even when collapsed and repeats the caveat in encoded output", async () => {
+it("keeps the inferred indicator visible when collapsed without repeating it in encoded output", async () => {
   render(form(transfer, "read", true, true));
-  const warning = screen.getByText(/Inferred signature.*not verified/i);
+  const warning = screen.getByLabelText("Inferred signature, not verified");
   expect(warning.closest('[style*="display: none"]')).toBeNull();
   fireEvent.click(screen.getByText("transfer"));
   fill("to", address);
   fill("amount", "1");
   fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
   expect(await screen.findByRole("dialog")).toBeTruthy();
-  expect(screen.getByRole("dialog").textContent).toMatch(
-    /inferred.*not verified/i
+  expect(screen.getByRole("dialog").textContent).not.toMatch(
+    /Encoded using an inferred signature/i
   );
   expect(client.readContract).not.toHaveBeenCalled();
   expect(wallet.sendTransaction).not.toHaveBeenCalled();

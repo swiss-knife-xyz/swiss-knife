@@ -128,7 +128,7 @@ export const StringParam = ({
       </Box>
     ) : (
       <HStack w="full">
-        <Box flex="1">
+        <Box flex="1" minW={0}>
           <InputField
             w="full"
             value={value}
@@ -166,7 +166,11 @@ export const StringParam = ({
     }
 
     return (
-      <Table variant={"unstyled"}>
+      <Table variant="unstyled" w="full" display={{ base: "block", md: "table" }} sx={{
+        tbody: { display: { base: "block", md: "table-row-group" } },
+        tr: { display: { base: "block", md: "table-row" }, minWidth: 0 },
+        td: { display: { base: "block", md: "table-cell" }, minWidth: 0, px: { base: 0, md: 6 }, py: { base: 1, md: 4 } },
+      }}>
         <Tbody>
           {Object.keys(jsonValue).map((key) => {
             const __value: any = jsonValue[key];
@@ -192,7 +196,7 @@ export const StringParam = ({
                 <Tr key={key}>
                   <Td colSpan={2}>
                     <Box>
-                      <Text fontWeight={"bold"}>{key}</Text>
+                      <Text fontSize="sm" fontWeight="medium" overflowWrap="anywhere">{key}</Text>
                       {renderParamTypes(
                         {
                           name: key,
@@ -211,11 +215,21 @@ export const StringParam = ({
 
             return (
               <Tr key={key}>
-                <Td fontWeight={"bold"}>{key}</Td>
+                <Td fontSize="sm" fontWeight="medium" overflowWrap="anywhere">{key}</Td>
                 <Td>
-                  <StringParam
-                    value={isString ? __value : JSON.stringify(__value)}
-                  />
+                  {isString && !isValidJSON(__value) ? (
+                    <>
+                      <HStack display={{ base: "flex", md: "none" }} align="start" spacing={2} mb={3} minW={0}>
+                        <Text fontSize="sm" fontFamily="mono" whiteSpace="pre-wrap" overflowWrap="anywhere" flex={1} minW={0}>{__value}</Text>
+                        <CopyToClipboard textToCopy={__value} flexShrink={0} aria-label={`Copy ${key}`} />
+                      </HStack>
+                      <Box display={{ base: "none", md: "block" }}>
+                        <StringParam value={__value} />
+                      </Box>
+                    </>
+                  ) : (
+                    <StringParam value={isString ? __value : JSON.stringify(__value)} />
+                  )}
                 </Td>
               </Tr>
             );
@@ -402,8 +416,9 @@ export const StringParam = ({
         {!disableRich && (isJson || isImage || (isUrl && isUrlImageOrJson)) ? (
           <Stack
             mt={2}
-            p={4}
+            p={{ base: 2, md: 4 }}
             w="full"
+            minW={0}
             bg={"whiteAlpha.50"}
             rounded={"lg"}
             boxShadow="lg"

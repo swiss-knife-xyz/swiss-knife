@@ -36,7 +36,8 @@ const ExampleCard = ({
     <Link
       href={`${getPath(subdomains.CONTRACT.base)}${chainId}/${address}`}
       _hover={{ textDecor: "none" }}
-      flex={1}
+      flex={{ base: "1 1 100%", md: 1 }}
+      minW={0}
       maxW={{ base: "full", md: "300px" }}
     >
       <Box
@@ -114,10 +115,10 @@ const ContractPage = () => {
 
   return (
     <Layout minW={0}>
-      <VStack spacing={8} w="full" maxW="800px" mx="auto" px={4}>
+      <VStack spacing={8} w="full" maxW="800px" mx="auto" px={{ base: 0, md: 4 }}>
         {/* Header */}
         <Box textAlign="center" pt={4}>
-          <Heading as="h1" size="xl" color="text.primary" mb={4}>
+          <Heading as="h1" size={{ base: "lg", md: "xl" }} color="text.primary" mb={4}>
             Contract Explorer
           </Heading>
           <Text color="text.secondary" maxW="600px" mx="auto">
@@ -130,7 +131,7 @@ const ContractPage = () => {
         {/* Input Section */}
         <Box
           w="full"
-          p={6}
+          p={{ base: 4, md: 6 }}
           bg="bg.subtle"
           borderRadius="lg"
           border="1px solid"
@@ -190,7 +191,8 @@ const ContractPage = () => {
             </Heading>
           </HStack>
           <HStack
-            spacing={4}
+            spacing={0}
+            gap={4}
             justify="center"
             flexWrap="wrap"
             alignItems="stretch"

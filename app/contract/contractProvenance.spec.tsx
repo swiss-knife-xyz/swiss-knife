@@ -141,13 +141,13 @@ it("marks reconstructed non-proxy ABI names and parameters as uncertain", async 
   fetchAbi.mockRejectedValue(new Error("Not verified"));
   render(page());
   await inferred(true);
-  expect(screen.getByText(/Inferred ABI.*not verified/i)).toBeTruthy();
+  expect(screen.getByText(/This contract isn’t verified/i)).toBeTruthy();
 });
 
 it("does not mark an explorer ABI as inferred", async () => {
   render(page());
   await inferred(false);
-  expect(screen.queryByText(/Inferred ABI.*not verified/i)).toBeNull();
+  expect(screen.queryByText(/This contract isn’t verified/i)).toBeNull();
 });
 
 it("tracks a verified implementation separately from its reconstructed proxy ABI", async () => {
@@ -170,9 +170,9 @@ it("tracks a verified implementation separately from its reconstructed proxy ABI
   await inferred(false);
   fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
   fireEvent.click(screen.getByText("ABI", { exact: true }));
-  expect(screen.queryByText(/Inferred ABI.*not verified/i)).toBeNull();
+  expect(screen.queryByText(/This contract isn’t verified/i)).toBeNull();
   fireEvent.click(screen.getByText("Proxy", { exact: true, selector: "div" }));
-  expect(screen.getByText(/Inferred ABI.*not verified/i)).toBeTruthy();
+  expect(screen.getByText(/This contract isn’t verified/i)).toBeTruthy();
 });
 
 it("keeps both reconstructed proxy and implementation ABIs uncertain", async () => {

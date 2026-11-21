@@ -114,7 +114,7 @@ test("rejects ambiguous selector collisions rather than using ABI order", () => 
   const data = new Interface([collision[0]]).encodeFunctionData("burn", [0]);
   assert.throws(() => calls.decodeContractCall(collision, data), /ambiguous/i);
 });
-test("deduplicates identical ABI entries but rejects untrustworthy inferred types", () => {
+test("deduplicates identical ABI entries but rejects unknown input types", () => {
   const data = new Interface(abi).encodeFunctionData("transfer(uint256)", [0]);
   assert.deepEqual(calls.decodeContractCall([...abi, abi[1]], data).args, [
     "0",
@@ -155,4 +155,71 @@ test("roundtrips nested tuples, dynamic/fixed arrays, false, empty bytes/string 
     calls.decodeContractCall(nested, iface.encodeFunctionData("ping")).args,
     []
   );
+});
+
+test("decodes named inferred functions with complete input types", () => {
+  const func = {
+    ...abi[1],
+    selector: new Interface(abi).getFunction("transfer(uint256)")!.selector,
+    inputInference: { source: "signature", message: "Inferred" },
+  };
+  const data = new Interface(abi).encodeFunctionData("transfer(uint256)", [17]);
+  assert.deepEqual(calls.decodeContractCall([func], data), {
+    signature: "transfer(uint256)",
+    args: ["17"],
+  });
+});
+
+test("nameless inferred functions use distinct on-chain selectors and roundtrip their arguments", () => {
+  const functions = ["0x12345678", "0x87654321"].map((selector) => ({
+    type: "function",
+    name: `selector: ${selector}`,
+    selector,
+    inputs: [{ name: "arg0", type: "uint256" }],
+    inputInference: { source: "bytecode", message: "Inferred" },
+  }));
+  const encoded = new Interface([
+    "function inferred(uint256)",
+  ]).encodeFunctionData("inferred", [17]);
+  const data = functions[0].selector + encoded.slice(10);
+  assert.deepEqual(calls.decodeContractCall(functions, data), {
+    signature: "0x12345678(uint256)",
+    args: ["17"],
+  });
+  assert.notEqual(
+    calls.contractFunctionSignature(functions[0]),
+    calls.contractFunctionSignature(functions[1])
+  );
+  assert.throws(() => calls.decodeContractCall(functions, data + "00"));
+  assert.throws(() =>
+    calls.decodeContractCall(
+      [{ ...functions[0], inputInference: { source: "unknown" } } as any],
+      data
+    )
+  );
+});
+
+test("rejects ambiguous inferred input shapes for the same selector", () => {
+  const functions = ["uint256", "bytes32"].map((type) => ({
+    type: "function",
+    name: "selector: 0x12345678",
+    selector: "0x12345678",
+    inputs: [{ name: "arg0", type }],
+    inputInference: { source: "bytecode", message: "Inferred" },
+  }));
+  const data = "0x12345678" + "0".repeat(63) + "1";
+  assert.throws(() => calls.decodeContractCall(functions, data), /ambiguous/i);
+});
+
+test("unfinished form links preserve blanks and validate the selected function shape", () => {
+  for (const args of [[null, null], [address, null]]) {
+    const payload = { args, signature: "transfer(address,uint256)", value: "0", abiMode: "contract" as const };
+    const link = calls.createContractCallLink("https://eth.sh/contract/", 1, address, payload);
+    const restored = calls.parseContractCallFragment(new URL(link).hash)!;
+    assert.deepEqual(restored, payload);
+    assert.ok("args" in restored);
+    assert.deepEqual(calls.restoreSharedFunctionForm(abi, restored).args, args);
+    assert.throws(() => calls.restoreSharedFunctionForm(abi, { ...payload, args: [] }));
+    assert.throws(() => calls.restoreSharedFunctionForm(abi, { ...payload, args: [[], null] }));
+  }
 });

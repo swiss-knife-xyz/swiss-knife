@@ -64,14 +64,25 @@ export const renderParamTypes = (arg: Arg, chainId?: number) => {
   }
 };
 
-export const renderParams = (key: number, arg: Arg, chainId?: number) => {
+export const renderParams = (
+  key: number,
+  arg: Arg,
+  chainId?: number,
+  variant: "surface" | "plain" = "surface"
+) => {
   const type = arg.type.includes("tuple") ? "tuple" : arg.type;
 
   return (
-    <Stack key={key} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
+    <Stack
+      key={key}
+      p={variant === "surface" ? { base: 2, md: 4 } : 0}
+      bg={variant === "surface" ? "whiteAlpha.50" : undefined}
+      rounded={variant === "surface" ? "lg" : undefined}
+      minW={0}
+    >
       {arg.name ? (
         <Box>
-          <HStack>
+          <HStack minW={0} flexWrap="wrap">
             <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
               {type}
             </Box>
@@ -88,14 +99,14 @@ export const renderParams = (key: number, arg: Arg, chainId?: number) => {
                 isExternal
               >
                 <Button size={"xs"}>
-                  <HStack>
+                  <HStack minW={0} flexWrap="wrap">
                     <ExternalLinkIcon />
                   </HStack>
                 </Button>
               </Link>
             ) : null}
           </HStack>
-          <HStack>
+          <HStack minW={0} flexWrap="wrap">
             <Box>
               {arg.name}
               {arg.baseType === "array" ? "[]" : ""}
@@ -108,7 +119,7 @@ export const renderParams = (key: number, arg: Arg, chainId?: number) => {
           </HStack>
         </Box>
       ) : (
-        <HStack>
+        <HStack minW={0} flexWrap="wrap">
           <Text fontSize={"sm"}>
             {type}
             {arg.baseType === "array" ? (type.includes("[]") ? "" : "[]") : ""}
@@ -131,7 +142,7 @@ export const renderParams = (key: number, arg: Arg, chainId?: number) => {
               isExternal
             >
               <Button size={"xs"}>
-                <HStack>
+                <HStack minW={0} flexWrap="wrap">
                   <ExternalLinkIcon />
                 </HStack>
               </Button>
@@ -139,7 +150,7 @@ export const renderParams = (key: number, arg: Arg, chainId?: number) => {
           ) : null}
         </HStack>
       )}
-      <Stack spacing={2}>{renderParamTypes(arg, chainId)}</Stack>
+      <Stack spacing={2} minW={0}>{renderParamTypes(arg, chainId)}</Stack>
     </Stack>
   );
 };

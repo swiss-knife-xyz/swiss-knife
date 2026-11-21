@@ -3,12 +3,12 @@ import {
   Box,
   Button,
   Center,
-  Container,
   FormControl,
   FormLabel,
   Heading,
   HStack,
   Input,
+  Link,
   Text,
   useUpdateEffect,
 } from "@chakra-ui/react";
@@ -18,24 +18,13 @@ import { chainIdToChain, networkOptions } from "@/data/common";
 import { DarkSelect } from "../DarkSelect";
 import TabsSelector from "../Tabs/TabsSelector";
 import { CalldataParam } from "../decodedParams/CalldataParam";
-import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon, ChevronUpIcon, ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   EIP1967Options,
   getEIP1967StorageSlot,
   getERC7201StorageSlot,
   normalizeStorageSlot,
 } from "@/lib/storageSlots";
-
-const Txt = ({ str, colorScheme }: { str: string; colorScheme: string }) => (
-  <Text
-    style={{
-      marginLeft: "0",
-    }}
-    color={`${colorScheme}.300`}
-  >
-    {str}
-  </Text>
-);
 
 const EIP1967Select = ({
   EIP1967Options,
@@ -47,30 +36,44 @@ const EIP1967Select = ({
   setSelectedEIP1967Slot: (value: SelectedOptionState) => void;
 }) => {
   return (
-    <Center mt={10}>
-      <HStack fontWeight={"bold"}>
-        <Txt colorScheme="orange" str={`bytes32(`} />
-        <Txt colorScheme="pink" str={`uint256(`} />
-        <Txt colorScheme="red" str={`keccak256(`} />
-        <Txt colorScheme="green" str={`'eip1967.proxy.`} />
+    <Box mt={4} minW={0} w="full" display="flex" flexDirection="column">
+      <FormControl order={1}>
+        <HStack justify="space-between" align="baseline" mb={1.5} spacing={2}>
+          <FormLabel fontSize="sm" color="text.secondary" mb={0}>Proxy slot</FormLabel>
+          <Link href="https://eip.tools/eip/1967" isExternal fontSize="xs" color="primary.400" flexShrink={0}>
+            EIP-1967 <ExternalLinkIcon ml={1} />
+          </Link>
+        </HStack>
         <DarkSelect
-          boxProps={{
-            minW: "14rem",
-          }}
+          ariaLabel="EIP-1967 proxy slot"
+          boxProps={{ minW: 0, w: "full" }}
           isCreatable
           selectedOption={selectedEIP1967Slot}
           setSelectedOption={setSelectedEIP1967Slot}
-          options={EIP1967Options.map((str) => ({
-            label: str,
-            value: str,
-          }))}
+          options={EIP1967Options.map(str => ({ label: str, value: str }))}
         />
-        <Txt colorScheme="green" str={`'`} />
-        <Txt colorScheme="red" str={`)`} />
-        <Txt colorScheme="pink" str={`) - 1`} />
-        <Txt colorScheme="orange" str={`)`} />
-      </HStack>
-    </Center>
+      </FormControl>
+      <Text
+        as="pre"
+        order={{ base: 0, md: 2 }}
+        mt={{ base: 0, md: 3 }}
+        mb={{ base: 3, md: 0 }}
+        fontSize="xs"
+        lineHeight="tall"
+        fontFamily="mono"
+        color="text.secondary"
+        whiteSpace="pre-wrap"
+        overflowWrap="anywhere"
+      >
+        <Text as="span" color="orange.300">bytes32(</Text>{"\n  "}
+        <Text as="span" color="pink.300">uint256(</Text>{"\n    "}
+        <Text as="span" color="red.300">keccak256(</Text>{"\n      "}
+        <Text as="span" color="green.300">{`'eip1967.proxy.${selectedEIP1967Slot?.value ?? "implementation"}'`}</Text>{"\n    "}
+        <Text as="span" color="red.300">)</Text>{"\n  "}
+        <Text as="span" color="pink.300">) - 1</Text>{"\n"}
+        <Text as="span" color="orange.300">)</Text>
+      </Text>
+    </Box>
   );
 };
 
@@ -87,9 +90,14 @@ const ERC7201Select = ({
     : undefined;
 
   return (
-    <Container mt={10}>
-      <FormControl>
-        <FormLabel>Namespace ID</FormLabel>
+    <Box mt={4} minW={0} w="full" display="flex" flexDirection="column">
+      <FormControl order={1}>
+        <HStack justify="space-between" align="baseline" mb={1.5} spacing={2}>
+          <FormLabel fontSize="sm" color="text.secondary" mb={0}>Namespace ID</FormLabel>
+          <Link href="https://eip.tools/eip/7201" isExternal fontSize="xs" color="primary.400" flexShrink={0}>
+            ERC-7201 <ExternalLinkIcon ml={1} />
+          </Link>
+        </HStack>
         <Input
           autoComplete="off"
           value={namespaceId}
@@ -98,29 +106,35 @@ const ERC7201Select = ({
           placeholder="example.main"
         />
       </FormControl>
-      <Center mt={6}>
-        <HStack fontWeight={"bold"} flexWrap="wrap" justify="center">
-          <Txt colorScheme="red" str={`keccak256(`} />
-          <Txt colorScheme="blue" str={`abi.encode(`} />
-          <Txt colorScheme="pink" str={`uint256(`} />
-          <Txt colorScheme="red" str={`keccak256(`} />
-          <Txt
-            colorScheme="green"
-            str={`'${normalizedNamespaceId || "namespace.id"}'`}
-          />
-          <Txt colorScheme="red" str={`)`} />
-          <Txt colorScheme="pink" str={`) - 1`} />
-          <Txt colorScheme="blue" str={`)`} />
-          <Txt colorScheme="red" str={`)`} />
-          <Txt colorScheme="orange" str={`& ~0xff`} />
-        </HStack>
-      </Center>
+      <Text
+        as="pre"
+        order={{ base: 0, md: 2 }}
+        mt={{ base: 0, md: 3 }}
+        mb={{ base: 3, md: 0 }}
+        fontSize="xs"
+        lineHeight="tall"
+        fontFamily="mono"
+        color="text.secondary"
+        whiteSpace="pre-wrap"
+        overflowWrap="anywhere"
+      >
+        <Text as="span" color="red.300">keccak256(</Text>{"\n  "}
+        <Text as="span" color="blue.300">abi.encode(</Text>{"\n    "}
+        <Text as="span" color="pink.300">uint256(</Text>{"\n      "}
+        <Text as="span" color="red.300">keccak256(</Text>{"\n        "}
+        <Text as="span" color="green.300">{`'${normalizedNamespaceId || "namespace.id"}'`}</Text>{"\n      "}
+        <Text as="span" color="red.300">)</Text>{"\n    "}
+        <Text as="span" color="pink.300">) - 1</Text>{"\n  "}
+        <Text as="span" color="blue.300">)</Text>{"\n"}
+        <Text as="span" color="red.300">)</Text>{" "}
+        <Text as="span" color="orange.300">&amp; ~0xff</Text>
+      </Text>
       {storageSlot && (
-        <Text mt={4} fontFamily="mono" fontSize="sm" wordBreak="break-all">
+        <Text order={3} mt={4} fontFamily="mono" fontSize="sm" wordBreak="break-all">
           {storageSlot}
         </Text>
       )}
-    </Container>
+    </Box>
   );
 };
 
@@ -157,9 +171,9 @@ const StorageSlotInput = ({
   setStorageSlot: (value: string) => void;
 }) => {
   return (
-    <Container mt={10}>
+    <Box mt={4} minW={0} w="full">
       <FormControl>
-        <FormLabel>Enter storage slot:</FormLabel>
+        <FormLabel fontSize="sm" color="text.secondary" mb={1.5}>Storage slot</FormLabel>
         <Input
           autoComplete="off"
           value={storageSlot}
@@ -170,7 +184,7 @@ const StorageSlotInput = ({
           placeholder="123 or 0xabc123..."
         />
       </FormControl>
-    </Container>
+    </Box>
   );
 };
 
@@ -261,9 +275,10 @@ export const StorageSlot = ({
       bg={"whiteAlpha.50"}
     >
       {/* Function name and refetch button */}
-      <HStack>
+      <HStack flexWrap="wrap" rowGap={2}>
         <HStack
-          flexGrow={1}
+          minW={0}
+          flex={{ base: "1 1 100%", sm: 1 }}
           onClick={() => setIsCollapsed(!isCollapsed)}
           cursor={"pointer"}
         >
@@ -280,11 +295,15 @@ export const StorageSlot = ({
           </HStack>
         </HStack>
         {/* Read/Write Buttons */}
-        <Query query={query} />
+        <HStack flex={{ base: "1 1 100%", sm: "0 0 auto" }} justify="flex-end">
+          <Query query={query} />
+        </HStack>
       </HStack>
-      <Box px={4} display={isCollapsed ? "none" : undefined}>
+      <Box px={{ base: 0, md: 4 }} display={isCollapsed ? "none" : undefined}>
         <TabsSelector
           tabs={["EIP-1967", "ERC-7201", "Custom"]}
+          flexWrap="wrap"
+          justify="center"
           selectedTabIndex={selectedTabIndex}
           setSelectedTabIndex={setSelectedTabIndex}
         />
