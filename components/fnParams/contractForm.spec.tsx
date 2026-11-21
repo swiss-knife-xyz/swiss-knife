@@ -106,6 +106,7 @@ function fill(name: string, value: string) {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  HTMLElement.prototype.scrollTo = vi.fn();
   vi.stubGlobal("localStorage", {
     getItem: vi.fn(() => null),
     setItem: vi.fn(),
@@ -182,6 +183,8 @@ it("encodes nested tuple/array booleans for writes without a connected wallet ac
     ],
   };
   render(form(func, "write"));
+  fireEvent.click(screen.getByRole("button", { name: "Options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
   fill("settings", '["false",["true","false"]]');
   fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
   const expected = new Interface([func]).encodeFunctionData("configure", [

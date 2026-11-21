@@ -956,8 +956,7 @@ const ReadWriteFunctionComponent = ({
             </Box>
           )}
         </Box>
-        {(type === "read" ||
-          writeButtonType !== WriteButtonType.EncodeCalldata) && (
+        {type === "read" && (
           <Button
             size="sm"
             flexShrink={0}
@@ -970,14 +969,17 @@ const ReadWriteFunctionComponent = ({
         {/* Read/Write Buttons */}
         {!loading && type === "read" && (
           <Button
-            ml={4}
             onClick={readFunction}
             isDisabled={
               inputsUnknown || (inputs && inputs.some((_, i) => functionIsDisabled[i] === true))
             }
             size={"sm"}
             title={res !== null ? "refetch" : "fetch"}
-            colorScheme={!isError ? "blue" : "red"}
+            variant="outline"
+            bg="bg.muted"
+            color={isError ? "red.300" : "text.primary"}
+            borderColor={isError ? "red.400" : "border.strong"}
+            _hover={{ bg: "whiteAlpha.100" }}
           >
             {res !== null ? <RepeatIcon /> : "Read"}
           </Button>
@@ -1338,10 +1340,6 @@ const ReadWriteFunctionComponent = ({
             >
               {encodedCalldata}
             </Box>
-            <Text mb={3} fontSize="sm">
-              Encoding is local: it does not call, simulate or send a
-              transaction. Payable value is not part of calldata.
-            </Text>
             <HStack mt={4} justify="flex-end" flexWrap="wrap">
               <Link
                 href={`${getPath(subdomains.CALLDATA.base)}decoder?calldata=${encodedCalldata}`}

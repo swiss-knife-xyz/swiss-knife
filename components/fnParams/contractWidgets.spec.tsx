@@ -118,6 +118,8 @@ it("real tuple text fields propagate into encoding in ABI order", async () => {
     ],
   };
   show(func, "write");
+  fireEvent.click(screen.getByRole("button", { name: "Options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
   const fields = screen.getAllByRole("textbox");
   fireEvent.change(fields[0], { target: { value: "hello" } });
   fireEvent.change(fields[1], { target: { value: "0x12345678" } });
@@ -146,6 +148,7 @@ it("keeps a single encoding action when the existing write dropdown selects Enco
     },
     "write"
   );
+  expect(screen.queryByRole("button", { name: "Encode Calldata" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Options" }));
   fireEvent.click(
     await screen.findByRole("menuitem", { name: "Encode Calldata" })
@@ -169,6 +172,8 @@ it("zero-input write encodes selector-only without connection, signing or reads"
     inputs: [],
   };
   show(func, "write");
+  fireEvent.click(screen.getByRole("button", { name: "Options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
   fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
   expect(
     await screen.findByText(new Interface([func]).encodeFunctionData("ping"))
