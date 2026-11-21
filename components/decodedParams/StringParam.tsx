@@ -192,12 +192,13 @@ const StringParamContent = ({
     }
 
     return (
-      <Table variant="unstyled" w="full" display={{ base: "block", md: "table" }} sx={{
-        tbody: { display: { base: "block", md: "table-row-group" } },
-        tr: { display: { base: "block", md: "table-row" }, minWidth: 0 },
-        td: { display: { base: "block", md: "table-cell" }, minWidth: 0, px: { base: 0, md: 6 }, py: { base: 1, md: 4 } },
-      }}>
-        <Tbody>
+      <Table
+        variant="unstyled"
+        w="full"
+        minW={0}
+        display={{ base: "block", md: "table" }}
+      >
+        <Tbody display={{ base: "block", md: "table-row-group" }}>
           {Object.keys(jsonValue).map((key) => {
             const __value: any = jsonValue[key];
             // avoids the quotes from the string
@@ -219,10 +220,23 @@ const StringParamContent = ({
 
             if (type) {
               return (
-                <Tr key={key}>
-                  <Td colSpan={2}>
+                <Tr key={key} display={{ base: "block", md: "table-row" }}>
+                  <Td
+                    colSpan={2}
+                    display={{ base: "block", md: "table-cell" }}
+                    px={{ base: 0, md: 6 }}
+                    py={{ base: 3, md: 4 }}
+                  >
                     <Box>
-                      <Text fontSize="sm" fontWeight="medium" overflowWrap="anywhere">{key}</Text>
+                      <Text
+                        fontSize={{ base: "xs", md: "md" }}
+                        fontWeight={{ base: "medium", md: "bold" }}
+                        color={{ base: "text.secondary", md: "inherit" }}
+                        overflowWrap="anywhere"
+                        mb={2}
+                      >
+                        {key}
+                      </Text>
                       {renderParamTypes(
                         {
                           name: key,
@@ -240,12 +254,30 @@ const StringParamContent = ({
             }
 
             return (
-              <Tr key={key}>
-                <Td fontSize="sm" fontWeight="medium" overflowWrap="anywhere">{key}</Td>
-                <Td>
+              <Tr key={key} display={{ base: "block", md: "table-row" }}>
+                <Td
+                  display={{ base: "block", md: "table-cell" }}
+                  fontSize={{ base: "xs", md: "md" }}
+                  fontWeight={{ base: "medium", md: "bold" }}
+                  color={{ base: "text.secondary", md: "inherit" }}
+                  overflowWrap="anywhere"
+                  px={{ base: 0, md: 6 }}
+                  pt={{ base: 3, md: 4 }}
+                  pb={{ base: 1, md: 4 }}
+                >
+                  {key}
+                </Td>
+                <Td
+                  display={{ base: "block", md: "table-cell" }}
+                  w={{ base: "full", md: "auto" }}
+                  minW={0}
+                  px={{ base: 0, md: 6 }}
+                  pt={{ base: 0, md: 4 }}
+                  pb={{ base: 3, md: 4 }}
+                >
                   {isString && !isValidJSON(__value) ? (
                     <>
-                      <HStack display={{ base: "flex", md: "none" }} align="start" spacing={2} mb={3} minW={0}>
+                      <HStack display={{ base: "flex", md: "none" }} align="start" spacing={2} minW={0}>
                         <Text fontSize="sm" fontFamily="mono" whiteSpace="pre-wrap" overflowWrap="anywhere" flex={1} minW={0}>{__value}</Text>
                         <CopyToClipboard textToCopy={__value} flexShrink={0} aria-label={`Copy ${key}`} />
                       </HStack>
