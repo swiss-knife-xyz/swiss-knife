@@ -35,6 +35,7 @@ import {
   ChevronUpIcon,
   ExternalLinkIcon,
   InfoIcon,
+  LinkIcon,
   SettingsIcon,
   WarningTwoIcon,
 } from "@chakra-ui/icons";
@@ -68,7 +69,7 @@ import type { InferredFunctionInfo } from "@/lib/inferredContract";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { erc165Interfaces } from "@/data/erc165Interfaces";
-import { createContractCallLink } from "@/lib/contractCall";
+import { createContractCallLink, contractFunctionSignature } from "@/lib/contractCall";
 
 const interfacePresetOptions = erc165Interfaces.map(({ label, id }) => ({
   label: label.replace(" (optional)", ""),
@@ -306,44 +307,13 @@ const ReadWriteFunctionComponent = ({
   const [calldataModalOpen, setCalldataModalOpen] = useState<boolean>(false);
   const [encodedCalldata, setEncodedCalldata] = useState<string>("");
   const [encodingError, setEncodingError] = useState("");
-  const reviewLink = React.useMemo(() => {
-    if (
-      !encodedCalldata ||
-      isAbiDecoded ||
-      __func.inputInference ||
-      typeof window === "undefined"
-    )
-      return null;
-    try {
-      return createContractCallLink(
-        new URL(getPath(subdomains.CONTRACT.base), window.location.origin).href,
-        chainId,
-        address,
-        {
-          data: encodedCalldata,
-          value: payableETH,
-          abiMode,
-          signature: FunctionFragment.from(_func).format("sighash"),
-        }
-      );
-    } catch {
-      return null;
-    }
-  }, [
-    encodedCalldata,
-    isAbiDecoded,
-    __func.inputInference,
-    _func,
-    chainId,
-    address,
-    payableETH,
-    abiMode,
-  ]);
+  const [share, setShare] = useState<{ link: string; error: string } | null>(null);
 
   useEffect(() => {
     setEncodedCalldata("");
     setCalldataModalOpen(false);
     setEncodingError("");
+    setShare(null);
   }, [
     inputsState,
     functionName,
@@ -842,6 +812,36 @@ const ReadWriteFunctionComponent = ({
     }
   }, [_func, prepareArgs, functionName, inputsUnknown, encodeFunctionData]);
 
+  const shareFunctionCall = () => {
+    try {
+      if (inputsUnknown) throw new Error("Input types are unavailable for this function.");
+      let payload: { data: string } | { args: unknown[] };
+      const isFilled = (value: unknown): boolean =>
+        value !== undefined && value !== null && value !== "" &&
+        (!Array.isArray(value) || value.every(isFilled));
+      try {
+        if (!(inputs ?? []).every((_, i) => isFilled(inputsState[i])))
+          throw new Error("Unfinished parameters");
+        payload = { data: encodeFunctionData({
+          abi: [_func] as unknown as Abi,
+          functionName,
+          args: prepareArgs(),
+        }) };
+      } catch {
+        payload = { args: (inputs ?? []).map((_, i) => inputsState[i] ?? null) };
+      }
+      const link = createContractCallLink(
+        new URL(getPath(subdomains.CONTRACT.base), window.location.origin).href,
+        chainId,
+        address,
+        { ...payload, value: payableETH, abiMode, signature: contractFunctionSignature(_func) }
+      );
+      setShare({ link, error: "" });
+    } catch (error) {
+      setShare({ link: "", error: error instanceof Error ? error.message : "Unable to share this function call." });
+    }
+  };
+
   useEffect(() => {
     try {
       setFnSelector(
@@ -865,6 +865,7 @@ const ReadWriteFunctionComponent = ({
     // if there are no inputs, then auto fetch the value
     // stagger calls by 150ms per function to avoid RPC rate limits (429)
     if (
+      !initialCall &&
       !inputsUnknown &&
       type === "read" &&
       (!inputs || (inputs && inputs.length === 0))
@@ -985,57 +986,73 @@ const ReadWriteFunctionComponent = ({
 
   return (
     <Box
+      minW={0}
+      w="full"
       mb={2}
       p={2}
       pb={!inputs || inputs.length === 0 ? undefined : 4}
       border="1px solid"
-      borderColor="whiteAlpha.200"
+      borderColor={initialCall ? "blue.400" : "whiteAlpha.200"}
       rounded="md"
-      bg={!inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
+      bg={initialCall ? "whiteAlpha.50" : !inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
       {/* Function name and refetch button */}
-      <HStack mb={!fnSelector ? 2 : undefined} alignItems="flex-start">
-        <Box
-          as="button"
-          type="button"
-          flexGrow={1}
-          minW={0}
-          textAlign="left"
-          aria-label={`Toggle ${displayName}`}
-          aria-expanded={!isCollapsed}
-          onClick={() => setIsCollapsed((collapsed) => !collapsed)}
-          cursor="pointer"
-          borderRadius="md"
-          _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
-        >
-          <HStack>
-            <HStack>
-              <Box fontSize={"2xl"}>
+      <HStack mb={!fnSelector ? 2 : undefined} alignItems="flex-start" flexWrap="wrap" rowGap={2}>
+        <Box flex="1 1 16rem" minW={0}>
+          <HStack alignItems="center" spacing={2} flexWrap="wrap" rowGap={1}>
+            <HStack
+              as="button"
+              type="button"
+              minW={0}
+              maxW="full"
+              textAlign="left"
+              aria-label={`Toggle ${displayName}`}
+              aria-expanded={!isCollapsed}
+              onClick={() => setIsCollapsed(collapsed => !collapsed)}
+              borderRadius="md"
+              _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
+            >
+              <Box fontSize="2xl" flexShrink={0}>
                 {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
               </Box>
-              <HStack alignItems="center">
-                <Box fontSize={"md"} fontWeight={"normal"}>
-                  {index}.
-                </Box>
-                <Box fontWeight={"bold"}>
-                  {renderHighlightedText(__func.name)}
-                </Box>
-                {isAbiDecoded && (
-                  <Tooltip label="Inferred from bytecode and signature lookups. Check the input types before use." hasArrow>
-                    <WarningTwoIcon aria-label="Inferred signature, not verified" tabIndex={0} color="yellow.300" boxSize={3.5} flexShrink={0} />
-                  </Tooltip>
-                )}
-              </HStack>
-            </HStack>{" "}
-            {/* If single output, then show inline */}
+              <Box fontSize="md" fontWeight="normal" flexShrink={0}>{index}.</Box>
+              <Box fontWeight="bold" minW={0} overflowWrap="anywhere">{renderHighlightedText(__func.name)}</Box>
+            </HStack>
+            <Tooltip label="Share function call" hasArrow>
+              <IconButton
+                aria-label={`Share ${displayName} function call`}
+                icon={<LinkIcon boxSize={3.5} />}
+                size="xs"
+                variant="ghost"
+                color="text.secondary"
+                flexShrink={0}
+                onClick={shareFunctionCall}
+              />
+            </Tooltip>
+            {isAbiDecoded && (
+              <Tooltip label="Inferred from bytecode and signature lookups. Check the input types before use." hasArrow>
+                <WarningTwoIcon aria-label="Inferred signature, not verified" tabIndex={0} color="yellow.300" boxSize={3.5} flexShrink={0} />
+              </Tooltip>
+            )}
             {__func.outputs && __func.outputs.length === 1 && (
-              <Box fontSize={"sm"} color="whiteAlpha.600">
+              <Box fontSize="sm" color="whiteAlpha.600">
                 (→&nbsp;{__func.outputs[0].type})
               </Box>
             )}
           </HStack>
           {fnSelector && (
-            <Box ml={12} mb={2} fontSize="sm" color="whiteAlpha.600">
+            <Box
+              as="button"
+              type="button"
+              display="block"
+              textAlign="left"
+              aria-label={`Toggle ${displayName} selector`}
+              aria-expanded={!isCollapsed}
+              onClick={() => setIsCollapsed(collapsed => !collapsed)}
+              ml={12} mb={2} fontSize="sm" color="whiteAlpha.600"
+              borderRadius="md"
+              _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
+            >
               [selector: {fnSelector}]
             </Box>
           )}
@@ -1362,6 +1379,50 @@ const ReadWriteFunctionComponent = ({
       </Box>
 
 
+      <Modal isOpen={share !== null} onClose={() => setShare(null)} isCentered size="lg">
+        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
+        <ModalContent bg="bg.base" border="1px solid" borderColor="border.subtle">
+          <ModalHeader pb={2}>Share function call</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={5}>
+            <Text fontSize="sm" color="text.secondary" mb={4}>
+              Share this function with its current parameters.
+            </Text>
+            {share?.error ? (
+              <Text role="alert" color="red.300" fontSize="sm">{share.error}</Text>
+            ) : (
+              <>
+                <Box position="relative">
+                  <Input aria-label="Function call link" value={share?.link ?? ""} isReadOnly pr={12} fontSize="sm" />
+                  <IconButton
+                    as="a"
+                    href={share?.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Open function call link"
+                    icon={<ExternalLinkIcon />}
+                    variant="ghost"
+                    size="sm"
+                    position="absolute"
+                    top={1}
+                    right={1}
+                    color="text.secondary"
+                  />
+                </Box>
+                <Center mt={4}>
+                  <CopyToClipboard
+                    textToCopy={share?.link ?? ""}
+                    labelText="Copy link"
+                    aria-label="Copy function call link"
+                    variant="outline"
+                  />
+                </Center>
+              </>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
       {/* Encode Calldata Modal */}
       <Modal
         isOpen={calldataModalOpen}
@@ -1382,43 +1443,46 @@ const ReadWriteFunctionComponent = ({
           />
           <ModalBody pb={6}>
             <Box
-              p={4}
+              position="relative"
               bg="bg.muted"
               border="1px solid"
               borderColor="border.default"
               rounded="lg"
-              fontFamily="mono"
-              fontSize="sm"
-              wordBreak="break-all"
-              maxH="300px"
-              overflowY="auto"
               color="text.primary"
             >
-              {encodedCalldata}
+              <Box
+                p={4}
+                pr={12}
+                fontFamily="mono"
+                fontSize="sm"
+                wordBreak="break-all"
+                maxH="300px"
+                overflowY="auto"
+              >
+                {encodedCalldata}
+              </Box>
+              <CopyToClipboard
+                textToCopy={encodedCalldata}
+                aria-label="Copy Calldata"
+                position="absolute"
+                top={2}
+                right={2}
+                size="sm"
+                minW={8}
+                w={8}
+                px={0}
+              />
             </Box>
-            <HStack mt={4} justify="flex-end" flexWrap="wrap">
+            <HStack mt={3} spacing={3} justify="flex-end" flexWrap="wrap">
               <Link
                 href={`${getPath(subdomains.CALLDATA.base)}decoder?calldata=${encodedCalldata}`}
                 isExternal
+                fontSize="sm"
               >
-                Open in decoder <ExternalLinkIcon />
+                Open in decoder <ExternalLinkIcon boxSize="3.5" ml={1} />
               </Link>
-              <CopyToClipboard
-                textToCopy={encodedCalldata}
-                labelText="Copy Calldata"
-              />
-              {reviewLink && (
-                <CopyToClipboard
-                  textToCopy={reviewLink}
-                  labelText="Copy Review Link"
-                />
-              )}
+
             </HStack>
-            <Text mt={3} fontSize="sm">
-              {reviewLink
-                ? "Review links include chain, contract, calldata, ABI context and value in wei. Anyone with the link can read these details. Opening a link only prefills a form; it never signs or sends, and does not share the sender or simulation results."
-                : "Review link unavailable: a verified ABI and calldata within the sharing limit are required."}
-            </Text>
           </ModalBody>
         </ModalContent>
       </Modal>

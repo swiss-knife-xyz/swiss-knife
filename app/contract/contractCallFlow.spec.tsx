@@ -58,8 +58,8 @@ vi.mock("@/components/SourceCodeExplorer", () => ({
   SourceCodeExplorer: () => null,
 }));
 vi.mock("@/components/CopyToClipboard", () => ({
-  CopyToClipboard: ({ textToCopy, labelText }: any) => (
-    <button onClick={() => copied(textToCopy)}>{labelText}</button>
+  CopyToClipboard: ({ textToCopy, labelText, "aria-label": ariaLabel }: any) => (
+    <button aria-label={ariaLabel} onClick={() => copied(textToCopy)}>{labelText}</button>
   ),
 }));
 vi.mock("@monaco-editor/react", () => ({ Editor: () => null }));
@@ -150,11 +150,25 @@ function shared(
     }
   );
 }
+async function waitForPrefill() {
+  await waitFor(() => expect(
+    (screen.getByRole("textbox", { name: "amount", hidden: true }) as HTMLInputElement).value
+  ).toBe("9007199254740993"));
+}
+
+async function openRawCalldata() {
+  if (!screen.queryByRole("dialog", { name: "Enter raw calldata" })) {
+    fireEvent.click(await screen.findByRole("button", { name: "Enter raw calldata" }));
+  }
+  return screen.findByRole("textbox", { name: "Calldata to decode" });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   fetchAbi.mockResolvedValue({ abi, name: "Verified contract" });
   window.history.replaceState(null, "", `/contract/1/${address}`);
   HTMLElement.prototype.scrollTo = vi.fn();
+  HTMLElement.prototype.scrollIntoView = vi.fn();
   window.scrollTo = vi.fn();
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: vi.fn() });
   vi.stubGlobal("matchMedia", () => ({
@@ -194,13 +208,14 @@ it("restores a payable overload into the actual page/form and generates the same
       }) as HTMLInputElement
     ).value
   ).toBe("");
-  fireEvent.click(screen.getAllByRole("button", { name: "Options" })[0]);
-  fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  fireEvent.click(screen.getAllByRole("button", { name: "Share transfer function call" })[0]);
   fireEvent.click(
-    await screen.findByRole("button", { name: "Copy Review Link" })
+    await screen.findByRole("button", { name: "Copy function call link" })
   );
   expect(copied).toHaveBeenLastCalledWith(url);
+  await waitFor(() => expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled());
+  const scrolled = vi.mocked(HTMLElement.prototype.scrollIntoView).mock.contexts.at(-1) as HTMLElement;
+  expect(scrolled.dataset.prefilled).toBe("true");
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
   expect(client.simulateContract).not.toHaveBeenCalled();
   expect(client.call).not.toHaveBeenCalled();
@@ -240,15 +255,15 @@ it("clears imported context on explicit ABI switching and never reapplies it whe
   });
   window.history.replaceState(null, "", shared("implementation"));
   render(page());
-  await screen.findByText(/Review only/);
+  await waitForPrefill();
   fireEvent.change(screen.getByRole("combobox", { name: "Interact as" }), {
     target: { value: "contract" },
   });
-  await waitFor(() => expect(screen.queryByText(/Review only/)).toBeNull());
+  await waitFor(() => expect(document.querySelector('[data-prefilled="true"]')).toBeNull());
   fireEvent.change(screen.getByRole("combobox", { name: "Interact as" }), {
     target: { value: "proxy" },
   });
-  await waitFor(() => expect(screen.queryByText(/Review only/)).toBeNull());
+  await waitFor(() => expect(document.querySelector('[data-prefilled="true"]')).toBeNull());
   expect(
     (
       screen.getByRole("textbox", {
@@ -262,9 +277,9 @@ it("clears imported context on explicit ABI switching and never reapplies it whe
 it("editing pasted calldata invalidates the imported form and its warning before another Decode", async () => {
   window.history.replaceState(null, "", shared());
   render(page());
-  await screen.findByText(/Review only/);
+  await waitForPrefill();
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Calldata to decode" }),
+    await openRawCalldata(),
     { target: { value: "0xdeadbeef" } }
   );
   await waitFor(() =>
@@ -277,7 +292,7 @@ it("editing pasted calldata invalidates the imported form and its warning before
       ).value
     ).toBe("")
   );
-  expect(screen.queryByText(/Review only/)).toBeNull();
+  expect(document.querySelector('[data-prefilled="true"]')).toBeNull();
   expect(
     (
       screen.getByRole("textbox", {
@@ -304,17 +319,17 @@ it("invalidating imported data discards a pending simulation without a second wa
   );
   window.history.replaceState(null, "", shared());
   render(page());
-  await screen.findByText(/Review only/);
+  await waitForPrefill();
   fireEvent.click(screen.getAllByRole("button", { name: /^Write$/ })[0]);
   await waitFor(() => expect(client.simulateContract).toHaveBeenCalledOnce());
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Calldata to decode" }),
+    await openRawCalldata(),
     { target: { value: "0xdeadbeef" } }
   );
   await act(async () => {
     resolve({ result: 42n });
   });
-  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByRole("dialog", { name: "Enter raw calldata" })).toBeTruthy();
   expect(
     screen.queryByRole("button", { name: "Continue to wallet" })
   ).toBeNull();
@@ -325,7 +340,7 @@ it("invalidating imported data discards a pending simulation without a second wa
 it("fragment back/forward invalidates old prefill without a wallet request", async () => {
   window.history.replaceState(null, "", shared());
   render(page());
-  await screen.findByText(/Review only/);
+  await waitForPrefill();
   window.history.replaceState(null, "", `/contract/1/${address}`);
   window.dispatchEvent(new PopStateEvent("popstate"));
   await waitFor(() =>
@@ -338,27 +353,27 @@ it("fragment back/forward invalidates old prefill without a wallet request", asy
       ).value
     ).toBe("")
   );
-  expect(screen.queryByText(/Review only/)).toBeNull();
+  expect(document.querySelector('[data-prefilled="true"]')).toBeNull();
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
 });
 it("route changes do not render the previous ABI while the new destination loads", async () => {
   window.history.replaceState(null, "", shared());
   const view = render(page());
-  await screen.findByText(/Review only/);
+  await waitForPrefill();
   fetchAbi.mockImplementation(() => new Promise(() => {}));
   window.history.replaceState(null, "", `/contract/8453/${implementation}`);
   view.rerender(page(8453, implementation));
   expect(
     screen.queryByRole("textbox", { name: "amount", hidden: true })
   ).toBeNull();
-  expect(screen.queryByText(/Review only/)).toBeNull();
+  expect(document.querySelector('[data-prefilled="true"]')).toBeNull();
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
 });
 
 it("decodes pasted calldata only on explicit action and clears stale prefill on invalid decode", async () => {
   render(page());
   await screen.findByRole("textbox", { name: "amount", hidden: true });
-  const input = screen.getByRole("textbox", { name: "Calldata to decode" });
+  let input = await openRawCalldata();
   fireEvent.change(input, {
     target: { value: iface.encodeFunctionData("transfer(uint256)", [42]) },
   });
@@ -370,15 +385,17 @@ it("decodes pasted calldata only on explicit action and clears stale prefill on 
       }) as HTMLInputElement
     ).value
   ).toBe("");
-  fireEvent.click(screen.getByRole("button", { name: "Decode into form" }));
+  fireEvent.click(screen.getByRole("button", { name: "Fill parameters" }));
   await waitFor(() =>
     expect(
       (screen.getByRole("textbox", { name: "amount" }) as HTMLInputElement)
         .value
     ).toBe("42")
   );
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Enter raw calldata" })).toBeNull());
+  input = await openRawCalldata();
   fireEvent.change(input, { target: { value: "0xdeadbeef" } });
-  fireEvent.click(screen.getByRole("button", { name: "Decode into form" }));
+  fireEvent.click(screen.getByRole("button", { name: "Fill parameters" }));
   await waitFor(() =>
     expect(
       (
@@ -390,4 +407,44 @@ it("decodes pasted calldata only on explicit action and clears stale prefill on 
     ).toBe("")
   );
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
+});
+
+it("decodes an inferred ABI and prefills only the function with the matching on-chain selector", async () => {
+  const utils = await import("@/utils");
+  fetchAbi.mockRejectedValue(new Error("Not verified"));
+  client.getCode.mockResolvedValue("0x60006000f3");
+  vi.mocked(utils.processContractBytecode).mockResolvedValue([
+    "0x12345678", "0x87654321",
+  ].map(selector => ({
+    type: "function", name: `selector: ${selector}`, selector,
+    stateMutability: "nonpayable", inputs: [{ name: "arg0", type: "uint256" }],
+    inputInference: { source: "bytecode", message: "Inferred" },
+  })) as any);
+  render(page());
+  const data = "0x12345678" + new Interface(["function inferred(uint256)"]).encodeFunctionData("inferred", [17]).slice(10);
+  let input = await openRawCalldata();
+  fireEvent.change(input, { target: { value: data } });
+  fireEvent.click(screen.getByRole("button", { name: "Fill parameters" }));
+  await waitFor(() => expect(screen.getAllByRole("textbox", { name: "arg0", hidden: true }).map(field => (field as HTMLInputElement).value)).toEqual(["17", ""]));
+  await waitFor(() => expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled());
+  const scrolled = vi.mocked(HTMLElement.prototype.scrollIntoView).mock.contexts.at(-1) as HTMLElement;
+  expect(scrolled.dataset.prefilled).toBe("true");
+  expect(scrolled.querySelector('input')?.value).toBe("17");
+  expect(wallet.sendTransaction).not.toHaveBeenCalled();
+  expect(client.simulateContract).not.toHaveBeenCalled();
+});
+
+it.each([[null, null], [address, null]])("restores an unfinished function form %j without executing it", async (first, second) => {
+  const url = createContractCallLink(window.location.origin + "/contract/", 1, address, {
+    args: [first, second], value: "0", abiMode: "contract", signature: "transfer(address,uint256)",
+  });
+  window.history.replaceState(null, "", url);
+  render(page());
+  const amount = await screen.findByRole("textbox", { name: "tokens" });
+  await waitFor(() => expect((amount as HTMLInputElement).value).toBe(""));
+  expect((screen.getByRole("textbox", { name: "to" }) as HTMLInputElement).value).toBe(first ?? "");
+  await waitFor(() => expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled());
+  expect(wallet.sendTransaction).not.toHaveBeenCalled();
+  expect(client.simulateContract).not.toHaveBeenCalled();
+  expect(client.readContract).not.toHaveBeenCalled();
 });

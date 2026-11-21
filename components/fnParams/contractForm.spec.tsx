@@ -57,8 +57,8 @@ vi.mock("@/components/fnParams/inputs", () => ({
   InputInfo: () => null,
 }));
 vi.mock("@/components/CopyToClipboard", () => ({
-  CopyToClipboard: ({ textToCopy, labelText }: any) => (
-    <button onClick={() => copied(textToCopy)}>{labelText}</button>
+  CopyToClipboard: ({ textToCopy, labelText, "aria-label": ariaLabel }: any) => (
+    <button aria-label={ariaLabel} onClick={() => copied(textToCopy)}>{labelText}</button>
   ),
 }));
 
@@ -158,9 +158,9 @@ it("shares current calldata, loaded route, ABI mode and wei value as a review-on
   render(form(transfer, "read", false, false, "implementation"));
   fill("to", address);
   fill("amount", "9007199254740993");
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share transfer function call" }));
   fireEvent.click(
-    await screen.findByRole("button", { name: "Copy Review Link" })
+    await screen.findByRole("button", { name: "Copy function call link" })
   );
   const url = new URL(copied.mock.lastCall![0]);
   expect(url.pathname).toBe(`/contract/1/${address}`);
@@ -174,6 +174,18 @@ it("shares current calldata, loaded route, ABI mode and wei value as a review-on
   expect(params.get("abi")).toBe("implementation");
   expect(params.get("value")).toBe("0");
   expect(params.get("function")).toBe("transfer(address,uint256)");
+  expect(wallet.sendTransaction).not.toHaveBeenCalled();
+});
+
+it("shares unfinished inputs without ABI encoding or replacing blanks with zero", async () => {
+  render(form());
+  fill("to", address);
+  fireEvent.click(screen.getByRole("button", { name: "Share transfer function call" }));
+  const link = screen.getByRole("textbox", { name: "Function call link" }) as HTMLInputElement;
+  const params = new URLSearchParams(new URL(link.value).hash.slice(1));
+  expect(params.get("call")).toBe("2");
+  expect(JSON.parse(params.get("args")!)).toEqual([address, null]);
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
 });
 

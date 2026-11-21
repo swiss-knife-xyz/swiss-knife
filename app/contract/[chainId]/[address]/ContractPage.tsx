@@ -393,6 +393,7 @@ const ReadWriteSection = ({
   isAbiDecoded,
   prefilledCall,
   prefillRevision,
+  onPrefillScrollStart,
   abiMode,
 }: {
   type: "read" | "write";
@@ -404,6 +405,7 @@ const ReadWriteSection = ({
   isAbiDecoded?: boolean;
   prefilledCall: PrefilledCall | null;
   prefillRevision: number;
+  onPrefillScrollStart?: () => void;
   abiMode: "contract" | "implementation";
 }) => {
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
@@ -416,6 +418,27 @@ const ReadWriteSection = ({
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
 
   const functionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    if (!prefilledCall || !client) return;
+    const index = functions.findIndex(func => {
+      try { return contractFunctionSignature(func) === prefilledCall.signature; }
+      catch { return false; }
+    });
+    if (index < 0) return;
+    const frame = requestAnimationFrame(() => {
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      const target = functionRefs.current[index];
+      if (!target) return;
+      target.scrollIntoView?.({
+        behavior: reduceMotion ? "instant" : "smooth",
+        block: "start",
+      });
+      onPrefillScrollStart?.();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [prefilledCall, prefillRevision, functions, client, onPrefillScrollStart]);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -663,7 +686,7 @@ const ReadWriteSection = ({
   };
 
   return (
-    <Box>
+    <Box minW={0} w="full">
       <Box
         ref={stickyHeaderRef}
         position="sticky"
@@ -732,7 +755,12 @@ const ReadWriteSection = ({
               if (prefilledCall?.signature === contractFunctionSignature(func)) initialCall = prefilledCall;
             } catch { /* Unknown inferred shapes cannot be prefilled. */ }
             return (
-            <Box key={`${index}:${initialCall ? prefillRevision : "ordinary"}`} ref={(el) => { functionRefs.current[index] = el; }}>
+            <Box
+              key={`${index}:${initialCall ? prefillRevision : "ordinary"}`}
+              data-prefilled={initialCall ? "true" : undefined}
+              scrollMarginTop="8rem"
+              ref={(el) => { functionRefs.current[index] = el; }}
+            >
               <ReadWriteFunction
                 client={client}
                 index={index + 1}
@@ -810,14 +838,14 @@ const LoadedContractPage = ({
     null
   );
   const [proxyAbi, setProxyAbi] = useState<AbiType | null>(null);
-  const [prefill, setPrefill] = useState<{ call: PrefilledCall | null; revision: number }>({ call: null, revision: 0 });
-  const handlePrefill = useCallback((call: PrefilledCall | null) => {
+  const [prefill, setPrefill] = useState<{ call: PrefilledCall | null; revision: number; onScrollStart?: () => void }>({ call: null, revision: 0 });
+  const handlePrefill = useCallback((call: PrefilledCall | null, onScrollStart?: () => void) => {
     if (call && proxyAbi && implementationAbi) {
       const implementation = call.abiMode === "implementation";
       setAbi(implementation ? implementationAbi : proxyAbi);
       setIsInteractingAsProxy(implementation);
     }
-    setPrefill(previous => ({ call, revision: previous.revision + 1 }));
+    setPrefill(previous => ({ call, revision: previous.revision + 1, onScrollStart }));
   }, [proxyAbi, implementationAbi]);
   const [isInteractingAsProxy, setIsInteractingAsProxy] =
     useState<boolean>(false);
@@ -1050,7 +1078,7 @@ const LoadedContractPage = ({
   const renderFunctions = () => {
     return (
       abi && (
-        <Box mt={4} w="full" maxW="70rem" mx="auto">
+        <Box w="full" maxW="70rem" mx="auto">
           {/* ABI & Source Code Content - above alerts */}
           <AbiSourceCodeContent
             abi={abi}
@@ -1063,8 +1091,8 @@ const LoadedContractPage = ({
             isLoadingSourceCode={isLoadingSourceCode}
           />
 
-          {/* Alerts - proxy first, then beta warning */}
-          <VStack spacing={3} align="stretch" mb={4}>
+          {/* Proxy and inferred ABI details */}
+          <VStack spacing={3} align="stretch" mb={implementationAddress || isAbiDecoded ? 4 : 0}>
             {implementationAddress && (
               <Alert
                 status="info"
@@ -1118,18 +1146,6 @@ const LoadedContractPage = ({
                 </HStack>
               </Alert>
             )}
-            <Alert
-              status="warning"
-              rounded="lg"
-              bg="rgba(251,191,36,0.08)"
-              borderWidth="1px"
-              borderColor="rgba(251,191,36,0.20)"
-            >
-              <AlertIcon color="yellow.400" />
-              <Text color="text.secondary" fontSize="sm">
-                Tool is in beta, please verify connected chain and calldata before sending transactions
-              </Text>
-            </Alert>
             {isAbiDecoded && (
               <Alert
                 status="info"
@@ -1146,17 +1162,12 @@ const LoadedContractPage = ({
             )}
           </VStack>
 
-          <ContractCallPrefill address={address} chainId={chainId}
-            selectedAbi={abi.isDecoded ? null : abi.abi}
-            contractAbi={(proxyAbi ?? abi).isDecoded ? null : (proxyAbi ?? abi).abi}
-            implementationAbi={implementationAbi?.isDecoded ? null : implementationAbi?.abi ?? null}
-            abiMode={isInteractingAsProxy ? "implementation" : "contract"}
-            onPrefill={handlePrefill} hasActivePrefill={prefill.call !== null} />
-          <Grid templateColumns="repeat(2, 1fr)" gap={6}>
+          <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "repeat(2, minmax(0, 1fr))" }} gap={6} w="full" minW={0}>
             <ReadWriteSection
               key={`read:${isInteractingAsProxy}`}
               prefilledCall={prefill.call?.abiMode === (isInteractingAsProxy ? "implementation" : "contract") ? prefill.call : null}
               prefillRevision={prefill.revision}
+              onPrefillScrollStart={prefill.onScrollStart}
               abiMode={isInteractingAsProxy ? "implementation" : "contract"}
               type="read"
               abi={abi}
@@ -1170,6 +1181,7 @@ const LoadedContractPage = ({
               key={`write:${isInteractingAsProxy}`}
               prefilledCall={prefill.call?.abiMode === (isInteractingAsProxy ? "implementation" : "contract") ? prefill.call : null}
               prefillRevision={prefill.revision}
+              onPrefillScrollStart={prefill.onScrollStart}
               abiMode={isInteractingAsProxy ? "implementation" : "contract"}
               type="write"
               abi={abi}
@@ -1228,7 +1240,7 @@ const LoadedContractPage = ({
 
   return (
     <AbiExpandedProvider>
-      <Box flexDir={"column"} minW={abi ? "60rem" : "40rem"}>
+      <Box flexDir="column" w="full" minW={0}>
         <Center flexDir={"column"}>
           {/* Contract Header Card */}
           <Box
@@ -1305,7 +1317,7 @@ const LoadedContractPage = ({
           )}
 
           {/* Contract Info Row - Only show when ABI is loaded */}
-          {abi && abi.name.length > 0 && (
+          {abi && (
             <>
               <Box h="1px" bg="border.default" mb={4} />
               <HStack spacing={4} flexWrap="wrap" justify="space-between" align="center">
@@ -1313,12 +1325,24 @@ const LoadedContractPage = ({
                 <HStack spacing={3} flexWrap="wrap">
                   <HStack spacing={2}>
                     <Text color="text.secondary" fontSize="sm">Contract:</Text>
-                    <Text color="text.primary" fontWeight="semibold" fontSize="sm">{abi.name}</Text>
+                    <Text color="text.primary" fontWeight="semibold" fontSize="sm">{abi.name || slicedText(address)}</Text>
                   </HStack>
                 </HStack>
 
-                {/* Center: ABI & Source Code Toggle */}
-                <AbiSourceCodeToggle />
+                {/* Contract tools */}
+                <HStack spacing={2} flexWrap="wrap">
+                  <AbiSourceCodeToggle />
+                  <ContractCallPrefill
+                    address={address}
+                    chainId={chainId}
+                    selectedAbi={abi.abi}
+                    contractAbi={(proxyAbi ?? abi).abi}
+                    implementationAbi={implementationAbi?.abi ?? null}
+                    abiMode={isInteractingAsProxy ? "implementation" : "contract"}
+                    onPrefill={handlePrefill}
+                    hasActivePrefill={prefill.call !== null}
+                  />
+                </HStack>
 
                 {/* Right side: Connect button */}
                 <ConnectButton expectedChainId={chainId} />
@@ -1334,7 +1358,7 @@ const LoadedContractPage = ({
             </VStack>
 
             {/* Read/Write sections skeleton */}
-            <Grid templateColumns="repeat(2, 1fr)" gap={6}>
+            <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "repeat(2, minmax(0, 1fr))" }} gap={6} w="full" minW={0}>
               {/* Read section skeleton */}
               <Box>
                 <Box p={3} bg="bg.muted" rounded="lg" mb={3} border="1px solid" borderColor="border.default">
