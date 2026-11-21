@@ -22,21 +22,12 @@ import {
   VStack,
   Text,
   Avatar,
-  Link,
   Tag,
   Tooltip,
-  Icon,
   IconButton,
 } from "@chakra-ui/react";
-import {
-  ExternalLinkIcon,
-  SearchIcon,
-  EditIcon,
-  AddIcon,
-} from "@chakra-ui/icons";
-import { FiSearch, FiExternalLink, FiBook } from "react-icons/fi";
-import { BookOpen } from "lucide-react";
-import { AddressLabelModal } from "@/components/AddressBook";
+import { SearchIcon } from "@chakra-ui/icons";
+import { FiExternalLink, FiBook } from "react-icons/fi";
 import { isAddress } from "viem";
 import { useLocalStorage } from "usehooks-ts";
 import {
@@ -50,7 +41,6 @@ import subdomains from "@/subdomains";
 import { Layout } from "@/components/Layout";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { fetchAddressLabels } from "@/utils/addressLabels";
-import { Sidebar, SidebarItem } from "@/components/Sidebar";
 import { useAddressBook } from "@/hooks/useAddressBook";
 
 export interface RecentSearch {
@@ -68,13 +58,14 @@ const isValidTransaction = (tx: string) => {
 
 function ExplorerLayoutContent({ children }: { children: ReactNode }) {
   const segments = useSelectedLayoutSegments();
+  const isExplorerHome = segments.length === 0;
   const router = useTopLoaderRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const userInputFromUrl = segments[0] === "contract" ? segments[2] : (segments[1] ?? segments[0]);
 
-  const [userInput, setUserInput] = useState<string>(userInputFromUrl);
+  const [userInput, setUserInput] = useState<string>(userInputFromUrl ?? "");
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
   const [resolvedEnsName, setResolvedEnsName] = useState<string | null>(null);
   const [resolvedEnsAvatar, setResolvedEnsAvatar] = useState<string | null>(
@@ -91,7 +82,6 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
 
   const { openSelector, getLabel, isReady: isAddressBookReady } = useAddressBook();
   const addressBookLabel = isAddressBookReady && userInput ? getLabel(userInput) : null;
-  const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
 
   const addRecentSearch = (input: string, type: "address" | "tx") => {
     const newSearch: RecentSearch = {
@@ -248,66 +238,82 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
     }
   }, [resolvedEnsName]);
 
-  const SidebarItems: SidebarItem[] = [
-    { name: "Explorers", path: `address/${userInputFromUrl}` },
-  ];
 
   return (
-    <Layout>
-      <HStack alignItems={"stretch"} h="full">
-        {(pathname.includes("/address/") ||
-          pathname.includes("/contract/")) && (
-          <Sidebar
-            heading="Explorer"
-            items={SidebarItems}
-            subdomain={subdomains.EXPLORER.base}
-            exactPathMatch
-          />
-        )}
-        <Center flexDir="column" w="full" py={6}>
+    <Layout minW={0} allowSticky>
+      <Box w="full">
+        <Center flexDir="column" w="full" minW={0} py={{ base: 0, md: 4 }}>
           <Box
             w="full"
-            maxW="1400px"
+            maxW={isExplorerHome ? "760px" : "1400px"}
             mx="auto"
-            p={6}
-            bg="rgba(0, 0, 0, 0.05)"
-            backdropFilter="blur(5px)"
-            borderRadius="xl"
-            border="1px solid"
-            borderColor="whiteAlpha.50"
+            p={{ base: 0, md: 4 }}
+            minW={0}
           >
-            {/* Page Header */}
-            <Box mb={8} textAlign="center">
-              <HStack justify="center" spacing={3} mb={4}>
-                <Icon as={FiSearch} color="blue.400" boxSize={8} />
-                <Heading as="h1"
-                  size="xl"
-                  color="gray.100"
-                  fontWeight="bold"
-                  letterSpacing="tight"
-                >
-                  <NLink
-                    href={getPath(
-                      subdomains.EXPLORER.base,
-                      subdomains.EXPLORER.isRelativePath
-                    )}
-                  >
+            <Box
+              display="grid"
+              gridTemplateColumns={{ base: "minmax(0, 1fr)", md: "minmax(0, 1fr) auto" }}
+              columnGap={4}
+              rowGap={3}
+              alignItems="center"
+            >
+              <Box gridRow={1} gridColumn={isExplorerHome ? "1 / -1" : 1} minW={0}>
+              <HStack spacing={2} minW={0}>
+                <Heading as="h1" fontSize={{ base: "xl", md: "2xl" }} fontWeight="semibold">
+                  <NLink href={getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}>
                     Explorer
                   </NLink>
                 </Heading>
+                <Tooltip label="Select from address book" hasArrow>
+                  <IconButton
+                    aria-label="Select from address book"
+                    icon={<FiBook size={16} />}
+                    variant="ghost" size="sm" color="text.secondary"
+                    onClick={() => openSelector(
+                      address => { setUserInput(address); handleSearch(address); },
+                      pathname.includes("/address/") ? resolvedAddress || userInput : ""
+                    )}
+                  />
+                </Tooltip>
               </HStack>
-              <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
-                Search Address or Transaction
-              </Text>
-            </Box>
+              {isExplorerHome && (
+                <Text mt={2} fontSize="sm" color="text.secondary">
+                  View any address or transaction across block explorers and dashboards.
+                </Text>
+              )}
+              </Box>
+
+                {userInput && pathname.includes("/address/") && (
+                  <HStack
+                    gridRow={{ base: 3, md: 1 }}
+                    gridColumn={{ base: 1, md: 2 }}
+                    w={{ base: "full", md: "auto" }}
+                    maxW={{ md: "32rem" }} minW={0} spacing={2}
+                    justify="space-between"
+                  >
+                    {pathname.includes("/address/") && <HStack spacing={2} minW={0} flex={1}>
+                      {resolvedEnsAvatar && <Avatar src={resolvedEnsAvatar} boxSize={6} flexShrink={0} />}
+                      <Tooltip label={resolvedAddress || resolvedEnsName || userInput} hasArrow>
+                        <Text fontSize="sm" color="text.secondary" minW={0} isTruncated>
+                          {addressBookLabel || resolvedEnsName || slicedText(resolvedAddress || userInput)}
+                        </Text>
+                      </Tooltip>
+                      <CopyToClipboard
+                        textToCopy={resolvedAddress || resolvedEnsName || userInput}
+                        aria-label="Copy search value"
+                        minW={8} w={8} h={8} px={0} flexShrink={0}
+                      />
+                    </HStack>}
+
+                  </HStack>
+                )}
 
             {/* Search Section */}
-            <Box w="full" maxW="800px" mx="auto">
-              <VStack spacing={4}>
-                <HStack w="full" spacing={3}>
-                  <InputGroup flex={1}>
+            <Box w="full" gridRow={2} gridColumn="1 / -1">
+              <VStack spacing={3} align="stretch">
+                <HStack w="full" spacing={0} gap={2} justify="flex-end">
+                  <InputGroup flex={1} minW={0}>
                     <Input
-                      autoFocus
                       placeholder="address / ens / transaction"
                       value={userInput}
                       onChange={(e) => {
@@ -345,15 +351,23 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                       }}
                       color="gray.100"
                       _placeholder={{ color: "gray.500" }}
-                      fontSize="lg"
-                      py={6}
-                      pr="4rem"
+                      aria-label="Address, ENS name, or transaction hash"
+                      fontSize="md"
+                      fontFamily="mono"
+                      h="44px"
+                      py={0}
+                      pr={12}
                     />
-                    <InputRightElement h="full" w="4rem">
+                    <InputRightElement h="full" w="44px">
                       <Button
-                        h="calc(100% - 16px)"
-                        w="calc(100% - 8px)"
-                        colorScheme={isInputInvalid ? "red" : "blue"}
+                        h={8}
+                        w={9}
+                        minW={9}
+                        p={0}
+                        variant="ghost"
+                        borderWidth={0}
+                        color={isInputInvalid ? "red.400" : "text.secondary"}
+                        aria-label="Search address or transaction"
                         onClick={() => handleSearch()}
                         isLoading={isLoading}
                       >
@@ -361,176 +375,40 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                       </Button>
                     </InputRightElement>
                   </InputGroup>
-                  {userInput &&
-                    (pathname.includes("/address/") ||
-                      pathname.includes("/tx/")) && (
-                      <Tooltip label="View on Etherscan" placement="top">
-                        <Link
-                          href={`https://etherscan.io/${
-                            pathname.includes("/address/") ? "address" : "tx"
-                          }/${userInput}`}
-                          isExternal
-                        >
-                          <Button
-                            colorScheme="gray"
-                            variant="outline"
-                            borderColor="whiteAlpha.200"
-                            _hover={{
-                              bg: "whiteAlpha.100",
-                              borderColor: "whiteAlpha.300",
-                            }}
-                          >
-                            <Icon as={FiExternalLink} />
-                          </Button>
-                        </Link>
-                      </Tooltip>
-                    )}
-                  {pathname.includes("/address/") && (
-                    <Tooltip label="Select from Address Book" placement="top">
-                      <Button
-                        onClick={() => openSelector((address) => {
-                          setUserInput(address);
-                          handleSearch(address);
-                        })}
-                        colorScheme="gray"
-                        variant="outline"
-                        borderColor="whiteAlpha.200"
-                        _hover={{
-                          bg: "whiteAlpha.100",
-                          borderColor: "whiteAlpha.300",
-                        }}
-                      >
-                        <Icon as={FiBook} />
-                      </Button>
+                  {userInput && (pathname.includes("/address/") || pathname.includes("/tx/")) && (
+                    <Tooltip label="View on Etherscan" hasArrow>
+                      <IconButton
+                        as="a"
+                        href={`https://etherscan.io/${pathname.includes("/address/") ? "address" : "tx"}/${userInput}`}
+                        target="_blank" rel="noopener noreferrer"
+                        aria-label="View on Etherscan"
+                        icon={<FiExternalLink size={16} />}
+                        variant="ghost" color="text.secondary"
+                        boxSize="44px" minW="44px" flexShrink={0}
+                      />
                     </Tooltip>
                   )}
                 </HStack>
-
-                {/* Resolved Address/ENS Display */}
-                {(resolvedAddress || resolvedEnsName) && (
-                  <Box
-                    p={3}
-                    border="1px solid"
-                    borderColor="whiteAlpha.200"
-                    borderRadius="lg"
-                    bg="whiteAlpha.50"
-                  >
-                    <HStack fontSize="sm" spacing={3}>
-                      {resolvedEnsAvatar && (
-                        <Avatar src={resolvedEnsAvatar} w="2rem" h="2rem" />
-                      )}
-                      <Tooltip
-                        label={resolvedAddress || resolvedEnsName}
-                        placement="top"
-                      >
-                        <Text cursor="default" color="gray.300">
-                          {resolvedAddress
-                            ? slicedText(resolvedAddress)
-                            : resolvedEnsName}
-                        </Text>
-                      </Tooltip>
-                      {resolvedAddress ? (
-                        <CopyToClipboard textToCopy={resolvedAddress} />
-                      ) : (
-                        resolvedEnsName && (
-                          <CopyToClipboard textToCopy={resolvedEnsName} />
-                        )
-                      )}
-                    </HStack>
-                  </Box>
-                )}
-
-                {/* Address Book Label and Tags */}
-                {pathname.includes("/address/") && (
-                  <HStack
-                    p={3}
-                    border="1px solid"
-                    borderColor="whiteAlpha.200"
-                    borderRadius="lg"
-                    bg="whiteAlpha.50"
-                    flexWrap="wrap"
-                    gap={2}
-                  >
-                    {addressBookLabel ? (
-                      <>
-                        <BookOpen size={16} color="gray" />
-                        <Tag
-                          size="sm"
-                          variant="solid"
-                          colorScheme="purple"
-                        >
-                          {addressBookLabel}
-                        </Tag>
-                        <Tooltip label="Edit Label" placement="top">
-                          <IconButton
-                            aria-label="Edit label"
-                            icon={<EditIcon />}
-                            size="xs"
-                            variant="ghost"
-                            color="whiteAlpha.600"
-                            _hover={{ color: "white" }}
-                            onClick={() => setIsLabelModalOpen(true)}
-                          />
-                        </Tooltip>
-                      </>
-                    ) : (
-                      isAddressBookReady && userInput && (
-                        <Tooltip label="Save to Address Book" placement="top">
-                          <IconButton
-                            aria-label="Save to address book"
-                            icon={
-                              <HStack spacing={0.5}>
-                                <BookOpen size={12} />
-                                <AddIcon boxSize={2} />
-                              </HStack>
-                            }
-                            size="xs"
-                            variant="ghost"
-                            color="whiteAlpha.400"
-                            _hover={{ color: "white", bg: "whiteAlpha.200" }}
-                            onClick={() => setIsLabelModalOpen(true)}
-                          />
-                        </Tooltip>
-                      )
-                    )}
-                    {addressLabels.length > 0 && (
-                      <>
-                        <Text fontSize="sm" color="gray.400" ml={addressBookLabel ? 2 : 0}>
-                          Tags:
-                        </Text>
-                        {addressLabels.map((label, index) => (
-                          <Tag
-                            key={index}
-                            size="sm"
-                            variant="solid"
-                            colorScheme="blue"
-                          >
-                            {label}
-                          </Tag>
-                        ))}
-                      </>
-                    )}
-                  </HStack>
-                )}
               </VStack>
             </Box>
 
+                {pathname.includes("/address/") && addressLabels.length > 0 && (
+                  <HStack gridRow={{ base: 4, md: 3 }} gridColumn="1 / -1" spacing={0} gap={2} flexWrap="wrap">
+                    {addressLabels.map((label, index) => (
+                      <Tag key={index} size="sm" variant="subtle" colorScheme="gray">{label}</Tag>
+                    ))}
+                  </HStack>
+                )}
+
+            </Box>
+
             {/* Content Area */}
-            <Box mt={6}>{children}</Box>
+            <Box mt={isExplorerHome ? 7 : 5} pt={isExplorerHome ? 0 : 4} borderTop={isExplorerHome ? undefined : "1px solid"} borderColor="border.subtle">{children}</Box>
           </Box>
         </Center>
-      </HStack>
+      </Box>
 
-      {/* Address Label Modal for save/edit */}
-      {userInput && (
-        <AddressLabelModal
-          isOpen={isLabelModalOpen}
-          onClose={() => setIsLabelModalOpen(false)}
-          address={userInput}
-          existingLabel={addressBookLabel}
-          defaultLabel={resolvedEnsName || ""}
-        />
-      )}
+
     </Layout>
   );
 }
