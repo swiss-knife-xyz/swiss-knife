@@ -4,8 +4,8 @@ import { useId, useRef, useState } from "react";
 import {
   Box,
   Button,
-  Checkbox,
-  Code,
+  Alert,
+  AlertIcon,
   FormControl,
   FormLabel,
   Input,
@@ -19,12 +19,9 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-import {
-  previewSignatureImport,
-  submitSignatureImport,
-} from "@/lib/signatureRegistry";
+import { submitSignatureImport } from "@/lib/signatureRegistry";
 
-// Remount on target changes: an old preview/consent must never authorize a new selector.
+// A different calldata selector starts a fresh form and submission status.
 export function SignatureRegistryForm({
   selector = "",
 }: {
@@ -39,44 +36,29 @@ function RegistryForm({ target }: { target: string }) {
   const [open, setOpen] = useState(false);
   const [signature, setSignature] = useState("");
   const [selector, setSelector] = useState(target);
-  const [preview, setPreview] =
-    useState<ReturnType<typeof previewSignatureImport>>();
-  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
-  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState<"imported" | "duplicated">();
   const [error, setError] = useState("");
 
   function reset() {
-    setPreview(undefined);
-    setConsent(false);
-    setMessage("");
+    setStatus(undefined);
     setError("");
   }
 
   async function submit() {
-    if (!preview || !consent || submitting.current) return;
+    if (submitting.current) return;
     submitting.current = true;
     setBusy(true);
-    setError("");
+    reset();
     try {
-      const status = await submitSignatureImport(
-        preview.signature,
-        preview.selector,
-        consent
-      );
-      setMessage(
-        status === "imported"
-          ? "Imported to Sourcify's public registry."
-          : "Signature already exists in Sourcify's public registry."
-      );
+      // Clicking the explicitly labelled submit button authorizes this import.
+      setStatus(await submitSignatureImport(signature, selector, true));
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Submission was not confirmed."
       );
     } finally {
-      setPreview(undefined);
-      setConsent(false);
       setBusy(false);
       submitting.current = false;
     }
@@ -131,26 +113,28 @@ function RegistryForm({ target }: { target: string }) {
           mx={{ base: 0, sm: 4 }}
           maxH={{ base: "100dvh", sm: "calc(100dvh - 4rem)" }}
         >
-          <ModalHeader as="h2" fontSize="md" fontWeight="semibold" pr={12}>
+          <ModalHeader
+            as="h2"
+            fontSize="md"
+            fontWeight="semibold"
+            lineHeight="short"
+            px={6}
+            pt={5}
+            pb={2}
+            pr={12}
+            mb={0}
+          >
             Add a missing signature
           </ModalHeader>
           <ModalCloseButton isDisabled={busy} />
-          <ModalBody pb={6} textAlign="left">
+          <ModalBody px={6} pt={0} pb={6} textAlign="left">
             <Stack
               as="form"
-              spacing={3}
+              spacing={4}
               fontSize="sm"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (busy) return;
-                reset();
-                try {
-                  setPreview(previewSignatureImport(signature, selector));
-                } catch (err) {
-                  setError(
-                    err instanceof Error ? err.message : "Invalid signature."
-                  );
-                }
+                void submit();
               }}
             >
               <Text color="whiteAlpha.800">
@@ -164,7 +148,7 @@ function RegistryForm({ target }: { target: string }) {
                 </Link>
                 &apos;s public registry.
               </Text>
-              <FormControl>
+              <FormControl pt={2}>
                 <FormLabel htmlFor={`${id}-selector`} {...labelProps}>
                   4-byte selector
                 </FormLabel>
@@ -207,85 +191,31 @@ function RegistryForm({ target }: { target: string }) {
               <Button
                 type="submit"
                 size="sm"
-                alignSelf="start"
-                isDisabled={busy}
+                colorScheme="blue"
+                alignSelf="center"
+                mt={1}
+                isLoading={busy}
+                loadingText="Checking and submitting"
               >
-                Preview public submission
+                Submit to Sourcify
               </Button>
-              {preview && (
-                <Stack
-                  spacing={2}
-                  minW={0}
-                  pt={3}
-                  borderTopWidth="1px"
-                  borderColor="whiteAlpha.200"
-                >
-                  <Text {...labelProps} mb={0}>
-                    POST destination
-                  </Text>
-                  <Code
-                    fontSize="xs"
-                    bg="whiteAlpha.100"
-                    whiteSpace="normal"
-                    overflowWrap="anywhere"
-                  >
-                    {preview.destination}
-                  </Code>
-                  <Text {...labelProps} mb={0}>
-                    Exact JSON payload (no calldata, address, wallet or chain
-                    data)
-                  </Text>
-                  <Code
-                    fontSize="xs"
-                    bg="whiteAlpha.100"
-                    whiteSpace="pre-wrap"
-                    overflowWrap="anywhere"
-                  >
-                    {JSON.stringify(preview.body)}
-                  </Code>
-                  <Text fontSize="xs" color="whiteAlpha.700">
-                    Matching selector:{" "}
-                    <Code fontSize="xs" bg="transparent" p={0}>
-                      {preview.selector}
-                    </Code>
-                  </Text>
-                  <Checkbox
-                    size="sm"
-                    pt={1}
-                    isChecked={consent}
-                    isDisabled={busy}
-                    onChange={(e) => setConsent(e.target.checked)}
-                  >
-                    I want to publish this signature to Sourcify. Its public
-                    service will receive the signature and my IP address.
-                  </Checkbox>
-                  <Button
-                    type="button"
-                    size="sm"
-                    colorScheme="blue"
-                    alignSelf="start"
-                    maxW="full"
-                    whiteSpace="normal"
-                    height="auto"
-                    minH={8}
-                    isDisabled={!consent || busy}
-                    isLoading={busy}
-                    onClick={submit}
-                  >
-                    Submit signature to Sourcify
-                  </Button>
-                </Stack>
-              )}
               {error && (
-                <Text role="alert" color="red.400">
+                <Alert status="error" role="alert" borderRadius="md">
+                  <AlertIcon />
                   {error}
-                </Text>
+                </Alert>
               )}
-              {message && (
-                <Text role="status">
-                  {message} This is not ABI verification; decoding is not
-                  changed automatically.
-                </Text>
+              {status && (
+                <Alert
+                  status={status === "imported" ? "success" : "info"}
+                  role="status"
+                  borderRadius="md"
+                >
+                  <AlertIcon />
+                  {status === "imported"
+                    ? "Signature submitted to Sourcify."
+                    : "This signature already exists on Sourcify."}
+                </Alert>
               )}
             </Stack>
           </ModalBody>
