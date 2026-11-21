@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { fetchContractAbi, getMetadata, getPath } from "@/utils";
+import { fetchContractAbi, getMetadata } from "@/utils";
 import { Layout } from "@/components/Layout";
 // Putting the page into separate component as it uses "use client" which doesn't work with `generateMetadata`
 import { ContractPage as ContractP } from "./ContractPage";
 import { generateMetadata as layoutGenerateMetadata } from "./layout";
-import { Box, Heading } from "@chakra-ui/react";
-import NextLink from "next/link";
 
 interface PageProps {
   params: Promise<{ address: string; chainId: string }>;
@@ -54,14 +52,7 @@ const ContractPage = async ({
 }) => {
   const { address, chainId } = await params;
   return (
-    <Layout minW={0}>
-      <Box w="full" maxW="70rem" mx="auto">
-        <NextLink href={getPath("contract")}>
-          <Heading as="h1" fontSize={{ base: "xl", md: "2xl" }} mb={4} color={"custom.pale"} _hover={{ opacity: 0.8 }} cursor="pointer">
-            Contract Explorer
-          </Heading>
-        </NextLink>
-      </Box>
+    <Layout minW={0} allowSticky>
       <ContractP
         params={{
           address,

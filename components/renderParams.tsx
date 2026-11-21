@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Button, HStack, Link, Stack, Text } from "@chakra-ui/react";
+import { Box, Button, HStack, Stack, Text } from "@chakra-ui/react";
 import { isAddress } from "viem";
 import {
   UintParam,
@@ -14,6 +14,7 @@ import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { Arg, DecodeBytesParamResult, DecodeTupleParamResult } from "@/types";
+import { ContractAddressLink } from "@/components/ContractTabs";
 
 export const renderParamTypes = (arg: Arg, chainId?: number) => {
   if (arg.baseType.includes("uint")) {
@@ -71,6 +72,20 @@ export const renderParams = (
   variant: "surface" | "plain" = "surface"
 ) => {
   const type = arg.type.includes("tuple") ? "tuple" : arg.type;
+  const linkedAddress = String(arg.baseType === "address" ? arg.value : arg.rawValue);
+  const addressLink = (arg.baseType === "address" || arg.baseType === "bytes") && isAddress(linkedAddress) ? (
+    <Button
+      as={ContractAddressLink}
+      address={linkedAddress}
+      chainId={chainId}
+      href={`${getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}address/${linkedAddress}`}
+      aria-label={`Open address ${linkedAddress}`}
+      title="Open address"
+      isExternal
+      size="xs"
+    ><ExternalLinkIcon /></Button>
+  ) : null;
+
 
   return (
     <Stack
@@ -86,25 +101,7 @@ export const renderParams = (
             <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
               {type}
             </Box>
-            {arg.baseType === "address" ||
-            (arg.baseType === "bytes" && isAddress(arg.rawValue)) ? (
-              <Link
-                href={`${getPath(
-                  subdomains.EXPLORER.base,
-                  subdomains.EXPLORER.isRelativePath
-                )}address/${
-                  arg.baseType === "address" ? arg.value : arg.rawValue
-                }`}
-                title="View on explorer"
-                isExternal
-              >
-                <Button size={"xs"}>
-                  <HStack minW={0} flexWrap="wrap">
-                    <ExternalLinkIcon />
-                  </HStack>
-                </Button>
-              </Link>
-            ) : null}
+            {addressLink}
           </HStack>
           <HStack minW={0} flexWrap="wrap">
             <Box>
@@ -129,25 +126,7 @@ export const renderParams = (
               (length: {Array.isArray(arg.value) ? arg.value.length : 0})
             </Box>
           ) : null}
-          {arg.baseType === "address" ||
-          (arg.baseType === "bytes" && isAddress(arg.rawValue)) ? (
-            <Link
-              href={`${getPath(
-                subdomains.EXPLORER.base,
-                subdomains.EXPLORER.isRelativePath
-              )}address/${
-                arg.baseType === "address" ? arg.value : arg.rawValue
-              }`}
-              title="View on explorer"
-              isExternal
-            >
-              <Button size={"xs"}>
-                <HStack minW={0} flexWrap="wrap">
-                  <ExternalLinkIcon />
-                </HStack>
-              </Button>
-            </Link>
-          ) : null}
+          {addressLink}
         </HStack>
       )}
       <Stack spacing={2} minW={0}>{renderParamTypes(arg, chainId)}</Stack>
