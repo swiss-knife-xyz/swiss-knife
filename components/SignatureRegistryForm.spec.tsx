@@ -1,44 +1,105 @@
 import React from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { SignatureRegistryForm } from "./SignatureRegistryForm";
 
+const signature = "transfer(address,uint256)";
+const selector = "0xa9059cbb";
+const lookup = (names: string[] = []) =>
+  new Response(
+    JSON.stringify({
+      ok: true,
+      result: { function: { [selector]: names.map((name) => ({ name })) } },
+    })
+  );
+const imported = () =>
+  new Response(
+    JSON.stringify({
+      ok: true,
+      result: {
+        function: {
+          imported: { [signature]: selector },
+          duplicated: {},
+          invalid: [],
+        },
+      },
+    })
+  );
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
-
-function openAndPreview() {
-  fireEvent.click(
-    screen.getByRole("button", { name: "Add a missing signature" })
-  );
-  fireEvent.change(
-    screen.getByRole("textbox", { name: "Canonical function signature" }),
-    { target: { value: "transfer(address,uint256)" } }
-  );
-  fireEvent.click(
-    screen.getByRole("button", { name: "Preview public submission" })
-  );
-}
-
-it("rejects a wrong or noncanonical signature without network access", () => {
-  const fetchMock = vi.fn();
-  vi.stubGlobal("fetch", fetchMock);
-  render(
+function mount(target = selector) {
+  return render(
     <ChakraProvider>
-      <SignatureRegistryForm selector="0xa9059cbb" />
+      <SignatureRegistryForm selector={target} />
     </ChakraProvider>
   );
+}
+async function open() {
   fireEvent.click(
     screen.getByRole("button", { name: "Add a missing signature" })
   );
+  return screen.findByRole("dialog", { name: "Add a missing signature" });
+}
+async function fill() {
+  const dialog = await open();
+  fireEvent.change(
+    within(dialog).getByRole("textbox", {
+      name: "Canonical function signature",
+    }),
+    {
+      target: { value: signature },
+    }
+  );
+  return dialog;
+}
+function submit() {
+  fireEvent.click(screen.getByRole("button", { name: "Submit to Sourcify" }));
+}
+
+it("opens a focused modal with one submit button and no preview or API details", async () => {
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+  mount();
+  const trigger = screen.getByRole("button", {
+    name: "Add a missing signature",
+  });
+  trigger.focus();
+  const dialog = await fill();
+  await waitFor(() =>
+    expect(dialog.contains(document.activeElement)).toBe(true)
+  );
+  expect(
+    within(dialog).getByRole("button", { name: "Submit to Sourcify" })
+  ).toBeTruthy();
+  expect(within(dialog).queryByRole("checkbox")).toBeNull();
+  expect(
+    within(dialog).queryByText(
+      /POST destination|Exact JSON payload|Preview public/
+    )
+  ).toBeNull();
+  expect(dialog.textContent).not.toContain("/signature-database/");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(trigger));
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it("validates mismatched or noncanonical signatures before making requests", async () => {
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+  mount();
+  await open();
   for (const value of [
     "transfer(address,uint)",
     "wrong()",
@@ -49,73 +110,152 @@ it("rejects a wrong or noncanonical signature without network access", () => {
       screen.getByRole("textbox", { name: "Canonical function signature" }),
       { target: { value } }
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Preview public submission" })
-    );
-    expect(screen.getByRole("alert")).toBeTruthy();
-    expect(screen.queryByRole("checkbox")).toBeNull();
+    submit();
+    await screen.findByRole("alert");
   }
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
-it("requires a manually entered exact selector when no calldata is available", () => {
-  const fetchMock = vi.fn();
+it("requires an exact selector when there is no calldata", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(lookup([signature]));
   vi.stubGlobal("fetch", fetchMock);
-  render(
-    <ChakraProvider>
-      <SignatureRegistryForm />
-    </ChakraProvider>
+  mount("");
+  await fill();
+  submit();
+  expect((await screen.findByRole("alert")).textContent).toContain(
+    "4-byte selector"
   );
-  openAndPreview();
-  expect(screen.getByRole("alert").textContent).toContain("4-byte selector");
-  fireEvent.change(screen.getByRole("textbox", { name: "4-byte selector" }), {
-    target: { value: "0xa9059cbb" },
-  });
-  fireEvent.click(
-    screen.getByRole("button", { name: "Preview public submission" })
-  );
-  expect(screen.getByRole("checkbox")).toBeTruthy();
   expect(fetchMock).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByRole("textbox", { name: "4-byte selector" }), {
+    target: { value: selector },
+  });
+  submit();
+  expect((await screen.findByRole("status")).textContent).toContain(
+    "already exists"
+  );
+  expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
-it("invalidates preview and consent when the signature changes", () => {
-  vi.stubGlobal("fetch", vi.fn());
-  render(
-    <ChakraProvider>
-      <SignatureRegistryForm selector="0xa9059cbb" />
-    </ChakraProvider>
+it("shows an existing signature without posting an import", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(lookup([signature]));
+  vi.stubGlobal("fetch", fetchMock);
+  mount();
+  await fill();
+  submit();
+  expect((await screen.findByRole("status")).textContent).toContain(
+    "already exists"
   );
-  openAndPreview();
-  fireEvent.click(screen.getByRole("checkbox"));
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(fetchMock.mock.calls[0][1].method).toBe("GET");
+});
+
+it("checks and imports a missing signature from a single form submission", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(lookup())
+    .mockResolvedValueOnce(imported());
+  vi.stubGlobal("fetch", fetchMock);
+  mount();
+  await fill();
+  fireEvent.submit(
+    screen
+      .getByRole("textbox", { name: "Canonical function signature" })
+      .closest("form")!
+  );
+  expect((await screen.findByRole("status")).textContent).toContain(
+    "submitted to Sourcify"
+  );
+  expect(fetchMock.mock.calls.map((call) => call[1].method)).toEqual([
+    "GET",
+    "POST",
+  ]);
+});
+
+it("disables editing, dismissal and duplicate submissions while checking", async () => {
+  let resolve!: (r: Response) => void;
+  const fetchMock = vi.fn(
+    () =>
+      new Promise<Response>((r) => {
+        resolve = r;
+      })
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  mount();
+  const dialog = await fill();
+  submit();
+  fireEvent.submit(
+    screen
+      .getByRole("textbox", { name: "Canonical function signature" })
+      .closest("form")!
+  );
+  expect(
+    (
+      screen.getByRole("textbox", {
+        name: "Canonical function signature",
+      }) as HTMLInputElement
+    ).disabled
+  ).toBe(true);
+  expect(
+    (within(dialog).getByRole("button", { name: "Close" }) as HTMLButtonElement)
+      .disabled
+  ).toBe(true);
+  fireEvent.keyDown(dialog, { key: "Escape", code: "Escape" });
+  expect(screen.getByRole("dialog")).toBeTruthy();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  await act(async () => resolve(lookup([signature])));
+  await screen.findByRole("status");
+});
+
+it("shows lookup failures without importing, and clears status when input changes", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("private detail"))
+    .mockResolvedValueOnce(lookup([signature]));
+  vi.stubGlobal("fetch", fetchMock);
+  mount();
+  await fill();
+  submit();
+  expect((await screen.findByRole("alert")).textContent).toContain(
+    "Nothing was submitted"
+  );
+  expect(screen.getByRole("alert").textContent).not.toContain("private detail");
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  submit();
+  await screen.findByRole("status");
   fireEvent.change(
     screen.getByRole("textbox", { name: "Canonical function signature" }),
     { target: { value: "wrong()" } }
   );
-  expect(screen.queryByRole("checkbox")).toBeNull();
-  expect(
-    screen.queryByRole("button", { name: "Submit signature to Sourcify" })
-  ).toBeNull();
-  expect(fetch).not.toHaveBeenCalled();
+  expect(screen.queryByRole("status")).toBeNull();
 });
 
-it("changing calldata selector resets disclosure, signature, preview and consent", () => {
-  vi.stubGlobal("fetch", vi.fn());
-  const { rerender } = render(
-    <ChakraProvider>
-      <SignatureRegistryForm selector="0xa9059cbb" />
-    </ChakraProvider>
+it("reports an unconfirmed import without retrying it automatically", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(lookup())
+    .mockRejectedValueOnce(new Error("private detail"));
+  vi.stubGlobal("fetch", fetchMock);
+  mount();
+  await fill();
+  submit();
+  expect((await screen.findByRole("alert")).textContent).toContain(
+    "may have reached Sourcify"
   );
-  openAndPreview();
-  fireEvent.click(screen.getByRole("checkbox"));
-  rerender(
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+it("resets the form when the calldata selector changes", async () => {
+  vi.stubGlobal("fetch", vi.fn());
+  const view = mount();
+  await fill();
+  view.rerender(
     <ChakraProvider>
       <SignatureRegistryForm selector="0x095ea7b3" />
     </ChakraProvider>
   );
-  expect(screen.queryByRole("checkbox")).toBeNull();
-  fireEvent.click(
-    screen.getByRole("button", { name: "Add a missing signature" })
-  );
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await open();
   expect(
     (
       screen.getByRole("textbox", {
@@ -131,156 +271,4 @@ it("changing calldata selector resets disclosure, signature, preview and consent
     ).value
   ).toBe("0x095ea7b3");
   expect(fetch).not.toHaveBeenCalled();
-});
-
-it("Enter previews locally but never submits even after consent", () => {
-  vi.stubGlobal("fetch", vi.fn());
-  render(
-    <ChakraProvider>
-      <SignatureRegistryForm selector="0xa9059cbb" />
-    </ChakraProvider>
-  );
-  openAndPreview();
-  fireEvent.click(screen.getByRole("checkbox"));
-  const input = screen.getByRole("textbox", {
-    name: "Canonical function signature",
-  });
-  fireEvent.submit(input.closest("form")!);
-  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(
-    false
-  );
-  expect(fetch).not.toHaveBeenCalled();
-});
-
-it("disables fields and guards duplicate clicks while a mocked submission is pending", async () => {
-  let resolve!: (value: Response) => void;
-  const fetchMock = vi.fn(
-    () =>
-      new Promise<Response>((r) => {
-        resolve = r;
-      })
-  );
-  vi.stubGlobal("fetch", fetchMock);
-  render(
-    <ChakraProvider>
-      <SignatureRegistryForm selector="0xa9059cbb" />
-    </ChakraProvider>
-  );
-  openAndPreview();
-  fireEvent.click(screen.getByRole("checkbox"));
-  const submit = screen.getByRole("button", {
-    name: "Submit signature to Sourcify",
-  });
-  fireEvent.click(submit);
-  fireEvent.click(submit);
-  expect(
-    (
-      screen.getByRole("textbox", {
-        name: "Canonical function signature",
-      }) as HTMLInputElement
-    ).disabled
-  ).toBe(true);
-  expect(fetchMock).toHaveBeenCalledTimes(1);
-  resolve(
-    new Response(
-      JSON.stringify({
-        ok: true,
-        result: {
-          function: {
-            imported: {},
-            duplicated: { "transfer(address,uint256)": "0xa9059cbb" },
-            invalid: [],
-          },
-        },
-      })
-    )
-  );
-  await waitFor(() =>
-    expect(screen.getByRole("status").textContent).toContain("already exists")
-  );
-  expect(screen.queryByRole("checkbox")).toBeNull();
-  expect(fetchMock).toHaveBeenCalledTimes(1);
-});
-
-it("failed submission clears authorization and warns about uncertain delivery without retry", async () => {
-  const fetchMock = vi
-    .fn()
-    .mockRejectedValue(new Error("upstream private detail"));
-  vi.stubGlobal("fetch", fetchMock);
-  render(
-    <ChakraProvider>
-      <SignatureRegistryForm selector="0xa9059cbb" />
-    </ChakraProvider>
-  );
-  openAndPreview();
-  fireEvent.click(screen.getByRole("checkbox"));
-  fireEvent.click(
-    screen.getByRole("button", { name: "Submit signature to Sourcify" })
-  );
-  await waitFor(() =>
-    expect(screen.getByRole("alert").textContent).toContain(
-      "may have reached Sourcify"
-    )
-  );
-  expect(screen.queryByRole("status")).toBeNull();
-  expect(screen.queryByRole("checkbox")).toBeNull();
-  expect(screen.getByRole("alert").textContent).not.toContain(
-    "upstream private detail"
-  );
-  expect(fetchMock).toHaveBeenCalledTimes(1);
-});
-
-it("keeps public writes opt-in through preview and separate consent", async () => {
-  const fetchMock = vi.fn().mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        ok: true,
-        result: {
-          function: {
-            imported: { "transfer(address,uint256)": "0xa9059cbb" },
-            duplicated: {},
-            invalid: [],
-          },
-        },
-      })
-    )
-  );
-  vi.stubGlobal("fetch", fetchMock);
-  render(
-    <ChakraProvider>
-      <SignatureRegistryForm selector="0xa9059cbb" />
-    </ChakraProvider>
-  );
-  expect(
-    screen.queryByRole("textbox", { name: "Canonical function signature" })
-  ).toBeNull();
-  fireEvent.click(
-    screen.getByRole("button", { name: "Add a missing signature" })
-  );
-  fireEvent.change(
-    screen.getByRole("textbox", { name: "Canonical function signature" }),
-    { target: { value: "transfer(address,uint256)" } }
-  );
-  fireEvent.click(
-    screen.getByRole("button", { name: "Preview public submission" })
-  );
-  expect(
-    screen.getByText(
-      "https://api.4byte.sourcify.dev/signature-database/v1/import"
-    )
-  ).toBeTruthy();
-  expect(
-    screen.getByText('{"function":["transfer(address,uint256)"]}')
-  ).toBeTruthy();
-  const submit = screen.getByRole("button", {
-    name: "Submit signature to Sourcify",
-  }) as HTMLButtonElement;
-  expect(submit.disabled).toBe(true);
-  expect(fetchMock).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("checkbox"));
-  fireEvent.click(submit);
-  await waitFor(() =>
-    expect(screen.getByRole("status").textContent).toContain("Imported")
-  );
-  expect(fetchMock).toHaveBeenCalledTimes(1);
 });

@@ -11,6 +11,13 @@ const importResponse = z.object({
   result: z.object({ function: importDetails }),
 });
 
+const lookupResponse = z.object({
+  ok: z.literal(true),
+  result: z.object({
+    function: z.record(z.array(z.object({ name: z.string() })).nullable()),
+  }),
+});
+
 export async function submitSignatureImport(
   signature: string,
   selector: string,
@@ -22,7 +29,35 @@ export async function submitSignatureImport(
   const preview = previewSignatureImport(signature, selector);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
+  let importStarted = false;
   try {
+    const lookupUrl = new URL(SIGNATURE_LOOKUP_URL);
+    lookupUrl.searchParams.set("function", preview.selector);
+    lookupUrl.searchParams.set("filter", "false");
+    const lookup = await fetcher(lookupUrl.toString(), {
+      method: "GET",
+      cache: "no-store",
+      credentials: "omit",
+      referrerPolicy: "no-referrer",
+      redirect: "error",
+      signal: controller.signal,
+    });
+    if (!lookup.ok) throw new Error("Registry lookup failed.");
+    const lookupText = await lookup.text();
+    if (lookupText.length > 65536)
+      throw new Error("Unexpected registry response.");
+    const functions = lookupResponse.parse(JSON.parse(lookupText)).result
+      .function;
+    if (!Object.hasOwn(functions, preview.selector)) {
+      throw new Error("Registry did not confirm the selector lookup.");
+    }
+    // Selectors can collide: only an exact canonical signature is a duplicate.
+    if (
+      functions[preview.selector]?.some((entry) => entry.name === signature)
+    ) {
+      return "duplicated";
+    }
+    importStarted = true;
     const response = await fetcher(SIGNATURE_IMPORT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -50,7 +85,9 @@ export async function submitSignatureImport(
   } catch {
     // Do not retry a potentially completed public write or display untrusted errors.
     throw new Error(
-      "Submission was not confirmed. It may have reached Sourcify; check the registry before trying again."
+      importStarted
+        ? "Submission was not confirmed. It may have reached Sourcify; check the registry before trying again."
+        : "Could not check Sourcify. Nothing was submitted. Please try again."
     );
   } finally {
     clearTimeout(timeout);
@@ -58,6 +95,8 @@ export async function submitSignatureImport(
 }
 
 // Sourcify's current published API; never fall back to historical OpenChain hosts.
+export const SIGNATURE_LOOKUP_URL =
+  "https://api.4byte.sourcify.dev/signature-database/v1/lookup";
 export const SIGNATURE_IMPORT_URL =
   "https://api.4byte.sourcify.dev/signature-database/v1/import";
 

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { ExampleSnapshotContext } from "./ExampleSnapshotContext";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Button,
   type ButtonProps,
@@ -47,7 +48,19 @@ const skeletonAddress = "0x1111222233334444000000000000000000000000";
 
 type DisplayMode = "label" | "ens" | "address";
 
-export const AddressParam = ({
+// Metadata and display choices belong to one address/network/source. Remount
+// before rendering a different identity, rather than clearing old data in an effect.
+export const AddressParam = (props: Params) => {
+  const example = useContext(ExampleSnapshotContext);
+  return (
+    <AddressParamContent
+      key={JSON.stringify([props.address, props.chainId, !!example])}
+      {...props}
+    />
+  );
+};
+
+const AddressParamContent = ({
   address: _address,
   showLink,
   chainId,
@@ -55,6 +68,7 @@ export const AddressParam = ({
   explorerButtonProps,
   modeButtonProps,
 }: Params) => {
+  const example = useContext(ExampleSnapshotContext);
   const showSkeleton = _address === null || _address === undefined;
   const address = !showSkeleton ? _address : skeletonAddress;
 
@@ -68,10 +82,11 @@ export const AddressParam = ({
     labels: string[];
   }>();
   // Never display the previous address/network's metadata, even before effects run.
-  const addressLabels =
-    labelResult &&
-    labelResult.address === address &&
-    labelResult.chainId === chainId
+  const addressLabels = example
+    ? (example.addresses[`${chainId}:${address.toLowerCase()}`]?.labels ?? [])
+    : labelResult &&
+        labelResult.address === address &&
+        labelResult.chainId === chainId
       ? labelResult.labels
       : [];
   const [isLoaded, setIsLoaded] = useState(false);
@@ -136,7 +151,7 @@ export const AddressParam = ({
   };
 
   useEffect(() => {
-    if (address === skeletonAddress) return;
+    if (example || address === skeletonAddress) return;
     let cancelled = false;
 
     const fetchLabels = async (): Promise<string[]> => {
@@ -174,38 +189,45 @@ export const AddressParam = ({
     return () => {
       cancelled = true;
     };
-  }, [address, chainId]);
+  }, [address, chainId, example]);
 
   useEffect(() => {
-    if (address !== skeletonAddress) {
-      resolveAddressToName(address).then((res) => {
-        if (res) {
-          setEnsName(res);
-          // Default to showing ENS if no address book label
-          if (!addressBookLabel) {
-            setDisplayMode("ens");
+    let cancelled = false;
+    if (!example && address !== skeletonAddress) {
+      resolveAddressToName(address)
+        .then((res) => {
+          if (!cancelled && res) {
+            setEnsName(res);
           }
-        }
-      });
+        })
+        .catch(() => {});
     }
-  }, [address]);
+    return () => {
+      cancelled = true;
+    };
+  }, [address, example]);
 
-  // Set display mode to label when address book label becomes available
+  // Resolve the preference from current metadata, not the address-book value
+  // captured when an asynchronous ENS lookup started.
   useEffect(() => {
-    if (addressBookLabel) {
-      setDisplayMode("label");
-    }
-  }, [addressBookLabel]);
+    setDisplayMode(addressBookLabel ? "label" : ensName ? "ens" : "address");
+  }, [addressBookLabel, ensName]);
 
   useEffect(() => {
-    if (ensName) {
-      getNameAvatar(ensName).then((res) => {
-        if (res) {
-          setEnsAvatar(res);
-        }
-      });
+    let cancelled = false;
+    if (!example && ensName) {
+      getNameAvatar(ensName)
+        .then((res) => {
+          if (!cancelled && res) {
+            setEnsAvatar(res);
+          }
+        })
+        .catch(() => {});
     }
-  }, [ensName]);
+    return () => {
+      cancelled = true;
+    };
+  }, [ensName, example]);
 
   useEffect(() => {
     if (!showSkeleton) {

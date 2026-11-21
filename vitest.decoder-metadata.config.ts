@@ -6,7 +6,10 @@ export default defineConfig({
   esbuild: { jsx: "automatic" },
   test: {
     environment: "jsdom",
-    include: ["app/calldata/decoder/decoderMetadata.spec.tsx"],
+    include: [
+      "app/calldata/decoder/decoderMetadata.spec.tsx",
+      "components/decodedParams/parameterState.spec.tsx",
+    ],
     maxWorkers: 1,
   },
 });

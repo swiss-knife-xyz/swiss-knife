@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { Interface, id } from "ethers";
 import { decoderSamples } from "./samples";
+import { createHash } from "node:crypto";
+import encodedSnapshots from "./examples.v1.json";
+import { getExampleSnapshot } from "./exampleSnapshots";
+import type { DecodeBytesParamResult } from "@/types";
 
 // Captured from public Ethereum RPC, Blockscout, Safe Transaction Service and
 // the live decoder. This is test-only data, never a runtime response fallback.
@@ -13,6 +17,7 @@ const fixture = (name: string) => captured[name];
 const zero = "0x0000000000000000000000000000000000000000";
 const media = new Interface([
   "function mint((string tokenURI,string metadataURI,bytes32 contentHash,bytes32 metadataHash) data,((uint256 value) prevOwner,(uint256 value) creator,(uint256 value) owner) bidShares)",
+  "event Transfer(address indexed from,address indexed to,uint256 indexed tokenId)",
 ]);
 const safe = new Interface([
   "function execTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,bytes signatures)",
@@ -63,6 +68,58 @@ test("sample manifest binds exactly two mainnet explorer URLs to verified receip
     assert.equal(d.blockscout.hash, sample.hash);
     assert.equal(d.blockscout.raw_input, d.eth_getTransactionByHash.input);
   }
+});
+
+const names = (parsed: { fragment: { inputs: readonly { name: string }[] } }) =>
+  parsed.fragment.inputs.map((input) => input.name);
+
+test("NFT card preview matches the decoded Zora mint call and minted token", () => {
+  const preview = decoderSamples[0].preview;
+  const d = fixture("mint-20000");
+  const tx = d.eth_getTransactionByHash;
+  const decoded = media.parseTransaction({ data: tx.input })!;
+  assert.deepEqual(
+    preview.calls.map((call) => call.name),
+    [decoded.name]
+  );
+  assert.deepEqual([...preview.calls[0].args], names(decoded));
+  const tuple = decoded.fragment.inputs.find(
+    (input) => input.name === preview.detail.arg
+  )!;
+  assert.deepEqual(
+    [...preview.detail.fields],
+    tuple.components!.map((c) => c.name)
+  );
+  const minted = d.eth_getTransactionReceipt.logs.find(
+    (l: any) =>
+      l.address === tx.to &&
+      l.topics[0] === id("Transfer(address,address,uint256)")
+  );
+  assert.equal(BigInt(minted.topics[3]), BigInt(preview.tokenId));
+  assert.ok(preview.note.includes(`#${preview.tokenId}`));
+});
+
+test("Safe card preview matches the decoded execTransaction and its two inner calls in order", () => {
+  const preview = decoderSamples[1].preview;
+  const tx = fixture("safe-supply").eth_getTransactionByHash;
+  const outer = safe.parseTransaction({ data: tx.input })!;
+  assert.equal(outer.name, preview.outer);
+  assert.ok(preview.note.includes(preview.outer));
+  const multi = multiSend.parseTransaction({ data: outer.args.data })!;
+  const calls = packedCalls(multi.args.transactions);
+  assert.equal(calls.length, preview.calls.length);
+  assert.ok(preview.note.startsWith(`${calls.length} calls`));
+  const inner = [
+    erc20.parseTransaction({ data: calls[0].data })!,
+    comet.parseTransaction({ data: calls[1].data })!,
+  ];
+  assert.deepEqual(
+    preview.calls.map((call) => call.name),
+    inner.map((call) => call.name)
+  );
+  preview.calls.forEach((call, i) =>
+    assert.deepEqual([...call.args], names(inner[i]))
+  );
 });
 
 test("selected mint really mints one token from zero and binds the shown IPFS content", () => {
@@ -137,4 +194,51 @@ test("selected Safe executes a successful delegatecall with two understandable i
   assert.equal(service.isSuccessful, true);
   assert.equal(service.data.toLowerCase(), outer.args.data.toLowerCase());
   assert.equal(outer.args.gasToken.toLowerCase(), zero);
+});
+
+test("runtime snapshots preserve the fixture identities, calldata, events and integer precision", () => {
+  for (const [sample, fixtureName, iface] of [
+    [decoderSamples[0], "mint-20000", media],
+    [decoderSamples[1], "safe-supply", safe],
+  ] as const) {
+    const snapshot = getExampleSnapshot(sample);
+    const raw = fixture(fixtureName);
+    const tx = raw.eth_getTransactionByHash;
+    const receipt = raw.eth_getTransactionReceipt;
+    assert.equal(snapshot.hash, tx.hash);
+    assert.equal(snapshot.chainId, Number(tx.chainId));
+    const encoded = encodedSnapshots.find(entry => entry.hash === tx.hash)!;
+    const hash = (data: string | Buffer) => createHash("sha256").update(data).digest("hex");
+    assert.equal(encoded.stages.transaction.sha256, hash(JSON.stringify(tx)));
+    assert.equal(encoded.stages.receipt.sha256, hash(JSON.stringify(receipt)));
+    assert.equal(encoded.stages.decode.sha256, hash(JSON.stringify({
+      result: encoded.result,
+      events: encoded.events,
+    })));
+    assert.equal(iface.encodeFunctionData(snapshot.result.signature, snapshot.result.rawArgs), tx.input);
+    const event = snapshot.events[0];
+    const log = receipt.logs.find((entry: any) => entry.topics[0] === id(event.signature));
+    const decodedEvent = iface.parseLog(log)!;
+    assert.deepEqual(event.args.map(arg => arg.rawValue), [...decodedEvent.args]);
+
+    if (sample.id === "nft-mint") {
+      assert.equal(event.args.find(arg => arg.name === "tokenId")?.rawValue, 20000n);
+      assert.equal(snapshot.result.rawArgs[1][2][0], 99000000000000000000n);
+      assert.equal(
+        hash(readFileSync(new URL("../../../public/decoder-examples/zora-20000.jpg", import.meta.url))),
+        fixture("content-and-label-checks")[fixtureName].artwork.sha256
+      );
+    } else {
+      const data = snapshot.result.args.find(arg => arg.name === "data")!.value as DecodeBytesParamResult;
+      assert.equal(data.decoded?.functionName, "multiSend");
+      const transactions = (data.decoded!.args[0].value as DecodeBytesParamResult).decoded!;
+      assert.equal(transactions.args.length, 2);
+      const calls = transactions.args.map((arg) => {
+        const transaction = (arg.value as DecodeBytesParamResult).decoded!;
+        return (transaction.args.find(arg => arg.name === "calldata")!.value as DecodeBytesParamResult).decoded!;
+      });
+      assert.deepEqual(calls.map(call => call.functionName), ["approve", "supply"]);
+      assert.deepEqual(calls.map(call => call.rawArgs[1]), [2900000000000n, 2900000000000n]);
+    }
+  }
 });

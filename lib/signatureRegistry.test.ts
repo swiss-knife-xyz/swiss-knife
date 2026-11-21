@@ -3,6 +3,19 @@ import assert from "node:assert/strict";
 import * as registry from "./signatureRegistry";
 import { id, FunctionFragment } from "ethers";
 
+// Existing import-response tests exercise the POST after a confirmed missing lookup.
+function withMissingLookup(fetcher: typeof fetch): typeof fetch {
+  return (async (url, init) => {
+    if (init?.method === "GET") {
+      const selector = new URL(String(url)).searchParams.get("function")!;
+      return new Response(
+        JSON.stringify({ ok: true, result: { function: { [selector]: null } } })
+      );
+    }
+    return fetcher(url, init);
+  }) as typeof fetch;
+}
+
 for (const status of ["imported", "duplicated"] as const) {
   test(`confirms ${status} for exactly the submitted pair`, async () => {
     const details = {
@@ -20,7 +33,7 @@ for (const status of ["imported", "duplicated"] as const) {
         "ping()",
         id("ping()").slice(0, 10),
         true,
-        mock
+        withMissingLookup(mock)
       ),
       status
     );
@@ -85,7 +98,13 @@ for (const [name, value, status] of [
       return new Response(JSON.stringify(value), { status });
     }) as typeof fetch;
     await assert.rejects(
-      () => registry.submitSignatureImport("ping()", "0x5c36b186", true, mock),
+      () =>
+        registry.submitSignatureImport(
+          "ping()",
+          "0x5c36b186",
+          true,
+          withMissingLookup(mock)
+        ),
       /not confirmed/
     );
     assert.equal(calls, 1);
@@ -99,7 +118,7 @@ for (const body of ["not JSON", "x".repeat(65537)]) {
           "ping()",
           "0x5c36b186",
           true,
-          (async () => new Response(body)) as typeof fetch
+          withMissingLookup((async () => new Response(body)) as typeof fetch)
         ),
       /not confirmed/
     );
@@ -113,10 +132,10 @@ test("network failure is uncertain and is never automatically retried", async ()
         "ping()",
         "0x5c36b186",
         true,
-        (async () => {
+        withMissingLookup((async () => {
           calls++;
           throw new Error("private upstream detail");
-        }) as typeof fetch
+        }) as typeof fetch)
       ),
     /may have reached Sourcify/
   );
@@ -137,13 +156,15 @@ test("timeout aborts a hung request without a retry", async (t) => {
     "ping()",
     "0x5c36b186",
     true,
-    (async (_url, init) =>
-      new Promise((_resolve, reject) => {
-        signal = init?.signal as AbortSignal;
-        signal.addEventListener("abort", () => reject(new Error("aborted")), {
-          once: true,
-        });
-      })) as typeof fetch
+    withMissingLookup(
+      (async (_url, init) =>
+        new Promise((_resolve, reject) => {
+          signal = init?.signal as AbortSignal;
+          signal.addEventListener("abort", () => reject(new Error("aborted")), {
+            once: true,
+          });
+        })) as typeof fetch
+    )
   );
   await assert.rejects(() => promise, /not confirmed/);
   assert.equal(signal?.aborted, true);
@@ -228,11 +249,16 @@ test("submits only with explicit consent to fixed destination using no credentia
       "transfer(address,uint256)",
       "0xa9059cbb",
       false,
-      fetchMock
+      withMissingLookup(fetchMock)
     )
   );
   await assert.rejects(() =>
-    registry.submitSignatureImport("wrong()", "0xa9059cbb", true, fetchMock)
+    registry.submitSignatureImport(
+      "wrong()",
+      "0xa9059cbb",
+      true,
+      withMissingLookup(fetchMock)
+    )
   );
   assert.equal(calls.length, 0);
   assert.equal(
@@ -240,7 +266,7 @@ test("submits only with explicit consent to fixed destination using no credentia
       "transfer(address,uint256)",
       "0xa9059cbb",
       true,
-      fetchMock
+      withMissingLookup(fetchMock)
     ),
     "imported"
   );
@@ -279,3 +305,115 @@ test("previews a canonical signature only when it matches the exact selector", (
     }
   );
 });
+
+test("skips the import when the exact signature already exists, including filtered matches", async () => {
+  const calls: RequestInit[] = [];
+  const fetcher = (async (url, init) => {
+    calls.push(init!);
+    const parsed = new URL(String(url));
+    assert.equal(
+      parsed.origin + parsed.pathname,
+      registry.SIGNATURE_LOOKUP_URL
+    );
+    assert.equal(parsed.searchParams.get("function"), "0xa9059cbb");
+    assert.equal(parsed.searchParams.get("filter"), "false");
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        result: {
+          function: {
+            "0xa9059cbb": [
+              { name: "transfer(address,uint256)", filtered: true },
+            ],
+          },
+        },
+      })
+    );
+  }) as typeof fetch;
+  assert.equal(
+    await registry.submitSignatureImport(
+      "transfer(address,uint256)",
+      "0xA9059CBB",
+      true,
+      fetcher
+    ),
+    "duplicated"
+  );
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].method, "GET");
+  assert.equal(calls[0].cache, "no-store");
+  assert.equal(calls[0].credentials, "omit");
+  assert.equal(calls[0].referrerPolicy, "no-referrer");
+  assert.equal(calls[0].redirect, "error");
+});
+
+test("a colliding selector with a different signature does not suppress the import", async () => {
+  const methods: string[] = [];
+  const fetcher = (async (_url, init) => {
+    methods.push(init!.method!);
+    return new Response(
+      JSON.stringify(
+        init?.method === "GET"
+          ? {
+              ok: true,
+              result: {
+                function: {
+                  "0xa9059cbb": [{ name: "many_msg_babbage(bytes1)" }],
+                },
+              },
+            }
+          : {
+              ok: true,
+              result: {
+                function: {
+                  imported: { "transfer(address,uint256)": "0xa9059cbb" },
+                  duplicated: {},
+                  invalid: [],
+                },
+              },
+            }
+      )
+    );
+  }) as typeof fetch;
+  assert.equal(
+    await registry.submitSignatureImport(
+      "transfer(address,uint256)",
+      "0xa9059cbb",
+      true,
+      fetcher
+    ),
+    "imported"
+  );
+  assert.deepEqual(methods, ["GET", "POST"]);
+});
+
+for (const [name, body, status] of [
+  [
+    "missing selector",
+    JSON.stringify({ ok: true, result: { function: {} } }),
+    200,
+  ],
+  [
+    "invalid entries",
+    JSON.stringify({ ok: true, result: { function: { "0x5c36b186": [{}] } } }),
+    200,
+  ],
+  ["non-JSON", "not JSON", 200],
+  ["oversize", "x".repeat(65537), 200],
+  ["rate limit", "{}", 429],
+] as const) {
+  test(`a failed lookup (${name}) never sends an import`, async () => {
+    let calls = 0;
+    const fetcher = (async (_url, init) => {
+      calls++;
+      assert.equal(init?.method, "GET");
+      return new Response(body, { status });
+    }) as typeof fetch;
+    await assert.rejects(
+      () =>
+        registry.submitSignatureImport("ping()", "0x5c36b186", true, fetcher),
+      /Could not check Sourcify. Nothing was submitted/
+    );
+    assert.equal(calls, 1);
+  });
+}

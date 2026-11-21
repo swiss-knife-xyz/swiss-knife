@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { ExampleSnapshotContext } from "./ExampleSnapshotContext";
+import React, { useContext, useEffect, useState } from "react";
 import { InputField } from "../InputField";
 import {
   Textarea,
@@ -33,23 +34,48 @@ interface Params {
   disableRich?: boolean;
 }
 
-// FIXME: passing chainId leads to infinite calls to fetch labels and ENS
-export const StringParam = ({
+// URL previews and view choices must never carry over to another parameter.
+export const StringParam = (props: Params) => {
+  const example = useContext(ExampleSnapshotContext);
+  return (
+    <StringParamContent
+      key={JSON.stringify([props.value, props.chainId, !!example])}
+      {...props}
+    />
+  );
+};
+
+const StringParamContent = ({
   value: _value,
   chainId,
   disableRich,
 }: Params) => {
+  const example = useContext(ExampleSnapshotContext);
   const showSkeleton = _value === undefined || _value === null;
   const value = !showSkeleton ? _value : "abcdef1234";
 
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   const [richSelectedTabIndex, setRichSelectedTabIndex] = useState(0);
-  const [urlContent, setUrlContent] = useState<string | null>(null);
-  const [isUrlImageOrJson, setIsUrlImageOrJson] = useState<{
+  const [liveUrlContent, setUrlContent] = useState<string | null>(null);
+  const [liveUrlType, setIsUrlImageOrJson] = useState<{
     isImage?: boolean;
     isJson?: boolean;
   } | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const capturedUrl =
+    example && Object.hasOwn(example.urls, value)
+      ? example.urls[value]
+      : undefined;
+  const urlContent = example
+    ? JSON.stringify(capturedUrl?.json)
+    : liveUrlContent;
+  const isUrlImageOrJson = example
+    ? capturedUrl && {
+        isJson: capturedUrl.json !== undefined,
+        isImage: Boolean(capturedUrl.image),
+      }
+    : liveUrlType;
 
   let displayValue = value;
   let isJson = false;
@@ -166,8 +192,13 @@ export const StringParam = ({
     }
 
     return (
-      <Table variant={"unstyled"}>
-        <Tbody>
+      <Table
+        variant="unstyled"
+        w="full"
+        minW={0}
+        display={{ base: "block", md: "table" }}
+      >
+        <Tbody display={{ base: "block", md: "table-row-group" }}>
           {Object.keys(jsonValue).map((key) => {
             const __value: any = jsonValue[key];
             // avoids the quotes from the string
@@ -189,10 +220,23 @@ export const StringParam = ({
 
             if (type) {
               return (
-                <Tr key={key}>
-                  <Td colSpan={2}>
+                <Tr key={key} display={{ base: "block", md: "table-row" }}>
+                  <Td
+                    colSpan={2}
+                    display={{ base: "block", md: "table-cell" }}
+                    px={{ base: 0, md: 6 }}
+                    py={{ base: 3, md: 4 }}
+                  >
                     <Box>
-                      <Text fontWeight={"bold"}>{key}</Text>
+                      <Text
+                        fontSize={{ base: "xs", md: "md" }}
+                        fontWeight={{ base: "medium", md: "bold" }}
+                        color={{ base: "text.secondary", md: "inherit" }}
+                        overflowWrap="anywhere"
+                        mb={2}
+                      >
+                        {key}
+                      </Text>
                       {renderParamTypes(
                         {
                           name: key,
@@ -210,9 +254,27 @@ export const StringParam = ({
             }
 
             return (
-              <Tr key={key}>
-                <Td fontWeight={"bold"}>{key}</Td>
-                <Td>
+              <Tr key={key} display={{ base: "block", md: "table-row" }}>
+                <Td
+                  display={{ base: "block", md: "table-cell" }}
+                  fontSize={{ base: "xs", md: "md" }}
+                  fontWeight={{ base: "medium", md: "bold" }}
+                  color={{ base: "text.secondary", md: "inherit" }}
+                  overflowWrap="anywhere"
+                  px={{ base: 0, md: 6 }}
+                  pt={{ base: 3, md: 4 }}
+                  pb={{ base: 1, md: 4 }}
+                >
+                  {key}
+                </Td>
+                <Td
+                  display={{ base: "block", md: "table-cell" }}
+                  w={{ base: "full", md: "auto" }}
+                  minW={0}
+                  px={{ base: 0, md: 6 }}
+                  pt={{ base: 0, md: 4 }}
+                  pb={{ base: 3, md: 4 }}
+                >
                   <StringParam
                     value={isString ? __value : JSON.stringify(__value)}
                   />
@@ -239,7 +301,9 @@ export const StringParam = ({
           if (isUrlImageOrJson?.isJson && urlContent) {
             return <RichJsonTable _value={urlContent} chainId={chainId} />;
           } else if (isUrlImageOrJson?.isImage) {
-            return <ResizableImage src={resolveIPFS(value)} />;
+            return (
+              <ResizableImage src={capturedUrl?.image ?? resolveIPFS(value)} />
+            );
           } else {
             return <SimpleString />;
           }
@@ -271,7 +335,11 @@ export const StringParam = ({
           );
         } else if (isUrlImageOrJson?.isJson && urlContent) {
           // Raw JSON from URL
-          const formattedUrlContent = JSON.stringify(urlContent, null, 4);
+          const formattedUrlContent = JSON.stringify(
+            example ? capturedUrl?.json : urlContent,
+            null,
+            4
+          );
           const lineCount = (formattedUrlContent?.split("\n").length ?? 1) + 1;
           const editorHeight = `${Math.min(500, Math.max(80, lineCount * 19 + 10))}px`;
           return (
@@ -283,18 +351,29 @@ export const StringParam = ({
                   size="xs"
                 />
               </HStack>
-              <Editor
-                height={editorHeight}
-                theme="vs-dark"
-                defaultLanguage="json"
-                value={formattedUrlContent}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                }}
-              />
+              {example ? (
+                <Textarea
+                  className="scroll"
+                  fontFamily="mono"
+                  height={editorHeight}
+                  value={formattedUrlContent}
+                  isReadOnly
+                  aria-label="Raw JSON"
+                />
+              ) : (
+                <Editor
+                  height={editorHeight}
+                  theme="vs-dark"
+                  defaultLanguage="json"
+                  value={formattedUrlContent}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                  }}
+                />
+              )}
             </Box>
           );
         } else {
@@ -333,11 +412,13 @@ export const StringParam = ({
     setUrlContent(null);
     setIsUrlImageOrJson(null);
 
-    if (isUrl) {
+    if (!example && isUrl) {
+      let cancelled = false;
       // Check if the URL returns an image or JSON
       axios
         .get(resolveIPFS(value))
         .then((res) => {
+          if (cancelled) return;
           let _urlContent = res.data;
           setUrlContent(_urlContent);
           try {
@@ -365,8 +446,11 @@ export const StringParam = ({
           }
         })
         .catch(() => {});
+      return () => {
+        cancelled = true;
+      };
     }
-  }, [isUrl, value]);
+  }, [example, isUrl, value]);
 
   useEffect(() => {
     if (!showSkeleton) {
