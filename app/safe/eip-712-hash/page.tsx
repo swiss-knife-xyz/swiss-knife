@@ -173,7 +173,7 @@ function SevenOneTwoHashContent() {
           EIP-712 Hash Visualizer
         </Heading>
         <Text color="gray.400" fontSize="md" mt={2}>
-          Tool to verify and hash EIP-712 typed data
+          Calculate domain, message and EIP-712 hashes.
         </Text>
       </Box>
 
@@ -186,7 +186,7 @@ function SevenOneTwoHashContent() {
       >
         <Flex mb={3} justifyContent="space-between" alignItems="center">
           <Text color="gray.300" fontSize="sm">
-            Paste your JSON below
+            Typed data JSON
           </Text>
           <CopyToClipboard textToCopy={input} size="sm" />
         </Flex>
@@ -273,7 +273,7 @@ function SevenOneTwoHashContent() {
           borderColor="whiteAlpha.200"
         >
           <Text color="gray.300" fontSize="sm" fontWeight="medium" mb={3}>
-            Resulting Hashes
+            Hashes
           </Text>
           <VStack spacing={3} align="stretch">
             <Box p={3} bg="whiteAlpha.100" borderRadius="md">

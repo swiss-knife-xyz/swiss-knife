@@ -8,7 +8,6 @@ import {
   FormControl,
   FormLabel,
   Heading,
-  Link,
   Select,
   SimpleGrid,
   Text,
@@ -101,20 +100,10 @@ export function ManualSafeTransaction() {
   return (
     <Box maxW="800px" mx="auto" w="full">
       <Heading as="h1" size="lg" color="gray.100" mb={2}>
-        Manual Safe transaction hash
+        Safe transaction hash
       </Heading>
-      <Text color="gray.400" mb={4}>
-        Calculate locally, then compare all 32 bytes against your independent
-        signing display. A matching hash is not proof that a transaction is
-        safe.
-      </Text>
-      <Text color="gray.400" fontSize="sm" mb={4}>
-        Supports standard Safe 1.3.0 and 1.4.1 transactions (including SafeL2
-        with the same schema). The domain is chainId + the Safe proxy address;
-        it has no name or version field. Confirm the deployed Safe version and
-        chain independently. Older versions, custom Safe implementations, nested
-        Safe approval flows, signatures and execution validation are not
-        supported. This is not the mined Ethereum transaction hash.
+      <Text color="gray.400" mb={5}>
+        Calculate locally from Safe 1.3.0 or 1.4.1 transaction parameters.
       </Text>
       <Box
         as="form"
@@ -125,13 +114,6 @@ export function ManualSafeTransaction() {
         borderColor="whiteAlpha.200"
         borderRadius="lg"
       >
-        <Text color="gray.400" fontSize="sm" mb={4}>
-          Enter every parameter exactly as proposed. All integers accept
-          unsigned decimal or 0x hexadecimal (up to uint256); value and gas
-          price are in wei, not ETH or gwei. Zero is valid. Data must be
-          even-length hex, up to 128 KiB. Full 20-byte addresses only;
-          mixed-case checksums are checked.
-        </Text>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
           <FormControl>
             <FormLabel htmlFor="safe-version">Safe version</FormLabel>
@@ -153,8 +135,8 @@ export function ManualSafeTransaction() {
               onChange={(event) => update("operation", event.target.value)}
               bg="whiteAlpha.50"
             >
-              <option value="0">0 — Call</option>
-              <option value="1">1 — DelegateCall</option>
+              <option value="0">Call</option>
+              <option value="1">Delegate call</option>
             </Select>
           </FormControl>
           {fields.map(({ key, label, placeholder }) => (
@@ -184,10 +166,6 @@ export function ManualSafeTransaction() {
             spellCheck={false}
           />
         </FormControl>
-        <Text color="gray.400" fontSize="sm" mt={3}>
-          Parameters are not uploaded or stored in the URL. No wallet
-          connection, signing, execution, RPC or transaction-service lookup.
-        </Text>
         <Box display="flex" flexWrap="wrap" gap={3} mt={4}>
           <DarkButton type="submit" variant="primary" bg="blue.600">
             Calculate Safe hashes
@@ -222,11 +200,6 @@ export function ManualSafeTransaction() {
           bg="whiteAlpha.50"
           borderRadius="lg"
         >
-          <Text color="gray.300" fontSize="sm">
-            Computed from chain {result.typedData.domain.chainId} and Safe{" "}
-            {result.typedData.domain.verifyingContract}. Compare the parameters
-            as well as the hashes.
-          </Text>
           {(
             [
               ["Safe transaction hash", result.safeTxHash],
@@ -249,7 +222,7 @@ export function ManualSafeTransaction() {
           ))}
           <FormControl>
             <FormLabel htmlFor="safe-typed-data">
-              Computed EIP-712 JSON
+              EIP-712 JSON
             </FormLabel>
             <InputField
               id="safe-typed-data"
@@ -265,32 +238,6 @@ export function ManualSafeTransaction() {
           </FormControl>
         </VStack>
       )}
-      <Text color="gray.400" fontSize="sm" mt={4}>
-        References:{" "}
-        <Link
-          href="https://docs.safe.global/reference-smart-account/transactions/getTransactionHash"
-          color="blue.400"
-          isExternal
-        >
-          Safe getTransactionHash
-        </Link>
-        {" · "}
-        <Link
-          href="https://safeutils.openzeppelin.com/"
-          color="blue.400"
-          isExternal
-        >
-          OpenZeppelin Safe Utils
-        </Link>
-        {" · "}
-        <Link
-          href="https://github.com/Cyfrin/safe-hash-rs/blob/main/crates/safe-utils/tests/hasher_tests.rs"
-          color="blue.400"
-          isExternal
-        >
-          Public example vectors
-        </Link>
-      </Text>
     </Box>
   );
 }

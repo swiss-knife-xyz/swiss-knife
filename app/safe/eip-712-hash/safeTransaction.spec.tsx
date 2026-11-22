@@ -151,7 +151,7 @@ describe("manual Safe verification", () => {
       )
     ).toBeTruthy();
     const typed = JSON.parse(
-      (screen.getByLabelText("Computed EIP-712 JSON") as HTMLTextAreaElement)
+      (screen.getByLabelText("EIP-712 JSON") as HTMLTextAreaElement)
         .value
     );
     expect(typed.domain.chainId).toBe("1");
@@ -191,17 +191,8 @@ describe("manual Safe verification", () => {
     expect(screen.getByRole("alert").textContent).toContain("nonce:");
     expect(screen.queryByDisplayValue(expectedHash)).toBeNull();
   });
-  it("explains domain, units, supported versions and verification-only limits", () => {
+  it("does not expose wallet, signing or execution actions", () => {
     setup();
-    expect(
-      screen.getByText(/not proof that a transaction is safe/i)
-    ).toBeTruthy();
-    expect(
-      screen.getByText(
-        /older versions, custom Safe implementations, nested Safe/i
-      )
-    ).toBeTruthy();
-    expect(screen.getByText(/not uploaded or stored in the URL/i)).toBeTruthy();
     expect(
       screen.queryByRole("button", { name: /connect|sign|execute/i })
     ).toBeNull();
