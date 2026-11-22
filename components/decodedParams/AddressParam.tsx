@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { ExampleSnapshotContext } from "./ExampleSnapshotContext";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Button,
   type ButtonProps,
@@ -31,8 +32,8 @@ import { Address } from "viem";
 import { erc20Abi } from "viem";
 import { useAddressBook } from "@/hooks/useAddressBook";
 import { AddressLabelModal } from "@/components/AddressBook";
-import { ContractAddressLink } from "@/components/ContractTabs";
 import { getPublicClient } from "@/lib/publicClient";
+import { ContractAddressLink } from "@/components/ContractTabs";
 
 interface Params {
   address: any;
@@ -47,7 +48,19 @@ const skeletonAddress = "0x1111222233334444000000000000000000000000";
 
 type DisplayMode = "label" | "ens" | "address";
 
-export const AddressParam = ({
+// Metadata and display choices belong to one address/network/source. Remount
+// before rendering a different identity, rather than clearing old data in an effect.
+export const AddressParam = (props: Params) => {
+  const example = useContext(ExampleSnapshotContext);
+  return (
+    <AddressParamContent
+      key={JSON.stringify([props.address, props.chainId, !!example])}
+      {...props}
+    />
+  );
+};
+
+const AddressParamContent = ({
   address: _address,
   showLink,
   chainId,
@@ -55,6 +68,7 @@ export const AddressParam = ({
   explorerButtonProps,
   modeButtonProps,
 }: Params) => {
+  const example = useContext(ExampleSnapshotContext);
   const showSkeleton = _address === null || _address === undefined;
   const address = !showSkeleton ? _address : skeletonAddress;
 
@@ -62,7 +76,19 @@ export const AddressParam = ({
   const [ensAvatar, setEnsAvatar] = useState("");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("address");
 
-  const [addressLabels, setAddressLabels] = useState<string[]>([]);
+  const [labelResult, setLabelResult] = useState<{
+    address: string;
+    chainId?: number;
+    labels: string[];
+  }>();
+  // Never display the previous address/network's metadata, even before effects run.
+  const addressLabels = example
+    ? (example.addresses[`${chainId}:${address.toLowerCase()}`]?.labels ?? [])
+    : labelResult &&
+        labelResult.address === address &&
+        labelResult.chainId === chainId
+      ? labelResult.labels
+      : [];
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Get label from global address book
@@ -124,82 +150,84 @@ export const AddressParam = ({
     }
   };
 
-  const fetchSetAddressLabels = useCallback(async () => {
-    setAddressLabels([]);
+  useEffect(() => {
+    if (example || address === skeletonAddress) return;
+    let cancelled = false;
 
-    try {
-      if (!chainId) throw new Error("Chain ID not provided");
+    const fetchLabels = async (): Promise<string[]> => {
+      try {
+        if (!chainId) throw new Error("Chain ID not provided");
+        const client = getPublicClient(chainId);
+        await client.getBytecode({ address: address as Address });
+        if (cancelled) return [];
 
-      const client = getPublicClient(chainId);
+        // Reuse the existing token symbol / verified contract name lookup.
+        try {
+          const symbol = await client.readContract({
+            address: address as Address,
+            abi: erc20Abi,
+            functionName: "symbol",
+          });
+          return symbol ? [symbol] : [];
+        } catch {
+          if (cancelled) return [];
+          const fetchedAbi = await fetchContractAbi({ address, chainId });
+          return fetchedAbi?.name ? [fetchedAbi.name] : [];
+        }
+      } catch {
+        return cancelled ? [] : fetchAddressLabels(address, chainId);
+      }
+    };
 
-      // check if the address is a contract
-      const res = await client.getBytecode({
-        address: address as Address,
+    fetchLabels()
+      .then((labels) => {
+        if (!cancelled) setLabelResult({ address, chainId, labels });
+      })
+      .catch(() => {
+        if (!cancelled) setLabelResult({ address, chainId, labels: [] });
       });
-
-      // try fetching the contract symbol() if it's a token
-      try {
-        const symbol = await client.readContract({
-          address: address as Address,
-          abi: erc20Abi,
-          functionName: "symbol",
-        });
-        setAddressLabels([symbol]);
-      } catch {
-        // else try fetching the contract name if it's verified
-        const fetchedAbi = await fetchContractAbi({ address, chainId });
-        if (fetchedAbi) {
-          setAddressLabels([fetchedAbi.name]);
-        }
-      }
-    } catch {
-      try {
-        const labels = await fetchAddressLabels(address, chainId);
-        if (labels.length > 0) {
-          setAddressLabels(labels);
-        }
-      } catch {
-        setAddressLabels([]);
-      }
-    }
-  }, [address, chainId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [address, chainId, example]);
 
   useEffect(() => {
-    if (address !== skeletonAddress) {
-      resolveAddressToName(address).then((res) => {
-        if (res) {
-          setEnsName(res);
-          // Default to showing ENS if no address book label
-          if (!addressBookLabel) {
-            setDisplayMode("ens");
+    let cancelled = false;
+    if (!example && address !== skeletonAddress) {
+      resolveAddressToName(address)
+        .then((res) => {
+          if (!cancelled && res) {
+            setEnsName(res);
           }
-        }
-      });
+        })
+        .catch(() => {});
     }
-  }, [address]);
+    return () => {
+      cancelled = true;
+    };
+  }, [address, example]);
 
-  // Set display mode to label when address book label becomes available
+  // Resolve the preference from current metadata, not the address-book value
+  // captured when an asynchronous ENS lookup started.
   useEffect(() => {
-    if (addressBookLabel) {
-      setDisplayMode("label");
-    }
-  }, [addressBookLabel]);
-
-  useEffect(() => {
-    if (address !== skeletonAddress) {
-      fetchSetAddressLabels();
-    }
-  }, [address, chainId, fetchSetAddressLabels]);
+    setDisplayMode(addressBookLabel ? "label" : ensName ? "ens" : "address");
+  }, [addressBookLabel, ensName]);
 
   useEffect(() => {
-    if (ensName) {
-      getNameAvatar(ensName).then((res) => {
-        if (res) {
-          setEnsAvatar(res);
-        }
-      });
+    let cancelled = false;
+    if (!example && ensName) {
+      getNameAvatar(ensName)
+        .then((res) => {
+          if (!cancelled && res) {
+            setEnsAvatar(res);
+          }
+        })
+        .catch(() => {});
     }
-  }, [ensName]);
+    return () => {
+      cancelled = true;
+    };
+  }, [ensName, example]);
 
   useEffect(() => {
     if (!showSkeleton) {
@@ -353,7 +381,9 @@ export const AddressParam = ({
           {showLink && (
             <Button
               as={ContractAddressLink}
-              displayName={addressBookLabel || addressLabels[0] || ensName || undefined}
+              displayName={
+                addressBookLabel || addressLabels[0] || ensName || undefined
+              }
               address={address}
               chainId={chainId}
               href={`${getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}address/${address}${chainId ? "?chainId=" + chainId : ""}`}
