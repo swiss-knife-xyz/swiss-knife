@@ -37,7 +37,7 @@ import { useAddressBook } from "@/hooks/useAddressBook";
 import { AddressBookInlineButton } from "@/components/AddressBook";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { JsonFragment } from "ethers";
-import { Address, PublicClient } from "viem";
+import { Address, PublicClient, isAddress } from "viem";
 import { getPublicClient } from "@/lib/publicClient";
 import { whatsabi } from "@shazow/whatsabi";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -814,6 +814,11 @@ const LoadedContractPage = ({
   const contractTab = useContractTab();
   const setTabName = contractTab?.setName;
   const router = useTopLoaderRouter();
+  // Use the loaded route, never the editable address or pending network selection.
+  const explorer = chainIdToChain[chainId]?.blockExplorers?.default;
+  const explorerUrl = explorer?.url && isAddress(address)
+    ? `${explorer.url}/address/${address}`
+    : undefined;
 
   // Find network option, default to first option (mainnet) if not found
   const getNetworkOption = useCallback(() => {
@@ -1339,6 +1344,20 @@ const LoadedContractPage = ({
                 <Text color="text.tertiary" fontSize="xs" fontWeight="medium" textTransform="uppercase" letterSpacing="0.05em">
                   Contract Address
                 </Text>
+                {explorer && explorerUrl && (
+                  <Link
+                    href={explorerUrl}
+                    isExternal
+                    rel="noopener noreferrer"
+                    aria-label={`View contract on ${explorer.name} (opens in a new tab)`}
+                    title={`View contract on ${explorer.name} (opens in a new tab)`}
+                    display="inline-flex"
+                    color="text.tertiary"
+                    _hover={{ color: "text.primary" }}
+                  >
+                    <ExternalLink size={14} aria-hidden="true" />
+                  </Link>
+                )}
                 {/* Address Book Button - self-contained to avoid parent re-renders */}
                 <AddressBookInlineButton
                   address={address}

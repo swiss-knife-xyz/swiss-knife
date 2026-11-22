@@ -9,6 +9,7 @@
     "test": "tsx --test",
     "test:tuples": "vitest run --config vitest.tuples.config.ts",
     "test:contract": "vitest run --config vitest.contract.config.ts",
+    "test:contract-explorer": "vitest run --config vitest.contract-explorer.config.ts",
     "test:contract-load": "vitest run --config vitest.contract-load.config.ts",
     "start": "next start",
     "lint": "next lint",
