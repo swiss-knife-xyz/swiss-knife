@@ -158,6 +158,13 @@ export const toolOgCards = {
       "from Safe wallets without an ABI ✨",
     ],
   },
+  "gas-cost": {
+    title: "Cross-chain Gas Cost",
+    description: [
+      "Compare transaction gas costs across chains",
+      "using current gas prices.",
+    ],
+  },
   "safe-eip-712-hash": {
     title: "Safe & EIP-712 Hashes",
     description: [
