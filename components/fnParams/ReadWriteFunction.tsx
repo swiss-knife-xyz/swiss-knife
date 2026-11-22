@@ -62,6 +62,7 @@ import { generateTenderlyUrl, slicedText } from "@/utils";
 import { getTransactionError, getContractError } from "viem/utils";
 import { config } from "@/app/providers";
 import { WriteButton } from "../WriteButton";
+import { ReadButton, type ReadAction } from "../ReadButton";
 import { SignatureRegistryForm } from "@/components/SignatureRegistryForm";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
@@ -90,6 +91,7 @@ interface ReadWriteFunctionProps {
   address: string;
   chainId: number;
   isAbiDecoded?: boolean;
+  isCustomAdded?: boolean;
   readAllCollapsed?: boolean;
   // Parent keys this form by prefill revision so child-local widget state resets.
   initialCall?: { args: unknown[]; value: string };
@@ -203,6 +205,7 @@ const ReadWriteFunctionComponent = ({
   address,
   chainId,
   isAbiDecoded,
+  isCustomAdded,
   readAllCollapsed,
   initialCall,
   abiMode = "contract",
@@ -295,6 +298,7 @@ const ReadWriteFunctionComponent = ({
     inputs?.length === 1 &&
     inputs[0].type === "bytes4";
   const [functionIsDisabled, setFunctionIsDisabled] = useState<any>({});
+  const [readAction, setReadAction] = useState<ReadAction>("Read");
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
     WriteButtonType.Write
   );
@@ -866,10 +870,11 @@ const ReadWriteFunctionComponent = ({
 
   useEffect(() => {
     if (enterPressed) {
-      readFunction();
+      if (type === "read" && readAction === "Encode Calldata") encodeCalldataFn();
+      else readFunction();
       setEnterPressed(false);
     }
-  }, [inputsState, enterPressed, readFunction]);
+  }, [inputsState, enterPressed, readFunction, type, readAction, encodeCalldataFn]);
 
   useEffect(() => {
     // if there are no inputs, then auto fetch the value
@@ -925,8 +930,11 @@ const ReadWriteFunctionComponent = ({
   // }, [writeButtonType]);
 
   const renderHighlightedText = (content: HighlightedContent): ReactNode => {
+    const wrapName = (text: string) => text.split(/(?<=_)/).map((segment, index) => (
+      <React.Fragment key={index}>{segment}<wbr /></React.Fragment>
+    ));
     if (typeof content === "string") {
-      return content;
+      return wrapName(content);
     }
 
     return content.map((part, index) => (
@@ -941,7 +949,7 @@ const ReadWriteFunctionComponent = ({
           color: part.isHighlighted ? "black" : "inherit",
         }}
       >
-        {part.text}
+        {wrapName(part.text)}
       </span>
     ));
   };
@@ -1004,37 +1012,32 @@ const ReadWriteFunctionComponent = ({
       p={2}
       pb={!inputs || inputs.length === 0 ? undefined : 4}
       border="1px solid"
-      borderColor={initialCall ? "blue.400" : "whiteAlpha.200"}
+      borderColor={isCustomAdded ? "rgba(236, 201, 75, 0.3)" : initialCall ? "blue.400" : "whiteAlpha.200"}
       rounded="md"
       bg={initialCall ? "whiteAlpha.50" : !inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
-      {/* Function name and refetch button */}
-      <HStack mb={!fnSelector ? 2 : undefined} alignItems="flex-start" flexWrap="wrap" rowGap={1}>
-        <Box flex={{ base: "1 1 100%", sm: "1 1 16rem" }} minW={0}>
-          <HStack alignItems="center" spacing={2} flexWrap="wrap" rowGap={1}>
-            <HStack
+      {/* Show the function name above its selector and tools. */}
+      <Box display="grid" gridTemplateColumns="1.5rem max-content minmax(0, 1fr) auto" columnGap={1.5} rowGap={0} alignItems="start" mb={1}>
+          <HStack gridColumn={3} gridRow={2} spacing={2} minW={0} flexWrap="wrap" rowGap={1} color="text.tertiary" fontSize="xs" lineHeight={5}>
+            {fnSelector && <Box
               as="button"
               type="button"
-              minW={0}
-              maxW="full"
               textAlign="left"
-              aria-label={`Toggle ${displayName}`}
+              whiteSpace="nowrap"
+              aria-label={`Toggle ${displayName} selector`}
               aria-expanded={!isCollapsed}
               onClick={() => setIsCollapsed(collapsed => !collapsed)}
               borderRadius="md"
-              _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
-            >
-              <Box fontSize="2xl" flexShrink={0}>
-                {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
-              </Box>
-              <Box fontSize="md" fontWeight="normal" flexShrink={0}>{index}.</Box>
-              <Box fontWeight="bold" minW={0} overflowWrap="anywhere">{renderHighlightedText(__func.name)}</Box>
-            </HStack>
+              _focusVisible={{outline:"2px solid", outlineColor:"blue.400"}}
+            >selector: {fnSelector}</Box>}
+          <HStack spacing={0.5} align="center" flexWrap="nowrap" minH={6} aria-label="Function tools">
             <Tooltip label="Share function call" hasArrow>
               <IconButton
                 aria-label={`Share ${displayName} function call`}
-                icon={<LinkIcon boxSize={3.5} />}
-                size={{ base: "sm", md: "xs" }}
+                icon={<LinkIcon boxSize={3} />}
+                size="xs"
+                h={6}
+                minW={6}
                 variant="ghost"
                 color="text.secondary"
                 flexShrink={0}
@@ -1043,7 +1046,9 @@ const ReadWriteFunctionComponent = ({
             </Tooltip>
             {isAbiDecoded && (
               <Tooltip label="Inferred from bytecode and signature lookups. Check the input types before use." hasArrow>
-                <WarningTwoIcon aria-label="Inferred signature, not verified" tabIndex={0} color="yellow.300" boxSize={3.5} flexShrink={0} />
+                <Box display="flex" alignItems="center" justifyContent="center" boxSize={6} flexShrink={0} tabIndex={0} aria-label="Inferred signature, not verified" borderRadius="md" _focusVisible={{outline:"2px solid", outlineColor:"blue.400"}}>
+                  <WarningTwoIcon color="yellow.300" boxSize={3} />
+                </Box>
               </Tooltip>
             )}
             {isAbiDecoded && displayName.startsWith("selector: ") && fnSelector && (
@@ -1059,71 +1064,53 @@ const ReadWriteFunctionComponent = ({
                 }}
               />
             )}
+            </HStack>
+            {__func.outputs && __func.outputs.length > 0 && <Text whiteSpace="nowrap">→ {__func.outputs.length === 1 ? __func.outputs[0].type : `${__func.outputs.length} outputs`}</Text>}
           </HStack>
-          <HStack mt={1} ml={{ base: 8, md: 12 }} spacing={3} flexWrap="wrap" rowGap={1} color="whiteAlpha.600" fontSize="xs">
-            {fnSelector && (
-              <Box
-                as="button"
-                type="button"
-                textAlign="left"
-                aria-label={`Toggle ${displayName} selector`}
+              <IconButton
+                gridColumn={1}
+                gridRow={1}
+                alignSelf="start"
+                aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${displayName}`}
                 aria-expanded={!isCollapsed}
+                icon={isCollapsed ? <ChevronUpIcon boxSize={5} /> : <ChevronDownIcon boxSize={5} />}
                 onClick={() => setIsCollapsed(collapsed => !collapsed)}
-                borderRadius="md"
-                _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
-              >
-                [selector: {fnSelector}]
-              </Box>
-            )}
-            {__func.outputs && __func.outputs.length > 0 && (
-              <Text whiteSpace="nowrap">
-                → {__func.outputs.length === 1 ? __func.outputs[0].type : `${__func.outputs.length} outputs`}
-              </Text>
-            )}
+                size="xs"
+                variant="ghost"
+                color="text.secondary"
+                h={6}
+                minW={6}
+              />
+              <Text gridColumn={2} gridRow={1} fontSize="sm" lineHeight={6} color="text.secondary">{index}.</Text>
+          <HStack
+            gridColumn={3}
+            gridRow={1}
+            as="button"
+            type="button"
+            w="full"
+            minW={0}
+            minH={6}
+            spacing={1.5}
+            align="start"
+            textAlign="left"
+            aria-label={`Toggle ${displayName}`}
+            aria-expanded={!isCollapsed}
+            onClick={() => setIsCollapsed(collapsed => !collapsed)}
+            borderRadius="md"
+            _focusVisible={{outline:"2px solid", outlineColor:"blue.400"}}
+          >
+            <Box minW={0} fontSize="lg" lineHeight={6} fontWeight="semibold" overflowWrap="anywhere">{renderHighlightedText(__func.name)}</Box>
           </HStack>
-          {highlightedOutputs && highlightedOutputs.length > 1 && (
-            <Box display={{ base: "none", md: "block" }} mt={1}>
-              <EnhancedFunctionOutput highlightedOutputs={highlightedOutputs} />
-            </Box>
-          )}
-        </Box>
-        <HStack flex={{ base: "1 1 100%", sm: "0 0 auto" }} justify="flex-end" spacing={1.5} flexWrap="wrap" rowGap={2} mt={{ base: 1, sm: 0 }}>
-        {type === "read" && (
-          <Button
-            size="sm"
-            h={8}
-            px={2.5}
-            flexShrink={0}
-            onClick={encodeCalldataFn}
-            isDisabled={inputsUnknown || inputs?.some((_, i) => functionIsDisabled[i] === true)}
-          >
-            Encode Calldata
-          </Button>
-        )}
-        {/* Read/Write Buttons */}
-        {type === "read" && (
-          <Button
-            onClick={readFunction}
+          <HStack gridColumn={4} gridRow="1 / 3" justify="flex-end" alignSelf="start" spacing={1.5} flexWrap="nowrap" align="start">
+          {type === "read" && <ReadButton
+            action={readAction}
+            onActionChange={action => { setReadAction(action); setIsError(false); setEncodingError(""); }}
+            onRead={readFunction}
+            onEncode={encodeCalldataFn}
             isLoading={loading}
-            w="3.5rem"
-            h={8}
-            px={2.5}
-            flexShrink={0}
-            isDisabled={
-              inputsUnknown ||
-              (inputs && inputs.some((_, i) => functionIsDisabled[i] === true))
-            }
-            size={"sm"}
-            title="Read function"
-            variant="outline"
-            bg="bg.muted"
-            color={isError ? "red.300" : "text.primary"}
-            borderColor={isError ? "red.400" : "border.strong"}
-            _hover={{ bg: "whiteAlpha.100" }}
-          >
-            Read
-          </Button>
-        )}
+            isError={isError}
+            isDisabled={inputsUnknown || Boolean(inputs?.some((_, i) => functionIsDisabled[i] === true))}
+          />}
         {type === "write" && (
           <WriteButton
             isError={isError}
@@ -1234,8 +1221,9 @@ const ReadWriteFunctionComponent = ({
               </PopoverContent>
             </Popover>
           )}
-        </HStack>
-      </HStack>
+          </HStack>
+          {highlightedOutputs && highlightedOutputs.length > 1 && <Box gridColumn="3 / -1" gridRow={3} display={{base:"none",md:"block"}} mt={1}><EnhancedFunctionOutput highlightedOutputs={highlightedOutputs} /></Box>}
+      </Box>
       {encodingError && (
         <Text role="alert" color="red.300" p={2} wordBreak="break-word">
           {encodingError}

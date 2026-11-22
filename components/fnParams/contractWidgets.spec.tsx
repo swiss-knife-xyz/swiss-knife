@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { Interface, type JsonFragment } from "ethers";
@@ -58,6 +59,14 @@ function show(
     </ChakraProvider>
   );
 }
+async function encodeCurrent() {
+  if (!screen.queryByRole("button", { name: "Encode Calldata" })) {
+    fireEvent.click(screen.getByRole("button", { name: "Read options" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   Object.defineProperty(navigator, "clipboard", {
@@ -114,7 +123,7 @@ it("real bytes4 widget receives a preset, permits manual replacement and encodes
   expect(
     screen.queryByRole("link", { name: /Interface specification/ })
   ).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await encodeCurrent();
   expect(
     await screen.findByText(
       new Interface([func]).encodeFunctionData("supportsInterface", [
@@ -157,7 +166,7 @@ it("real tuple text fields propagate into encoding in ABI order", async () => {
   ]);
   // Recursive tuple widgets debounce their propagation by 100ms.
   await waitFor(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+    await encodeCurrent();
     expect(
       await screen.findByText(expected, {}, { timeout: 150 })
     ).toBeTruthy();
@@ -187,7 +196,7 @@ it("keeps a single encoding action when the existing write dropdown selects Enco
       screen.getAllByRole("button", { name: "Encode Calldata" })
     ).toHaveLength(1)
   );
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await encodeCurrent();
   expect(await screen.findByRole("dialog")).toBeTruthy();
   expect(client.call).not.toHaveBeenCalled();
   expect(client.simulateContract).not.toHaveBeenCalled();
@@ -221,7 +230,7 @@ it("prefills real nested tuple/array/bool/fixed-array widgets and re-encodes wit
   fireEvent.click(
     await screen.findByRole("menuitem", { name: "Encode Calldata" })
   );
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await encodeCurrent();
   expect(await screen.findByText(expected)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -249,9 +258,9 @@ it("zero-input write encodes selector-only without connection, signing or reads"
   fireEvent.click(
     await screen.findByRole("menuitem", { name: "Encode Calldata" })
   );
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await encodeCurrent();
   expect(
-    await screen.findByText(new Interface([func]).encodeFunctionData("ping"))
+    within(await screen.findByRole("dialog", {name:"Encoded Calldata"})).getByText(new Interface([func]).encodeFunctionData("ping"))
   ).toBeTruthy();
   expect(client.readContract).not.toHaveBeenCalled();
   expect(client.call).not.toHaveBeenCalled();
@@ -299,7 +308,7 @@ it("allows replacing a known hex value directly and rejects invalid hex on encod
   ).toBeTruthy();
   fireEvent.change(input, { target: { value: "not hex" } });
   fireEvent.blur(input);
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await encodeCurrent();
   await screen.findByRole("alert");
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(client.readContract).not.toHaveBeenCalled();
@@ -494,6 +503,6 @@ it("does not rename the function when a Sourcify submission is not confirmed", a
   fireEvent.change(screen.getByLabelText("Canonical function signature"), { target: { value: "mint(address,uint256)" } });
   fireEvent.click(screen.getByRole("button", { name: "Submit to Sourcify" }));
   await screen.findByText(/Could not check Sourcify/);
-  expect(screen.getByText("selector: 0x40c10f19", { exact: true })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Toggle selector: 0x40c10f19", hidden: true })).toBeTruthy();
   expect(screen.queryByText("arg0", { exact: true })).toBeNull();
 });

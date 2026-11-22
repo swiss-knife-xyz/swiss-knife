@@ -117,8 +117,10 @@ function RegistryForm({
           <IconButton
             aria-label="Submit function signature to Sourcify"
             aria-haspopup="dialog"
-            icon={<Upload size={14} />}
-            size={{ base: "sm", md: "xs" }}
+            icon={<Upload size={12} />}
+            size="xs"
+            h={6}
+            minW={6}
             variant="ghost"
             color="text.secondary"
             isDisabled={busy}

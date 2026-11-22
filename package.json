@@ -14,6 +14,7 @@
     "test:gas-cost": "vitest run --config vitest.gas-cost.config.ts",
     "test:safe-hash": "vitest run --config vitest.safe-hash.config.ts",
     "test:tuples": "vitest run --config vitest.tuples.config.ts",
+    "test:contract-abi": "vitest run --config vitest.contract-abi.config.ts",
     "test:contract": "vitest run --config vitest.contract.config.ts",
     "test:contract-explorer": "vitest run --config vitest.contract-explorer.config.ts",
     "test:contract-load": "vitest run --config vitest.contract-load.config.ts",
