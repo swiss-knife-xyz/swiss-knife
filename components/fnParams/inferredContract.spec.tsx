@@ -183,3 +183,21 @@ describe("proxy discovery without external ABI services", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 });
+
+it.each([false, true])("uses the unique verified-contract match from the full Sourcify collision response (reversed: %s)", async (reverse) => {
+  const entries = [
+    { name: "mint(address,uint256)", filtered: false, hasVerifiedContract: true },
+    { name: "cat642998653(address,uint256)", filtered: false, hasVerifiedContract: false },
+  ];
+  if (reverse) entries.reverse();
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+    ok: true, result: { function: { "0x40c10f19": entries }, event: {} },
+  }))));
+  const [func] = await processContractBytecode({
+    contractCode: "0x00",
+    evmole: { contractInfo: () => ({ functions: [{ selector: "40c10f19", arguments: "address,uint256", stateMutability: "nonpayable" }] }) },
+  });
+  expect(func.name).toBe("mint");
+  expect(func.inputs.map((input: any) => input.type)).toEqual(["address", "uint256"]);
+  expect(func.inputInference.source).toBe("bytecode");
+});

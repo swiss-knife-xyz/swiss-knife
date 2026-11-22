@@ -95,16 +95,16 @@ it("opens a focused modal with one submit button and no preview or API details",
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
-it("validates mismatched or noncanonical signatures before making requests", async () => {
+it("validates mismatched or malformed signatures before making requests", async () => {
   const fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
   mount();
   await open();
   for (const value of [
-    "transfer(address,uint)",
+    "transfer(address,uint7)",
     "wrong()",
     "",
-    "function transfer(address,uint256)",
+    "function invalid(",
   ]) {
     fireEvent.change(
       screen.getByRole("textbox", { name: "Canonical function signature" }),
@@ -271,4 +271,19 @@ it("resets the form when the calldata selector changes", async () => {
     ).value
   ).toBe("0x095ea7b3");
   expect(fetch).not.toHaveBeenCalled();
+});
+
+
+it("normalizes names, spaces and uint aliases for the API and success callback", async () => {
+  const onSubmitted = vi.fn();
+  const fetchMock = vi.fn().mockResolvedValueOnce(lookup()).mockResolvedValueOnce(imported());
+  vi.stubGlobal("fetch", fetchMock);
+  render(<ChakraProvider><SignatureRegistryForm selector={selector} onSubmitted={onSubmitted} /></ChakraProvider>);
+  await open();
+  fireEvent.change(screen.getByLabelText("Canonical function signature"), { target: { value: "transfer(address to, uint amount)" } });
+  submit();
+  await screen.findByText("Signature submitted to Sourcify.");
+  expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ function: [signature] });
+  expect(onSubmitted).toHaveBeenCalledWith(signature, selector);
+  expect((screen.getByLabelText("Canonical function signature") as HTMLInputElement).value).toBe(signature);
 });

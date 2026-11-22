@@ -9,6 +9,8 @@ import {
   FormControl,
   FormLabel,
   Input,
+  IconButton,
+  Tooltip,
   Link,
   Modal,
   ModalBody,
@@ -19,19 +21,39 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { submitSignatureImport } from "@/lib/signatureRegistry";
+import { Upload } from "lucide-react";
+import { previewSignatureImport, submitSignatureImport } from "@/lib/signatureRegistry";
 
 // A different calldata selector starts a fresh form and submission status.
 export function SignatureRegistryForm({
   selector = "",
+  iconOnly = false,
+  onSubmitted,
 }: {
   selector?: string;
+  iconOnly?: boolean;
+  onSubmitted?: (signature: string, selector: string) => void;
 }) {
   const target = /^0x[0-9a-fA-F]{8}$/.test(selector) ? selector : "";
-  return <RegistryForm key={selector} target={target} />;
+  return (
+    <RegistryForm
+      key={selector}
+      target={target}
+      iconOnly={iconOnly}
+      onSubmitted={onSubmitted}
+    />
+  );
 }
 
-function RegistryForm({ target }: { target: string }) {
+function RegistryForm({
+  target,
+  iconOnly,
+  onSubmitted,
+}: {
+  target: string;
+  iconOnly: boolean;
+  onSubmitted?: (signature: string, selector: string) => void;
+}) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [signature, setSignature] = useState("");
@@ -53,7 +75,11 @@ function RegistryForm({ target }: { target: string }) {
     reset();
     try {
       // Clicking the explicitly labelled submit button authorizes this import.
-      setStatus(await submitSignatureImport(signature, selector, true));
+      const normalized = previewSignatureImport(signature, selector);
+      const result = await submitSignatureImport(normalized.signature, normalized.selector, true);
+      setSignature(normalized.signature);
+      setStatus(result);
+      onSubmitted?.(normalized.signature, normalized.selector);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Submission was not confirmed."
@@ -79,22 +105,46 @@ function RegistryForm({ target }: { target: string }) {
   }
 
   return (
-    <Box w="full" minW={0} display="flex" justifyContent="flex-end">
-      <Button
-        size="sm"
-        variant="ghost"
-        color="whiteAlpha.700"
-        fontWeight="medium"
-        _hover={{ bg: "whiteAlpha.100", color: "white" }}
-        aria-haspopup="dialog"
-        isDisabled={busy}
-        onClick={() => {
-          reset();
-          setOpen(true);
-        }}
-      >
-        Add a missing signature
-      </Button>
+    <Box
+      w={iconOnly ? "auto" : "full"}
+      minW={0}
+      flexShrink={0}
+      display="flex"
+      justifyContent="flex-end"
+    >
+      {iconOnly ? (
+        <Tooltip label="Submit function signature to Sourcify" hasArrow>
+          <IconButton
+            aria-label="Submit function signature to Sourcify"
+            aria-haspopup="dialog"
+            icon={<Upload size={14} />}
+            size={{ base: "sm", md: "xs" }}
+            variant="ghost"
+            color="text.secondary"
+            isDisabled={busy}
+            onClick={() => {
+              reset();
+              setOpen(true);
+            }}
+          />
+        </Tooltip>
+      ) : (
+        <Button
+          size="sm"
+          variant="ghost"
+          color="whiteAlpha.700"
+          fontWeight="medium"
+          _hover={{ bg: "whiteAlpha.100", color: "white" }}
+          aria-haspopup="dialog"
+          isDisabled={busy}
+          onClick={() => {
+            reset();
+            setOpen(true);
+          }}
+        >
+          Add a missing signature
+        </Button>
+      )}
       <Modal
         isOpen={open}
         onClose={close}
@@ -202,7 +252,13 @@ function RegistryForm({ target }: { target: string }) {
                 Submit to Sourcify
               </Button>
               {error && (
-                <Alert status="error" role="alert" borderRadius="md" bg="rgba(239, 68, 68, 0.12)" color="text.primary">
+                <Alert
+                  status="error"
+                  role="alert"
+                  borderRadius="md"
+                  bg="rgba(239, 68, 68, 0.12)"
+                  color="text.primary"
+                >
                   <AlertIcon color="red.300" />
                   {error}
                 </Alert>
@@ -212,10 +268,16 @@ function RegistryForm({ target }: { target: string }) {
                   status={status === "imported" ? "success" : "info"}
                   role="status"
                   borderRadius="md"
-                  bg={status === "imported" ? "rgba(34, 197, 94, 0.12)" : "rgba(59, 130, 246, 0.12)"}
+                  bg={
+                    status === "imported"
+                      ? "rgba(34, 197, 94, 0.12)"
+                      : "rgba(59, 130, 246, 0.12)"
+                  }
                   color="text.primary"
                 >
-                  <AlertIcon color={status === "imported" ? "green.300" : "blue.300"} />
+                  <AlertIcon
+                    color={status === "imported" ? "green.300" : "blue.300"}
+                  />
                   {status === "imported"
                     ? "Signature submitted to Sourcify."
                     : "This signature already exists on Sourcify."}

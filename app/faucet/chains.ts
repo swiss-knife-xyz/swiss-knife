@@ -27,8 +27,6 @@ const chainSlugAliases: Record<string, string> = {
   "hyperliquid-testnet": "HyperEVM Testnet",
   "zksync-testnet": "ZKsync Sepolia",
   "zksync-sepolia-testnet": "ZKsync Sepolia",
-  "scroll-testnet": "Scroll Sepolia",
-  "scroll-sepolia-testnet": "Scroll Sepolia",
   "avalanche-testnet": "Avalanche Fuji",
   "avax-testnet": "Avalanche Fuji",
   "avax-fuji": "Avalanche Fuji",

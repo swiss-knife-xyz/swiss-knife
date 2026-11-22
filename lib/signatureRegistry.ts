@@ -27,6 +27,7 @@ export async function submitSignatureImport(
   if (consent !== true)
     throw new Error("Explicit public-submission consent is required.");
   const preview = previewSignatureImport(signature, selector);
+  signature = preview.signature;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
   let importStarted = false;
@@ -108,7 +109,8 @@ export function previewSignatureImport(signature: string, selector: string) {
   }
   if (
     signature.length > 2048 ||
-    !/^[A-Za-z_$][A-Za-z0-9_$]*\(/.test(signature)
+    signature.includes(";") ||
+    !/^(?:function\s+)?[A-Za-z_$][A-Za-z0-9_$]*\s*\(/.test(signature.trim())
   ) {
     throw new Error(
       "Enter one canonical function signature, e.g. transfer(address,uint256)."
@@ -116,14 +118,13 @@ export function previewSignatureImport(signature: string, selector: string) {
   }
   let fragment: FunctionFragment;
   try {
-    fragment = FunctionFragment.from(signature);
+    fragment = FunctionFragment.from(signature.trim());
   } catch {
     throw new Error("Invalid function signature.");
   }
-  if (/\[0\]/.test(signature) || fragment.format("sighash") !== signature) {
-    throw new Error(
-      "Use the canonical signature: no names, spaces, modifiers or aliases such as uint."
-    );
+  signature = fragment.format("sighash");
+  if (/\[0\]/.test(signature)) {
+    throw new Error("Fixed arrays must contain at least one element.");
   }
   if (fragment.selector !== selector.toLowerCase()) {
     throw new Error(

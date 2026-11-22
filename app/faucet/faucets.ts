@@ -358,21 +358,7 @@ export const faucets: FaucetEntry[] = [
     notes: "Chainstack platform faucet for ZKsync Sepolia.",
     tags: ["zksync", "sepolia", "eth"],
   },
-  {
-    id: "chainstack-scroll-sepolia",
-    name: "Scroll Sepolia Faucet",
-    provider: "Chainstack",
-    url: "https://faucet.chainstack.com/scroll-sepolia-testnet-faucet",
-    chain: "Scroll Sepolia",
-    token: "ETH",
-    amount: "Up to 0.5 ETH every 24h",
-    cooldownHours: 24,
-    category: "l2",
-    reliability: "provider",
-    requirement: "Chainstack API key; mainnet ETH balance/history checks",
-    notes: "Chainstack platform faucet for Scroll Sepolia.",
-    tags: ["scroll", "sepolia", "eth"],
-  },
+
   {
     id: "gaszip-sepolia",
     name: "Sepolia Testnet Faucet",
@@ -603,12 +589,7 @@ export const faucets: FaucetEntry[] = [
         token: "POL",
         amount: "0.05 POL",
       },
-      {
-        chain: "Scroll Sepolia",
-        chainId: 534351,
-        token: "ETH",
-        amount: "0.05 ETH",
-      },
+
       {
         chain: "Filecoin Calibration",
         chainId: 314159,
@@ -663,18 +644,7 @@ export const faucets: FaucetEntry[] = [
         token: "CELO",
         amount: "0.05 CELO",
       },
-      {
-        chain: "Ethereum Holesky",
-        chainId: 17000,
-        token: "ETH",
-        amount: "0.05 ETH",
-      },
-      {
-        chain: "Polygon Mumbai",
-        chainId: 80001,
-        token: "MATIC",
-        amount: "0.05 MATIC",
-      },
+
       {
         chain: "Zircuit Testnet",
         chainId: 48899,
@@ -700,7 +670,7 @@ export const faucets: FaucetEntry[] = [
         amount: "0.2 MON",
       },
     ],
-    token: "ETH, USDC, POL, FIL, XDAI, APE, CBTC, FLOW, CELO, MATIC, IP, MON",
+    token: "ETH, USDC, POL, FIL, XDAI, APE, CBTC, FLOW, CELO, IP, MON",
     amount: "Varies by network",
     cooldownHours: 24,
     category: "appchain",
@@ -716,7 +686,6 @@ export const faucets: FaucetEntry[] = [
       "polygon",
       "monad",
       "zircuit",
-      "scroll",
       "linea",
       "worldchain",
       "filecoin",

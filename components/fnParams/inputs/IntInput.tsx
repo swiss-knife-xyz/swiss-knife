@@ -34,6 +34,7 @@ interface IntInputProps extends InputProps {
   isArrayChild?: boolean;
   setFunctionIsDisabled: (value: boolean) => void;
   defaultEthFormatIndex?: number;
+  onValidationChange?: (isInvalid: boolean) => void;
 }
 
 const futureTimeOptions = ["minutes", "hours", "days"] as const;
@@ -53,6 +54,7 @@ export const IntInput = ({
   isArrayChild,
   setFunctionIsDisabled,
   defaultEthFormatIndex,
+  onValidationChange,
   ...props
 }: IntInputProps) => {
   // Refs
@@ -73,6 +75,10 @@ export const IntInput = ({
   const delayedAnimationDuration = 10;
   const [isError, setIsError] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    onValidationChange?.(isError || isNaN(Number(displayValue)));
+  }, [isError, displayValue, onValidationChange]);
 
   // time state
   const [showLocalTime, setShowLocalTime] = useState(false);

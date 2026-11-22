@@ -52,6 +52,7 @@ interface InputFieldProps extends InputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFunctionIsDisabled?: (value: boolean) => void;
   hideTags?: boolean;
+  labelAction?: React.ReactNode;
   /** Hide the [zeroAddr] and [user address] quick-fill buttons rendered below the input. */
   hideQuickFillButtons?: boolean;
 }
@@ -64,6 +65,7 @@ export const AddressInput = ({
   isInvalid,
   setFunctionIsDisabled,
   hideTags,
+  labelAction,
   hideQuickFillButtons,
   ...rest
 }: InputFieldProps) => {
@@ -261,6 +263,7 @@ export const AddressInput = ({
           </HStack>
         )}
         <Spacer />
+        {labelAction}
         <AnimatePresence>
           {ensName && (
             <motion.div
