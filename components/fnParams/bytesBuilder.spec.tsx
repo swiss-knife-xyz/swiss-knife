@@ -170,6 +170,8 @@ it("offers the builder on nested dynamic bytes and inner editor bytes, but not f
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   // Existing tuple propagation is debounced by 100ms before the parent form sees it.
   await act(() => new Promise((resolve) => setTimeout(resolve, 150)));
+  fireEvent.click(screen.getByRole("button", { name: "Read options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
   fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
   expect(
     await screen.findByText(

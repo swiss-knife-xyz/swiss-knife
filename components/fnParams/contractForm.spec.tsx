@@ -106,6 +106,14 @@ function fill(name: string, value: string) {
     target: { value },
   });
 }
+async function encodeCurrent() {
+  if (!screen.queryByRole("button", { name: "Encode Calldata" })) {
+    fireEvent.click(screen.getByRole("button", { name: "Read options" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   HTMLElement.prototype.scrollTo = vi.fn();
@@ -135,7 +143,7 @@ it("encodes the current read ABI/arguments locally, offers exact copy and a deco
   render(form());
   fill("to", address);
   fill("amount", "9007199254740993");
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await encodeCurrent();
   const expected = new Interface([transfer]).encodeFunctionData("transfer", [
     address,
     9007199254740993n,
@@ -193,7 +201,7 @@ it("removes old calldata when arguments or the selected function change", async 
   const view = render(form());
   fill("to", address);
   fill("amount", "1");
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await encodeCurrent();
   const expected = new Interface([transfer]).encodeFunctionData("transfer", [
     address,
     1n,
@@ -223,7 +231,7 @@ it("encodes nested tuple/array booleans for writes without a connected wallet ac
   fireEvent.click(screen.getByRole("button", { name: "Options" }));
   fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
   fill("settings", '["false",["true","false"]]');
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await encodeCurrent();
   const expected = new Interface([func]).encodeFunctionData("configure", [
     [false, [true, false]],
   ]);
@@ -240,7 +248,7 @@ it("keeps the inferred indicator visible when collapsed without repeating it in 
   fireEvent.click(screen.getByText("transfer"));
   fill("to", address);
   fill("amount", "1");
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await encodeCurrent();
   expect(await screen.findByRole("dialog")).toBeTruthy();
   expect(screen.getByRole("dialog").textContent).not.toMatch(
     /Encoded using an inferred signature/i
@@ -259,16 +267,35 @@ it("rejects invalid current parameters rather than exposing previous calldata", 
   render(form());
   fill("to", address);
   fill("amount", "1");
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await encodeCurrent();
   await screen.findByRole("dialog");
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   fill("amount", "not-an-integer");
-  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  await encodeCurrent();
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("alert").textContent).toMatch(
     /encode|integer|BigInt/i
   );
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
   expect(client.readContract).not.toHaveBeenCalled();
+});
+
+
+it("selects read or encode from a split control without executing on selection", async () => {
+  render(form());
+  fill("to", address);
+  fill("amount", "42");
+  expect(screen.queryByRole("button", {name:"Encode Calldata"})).toBeNull();
+  fireEvent.click(screen.getByRole("button", {name:"Read options"}));
+  fireEvent.click(await screen.findByRole("menuitem", {name:"Encode Calldata"}));
+  expect(screen.getByRole("button", {name:"Encode Calldata"})).toBeTruthy();
+  expect(client.readContract).not.toHaveBeenCalled();
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.click(screen.getByRole("button", {name:"Read options"}));
+  fireEvent.click(await screen.findByRole("menuitem", {name:"Read"}));
+  expect(client.readContract).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", {name:"Read"}));
+  await waitFor(() => expect(client.readContract).toHaveBeenCalledOnce());
+  expect(wallet.sendTransaction).not.toHaveBeenCalled();
 });

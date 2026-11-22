@@ -37,8 +37,8 @@ function show(restoreFromUrl = true) {
   );
 }
 async function openRawCalldata() {
-  if (!screen.queryByRole("dialog", { name: "Enter raw calldata" })) {
-    fireEvent.click(await screen.findByRole("button", { name: "Enter raw calldata" }));
+  if (!screen.queryByRole("dialog", { name: "Fill from calldata" })) {
+    fireEvent.click(await screen.findByRole("button", { name: "Fill from calldata" }));
   }
   return screen.findByRole("textbox", { name: "Calldata to decode" });
 }
@@ -74,10 +74,10 @@ it("pasted calldata fills only the matched overload on explicit decode; invalid 
   );
   });
   expect(screen.getByRole("button", { name: /Decoding…/ }).hasAttribute("disabled")).toBe(true);
-  expect(screen.getByRole("dialog", { name: "Enter raw calldata" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "Fill from calldata" })).toBeTruthy();
   const onScrollStart = onPrefill.mock.lastCall?.[1];
   onScrollStart();
-  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Enter raw calldata" })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Fill from calldata" })).toBeNull());
   expect(screen.queryByText(/Review only/)).toBeNull();
   fireEvent.change(
     await openRawCalldata(),
@@ -86,7 +86,7 @@ it("pasted calldata fills only the matched overload on explicit decode; invalid 
   fireEvent.click(screen.getByRole("button", { name: "Fill parameters" }));
   expect(await screen.findByRole("alert")).toBeTruthy();
   expect(onPrefill).toHaveBeenLastCalledWith(null);
-  expect(screen.getByRole("dialog", { name: "Enter raw calldata" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "Fill from calldata" })).toBeTruthy();
 });
 it("restores a shared link without a click and fails closed for mismatching review signature/context", async () => {
   const data = new Interface(abi).encodeFunctionData(
@@ -159,7 +159,7 @@ it("rejects a tampered shared signature and unsupported version without prefill"
 
 it("closes without applying calldata and returns focus to the toolbar button", async () => {
   show();
-  const trigger = screen.getByRole("button", { name: "Enter raw calldata" });
+  const trigger = screen.getByRole("button", { name: "Fill from calldata" });
   trigger.focus();
   const input = await openRawCalldata();
   fireEvent.change(input, { target: { value: new Interface(abi).encodeFunctionData("transfer(uint256)", [42]) } });

@@ -62,7 +62,9 @@ vi.mock("@/components/CopyToClipboard", () => ({
     <button aria-label={ariaLabel} onClick={() => copied(textToCopy)}>{labelText}</button>
   ),
 }));
-vi.mock("@monaco-editor/react", () => ({ Editor: () => null }));
+vi.mock("@monaco-editor/react", () => ({
+  Editor: ({ value, onChange, options }: any) => options?.ariaLabel ? <textarea aria-label={options.ariaLabel} readOnly={options.readOnly} value={value} onChange={event => onChange?.(event.target.value)} /> : null,
+}));
 vi.mock("@/lib/publicClient", () => ({ getPublicClient: () => client }));
 vi.mock("@/lib/decoder", () => ({ fetchFunctionInterface: vi.fn() }));
 vi.mock("@shazow/whatsabi", () => ({ whatsabi: {} }));
@@ -85,7 +87,7 @@ vi.mock("@/components/fnParams/Renderer", () => ({
       onChange={onChange}
     />
   ),
-  renderParamTypes: () => null,
+  renderParamTypes: ({ value }: any) => value === null || value === undefined ? null : <output data-testid="read-result">{String(value)}</output>,
 }));
 vi.mock("@/components/fnParams/inputs", () => ({
   InputInfo: () => null,
@@ -157,8 +159,8 @@ async function waitForPrefill() {
 }
 
 async function openRawCalldata() {
-  if (!screen.queryByRole("dialog", { name: "Enter raw calldata" })) {
-    fireEvent.click(await screen.findByRole("button", { name: "Enter raw calldata" }));
+  if (!screen.queryByRole("dialog", { name: "Fill from calldata" })) {
+    fireEvent.click(await screen.findByRole("button", { name: "Fill from calldata" }));
   }
   return screen.findByRole("textbox", { name: "Calldata to decode" });
 }
@@ -331,7 +333,7 @@ it("invalidating imported data discards a pending simulation without a second wa
   await act(async () => {
     resolve({ result: 42n });
   });
-  expect(screen.getByRole("dialog", { name: "Enter raw calldata" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "Fill from calldata" })).toBeTruthy();
   expect(
     screen.queryByRole("button", { name: "Continue to wallet" })
   ).toBeNull();
@@ -394,7 +396,7 @@ it("decodes pasted calldata only on explicit action and clears stale prefill on 
         .value
     ).toBe("42")
   );
-  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Enter raw calldata" })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Fill from calldata" })).toBeNull());
   input = await openRawCalldata();
   fireEvent.change(input, { target: { value: "0xdeadbeef" } });
   fireEvent.click(screen.getByRole("button", { name: "Fill parameters" }));
@@ -466,5 +468,82 @@ it("switches mobile Read/Write tabs without losing edited function inputs", asyn
   expect(screen.queryByRole("textbox", { name: "amount" })).toBeNull();
   fireEvent.click(write);
   expect((screen.getByRole("textbox", { name: "amount" }) as HTMLInputElement).value).toBe("123456789");
+  expect(wallet.sendTransaction).not.toHaveBeenCalled();
+});
+
+it("preserves read results and edited inputs across ABI additions, reordering and replacements", async () => {
+  const base = [
+    "function middle() view returns (uint256)",
+    "function zebra() view returns (uint256)",
+    "function lookup(uint256 amount) view returns (uint256)",
+  ];
+  fetchAbi.mockResolvedValue({ abi: JSON.parse(new Interface(base).formatJson()), name: "Test reads" });
+  client.readContract.mockImplementation(async ({ functionName, abi }: any) => {
+    if (functionName === "middle") return 223n;
+    if (functionName === "lookup") return 445n;
+    if (functionName === "alpha") return 334n;
+    return abi[0].outputs[0].type === "string" ? "updated zebra" : 112n;
+  });
+  render(page());
+  await screen.findByText("112");
+  await screen.findByText("223");
+  fireEvent.click(screen.getByRole("button", { name: "Toggle lookup" }));
+  const input = screen.getByRole("textbox", { name: "amount" }) as HTMLInputElement;
+  fireEvent.change(input, { target: { value: "19" } });
+  const card = screen.getByRole("button", { name: "Toggle lookup" }).closest("[data-function-selector]") as HTMLElement;
+  fireEvent.click(Array.from(card.querySelectorAll("button")).find(button => button.textContent === "Read")!);
+  await screen.findByText("445");
+  const zebraResult = screen.getByText("112");
+  const middleResult = screen.getByText("223");
+  const lookupResult = screen.getByText("445");
+  const calls = (name: string) => client.readContract.mock.calls.filter(([request]) => request.functionName === name).length;
+  expect(client.readContract).toHaveBeenCalledTimes(3);
+
+  fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
+  if (!screen.queryByRole("button", { name: "Modify ABI" })) {
+    fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Modify ABI" }));
+  await screen.findByRole("dialog");
+  fireEvent.change(screen.getByRole("textbox", { name: "Function declarations" }), {
+    target: { value: "function alpha() view returns (uint256)" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Apply ABI" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await screen.findByText("334");
+  expect(calls("alpha")).toBe(1);
+  expect(calls("middle")).toBe(1);
+  expect(calls("zebra")).toBe(1);
+  expect(calls("lookup")).toBe(1);
+  expect(screen.getByText("112")).toBe(zebraResult);
+  expect(screen.getByText("223")).toBe(middleResult);
+  expect(screen.getByText("445")).toBe(lookupResult);
+  expect(screen.getByRole("textbox", { name: "amount" })).toBe(input);
+  expect(input.value).toBe("19");
+
+  // Equivalent definitions with reordered JSON and changed output types reset only the changed card.
+  if (!screen.queryByRole("button", { name: "Modify ABI" })) {
+    fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Modify ABI" }));
+  await screen.findByRole("dialog");
+  fireEvent.click(screen.getByRole("tab", { name: "ABI" }));
+  const replacement = new Interface([
+    "function zebra() view returns (string)",
+    "function alpha() view returns (uint256)",
+    "function lookup(uint256 amount) view returns (uint256)",
+    "function middle() view returns (uint256)",
+  ]);
+  fireEvent.change(screen.getByRole("textbox", { name: "ABI" }), { target: { value: replacement.formatJson() } });
+  fireEvent.click(screen.getByRole("button", { name: "Apply ABI" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await screen.findByText("updated zebra");
+  expect(calls("zebra")).toBe(2);
+  expect(calls("alpha")).toBe(1);
+  expect(calls("middle")).toBe(1);
+  expect(calls("lookup")).toBe(1);
+  expect(screen.getByText("223")).toBe(middleResult);
+  expect(screen.getByText("445")).toBe(lookupResult);
+  expect(input.value).toBe("19");
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
 });
