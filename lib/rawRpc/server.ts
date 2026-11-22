@@ -125,6 +125,7 @@ export function createRpcHandler(
   let starts: number[] = [];
   return async (request: Request) => {
     let acquired = false;
+    let cleanupDeadline: (() => void) | undefined;
     try {
       if (
         request.method !== "POST" ||
@@ -136,10 +137,19 @@ export function createRpcHandler(
           .toLowerCase() !== "application/json"
       )
         throw new RpcError("ORIGIN");
-      const signal = AbortSignal.any([
-        request.signal,
-        AbortSignal.timeout(deps.timeoutMs ?? RPC_LIMITS.timeoutMs),
-      ]);
+      const controller = new AbortController();
+      const cancel = () => controller.abort(new DOMException("Request cancelled", "AbortError"));
+      request.signal.addEventListener("abort", cancel, { once: true });
+      const deadline = setTimeout(
+        () => controller.abort(new DOMException("RPC deadline exceeded", "TimeoutError")),
+        deps.timeoutMs ?? RPC_LIMITS.timeoutMs
+      );
+      cleanupDeadline = () => {
+        clearTimeout(deadline);
+        request.signal.removeEventListener("abort", cancel);
+      };
+      if (request.signal.aborted) cancel();
+      const signal = controller.signal;
       const at = now();
       starts = starts.filter((t) => at - t < 60_000);
       if (active >= 2 || starts.length >= 30) throw new RpcError("BUSY");
@@ -251,6 +261,7 @@ export function createRpcHandler(
         }
       );
     } finally {
+      cleanupDeadline?.();
       if (acquired) active--;
     }
   };

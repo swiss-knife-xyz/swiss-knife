@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { getCanonicalUrl, getPublicPageUrls } from "../seo";
+import { toolOgCards } from "../toolOgCards";
 import { metadata } from "../../app/rpc/layout";
 import { POST, runtime, maxDuration } from "../../app/api/rpc/route";
 test("root-host RPC metadata, dedicated OG and discovery agree", () => {
@@ -21,7 +22,7 @@ test("root-host RPC metadata, dedicated OG and discovery agree", () => {
       '"rpc"'
     )
   );
-  assert.match(readFileSync("app/api/og/rpc/route.tsx", "utf8"), /Raw RPC/);
+  assert.equal(toolOgCards.rpc.title, "Raw RPC Console");
 });
 test("actual route rejects bypass attempts without contacting upstream", async () => {
   assert.equal(runtime, "nodejs");
