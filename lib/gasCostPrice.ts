@@ -31,13 +31,16 @@ const nativePriceIds: Readonly<Record<number, string>> = {
   1088: "metis-token",
 };
 
+export const nativeUsdPriceId = (chain: GasCostChain) =>
+  chain.testnet ? undefined : nativePriceIds[chain.id];
+
 /** Reuses the existing CoinGecko simple-price API; a feed failure is optional. */
 export async function readNativeUsdPrice(
   chain: GasCostChain,
   fetcher: typeof fetch = fetch,
   now: () => number = Date.now
 ): Promise<number | undefined> {
-  const id = chain.testnet ? undefined : nativePriceIds[chain.id];
+  const id = nativeUsdPriceId(chain);
   if (!id) return undefined;
   try {
     const response = await fetcher(

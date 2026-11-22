@@ -33,5 +33,11 @@ export function estimateGasCost({
       : baseUnits > 0n && amount < 0.000001
         ? "< $0.000001"
         : `$${amount.toFixed(6)}`;
-  return { baseUnits, nativeAmount, usd };
+  return {
+    baseUnits,
+    nativeAmount,
+    usd,
+    usdValue:
+      amount !== undefined && Number.isFinite(amount) ? amount : undefined,
+  };
 }

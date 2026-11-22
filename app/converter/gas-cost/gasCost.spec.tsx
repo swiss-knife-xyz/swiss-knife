@@ -14,6 +14,34 @@ import {
   type GasCostReaders,
 } from "@/lib/gasCostEstimateRead";
 
+// Isolate estimation state from the shared selector's own interaction behavior.
+vi.mock("@/components/DarkSelect", () => ({
+  DarkSelect: ({
+    ariaLabel,
+    options,
+    selectedOption,
+    setSelectedOption,
+  }: any) => (
+    <select
+      aria-label={ariaLabel}
+      value={selectedOption?.value ?? ""}
+      onChange={(event) =>
+        setSelectedOption(
+          options.find(
+            (option: any) => String(option.value) === event.target.value
+          )
+        )
+      }
+    >
+      {options.map((option: any) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ),
+}));
+
 const chains: GasCostChain[] = [
   {
     id: 1,
@@ -65,8 +93,8 @@ test("accessible form shows a read-only estimate, not simulation, with native un
   );
   expect(await screen.findByText("0.00063 POL")).toBeTruthy();
   expect(screen.getByText("$0.000315")).toBeTruthy();
-  expect(screen.getByText(/not an execution simulation/i)).toBeTruthy();
-  expect(screen.getByText(/L1 data.*blob.*sequencer/i)).toBeTruthy();
+  expect(screen.getByText(/without simulation/i)).toBeTruthy();
+  expect(screen.getByText(/Extra L2 fees are excluded/i)).toBeTruthy();
   expect(screen.getByText(/21000 gas/)).toBeTruthy();
   expect(load).toHaveBeenCalledTimes(1);
 });
@@ -174,7 +202,9 @@ test("USD failure, target RPC failure and retry are explicit, with no input pers
   expect(await screen.findByText("USD unavailable")).toBeTruthy();
   expect(screen.getByText("0.00063 POL")).toBeTruthy();
   expect(fetchSpy).not.toHaveBeenCalled();
-  expect(storageSpy.mock.calls.filter(([key]) => key !== "chakra-ui-color-mode")).toEqual([]);
+  expect(
+    storageSpy.mock.calls.filter(([key]) => key !== "chakra-ui-color-mode")
+  ).toEqual([]);
   expect(historySpy).not.toHaveBeenCalled();
   vi.restoreAllMocks();
 });
@@ -183,7 +213,10 @@ test("actual page uses the canonical RPC factory and price adapter, only on subm
   const rpc = vi.fn((id: number) => readers.getClient(id));
   const usd = vi.fn(async (_chain: GasCostChain) => undefined);
   vi.doMock("@/lib/publicClient", () => ({ getPublicClient: rpc }));
-  vi.doMock("@/lib/gasCostPrice", () => ({ readNativeUsdPrice: usd }));
+  vi.doMock("@/lib/gasCostPrice", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@/lib/gasCostPrice")>()),
+    readNativeUsdPrice: usd,
+  }));
   const Page = (await import("./page")).default;
   render(
     <ChakraProvider>
@@ -245,4 +278,62 @@ test("late rejection after an edit or unmount is ignored", async () => {
   afterUnmount.unmount();
   await act(async () => reject(Error("unmounted error")));
   expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test.each([
+  [100000000000n, "Save 70.00%"],
+  [1000000000n, "Pay extra 2900.00%"],
+])(
+  "shows the comparison delta for an original gas price of %s",
+  async (effectiveGasPrice, label) => {
+    const comparisonReaders: GasCostReaders = {
+      ...readers,
+      getClient: (id) => ({
+        ...readers.getClient(id),
+        getTransactionReceipt: async () => ({
+          transactionHash: hash as `0x${string}`,
+          blockNumber: 123n,
+          gasUsed: 21000n,
+          effectiveGasPrice,
+          status: "success",
+        }),
+      }),
+    };
+    render(
+      <ChakraProvider>
+        <GasCostEstimator
+          chains={chains}
+          loadEstimate={(input) =>
+            loadGasCostEstimate(input, comparisonReaders)
+          }
+        />
+      </ChakraProvider>
+    );
+    fireEvent.change(screen.getByLabelText("Transaction hash"), {
+      target: { value: hash },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Estimate gas cost" }));
+    expect(await screen.findByText(label)).toBeTruthy();
+    expect(screen.getByText("Original gas cost")).toBeTruthy();
+    expect(screen.getByText("Estimated gas cost")).toBeTruthy();
+  }
+);
+
+test("pasting explorer URLs fills only the hash without submitting or changing chains", () => {
+  const loadEstimate = vi.fn();
+  render(<ChakraProvider><GasCostEstimator chains={chains} loadEstimate={loadEstimate} /></ChakraProvider>);
+  const input = screen.getByLabelText("Transaction hash");
+  for (const text of [
+    `https://etherscan.io/tx/${hash}`,
+    `https://basescan.org/tx/${hash}?chain=base#logs`,
+    `sepolia.etherscan.io/tx/${hash}/`,
+    `  ${hash}  `,
+  ]) {
+    fireEvent.change(input, { target: { value: "old input" } });
+    fireEvent.paste(input, { clipboardData: { getData: () => text } });
+    expect((input as HTMLInputElement).value).toBe(hash);
+  }
+  expect((screen.getByLabelText("Source chain") as HTMLSelectElement).value).toBe("1");
+  expect(loadEstimate).not.toHaveBeenCalled();
+  expect(fireEvent.paste(input, { clipboardData: { getData: () => `https://etherscan.io/address/${hash}` } })).toBe(true);
 });

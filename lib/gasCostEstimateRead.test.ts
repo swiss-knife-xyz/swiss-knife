@@ -212,3 +212,30 @@ test("gas quote timestamp reflects gas-price arrival, not a slow receipt lookup"
   release();
   assert.equal((await pending).gasPriceReadAt, 1000);
 });
+
+test("compares the historical effective gas price with the destination estimate", async () => {
+  const { readers, calls } = fixture();
+  const original = readers.getClient;
+  readers.getClient = (id) => ({
+    ...original(id),
+    getTransactionReceipt: async () => ({
+      transactionHash: hash,
+      blockNumber: 123n,
+      gasUsed: 21000n,
+      effectiveGasPrice: 100000000000n,
+      status: "success",
+    }),
+  });
+  readers.getUsdPrice = async (chain) => {
+    calls.push(`usd:${chain.id}`);
+    return chain.id === 1 ? 3000 : 0.5;
+  };
+  const result = await loadGasCostEstimate({ hash, source, target }, readers);
+  assert.equal(result.sourceCost?.nativeAmount, "0.0021");
+  assert.equal(result.sourceCost?.usd, "$6.300000");
+  assert.equal(result.delta?.direction, "saving");
+  assert.equal(result.delta?.usd, "$6.299685");
+  assert.equal(result.delta?.percent, "99.99");
+  assert.ok(calls.includes("usd:1"));
+  assert.ok(calls.includes("usd:137"));
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -8,12 +8,16 @@ import {
   FormLabel,
   Heading,
   Input,
-  Select,
+  SimpleGrid,
+  HStack,
+  Image,
   Stack,
   Text,
   VStack,
 } from "@chakra-ui/react";
 import { formatUnits } from "viem";
+import { DarkSelect } from "@/components/DarkSelect";
+import { chainIdToImage } from "@/data/common";
 import type {
   GasCostChain,
   GasCostInput,
@@ -75,12 +79,15 @@ export function GasCostEstimator({
       if (request === requestId.current) setLoading(false);
     }
   }
-  const options = chains.map((chain) => (
-    <option key={chain.id} value={chain.id}>
-      {chain.name} ({chain.nativeCurrency.symbol})
-      {chain.testnet ? " · testnet" : ""}
-    </option>
-  ));
+  const options = useMemo(
+    () =>
+      chains.map((chain) => ({
+        value: chain.id,
+        label: `${chain.name} (${chain.nativeCurrency.symbol})${chain.testnet ? " · testnet" : ""}`,
+        image: chainIdToImage[chain.id],
+      })),
+    [chains]
+  );
   return (
     <Box w="full" maxW="900px" mx="auto" p={{ base: 4, md: 6 }}>
       <VStack spacing={6} align="stretch">
@@ -88,48 +95,73 @@ export function GasCostEstimator({
           Cross-chain Gas Cost
         </Heading>
         <Text color="gray.400">
-          What would the same gas usage cost at another chain’s current gas
-          price?
+          Compare a transaction’s gas usage at another chain’s current gas
+          price.
         </Text>
         <Box as="form" onSubmit={estimate}>
           <VStack spacing={4} align="stretch">
             <Stack direction={{ base: "column", md: "row" }} spacing={4}>
               <FormControl>
-                <FormLabel htmlFor="gas-source">Source chain</FormLabel>
-                <Select
-                  id="gas-source"
-                  value={sourceId}
-                  onChange={(event) => {
+                <FormLabel>Source chain</FormLabel>
+                <DarkSelect
+                  ariaLabel="Source chain"
+                  options={options}
+                  selectedOption={
+                    options.find((option) => option.value === sourceId) ?? null
+                  }
+                  setSelectedOption={(option) => {
+                    if (!option) return;
                     invalidate();
-                    setSourceId(Number(event.target.value));
+                    setSourceId(Number(option.value));
                   }}
-                >
-                  {options}
-                </Select>
+                  boxProps={{ w: "full", minW: 0 }}
+                />
               </FormControl>
               <FormControl>
-                <FormLabel htmlFor="gas-target">Destination chain</FormLabel>
-                <Select
-                  id="gas-target"
-                  value={targetId}
-                  onChange={(event) => {
+                <FormLabel>Destination chain</FormLabel>
+                <DarkSelect
+                  ariaLabel="Destination chain"
+                  options={options}
+                  selectedOption={
+                    options.find((option) => option.value === targetId) ?? null
+                  }
+                  setSelectedOption={(option) => {
+                    if (!option) return;
                     invalidate();
-                    setTargetId(Number(event.target.value));
+                    setTargetId(Number(option.value));
                   }}
-                >
-                  {options}
-                </Select>
+                  boxProps={{ w: "full", minW: 0 }}
+                />
               </FormControl>
             </Stack>
             <FormControl>
               <FormLabel htmlFor="gas-hash">Transaction hash</FormLabel>
               <Input
                 id="gas-hash"
-                placeholder="0x… (mined transaction on source chain)"
+                placeholder="0x or explorer link"
                 value={hash}
                 onChange={(event) => {
                   invalidate();
                   setHash(event.target.value);
+                }}
+                onPaste={(event) => {
+                  const pasted = event.clipboardData.getData("text").trim();
+                  let transactionHash = /^0x[\da-f]{64}$/i.test(pasted) ? pasted : undefined;
+                  if (!transactionHash) {
+                    try {
+                      const url = new URL(pasted.includes("://") ? pasted : `https://${pasted}`);
+                      if (url.protocol === "https:" || url.protocol === "http:") {
+                        transactionHash = url.pathname.match(/\/tx\/(0x[\da-f]{64})\/?$/i)?.[1];
+                      }
+                    } catch {
+                      // Let ordinary pasted text follow the normal input validation.
+                    }
+                  }
+                  if (transactionHash) {
+                    event.preventDefault();
+                    invalidate();
+                    setHash(transactionHash);
+                  }
                 }}
                 autoComplete="off"
                 spellCheck={false}
@@ -156,64 +188,141 @@ export function GasCostEstimator({
             p={5}
             overflowWrap="anywhere"
           >
-            <VStack align="stretch" spacing={3}>
-              <Heading as="h2" size="md">
-                Estimated gas-only cost on {result.target.name}
-              </Heading>
-              <Text fontSize="2xl" fontWeight="bold">
-                {result.nativeAmount} {result.target.nativeCurrency.symbol}
+            <Text fontSize="sm" color="gray.400" mb={4}>
+              Gas cost comparison
+            </Text>
+            <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={5}>
+              <Box minW={0}>
+                <Text fontSize="xs" color="gray.400" mb={2}>
+                  Original gas cost
+                </Text>
+                <HStack spacing={2} mb={3}>
+                  {chainIdToImage[result.source.id] && (
+                    <Image
+                      src={chainIdToImage[result.source.id]}
+                      alt=""
+                      boxSize={5}
+                      rounded="full"
+                    />
+                  )}
+                  <Text fontWeight="medium">{result.source.name}</Text>
+                </HStack>
+                <Text
+                  fontSize={{ base: "xl", md: "2xl" }}
+                  fontWeight="semibold"
+                >
+                  {result.sourceCost
+                    ? `${result.sourceCost.nativeAmount} ${result.source.nativeCurrency.symbol}`
+                    : "Unavailable"}
+                </Text>
+                {result.sourceCost && (
+                  <Text color="gray.400" mt={1}>
+                    {result.sourceCost.usd ?? "USD unavailable"}
+                  </Text>
+                )}
+                {result.sourceGasPrice !== undefined && (
+                  <Text fontSize="xs" color="gray.400" mt={2}>
+                    {formatUnits(result.sourceGasPrice, 9)} gwei paid
+                  </Text>
+                )}
+              </Box>
+              <Box
+                minW={0}
+                borderLeftWidth={{ base: 0, sm: "1px" }}
+                borderTopWidth={{ base: "1px", sm: 0 }}
+                borderColor="whiteAlpha.200"
+                pl={{ base: 0, sm: 5 }}
+                pt={{ base: 4, sm: 0 }}
+              >
+                <Text fontSize="xs" color="gray.400" mb={2}>
+                  Estimated gas cost
+                </Text>
+                <HStack spacing={2} mb={3}>
+                  {chainIdToImage[result.target.id] && (
+                    <Image
+                      src={chainIdToImage[result.target.id]}
+                      alt=""
+                      boxSize={5}
+                      rounded="full"
+                    />
+                  )}
+                  <Text fontWeight="medium">{result.target.name}</Text>
+                </HStack>
+                <Text
+                  fontSize={{ base: "xl", md: "2xl" }}
+                  fontWeight="semibold"
+                >
+                  {result.nativeAmount} {result.target.nativeCurrency.symbol}
+                </Text>
+                <Text color="gray.400" mt={1}>
+                  {result.usd ?? "USD unavailable"}
+                </Text>
+                <Text fontSize="xs" color="gray.400" mt={2}>
+                  {formatUnits(result.gasPrice, 9)} gwei now
+                </Text>
+              </Box>
+            </SimpleGrid>
+            <Box
+              borderTopWidth="1px"
+              borderColor="whiteAlpha.200"
+              mt={5}
+              pt={4}
+            >
+              {result.delta ? (
+                <Box
+                  color={
+                    result.delta.direction === "saving"
+                      ? "green.300"
+                      : result.delta.direction === "extra"
+                        ? "red.300"
+                        : "gray.300"
+                  }
+                >
+                  <Text color="inherit" fontSize="lg" fontWeight="semibold">
+                    {result.delta.direction === "equal"
+                      ? "Same gas cost"
+                      : `${result.delta.direction === "saving" ? "Save" : "Pay extra"}${result.delta.percent ? ` ${result.delta.percent}%` : ""}`}
+                  </Text>
+                  {result.delta.direction !== "equal" && (
+                    <Text color="inherit" mt={1}>
+                      {result.delta.nativeAmount !== undefined
+                        ? `${result.delta.nativeAmount} ${result.target.nativeCurrency.symbol}`
+                        : result.delta.usd}
+                      {result.delta.nativeAmount !== undefined &&
+                      result.delta.usd
+                        ? ` · ${result.delta.usd}`
+                        : ""}
+                      {result.delta.direction === "saving" ? " less" : " more"}{" "}
+                      than the original gas cost
+                    </Text>
+                  )}
+                </Box>
+              ) : (
+                <Text fontSize="sm" color="gray.400">
+                  {result.sourceCost
+                    ? "USD prices needed to compare these tokens."
+                    : "Original gas price unavailable for comparison."}
+                </Text>
+              )}
+              <Text fontSize="xs" color="gray.400" mt={3}>
+                {result.gasUsed.toString()} gas · Block{" "}
+                {result.sourceBlock.toString()}
+                {result.sourceStatus === "reverted" ? " · Reverted" : ""}
+                {" · "}Updated{" "}
+                {new Date(result.gasPriceReadAt).toLocaleTimeString()}
               </Text>
-              <Text>{result.usd ?? "USD unavailable"}</Text>
-              <Text>
-                {result.gasUsed.toString()} gas × {result.gasPrice.toString()}{" "}
-                base units / gas
-              </Text>
-              <Text fontSize="sm">
-                Gas price: {formatUnits(result.gasPrice, 9)} gwei (10⁹ base
-                units). {result.target.nativeCurrency.symbol} uses{" "}
-                {result.target.nativeCurrency.decimals} decimals.
-              </Text>
-              <Text fontSize="sm">
-                Source: {result.source.name}, block{" "}
-                {result.sourceBlock?.toString()}, status {result.sourceStatus}.
-              </Text>
-              <Text fontSize="sm">
-                Gas price fetched{" "}
-                {new Date(result.gasPriceReadAt).toISOString()}. Refresh with
-                Estimate gas cost; prices change.
-              </Text>
-              <Text fontSize="sm" color="gray.400">
-                USD is approximate, using the destination native asset’s
-                CoinGecko price (updated within 15 minutes), not a historical
-                exchange rate. Missing or unavailable feeds do not affect the
-                native estimate.
-              </Text>
-            </VStack>
+              {(result.usd || result.sourceCost?.usd) && (
+                <Text fontSize="xs" color="gray.400" mt={1}>
+                  USD values use current token prices.
+                </Text>
+              )}
+            </Box>
           </Box>
         )}
-        <Box bg="whiteAlpha.50" rounded="lg" p={4}>
-          <Text fontWeight="semibold" mb={2}>
-            Estimate only — not an execution simulation.
-          </Text>
-          <Text fontSize="sm" color="gray.400">
-            Assumes exactly the same gas used as the historical receipt.
-            Contract availability, chain rules and state may differ; this does
-            not predict success, gas usage or an executable transaction. Failed
-            source transactions still consume gas.
-          </Text>
-          <Text fontSize="sm" color="gray.400" mt={2}>
-            Not an all-in fee: L1 data, blob, sequencer and other chain-specific
-            fees are not separately calculated. L2 receipts (especially
-            Arbitrum) may already include data-related gas; reusing that gas on
-            another chain can distort the comparison. Gas accounting and
-            native-token units may differ across chains. No savings guarantee.
-          </Text>
-          <Text fontSize="sm" color="gray.400" mt={2}>
-            Read-only. Only the selected RPCs and optional public price feed are
-            queried after you submit. No wallet, signing, broadcasting or input
-            storage.
-          </Text>
-        </Box>
+        <Text fontSize="sm" color="gray.400">
+          Uses the original gas usage without simulation. Extra L2 fees are
+          excluded; L2 gas accounting may differ.
+        </Text>
       </VStack>
     </Box>
   );

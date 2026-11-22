@@ -1,4 +1,6 @@
 import type { Hex } from "viem";
+import { nativeUsdPriceId } from "./gasCostPrice";
+import { gasCostDelta } from "./gasCostDelta";
 import { estimateGasCost } from "./gasCostEstimate";
 
 export type GasCostChain = {
@@ -16,6 +18,7 @@ export type GasCostReceipt = {
   transactionHash: Hex;
   blockNumber: bigint | null;
   gasUsed: bigint;
+  effectiveGasPrice?: bigint;
   status: "success" | "reverted";
 };
 export type GasCostReaders = {
@@ -99,14 +102,48 @@ export async function loadGasCostEstimate(
     gasPrice,
     decimals: target.nativeCurrency.decimals,
   });
-  const usdPrice = await readers.getUsdPrice(target).catch(() => undefined);
+  const hasSourceFee =
+    typeof receipt.effectiveGasPrice === "bigint" &&
+    receipt.effectiveGasPrice >= 0n;
+  const sameAsset =
+    source.id === target.id ||
+    Boolean(
+      nativeUsdPriceId(source) &&
+        nativeUsdPriceId(source) === nativeUsdPriceId(target)
+    );
+  const [usdPrice, sourceUsdPrice] = await Promise.all([
+    readers.getUsdPrice(target).catch(() => undefined),
+    hasSourceFee && !sameAsset
+      ? readers.getUsdPrice(source).catch(() => undefined)
+      : Promise.resolve(undefined),
+  ]);
+  const targetCost = estimateGasCost({
+    gasUsed: receipt.gasUsed,
+    gasPrice,
+    decimals: target.nativeCurrency.decimals,
+    usdPrice,
+  });
+  const sourceCost = hasSourceFee
+    ? estimateGasCost({
+        gasUsed: receipt.gasUsed,
+        gasPrice: receipt.effectiveGasPrice!,
+        decimals: source.nativeCurrency.decimals,
+        usdPrice: sameAsset ? usdPrice : sourceUsdPrice,
+      })
+    : undefined;
   return {
-    ...estimateGasCost({
-      gasUsed: receipt.gasUsed,
-      gasPrice,
-      decimals: target.nativeCurrency.decimals,
-      usdPrice,
-    }),
+    ...targetCost,
+    sourceCost,
+    sourceGasPrice: hasSourceFee ? receipt.effectiveGasPrice : undefined,
+    delta: sourceCost
+      ? gasCostDelta(
+          sourceCost,
+          targetCost,
+          source.nativeCurrency.decimals,
+          target.nativeCurrency.decimals,
+          sameAsset
+        )
+      : undefined,
     hash,
     source,
     target,
