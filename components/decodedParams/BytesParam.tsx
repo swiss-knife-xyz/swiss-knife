@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Badge,
   Box,
@@ -56,33 +56,18 @@ export const BytesParam = ({ arg: _arg, chainId }: Params) => {
 
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
 
-  const [decimal, setDecimal] = useState<string>("0");
-  const [binary, setBinary] = useState<string>("0");
-  const [text, setText] = useState<string>("");
-
-  useEffect(() => {
-    if (!showSkeleton) {
-      if (selectedTabIndex === 0 && arg.value.decoded !== null) {
-        // Do nothing for "Decode calldata"
-      } else {
-        const hexStartWith0x = startHexWith0x(arg.rawValue);
-        setDecimal(
-          hexToBigInt(
-            hexStartWith0x === "0x" ? "0x0" : hexStartWith0x
-          ).toString()
-        );
-        setBinary(
-          bigInt(
-            arg.rawValue.startsWith("0x")
-              ? arg.rawValue.slice(2)
-              : arg.rawValue,
-            16
-          ).toString(2)
-        );
-        setText(hexToString(startHexWith0x(arg.rawValue)));
-      }
+  const { decimal, binary, text } = useMemo(() => {
+    const hex = startHexWith0x(arg.rawValue);
+    try {
+      return {
+        decimal: hexToBigInt(hex === "0x" ? "0x0" : hex).toString(),
+        binary: bigInt(hex.slice(2) || "0", 16).toString(2),
+        text: hexToString(hex),
+      };
+    } catch {
+      return { decimal: "0", binary: "0", text: "" };
     }
-  }, [selectedTabIndex, arg]);
+  }, [arg.rawValue]);
 
   const renderConverted = () => {
     const index =
@@ -115,7 +100,7 @@ export const BytesParam = ({ arg: _arg, chainId }: Params) => {
             ) : null}
             <Stack
               mt={decodedFn.name ? 2 : 0}
-              p={4}
+              p={{ base: 2, md: 4 }}
               spacing={2}
               bg={"whiteAlpha.50"}
               rounded={"lg"}
@@ -161,7 +146,7 @@ export const BytesParam = ({ arg: _arg, chainId }: Params) => {
       />
     </HStack>
   ) : (
-    <Stack mt={2} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
+    <Stack mt={2} p={{ base: 2, md: 4 }} bg={"whiteAlpha.50"} rounded={"lg"}>
       <HStack w="full">
         <Text
           fontSize={"xl"}
@@ -171,14 +156,14 @@ export const BytesParam = ({ arg: _arg, chainId }: Params) => {
         >
           {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </Text>
-        <Box flex="1">
+        <Box flex="1" minW={0}>
           <StringParam value={arg.rawValue} />
         </Box>
       </HStack>
       <Collapse in={isOpen} animateOpacity>
         <Stack
-          ml={2}
-          px={4}
+          ml={{ base: 0, md: 2 }}
+          px={{ base: 2, md: 4 }}
           pb={4}
           borderLeft="1px"
           borderBottom="1px"

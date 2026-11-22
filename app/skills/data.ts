@@ -38,6 +38,26 @@ export type SkillResource = {
 
 const skillResourcesData: SkillResource[] = [
   {
+    id: "web3ctx",
+    name: "web3ctx",
+    provider: "Farseen Shaikh (ScarAI)",
+    url: "https://web3ctx.scarai.xyz",
+    logoDomain: "web3ctx.scarai.xyz",
+    toolTypes: ["Skill", "MCP", "CLI", "Plugin"],
+    categories: ["Developer", "Data"],
+    tags: ["Version-scoped context", "EIPs", "ABIs", "Integration recipes"],
+    install: "https://mcp.scarai.xyz/mcp",
+    description:
+      "Web3 coding context with version-scoped source, EIP/ERC text, ABIs, deployment addresses, and integration recipes with commit-pinned citations. The provider documents five read-only retrieval tools over remote HTTP MCP, plus a skill, CLI, and Claude Code plugin. Public access is rate-limited with no key or signup; optional GitHub sign-in raises limits. Skill installation is separate from the MCP connection.",
+    sourceUrls: [
+      "https://web3ctx.scarai.xyz",
+      "https://github.com/FarseenSh/web3ctx",
+      "https://github.com/FarseenSh/web3ctx/blob/main/skills/web3context/SKILL.md",
+      "https://github.com/FarseenSh/web3ctx/blob/main/.claude-plugin/marketplace.json",
+      "https://web3ctx.scarai.xyz/operator.html",
+    ],
+  },
+  {
     id: "namera-skills",
     name: "Namera Skills",
     provider: "Namera",

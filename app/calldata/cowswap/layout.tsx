@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Decode a ComposableCoW TWAP order and verify its appData hash against the CoW API.",
   canonical: "https://calldata.eth.sh/cowswap",
-  images: "https://eth.sh/og/calldata-cowswap.png",
+  images: "https://eth.sh/api/og/calldata-cowswap",
 });
 
 const Layout = ({ children }: { children: React.ReactNode }) => {

@@ -48,6 +48,24 @@ test("Namera listing distinguishes skill installation from authorized local wall
   );
 });
 
+test("web3ctx listing identifies documented retrieval surfaces and setup limits", () => {
+  const matches = skillResources.filter(({ id }) => id === "web3ctx");
+  assert.equal(matches.length, 1, "web3ctx must be listed exactly once");
+  const [resource] = matches;
+  assert.equal(resource.url, "https://web3ctx.scarai.xyz");
+  assert.equal(resource.provider, "Farseen Shaikh (ScarAI)");
+  assert.deepEqual(resource.toolTypes, ["Skill", "MCP", "CLI", "Plugin"]);
+  assert.deepEqual(resource.categories, ["Developer", "Data"]);
+  assert.equal(resource.install, "https://mcp.scarai.xyz/mcp");
+  assert.match(resource.description, /provider documents.*read-only/i);
+  assert.match(resource.description, /version-scoped.*commit-pinned/i);
+  assert.match(resource.description, /rate.limited.*no key or signup/i);
+  assert.match(resource.description, /skill.*separate.*MCP connection/i);
+  assert(resource.sourceUrls.includes("https://github.com/FarseenSh/web3ctx"));
+  assert(resource.sourceUrls.includes("https://web3ctx.scarai.xyz/operator.html"));
+  assert.doesNotMatch(resource.description, /guarantee|never guesses|unlimited|audited/i);
+});
+
 test("skill catalog identities, classifications and evidence URLs are valid", () => {
   const ids = new Set<string>();
   for (const resource of skillResources) {

@@ -6,7 +6,7 @@ export const metadata = getMetadata({
   description:
     "Decode any calldata, and view the parameters in a human-readable format, even without having the contract ABI with this Calldata Decoder.",
   canonical: "https://calldata.eth.sh/",
-  images: "https://eth.sh/og/calldata-decoder.png",
+  images: "https://eth.sh/api/og/calldata-decoder",
 });
 
 const CalldataLayout = ({ children }: { children: React.ReactNode }) => {

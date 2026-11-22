@@ -8,9 +8,15 @@
     "build:robin-oft-artifacts": "tsx scripts/buildRobinOftArtifacts.ts",
     "test": "tsx --test",
     "test:safe-hash": "vitest run --config vitest.safe-hash.config.ts",
+    "test:tuples": "vitest run --config vitest.tuples.config.ts",
+    "test:contract": "vitest run --config vitest.contract.config.ts",
+    "test:contract-explorer": "vitest run --config vitest.contract-explorer.config.ts",
+    "test:contract-load": "vitest run --config vitest.contract-load.config.ts",
     "start": "next start",
     "lint": "next lint",
-    "fetch-dapps": "tsx scripts/fetchSafeDapps.ts"
+    "fetch-dapps": "tsx scripts/fetchSafeDapps.ts",
+    "test:decoder-samples": "vitest run --config vitest.decoder-samples.config.ts && tsx --test app/calldata/decoder/samples.test.ts",
+    "test:decoder-metadata": "vitest run --config vitest.decoder-metadata.config.ts"
   },
   "dependencies": {
     "@bprogress/next": "^3.2.12",
@@ -97,17 +103,17 @@
     "@openzeppelin/contracts": "5.0.2",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.0",
-    "jsdom": "26.1.0",
-    "vitest": "3.2.4",
     "@types/cors": "^2.8.17",
     "@types/diff": "^5.2.3",
     "@types/ethereum-block-by-date": "^1.4.1",
     "@types/lodash": "^4.17.13",
     "isEqual": "link:@types/lodash/isEqual",
+    "jsdom": "26.1.0",
     "pino-pretty": "^10.3.1",
     "prettier": "^3.6.2",
     "solc": "0.8.28",
-    "tsx": "^4.19.4"
+    "tsx": "^4.19.4",
+    "vitest": "3.2.4"
   },
   "packageManager": "pnpm@9.12.0+sha512.4abf725084d7bcbafbd728bfc7bee61f2f791f977fd87542b3579dcb23504d170d46337945e4c66485cd12d588a0c0e570ed9c477e7ccdd8507cf05f3f92eaca"
 }
