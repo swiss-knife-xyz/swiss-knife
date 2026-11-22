@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   title: "Wallet | ETH.sh",
   description: "Wallet Bridge: connect your mobile wallet to any desktop dapp.",
   canonical: "https://wallet.eth.sh/",
-  images: "https://eth.sh/og/wallet-bridge.png",
+  images: "https://eth.sh/api/og/wallet-bridge",
 });
 
 const WalletLayout = ({ children }: { children: React.ReactNode }) => {

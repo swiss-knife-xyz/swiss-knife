@@ -45,7 +45,7 @@ check("ens.eth.sh", "/history/vitalik.eth", 200, canonical="https://ens.eth.sh/h
 for host in ["eth.sh", "explorer.eth.sh", "determine-address.eth.sh", "solidity.eth.sh", "usdc-pay.eth.sh"]:
     check(host, "/robots.txt", 200)
     check(host, "/sitemap.xml", 200)
-    check(host, "/og/index.png", 200)
+    check(host, "/api/og/home", 200)
     check(host, "/not-a-tool-seo-audit", 404)
 check("wallet.eth.sh", "/signatures/view", 200, noindex=True)
 check("7702beat.eth.sh", "/test", 200, noindex=True)

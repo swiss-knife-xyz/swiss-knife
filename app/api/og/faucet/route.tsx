@@ -335,7 +335,12 @@ export async function GET(request: Request) {
                 <div
                   style={{
                     display: "flex",
-                    fontSize: chainName ? 78 : 86,
+                    fontSize:
+                      chain === "Filecoin Calibration"
+                        ? 64
+                        : chainName
+                          ? 78
+                          : 86,
                     lineHeight: 0.98,
                     letterSpacing: "-0.045em",
                     maxWidth: 670,

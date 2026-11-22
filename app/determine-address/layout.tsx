@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Determine the contract address using CREATE or CREATE2 opcode. Calculate addresses from deployer address and nonce (CREATE) or bytecode and salt (CREATE2).",
   canonical: "https://determine-address.eth.sh/",
-  images: "https://eth.sh/og/determine-address.png",
+  images: "https://eth.sh/api/og/determine-address",
 });
 
 const DetermineAddressLayout = ({ children }: { children: React.ReactNode }) => {

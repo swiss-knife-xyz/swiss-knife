@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   title: "Solidity | ETH.sh",
   description: "Solidity tools and utilities.",
   canonical: "https://solidity.eth.sh/",
-  images: "https://eth.sh/og/solidity-compiler.png",
+  images: "https://eth.sh/api/og/solidity-compiler",
 });
 
 const SolidityLayout = ({ children }: { children: React.ReactNode }) => {

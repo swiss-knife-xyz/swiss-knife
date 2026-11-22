@@ -13,4 +13,4 @@
 
 - Tool pages live under `app/<subdomain>/<tool>/` with `page.tsx`, `layout.tsx` (metadata via `getMetadata`), and a `*Page.tsx` client component.
 - Register new tool paths in `subdomains.js` and add them to the relevant sidebar in `app/<subdomain>/<Subdomain>Layout.tsx`.
-- OG image convention: `public/og/<subdomain>-<tool>.png`, referenced as `https://eth.sh/og/<subdomain>-<tool>.png` in the layout metadata.
+- OG image convention: a dynamic route under `app/api/og/<slug>/route.tsx`, referenced as `https://eth.sh/api/og/<slug>` in layout metadata. Reuse `lib/toolOg.tsx` and `lib/toolOgCards.ts` for the standard tool-card design.

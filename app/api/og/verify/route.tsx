@@ -1,8 +1,8 @@
-import { toolOgImage } from "@/lib/seoOg";
+import { renderToolOg } from "@/lib/toolOg";
+import { toolOgCards } from "@/lib/toolOgCards";
+
 export const runtime = "edge";
-export function GET() {
-  return toolOgImage(
-    "Cross-explorer Verification",
-    "Etherscan · Blockscout · Routescan · Sourcify"
-  );
+
+export async function GET() {
+  return renderToolOg(toolOgCards["verify"]);
 }
