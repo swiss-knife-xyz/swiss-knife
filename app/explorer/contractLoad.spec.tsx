@@ -346,6 +346,15 @@ it("opens a pasted token explorer link from the start screen", () => {
   expect(onOpen).toHaveBeenCalledExactlyOnceWith(draft, 8453);
 });
 
+it("shows directory and verification links only on the standalone explorer start screen", () => {
+  const view = render(<ChakraProvider><ContractStart /></ChakraProvider>);
+  expect(screen.getByRole("link", { name: "Explorer Directory" }).getAttribute("href")).toBe("/explorers/");
+  expect(screen.getByRole("link", { name: "Cross-explorer Verification" })).toBeTruthy();
+  view.rerender(<ChakraProvider><ContractStart embedded /></ChakraProvider>);
+  expect(screen.queryByRole("link", { name: "Explorer Directory" })).toBeNull();
+  expect(screen.queryByRole("link", { name: "Cross-explorer Verification" })).toBeNull();
+});
+
 it.each([
   `https://etherscan.io.evil.example/address/${draft}`,
   `https://evil.example/address/${draft}`,
@@ -356,4 +365,23 @@ it.each([
   `ftp://etherscan.io/address/${draft}`,
 ])("rejects unsupported or malformed explorer URL %s", (url) => {
   expect(parseContractExplorerUrl(url)).toBeNull();
+});
+
+it.each([["eth", 1], ["base", 8453], ["arb1", 42161]])("pasting %s-prefixed addresses selects the chain and loads immediately", async (prefix, chainId) => {
+  render(page());
+  await loaded();
+  const input = screen.getByRole("textbox", { name: "Contract Address" });
+  fireEvent.paste(input, { clipboardData: { getData: () => `${prefix}:${draft}` } });
+  expect((input as HTMLInputElement).value).toBe(draft);
+  expect((screen.getByRole("combobox", { name: "Network" }) as HTMLSelectElement).value).toBe(String(chainId));
+  expect(push).toHaveBeenCalledExactlyOnceWith(`/explorer/${chainId}/${draft}`);
+});
+
+it("pasting a chain-prefixed address opens it from the explorer homepage", () => {
+  const onOpen = vi.fn();
+  render(<ChakraProvider><ContractStart onOpen={onOpen} /></ChakraProvider>);
+  fireEvent.paste(screen.getByRole("textbox", { name: "Contract Address" }), {
+    clipboardData: { getData: () => `base:${draft}` },
+  });
+  expect(onOpen).toHaveBeenCalledExactlyOnceWith(draft, 8453);
 });

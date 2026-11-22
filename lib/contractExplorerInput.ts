@@ -1,4 +1,16 @@
-import { chainIdToChain } from "@/data/common";
+import { chainIdToChain, erc3770ShortNameToChain } from "@/data/common";
+
+export function parseChainPrefixedAddress(input: string) {
+  const match = /^([^:]+):(0x[a-fA-F0-9]{40})$/.exec(
+    input.trim().replace(/^"|"$/g, "")
+  );
+  const chain = match && erc3770ShortNameToChain[match[1]];
+  return chain && match ? { address: match[2], chainId: chain.id } : null;
+}
+
+export function parseContractAddressInput(input: string) {
+  return parseChainPrefixedAddress(input) ?? parseContractExplorerUrl(input);
+}
 
 // Match configured explorer origins exactly, including testnet subdomains.
 const explorerChains = new Map<string, number>();

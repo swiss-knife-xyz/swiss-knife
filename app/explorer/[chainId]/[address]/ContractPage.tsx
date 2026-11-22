@@ -11,7 +11,7 @@ import {
   HighlightedContent,
   SelectedOptionState,
 } from "@/types";
-import { parseContractExplorerUrl } from "@/lib/contractExplorerInput";
+import { parseContractAddressInput } from "@/lib/contractExplorerInput";
 import { chainIdToChain, networkOptions } from "@/data/common";
 import {
   Alert,
@@ -1336,7 +1336,7 @@ const LoadedContractPage = ({
   }, [address, chainId, getNetworkOption]);
 
   const submitAddress = (input: string, selectedChainId = Number(selectedNetworkOption?.value)) => {
-    const explorer = parseContractExplorerUrl(input);
+    const explorer = parseContractAddressInput(input);
     const trimmedAddress = explorer?.address ?? input.trim();
     if (!/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) {
       setInputError("Please enter a valid contract address");
@@ -1360,7 +1360,7 @@ const LoadedContractPage = ({
   const handleAddressSubmit = () => submitAddress(addressInput);
 
   const handleAddressPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
-    const explorer = parseContractExplorerUrl(event.clipboardData.getData("text"));
+    const explorer = parseContractAddressInput(event.clipboardData.getData("text"));
     if (!explorer) return;
     event.preventDefault();
     setAddressInput(explorer.address);
@@ -1508,7 +1508,7 @@ const LoadedContractPage = ({
                   isInvalid={Boolean(inputError)}
                   aria-describedby={inputError ? "contract-load-error" : undefined}
                   onChange={(e) => {
-                    const explorer = parseContractExplorerUrl(e.target.value);
+                    const explorer = parseContractAddressInput(e.target.value);
                     setAddressInput(explorer?.address ?? e.target.value);
                     if (explorer) {
                       setSelectedNetworkOption(networkOptions.find(option => option.value === explorer.chainId) ?? null);

@@ -117,7 +117,7 @@ it("contract landing keeps the existing interactive form and opens chain/address
   expect(
     screen.getByRole("link", { name: /USDC/ }).getAttribute("href")
   ).toContain("https://explorer.eth.sh/1/");
-  fireEvent.change(screen.getByPlaceholderText("0x... or eth:0x..."), {
+  fireEvent.change(screen.getByPlaceholderText("0x... or eth:0x... or explorer URL"), {
     target: { value: address },
   });
   fireEvent.change(screen.getByRole("combobox", { name: "Network" }), {
@@ -229,4 +229,25 @@ it("directory keeps its real explorer dataset and name / contract-only filtering
   await waitFor(() =>
     expect(screen.getAllByText(included).length).toBeGreaterThan(0)
   );
+});
+
+it("pasting a chain-prefixed directory address strips its prefix, filters the chain and submits", async () => {
+  state.query = new URLSearchParams("forContracts=true&tag=kept");
+  render(wrap(<ExplorerLayout><div>Directory results</div></ExplorerLayout>));
+  const input = screen.getByRole("textbox", { name: "Blockchain address, ENS name, or transaction hash" });
+  fireEvent.paste(input, { clipboardData: { getData: () => `base:${other}` } });
+  expect((input as HTMLInputElement).value).toBe(other);
+  await waitFor(() => expect(state.push).toHaveBeenCalledExactlyOnceWith(
+    `https://eth.sh/explorers/address/${other}?forContracts=true&tag=kept&chainId=8453`
+  ));
+});
+
+it("directory chain query applies to result filters and updates for another pasted chain", async () => {
+  state.query = new URLSearchParams("chainId=8453");
+  const view = render(wrap(<ExplorerGridBase explorersData={addressExplorers} explorerType={ExplorerType.ADDRESS} addressOrTx={address} />));
+  expect(screen.getByRole("button", { name: "Chains (1)" })).toBeTruthy();
+  state.query = new URLSearchParams("chainId=1");
+  view.rerender(wrap(<ExplorerGridBase explorersData={addressExplorers} explorerType={ExplorerType.ADDRESS} addressOrTx={address} />));
+  fireEvent.click(screen.getByRole("button", { name: "Chains (1)" }));
+  expect((await screen.findByRole("button", { name: /^Ethereum/ })).getAttribute("aria-pressed")).toBe("true");
 });

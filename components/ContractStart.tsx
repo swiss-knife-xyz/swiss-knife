@@ -8,7 +8,7 @@ import React from "react";
 import { SelectedOptionState } from "@/types";
 import { networkOptions } from "@/data/common";
 import { getPath, resolveERC3770Address } from "@/utils";
-import { parseContractExplorerUrl } from "@/lib/contractExplorerInput";
+import { parseContractAddressInput } from "@/lib/contractExplorerInput";
 import subdomains from "@/subdomains";
 import {
   Box,
@@ -109,7 +109,7 @@ export default function ContractStart({
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const explorer = parseContractExplorerUrl(value);
+    const explorer = parseContractAddressInput(value);
     setAddress(explorer?.address ?? value);
     if (explorer) {
       setSelectedNetworkOption(networkOptions.find(option => option.value === explorer.chainId) ?? null);
@@ -124,7 +124,7 @@ export default function ContractStart({
     }
 
     // Resolve ERC-3770 address format (e.g., eth:0x1234...)
-    const resolved = parseContractExplorerUrl(input) ?? resolveERC3770Address(input.trim());
+    const resolved = parseContractAddressInput(input) ?? resolveERC3770Address(input.trim());
     const finalAddress = resolved.address;
     const finalChainId = resolved.chainId ?? chainId;
 
@@ -144,7 +144,7 @@ export default function ContractStart({
   const handleSubmit = () => submitAddress(address);
 
   const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
-    const explorer = parseContractExplorerUrl(event.clipboardData.getData("text"));
+    const explorer = parseContractAddressInput(event.clipboardData.getData("text"));
     if (!explorer) return;
     event.preventDefault();
     setAddress(explorer.address);
@@ -188,6 +188,13 @@ export default function ContractStart({
 
       {!embedded && (
         <HStack spacing={4} flexWrap="wrap" justify="center">
+          <Link
+            href={getPath(subdomains.EXPLORER.base)}
+            fontSize="sm"
+            color="text.secondary"
+          >
+            Explorer Directory
+          </Link>
           <Link
             href={`${getPath(subdomains.CONTRACT.base)}verify`}
             fontSize="sm"

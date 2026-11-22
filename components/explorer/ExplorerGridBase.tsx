@@ -67,8 +67,22 @@ export const ExplorerGridBase = ({
 }: Params) => {
   const searchParams = useSearchParams();
 
+  const chainFromUrl = searchParams.get("chainId");
+  const urlChainId =
+    chainFromUrl && /^\d+$/.test(chainFromUrl) &&
+    Number.isSafeInteger(Number(chainFromUrl)) && Number(chainFromUrl) > 0
+      ? Number(chainFromUrl)
+      : null;
+
   const [searchExplorer, setSearchExplorer] = useState<string>("");
-  const [chainIdsSelected, setChainIdsSelected] = useState<number[]>(initialChainIds);
+  const [chainIdsSelected, setChainIdsSelected] = useState<number[]>(() =>
+    syncFiltersToUrl && urlChainId ? [urlChainId] : initialChainIds
+  );
+  useEffect(() => {
+    if (syncFiltersToUrl) setChainIdsSelected(urlChainId ? [urlChainId] : initialChainIds);
+  // Initial defaults apply only when the URL chain changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlChainId, syncFiltersToUrl]);
 
   const [favoriteExplorerNames, setFavoriteExplorerNames] = useLocalStorage<
     string[]
@@ -217,6 +231,7 @@ export const ExplorerGridBase = ({
                             w="full"
                             size="sm"
                             variant="ghost"
+                            aria-pressed={chainIdsSelected.includes(chainId)}
                             justifyContent="flex-start"
                             onClick={() => {
                               if (chainIdsSelected.includes(chainId)) {
