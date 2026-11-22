@@ -31,7 +31,7 @@ import { diffLines } from "diff";
 import { FiGitBranch, FiFile } from "react-icons/fi";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { etherscanChains, chainIdToChain, chainIdToImage } from "@/data/networks";
-import { getSourceCode } from "@/utils";
+import { getSourceCodeWithMetadata } from "@/utils";
 import { Layout } from "@/components/Layout";
 import { InputField } from "@/components/InputField";
 import { SelectedOptionState } from "@/types";
@@ -143,10 +143,19 @@ function ContractDiffContent() {
   const toast = useToast();
 
   const [sourceCodes, setSourceCodes] = useState<Record<string, string>[]>([]);
+  const [contractNames, setContractNames] = useState<string[]>([]);
 
   const [comparedInputs, setComparedInputs] = useState<string | null>(null);
   const currentInputs = JSON.stringify([contractOld, contractNew, chainIdOld, chainIdNew]);
   const resultsStale = comparedInputs !== null && comparedInputs !== currentInputs;
+
+  useEffect(() => {
+    const names = !resultsStale && contractNames.length === 2
+      ? contractNames.map((name, index) => name.trim() || (index === 0 ? "Old contract" : "New contract"))
+      : null;
+    document.title = names ? `${names.join(" vs ")} - Contract Diff | ETH.sh` : "Contract Diff | ETH.sh";
+    return () => { document.title = "Contract Diff | ETH.sh"; };
+  }, [contractNames, resultsStale]);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -186,12 +195,13 @@ function ContractDiffContent() {
       // Persist all four values, even untouched example defaults, for sharing.
       await setComparison({ contractOld, contractNew, chainIdOld, chainIdNew });
       const fetchedSources = await Promise.all(
-        [chainIdOld, chainIdNew].map((chainId, i) => getSourceCode(chainId, contracts[i]))
+        [chainIdOld, chainIdNew].map((chainId, i) => getSourceCodeWithMetadata(chainId, contracts[i]))
       );
-      if (fetchedSources.some((source) => !source || Object.values(source).every((code) => !code.trim()))) {
+      if (fetchedSources.some((source) => !source || Object.values(source.sourceCode).every((code) => !code.trim()))) {
         throw new Error("Source code is unavailable");
       }
-      setSourceCodes(fetchedSources as Record<string, string>[]);
+      setSourceCodes(fetchedSources.map((source) => source!.sourceCode));
+      setContractNames(fetchedSources.map((source) => source!.contractName ?? ""));
       setComparedInputs(currentInputs);
     } catch {
       toast({
