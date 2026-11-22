@@ -38,6 +38,105 @@ export type SkillResource = {
 
 const skillResourcesData: SkillResource[] = [
   {
+    id: "web3ctx",
+    name: "web3ctx",
+    provider: "Farseen Shaikh (ScarAI)",
+    url: "https://web3ctx.scarai.xyz",
+    logoDomain: "web3ctx.scarai.xyz",
+    toolTypes: ["Skill", "MCP", "CLI", "Plugin"],
+    categories: ["Developer", "Data"],
+    tags: ["Version-scoped context", "EIPs", "ABIs", "Integration recipes"],
+    install: "https://mcp.scarai.xyz/mcp",
+    description:
+      "Web3 coding context with version-scoped source, EIP/ERC text, ABIs, deployment addresses, and integration recipes with commit-pinned citations. The provider documents five read-only retrieval tools over remote HTTP MCP, plus a skill, CLI, and Claude Code plugin. Public access is rate-limited with no key or signup; optional GitHub sign-in raises limits. Skill installation is separate from the MCP connection.",
+    sourceUrls: [
+      "https://web3ctx.scarai.xyz",
+      "https://github.com/FarseenSh/web3ctx",
+      "https://github.com/FarseenSh/web3ctx/blob/main/skills/web3context/SKILL.md",
+      "https://github.com/FarseenSh/web3ctx/blob/main/.claude-plugin/marketplace.json",
+      "https://web3ctx.scarai.xyz/operator.html",
+    ],
+  },
+  {
+    id: "namera-skills",
+    name: "Namera Skills",
+    provider: "Namera",
+    url: "https://github.com/thenamespace/namera/tree/main/skills/namera",
+    logoDomain: "namera.ai",
+    toolTypes: ["Skill", "MCP", "CLI", "API"],
+    categories: ["Wallet", "Developer", "Infrastructure"],
+    tags: [
+      "Agent wallets",
+      "Session keys",
+      "Spending limits",
+      "Gas sponsorship",
+      "EVM",
+    ],
+    install: "npx skills add thenamespace/namera --skill namera --yes",
+    description:
+      "Open-beta EVM agent-wallet toolkit with a skill, CLI, local stdio MCP, and API access. Agents inspect accounts, submit transactions, and sign messages within authorized session-key permissions and spending limits. Optional gas sponsorship is subject to account limits. The skill install is separate from CLI installation and browser authorization for MCP.",
+    sourceUrls: [
+      "https://github.com/thenamespace/namera/tree/main/skills/namera",
+      "https://namera.ai/docs",
+      "https://namera.ai/docs/mcp",
+      "https://namera.ai/docs/cli/guides/transactions/sponsor-gas",
+    ],
+  },
+  {
+    id: "stalkchain-data-mcp",
+    name: "StalkChain Data",
+    provider: "StalkChain",
+    url: "https://stalkchain.com/mcp",
+    logoDomain: "stalkchain.com",
+    toolTypes: ["MCP"],
+    categories: ["Data", "Wallet", "Cross-chain"],
+    tags: ["Wallet research", "Token holders", "Trader activity", "Alerts"],
+    install: "https://data.stalkchain.com/mcp/directory",
+    description:
+      "Remote crypto-research MCP for public wallet holdings, token holders, and tracked-trader activity. Chain coverage varies by tool and includes Solana, Ethereum, Base, BNB Chain, and other supported chains. Uses browser OAuth and metered StalkChain account credits. The directory profile is documented for research and email-alert management; creating or deleting alerts changes account state.",
+    sourceUrls: [
+      "https://stalkchain.com/mcp",
+      "https://github.com/StalkChain/fomo-mcp-api",
+      "https://github.com/StalkC/stalkchain-plugin",
+    ],
+  },
+  {
+    id: "yield-xyz-agentkit",
+    name: "Yield.xyz AgentKit",
+    provider: "Yield.xyz",
+    url: "https://github.com/stakekit/agentkit",
+    logoDomain: "yield.xyz",
+    toolTypes: ["Skill", "MCP", "Plugin"],
+    categories: ["DeFi", "Developer"],
+    tags: ["Yield", "Staking", "Lending", "Unsigned transactions"],
+    install: "npx skills add https://github.com/stakekit/agentkit",
+    description:
+      "Official skills, plugins, and remote MCP for discovering DeFi yields, checking APY, risk, TVL history and wallet balances, and building unsigned enter, exit, and manage transactions. Optional Privy and MoonPay connectors add signing and broadcasting; a builder skill generates integration code. Shared MCP access has a metered free tier, with x402 payments or a billed API key for additional usage.",
+    sourceUrls: [
+      "https://github.com/stakekit/agentkit",
+      "https://docs.yield.xyz/documentation/ai-agents/agentkit/index",
+      "https://docs.yield.xyz/documentation/ai-agents/agentkit/agent-skills",
+      "https://docs.yield.xyz/documentation/ai-agents/mcp-server",
+    ],
+  },
+  {
+    id: "namespace-skills",
+    name: "Namespace Skills",
+    provider: "Namespace",
+    url: "https://github.com/thenamespace/skills",
+    logoDomain: "namespace.ninja",
+    toolTypes: ["Skill"],
+    categories: ["Developer", "Infrastructure"],
+    tags: ["ENS", "Subnames", "Identity", "React"],
+    install: "npx skills add thenamespace/skills --yes",
+    description:
+      "Seven skills for integrating ENS and Namespace into apps and agents. Covers the ENS protocol, gasless offchain subnames, onchain subname minting, Celo Names, Resolvio profile and reverse resolution, React components, and avatar/header uploads.",
+    sourceUrls: [
+      "https://github.com/thenamespace/skills",
+      "https://docs.namespace.ninja",
+    ],
+  },
+  {
     id: "hyperliquid-cli",
     name: "Hyperliquid CLI",
     provider: "hypurrclaw",
@@ -1038,6 +1137,23 @@ const skillResourcesData: SkillResource[] = [
       "Official remote VFAT MCP for multichain yield farming and liquidity management. Agents can discover yield opportunities, inspect wallet portfolios and position performance, quote swaps and bridges, and prepare deposits, withdrawals, harvests, compounds, and rebalances as unsigned calldata or wallet-verifiable ERC-8410 execution plans. Uses Streamable HTTP without an API key; never signs or broadcasts transactions.",
     sourceUrls: ["https://vfat.io/mcp", "https://vfat.io/docs/mcp"],
   },
+  {
+    id: "galleon-defi-skills",
+    name: "Galleon DeFi Skills",
+    provider: "Galleon Labs",
+    url: "https://github.com/galleonlabs/crypto-defi-skills",
+    logoDomain: "galleonlabs.io",
+    toolTypes: ["Skill", "CLI", "Plugin"],
+    categories: ["DeFi", "Data", "Security", "Cross-chain"],
+    tags: ["Lending", "Liquidity", "Unsigned txs", "Prediction markets"],
+    install: "npx skills add galleonlabs/crypto-defi-skills",
+    description:
+      "49 MIT-licensed agent skills in 17 independently versioned packs for DeFi research, unsigned planning and verification: Aave and Morpho position risk, ERC-4626 and ERC-7540 vault exits, Uniswap and Aerodrome liquidity, LI.FI and Across route reconciliation, Polymarket resolution rules, and Safe and governance review. Works with Claude Code, Codex, Cursor, Gemini CLI, Hermes and OpenClaw. The package CLIs do not sign or submit transactions.",
+    sourceUrls: [
+      "https://github.com/galleonlabs/crypto-defi-skills",
+      "https://github.com/galleonlabs/crypto-defi-skills/blob/main/docs/AGENT-INDEX.md",
+    ],
+  },
 ];
 
 const prioritizedResourceIds = [
@@ -1055,6 +1171,7 @@ const prioritizedResourceIds = [
   "morpho-agents",
   "fluid-skill",
   "pendle-ai",
+  "yield-xyz-agentkit",
   "panoptic-mcp",
   "opensea-skill",
   "across-skills",

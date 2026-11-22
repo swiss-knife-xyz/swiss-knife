@@ -1,7 +1,8 @@
-import { toolOgImage } from "@/lib/seoOg";
+import { renderToolOg } from "@/lib/toolOg";
+import { toolOgCards } from "@/lib/toolOgCards";
 
 export const runtime = "edge";
 
-export function GET() {
-  return toolOgImage("Uniswap V4 Pool Price to Target", "Calculate swaps needed to move a Uniswap v4 pool toward a target price.");
+export async function GET() {
+  return renderToolOg(toolOgCards["uniswap-pool-price-to-target"]);
 }

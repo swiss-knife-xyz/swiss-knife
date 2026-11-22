@@ -9,17 +9,17 @@ export const InputInfo = ({
   prefix?: string;
 }) => {
   return (
-    <HStack>
+    <HStack minW={0} flexWrap="wrap" columnGap={2} rowGap={0} fontSize={{ base: "sm", md: "md" }}>
       {prefix && <Box color="whiteAlpha.600">{prefix}</Box>}
       {input.name ? (
         <>
-          <Box>{input.name}</Box>{" "}
+          <Box minW={0} overflowWrap="anywhere">{input.name}</Box>{" "}
           <Box fontSize={"sm"} color="whiteAlpha.600">
             ({input.type})
           </Box>
         </>
       ) : (
-        <Box color="whiteAlpha.800">{input.type}</Box>
+        <Box color="whiteAlpha.800" overflowWrap="anywhere">{input.type}</Box>
       )}
     </HStack>
   );

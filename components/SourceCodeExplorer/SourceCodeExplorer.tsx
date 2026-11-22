@@ -56,6 +56,7 @@ export function SourceCodeExplorer({
   contractName,
   diffData,
   initialHeight = 400,
+  initialSidebarWidth = 180,
   maxHeight,
   isFullscreen = false,
 }: SourceCodeExplorerProps) {
@@ -63,7 +64,7 @@ export function SourceCodeExplorer({
   const [activeTabId, setActiveTabId] = useState<string>("");
   const [sidebarTab, setSidebarTab] = useState<"explorer" | "search">("explorer");
   const [height, setHeight] = useState(initialHeight);
-  const [sidebarWidth, setSidebarWidth] = useState(180);
+  const [sidebarWidth, setSidebarWidth] = useState(initialSidebarWidth);
   const [containerWidth, setContainerWidth] = useState(0);
   const [sidebarOverride, setSidebarOverride] = useState<boolean | null>(null);
   const [selectedDiffStyle, setSelectedDiffStyle] = useState<"split" | "unified" | null>(null);

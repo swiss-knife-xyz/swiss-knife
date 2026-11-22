@@ -863,6 +863,52 @@ export const ethereumOrgs: EthereumOrg[] = [
       { label: "GitHub", href: "https://github.com/geodelabs" },
     ],
   },
+  {
+    id: "nyx-foundation",
+    name: "Nyx Foundation",
+    shortName: "Nyx",
+    handle: "@NyxFoundation",
+    website: "https://nyx.foundation/en/",
+    twitter: "https://x.com/NyxFoundation",
+    logoDomain: "nyx.foundation",
+    accent: "#D946EF",
+    category: "Security and formal verification",
+    stage: "Active research organization",
+    role: "Vulnerability research and machine-checked proofs across Ethereum clients, protocol specifications, and applications.",
+    summary:
+      "Nyx Foundation is a Tokyo-based research organization working on Ethereum client security, formal verification, and cryptography. Its public projects include specification-driven auditing tools and machine-checked proofs for protocol specifications and cryptographic components.",
+    evidence: [
+      "SPECA applies specification-driven auditing to Ethereum clients; the team's published research describes its use across 11 clients in the Fusaka audit contest.",
+      "Nyx reports 17 vulnerability findings and first place by report count in the Fusaka client audit contest.",
+      "Public repositories document Lean 4 formalization of leanEthereum specifications and verification work on cryptographic components, including post-quantum signatures.",
+    ],
+    workstreams: [
+      "Client security: developing SPECA to turn protocol requirements into auditing checklists across client implementations.",
+      "Formal verification: building machine-checked models and proofs for Ethereum specifications, serialization, and cryptographic components.",
+      "Research and education: publishing cryptography and DeFi research and contributing to the Advanced Cryptography Program.",
+    ],
+    watch: [
+      "Whether formalizing leanEthereum in Lean 4 keeps surfacing specification-level bugs as the spec stabilizes.",
+      "Whether specification-driven auditing produces findings that client and application teams act on before deployment rather than after.",
+      "How the post-quantum verification work lands against Ethereum's PQ migration timeline.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://nyx.foundation/en/" },
+      { label: "SPECA", href: "https://github.com/NyxFoundation/speca" },
+      {
+        label: "Formal verification projects",
+        href: "https://github.com/NyxFoundation/formal-eth",
+      },
+      {
+        label: "Fusaka findings announcement",
+        href: "https://prtimes.jp/main/html/rd/p/000000006.000170100.html",
+      },
+      {
+        label: "Advanced Cryptography Program",
+        href: "https://github.com/zk-tokyo/advanced-cryptography-2026",
+      },
+    ],
+  },
 ];
 
 export const ethTreasuryCompanies: EthTreasuryCompany[] = [
@@ -1007,9 +1053,24 @@ export const roleMap = [
       "Token-free infrastructure, transparent funding, burn-aligned grants, validator coordination",
     orgIds: ["ethereum-community-foundation"],
   },
+  {
+    label: "Security and formal verification",
+    description:
+      "Vulnerability research, formal specification, machine-checked proofs across clients and applications",
+    orgIds: ["nyx-foundation"],
+  },
 ];
 
 export const sourceTrail: SourceLink[] = [
+  { label: "Nyx Foundation", href: "https://nyx.foundation/en/" },
+  {
+    label: "Nyx SPECA research",
+    href: "https://github.com/NyxFoundation/speca",
+  },
+  {
+    label: "Nyx formal verification",
+    href: "https://github.com/NyxFoundation/formal-eth",
+  },
   { label: "EthCoordinate about", href: "https://ethcoordinate.org/about" },
   {
     label: "EthCoordinate Forkcast",

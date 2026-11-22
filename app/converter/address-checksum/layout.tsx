@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Convert Ethereum address from lowercase to checksum address and vice versa.",
   canonical: "https://converter.eth.sh/address-checksum",
-  images: "https://eth.sh/og/converter-address-checksum.png",
+  images: "https://eth.sh/api/og/converter-address-checksum",
 });
 
 const AddressChecksumLayout = ({ children }: { children: React.ReactNode }) => {

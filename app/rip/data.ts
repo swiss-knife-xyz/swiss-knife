@@ -24,9 +24,37 @@ export type ShutdownProject = {
   sources: { label: string; url: string; kind: "Primary" | "Reporting" }[];
 };
 
-export const archiveReviewedAt = "2026-10-07";
+export const archiveReviewedAt = "2026-10-16";
 
 export const shutdownProjects: ShutdownProject[] = [
+  {
+    id: "blur",
+    name: "Blur frontend",
+    category: "NFTs",
+    status: "Winding down",
+    announced: "2026-10-12",
+    closed: "2026-11-12",
+    dateNote:
+      "November 12 is the scheduled frontend deprecation and end of new-loan matching on Blend. The Blur marketplace protocol remains operational onchain, with BLUR retaining control of its fee switch. A separate frontend tool will support Blend asset withdrawals after that date.",
+    summary:
+      "NFT marketplace Blur announced the retirement of its blur.io frontend. Its Blend lending product will also stop matching new loans on the same date.",
+    reason: "No reason was specified in the announcement.",
+    website: "https://blur.io",
+    social: "https://x.com/blur_io",
+    logo: "/external/rip/blur.jpg",
+    sources: [
+      {
+        label: "Official frontend deprecation announcement",
+        url: "https://x.com/blur_io/status/2109735810857861203",
+        kind: "Primary",
+      },
+      {
+        label: "Official Blend loan-matching sunset and withdrawal notice",
+        url: "https://x.com/blur_io/status/2109735871377289375",
+        kind: "Primary",
+      },
+    ],
+  },
   {
     id: "artizen",
     name: "Artizen",

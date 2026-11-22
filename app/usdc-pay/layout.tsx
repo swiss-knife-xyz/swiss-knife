@@ -6,20 +6,20 @@ const _metadataInfo = {
   description:
     "Send USDC on Base without gas fees using x402 payment protocol. Powered by PayAI facilitator for gasless transfers.",
   canonical: "https://usdc-pay.eth.sh/",
-  images: "https://eth.sh/og/usdc-pay.png",
+  images: "https://eth.sh/api/og/usdc-pay",
 };
 
 // source: https://github.com/farcasterxyz/frames-v2-demo/blob/main/src/app/frames/hello/page.tsx
 const frame = {
   version: "next",
-  imageUrl: "https://swiss-knife.xyz/og/usdc-pay.png",
+  imageUrl: "https://eth.sh/api/og/usdc-pay",
   button: {
     title: "USDC Pay",
     action: {
       type: "launch_frame",
       name: "USDC Pay",
-      url: `https://swiss-knife.xyz/usdc-pay`,
-      splashImageUrl: `https://swiss-knife.xyz/splashImage.png`,
+      url: `https://usdc-pay.eth.sh/`,
+      splashImageUrl: `https://eth.sh/splashImage.png`,
       splashBackgroundColor: "#101010", // theme.ts: colors.bg[900]
     },
   },

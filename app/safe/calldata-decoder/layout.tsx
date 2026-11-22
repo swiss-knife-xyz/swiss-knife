@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Decode any Safe{Wallet} tx calldata, and view the parameters in a human-readable format, even without having the contract ABI.",
   canonical: "https://safe.eth.sh/calldata-decoder",
-  images: "https://eth.sh/og/safe-calldata-decoder.png",
+  images: "https://eth.sh/api/og/safe-calldata-decoder",
 });
 
 const SafeCalldataDecoderLayout = ({

@@ -63,6 +63,7 @@ export const fetchFunctionInterfaceOpenApiSchema = z.object({
           z.object({
             name: z.string(),
             filtered: z.boolean(),
+            hasVerifiedContract: z.boolean().optional(),
           })
         )
         .optional()

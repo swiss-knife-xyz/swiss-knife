@@ -6,7 +6,7 @@ export const metadata = getMetadata({
   description:
     "Tools for the Safe{Wallet} - MultiSend Calldata Decoder and EIP-712 Hash Visualizer",
   canonical: "https://safe.eth.sh/",
-  images: "https://eth.sh/og/safe.png",
+  images: "https://eth.sh/api/og/safe",
 });
 
 const SafeLayout = ({ children }: { children: React.ReactNode }) => {

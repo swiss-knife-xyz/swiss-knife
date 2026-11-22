@@ -7,12 +7,12 @@
   "frame": {
     "version": "1",
     "name": "USDC Pay",
-    "iconUrl": "https://swiss-knife.xyz/icon.png",
-    "homeUrl": "https://usdc-pay.swiss-knife.xyz",
-    "imageUrl": "https://swiss-knife.xyz/og/usdc-pay.png",
+    "iconUrl": "https://eth.sh/icon.png",
+    "homeUrl": "https://usdc-pay.eth.sh",
+    "imageUrl": "https://eth.sh/api/og/usdc-pay",
     "buttonTitle": "USDC Pay",
-    "splashImageUrl": "https://swiss-knife.xyz/splashImage.png",
+    "splashImageUrl": "https://eth.sh/splashImage.png",
     "splashBackgroundColor": "#101010",
-    "webhookUrl": "https://swiss-knife.xyz/api/webhook"
+    "webhookUrl": "https://eth.sh/api/webhook"
   }
 }

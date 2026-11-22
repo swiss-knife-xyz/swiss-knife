@@ -1,15 +1,15 @@
-import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
+import { renderToolOg } from "@/lib/toolOg";
 
 export const runtime = "edge";
-
-const DEFAULT_OG_IMAGE = "https://eth.sh/og/web3-app-store.png";
 
 async function fetchAndConvertToDataUrl(
   imageUrl: string
 ): Promise<string | null> {
   try {
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, {
+      signal: AbortSignal.timeout(5000),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
@@ -26,7 +26,7 @@ async function fetchAndConvertToDataUrl(
 
 async function getOgImage(url: string): Promise<string | null> {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) {
       throw new Error(`Failed to fetch URL: ${response.statusText}`);
     }
@@ -42,7 +42,7 @@ async function getOgImage(url: string): Promise<string | null> {
       );
 
     if (ogImageMatch && ogImageMatch[1]) {
-      return ogImageMatch[1];
+      return new URL(ogImageMatch[1], url).href;
     }
 
     // Fallback to twitter:image
@@ -55,7 +55,7 @@ async function getOgImage(url: string): Promise<string | null> {
       );
 
     if (twitterImageMatch && twitterImageMatch[1]) {
-      return twitterImageMatch[1];
+      return new URL(twitterImageMatch[1], url).href;
     }
 
     return null;
@@ -65,193 +65,25 @@ async function getOgImage(url: string): Promise<string | null> {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
+  const raw = request.nextUrl.searchParams.get("url");
+  let appUrl: URL;
   try {
-    const { searchParams } = new URL(req.url);
-    const url = searchParams.get("url");
-
-    if (!url) {
-      return new Response("Missing url parameter", { status: 400 });
-    }
-
-    // Try to get the OG image URL and convert to data URL
-    let imageDataUrl: string | null = null;
-    const ogImageUrl = await getOgImage(url);
-
-    if (ogImageUrl) {
-      imageDataUrl = await fetchAndConvertToDataUrl(ogImageUrl);
-    }
-
-    // If no OG image found or failed to fetch, return default image directly
-    if (!imageDataUrl) {
-      const defaultImageResponse = await fetch(DEFAULT_OG_IMAGE);
-      return new Response(defaultImageResponse.body, {
-        headers: {
-          "content-type":
-            defaultImageResponse.headers.get("content-type") || "image/png",
-          "cache-control": "public, max-age=31536000, immutable",
-        },
-      });
-    }
-
-    // Load Poppins font
-    const fontData = await fetch(
-      new URL("../../../../assets/Poppins-Bold.ttf", import.meta.url)
-    ).then((res) => res.arrayBuffer());
-
-    // Try to load the logo
-    let logoDataUrl: string | null = null;
-    try {
-      const logoResponse = await fetch(
-        new URL("../../../../public/splashImage.png", import.meta.url)
-      );
-      if (!logoResponse.ok) {
-        throw new Error(`Failed to fetch logo: ${logoResponse.statusText}`);
-      }
-      const logoArrayBuffer = await logoResponse.arrayBuffer();
-      const logoBase64 = Buffer.from(logoArrayBuffer).toString("base64");
-      logoDataUrl = `data:image/png;base64,${logoBase64}`;
-    } catch (error) {
-      console.error("Error loading logo:", error);
-      // Continue without logo if it fails to load
-    }
-
-    // Create the OG image with overlay
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            width: "1200",
-            height: "630",
-            position: "relative",
-            fontFamily: "Poppins",
-          }}
-        >
-          {/* Background OG image */}
-          <img
-            src={imageDataUrl}
-            alt="Website preview"
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-
-          {/* Dark overlay for better readability */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: "250px",
-              background: `linear-gradient(to bottom, 
-                rgba(0,0,0,0) 0%, 
-                rgba(0,0,0,0.7) 40%, 
-                rgba(0,0,0,0.9) 80%
-              )`,
-            }}
-          />
-
-          {/* Red gradient overlay */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: "250px",
-              background: `linear-gradient(to bottom, 
-                rgba(220,10,45,0) 0%, 
-                rgba(220,10,45,0.3) 60%, 
-                rgba(220,10,45,0.5) 100%
-              )`,
-              mixBlendMode: "overlay",
-            }}
-          />
-
-          {/* Content container with padding */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: "40px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "24px",
-              filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.5))",
-            }}
-          >
-            {logoDataUrl && (
-              <img
-                src={logoDataUrl}
-                alt="Logo"
-                style={{
-                  width: "100px",
-                  height: "100px",
-                  filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.3))",
-                }}
-              />
-            )}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                color: "white",
-                gap: "8px",
-                textAlign: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "36px",
-                  fontWeight: "bold",
-                  lineHeight: "1.2",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                ETH.sh Wallet
-              </span>
-              <span
-                style={{
-                  fontSize: "24px",
-                  opacity: 0.9,
-                  fontWeight: "500",
-                }}
-              >
-                Your Web3 Operating System
-              </span>
-            </div>
-          </div>
-        </div>
-      ),
-      {
-        width: 1200,
-        height: 630,
-        fonts: [
-          {
-            name: "Poppins",
-            data: fontData,
-            style: "normal",
-          },
-        ],
-      }
-    );
-  } catch (error) {
-    console.error("Error generating OG image:", error);
-    const defaultImageResponse = await fetch(DEFAULT_OG_IMAGE);
-    return new Response(defaultImageResponse.body, {
-      headers: {
-        "content-type":
-          defaultImageResponse.headers.get("content-type") || "image/png",
-        "cache-control": "public, max-age=31536000, immutable",
-      },
-    });
+    appUrl = new URL(raw || "");
+    if (!["https:", "http:"].includes(appUrl.protocol))
+      throw new Error("Invalid app URL");
+  } catch {
+    return new Response("Provide an app URL to preview.", { status: 400 });
   }
+  const imageUrl = await getOgImage(appUrl.href);
+  const artwork = imageUrl ? await fetchAndConvertToDataUrl(imageUrl) : null;
+  const hostname =
+    appUrl.hostname.length > 42
+      ? `${appUrl.hostname.slice(0, 39)}…`
+      : appUrl.hostname;
+  return renderToolOg({
+    title: "Web3 App Store",
+    description: [hostname, "Your Web3 Operating System"],
+    artworkSrc: artwork || undefined,
+  });
 }

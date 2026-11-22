@@ -55,7 +55,7 @@ export const getPath = (subdomain: string, isRelativePath: boolean = false) => {
       : "https://eth.sh/";
   }
 
-  if (isRelativePath) {
+  if (isRelativePath || subdomain === "explorers") {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? `/${subdomain}/`
       : `https://eth.sh/${subdomain}/`;
@@ -104,7 +104,7 @@ export const getMetadata = (_metadata: {
         // Checked-in /og PNGs are 2144×1122; generated cards are 1200×630.
         ...(_metadata.images.startsWith("https://eth.sh/og/")
           ? { width: 2144, height: 1122 }
-          : _metadata.images.startsWith("https://eth.sh/api/og/")
+          : /^https:\/\/eth\.sh\/api\/og(?:\/|\?|$)/.test(_metadata.images)
             ? { width: 1200, height: 630 }
             : {}),
       }],
@@ -163,7 +163,8 @@ export const slicedText = (txt: string, charCount: number = 6) => {
 };
 import { NextRequest } from "next/server";
 import { InterfaceAbi } from "ethers";
-import { fetchFunctionInterface } from "@/lib/decoder";
+import { fetchFunctionInterfaces } from "@/lib/decoder";
+import { inferFunctionInputs } from "@/lib/inferredContract";
 import { whatsabi } from "@shazow/whatsabi";
 
 export default function getIP(request: Request | NextRequest) {
@@ -568,28 +569,12 @@ export const processContractBytecode = async ({
 
       const hexSelector = startHexWith0x(func.selector);
 
-      // Try to fetch function interface
-      const functionInterface = await fetchFunctionInterface({
-        selector: hexSelector,
-      });
-
-      let name: string | undefined;
-      if (functionInterface) {
-        name = functionInterface.split("(")[0].trim();
-      }
-
-      // evmole returns a bare comma-separated arg list (e.g. "address,uint256").
-      // Wrap in parens so parseEVMoleInputTypes treats it as a tuple, then
-      // unwrap the synthetic outer tuple to get a flat ABI inputs array.
-      const inputs = func.arguments
-        ? (parseEVMoleInputTypes(`(${func.arguments})`)[0] as any)
-            ?.components ?? []
-        : [];
+      const signatures = await fetchFunctionInterfaces({ selector: hexSelector });
+      const inferred = inferFunctionInputs(hexSelector, func.arguments, signatures);
 
       return {
         type: "function",
-        name: name || `selector: ${hexSelector}`,
-        inputs,
+        ...inferred,
         stateMutability,
         selector: hexSelector,
       };
@@ -620,13 +605,18 @@ export const getImplementationFromBytecodeIfProxy = async ({
     }
   | undefined
 > => {
-  const result = await whatsabi.autoload(address, { provider: client });
-  const followProxies = await result.followProxies;
-  if (followProxies) {
-    const proxies = await followProxies();
-    const implementationAddress = proxies.address;
+  // Proxy detection only needs on-chain data. ABI/signature loaders would
+  // repeat failed explorer requests and can block bytecode inference.
+  const result = await whatsabi.autoload(address, {
+    provider: client,
+    abiLoader: false,
+    signatureLookup: false,
+  });
+  if (result.followProxies && result.proxies.length > 0) {
+    const implementation = await result.followProxies();
+    if (implementation.address.toLowerCase() === address.toLowerCase()) return;
     return {
-      implementationAddress,
+      implementationAddress: implementation.address,
       proxyName: result.proxies[0].name,
     };
   }

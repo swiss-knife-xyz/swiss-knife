@@ -608,6 +608,14 @@
         "https://pbs.twimg.com/profile_images/1705068362974547968/rbR0hAgc_400x400.jpg"
       ],
       "retrievedAt": "2026-10-08"
+    },
+    {
+      "id": "blur",
+      "local": "/external/rip/blur.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1518705644450291713/X2FLVDdn_200x200.jpg"
+      ],
+      "retrievedAt": "2026-10-16"
     }
   ],
   "failedDownloads": []

@@ -4,16 +4,17 @@ const subdomains = {
     paths: ["decoder", "encoder", "viem-error-simulate", "cowswap"],
   },
   CONTRACT: {
-    base: "contract",
-    paths: [],
+    base: "explorer",
+    paths: ["verify"],
   },
   EXPLORER: {
-    base: "explorer",
+    base: "explorers",
     paths: [],
+    isRelativePath: true,
   },
   CONVERTER: {
     base: "converter",
-    paths: ["eth", "hexadecimal", "keccak256", "padding", "address-checksum"],
+    paths: ["eth", "gas-cost", "hexadecimal", "keccak256", "padding", "address-checksum"],
   },
   CONSTANTS: {
     base: "constants",

@@ -12,7 +12,7 @@ export async function generateMetadata({
     title: `${ensName} ENS History | ETH.sh`,
     description: `Explore ownership and content history for ${ensName} on Ethereum Name Service.`,
     canonical: `https://ens.eth.sh/history/${encodeURIComponent(ensName)}`,
-    images: "https://eth.sh/og/ens-history.png",
+    images: "https://eth.sh/api/og/ens-history",
   });
 }
 
