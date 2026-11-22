@@ -6,7 +6,7 @@ export const metadata = {
     title: "ETH.sh | All your Ethereum dev tools at one place!",
     description: "All your Ethereum dev tools at one place!",
     canonical: "https://eth.sh/",
-    images: "https://eth.sh/og/index.png",
+    images: "https://eth.sh/api/og/home",
   }),
   icons: {
     icon: [{ url: "/icon.png", sizes: "192x192", type: "image/png" }],

@@ -1,26 +1,11 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
-import { JSDOM } from "jsdom";
+import { test } from "vitest";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Arg } from "@/types";
 
-const dom = new JSDOM("<!doctype html><html><body></body></html>", {
-  url: "http://localhost/",
-  pretendToBeVisual: true,
-});
-dom.window.scrollTo = () => {};
-Object.assign(globalThis, {
-  window: dom.window,
-  document: dom.window.document,
-  HTMLElement: dom.window.HTMLElement,
-  Element: dom.window.Element,
-  SVGElement: dom.window.SVGElement,
-  getComputedStyle: dom.window.getComputedStyle.bind(dom.window),
-  requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window),
-  cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
-  IS_REACT_ACT_ENVIRONMENT: true,
-});
+window.scrollTo = () => {};
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 const modules = Promise.all([
   import("@chakra-ui/react"),

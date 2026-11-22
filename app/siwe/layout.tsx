@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Validate, lint, and debug Sign in with Ethereum (SIWE) messages for EIP-4361 validity, security best practices, and proper formatting.",
   canonical: "https://siwe.eth.sh/",
-  images: "https://eth.sh/og/siwe.png",
+  images: "https://eth.sh/api/og/siwe",
 });
 
 const SiweLayout = ({ children }: { children: React.ReactNode }) => {

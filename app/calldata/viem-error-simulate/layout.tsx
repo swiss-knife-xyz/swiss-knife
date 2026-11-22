@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Paste viem contract error from console and simulate on Tenderly to debug.",
   canonical: "https://calldata.eth.sh/viem-error-simulate",
-  images: "https://eth.sh/og/calldata-viem-error-simulate.png",
+  images: "https://eth.sh/api/og/calldata-viem-error-simulate",
 });
 
 const ViemErrorSimulateLayout = ({

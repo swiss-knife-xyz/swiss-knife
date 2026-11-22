@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Visualize off-chain ENS name resolution via CCIP and see the delay at each step (ERC-3668).",
   canonical: "https://ens.eth.sh/ccip",
-  images: "https://eth.sh/og/ens-ccip.png",
+  images: "https://eth.sh/api/og/ens-ccip",
 });
 
 const ENSHistoryLayout = ({ children }: { children: React.ReactNode }) => {

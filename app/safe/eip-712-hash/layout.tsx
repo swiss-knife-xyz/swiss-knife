@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Hash & Verify EIP-712 typed data: Domain Hash, Message Hash, and EIP-712 Signature Hash.",
   canonical: "https://safe.eth.sh/eip-712-hash",
-  images: "https://eth.sh/og/safe-eip-712-hash.png",
+  images: "https://eth.sh/api/og/safe-eip-712-hash",
 });
 
 const EIP712HashLayout = ({ children }: { children: React.ReactNode }) => {

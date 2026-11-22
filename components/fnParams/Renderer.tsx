@@ -19,6 +19,8 @@ import {
 } from "../decodedParams";
 import { isAddress } from "viem";
 import { CalldataParam } from "../decodedParams/CalldataParam";
+import type { SelectedOption } from "@/types";
+import { ContractBytesInput } from "./ContractBytesInput";
 
 export interface RenderInputFieldsProps {
   chainId: number;
@@ -29,6 +31,10 @@ export interface RenderInputFieldsProps {
   isError: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   isArrayChild?: boolean;
+  suggestions?: SelectedOption[];
+  allowBytesBuilder?: boolean;
+  immediateUpdates?: boolean;
+  rawValues?: boolean;
 }
 
 export const renderInputFields = ({
@@ -40,6 +46,10 @@ export const renderInputFields = ({
   isError,
   onKeyDown,
   isArrayChild,
+  suggestions,
+  allowBytesBuilder = false,
+  immediateUpdates,
+  rawValues,
 }: RenderInputFieldsProps) => {
   const isInvalid =
     isError &&
@@ -47,7 +57,7 @@ export const renderInputFields = ({
       value === null ||
       value.toString().trim().length === 0);
 
-  if (input.type?.endsWith("[]")) {
+  if (/\[\d*\]$/.test(input.type ?? "")) {
     return (
       <ArrayInput
         chainId={chainId}
@@ -58,11 +68,39 @@ export const renderInputFields = ({
         onKeyDown={onKeyDown}
         isInvalid={isInvalid}
         isError={isError}
+        allowBytesBuilder={allowBytesBuilder}
+        immediateUpdates={immediateUpdates}
+        rawValues={rawValues}
+      />
+    );
+  } else if (input.type === "bytes" && allowBytesBuilder) {
+    return (
+      <ContractBytesInput
+        input={input}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+        isInvalid={isInvalid}
       />
     );
   } else if (input.type?.includes("bytes")) {
     return (
       <BytesInput
+        suggestions={suggestions}
+        input={input}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+        isInvalid={isInvalid}
+      />
+    );
+  } else if (
+    rawValues &&
+    (input.type?.includes("int") || input.type === "address")
+  ) {
+    // Local ABI values only: no conversion drafts, ENS resolution or address metadata reads.
+    return (
+      <StringInput
         input={input}
         value={value}
         onChange={onChange}
@@ -115,6 +153,9 @@ export const renderInputFields = ({
         onKeyDown={onKeyDown}
         isInvalid={isInvalid}
         isError={isError}
+        allowBytesBuilder={allowBytesBuilder}
+        immediateUpdates={immediateUpdates}
+        rawValues={rawValues}
         isArrayChild={isArrayChild}
       />
     );
@@ -190,7 +231,7 @@ export const renderParamTypes = ({
       />
     );
   } else if (type === "calldata") {
-    return <CalldataParam value={value} chainId={chainId} />;
+    return <CalldataParam value={value} chainId={chainId} variant="plain" />;
   } else if (type.includes("uint")) {
     return <UintParam value={value} />;
   } else if (type.includes("int")) {
@@ -220,8 +261,8 @@ export const renderParamTypes = ({
           value === null || value === undefined
             ? value
             : value
-            ? "true"
-            : "false"
+              ? "true"
+              : "false"
         }
       />
     );

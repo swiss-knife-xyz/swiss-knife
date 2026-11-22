@@ -53,7 +53,7 @@ export async function fetchAddressLabels(
     const baseUrl =
       process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
         ? ""
-        : "https://swiss-knife.xyz";
+        : "https://eth.sh";
     const url = chainId
       ? `${baseUrl}/api/labels/${address}?chainId=${chainId}`
       : `${baseUrl}/api/labels/${address}`;
