@@ -207,38 +207,79 @@ test("runtime snapshots preserve the fixture identities, calldata, events and in
     const receipt = raw.eth_getTransactionReceipt;
     assert.equal(snapshot.hash, tx.hash);
     assert.equal(snapshot.chainId, Number(tx.chainId));
-    const encoded = encodedSnapshots.find(entry => entry.hash === tx.hash)!;
-    const hash = (data: string | Buffer) => createHash("sha256").update(data).digest("hex");
+    const encoded = encodedSnapshots.find((entry) => entry.hash === tx.hash)!;
+    const hash = (data: string | Buffer) =>
+      createHash("sha256")
+        .update(typeof data === "string" ? data : new Uint8Array(data))
+        .digest("hex");
     assert.equal(encoded.stages.transaction.sha256, hash(JSON.stringify(tx)));
     assert.equal(encoded.stages.receipt.sha256, hash(JSON.stringify(receipt)));
-    assert.equal(encoded.stages.decode.sha256, hash(JSON.stringify({
-      result: encoded.result,
-      events: encoded.events,
-    })));
-    assert.equal(iface.encodeFunctionData(snapshot.result.signature, snapshot.result.rawArgs), tx.input);
+    assert.equal(
+      encoded.stages.decode.sha256,
+      hash(
+        JSON.stringify({
+          result: encoded.result,
+          events: encoded.events,
+        })
+      )
+    );
+    assert.equal(
+      iface.encodeFunctionData(
+        snapshot.result.signature,
+        snapshot.result.rawArgs
+      ),
+      tx.input
+    );
     const event = snapshot.events[0];
-    const log = receipt.logs.find((entry: any) => entry.topics[0] === id(event.signature));
+    const log = receipt.logs.find(
+      (entry: any) => entry.topics[0] === id(event.signature)
+    );
     const decodedEvent = iface.parseLog(log)!;
-    assert.deepEqual(event.args.map(arg => arg.rawValue), [...decodedEvent.args]);
+    assert.deepEqual(
+      event.args.map((arg) => arg.rawValue),
+      [...decodedEvent.args]
+    );
 
     if (sample.id === "nft-mint") {
-      assert.equal(event.args.find(arg => arg.name === "tokenId")?.rawValue, 20000n);
+      assert.equal(
+        event.args.find((arg) => arg.name === "tokenId")?.rawValue,
+        20000n
+      );
       assert.equal(snapshot.result.rawArgs[1][2][0], 99000000000000000000n);
       assert.equal(
-        hash(readFileSync(new URL("../../../public/decoder-examples/zora-20000.jpg", import.meta.url))),
+        hash(
+          readFileSync(
+            new URL(
+              "../../../public/decoder-examples/zora-20000.jpg",
+              import.meta.url
+            )
+          )
+        ),
         fixture("content-and-label-checks")[fixtureName].artwork.sha256
       );
     } else {
-      const data = snapshot.result.args.find(arg => arg.name === "data")!.value as DecodeBytesParamResult;
+      const data = snapshot.result.args.find((arg) => arg.name === "data")!
+        .value as DecodeBytesParamResult;
       assert.equal(data.decoded?.functionName, "multiSend");
-      const transactions = (data.decoded!.args[0].value as DecodeBytesParamResult).decoded!;
+      const transactions = (
+        data.decoded!.args[0].value as DecodeBytesParamResult
+      ).decoded!;
       assert.equal(transactions.args.length, 2);
       const calls = transactions.args.map((arg) => {
         const transaction = (arg.value as DecodeBytesParamResult).decoded!;
-        return (transaction.args.find(arg => arg.name === "calldata")!.value as DecodeBytesParamResult).decoded!;
+        return (
+          transaction.args.find((arg) => arg.name === "calldata")!
+            .value as DecodeBytesParamResult
+        ).decoded!;
       });
-      assert.deepEqual(calls.map(call => call.functionName), ["approve", "supply"]);
-      assert.deepEqual(calls.map(call => call.rawArgs[1]), [2900000000000n, 2900000000000n]);
+      assert.deepEqual(
+        calls.map((call) => call.functionName),
+        ["approve", "supply"]
+      );
+      assert.deepEqual(
+        calls.map((call) => call.rawArgs[1]),
+        [2900000000000n, 2900000000000n]
+      );
     }
   }
 });

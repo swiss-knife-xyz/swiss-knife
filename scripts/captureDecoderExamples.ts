@@ -2,20 +2,31 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { erc20Abi, decodeFunctionResult, encodeFunctionData, type Hex } from "viem";
+import {
+  erc20Abi,
+  decodeFunctionResult,
+  encodeFunctionData,
+  type Hex,
+} from "viem";
 import { decoderSamples } from "../app/calldata/decoder/samples";
 import { decodeEvents, decodeRecursive } from "../lib/decoder";
 import type { Arg } from "../types";
 
 const fixturePath = "app/calldata/decoder/__fixtures__/samples.json";
 const nativeFetch = globalThis.fetch;
-const sha256 = (data: string | Buffer) => createHash("sha256").update(data).digest("hex");
+const sha256 = (data: string | Buffer) =>
+  createHash("sha256")
+    .update(typeof data === "string" ? data : new Uint8Array(data))
+    .digest("hex");
 const rpc = "https://ethereum-rpc.publicnode.com";
 const artworkPath = "/decoder-examples/zora-20000.jpg";
 
 async function main() {
   const [origin, output] = process.argv.slice(2);
-  assert(origin && output, "Supply the ETH.sh app origin and a scratch output directory");
+  assert(
+    origin && output,
+    "Supply the ETH.sh app origin and a scratch output directory"
+  );
   const fixtures = JSON.parse(await readFile(fixturePath, "utf8"));
   const content = fixtures["content-and-label-checks"]["mint-20000"];
   const snapshots = [];
@@ -25,7 +36,10 @@ async function main() {
   const request = (url: URL | string, init?: RequestInit) => {
     const pending = queue.then(async () => {
       const remaining = deadline - Date.now();
-      assert(++requests <= 100 && remaining > 0, "Capture request budget exhausted");
+      assert(
+        ++requests <= 100 && remaining > 0,
+        "Capture request budget exhausted"
+      );
       const res = await nativeFetch(url, {
         ...init,
         signal: AbortSignal.timeout(Math.min(5000, remaining)),
@@ -49,7 +63,10 @@ async function main() {
       }
       return { status: res.status, bytes: Buffer.concat(chunks) };
     });
-    queue = pending.then(() => {}, () => {});
+    queue = pending.then(
+      () => {},
+      () => {}
+    );
     return pending;
   };
 
@@ -62,10 +79,23 @@ async function main() {
     assert.equal(receipt.transactionHash, sample.hash);
     assert.equal(receipt.status, "0x1");
     const capturedAt = new Date().toISOString();
-    const stages: Record<string, { at: string; status: string; source: string; sha256?: string }> = {};
-    const record = (key: string, status: string, source: string, body?: string | Buffer) => {
+    const stages: Record<
+      string,
+      { at: string; status: string; source: string; sha256?: string }
+    > = {};
+    const record = (
+      key: string,
+      status: string,
+      source: string,
+      body?: string | Buffer
+    ) => {
       const at = new Date().toISOString();
-      stages[key] = { at, status, source, ...(body ? { sha256: sha256(body) } : {}) };
+      stages[key] = {
+        at,
+        status,
+        source,
+        ...(body ? { sha256: sha256(body) } : {}),
+      };
       console.log(sample.id, at, key, status);
     };
     const memo = new Map<string, Promise<{ status: number; bytes: Buffer }>>();
@@ -73,9 +103,16 @@ async function main() {
       const url = new URL(String(input), origin);
       const sourceCode = url.pathname === "/api/source-code";
       const allowed = ["api.4byte.sourcify.dev", "www.4byte.directory"];
-      assert(sourceCode || allowed.includes(url.hostname), "Unexpected decoder fetch");
-      const source = sourceCode ? "ETH.sh verified contract ABI route" : url.hostname;
-      const key = sourceCode ? `abi:${url.searchParams.get("address")?.toLowerCase()}` : `${source}:${url.search}`;
+      assert(
+        sourceCode || allowed.includes(url.hostname),
+        "Unexpected decoder fetch"
+      );
+      const source = sourceCode
+        ? "ETH.sh verified contract ABI route"
+        : url.hostname;
+      const key = sourceCode
+        ? `abi:${url.searchParams.get("address")?.toLowerCase()}`
+        : `${source}:${url.search}`;
       if (sourceCode) {
         const local = new URL(url.pathname + url.search, origin);
         url.href = local.href;
@@ -84,16 +121,27 @@ async function main() {
         const load = async () => {
           if (!sourceCode) {
             const response = await request(url);
-            record(key, response.status === 200 ? "captured" : `HTTP ${response.status}`, source, response.bytes);
+            record(
+              key,
+              response.status === 200 ? "captured" : `HTTP ${response.status}`,
+              source,
+              response.bytes
+            );
             return response;
           }
 
           try {
             const response = await request(url);
-            const { ABI, ContractName, Implementation } = JSON.parse(response.bytes.toString()).result[0];
+            const { ABI, ContractName, Implementation } = JSON.parse(
+              response.bytes.toString()
+            ).result[0];
             assert.equal(response.status, 200);
             assert(ABI?.startsWith("[") && typeof Implementation === "string");
-            const bytes = Buffer.from(JSON.stringify({ result: [{ ABI, ContractName, Implementation }] }));
+            const bytes = Buffer.from(
+              JSON.stringify({
+                result: [{ ABI, ContractName, Implementation }],
+              })
+            );
             record(key, "captured", source, bytes);
             return { status: 200, bytes };
           } catch {
@@ -102,20 +150,38 @@ async function main() {
             const publicUrl = `https://eth.blockscout.com/api/v2/smart-contracts/${address}`;
             const response = await request(publicUrl);
             const contract = JSON.parse(response.bytes.toString());
-            assert(response.status === 200 && contract.is_verified && Array.isArray(contract.abi));
-            const bytes = Buffer.from(JSON.stringify({ result: [{
-              ABI: JSON.stringify(contract.abi),
-              ContractName: contract.name,
-              Implementation: contract.implementations?.[0]?.address_hash ?? "",
-            }] }));
+            assert(
+              response.status === 200 &&
+                contract.is_verified &&
+                Array.isArray(contract.abi)
+            );
+            const bytes = Buffer.from(
+              JSON.stringify({
+                result: [
+                  {
+                    ABI: JSON.stringify(contract.abi),
+                    ContractName: contract.name,
+                    Implementation:
+                      contract.implementations?.[0]?.address_hash ?? "",
+                  },
+                ],
+              })
+            );
             record(key, "captured", publicUrl, bytes);
             return { status: 200, bytes };
           }
         };
-        memo.set(key, load().catch((error) => {
-          record(key, "unavailable", sourceCode ? `${source}; Blockscout verified contracts` : source);
-          throw error;
-        }));
+        memo.set(
+          key,
+          load().catch((error) => {
+            record(
+              key,
+              "unavailable",
+              sourceCode ? `${source}; Blockscout verified contracts` : source
+            );
+            throw error;
+          })
+        );
       }
       const { bytes, status } = await memo.get(key)!;
       return new Response(new Uint8Array(bytes), { status });
@@ -136,9 +202,15 @@ async function main() {
     const addresses = new Set<string>();
     function visit(args: Arg[]) {
       for (const arg of args) {
-        if (arg.baseType === "address") addresses.add(String(arg.value).toLowerCase());
+        if (arg.baseType === "address")
+          addresses.add(String(arg.value).toLowerCase());
         if (Array.isArray(arg.value)) visit(arg.value);
-        else if (arg.value && typeof arg.value === "object" && "decoded" in arg.value && arg.value.decoded) {
+        else if (
+          arg.value &&
+          typeof arg.value === "object" &&
+          "decoded" in arg.value &&
+          arg.value.decoded
+        ) {
           nested.push(arg.value.decoded);
           visit(arg.value.decoded.args);
         }
@@ -148,25 +220,50 @@ async function main() {
     for (const event of events) visit(event.args);
     if (index === 0) {
       assert.equal(result.functionName, "mint");
-      assert.deepEqual(result.args.map(({ name }) => name), ["data", "bidShares"]);
-      assert(events.some(event => event.eventName === "Transfer" &&
-        event.args.some(arg => arg.value === "20000")));
+      assert.deepEqual(
+        result.args.map(({ name }) => name),
+        ["data", "bidShares"]
+      );
+      assert(
+        events.some(
+          (event) =>
+            event.eventName === "Transfer" &&
+            event.args.some((arg) => arg.value === "20000")
+        )
+      );
     } else {
       assert.equal(result.functionName, "execTransaction");
-      assert.deepEqual(nested.map(call => call.functionName).filter(name => name !== "tx"),
-        ["multiSend", "SafeMultiSend transactions", "approve", "supply"]);
-      const approve = nested.find(call => call.functionName === "approve");
-      const supply = nested.find(call => call.functionName === "supply");
+      assert.deepEqual(
+        nested.map((call) => call.functionName).filter((name) => name !== "tx"),
+        ["multiSend", "SafeMultiSend transactions", "approve", "supply"]
+      );
+      const approve = nested.find((call) => call.functionName === "approve");
+      const supply = nested.find((call) => call.functionName === "supply");
       assert.equal(approve?.rawArgs[1], 2900000000000n);
       assert.equal(supply?.rawArgs[1], approve?.rawArgs[1]);
-      assert(events.some(event => event.eventName === "ExecutionSuccess"));
+      assert(events.some((event) => event.eventName === "ExecutionSuccess"));
     }
     const payload = JSON.stringify({ result, events }, (_key, value) => {
       return typeof value === "bigint" ? { $bigint: value.toString() } : value;
     });
-    record("transaction", "captured", `${fixturePath}#${fixture}.eth_getTransactionByHash`, JSON.stringify(tx));
-    record("receipt", "captured", `${fixturePath}#${fixture}.eth_getTransactionReceipt`, JSON.stringify(receipt));
-    record("decode", "captured", "lib/decoder.ts decodeRecursive and decodeEvents", payload);
+    record(
+      "transaction",
+      "captured",
+      `${fixturePath}#${fixture}.eth_getTransactionByHash`,
+      JSON.stringify(tx)
+    );
+    record(
+      "receipt",
+      "captured",
+      `${fixturePath}#${fixture}.eth_getTransactionReceipt`,
+      JSON.stringify(receipt)
+    );
+    record(
+      "decode",
+      "captured",
+      "lib/decoder.ts decodeRecursive and decodeEvents",
+      payload
+    );
 
     const addressMetadata: Record<string, { labels: string[] }> = {};
     for (const address of addresses) {
@@ -181,12 +278,26 @@ async function main() {
         const result = await request(rpc, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{
-            to: address, data: encodeFunctionData({ abi: erc20Abi, functionName: "symbol" }),
-          }, "latest"] }),
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "eth_call",
+            params: [
+              {
+                to: address,
+                data: encodeFunctionData({
+                  abi: erc20Abi,
+                  functionName: "symbol",
+                }),
+              },
+              "latest",
+            ],
+          }),
         });
         label = decodeFunctionResult({
-          abi: erc20Abi, functionName: "symbol", data: JSON.parse(result.bytes.toString()).result as Hex,
+          abi: erc20Abi,
+          functionName: "symbol",
+          data: JSON.parse(result.bytes.toString()).result as Hex,
         });
       } catch {
         source = "ETH.sh verified contract ABI route";
@@ -211,13 +322,20 @@ async function main() {
         const entry = content[type];
         try {
           const path = "/ipfs/" + entry.uri.slice("ipfs://".length);
-          const gateways = [entry.gatewayUrl, `https://ipfs.io${path}`, `https://dweb.link${path}`];
+          const gateways = [
+            entry.gatewayUrl,
+            `https://ipfs.io${path}`,
+            `https://dweb.link${path}`,
+          ];
           let bytes: Buffer | undefined;
           let gateway: string | undefined;
           for (const url of gateways) {
             try {
               const response = await request(url);
-              if (response.status === 200 && sha256(response.bytes) === entry.sha256) {
+              if (
+                response.status === 200 &&
+                sha256(response.bytes) === entry.sha256
+              ) {
                 bytes = response.bytes;
                 gateway = url;
                 break;
@@ -232,29 +350,58 @@ async function main() {
             gateway = `${localPath} (hash-verified local copy of ${entry.uri})`;
           }
           assert(bytes && gateway, "IPFS content unavailable or hash mismatch");
-          if (type === "metadata") urls[entry.uri] = { json: JSON.parse(bytes.toString()) };
+          if (type === "metadata")
+            urls[entry.uri] = { json: JSON.parse(bytes.toString()) };
           else {
-            await writeFile(resolve(output, "zora-20000.jpg"), bytes);
+            await writeFile(
+              resolve(output, "zora-20000.jpg"),
+              new Uint8Array(bytes)
+            );
             urls[entry.uri] = { image: artworkPath };
           }
           record(type, "captured", gateway, bytes);
         } catch {
           if (type === "metadata") {
             urls[entry.uri] = { json: entry.data };
-            record(type, "captured", `${fixturePath}#content-and-label-checks (previously hash-verified)`, JSON.stringify(entry.data));
+            record(
+              type,
+              "captured",
+              `${fixturePath}#content-and-label-checks (previously hash-verified)`,
+              JSON.stringify(entry.data)
+            );
           } else record(type, "unavailable", entry.gatewayUrl);
         }
       }
     }
-    snapshots.push({ version: 1, chainId: sample.chainId, hash: sample.hash,
-      capturedAt, stages, ...JSON.parse(payload), addresses: addressMetadata, urls });
+    snapshots.push({
+      version: 1,
+      chainId: sample.chainId,
+      hash: sample.hash,
+      capturedAt,
+      stages,
+      ...JSON.parse(payload),
+      addresses: addressMetadata,
+      urls,
+    });
   }
 
-  await writeFile(resolve(output, "examples.v1.json"), JSON.stringify(snapshots, null, 2) + "\n");
+  await writeFile(
+    resolve(output, "examples.v1.json"),
+    JSON.stringify(snapshots, null, 2) + "\n"
+  );
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.stack?.split("\n").filter(line => line.includes("captureDecoderExamples.ts")).join("\n") : "Capture error");
-  console.error("Capture failed. Check the last reported stage and required decode assertions.");
+  console.error(
+    error instanceof Error
+      ? error.stack
+          ?.split("\n")
+          .filter((line) => line.includes("captureDecoderExamples.ts"))
+          .join("\n")
+      : "Capture error"
+  );
+  console.error(
+    "Capture failed. Check the last reported stage and required decode assertions."
+  );
   process.exitCode = 1;
 });

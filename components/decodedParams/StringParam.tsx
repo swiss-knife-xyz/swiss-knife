@@ -277,16 +277,36 @@ const StringParamContent = ({
                 >
                   {isString && !isValidJSON(__value) ? (
                     <>
-                      <HStack display={{ base: "flex", md: "none" }} align="start" spacing={2} minW={0}>
-                        <Text fontSize="sm" fontFamily="mono" whiteSpace="pre-wrap" overflowWrap="anywhere" flex={1} minW={0}>{__value}</Text>
-                        <CopyToClipboard textToCopy={__value} flexShrink={0} aria-label={`Copy ${key}`} />
+                      <HStack
+                        display={{ base: "flex", md: "none" }}
+                        align="start"
+                        spacing={2}
+                        minW={0}
+                      >
+                        <Text
+                          fontSize="sm"
+                          fontFamily="mono"
+                          whiteSpace="pre-wrap"
+                          overflowWrap="anywhere"
+                          flex={1}
+                          minW={0}
+                        >
+                          {__value}
+                        </Text>
+                        <CopyToClipboard
+                          textToCopy={__value}
+                          flexShrink={0}
+                          aria-label={`Copy ${key}`}
+                        />
                       </HStack>
                       <Box display={{ base: "none", md: "block" }}>
                         <StringParam value={__value} />
                       </Box>
                     </>
                   ) : (
-                    <StringParam value={isString ? __value : JSON.stringify(__value)} />
+                    <StringParam
+                      value={isString ? __value : JSON.stringify(__value)}
+                    />
                   )}
                 </Td>
               </Tr>

@@ -20,14 +20,21 @@ const mocks = vi.hoisted(() => ({
   client: vi.fn(),
   query: "",
   copy: vi.fn(),
-  lookup: vi.fn(() => { throw new Error("Unexpected enrichment"); }),
+  lookup: vi.fn(() => {
+    throw new Error("Unexpected enrichment");
+  }),
 }));
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(mocks.query),
 }));
 vi.mock("nuqs", async () => {
   const React = await import("react");
-  const parser = { withDefault: (value: unknown) => ({ value }) };
+  const parser = {
+    withDefault: (value: unknown) => ({
+      value,
+      withOptions: () => ({ value }),
+    }),
+  };
   return {
     parseAsString: parser,
     parseAsInteger: parser,
@@ -65,7 +72,7 @@ vi.mock("@/lib/decoder", () => ({
   decodeEvents: mocks.events,
 }));
 vi.mock("@/utils", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@/utils")>(),
+  ...(await importOriginal<typeof import("@/utils")>()),
   fetchContractAbi: mocks.lookup,
   resolveAddressToName: mocks.lookup,
   getNameAvatar: mocks.lookup,
@@ -77,9 +84,10 @@ vi.mock("@/hooks/useAddressBook", () => ({
 }));
 vi.mock("@monaco-editor/react", () => ({ Editor: () => <div>Editor</div> }));
 vi.mock("@/components/CopyToClipboard", () => ({
-  CopyToClipboard: ({ textToCopy, labelText }: any) => labelText
-    ? <button onClick={() => mocks.copy(textToCopy)}>{labelText}</button>
-    : null,
+  CopyToClipboard: ({ textToCopy, labelText }: any) =>
+    labelText ? (
+      <button onClick={() => mocks.copy(textToCopy)}>{labelText}</button>
+    ) : null,
 }));
 vi.mock("@/components/InputField", () => ({
   InputField: (props: any) => <input {...props} />,
@@ -94,7 +102,11 @@ vi.mock("@/components/DarkButton", () => ({
 vi.mock("@/components/DarkSelect", () => ({
   DarkSelect: ({ selectedOption, setSelectedOption, options }: any) => (
     <select
-      aria-label={options.length === 2 && options[0].label === "Ethereum" ? "Chain" : "Format"}
+      aria-label={
+        options.length === 2 && options[0].label === "Ethereum"
+          ? "Chain"
+          : "Format"
+      }
       value={selectedOption?.value}
       onChange={(e) =>
         setSelectedOption(
@@ -122,7 +134,8 @@ vi.mock("@/components/Tabs/TabsSelector", () => ({
   ),
 }));
 vi.mock("./components/CalldataTree", async (importOriginal) => {
-  const { CalldataTree } = await importOriginal<typeof import("./components/CalldataTree")>();
+  const { CalldataTree } =
+    await importOriginal<typeof import("./components/CalldataTree")>();
   return {
     CalldataTree: (props: React.ComponentProps<typeof CalldataTree>) => (
       <div data-testid={props.functionName ? "decoded" : "event-params"}>
@@ -191,7 +204,10 @@ function stubFrames() {
 function stubScrollIntoView() {
   const calls: { element: Element; options: unknown }[] = [];
   const original = Element.prototype.scrollIntoView;
-  Element.prototype.scrollIntoView = function (this: Element, options?: unknown) {
+  Element.prototype.scrollIntoView = function (
+    this: Element,
+    options?: unknown
+  ) {
     calls.push({ element: this, options });
   };
   return {
@@ -222,9 +238,14 @@ describe("decoder transaction examples", () => {
       vi.stubGlobal("fetch", mocks.lookup);
       stubReducedMotion(false);
       mount();
-      const advance = (ms: number) => act(async () => { vi.advanceTimersByTime(ms); });
+      const advance = (ms: number) =>
+        act(async () => {
+          vi.advanceTimersByTime(ms);
+        });
 
-      fireEvent.click(screen.getByRole("button", { name: decoderSamples[0].label }));
+      fireEvent.click(
+        screen.getByRole("button", { name: decoderSamples[0].label })
+      );
       await frames.flush();
       await advance(449);
       await frames.flush();
@@ -240,7 +261,9 @@ describe("decoder transaction examples", () => {
       // The tx tab bar is the anchor's first child, so it lands at the top.
       expect(element.firstElementChild!.contains(calldataTab)).toBe(true);
       expect(element.contains(screen.getByTestId("decoded"))).toBe(true);
-      expect(element.contains(screen.getByRole("button", { name: "Decode" }))).toBe(false);
+      expect(
+        element.contains(screen.getByRole("button", { name: "Decode" }))
+      ).toBe(false);
 
       // Tab clicks, expand/collapse and later frames do not scroll again.
       fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
@@ -259,9 +282,11 @@ describe("decoder transaction examples", () => {
       await advance(450);
       await frames.flush();
       expect(scroll.calls).toHaveLength(2);
-      expect(scroll.calls[1].element.firstElementChild!.contains(
-        screen.getByRole("tab", { name: "Calldata" })
-      )).toBe(true);
+      expect(
+        scroll.calls[1].element.firstElementChild!.contains(
+          screen.getByRole("tab", { name: "Calldata" })
+        )
+      ).toBe(true);
       expect(mocks.client).not.toHaveBeenCalled();
     } finally {
       scroll.restore();
@@ -272,22 +297,30 @@ describe("decoder transaction examples", () => {
   it.each([
     ["true", "/calldata/decoder"],
     [undefined, "https://calldata.eth.sh/decoder"],
-  ])("links the H1 to the clean decoder root (NEXT_PUBLIC_DEVELOPMENT=%s)", (dev, href) => {
-    vi.stubEnv("NEXT_PUBLIC_DEVELOPMENT", dev);
-    try {
-      // Even from a deep link, the heading goes to the query-free root.
-      mocks.query = `tx=${encodeURIComponent(decoderSamples[0].explorerUrl)}&chainId=1`;
-      mount();
-      const heading = screen.getByRole("heading", { level: 1, name: "Calldata Decoder" });
-      const link = within(heading).getByRole("link", { name: "Calldata Decoder" });
-      expect(link.tagName).toBe("A");
-      expect(link.getAttribute("href")).toBe(href);
-      link.focus();
-      expect(document.activeElement).toBe(link);
-    } finally {
-      vi.unstubAllEnvs();
+  ])(
+    "links the H1 to the clean decoder root (NEXT_PUBLIC_DEVELOPMENT=%s)",
+    (dev, href) => {
+      vi.stubEnv("NEXT_PUBLIC_DEVELOPMENT", dev);
+      try {
+        // Even from a deep link, the heading goes to the query-free root.
+        mocks.query = `tx=${encodeURIComponent(decoderSamples[0].explorerUrl)}&chainId=1`;
+        mount();
+        const heading = screen.getByRole("heading", {
+          level: 1,
+          name: "Calldata Decoder",
+        });
+        const link = within(heading).getByRole("link", {
+          name: "Calldata Decoder",
+        });
+        expect(link.tagName).toBe("A");
+        expect(link.getAttribute("href")).toBe(href);
+        link.focus();
+        expect(document.activeElement).toBe(link);
+      } finally {
+        vi.unstubAllEnvs();
+      }
     }
-  });
+  );
 
   it("keeps a custom page title as a plain heading", () => {
     render(
@@ -295,7 +328,10 @@ describe("decoder transaction examples", () => {
         <CalldataDecoderPage headerText="Safe Calldata Decoder" />
       </ChakraProvider>
     );
-    const heading = screen.getByRole("heading", { level: 1, name: "Safe Calldata Decoder" });
+    const heading = screen.getByRole("heading", {
+      level: 1,
+      name: "Safe Calldata Decoder",
+    });
     expect(within(heading).queryByRole("link")).toBeNull();
   });
 
@@ -306,10 +342,17 @@ describe("decoder transaction examples", () => {
       stubReducedMotion(true);
       // Real decodes return a fresh object every time.
       mocks.decode.mockImplementation(async () => ({
-        functionName: "mint", args: [], rawArgs: [], signature: "mint()",
+        functionName: "mint",
+        args: [],
+        rawArgs: [],
+        signature: "mint()",
       }));
       let finishEvents!: (value: unknown) => void;
-      mocks.events.mockReturnValueOnce(new Promise((resolve) => { finishEvents = resolve; }));
+      mocks.events.mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishEvents = resolve;
+        })
+      );
       let view = mount();
 
       // Non-transaction decode: anchor starts at the decoded-result header.
@@ -321,9 +364,13 @@ describe("decoder transaction examples", () => {
       await frames.flush();
       expect(scroll.calls).toHaveLength(1);
       // `auto` inherits the site's CSS smooth scrolling; reduced motion must override it.
-      expect(scroll.calls[0].options).toEqual({ behavior: "instant", block: "start" });
-      expect(scroll.calls[0].element.firstElementChild!.textContent)
-        .toContain("Decoded calldata");
+      expect(scroll.calls[0].options).toEqual({
+        behavior: "instant",
+        block: "start",
+      });
+      expect(scroll.calls[0].element.firstElementChild!.textContent).toContain(
+        "Decoded calldata"
+      );
       expect(screen.queryByRole("tab", { name: "Calldata" })).toBeNull();
 
       // Editing the input keeps the result in place without scrolling.
@@ -336,16 +383,22 @@ describe("decoder transaction examples", () => {
       // A live transaction decode scrolls once; its late events do not.
       fireEvent.click(screen.getByRole("button", { name: "from Tx" }));
       fireEvent.paste(screen.getByPlaceholderText("etherscan link / tx hash"), {
-        clipboardData: { getData: () => `https://etherscan.io/tx/0x${"ab".repeat(32)}` },
+        clipboardData: {
+          getData: () => `https://etherscan.io/tx/0x${"ab".repeat(32)}`,
+        },
       });
       await waitFor(() => expect(mocks.events).toHaveBeenCalledOnce());
       await frames.flush();
       expect(scroll.calls).toHaveLength(2);
-      expect(scroll.calls[1].element.firstElementChild!.contains(
-        screen.getByRole("tab", { name: "Calldata" })
-      )).toBe(true);
+      expect(
+        scroll.calls[1].element.firstElementChild!.contains(
+          screen.getByRole("tab", { name: "Calldata" })
+        )
+      ).toBe(true);
       await act(async () => {
-        finishEvents([{ eventName: "Minted", signature: "Minted()", args: [] }]);
+        finishEvents([
+          { eventName: "Minted", signature: "Minted()", args: [] },
+        ]);
       });
       await screen.findByRole("tab", { name: "Events (1)" });
       await frames.flush();
@@ -354,17 +407,24 @@ describe("decoder transaction examples", () => {
 
       // A reveal cancelled during the skeleton never scrolls.
       view = mount();
-      fireEvent.click(screen.getByRole("button", { name: decoderSamples[1].label }));
-      fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), {
-        target: { value: "" },
-      });
+      fireEvent.click(
+        screen.getByRole("button", { name: decoderSamples[1].label })
+      );
+      fireEvent.change(
+        screen.getByPlaceholderText("etherscan link / tx hash"),
+        {
+          target: { value: "" },
+        }
+      );
       await act(() => new Promise((resolve) => setTimeout(resolve, 600)));
       await frames.flush();
       expect(screen.queryByTestId("decoded")).toBeNull();
       expect(scroll.calls).toHaveLength(2);
 
       // A frame still pending at unmount is cancelled.
-      fireEvent.click(screen.getByRole("button", { name: decoderSamples[1].label }));
+      fireEvent.click(
+        screen.getByRole("button", { name: decoderSamples[1].label })
+      );
       await screen.findByTestId("decoded");
       view.unmount();
       await frames.flush();
@@ -520,22 +580,40 @@ describe("decoder transaction examples", () => {
     try {
       vi.stubGlobal("fetch", mocks.lookup);
       mount();
-      fireEvent.click(screen.getByRole("button", { name: decoderSamples[0].label }));
-      const status = screen.getByRole("status", { name: "Preparing example preview" });
+      fireEvent.click(
+        screen.getByRole("button", { name: decoderSamples[0].label })
+      );
+      const status = screen.getByRole("status", {
+        name: "Preparing example preview",
+      });
       expect(status.getAttribute("aria-busy")).toBe("true");
       expect(screen.queryByTestId("decoded")).toBeNull();
-      expect(screen.queryByRole("button", { name: "Copy decoded JSON" })).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Copy decoded JSON" })
+      ).toBeNull();
       expect(screen.queryByRole("tab", { name: /Events/ })).toBeNull();
-      expect(screen.queryByRole("button", { name: decoderSamples[1].label })).toBeNull();
-      expect((screen.getByRole("button", { name: "Decode" }) as HTMLButtonElement).disabled)
-        .toBe(true);
-      await act(async () => { vi.advanceTimersByTime(449); });
+      expect(
+        screen.queryByRole("button", { name: decoderSamples[1].label })
+      ).toBeNull();
+      expect(
+        (screen.getByRole("button", { name: "Decode" }) as HTMLButtonElement)
+          .disabled
+      ).toBe(true);
+      await act(async () => {
+        vi.advanceTimersByTime(449);
+      });
       expect(screen.queryByTestId("decoded")).toBeNull();
-      await act(async () => { vi.advanceTimersByTime(1); });
+      await act(async () => {
+        vi.advanceTimersByTime(1);
+      });
       expect(screen.getByTestId("decoded").textContent).toContain("mint");
-      expect(screen.queryByRole("status", { name: "Preparing example preview" })).toBeNull();
-      expect((screen.getByRole("button", { name: "Decode" }) as HTMLButtonElement).disabled)
-        .toBe(false);
+      expect(
+        screen.queryByRole("status", { name: "Preparing example preview" })
+      ).toBeNull();
+      expect(
+        (screen.getByRole("button", { name: "Decode" }) as HTMLButtonElement)
+          .disabled
+      ).toBe(false);
       expect(mocks.client).not.toHaveBeenCalled();
       expect(mocks.decode).not.toHaveBeenCalled();
       expect(mocks.events).not.toHaveBeenCalled();
@@ -552,11 +630,17 @@ describe("decoder transaction examples", () => {
       const view = mount();
       const preparing = () =>
         screen.queryByRole("status", { name: "Preparing example preview" });
-      const advance = (ms: number) => act(async () => { vi.advanceTimersByTime(ms); });
-      const txInput = () => screen.getByPlaceholderText("etherscan link / tx hash");
+      const advance = (ms: number) =>
+        act(async () => {
+          vi.advanceTimersByTime(ms);
+        });
+      const txInput = () =>
+        screen.getByPlaceholderText("etherscan link / tx hash");
 
       // Leaving the example mid-delay cancels its reveal.
-      fireEvent.click(screen.getByRole("button", { name: decoderSamples[0].label }));
+      fireEvent.click(
+        screen.getByRole("button", { name: decoderSamples[0].label })
+      );
       await advance(300);
       fireEvent.change(txInput(), { target: { value: "" } });
       expect(preparing()).toBeNull();
@@ -564,22 +648,30 @@ describe("decoder transaction examples", () => {
       expect(screen.queryByTestId("decoded")).toBeNull();
 
       // Reselecting starts a fresh full delay for the newly chosen example.
-      fireEvent.click(screen.getByRole("button", { name: decoderSamples[1].label }));
+      fireEvent.click(
+        screen.getByRole("button", { name: decoderSamples[1].label })
+      );
       await advance(449);
       expect(screen.queryByTestId("decoded")).toBeNull();
       expect(preparing()).toBeTruthy();
       await advance(1);
-      expect(screen.getByTestId("decoded").textContent).toContain("execTransaction");
+      expect(screen.getByTestId("decoded").textContent).toContain(
+        "execTransaction"
+      );
 
       // Repeat Decode on the same example hides the old result, no flash.
       fireEvent.click(screen.getByRole("tab", { name: "Events (1)" }));
       fireEvent.click(screen.getByRole("button", { name: "Decode" }));
       expect(screen.queryByTestId("decoded")).toBeNull();
       expect(screen.queryByText("ExecutionSuccess")).toBeNull();
-      expect(screen.queryByRole("button", { name: "Copy decoded JSON" })).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Copy decoded JSON" })
+      ).toBeNull();
       expect(preparing()).toBeTruthy();
       await advance(450);
-      expect(screen.getByTestId("decoded").textContent).toContain("execTransaction");
+      expect(screen.getByTestId("decoded").textContent).toContain(
+        "execTransaction"
+      );
 
       // Unmounting mid-delay leaves no pending reveal timer.
       fireEvent.click(screen.getByRole("button", { name: "Decode" }));
@@ -599,49 +691,82 @@ describe("decoder transaction examples", () => {
   it.each([
     [decoderSamples[0], "mint", "Transfer"],
     [decoderSamples[1], "execTransaction", "ExecutionSuccess"],
-  ] as const)("renders %o and its events from the saved tree", async (sample, name, event) => {
-    vi.stubGlobal("fetch", mocks.lookup);
-    mocks.client.mockImplementation(() => { throw new Error("Unexpected RPC"); });
-    mount();
-    fireEvent.click(screen.getByRole("button", { name: sample.label }));
-    const tree = await screen.findByTestId("decoded");
-    expect(tree.textContent).toContain(name);
-    if (sample.id === "nft-mint") {
-      expect(within(tree).getByDisplayValue("dmxx")).toBeTruthy();
-      expect(tree.querySelector('img[src="/decoder-examples/zora-20000.jpg"]')).toBeTruthy();
-      fireEvent.click(within(tree).getByRole("button", { name: "Raw JSON" }));
-      const raw = within(tree).getByRole("textbox", { name: "Raw JSON" }) as HTMLTextAreaElement;
-      expect(JSON.parse(raw.value).name).toBe("dmxx");
-    } else {
-      for (const text of ["multiSend()", "approve()", "supply()", "cUSDCv3", "USDC"]) {
-        expect(tree.textContent).toContain(text);
+  ] as const)(
+    "renders %o and its events from the saved tree",
+    async (sample, name, event) => {
+      vi.stubGlobal("fetch", mocks.lookup);
+      mocks.client.mockImplementation(() => {
+        throw new Error("Unexpected RPC");
+      });
+      mount();
+      fireEvent.click(screen.getByRole("button", { name: sample.label }));
+      const tree = await screen.findByTestId("decoded");
+      expect(tree.textContent).toContain(name);
+      if (sample.id === "nft-mint") {
+        expect(within(tree).getByDisplayValue("dmxx")).toBeTruthy();
+        expect(
+          tree.querySelector('img[src="/decoder-examples/zora-20000.jpg"]')
+        ).toBeTruthy();
+        fireEvent.click(within(tree).getByRole("button", { name: "Raw JSON" }));
+        const raw = within(tree).getByRole("textbox", {
+          name: "Raw JSON",
+        }) as HTMLTextAreaElement;
+        expect(JSON.parse(raw.value).name).toBe("dmxx");
+      } else {
+        for (const text of [
+          "multiSend()",
+          "approve()",
+          "supply()",
+          "cUSDCv3",
+          "USDC",
+        ]) {
+          expect(tree.textContent).toContain(text);
+        }
+        expect(within(tree).getAllByDisplayValue("2900000000000")).toHaveLength(
+          2
+        );
       }
-      expect(within(tree).getAllByDisplayValue("2900000000000")).toHaveLength(2);
-    }
-    expect((screen.getByPlaceholderText("etherscan link / tx hash") as HTMLInputElement).value)
-      .toBe(sample.explorerUrl);
-    expect((screen.getByRole("combobox", { name: "Chain" }) as HTMLSelectElement).value)
-      .toBe("1");
-    fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
-    fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
-    fireEvent.click(screen.getByRole("button", { name: "Copy decoded JSON" }));
-    fireEvent.click(screen.getByRole("button", { name: "Copy params" }));
-    const decoded = JSON.parse(mocks.copy.mock.calls[0][0]);
-    const params = JSON.parse(mocks.copy.mock.calls[1][0]);
-    expect(decoded.functionName).toBe(name);
-    expect(params).toEqual({ function: decoded.signature, params: decoded.rawArgs });
-    expect(params.params).not.toHaveLength(0);
-    fireEvent.click(screen.getByRole("tab", { name: "Events (1)" }));
-    expect(screen.getByText(event)).toBeTruthy();
-    if (sample.id === "nft-mint") expect(screen.getByDisplayValue("20000")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Decode" }));
-    expect(screen.getByRole("status", { name: "Preparing example preview" })).toBeTruthy();
-    expect(await screen.findByTestId("decoded")).toBeTruthy();
-    expect(mocks.client).not.toHaveBeenCalled();
-    expect(mocks.decode).not.toHaveBeenCalled();
-    expect(mocks.events).not.toHaveBeenCalled();
-    expect(mocks.lookup).not.toHaveBeenCalled();
-  }, 15000);
+      expect(
+        (
+          screen.getByPlaceholderText(
+            "etherscan link / tx hash"
+          ) as HTMLInputElement
+        ).value
+      ).toBe(sample.explorerUrl);
+      expect(
+        (screen.getByRole("combobox", { name: "Chain" }) as HTMLSelectElement)
+          .value
+      ).toBe("1");
+      fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
+      fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Copy decoded JSON" })
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Copy params" }));
+      const decoded = JSON.parse(mocks.copy.mock.calls[0][0]);
+      const params = JSON.parse(mocks.copy.mock.calls[1][0]);
+      expect(decoded.functionName).toBe(name);
+      expect(params).toEqual({
+        function: decoded.signature,
+        params: decoded.rawArgs,
+      });
+      expect(params.params).not.toHaveLength(0);
+      fireEvent.click(screen.getByRole("tab", { name: "Events (1)" }));
+      expect(screen.getByText(event)).toBeTruthy();
+      if (sample.id === "nft-mint")
+        expect(screen.getByDisplayValue("20000")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Decode" }));
+      expect(
+        screen.getByRole("status", { name: "Preparing example preview" })
+      ).toBeTruthy();
+      expect(await screen.findByTestId("decoded")).toBeTruthy();
+      expect(mocks.client).not.toHaveBeenCalled();
+      expect(mocks.decode).not.toHaveBeenCalled();
+      expect(mocks.events).not.toHaveBeenCalled();
+      expect(mocks.lookup).not.toHaveBeenCalled();
+    },
+    15000
+  );
 
   it("pins examples to Ethereum even after choosing another draft network", async () => {
     mount();
@@ -658,7 +783,9 @@ describe("decoder transaction examples", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Safe multicall · USDC supply" })
     );
-    expect((await screen.findByTestId("decoded")).textContent).toContain("execTransaction");
+    expect((await screen.findByTestId("decoded")).textContent).toContain(
+      "execTransaction"
+    );
     expect(mocks.client).not.toHaveBeenCalled();
     expect(
       (screen.getByRole("combobox", { name: "Chain" }) as HTMLSelectElement)
@@ -743,16 +870,22 @@ describe("decoder transaction examples", () => {
     mocks.query = `tx=${encodeURIComponent(sample.explorerUrl)}&chainId=1`;
     mount();
     // Curated deep links use the same brief preparation as card clicks.
-    expect(screen.getByRole("status", { name: "Preparing example preview" })).toBeTruthy();
+    expect(
+      screen.getByRole("status", { name: "Preparing example preview" })
+    ).toBeTruthy();
     expect(screen.queryByTestId("decoded")).toBeNull();
-    expect((await screen.findByTestId("decoded")).textContent).toContain("execTransaction");
+    expect((await screen.findByTestId("decoded")).textContent).toContain(
+      "execTransaction"
+    );
     expect(mocks.client).not.toHaveBeenCalled();
   });
   it("restores a curated deep link, then leaves the snapshot when its network changes", async () => {
     const sample = decoderSamples[0];
     mocks.query = `tx=${sample.hash}&chainId=1`;
     mount();
-    expect(within(await screen.findByTestId("decoded")).getByDisplayValue("dmxx")).toBeTruthy();
+    expect(
+      within(await screen.findByTestId("decoded")).getByDisplayValue("dmxx")
+    ).toBeTruthy();
     expect(mocks.client).not.toHaveBeenCalled();
     fireEvent.change(screen.getByRole("combobox", { name: "Chain" }), {
       target: { value: "8453" },
@@ -765,7 +898,8 @@ describe("decoder transaction examples", () => {
   it("clears a selected snapshot and can select the same card again", async () => {
     mount();
     const sample = decoderSamples[0];
-    const clickCard = () => fireEvent.click(screen.getByRole("button", { name: sample.label }));
+    const clickCard = () =>
+      fireEvent.click(screen.getByRole("button", { name: sample.label }));
     clickCard();
     expect(await screen.findByTestId("decoded")).toBeTruthy();
     fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), {
@@ -806,8 +940,16 @@ describe("decoder transaction examples", () => {
     let finishStaleEvents!: (value: unknown) => void;
     let finishActiveEvents!: (value: unknown) => void;
     mocks.events
-      .mockReturnValueOnce(new Promise((resolve) => { finishStaleEvents = resolve; }))
-      .mockReturnValueOnce(new Promise((resolve) => { finishActiveEvents = resolve; }));
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishStaleEvents = resolve;
+        })
+      )
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishActiveEvents = resolve;
+        })
+      );
     mount();
     fireEvent.click(screen.getByRole("button", { name: "from Tx" }));
     fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), {
@@ -822,10 +964,15 @@ describe("decoder transaction examples", () => {
       target: { value: "0x12345678" },
     });
     mocks.decode.mockResolvedValueOnce({
-      functionName: "standalone", args: [], rawArgs: [], signature: "standalone()",
+      functionName: "standalone",
+      args: [],
+      rawArgs: [],
+      signature: "standalone()",
     });
     fireEvent.click(screen.getByRole("button", { name: "Decode" }));
-    await waitFor(() => expect(screen.getByTestId("decoded").textContent).toContain("standalone"));
+    await waitFor(() =>
+      expect(screen.getByTestId("decoded").textContent).toContain("standalone")
+    );
     fireEvent.click(screen.getByRole("button", { name: "from Tx" }));
     expect(screen.getByRole("tab", { name: "Events (0)" })).toBeTruthy();
 
@@ -836,12 +983,16 @@ describe("decoder transaction examples", () => {
     await waitFor(() => expect(mocks.events).toHaveBeenCalledTimes(2));
     fireEvent.click(screen.getByRole("tab", { name: "Events (...)" }));
     await act(async () => {
-      finishStaleEvents([{ eventName: "StaleEvent", signature: "StaleEvent()", args: [] }]);
+      finishStaleEvents([
+        { eventName: "StaleEvent", signature: "StaleEvent()", args: [] },
+      ]);
     });
     expect(screen.getByRole("tab", { name: "Events (...)" })).toBeTruthy();
     expect(screen.queryByText("StaleEvent")).toBeNull();
     await act(async () => {
-      finishActiveEvents([{ eventName: "ActiveEvent", signature: "ActiveEvent()", args: [] }]);
+      finishActiveEvents([
+        { eventName: "ActiveEvent", signature: "ActiveEvent()", args: [] },
+      ]);
     });
     expect(screen.getByRole("tab", { name: "Events (1)" })).toBeTruthy();
     expect(screen.getByText("ActiveEvent")).toBeTruthy();
@@ -850,28 +1001,53 @@ describe("decoder transaction examples", () => {
   it("ignores an older live decode and events after selecting a sample", async () => {
     let finishDecode!: (value: unknown) => void;
     let finishEvents!: (value: unknown) => void;
-    mocks.decode.mockReturnValueOnce(new Promise(resolve => { finishDecode = resolve; }));
-    mocks.events.mockReturnValueOnce(new Promise(resolve => { finishEvents = resolve; }));
+    mocks.decode.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishDecode = resolve;
+      })
+    );
+    mocks.events.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishEvents = resolve;
+      })
+    );
     mount();
     fireEvent.click(screen.getByRole("button", { name: "from Tx" }));
     const input = screen.getByPlaceholderText("etherscan link / tx hash");
     fireEvent.paste(input, {
-      clipboardData: { getData: () => `https://etherscan.io/tx/0x${"ab".repeat(32)}` },
+      clipboardData: {
+        getData: () => `https://etherscan.io/tx/0x${"ab".repeat(32)}`,
+      },
     });
     await waitFor(() => expect(mocks.events).toHaveBeenCalledOnce());
-    fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), { target: { value: "" } });
+    fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), {
+      target: { value: "" },
+    });
     // The live decode keeps cards hidden until loading settles. Starting a new
     // hash draft without a selected network exits that pending decode.
     fireEvent.paste(screen.getByPlaceholderText("etherscan link / tx hash"), {
       clipboardData: { getData: () => "0x" + "cd".repeat(32) },
     });
-    fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Safe multicall · USDC supply" }));
-    await act(async () => {
-      finishDecode({ functionName: "stale", args: [], rawArgs: [], signature: "stale()" });
-      finishEvents([{ eventName: "StaleEvent", signature: "StaleEvent()", args: [] }]);
+    fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), {
+      target: { value: "" },
     });
-    expect((await screen.findByTestId("decoded")).textContent).toContain("execTransaction");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Safe multicall · USDC supply" })
+    );
+    await act(async () => {
+      finishDecode({
+        functionName: "stale",
+        args: [],
+        rawArgs: [],
+        signature: "stale()",
+      });
+      finishEvents([
+        { eventName: "StaleEvent", signature: "StaleEvent()", args: [] },
+      ]);
+    });
+    expect((await screen.findByTestId("decoded")).textContent).toContain(
+      "execTransaction"
+    );
     expect(screen.getByTestId("decoded").textContent).not.toContain("stale");
     fireEvent.click(screen.getByRole("tab", { name: "Events (1)" }));
     expect(screen.getByText("ExecutionSuccess")).toBeTruthy();

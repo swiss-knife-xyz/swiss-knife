@@ -12,7 +12,8 @@
     "start": "next start",
     "lint": "next lint",
     "fetch-dapps": "tsx scripts/fetchSafeDapps.ts",
-    "test:decoder-samples": "vitest run --config vitest.decoder-samples.config.ts && tsx --test app/calldata/decoder/samples.test.ts"
+    "test:decoder-samples": "vitest run --config vitest.decoder-samples.config.ts && tsx --test app/calldata/decoder/samples.test.ts",
+    "test:decoder-metadata": "vitest run --config vitest.decoder-metadata.config.ts"
   },
   "dependencies": {
     "@bprogress/next": "^3.2.12",
