@@ -8,6 +8,7 @@ import React from "react";
 import { SelectedOptionState } from "@/types";
 import { networkOptions } from "@/data/common";
 import { getPath, resolveERC3770Address } from "@/utils";
+import { parseContractExplorerUrl } from "@/lib/contractExplorerInput";
 import subdomains from "@/subdomains";
 import {
   Box,
@@ -108,20 +109,24 @@ export default function ContractStart({
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setAddress(value);
+    const explorer = parseContractExplorerUrl(value);
+    setAddress(explorer?.address ?? value);
+    if (explorer) {
+      setSelectedNetworkOption(networkOptions.find(option => option.value === explorer.chainId) ?? null);
+    }
     setIsInvalidAddress(false);
   };
 
-  const handleSubmit = () => {
-    if (!address.trim()) {
+  const submitAddress = (input: string, chainId = selectedNetworkOption?.value ?? 1) => {
+    if (!input.trim()) {
       setIsInvalidAddress(true);
       return;
     }
 
     // Resolve ERC-3770 address format (e.g., eth:0x1234...)
-    const resolved = resolveERC3770Address(address.trim());
+    const resolved = parseContractExplorerUrl(input) ?? resolveERC3770Address(input.trim());
     const finalAddress = resolved.address;
-    const finalChainId = resolved.chainId ?? selectedNetworkOption?.value ?? 1;
+    const finalChainId = resolved.chainId ?? chainId;
 
     // Validate address format
     if (!/^0x[a-fA-F0-9]{40}$/.test(finalAddress)) {
@@ -134,6 +139,18 @@ export default function ContractStart({
       router.push(
         `${getPath(subdomains.CONTRACT.base)}${finalChainId}/${finalAddress}`
       );
+  };
+
+  const handleSubmit = () => submitAddress(address);
+
+  const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const explorer = parseContractExplorerUrl(event.clipboardData.getData("text"));
+    if (!explorer) return;
+    event.preventDefault();
+    setAddress(explorer.address);
+    setSelectedNetworkOption(networkOptions.find(option => option.value === explorer.chainId) ?? null);
+    setIsInvalidAddress(false);
+    submitAddress(explorer.address, explorer.chainId);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -202,9 +219,11 @@ export default function ContractStart({
               Contract Address
             </Text>
             <InputField
-              placeholder="0x... or eth:0x..."
+              placeholder="0x... or eth:0x... or explorer URL"
+              aria-label="Contract Address"
               value={address}
               onChange={handleAddressChange}
+              onPaste={handlePaste}
               onKeyDown={handleKeyDown}
               isInvalid={isInvalidAddress}
               fontFamily="mono"
