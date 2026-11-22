@@ -47,10 +47,10 @@ vi.mock("@/components/DarkSelect", () => ({
       aria-label="Bytes format"
       value={selectedOption.value}
       onChange={(e) =>
-        setSelectedOption(options.find((o: any) => o.value === e.target.value))
+        setSelectedOption(options.flatMap((entry: any) => entry.options ?? [entry]).find((o: any) => o.value === e.target.value))
       }
     >
-      {options.map((o: any) => (
+      {options.flatMap((entry: any) => entry.options ?? [entry]).map((o: any) => (
         <option key={o.value} value={o.value}>
           {o.label}
         </option>

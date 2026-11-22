@@ -1,4 +1,8 @@
 "use client";
+
+import { getSavedCustomChain, waitForCustomChains, useCustomChains } from "@/lib/customChains/store";
+import { readCustomRpc } from "@/lib/customChains/rpc";
+import { NetworkSelect } from "@/components/NetworkSelect";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -24,19 +28,14 @@ import {
   RpcError,
 } from "@/lib/rawRpc/model";
 import { DarkSelect } from "@/components/DarkSelect";
-import { chainIdToImage } from "@/data/common";
 import { Editor } from "@monaco-editor/react";
-const chainOptions = RPC_CHAINS.map((chain) => ({
-  value: chain.id,
-  label: chain.name,
-  image: chainIdToImage[Number(chain.id)],
-}));
 const exampleOptions = Object.keys(RPC_EXAMPLES).map((name) => ({
   value: name,
   label: name,
 }));
 const pretty = (value: unknown) => JSON.stringify(value, null, 2);
 export function RpcTool() {
+  const savedChains = useCustomChains();
   const [chain, setChain] = useState("1");
   const [draft, setDraft] = useState(pretty(RPC_EXAMPLES["Latest block"]));
   const [example, setExample] = useState("Latest block");
@@ -74,6 +73,7 @@ export function RpcTool() {
     setError("");
     setCopied(false);
   };
+  useEffect(() => { invalidate(); }, [savedChains.revision]);
   const run = async (event: React.FormEvent) => {
     event.preventDefault();
     if (busy) return;
@@ -88,7 +88,10 @@ export function RpcTool() {
       } catch {
         throw new RpcError("INVALID");
       }
-      const input = parseRpcInput({ chain, request: raw });
+      await waitForCustomChains();
+      if (version.current !== current) return;
+      const customChain = getSavedCustomChain(Number(chain));
+      const input = parseRpcInput({ chain, request: raw }, customChain ? [chain] : undefined);
       if (
         new TextEncoder().encode(JSON.stringify(input)).length >
         RPC_LIMITS.requestBytes
@@ -97,6 +100,11 @@ export function RpcTool() {
       const controller = new AbortController();
       active.current = controller;
       setBusy(true);
+      if (customChain) {
+        const body = await readCustomRpc(customChain, input.request, AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]));
+        if (version.current === current) setResult(pretty(body));
+        return;
+      }
       const response = await fetch("/api/rpc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -171,16 +179,13 @@ export function RpcTool() {
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
             <FormControl>
               <FormLabel>Chain</FormLabel>
-              <DarkSelect
+              <NetworkSelect
                 ariaLabel="Chain"
-                options={chainOptions}
-                selectedOption={
-                  chainOptions.find((option) => option.value === chain) ?? null
-                }
-                setSelectedOption={(option) => {
-                  if (!option) return;
+                networks={RPC_CHAINS.map(chain => Number(chain.id))}
+                chainId={Number(chain)}
+                onChange={(chainId) => {
                   invalidate();
-                  setChain(String(option.value));
+                  setChain(String(chainId));
                 }}
                 boxProps={{ w: "full", minW: 0 }}
               />
@@ -294,8 +299,8 @@ export function RpcTool() {
             </Button>
           </HStack>
           <Text fontSize="sm" color="text.secondary" mb={2}>
-            {RPC_CHAINS.find((c) => c.id === chain)?.name} ·{" "}
-            {RPC_CHAINS.find((c) => c.id === chain)?.provider}
+            {getSavedCustomChain(Number(chain))?.name ?? RPC_CHAINS.find((c) => c.id === chain)?.name} ·{" "}
+            {getSavedCustomChain(Number(chain)) ? "Custom RPC · direct browser connection" : RPC_CHAINS.find((c) => c.id === chain)?.provider}
           </Text>
           <Box
             role="region"

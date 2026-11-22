@@ -1,3 +1,4 @@
+import { getPublicClient } from "@/lib/publicClient";
 import { Provider, RpcRequest } from "ox";
 import {
   type Address,
@@ -5,8 +6,6 @@ import {
   getAddress,
   numberToHex,
   fromHex,
-  createPublicClient,
-  http,
   isAddress,
   type PublicClient,
 } from "viem";
@@ -118,16 +117,8 @@ export function createImpersonatorEip1193Provider({
       return null;
     }
 
-    const rpcUrl = chain.rpcUrls.default?.http[0];
-    if (!rpcUrl) {
-      console.error(
-        `[ImpersonatorProvider] No RPC URL found for chain ${chainId}.`
-      );
-      return null;
-    }
-
     try {
-      const client = createPublicClient({ chain, transport: http(rpcUrl) });
+      const client = getPublicClient(chainId);
       publicClientCache[chainId] = client;
       return client;
     } catch (e) {

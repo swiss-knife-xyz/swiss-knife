@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { GasCostEstimator } from "./GasCostEstimator";
@@ -27,13 +28,13 @@ vi.mock("@/components/DarkSelect", () => ({
       value={selectedOption?.value ?? ""}
       onChange={(event) =>
         setSelectedOption(
-          options.find(
+          options.flatMap((entry: any) => entry.options ?? [entry]).find(
             (option: any) => String(option.value) === event.target.value
           )
         )
       }
     >
-      {options.map((option: any) => (
+      {options.flatMap((entry: any) => entry.options ?? [entry]).map((option: any) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>
@@ -154,6 +155,7 @@ test("an older pending request cannot overwrite edited inputs, a newer result or
   fireEvent.submit(
     screen.getByRole("button", { name: "Estimate gas cost" }).closest("form")!
   );
+  await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
   fireEvent.change(screen.getByLabelText("Destination chain"), {
     target: { value: "1" },
   });
@@ -244,37 +246,39 @@ test("late rejection after an edit or unmount is ignored", async () => {
   const pending = new Promise<never>((_, rejectPromise) => {
     reject = rejectPromise;
   });
+  const load = vi.fn(() => pending);
   const rendered = render(
     <ChakraProvider>
-      <GasCostEstimator chains={chains} loadEstimate={() => pending} />
+      <GasCostEstimator chains={chains} loadEstimate={load} />
     </ChakraProvider>
   );
   fireEvent.change(screen.getByLabelText("Transaction hash"), {
     target: { value: hash },
   });
   fireEvent.click(screen.getByRole("button", { name: "Estimate gas cost" }));
+  await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
   fireEvent.change(screen.getByLabelText("Transaction hash"), {
     target: { value: "edited" },
   });
   await act(async () => reject(Error("obsolete error")));
   expect(screen.queryByRole("alert")).toBeNull();
   rendered.unmount();
+  const loadAfterUnmount = vi.fn(
+    () =>
+      new Promise<never>((_, rejectPromise) => {
+        reject = rejectPromise;
+      })
+  );
   const afterUnmount = render(
     <ChakraProvider>
-      <GasCostEstimator
-        chains={chains}
-        loadEstimate={() =>
-          new Promise((_, rejectPromise) => {
-            reject = rejectPromise;
-          })
-        }
-      />
+      <GasCostEstimator chains={chains} loadEstimate={loadAfterUnmount} />
     </ChakraProvider>
   );
   fireEvent.change(screen.getByLabelText("Transaction hash"), {
     target: { value: hash },
   });
   fireEvent.click(screen.getByRole("button", { name: "Estimate gas cost" }));
+  await waitFor(() => expect(loadAfterUnmount).toHaveBeenCalledTimes(1));
   afterUnmount.unmount();
   await act(async () => reject(Error("unmounted error")));
   expect(screen.queryByRole("alert")).toBeNull();
@@ -321,7 +325,11 @@ test.each([
 
 test("pasting explorer URLs fills only the hash without submitting or changing chains", () => {
   const loadEstimate = vi.fn();
-  render(<ChakraProvider><GasCostEstimator chains={chains} loadEstimate={loadEstimate} /></ChakraProvider>);
+  render(
+    <ChakraProvider>
+      <GasCostEstimator chains={chains} loadEstimate={loadEstimate} />
+    </ChakraProvider>
+  );
   const input = screen.getByLabelText("Transaction hash");
   for (const text of [
     `https://etherscan.io/tx/${hash}`,
@@ -333,7 +341,13 @@ test("pasting explorer URLs fills only the hash without submitting or changing c
     fireEvent.paste(input, { clipboardData: { getData: () => text } });
     expect((input as HTMLInputElement).value).toBe(hash);
   }
-  expect((screen.getByLabelText("Source chain") as HTMLSelectElement).value).toBe("1");
+  expect(
+    (screen.getByLabelText("Source chain") as HTMLSelectElement).value
+  ).toBe("1");
   expect(loadEstimate).not.toHaveBeenCalled();
-  expect(fireEvent.paste(input, { clipboardData: { getData: () => `https://etherscan.io/address/${hash}` } })).toBe(true);
+  expect(
+    fireEvent.paste(input, {
+      clipboardData: { getData: () => `https://etherscan.io/address/${hash}` },
+    })
+  ).toBe(true);
 });

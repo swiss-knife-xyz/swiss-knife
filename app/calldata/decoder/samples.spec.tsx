@@ -110,11 +110,11 @@ vi.mock("@/components/DarkSelect", () => ({
       value={selectedOption?.value}
       onChange={(e) =>
         setSelectedOption(
-          options.find((o: any) => o.value === Number(e.target.value))
+          options.flatMap((entry: any) => entry.options ?? [entry]).find((o: any) => o.value === Number(e.target.value))
         )
       }
     >
-      {options.map((o: any) => (
+      {options.flatMap((entry: any) => entry.options ?? [entry]).map((o: any) => (
         <option key={o.value} value={o.value}>
           {o.label}
         </option>

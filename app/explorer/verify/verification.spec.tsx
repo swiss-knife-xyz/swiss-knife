@@ -155,7 +155,7 @@ it("changing network invalidates consent and ignores a delayed preview", async (
     key: "ArrowDown",
   });
   fireEvent.click(
-    await screen.findByRole("option", { name: /Polygon Mainnet/ })
+    await screen.findByRole("option", { name: /Polygon.*137$/ })
   );
   resolve(Response.json(review));
   await waitFor(() =>
@@ -165,7 +165,7 @@ it("changing network invalidates consent and ignores a delayed preview", async (
     key: "ArrowDown",
   });
   fireEvent.click(
-    await screen.findByRole("option", { name: /Ethereum Mainnet/ })
+    await screen.findByRole("option", { name: /Ethereum.* 1$/ })
   );
   await load();
   consent();
@@ -340,7 +340,7 @@ it("different deployment controls send the selected network, address and explici
     { key: "ArrowDown" }
   );
   fireEvent.click(
-    await screen.findByRole("option", { name: /Base Sepolia Testnet/ })
+    await screen.findByRole("option", { name: /Base Sepolia/ })
   );
   fireEvent.click(screen.getByRole("button", { name: "Find verified source" }));
   await screen.findByRole("heading", { name: "Example" });

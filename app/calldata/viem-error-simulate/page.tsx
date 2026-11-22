@@ -1,5 +1,7 @@
 "use client";
 
+import { networkOptions } from "@/data/networks";
+import { NetworkSelect } from "@/components/NetworkSelect";
 import React, { useState } from "react";
 import {
   Heading,
@@ -14,20 +16,11 @@ import {
   Icon,
   Button,
 } from "@chakra-ui/react";
-import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 import { mainnet } from "viem/chains";
-import { c, chainIdToImage } from "@/data/common";
 import { generateTenderlyUrl } from "@/utils";
 import { zeroAddress } from "viem";
 import { FiPlay, FiGlobe, FiAlertCircle, FiExternalLink } from "react-icons/fi";
-
-const networkOptions: { label: string; value: number; image: string }[] =
-  Object.keys(c).map((k) => ({
-    label: c[k].name,
-    value: c[k].id,
-    image: chainIdToImage[c[k].id],
-  }));
 
 const ViemErrorSimulate = () => {
   const [selectedNetworkOption, setSelectedNetworkOption] =
@@ -143,7 +136,7 @@ const ViemErrorSimulate = () => {
               </HStack>
             </Box>
             <Box flex={1}>
-              <DarkSelect
+              <NetworkSelect
                 boxProps={{
                   w: "100%",
                 }}

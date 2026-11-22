@@ -1,5 +1,8 @@
 "use client";
 
+import { getNetworkOptions } from "@/data/networks";
+import { NetworkSelect } from "@/components/NetworkSelect";
+
 import { ToolLoading } from "@/components/ToolLoading";
 
 import { useSearchParams } from "next/navigation";
@@ -27,22 +30,16 @@ import {
 import { diffLines } from "diff";
 import { FiGitBranch, FiFile } from "react-icons/fi";
 import { Maximize2, Minimize2 } from "lucide-react";
-import { etherscanChains, chainIdToChain, chainIdToImage } from "@/data/common";
+import { etherscanChains, chainIdToChain, chainIdToImage } from "@/data/networks";
 import { getSourceCode } from "@/utils";
 import { Layout } from "@/components/Layout";
 import { InputField } from "@/components/InputField";
-import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 import { base, mainnet } from "viem/chains";
 import { SourceCodeExplorer } from "@/components/SourceCodeExplorer";
 import { DiffFileData } from "@/components/SourceCodeExplorer/types";
 
-const networkOptions: { label: string; value: number; image: string }[] =
-  Object.keys(etherscanChains).map((k, i) => ({
-    label: etherscanChains[k].name,
-    value: etherscanChains[k].id,
-    image: chainIdToImage[etherscanChains[k].id],
-  }));
+const networkOptions = getNetworkOptions(Object.values(etherscanChains));
 
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_BASE_MAINNET = "0x4200000000000000000000000000000000000006";
@@ -295,7 +292,7 @@ function ContractDiffContent() {
                         setComparison({ contractOld: e.target.value });
                       }}
                     />
-                    <DarkSelect
+                    <NetworkSelect
                       boxProps={{
                         w: "100%",
                       }}
@@ -331,7 +328,7 @@ function ContractDiffContent() {
                         setComparison({ contractNew: e.target.value });
                       }}
                     />
-                    <DarkSelect
+                    <NetworkSelect
                       boxProps={{
                         w: "100%",
                       }}

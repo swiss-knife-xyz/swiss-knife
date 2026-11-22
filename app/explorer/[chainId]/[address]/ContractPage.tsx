@@ -1,5 +1,8 @@
 "use client";
 
+import { useCustomChains } from "@/lib/customChains/store";
+import { getRpcUrlsForChain } from "@/data/networks";
+import { NetworkSelect } from "@/components/NetworkSelect";
 import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { DarkSelect } from "@/components/DarkSelect";
@@ -868,7 +871,7 @@ const LoadedContractPage = ({
   // Find network option, default to first option (mainnet) if not found
   const getNetworkOption = useCallback(() => {
     const index = networkOptions.findIndex((option) => option.value === chainId);
-    return index >= 0 ? networkOptions[index] : networkOptions[0];
+    return index >= 0 ? networkOptions[index] : { value: chainId, label: `Chain ${chainId}` };
   }, [chainId]);
 
   // dynamic imports
@@ -1528,7 +1531,7 @@ const LoadedContractPage = ({
               <Text color="text.tertiary" fontSize="xs" fontWeight="medium" mb={1.5} textTransform="uppercase" letterSpacing="0.05em">
                 Network
               </Text>
-              <DarkSelect
+              <NetworkSelect
                 ariaLabel="Network"
                 controlProps={{ h: 10, minH: 10 }}
                 selectedOption={selectedNetworkOption}
@@ -1663,10 +1666,15 @@ const LoadedContractPage = ({
 };
 
 // Never pair a new route with the previous route's ABI, prefill or pending preview.
+function SavedRpcContract(props: { params: { address: string; chainId: number } }) {
+  const saved = useCustomChains();
+  const endpointKey = getRpcUrlsForChain(props.params.chainId).join("|");
+  if (!saved.ready && !chainIdToChain[props.params.chainId]) return <Text color="text.secondary">Loading saved network…</Text>;
+  return <LoadedContractPage key={`${props.params.chainId}:${endpointKey}`} {...props} />;
+}
 export const ContractPage = (props: { params: { address: string; chainId: number } }) =>
-  <ContractTabs key={`${props.params.chainId}:${props.params.address.toLowerCase()}`} initial={props.params} renderContract={params => <LoadedContractPage params={params} />} />;
-
+  <ContractTabs key={`${props.params.chainId}:${props.params.address.toLowerCase()}`} initial={props.params} renderContract={params => <SavedRpcContract params={params} />} />;
 
 export const ContractWorkspace = () => (
-  <ContractTabs renderContract={params => <LoadedContractPage params={params} />} />
+  <ContractTabs renderContract={params => <SavedRpcContract params={params} />} />
 );

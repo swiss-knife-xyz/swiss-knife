@@ -35,7 +35,7 @@ export function MockTokenVerification({
   const providerName =
     provider === "sourcify"
       ? "Sourcify"
-      : deployment.chain.blockExplorers.default.name;
+      : deployment.chain.blockExplorers?.default.name ?? "Explorer";
   const [state, setState] = useState<
     "pending" | "verified" | "failed" | "delayed"
   >("pending");

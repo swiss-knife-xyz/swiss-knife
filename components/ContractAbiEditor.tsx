@@ -1,5 +1,6 @@
 "use client";
 
+import { NetworkSelect } from "@/components/NetworkSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
@@ -37,7 +38,6 @@ import {
 } from "lucide-react";
 import { Editor } from "@monaco-editor/react";
 import { FunctionFragment, type JsonFragment } from "ethers";
-import { DarkSelect } from "@/components/DarkSelect";
 import { networkOptions } from "@/data/common";
 import { parseContractExplorerUrl } from "@/lib/contractExplorerInput";
 import { compareContractFunctions, parseAdditionalFunctions, parseContractAbi } from "@/lib/contractAbi";
@@ -524,7 +524,7 @@ export function ContractAbiEditor({
                         >
                           Source network
                         </FormLabel>
-                        <DarkSelect
+                        <NetworkSelect
                           ariaLabel="Source network"
                           isDisabled={loading}
                           options={networkOptions}

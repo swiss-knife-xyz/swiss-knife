@@ -12,7 +12,7 @@ import {
 import { ChevronDown } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { BridgeChain } from "../lib/bridgeApi";
-import { chainIdToChain, chainIdToImage } from "@/data/common";
+import { getNetworkName, getNetworkIcon } from "@/data/networks";
 
 interface ChainPickerDropdownProps {
   sourceChainId?: number;
@@ -23,11 +23,11 @@ interface ChainPickerDropdownProps {
 }
 
 function chainLogo(chainId: number, chain?: BridgeChain): string | undefined {
-  return chain?.icon ?? chain?.logoURI ?? chainIdToImage[chainId];
+  return getNetworkIcon(chainId, chain?.icon ?? chain?.logoURI);
 }
 
 function chainName(chainId: number, chain?: BridgeChain): string {
-  return chain?.name ?? chainIdToChain[chainId]?.name ?? `Chain ${chainId}`;
+  return getNetworkName(chainId, chain?.name);
 }
 
 export function ChainPickerDropdown({

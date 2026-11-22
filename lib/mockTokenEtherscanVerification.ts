@@ -76,7 +76,7 @@ export class MockTokenEtherscanVerification {
       if (!parsed.success) throw new VerificationError("INVALID_INPUT");
       const body = parsed.data;
       const chain = MOCK_CHAINS.find((chain) => chain.id === body.chainId);
-      if (!chain) throw new VerificationError("INVALID_INPUT");
+      if (!chain?.blockExplorers) throw new VerificationError("INVALID_INPUT");
       if (!VERIFICATION_CHAINS[String(chain.id)]?.etherscan)
         throw new VerificationError("UNSUPPORTED_ROUTE");
       const key = this.dependencies.key();

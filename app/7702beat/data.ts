@@ -13,108 +13,8 @@ import {
   unichain,
   worldchain,
 } from "viem/chains";
-import { monad } from "@/data/common";
-
-const endurance = {
-  id: 648,
-  name: "Endurance",
-  iconUrl: "https://ace.fusionist.io/apple-touch-icon.png",
-  iconBackground: "white.400",
-  blockExplorers: {
-    default: {
-      name: "Endurance Explorer",
-      url: "https://explorer-endurance.fusionist.io",
-    },
-  },
-};
-
-const katana = {
-  id: 747474,
-  iconUrl: "https://katana.network/meta/favicon-96x96.png",
-  iconBackground: "blue.400",
-};
-
-const zircuit = {
-  id: 48900,
-  name: "Zircuit",
-  iconUrl: "/chainIcons/zircuit.svg",
-  iconBackground: "transparent",
-  blockExplorers: {
-    default: {
-      name: "Zircuit Explorer",
-      url: "https://explorer.zircuit.com",
-    },
-  },
-};
-
-const citrea = {
-  id: 4114,
-  name: "Citrea",
-  iconUrl: "/chainIcons/citrea.svg",
-  iconBackground: "#F0781B",
-  nativeCurrency: {
-    name: "Citrea BTC",
-    symbol: "cBTC",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: {
-      http: ["https://rpc.mainnet.citrea.xyz"],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: "Citrea Explorer",
-      url: "https://explorer.mainnet.citrea.xyz",
-    },
-  },
-};
-
-const stablechain = {
-  id: 988,
-  name: "StableChain",
-  iconUrl: "/chainIcons/stable.svg",
-  iconBackground: "white",
-  nativeCurrency: {
-    name: "USDT0",
-    symbol: "USDT0",
-    decimals: 6,
-  },
-  rpcUrls: {
-    default: {
-      http: ["https://rpc.stable.xyz"],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: "StableScan",
-      url: "https://stablescan.xyz",
-    },
-  },
-};
-
-const megaeth = {
-  id: 4326,
-  name: "MegaETH",
-  iconUrl: "/chainIcons/megaeth.svg",
-  iconBackground: "white",
-  nativeCurrency: {
-    name: "Ether",
-    symbol: "ETH",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: {
-      http: ["https://mainnet.megaeth.com/rpc"],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: "MegaETH Explorer",
-      url: "https://mega.etherscan.io",
-    },
-  },
-};
+import { monad, citrea, megaeth, directoryNetworks, chainIdToChain, getNetworkName } from "@/data/networks";
+const { endurance, katana, zircuit, stablechain } = directoryNetworks;
 
 export interface SupportedChain {
   id: number;
@@ -143,7 +43,7 @@ const getFaviconUrl = (url: string) => {
 };
 
 // All chains that support 7702
-export const chains: SupportedChain[] = [
+const supportedChains: SupportedChain[] = [
   {
     id: mainnet.id,
     name: "Ethereum",
@@ -288,6 +188,12 @@ export const chains: SupportedChain[] = [
     chainObj: zircuit,
   },
 ];
+
+export const chains: SupportedChain[] = supportedChains.map(chain => ({
+  ...chain,
+  name: getNetworkName(chain.id, chain.name),
+  chainObj: { ...chain.chainObj, ...(chainIdToChain[chain.id] ?? {}) },
+}));
 
 export const wallets: SupportedApp[] = [
   {

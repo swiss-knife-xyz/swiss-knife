@@ -1,5 +1,8 @@
 "use client";
 
+import { networkOptions } from "@/data/networks";
+import { NetworkSelect } from "@/components/NetworkSelect";
+import { getEthersProvider } from "@/lib/ethersProvider";
 import { useState, useEffect } from "react";
 import {
   HStack,
@@ -15,23 +18,14 @@ import {
   Icon,
 } from "@chakra-ui/react";
 import { FiClock } from "react-icons/fi";
-import { ethers } from "ethers";
 import EthDater from "ethereum-block-by-date";
 import { Layout } from "@/components/Layout";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 import { DarkButton } from "@/components/DarkButton";
-import { c, chainIdToChain, chainIdToImage } from "@/data/common";
 
 const timeOptions = ["minutes", "hours", "days"];
-
-const networkOptions: { label: string; value: number; image: string }[] =
-  Object.keys(c).map((k, i) => ({
-    label: c[k].name,
-    value: c[k].id,
-    image: chainIdToImage[c[k].id],
-  }));
 
 const Epoch = () => {
   const [timestamp, setTimestamp] = useState<number>(
@@ -260,7 +254,7 @@ const Epoch = () => {
               </FormControl>
               <FormControl>
                 <FormLabel color="gray.500" fontSize="xs">Network</FormLabel>
-                <DarkSelect
+                <NetworkSelect
                   boxProps={{ w: "100%" }}
                   selectedOption={selectedNetworkOption}
                   setSelectedOption={setSelectedNetworkOption}
@@ -274,11 +268,7 @@ const Epoch = () => {
 
                     setGetBlockIsLoading(true);
                     try {
-                      const provider = new ethers.JsonRpcProvider(
-                        chainIdToChain[
-                          parseInt(selectedNetworkOption!.value.toString())
-                        ]?.rpcUrls.default.http[0]
-                      );
+                      const provider = getEthersProvider(parseInt(selectedNetworkOption!.value.toString()));
 
                       const dater = new EthDater(
                         // @ts-ignore
