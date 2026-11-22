@@ -96,7 +96,7 @@ export const renderParams = (
       rounded={variant === "surface" ? "lg" : undefined}
       minW={0}
     >
-      {arg.name ? (
+      {arg.baseType === "tuple" && Array.isArray(arg.value) && arg.value.length > 0 ? null : arg.name ? (
         <Box>
           <HStack minW={0} flexWrap="wrap">
             <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>

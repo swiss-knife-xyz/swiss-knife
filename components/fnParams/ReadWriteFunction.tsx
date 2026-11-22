@@ -948,7 +948,7 @@ const ReadWriteFunctionComponent = ({
               borderTopWidth={i > 0 ? "1px" : 0}
               borderColor="whiteAlpha.100"
             >
-              {outputs.length > 1 && (
+              {outputs.length > 1 && output.type !== "tuple" && (
                 <InputInfo
                   input={{
                     name: output.name
@@ -962,6 +962,8 @@ const ReadWriteFunctionComponent = ({
                 renderParamTypes({
                   chainId,
                   type: output.type,
+                  components: output.components,
+                  name: outputs.length > 1 ? output.name : "",
                   value:
                     outputs.length > 1
                       ? res !== null && res !== undefined
@@ -1368,9 +1370,11 @@ const ReadWriteFunctionComponent = ({
                 writeButtonType === WriteButtonType.CallAsViewFn) &&
               (loading || (!loading && res !== null && res !== undefined)) && (
                 <Box pt={3} borderTopWidth="1px" borderColor="whiteAlpha.100">
-                  <Text fontSize="xs" color="whiteAlpha.600" mb={2}>
-                    Result
-                  </Text>
+                  {!(outputs.length === 1 && outputs[0].type === "tuple") && (
+                    <Text fontSize="xs" color="whiteAlpha.600" mb={2}>
+                      Result
+                    </Text>
+                  )}
                   {renderRes()}
                 </Box>
               )

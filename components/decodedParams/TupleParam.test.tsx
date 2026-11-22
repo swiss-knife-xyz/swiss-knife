@@ -5,6 +5,21 @@ import { createRoot } from "react-dom/client";
 import type { Arg } from "@/types";
 
 window.scrollTo = () => {};
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent() {
+      return false;
+    },
+  }),
+});
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 const modules = Promise.all([
@@ -196,4 +211,79 @@ test("empty and fallback object tuples keep their existing representations", asy
       await ui.cleanup();
     }
   }
+});
+
+test("contract named tuple objects render their ABI fields instead of an empty tuple", async () => {
+  const { contractOutputArg } = await import("@/lib/contractOutput");
+  const { encodeAbiParameters, decodeAbiParameters } = await import("viem");
+  const output = {
+    name: "reserve",
+    type: "tuple",
+    components: [
+      {
+        name: "configuration",
+        type: "tuple",
+        components: [{ name: "data", type: "uint256" }],
+      },
+      { name: "liquidityIndex", type: "uint128" },
+      { name: "active", type: "bool" },
+    ],
+  } as const;
+  const [value] = decodeAbiParameters(
+    [output],
+    encodeAbiParameters(
+      [output],
+      [
+        {
+          configuration: { data: 42n },
+          liquidityIndex: 100n,
+          active: true,
+        },
+      ]
+    )
+  );
+  const arg = contractOutputArg(output, value);
+  const ui = await mount(arg);
+  try {
+    assert.equal(
+      ui.container.querySelectorAll("button[aria-controls][aria-expanded]")
+        .length,
+      2
+    );
+    assert.match(ui.container.textContent!, /configuration/);
+    assert.match(ui.container.textContent!, /liquidityIndex/);
+    assert.deepEqual(
+      Array.from(ui.container.querySelectorAll<HTMLInputElement>("input[readonly]")).map(
+        (input) => input.value
+      ),
+      ["42", "100", "true"]
+    );
+  } finally {
+    await ui.cleanup();
+  }
+});
+
+test("contract output conversion preserves positional tuples and nested fixed arrays", async () => {
+  const { contractOutputArg } = await import("@/lib/contractOutput");
+  const arg = contractOutputArg(
+    {
+      type: "tuple[1][]",
+      components: [
+        { name: "message", type: "string" },
+        { name: "counts", type: "uint256[2]" },
+      ],
+    },
+    [[["hello", [1n, 2n]]]]
+  );
+  const item = (arg.value as Arg[])[0];
+  assert.equal(item.baseType, "array");
+  const tupleArg = (item.value as Arg[])[0];
+  assert.equal(tupleArg.baseType, "tuple");
+  const fields = tupleArg.value as Arg[];
+  assert.equal(fields[0].value, "hello");
+  assert.deepEqual(
+    (fields[1].value as Arg[]).map((field) => field.value),
+    [1n, 2n]
+  );
+  assert.equal(fields[1].baseType, "array");
 });

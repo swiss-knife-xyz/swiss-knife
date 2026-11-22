@@ -39,7 +39,17 @@ const TupleDisclosure = ({
         type="button"
         variant="ghost"
         size="sm"
-        alignSelf="flex-start"
+        alignSelf="stretch"
+        justifyContent="flex-start"
+        height="auto"
+        minH={8}
+        px={0}
+        py={1}
+        gap={2}
+        fontWeight="normal"
+        whiteSpace="normal"
+        textAlign="left"
+        _hover={{ bg: "transparent", color: "white" }}
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-controls={contentId}
@@ -57,6 +67,18 @@ const TupleDisclosure = ({
             aria-hidden="true"
             data-disclosure="right"
           />
+        )}
+        {name ? (
+          <Box as="span" minW={0} overflowWrap="anywhere" lineHeight="base">
+            <Box as="span" display="block" fontSize="xs" fontWeight="thin" color="whiteAlpha.600">
+              tuple
+            </Box>
+            <Box as="span" display="block" fontSize="md" color="white">
+              {name}
+            </Box>
+          </Box>
+        ) : (
+          <Box as="span">Result</Box>
         )}
       </Button>
       <Box id={contentId} display={isOpen ? undefined : "none"}>
