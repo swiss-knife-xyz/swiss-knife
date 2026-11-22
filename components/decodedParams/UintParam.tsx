@@ -14,6 +14,7 @@ import { ethFormatOptions, convertTo, ETHSelectedOptionState } from "@/utils";
 import { InputField } from "../InputField";
 import { DarkSelect, type FormatSelectProps } from "../DarkSelect";
 import { motion } from "framer-motion";
+import { formatDistanceToNow } from "date-fns";
 
 import { formatWithCommas } from "@/utils/formatWithCommas";
 
@@ -65,6 +66,11 @@ export const UintParam = ({
   const conversionValue = convertTo(selectedEthFormatOption, value);
   const unixSelected =
     selectedEthFormatOption && selectedEthFormatOption.value === "Unix Time";
+  const unixDate = unixSelected ? new Date(Number(value) * 1_000) : null;
+  const relativeTime =
+    unixDate && !Number.isNaN(unixDate.getTime())
+      ? formatDistanceToNow(unixDate, { addSuffix: true })
+      : undefined;
   const isNumericFormat = numericFormats.includes(
     selectedEthFormatOption?.value
   );
@@ -152,16 +158,22 @@ export const UintParam = ({
                   : undefined
               }
               valueTooltip={
-                formatting === "separators" &&
-                canFormat &&
-                hasCompactNotation
-                  ? `${formatWithCommas(conversionValue)} (${formatCompact(conversionValue)})`
-                  : undefined
+                unixSelected
+                  ? relativeTime
+                  : formatting === "separators" &&
+                      canFormat &&
+                      hasCompactNotation
+                    ? `${formatWithCommas(conversionValue)} (${formatCompact(conversionValue)})`
+                    : undefined
               }
               pl={
-                unixSelected || (canFormat && formatting === "compact")
-                  ? "5rem"
-                  : undefined
+                unixSelected
+                  ? showLocalTime
+                    ? "3.75rem"
+                    : "3.25rem"
+                  : canFormat && formatting === "compact"
+                    ? "5rem"
+                    : undefined
               }
               placeholder=""
               isReadOnly
