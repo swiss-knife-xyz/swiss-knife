@@ -35,8 +35,9 @@ import {
   ChevronUpIcon,
   ExternalLinkIcon,
   InfoIcon,
-  RepeatIcon,
+  LinkIcon,
   SettingsIcon,
+  WarningTwoIcon,
 } from "@chakra-ui/icons";
 import { useWalletClient, useAccount } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
@@ -45,7 +46,7 @@ import {
   ContractFunctionExecutionError,
   PublicClient,
   Hex,
-  encodeFunctionData,
+  encodeFunctionData as encodeAbiFunctionData,
   Abi,
   toHex,
   zeroAddress,
@@ -64,20 +65,34 @@ import { WriteButton } from "../WriteButton";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
 import { convertBooleans } from "@/lib/convertBooleans";
+import type { InferredFunctionInfo } from "@/lib/inferredContract";
+import { getPath } from "@/utils";
+import subdomains from "@/subdomains";
+import { erc165Interfaces } from "@/data/erc165Interfaces";
+import { createContractCallLink, contractFunctionSignature } from "@/lib/contractCall";
+
+const interfacePresetOptions = erc165Interfaces.map(({ label, id }) => ({
+  label: label.replace(" (optional)", ""),
+  value: id,
+}));
 
 interface ReadWriteFunctionProps {
   client: PublicClient;
   index: number;
   type: "read" | "write";
-  func: Omit<JsonFragment, "name" | "outputs"> & {
-    name: HighlightedContent;
-    outputs?: readonly JsonFragmentType[];
-    highlightedOutputs?: ExtendedJsonFragmentType[];
-  };
+  func: Omit<JsonFragment, "name" | "outputs"> &
+    InferredFunctionInfo & {
+      name: HighlightedContent;
+      outputs?: readonly JsonFragmentType[];
+      highlightedOutputs?: ExtendedJsonFragmentType[];
+    };
   address: string;
   chainId: number;
   isAbiDecoded?: boolean;
   readAllCollapsed?: boolean;
+  // Parent keys this form by prefill revision so child-local widget state resets.
+  initialCall?: { args: unknown[]; value: string };
+  abiMode?: "contract" | "implementation";
 }
 
 const extractStringFromReactNode = (node: HighlightedContent): string => {
@@ -135,7 +150,7 @@ const EnhancedFunctionOutput: React.FC<{
 
   return (
     <Box
-      ml={4}
+      ml={{ base: 0, md: 4 }}
       maxW="30rem"
       sx={{
         wordBreak: "break-word",
@@ -188,6 +203,8 @@ const ReadWriteFunctionComponent = ({
   chainId,
   isAbiDecoded,
   readAllCollapsed,
+  initialCall,
+  abiMode = "contract",
 }: ReadWriteFunctionProps) => {
   const { data: walletClient } = useWalletClient();
   const { address: userAddress, chain } = useAccount();
@@ -200,26 +217,47 @@ const ReadWriteFunctionComponent = ({
     stateMutability,
     highlightedOutputs,
   } = __func;
-  const functionName = extractStringFromReactNode(__name);
+  const inputsUnknown = __func.inputInference?.source === "unknown";
+  // A display-only selector label is not a valid ABI function identifier.
+  const displayName = extractStringFromReactNode(__name);
+  const functionName =
+    __func.inputInference && displayName.startsWith("selector: ")
+      ? "inferred"
+      : displayName;
+  const encodeFunctionData = useCallback(
+    (parameters: Parameters<typeof encodeAbiFunctionData>[0]): Hex => {
+      if (__func.inputInference?.source === "unknown") {
+        throw new Error(
+          "Input types are unknown; supply an ABI or use Raw Calldata."
+        );
+      }
+      const encoded = encodeAbiFunctionData(parameters);
+      // Bytecode supplies the real selector even when no function name is known.
+      return __func.inputInference && __func.selector
+        ? (`${__func.selector}${encoded.slice(10)}` as Hex)
+        : encoded;
+    },
+    [__func]
+  );
 
   const _func = React.useMemo(
     () =>
-      ({ ...__func, name: functionName, type: "function" } as JsonFragment & {
+      ({ ...__func, name: functionName, type: "function" }) as JsonFragment & {
         type: "function";
-      }),
+      },
     [__func, functionName]
   );
 
   const outputs = _outputs
     ? _outputs
     : isAbiDecoded
-    ? [
-        {
-          type: "calldata", // set output type as custom calldata
-          name: "",
-        },
-      ]
-    : [];
+      ? [
+          {
+            type: "calldata", // set output type as custom calldata
+            name: "",
+          },
+        ]
+      : [];
 
   let tenderlyForkIdCache: string | null = null;
   if (localStorage !== undefined) {
@@ -228,12 +266,24 @@ const ReadWriteFunctionComponent = ({
 
   const [fnSelector, setFnSelector] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
-    readAllCollapsed !== undefined ? readAllCollapsed : false
+    initialCall
+      ? false
+      : readAllCollapsed !== undefined
+        ? readAllCollapsed
+        : false
   );
-  const [payableETH, setPayableETH] = useState<string>("0");
+  const [payableETH, setPayableETH] = useState<string>(
+    initialCall?.value ?? "0"
+  );
   const [payableETHIsDisabled, setPayableETHIsDisabled] =
     useState<boolean>(false);
-  const [inputsState, setInputsState] = useState<any>({});
+  const [inputsState, setInputsState] = useState<any>(() =>
+    Object.fromEntries((initialCall?.args ?? []).map((value, i) => [i, value]))
+  );
+  const isSupportsInterface =
+    functionName === "supportsInterface" &&
+    inputs?.length === 1 &&
+    inputs[0].type === "bytes4";
   const [functionIsDisabled, setFunctionIsDisabled] = useState<any>({});
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
     WriteButtonType.Write
@@ -256,6 +306,24 @@ const ReadWriteFunctionComponent = ({
   const [enterPressed, setEnterPressed] = useState<boolean>(false);
   const [calldataModalOpen, setCalldataModalOpen] = useState<boolean>(false);
   const [encodedCalldata, setEncodedCalldata] = useState<string>("");
+  const [encodingError, setEncodingError] = useState("");
+  const [share, setShare] = useState<{ link: string; error: string } | null>(null);
+
+  useEffect(() => {
+    setEncodedCalldata("");
+    setCalldataModalOpen(false);
+    setEncodingError("");
+    setShare(null);
+  }, [
+    inputsState,
+    functionName,
+    inputs,
+    address,
+    chainId,
+    isAbiDecoded,
+    payableETH,
+    abiMode,
+  ]);
 
   const updateInputState = useCallback((index: number, value: string) => {
     setInputsState((prev: any) => ({
@@ -279,6 +347,7 @@ const ReadWriteFunctionComponent = ({
   }, [inputs, inputsState]);
 
   const readFunction = useCallback(async () => {
+    if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
     }
@@ -366,7 +435,53 @@ const ReadWriteFunctionComponent = ({
     }
   }, [isError, functionName, client, address, _func, inputs, inputsState]);
 
-  const writeFunction = useCallback(async () => {
+  const [writePreview, setWritePreview] = useState<{
+    key: string;
+    status: "loading" | "ready" | "error";
+    result?: unknown;
+  } | null>(null);
+  const [writeStatus, setWriteStatus] = useState<{
+    key: string;
+    phase: "wallet" | "submitted" | "confirmed" | "rejected" | "error";
+  } | null>(null);
+  const writeContextKey = JSON.stringify([
+    chainId,
+    address,
+    _func,
+    inputsState,
+    payableETH,
+    userAddress,
+    chain?.id,
+    walletClient?.account?.address,
+    walletClient?.chain?.id,
+    client.chain?.id,
+    writeButtonType,
+    isAbiDecoded,
+  ]);
+  const writeContextRef = useRef(writeContextKey);
+  writeContextRef.current = writeContextKey;
+  const simulationId = useRef(0);
+  const writeInFlight = useRef(false);
+  const cancelWritePreview = useCallback(() => {
+    simulationId.current++;
+    setWritePreview(null);
+    setWriteStatus(null);
+    setTxHash(null);
+    setConfirmedTxHash(null);
+    if (!writeInFlight.current) setLoading(false);
+  }, []);
+  useEffect(() => {
+    cancelWritePreview();
+    return () => {
+      simulationId.current++;
+    };
+  }, [writeContextKey, client, cancelWritePreview]);
+
+  const sendWriteTransaction = useCallback(async (calldata: Hex, key: string) => {
+    if (key !== writeContextRef.current || writeInFlight.current) return;
+    if (inputsUnknown) return;
+    const requestId = simulationId.current;
+    const isCurrent = () => key === writeContextRef.current && requestId === simulationId.current;
     if (isError) {
       setIsError(false);
     }
@@ -376,60 +491,108 @@ const ReadWriteFunctionComponent = ({
       setTxHash(null);
       setConfirmedTxHash(null);
 
+      writeInFlight.current = true;
+      setWriteStatus({ key, phase: "wallet" });
       try {
-        // encode calldata
-        const calldata = await encodeFunctionData({
-          abi: [_func] as const,
-          functionName: functionName,
-          args: prepareArgs(),
-        });
-
-        // send transaction to wallet
+        // Send the exact calldata encoded from the submitted inputs.
         const hash = await walletClient.sendTransaction({
+          account: walletClient.account,
+          chain: walletClient.chain,
           to: address as Hex,
           data: calldata,
           value: BigInt(payableETH),
         });
 
-        setLoading(false);
-
+        if (!isCurrent()) return;
+        setWriteStatus({ key, phase: "submitted" });
         setTxIsTenderlySimulation(false);
         setTxHash(hash);
 
-        await waitForTransactionReceipt(config, {
+        const receipt = await waitForTransactionReceipt(config, {
           hash,
+          chainId,
         });
-
+        if (!isCurrent()) return;
+        if (receipt.status === "reverted") throw new Error("Transaction reverted.");
+        setWriteStatus({ key, phase: "confirmed" });
         setConfirmedTxHash(hash);
       } catch (e: any) {
-        console.error(e);
+        if (!isCurrent()) return;
+        const transactionError = getTransactionError(e, {
+          account: walletClient.account,
+          docsPath: "",
+        });
+        const rejected = e.code === 4001 || e.cause?.code === 4001 ||
+          /rejected|denied/i.test(transactionError.shortMessage || e.message || "");
+        setWriteStatus({ key, phase: rejected ? "rejected" : "error" });
         setIsError(true);
 
         setRes(null);
 
-        setErrorMsg(
-          getTransactionError(e, {
-            account: walletClient.account,
-            docsPath: "",
-          }).shortMessage
-        );
+        setErrorMsg(transactionError.shortMessage);
       } finally {
+        writeInFlight.current = false;
         setLoading(false);
       }
     }
-  }, [
-    isError,
-    functionName,
-    walletClient,
-    address,
-    _func,
-    inputs,
-    inputsState,
-    payableETH,
-  ]);
+  }, [isError, functionName, walletClient, address, payableETH, chainId, inputsUnknown]);
+
+  const writeFunction = useCallback(async () => {
+    if (inputsUnknown || !walletClient || loading || writeInFlight.current) return;
+    const key = writeContextKey;
+    const id = ++simulationId.current;
+    const isCurrent = () => id === simulationId.current && key === writeContextRef.current;
+    setWritePreview(null);
+    setWriteStatus(null);
+    setIsError(false);
+    setTxHash(null);
+    setConfirmedTxHash(null);
+    try {
+      if (chain?.id !== chainId || walletClient.chain?.id !== chainId ||
+          !userAddress || walletClient.account.address.toLowerCase() !== userAddress.toLowerCase()) {
+        throw new Error("Wallet account or network changed. Reconnect on the selected chain and retry.");
+      }
+      const args = prepareArgs();
+      const data = encodeFunctionData({ abi: [_func] as const, functionName, args });
+      const canSimulate = !isAbiDecoded && _outputs && _outputs.length > 0;
+      if (canSimulate && client.chain?.id !== chainId) {
+        throw new Error("Simulation client does not match the selected chain.");
+      }
+      // Request wallet confirmation immediately; simulation never gates sending.
+      const sending = sendWriteTransaction(data, key);
+      if (canSimulate) {
+        setWritePreview({ key, status: "loading" });
+        void (async () => {
+          try {
+            const simulation = await client.simulateContract({
+              abi: [_func] as unknown as Abi,
+              functionName,
+              address: address as Hex,
+              account: walletClient.account,
+              chain: walletClient.chain,
+              args,
+              value: BigInt(payableETH),
+            });
+            if (isCurrent()) setWritePreview({ key, status: "ready", result: simulation.result });
+          } catch {
+            if (isCurrent()) setWritePreview({ key, status: "error" });
+          }
+        })();
+      }
+      await sending;
+    } catch (error: any) {
+      if (isCurrent()) {
+        setIsError(true);
+        setErrorMsg(error.shortMessage || error.message || "Unable to request wallet confirmation.");
+      }
+    }
+  }, [inputsUnknown, walletClient, loading, writeContextKey, chain, chainId,
+    userAddress, prepareArgs, _func, functionName, isAbiDecoded, _outputs,
+    client, address, payableETH, sendWriteTransaction]);
 
   const callAsReadFunction = useCallback(
     async (bypassSettingError: boolean = false) => {
+      if (inputsUnknown) return;
       if (isError) {
         setIsError(false);
       }
@@ -504,6 +667,7 @@ const ReadWriteFunctionComponent = ({
   );
 
   const simulateOnTenderly = useCallback(async () => {
+    if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
     }
@@ -518,7 +682,7 @@ const ReadWriteFunctionComponent = ({
         from:
           settingsSenderAddr.length > 0
             ? settingsSenderAddr
-            : userAddress ?? zeroAddress,
+            : (userAddress ?? zeroAddress),
         to: address,
         value: payableETH,
         data: encodeFunctionData({
@@ -626,10 +790,10 @@ const ReadWriteFunctionComponent = ({
   ]);
 
   const encodeCalldataFn = useCallback(() => {
-    if (isError) {
-      setIsError(false);
-    }
-
+    if (inputsUnknown) return;
+    setEncodingError("");
+    setEncodedCalldata("");
+    setCalldataModalOpen(false);
     try {
       const abi = [_func] as unknown as Abi;
       const args = prepareArgs();
@@ -641,16 +805,50 @@ const ReadWriteFunctionComponent = ({
       });
       setEncodedCalldata(calldata);
       setCalldataModalOpen(true);
-    } catch (e: any) {
-      console.error(e);
-      setIsError(true);
-      setErrorMsg(e.message || "Failed to encode calldata");
+    } catch (e: unknown) {
+      setEncodingError(
+        e instanceof Error ? e.message : "Failed to encode calldata"
+      );
     }
-  }, [isError, _func, inputs, inputsState, functionName]);
+  }, [_func, prepareArgs, functionName, inputsUnknown, encodeFunctionData]);
+
+  const shareFunctionCall = () => {
+    try {
+      if (inputsUnknown) throw new Error("Input types are unavailable for this function.");
+      let payload: { data: string } | { args: unknown[] };
+      const isFilled = (value: unknown): boolean =>
+        value !== undefined && value !== null && value !== "" &&
+        (!Array.isArray(value) || value.every(isFilled));
+      try {
+        if (!(inputs ?? []).every((_, i) => isFilled(inputsState[i])))
+          throw new Error("Unfinished parameters");
+        payload = { data: encodeFunctionData({
+          abi: [_func] as unknown as Abi,
+          functionName,
+          args: prepareArgs(),
+        }) };
+      } catch {
+        payload = { args: (inputs ?? []).map((_, i) => inputsState[i] ?? null) };
+      }
+      const link = createContractCallLink(
+        new URL(getPath(subdomains.CONTRACT.base), window.location.origin).href,
+        chainId,
+        address,
+        { ...payload, value: payableETH, abiMode, signature: contractFunctionSignature(_func) }
+      );
+      setShare({ link, error: "" });
+    } catch (error) {
+      setShare({ link: "", error: error instanceof Error ? error.message : "Unable to share this function call." });
+    }
+  };
 
   useEffect(() => {
     try {
-      setFnSelector(FunctionFragment.from(_func).selector);
+      setFnSelector(
+        __func.inputInference && __func.selector
+          ? __func.selector
+          : FunctionFragment.from(_func).selector
+      );
     } catch (e) {
       console.error(e);
     }
@@ -666,7 +864,12 @@ const ReadWriteFunctionComponent = ({
   useEffect(() => {
     // if there are no inputs, then auto fetch the value
     // stagger calls by 150ms per function to avoid RPC rate limits (429)
-    if (type === "read" && (!inputs || (inputs && inputs.length === 0))) {
+    if (
+      !initialCall &&
+      !inputsUnknown &&
+      type === "read" &&
+      (!inputs || (inputs && inputs.length === 0))
+    ) {
       const delay = index * 150;
       const timer = setTimeout(() => {
         readFunction();
@@ -680,8 +883,14 @@ const ReadWriteFunctionComponent = ({
   }, [inputsState]);
 
   useEffect(() => {
-    setIsCollapsed(readAllCollapsed !== undefined ? readAllCollapsed : false);
-  }, [readAllCollapsed]);
+    setIsCollapsed(
+      initialCall
+        ? false
+        : readAllCollapsed !== undefined
+          ? readAllCollapsed
+          : false
+    );
+  }, [readAllCollapsed, initialCall]);
 
   useEffect(() => {
     // uncollapse if result fetched
@@ -735,11 +944,11 @@ const ReadWriteFunctionComponent = ({
             <Box
               key={i}
               mt={2}
-              bg={outputs.length > 1 ? "whiteAlpha.200" : undefined}
-              p={outputs.length > 1 ? 4 : 0}
-              rounded={"md"}
+              pt={outputs.length > 1 ? 3 : 0}
+              borderTopWidth={i > 0 ? "1px" : 0}
+              borderColor="whiteAlpha.100"
             >
-              {outputs.length > 1 && (
+              {outputs.length > 1 && output.type !== "tuple" && (
                 <InputInfo
                   input={{
                     name: output.name
@@ -753,6 +962,8 @@ const ReadWriteFunctionComponent = ({
                 renderParamTypes({
                   chainId,
                   type: output.type,
+                  components: output.components,
+                  name: outputs.length > 1 ? output.name : "",
                   value:
                     outputs.length > 1
                       ? res !== null && res !== undefined
@@ -777,54 +988,117 @@ const ReadWriteFunctionComponent = ({
 
   return (
     <Box
+      minW={0}
+      w="full"
       mb={2}
       p={2}
       pb={!inputs || inputs.length === 0 ? undefined : 4}
-      border="2px solid"
-      borderColor="whiteAlpha.200"
+      border="1px solid"
+      borderColor={initialCall ? "blue.400" : "whiteAlpha.200"}
       rounded="md"
-      bg={!inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
+      bg={initialCall ? "whiteAlpha.50" : !inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
       {/* Function name and refetch button */}
-      <HStack mb={!fnSelector ? 2 : undefined}>
-        <HStack
-          flexGrow={1}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          cursor={"pointer"}
-        >
-          <HStack>
-            <Box fontSize={"2xl"}>
-              {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </Box>
-            <HStack alignItems={"flex-end"}>
-              <Box fontSize={"md"} fontWeight={"normal"}>
-                {index}.
+      <HStack mb={!fnSelector ? 2 : undefined} alignItems="flex-start" flexWrap="wrap" rowGap={1}>
+        <Box flex={{ base: "1 1 100%", sm: "1 1 16rem" }} minW={0}>
+          <HStack alignItems="center" spacing={2} flexWrap="wrap" rowGap={1}>
+            <HStack
+              as="button"
+              type="button"
+              minW={0}
+              maxW="full"
+              textAlign="left"
+              aria-label={`Toggle ${displayName}`}
+              aria-expanded={!isCollapsed}
+              onClick={() => setIsCollapsed(collapsed => !collapsed)}
+              borderRadius="md"
+              _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
+            >
+              <Box fontSize="2xl" flexShrink={0}>
+                {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
               </Box>
-              <Box fontWeight={"bold"}>
-                {renderHighlightedText(__func.name)}
-              </Box>
+              <Box fontSize="md" fontWeight="normal" flexShrink={0}>{index}.</Box>
+              <Box fontWeight="bold" minW={0} overflowWrap="anywhere">{renderHighlightedText(__func.name)}</Box>
             </HStack>
-          </HStack>{" "}
-          {/* If single output, then show inline */}
-          {__func.outputs && __func.outputs.length === 1 && (
-            <Box fontSize={"sm"} color="whiteAlpha.600">
-              (→&nbsp;{__func.outputs[0].type})
+            <Tooltip label="Share function call" hasArrow>
+              <IconButton
+                aria-label={`Share ${displayName} function call`}
+                icon={<LinkIcon boxSize={3.5} />}
+                size={{ base: "sm", md: "xs" }}
+                variant="ghost"
+                color="text.secondary"
+                flexShrink={0}
+                onClick={shareFunctionCall}
+              />
+            </Tooltip>
+            {isAbiDecoded && (
+              <Tooltip label="Inferred from bytecode and signature lookups. Check the input types before use." hasArrow>
+                <WarningTwoIcon aria-label="Inferred signature, not verified" tabIndex={0} color="yellow.300" boxSize={3.5} flexShrink={0} />
+              </Tooltip>
+            )}
+          </HStack>
+          <HStack mt={1} ml={{ base: 8, md: 12 }} spacing={3} flexWrap="wrap" rowGap={1} color="whiteAlpha.600" fontSize="xs">
+            {fnSelector && (
+              <Box
+                as="button"
+                type="button"
+                textAlign="left"
+                aria-label={`Toggle ${displayName} selector`}
+                aria-expanded={!isCollapsed}
+                onClick={() => setIsCollapsed(collapsed => !collapsed)}
+                borderRadius="md"
+                _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
+              >
+                [selector: {fnSelector}]
+              </Box>
+            )}
+            {__func.outputs && __func.outputs.length > 0 && (
+              <Text whiteSpace="nowrap">
+                → {__func.outputs.length === 1 ? __func.outputs[0].type : `${__func.outputs.length} outputs`}
+              </Text>
+            )}
+          </HStack>
+          {highlightedOutputs && highlightedOutputs.length > 1 && (
+            <Box display={{ base: "none", md: "block" }} mt={1}>
+              <EnhancedFunctionOutput highlightedOutputs={highlightedOutputs} />
             </Box>
           )}
-        </HStack>
-        {/* Read/Write Buttons */}
-        {!loading && type === "read" && (
+        </Box>
+        <HStack flex={{ base: "1 1 100%", sm: "0 0 auto" }} justify="flex-end" spacing={1.5} flexWrap="wrap" rowGap={2} mt={{ base: 1, sm: 0 }}>
+        {type === "read" && (
           <Button
-            ml={4}
+            size="sm"
+            h={8}
+            px={2.5}
+            flexShrink={0}
+            onClick={encodeCalldataFn}
+            isDisabled={inputsUnknown || inputs?.some((_, i) => functionIsDisabled[i] === true)}
+          >
+            Encode Calldata
+          </Button>
+        )}
+        {/* Read/Write Buttons */}
+        {type === "read" && (
+          <Button
             onClick={readFunction}
+            isLoading={loading}
+            w="3.5rem"
+            h={8}
+            px={2.5}
+            flexShrink={0}
             isDisabled={
-              inputs && inputs.some((_, i) => functionIsDisabled[i] === true)
+              inputsUnknown ||
+              (inputs && inputs.some((_, i) => functionIsDisabled[i] === true))
             }
             size={"sm"}
-            title={res !== null ? "refetch" : "fetch"}
-            colorScheme={!isError ? "blue" : "red"}
+            title="Read function"
+            variant="outline"
+            bg="bg.muted"
+            color={isError ? "red.300" : "text.primary"}
+            borderColor={isError ? "red.400" : "border.strong"}
+            _hover={{ bg: "whiteAlpha.100" }}
           >
-            {res !== null ? <RepeatIcon /> : "Read"}
+            Read
           </Button>
         )}
         {type === "write" && (
@@ -839,6 +1113,7 @@ const ReadWriteFunctionComponent = ({
             simulateOnTenderly={simulateOnTenderly}
             encodeCalldata={encodeCalldataFn}
             isDisabled={
+              inputsUnknown ||
               (inputs &&
                 inputs.some((_, i) => functionIsDisabled[i] === true)) ||
               payableETHIsDisabled
@@ -870,7 +1145,8 @@ const ReadWriteFunctionComponent = ({
                 </Box>
               </PopoverTrigger>
               <PopoverContent
-                minW="30rem"
+                w="min(30rem, calc(100vw - 2rem))"
+                minW={0}
                 border={"1px solid"}
                 borderColor={"whiteAlpha.400"}
                 bg="bg.900"
@@ -935,67 +1211,98 @@ const ReadWriteFunctionComponent = ({
               </PopoverContent>
             </Popover>
           )}
+        </HStack>
       </HStack>
-      {/* Function Selector */}
-      {fnSelector && (
-        <Box ml={12} mb={2} fontSize={"sm"} color="whiteAlpha.600">
-          [selector: {fnSelector}]
-        </Box>
+      {encodingError && (
+        <Text role="alert" color="red.300" p={2} wordBreak="break-word">
+          {encodingError}
+        </Text>
       )}
-      {/* If multiple outputs */}
-      {highlightedOutputs && highlightedOutputs.length > 1 && (
-        <Box ml={4} maxW="30rem" mb={4}>
-          <EnhancedFunctionOutput highlightedOutputs={highlightedOutputs} />
-        </Box>
+      {/* Explain unavailable actions without repeating notices on usable functions. */}
+      {inputsUnknown && (
+        <Text role="note" ml={{ base: 0, md: 4 }} mb={2} fontSize="sm" color="orange.300">
+          {__func.inputInference?.message}
+        </Text>
       )}
-
-      {/* Transaction status for Write */}
-      {txHash && !confirmedTxHash && (
-        <Box mb={4} ml={4}>
-          <HStack p={4} bg="blue.500" rounded={"md"}>
-            <HStack>
-              <Spinner />
-              <Box fontWeight={"bold"}>Transaction initiated:</Box>
-            </HStack>
-            <Box>
-              <Link
-                href={`${chain?.blockExplorers?.default.url}/tx/${txHash}`}
-                isExternal
-              >
-                <HStack>
-                  <Box>{slicedText(txHash, 10)}</Box>
-                  <ExternalLinkIcon />
-                </HStack>
-              </Link>
-            </Box>
-          </HStack>
-        </Box>
-      )}
-      {confirmedTxHash && (
-        <Box mt={4} ml={4}>
-          <Box p={4} bg="green.500" rounded={"md"}>
-            <HStack>
-              <Box fontWeight={"bold"}>✅ Transaction confirmed:</Box>
-              <Box>
-                {txIsTenderlySimulation ? (
-                  <Box>{slicedText(confirmedTxHash, 10)}</Box>
-                ) : (
-                  <Link
-                    href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash}`}
-                    isExternal
-                  >
-                    <HStack>
-                      <Box>{slicedText(confirmedTxHash, 10)}</Box>
-                      <ExternalLinkIcon />
-                    </HStack>
-                  </Link>
-                )}
-              </Box>
-            </HStack>
-            {txIsTenderlySimulation && (
-              <Center fontSize={"sm"}>(view on your tenderly dashboard)</Center>
+      {/* Compact transaction status with an independently loaded return value. */}
+      {((writeStatus && writeStatus.key === writeContextKey) ||
+        (writePreview && writePreview.key === writeContextKey) || txHash || confirmedTxHash) && (
+        <Box
+          role="region"
+          aria-label="Transaction status"
+          mt={3}
+          mb={4}
+          mx={{ base: 0, md: 4 }}
+          minW={0}
+        >
+          <HStack spacing={2} flexWrap="wrap" fontSize="sm" px={4} py={3} bg="whiteAlpha.50" rounded="md">
+            {writeStatus?.key === writeContextKey && writeStatus.phase === "wallet" && <Spinner size="xs" />}
+            <Text fontWeight="medium">
+              {writeStatus?.key === writeContextKey && writeStatus.phase === "rejected"
+                ? "Request rejected"
+                : writeStatus?.key === writeContextKey && writeStatus.phase === "error"
+                  ? "Transaction failed"
+                  : confirmedTxHash ? "Transaction confirmed"
+                    : txHash ? "Transaction submitted" : "Confirm in your wallet"}
+            </Text>
+            {(confirmedTxHash || txHash) && (
+              txIsTenderlySimulation ? <Text>{slicedText(confirmedTxHash || txHash!, 10)}</Text> : (
+                <Link href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash || txHash}`} isExternal>
+                  <HStack spacing={1}><Text>{slicedText(confirmedTxHash || txHash!, 10)}</Text><ExternalLinkIcon /></HStack>
+                </Link>
+              )
             )}
-          </Box>
+          </HStack>
+          {writePreview && writePreview.key === writeContextKey && (
+            <Box mt={3} p={4} bg="whiteAlpha.50" borderWidth="1px" borderColor="whiteAlpha.200" rounded="md">
+              <HStack spacing={2} mb={2}>
+                <Text fontSize="sm" fontWeight="bold">Function return value:</Text>
+                <Tooltip
+                  label="Predicted output from a read-only simulation using the same function inputs. This value is not taken from the transaction receipt and may differ when the transaction executes."
+                  hasArrow
+                  placement="top"
+                >
+                  <Box
+                    as="button"
+                    type="button"
+                    aria-label="About function return values"
+                    display="inline-flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    boxSize={6}
+                    fontSize="xs"
+                    color="whiteAlpha.600"
+                    borderRadius="sm"
+                    _hover={{ color: "white" }}
+                    _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
+                  >
+                    <InfoIcon />
+                  </Box>
+                </Tooltip>
+              </HStack>
+              <Box role="status" aria-live="polite" fontSize="sm" overflowWrap="anywhere">
+                {writePreview.status === "loading" ? (
+                  <Text color="whiteAlpha.600">Fetching simulated return…</Text>
+                ) : writePreview.status === "error" ? (
+                  <Text color="whiteAlpha.600">Simulated return unavailable</Text>
+                ) : _outputs?.map((output, i) => (
+                  <HStack key={i} spacing={2} alignItems="baseline" flexWrap="wrap">
+                    <Text fontFamily="mono" fontSize="xs" color="whiteAlpha.600">
+                      {output.name ? `${output.name} (${output.type})` : output.type}
+                    </Text>
+                    <Text as="span" fontFamily="mono" whiteSpace="pre-wrap">
+                      {JSON.stringify(
+                        _outputs.length === 1 ? writePreview.result : (writePreview.result as unknown[])?.[i],
+                        (_, value) => typeof value === "bigint" ? value.toString() : value,
+                        2
+                      )}
+                    </Text>
+                  </HStack>
+                ))}
+              </Box>
+            </Box>
+          )}
+          {txIsTenderlySimulation && confirmedTxHash && <Text fontSize="xs" mt={1}>(view on your Tenderly dashboard)</Text>}
         </Box>
       )}
       {isError && errorMsg && type === "write" && (
@@ -1007,7 +1314,7 @@ const ReadWriteFunctionComponent = ({
       <Box display={isCollapsed ? "none" : undefined}>
         {/* Input fields */}
         {(payable || stateMutability === "payable") && (
-          <Box ml={4} p={4} bg="whiteAlpha.100" rounded={"lg"}>
+          <Box ml={{ base: 0, md: 4 }} p={{ base: 2, md: 4 }} bg="whiteAlpha.100" rounded={"lg"}>
             <IntInput
               input={{
                 name: "Payable ETH",
@@ -1031,13 +1338,15 @@ const ReadWriteFunctionComponent = ({
           </Box>
         )}
         {inputs && inputs.length > 0 && (
-          <Box ml={4}>
+          <Box ml={{ base: 0, md: 4 }}>
             {inputs.map((input, i) => (
               <Box key={i} mt={2}>
                 {renderInputFields({
                   chainId,
                   input,
-                  value: inputsState[i] || "",
+                  suggestions: isSupportsInterface && i === 0 ? interfacePresetOptions : undefined,
+                  value: inputsState[i] ?? "",
+                  allowBytesBuilder: true,
                   onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                     updateInputState(i, e.target.value),
                   setFunctionIsDisabled: (value: boolean) =>
@@ -1054,14 +1363,18 @@ const ReadWriteFunctionComponent = ({
           </Box>
         )}
         {/* Output fields for Read or Call as View Fn */}
-        <Box mt={2} ml={4} mb={inputs && inputs.length > 0 ? 0 : 4}>
+        <Box mt={2} ml={{ base: 0, md: 4 }} mb={inputs && inputs.length > 0 ? 0 : 4}>
           {inputs && inputs.length > 0
             ? // Show skeleton (res = null) if loading
               (type === "read" ||
                 writeButtonType === WriteButtonType.CallAsViewFn) &&
               (loading || (!loading && res !== null && res !== undefined)) && (
-                <Box p={4} bg="whiteAlpha.100" rounded={"md"}>
-                  <Box fontWeight={"bold"}>Result:</Box>
+                <Box pt={3} borderTopWidth="1px" borderColor="whiteAlpha.100">
+                  {!(outputs.length === 1 && outputs[0].type === "tuple") && (
+                    <Text fontSize="xs" color="whiteAlpha.600" mb={2}>
+                      Result
+                    </Text>
+                  )}
                   {renderRes()}
                 </Box>
               )
@@ -1075,6 +1388,51 @@ const ReadWriteFunctionComponent = ({
         )}
       </Box>
 
+
+      <Modal isOpen={share !== null} onClose={() => setShare(null)} isCentered size="lg" scrollBehavior="inside">
+        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
+        <ModalContent mx={{ base: 3, sm: 4 }} maxW={{ base: "calc(100vw - 1.5rem)", sm: "lg" }} bg="bg.base" border="1px solid" borderColor="border.subtle">
+          <ModalHeader pb={2}>Share function call</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={5} px={{ base: 3, sm: 6 }}>
+            <Text fontSize="sm" color="text.secondary" mb={4}>
+              Share this function with its current parameters.
+            </Text>
+            {share?.error ? (
+              <Text role="alert" color="red.300" fontSize="sm">{share.error}</Text>
+            ) : (
+              <>
+                <Box position="relative">
+                  <Input aria-label="Function call link" value={share?.link ?? ""} isReadOnly pr={12} fontSize="sm" />
+                  <IconButton
+                    as="a"
+                    href={share?.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Open function call link"
+                    icon={<ExternalLinkIcon />}
+                    variant="ghost"
+                    size="sm"
+                    position="absolute"
+                    top={1}
+                    right={1}
+                    color="text.secondary"
+                  />
+                </Box>
+                <Center mt={4}>
+                  <CopyToClipboard
+                    textToCopy={share?.link ?? ""}
+                    labelText="Copy link"
+                    aria-label="Copy function call link"
+                    variant="outline"
+                  />
+                </Center>
+              </>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
       {/* Encode Calldata Modal */}
       <Modal
         isOpen={calldataModalOpen}
@@ -1083,33 +1441,59 @@ const ReadWriteFunctionComponent = ({
         size="lg"
       >
         <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
-        <ModalContent bg="bg.base" border="1px solid" borderColor="border.subtle">
+        <ModalContent
+          mx={{ base: 3, sm: 4 }}
+          maxW={{ base: "calc(100vw - 1.5rem)", sm: "lg" }}
+          bg="bg.base"
+          border="1px solid"
+          borderColor="border.subtle"
+        >
           <ModalHeader color="text.primary">Encoded Calldata</ModalHeader>
           <ModalCloseButton
             color="text.secondary"
             _hover={{ color: "text.primary" }}
           />
-          <ModalBody pb={6}>
+          <ModalBody pb={6} px={{ base: 3, sm: 6 }}>
             <Box
-              p={4}
+              position="relative"
               bg="bg.muted"
               border="1px solid"
               borderColor="border.default"
               rounded="lg"
-              fontFamily="mono"
-              fontSize="sm"
-              wordBreak="break-all"
-              maxH="300px"
-              overflowY="auto"
               color="text.primary"
             >
-              {encodedCalldata}
-            </Box>
-            <HStack mt={4} justify="flex-end">
+              <Box
+                p={4}
+                pr={12}
+                fontFamily="mono"
+                fontSize="sm"
+                wordBreak="break-all"
+                maxH="300px"
+                overflowY="auto"
+              >
+                {encodedCalldata}
+              </Box>
               <CopyToClipboard
                 textToCopy={encodedCalldata}
-                labelText="Copy Calldata"
+                aria-label="Copy Calldata"
+                position="absolute"
+                top={2}
+                right={2}
+                size="sm"
+                minW={8}
+                w={8}
+                px={0}
               />
+            </Box>
+            <HStack mt={3} spacing={3} justify="flex-end" flexWrap="wrap">
+              <Link
+                href={`${getPath(subdomains.CALLDATA.base)}decoder?calldata=${encodedCalldata}`}
+                isExternal
+                fontSize="sm"
+              >
+                Open in decoder <ExternalLinkIcon boxSize="3.5" ml={1} />
+              </Link>
+
             </HStack>
           </ModalBody>
         </ModalContent>

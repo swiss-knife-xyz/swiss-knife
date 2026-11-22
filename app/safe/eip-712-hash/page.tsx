@@ -13,7 +13,13 @@ import {
   Alert,
   AlertIcon,
   Skeleton,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
 } from "@chakra-ui/react";
+import { ManualSafeTransaction } from "./ManualSafeTransaction";
 import { hashTypedData, hashStruct } from "viem";
 import { TypedDataEncoder } from "ethers";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
@@ -157,11 +163,17 @@ function SevenOneTwoHashContent() {
     <Box maxW="800px" mx="auto" w="full">
       {/* Page Header */}
       <Box textAlign="center" mb={6}>
-        <Heading as="h1" size="lg" color="gray.100" fontWeight="bold" letterSpacing="tight">
+        <Heading
+          as="h1"
+          size="lg"
+          color="gray.100"
+          fontWeight="bold"
+          letterSpacing="tight"
+        >
           EIP-712 Hash Visualizer
         </Heading>
         <Text color="gray.400" fontSize="md" mt={2}>
-          Tool to verify and hash EIP-712 typed data
+          Calculate domain, message and EIP-712 hashes.
         </Text>
       </Box>
 
@@ -173,7 +185,9 @@ function SevenOneTwoHashContent() {
         borderColor="whiteAlpha.200"
       >
         <Flex mb={3} justifyContent="space-between" alignItems="center">
-          <Text color="gray.300" fontSize="sm">Paste your JSON below</Text>
+          <Text color="gray.300" fontSize="sm">
+            Typed data JSON
+          </Text>
           <CopyToClipboard textToCopy={input} size="sm" />
         </Flex>
         <Box
@@ -243,7 +257,9 @@ function SevenOneTwoHashContent() {
       {error && (
         <Alert status="error" mt={4} borderRadius="md" bg="red.900">
           <AlertIcon color="red.400" />
-          <Text color="red.100" fontSize="sm">{error}</Text>
+          <Text color="red.100" fontSize="sm">
+            {error}
+          </Text>
         </Alert>
       )}
 
@@ -257,31 +273,52 @@ function SevenOneTwoHashContent() {
           borderColor="whiteAlpha.200"
         >
           <Text color="gray.300" fontSize="sm" fontWeight="medium" mb={3}>
-            Resulting Hashes
+            Hashes
           </Text>
           <VStack spacing={3} align="stretch">
             <Box p={3} bg="whiteAlpha.100" borderRadius="md">
-              <Text color="gray.400" fontSize="xs" mb={1}>EIP-712 Hash</Text>
+              <Text color="gray.400" fontSize="xs" mb={1}>
+                EIP-712 Hash
+              </Text>
               <Flex alignItems="center" gap={2}>
-                <Text fontFamily="mono" fontSize="sm" color="gray.100" wordBreak="break-all">
+                <Text
+                  fontFamily="mono"
+                  fontSize="sm"
+                  color="gray.100"
+                  wordBreak="break-all"
+                >
                   {result.eip712Hash}
                 </Text>
                 <CopyToClipboard textToCopy={result.eip712Hash} size="xs" />
               </Flex>
             </Box>
             <Box p={3} bg="whiteAlpha.100" borderRadius="md">
-              <Text color="gray.400" fontSize="xs" mb={1}>Domain Hash</Text>
+              <Text color="gray.400" fontSize="xs" mb={1}>
+                Domain Hash
+              </Text>
               <Flex alignItems="center" gap={2}>
-                <Text fontFamily="mono" fontSize="sm" color="gray.100" wordBreak="break-all">
+                <Text
+                  fontFamily="mono"
+                  fontSize="sm"
+                  color="gray.100"
+                  wordBreak="break-all"
+                >
                   {result.domainHash}
                 </Text>
                 <CopyToClipboard textToCopy={result.domainHash} size="xs" />
               </Flex>
             </Box>
             <Box p={3} bg="whiteAlpha.100" borderRadius="md">
-              <Text color="gray.400" fontSize="xs" mb={1}>Message Hash</Text>
+              <Text color="gray.400" fontSize="xs" mb={1}>
+                Message Hash
+              </Text>
               <Flex alignItems="center" gap={2}>
-                <Text fontFamily="mono" fontSize="sm" color="gray.100" wordBreak="break-all">
+                <Text
+                  fontFamily="mono"
+                  fontSize="sm"
+                  color="gray.100"
+                  wordBreak="break-all"
+                >
                   {result.messageHash}
                 </Text>
                 <CopyToClipboard textToCopy={result.messageHash} size="xs" />
@@ -296,8 +333,35 @@ function SevenOneTwoHashContent() {
 
 export default function SevenOneTwoHash() {
   return (
-    <Suspense fallback={<ToolLoading title="EIP-712 Hash Visualizer" description="Hash and verify EIP-712 typed data, domains and messages." />}>
-      <SevenOneTwoHashContent />
-    </Suspense>
+    <Tabs
+      colorScheme="blue"
+      isLazy
+      lazyBehavior="keepMounted"
+      maxW="800px"
+      mx="auto"
+      w="full"
+    >
+      <TabList mb={6}>
+        <Tab>Typed data JSON</Tab>
+        <Tab>Manual Safe transaction</Tab>
+      </TabList>
+      <TabPanels>
+        <TabPanel p={0}>
+          <Suspense
+            fallback={
+              <ToolLoading
+                title="EIP-712 Hash Visualizer"
+                description="Hash and verify EIP-712 typed data, domains and messages."
+              />
+            }
+          >
+            <SevenOneTwoHashContent />
+          </Suspense>
+        </TabPanel>
+        <TabPanel p={0}>
+          <ManualSafeTransaction />
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
   );
 }

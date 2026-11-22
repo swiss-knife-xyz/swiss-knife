@@ -4,7 +4,7 @@ export const metadata = getMetadata({
   title: "Solidity Compiler | ETH.sh",
   description: "Compile solidity contracts & quickly generate ABI.",
   canonical: "https://solidity.eth.sh/compiler",
-  images: "https://eth.sh/og/solidity-compiler.png",
+  images: "https://eth.sh/api/og/solidity-compiler",
 });
 
 const CompilerLayout = ({ children }: { children: React.ReactNode }) => {

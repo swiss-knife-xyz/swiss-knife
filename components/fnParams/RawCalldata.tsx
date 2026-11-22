@@ -211,9 +211,10 @@ export const RawCalldata = ({
       bg={"whiteAlpha.50"}
     >
       {/* Function name and refetch button */}
-      <HStack>
+      <HStack flexWrap="wrap" rowGap={2}>
         <HStack
-          flexGrow={1}
+          minW={0}
+          flex={{ base: "1 1 100%", sm: 1 }}
           onClick={() => setIsCollapsed(!isCollapsed)}
           cursor={"pointer"}
         >
@@ -230,6 +231,7 @@ export const RawCalldata = ({
           </HStack>
         </HStack>
         {/* Write Button */}
+        <HStack flex={{ base: "1 1 100%", sm: "0 0 auto" }} justify="flex-end" spacing={2}>
         <WriteButton
           isError={isError}
           userAddress={userAddress}
@@ -264,7 +266,8 @@ export const RawCalldata = ({
               </Box>
             </PopoverTrigger>
             <PopoverContent
-              minW="30rem"
+              w="min(30rem, calc(100vw - 2rem))"
+              minW={0}
               border={"1px solid"}
               borderColor={"whiteAlpha.400"}
               bg="bg.900"
@@ -294,13 +297,14 @@ export const RawCalldata = ({
             </PopoverContent>
           </Popover>
         )}
+        </HStack>
       </HStack>
-      <Box mt={4} ml={4} px={4} display={isCollapsed ? "none" : undefined}>
+      <Box mt={4} ml={{ base: 0, md: 4 }} px={{ base: 0, md: 4 }} display={isCollapsed ? "none" : undefined}>
         {/* Inputs */}
         {/* Transaction status for Write */}
         {txHash && !confirmedTxHash && (
-          <Box mt={4} ml={4}>
-            <HStack p={4} bg="blue.500" rounded={"md"}>
+          <Box mt={4} ml={{ base: 0, md: 4 }}>
+            <HStack flexWrap="wrap" p={{ base: 2, md: 4 }} bg="blue.500" rounded={"md"}>
               <HStack>
                 <Spinner />
                 <Box fontWeight={"bold"}>Transaction initiated:</Box>
@@ -322,7 +326,7 @@ export const RawCalldata = ({
 
         {confirmedTxHash && (
           <Box mb={4}>
-            <HStack p={4} bg="green.500" rounded={"md"}>
+            <HStack flexWrap="wrap" p={{ base: 2, md: 4 }} bg="green.500" rounded={"md"}>
               <Box fontWeight={"bold"}>✅ Transaction confirmed:</Box>
               <Box>
                 <Link
@@ -344,7 +348,7 @@ export const RawCalldata = ({
           </Center>
         )}
         <>
-          <Box mb={4} p={4} bg="whiteAlpha.100" rounded={"lg"}>
+          <Box mb={4} p={{ base: 2, md: 4 }} bg="whiteAlpha.100" rounded={"lg"}>
             <IntInput
               input={{
                 name: "Payable ETH",
@@ -374,7 +378,7 @@ export const RawCalldata = ({
           />
         </>
         {/* Output fields for Read or Call as View Fn */}
-        <Box mt={2} ml={4} mb={4}>
+        <Box mt={2} ml={{ base: 0, md: 4 }} mb={4}>
           {!isError && renderRes()}
         </Box>
       </Box>

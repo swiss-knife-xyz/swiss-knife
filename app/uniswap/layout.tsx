@@ -6,7 +6,7 @@ export const metadata = getMetadata({
   description:
     "Calculator to convert Uniswap V4 tick to price for any token pair addresses.",
   canonical: "https://uniswap.eth.sh/",
-  images: "https://eth.sh/og/uniswap.png",
+  images: "https://eth.sh/api/og/uniswap",
 });
 
 const UniswapLayout = ({ children }: { children: React.ReactNode }) => {

@@ -174,7 +174,7 @@ test("USD failure, target RPC failure and retry are explicit, with no input pers
   expect(await screen.findByText("USD unavailable")).toBeTruthy();
   expect(screen.getByText("0.00063 POL")).toBeTruthy();
   expect(fetchSpy).not.toHaveBeenCalled();
-  expect(storageSpy).not.toHaveBeenCalled();
+  expect(storageSpy.mock.calls.filter(([key]) => key !== "chakra-ui-color-mode")).toEqual([]);
   expect(historySpy).not.toHaveBeenCalled();
   vi.restoreAllMocks();
 });

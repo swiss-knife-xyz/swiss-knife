@@ -16,8 +16,12 @@ export default function TabsSelector({
   ...props
 }: Props) {
   return (
-    <Center flexDir="column">
+    <Center flexDir="column" minW={0} maxW="full">
       <HStack
+        maxW="full"
+        flexWrap="wrap"
+        justify="center"
+        rowGap={1}
         mt={mt ?? "1rem"}
         minH="2.75rem"
         px="0.375rem"

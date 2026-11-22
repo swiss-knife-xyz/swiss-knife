@@ -249,9 +249,6 @@ importers:
       '@openzeppelin/contracts':
         specifier: 5.0.2
         version: 5.0.2
-      '@testing-library/dom':
-        specifier: 10.4.2
-        version: 10.4.2
       '@testing-library/react':
         specifier: 16.3.0
         version: 16.3.0(@testing-library/dom@10.4.2)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -285,10 +282,13 @@ importers:
       tsx:
         specifier: ^4.19.4
         version: 4.19.4
-
+      '@testing-library/dom':
+        specifier: 10.4.2
+        version: 10.4.2
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@20.2.5)(jiti@2.3.3)(jsdom@26.1.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(tsx@4.19.4)
+
 packages:
 
   '@adraffy/ens-normalize@1.10.1':

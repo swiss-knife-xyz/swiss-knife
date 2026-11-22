@@ -1,0 +1,566 @@
+{
+  "1": {
+    "name": "Ethereum Mainnet",
+    "testnet": false,
+    "etherscan": "https://etherscan.io",
+    "blockscout": "https://eth.blockscout.com",
+    "sourcify": true,
+    "routescan": true
+  },
+  "10": {
+    "name": "OP Mainnet",
+    "testnet": false,
+    "etherscan": "https://optimistic.etherscan.io",
+    "blockscout": "https://optimism.blockscout.com",
+    "sourcify": true
+  },
+  "50": {
+    "name": "XDC Mainnet",
+    "testnet": false,
+    "etherscan": "https://xdcscan.com",
+    "sourcify": true
+  },
+  "51": {
+    "name": "XDC Apothem Testnet",
+    "testnet": true,
+    "etherscan": "https://testnet.xdcscan.com",
+    "sourcify": true
+  },
+  "56": {
+    "name": "BNB Smart Chain Mainnet",
+    "testnet": false,
+    "etherscan": "https://bscscan.com",
+    "sourcify": true
+  },
+  "97": {
+    "name": "BNB Smart Chain Testnet",
+    "testnet": true,
+    "etherscan": "https://testnet.bscscan.com",
+    "sourcify": true
+  },
+  "100": {
+    "name": "Gnosis",
+    "testnet": false,
+    "etherscan": "https://gnosisscan.io",
+    "sourcify": true
+  },
+  "130": {
+    "name": "Unichain Mainnet",
+    "testnet": false,
+    "etherscan": "https://uniscan.xyz",
+    "blockscout": "https://unichain.blockscout.com",
+    "sourcify": true
+  },
+  "137": {
+    "name": "Polygon Mainnet",
+    "testnet": false,
+    "etherscan": "https://polygonscan.com",
+    "blockscout": "https://polygon.blockscout.com",
+    "sourcify": true
+  },
+  "143": {
+    "name": "Monad Mainnet",
+    "testnet": false,
+    "etherscan": "https://monadscan.com",
+    "sourcify": true
+  },
+  "146": {
+    "name": "Sonic Mainnet",
+    "testnet": false,
+    "etherscan": "https://sonicscan.org",
+    "sourcify": true
+  },
+  "151": {
+    "name": "Enzoscan chain",
+    "testnet": false,
+    "routescan": true
+  },
+  "153": {
+    "name": "Chain 153",
+    "testnet": false,
+    "routescan": true
+  },
+  "199": {
+    "name": "BitTorrent Chain Mainnet",
+    "testnet": false,
+    "etherscan": "https://bttcscan.com",
+    "sourcify": true
+  },
+  "252": {
+    "name": "Fraxtal Mainnet",
+    "testnet": false,
+    "etherscan": "https://fraxscan.com",
+    "sourcify": true
+  },
+  "288": {
+    "name": "Boba Network",
+    "testnet": false,
+    "sourcify": true,
+    "routescan": true
+  },
+  "480": {
+    "name": "World Mainnet",
+    "testnet": false,
+    "etherscan": "https://worldscan.org",
+    "sourcify": true
+  },
+  "919": {
+    "name": "Mode Sepolia Testnet",
+    "testnet": true,
+    "sourcify": true
+  },
+  "988": {
+    "name": "Stable Mainnet",
+    "testnet": false,
+    "etherscan": "https://stablescan.xyz",
+    "sourcify": true
+  },
+  "999": {
+    "name": "HyperEVM Mainnet",
+    "testnet": true,
+    "etherscan": "https://hyperevmscan.io",
+    "sourcify": true
+  },
+  "1015": {
+    "name": "Chain 1015",
+    "testnet": false,
+    "routescan": true
+  },
+  "1029": {
+    "name": "BitTorrent Chain Testnet",
+    "testnet": true,
+    "etherscan": "https://testnet.bttcscan.com",
+    "sourcify": true
+  },
+  "1135": {
+    "name": "Lisk ",
+    "testnet": false,
+    "sourcify": true
+  },
+  "1234": {
+    "name": "Step Network",
+    "testnet": false,
+    "routescan": true
+  },
+  "1301": {
+    "name": "Unichain Sepolia Testnet",
+    "testnet": true,
+    "etherscan": "https://sepolia.uniscan.xyz",
+    "blockscout": "https://unichain-sepolia.blockscout.com",
+    "sourcify": true
+  },
+  "1328": {
+    "name": "Sei Testnet",
+    "testnet": true,
+    "etherscan": "https://testnet.seiscan.io",
+    "sourcify": true
+  },
+  "1329": {
+    "name": "Sei Mainnet",
+    "testnet": false,
+    "etherscan": "https://seiscan.io",
+    "sourcify": true
+  },
+  "1868": {
+    "name": "Soneium",
+    "testnet": false,
+    "blockscout": "https://soneium.blockscout.com",
+    "sourcify": true
+  },
+  "1946": {
+    "name": "Soneium Minato Testnet",
+    "testnet": true,
+    "blockscout": "https://soneium-minato.blockscout.com",
+    "sourcify": true
+  },
+  "2201": {
+    "name": "Stable Testnet",
+    "testnet": true,
+    "etherscan": "https://testnet.stablescan.xyz",
+    "sourcify": true
+  },
+  "2523": {
+    "name": "Fraxtal Hoodi Testnet",
+    "testnet": true,
+    "etherscan": "https://hoodi.fraxscan.com",
+    "sourcify": true
+  },
+  "2741": {
+    "name": "Abstract Mainnet",
+    "testnet": false,
+    "etherscan": "https://abscan.org",
+    "sourcify": true
+  },
+  "3011": {
+    "name": "Chain 3011",
+    "testnet": false,
+    "routescan": true
+  },
+  "4202": {
+    "name": "Lisk Sepolia Testnet",
+    "testnet": true,
+    "sourcify": true
+  },
+  "4326": {
+    "name": "MegaETH Mainnet",
+    "testnet": false,
+    "etherscan": "https://mega.etherscan.io",
+    "blockscout": "https://megaeth.blockscout.com",
+    "sourcify": true
+  },
+  "4337": {
+    "name": "Beam",
+    "testnet": false,
+    "routescan": true
+  },
+  "4352": {
+    "name": "Memecore Mainnet",
+    "testnet": false,
+    "etherscan": "https://memecorescan.io",
+    "sourcify": true
+  },
+  "4663": {
+    "name": "Robinhood Chain",
+    "testnet": false,
+    "etherscan": "https://robin.etherscan.io",
+    "blockscout": "https://robinhoodchain.blockscout.com",
+    "sourcify": true
+  },
+  "4801": {
+    "name": "World Sepolia Testnet",
+    "testnet": true,
+    "etherscan": "https://sepolia.worldscan.org",
+    "sourcify": true
+  },
+  "5000": {
+    "name": "Mantle Mainnet",
+    "testnet": false,
+    "etherscan": "https://mantlescan.xyz",
+    "sourcify": true,
+    "routescan": true
+  },
+  "5003": {
+    "name": "Mantle Sepolia Testnet",
+    "testnet": true,
+    "etherscan": "https://sepolia.mantlescan.xyz",
+    "sourcify": true
+  },
+  "5042": {
+    "name": "Arc Mainnet",
+    "testnet": false,
+    "etherscan": "https://arc.etherscan.io",
+    "sourcify": true
+  },
+  "5566": {
+    "name": "Chain 5566",
+    "testnet": false,
+    "routescan": true
+  },
+  "6119": {
+    "name": "UPTN Mainnet",
+    "testnet": false,
+    "routescan": true
+  },
+  "6343": {
+    "name": "MegaETH Testnet",
+    "testnet": true,
+    "etherscan": "https://testnet-mega.etherscan.io",
+    "sourcify": true
+  },
+  "6900": {
+    "name": "Animechain Testnet",
+    "testnet": true,
+    "routescan": true
+  },
+  "6911": {
+    "name": "Chain 6911",
+    "testnet": false,
+    "routescan": true
+  },
+  "8021": {
+    "name": "Numine",
+    "testnet": false,
+    "blockscout": "https://numine.blockscout.com",
+    "routescan": true
+  },
+  "8227": {
+    "name": "Chain 8227",
+    "testnet": false,
+    "routescan": true
+  },
+  "8453": {
+    "name": "Base Mainnet",
+    "testnet": false,
+    "etherscan": "https://basescan.org",
+    "blockscout": "https://base.blockscout.com",
+    "sourcify": true
+  },
+  "9745": {
+    "name": "Plasma Mainnet",
+    "testnet": false,
+    "etherscan": "https://plasmascan.to",
+    "sourcify": true
+  },
+  "9746": {
+    "name": "Plasma Testnet",
+    "testnet": true,
+    "etherscan": "https://testnet.plasmascan.to",
+    "sourcify": true
+  },
+  "10143": {
+    "name": "Monad Testnet",
+    "testnet": true,
+    "etherscan": "https://testnet.monadscan.com",
+    "sourcify": true
+  },
+  "10200": {
+    "name": "Gnosis Chiado Testnet",
+    "testnet": true,
+    "blockscout": "https://gnosis-chiado.blockscout.com",
+    "sourcify": true
+  },
+  "10507": {
+    "name": "Chain 10507",
+    "testnet": false,
+    "routescan": true
+  },
+  "13322": {
+    "name": "Chain 13322",
+    "testnet": false,
+    "routescan": true
+  },
+  "13337": {
+    "name": "BEAM Testnet",
+    "testnet": true,
+    "routescan": true
+  },
+  "14601": {
+    "name": "Sonic Testnet",
+    "testnet": true,
+    "etherscan": "https://testnet.sonicscan.org",
+    "sourcify": true
+  },
+  "28882": {
+    "name": "Chain 28882",
+    "testnet": false,
+    "routescan": true
+  },
+  "34443": {
+    "name": "Mode",
+    "testnet": false,
+    "sourcify": true
+  },
+  "42161": {
+    "name": "Arbitrum One Mainnet",
+    "testnet": false,
+    "etherscan": "https://arbiscan.io",
+    "blockscout": "https://arbitrum.blockscout.com",
+    "sourcify": true
+  },
+  "42220": {
+    "name": "Celo Mainnet",
+    "testnet": false,
+    "etherscan": "https://celoscan.io",
+    "blockscout": "https://celo.blockscout.com",
+    "sourcify": true
+  },
+  "43111": {
+    "name": "Hemi",
+    "testnet": false,
+    "sourcify": true,
+    "routescan": true
+  },
+  "43113": {
+    "name": "Avalanche Fuji Testnet",
+    "testnet": true,
+    "sourcify": true,
+    "routescan": true
+  },
+  "43114": {
+    "name": "Avalanche C-Chain",
+    "testnet": false,
+    "etherscan": "https://snowscan.xyz",
+    "sourcify": true,
+    "routescan": true
+  },
+  "43419": {
+    "name": "GUNZ Mainnet",
+    "testnet": false,
+    "routescan": true
+  },
+  "43522": {
+    "name": "Memecore Insectarium Testnet",
+    "testnet": true,
+    "etherscan": "https://testnet.memecorescan.io",
+    "sourcify": true
+  },
+  "57073": {
+    "name": "Ink",
+    "testnet": false,
+    "sourcify": true
+  },
+  "59141": {
+    "name": "Linea Sepolia Testnet",
+    "testnet": true,
+    "etherscan": "https://sepolia.lineascan.build",
+    "sourcify": true
+  },
+  "59144": {
+    "name": "Linea Mainnet",
+    "testnet": false,
+    "etherscan": "https://lineascan.build",
+    "sourcify": true
+  },
+  "68414": {
+    "name": "Chain 68414",
+    "testnet": false,
+    "routescan": true
+  },
+  "80002": {
+    "name": "Polygon Amoy Testnet",
+    "testnet": true,
+    "etherscan": "https://amoy.polygonscan.com",
+    "sourcify": true
+  },
+  "80069": {
+    "name": "Berachain Bepolia Testnet",
+    "testnet": true,
+    "etherscan": "https://testnet.berascan.com",
+    "sourcify": true
+  },
+  "80094": {
+    "name": "Berachain Mainnet",
+    "testnet": false,
+    "etherscan": "https://berascan.com",
+    "sourcify": true
+  },
+  "81457": {
+    "name": "Blast",
+    "testnet": false,
+    "sourcify": true
+  },
+  "84358": {
+    "name": "Chain 84358",
+    "testnet": false,
+    "routescan": true
+  },
+  "84532": {
+    "name": "Base Sepolia Testnet",
+    "testnet": true,
+    "etherscan": "https://sepolia.basescan.org",
+    "blockscout": "https://base-sepolia.blockscout.com",
+    "sourcify": true
+  },
+  "88882": {
+    "name": "Chain 88882",
+    "testnet": false,
+    "routescan": true
+  },
+  "88888": {
+    "name": "Chain 88888",
+    "testnet": false,
+    "routescan": true
+  },
+  "167000": {
+    "name": "Taiko Mainnet",
+    "testnet": false,
+    "etherscan": "https://taikoscan.io",
+    "sourcify": true
+  },
+  "167013": {
+    "name": "Taiko Hoodi",
+    "testnet": true,
+    "etherscan": "https://hoodi.taikoscan.io",
+    "sourcify": true
+  },
+  "421614": {
+    "name": "Arbitrum Sepolia Testnet",
+    "testnet": true,
+    "etherscan": "https://sepolia.arbiscan.io",
+    "blockscout": "https://arbitrum-sepolia.blockscout.com",
+    "sourcify": true
+  },
+  "432201": {
+    "name": "Dexalot Testnet",
+    "testnet": true,
+    "routescan": true
+  },
+  "432204": {
+    "name": "Dexalot Mainnet",
+    "testnet": false,
+    "routescan": true
+  },
+  "534352": {
+    "name": "Scroll",
+    "testnet": false,
+    "sourcify": true
+  },
+  "560048": {
+    "name": "Hoodi Testnet",
+    "testnet": true,
+    "etherscan": "https://hoodi.etherscan.io",
+    "blockscout": "https://eth-hoodi.blockscout.com",
+    "sourcify": true,
+    "routescan": true
+  },
+  "737373": {
+    "name": "Katana Bokuto",
+    "testnet": false,
+    "etherscan": "https://bokuto.katanascan.com",
+    "sourcify": true
+  },
+  "743111": {
+    "name": "Hemi Sepolia",
+    "testnet": true,
+    "sourcify": true,
+    "routescan": true
+  },
+  "747474": {
+    "name": "Katana Mainnet",
+    "testnet": false,
+    "etherscan": "https://katanascan.com",
+    "sourcify": true
+  },
+  "763373": {
+    "name": "Ink Sepolia",
+    "testnet": true,
+    "sourcify": true
+  },
+  "7777777": {
+    "name": "Zora",
+    "testnet": false,
+    "sourcify": true
+  },
+  "11142220": {
+    "name": "Celo Sepolia Testnet",
+    "testnet": true,
+    "etherscan": "https://sepolia.celoscan.io",
+    "blockscout": "https://celo-sepolia.blockscout.com",
+    "sourcify": true
+  },
+  "11155111": {
+    "name": "Sepolia Testnet",
+    "testnet": true,
+    "etherscan": "https://sepolia.etherscan.io",
+    "blockscout": "https://eth-sepolia.blockscout.com",
+    "sourcify": true,
+    "routescan": true
+  },
+  "11155420": {
+    "name": "OP Sepolia Testnet",
+    "testnet": true,
+    "etherscan": "https://sepolia-optimism.etherscan.io",
+    "blockscout": "https://optimism-sepolia.blockscout.com",
+    "sourcify": true
+  },
+  "168587773": {
+    "name": "Blast Sepolia Testnet",
+    "testnet": true,
+    "routescan": true
+  },
+  "999999999": {
+    "name": "Zora Sepolia Testnet",
+    "testnet": true,
+    "sourcify": true
+  }
+}

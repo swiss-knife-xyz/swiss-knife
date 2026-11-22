@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Compares and highlights differences between smart contracts deployed at two specified blockchain addresses.",
   canonical: "https://contract-diff.eth.sh/",
-  images: "https://eth.sh/og/contract-diff.png",
+  images: "https://eth.sh/api/og/contract-diff",
 });
 
 const ContractAddressLayout = ({ children }: { children: React.ReactNode }) => {

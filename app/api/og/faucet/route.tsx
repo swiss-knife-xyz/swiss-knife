@@ -26,16 +26,20 @@ const chainIconMap: Array<[string, string]> = [
   ["Base", "/chainIcons/base.svg"],
   ["BNB", "/chainIcons/bsc.svg"],
   ["BSC", "/chainIcons/bsc.svg"],
+  ["Boba", "/chainIcons/boba.svg"],
   ["Celo", "/chainIcons/celo.webp"],
   ["Ethereum", "/chainIcons/ethereum.svg"],
   ["Filecoin", "/chainIcons/filecoin.webp"],
   ["Flow", "/chainIcons/flow.webp"],
+  ["GIWA", "/chainIcons/giwa.svg"],
   ["Gnosis", "/chainIcons/gnosis.webp"],
   ["Hoodi", "/chainIcons/ethereum.svg"],
   ["HyperEVM", "/chainIcons/hyperevm.svg"],
   ["Ink", "/chainIcons/ink.svg"],
   ["Linea", "/chainIcons/linea.svg"],
   ["MegaETH", "/chainIcons/megaeth.svg"],
+  ["Metal", "/chainIcons/metal.svg"],
+  ["Mode", "/chainIcons/mode.svg"],
   ["Monad", "/chainIcons/monad.svg"],
   ["OP ", "/chainIcons/optimism.svg"],
   ["Optimism", "/chainIcons/optimism.svg"],
@@ -45,12 +49,16 @@ const chainIconMap: Array<[string, string]> = [
   ["Robinhood", "/chainIcons/robinhood.svg"],
   ["Scroll", "/chainIcons/scroll.webp"],
   ["Sei", "/chainIcons/sei.svg"],
+  ["Settlus", "/chainIcons/settlus.svg"],
+  ["Shape", "/chainIcons/shape.svg"],
+  ["Soneium", "/chainIcons/soneium.svg"],
   ["Stable", "/chainIcons/stable.svg"],
   ["Story", "/chainIcons/story.webp"],
   ["Unichain", "/chainIcons/unichain.svg"],
   ["World", "/chainIcons/worldchain.svg"],
   ["Zircuit", "/chainIcons/zircuit.svg"],
   ["ZKsync", "/chainIcons/zksync.webp"],
+  ["Zora", "/chainIcons/zora.svg"],
 ];
 
 const tokenLogoSources: Record<string, string> = {
@@ -327,7 +335,12 @@ export async function GET(request: Request) {
                 <div
                   style={{
                     display: "flex",
-                    fontSize: chainName ? 78 : 86,
+                    fontSize:
+                      chain === "Filecoin Calibration"
+                        ? 64
+                        : chainName
+                          ? 78
+                          : 86,
                     lineHeight: 0.98,
                     letterSpacing: "-0.045em",
                     maxWidth: 670,
