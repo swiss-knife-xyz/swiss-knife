@@ -364,7 +364,7 @@ it("keeps the selected network when editing or pasting calldata and serializes E
 });
 
 it("treats an unsupported URL chain as no network while retaining manual decoding", async () => {
-  render(page("?calldata=0x12345678&chainId=999999999"));
+  render(page("?calldata=0x12345678&chainId=9007199254740991"));
   await screen.findByText("Decoded calldata");
   expect(screen.getByDisplayValue(address)).toBeTruthy();
   expect(mocks.getClient).not.toHaveBeenCalled();

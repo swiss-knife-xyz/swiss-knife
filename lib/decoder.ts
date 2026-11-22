@@ -1,3 +1,4 @@
+import { decodeUniversalRouter, type RouterVersion } from "./universalRouter";
 import type { FunctionSignatureCandidate } from "./inferredContract";
 /**
  * =============================================================================
@@ -22,6 +23,10 @@ import type { FunctionSignatureCandidate } from "./inferredContract";
  * 3. **Heuristic decoding** (fallback, TOP-LEVEL ONLY)
  *    - Tries to guess the encoding structure
  *    - Can produce false positives, so only used for top-level calldata
+ *    - Exception: nested bytes that look like plain `abi.encode(...)` output
+ *      (word-aligned, at least two 32-byte words) are still guessed as
+ *      ABI-encoded data, e.g. Uniswap Universal Router `inputs`, unless the
+ *      guess finds only fixed-size bytes values
  *
  * 4. **UTF-8 text decoding** (final fallback, TOP-LEVEL ONLY)
  *    - Interprets hex bytes as UTF-8 encoded text message
@@ -34,7 +39,8 @@ import type { FunctionSignatureCandidate } from "./inferredContract";
  *
  * **IMPORTANT**: The `_depth` parameter tracks recursion level:
  * - `_depth = 0`: Top-level calldata (use all decoders including heuristics)
- * - `_depth > 0`: Nested bytes (skip heuristic decoders to prevent false positives)
+ * - `_depth > 0`: Nested bytes (skip heuristic decoders to prevent false positives,
+ *   except ABI-encoded data guessing on word-aligned payloads)
  *
  * This prevents infinite loops where heuristic decoders incorrectly match
  * arbitrary bytes and produce more bytes to decode endlessly.
@@ -84,6 +90,7 @@ import {
   hexToBigInt,
   hexToString,
   parseAbi,
+  size,
 } from "viem";
 
 /**
@@ -91,6 +98,38 @@ import {
  * Prevents runaway recursion from pathological inputs (e.g., deeply nested multiSend).
  */
 const MAX_DECODE_DEPTH = 10;
+
+/**
+ * Minimum size (in bytes) of nested bytes that may be guessed as ABI-encoded data.
+ * A single 32-byte word (e.g., a bytes32 value) would otherwise be misread as
+ * uint256/address/bytes32, so at least two words are required.
+ */
+const MIN_NESTED_ABI_ENCODED_BYTES = 64;
+
+/**
+ * Checks if nested bytes look like plain `abi.encode(...)` output (no selector):
+ * a whole number of 32-byte words, at least two words long.
+ */
+const isWordAlignedAbiPayload = (calldata: string) => {
+  const byteLength = size(calldata as Hex);
+  return byteLength >= MIN_NESTED_ABI_ENCODED_BYTES && byteLength % 32 === 0;
+};
+
+/**
+ * Checks if a guessed parameter is only fixed-size bytes (bytes1 to bytes32),
+ * directly or inside tuples and fixed-size arrays. The guesser types words it
+ * can't explain (hashes, signatures, packed data) as bytesN, so such a guess
+ * found no ABI structure.
+ */
+const isOnlyFixedBytes = (param: ParamType): boolean => {
+  if (param.isTuple()) {
+    return param.components.every(isOnlyFixedBytes);
+  }
+  if (param.isArray()) {
+    return param.arrayLength !== -1 && isOnlyFixedBytes(param.arrayChildren);
+  }
+  return /^bytes\d+$/.test(param.type);
+};
 
 // =============================================================================
 // PRIMARY DECODING FUNCTIONS
@@ -158,10 +197,16 @@ export async function decodeWithAddress({
  * ### Structurally validated (used at any depth):
  * 3. Safe MultiSend transactions - parses packed transaction format (strict validation)
  *
+ * ### Nested bytes (_depth > 0):
+ * Only ABI-encoded data guessing (5) is tried, and only for word-aligned payloads
+ * of at least two 32-byte words (e.g., Universal Router `inputs`). Guesses made
+ * only of fixed-size bytes are dropped. This leaves out bytes32 values,
+ * signatures, hashes and most packed data.
+ *
  * ### Only for Top-Level (skipped when _depth > 0):
  * These "aggressive" decoders can match arbitrary bytes and cause false positives:
  * 4. Universal Router path - parses swap path format
- * 5. ABI-encoded data guessing - uses heuristics
+ * 5. ABI-encoded data guessing - uses heuristics (nested bytes: see above)
  * 6. Universal Router commands - parses command bytes
  * 7. Function fragment guessing - uses heuristics
  * 8. UTF-8 text message - interprets hex as text (final fallback)
@@ -178,8 +223,9 @@ export async function decodeWithSelector({
   _depth?: number;
 }): Promise<TransactionDescription | any | null> {
   // For nested bytes (depth > 0), only try decoders that require specific selectors
-  // or have strong structural validation. Skip aggressive heuristic decoders that
-  // can match arbitrary bytes and cause:
+  // or have strong structural validation, plus a guarded ABI-encoded data guess
+  // (see below). Skip aggressive heuristic decoders that can match arbitrary
+  // bytes and cause:
   // 1. False positive decodes (random bytes interpreted as valid calldata)
   // 2. Infinite recursion (decoded "calldata" has more bytes that get decoded)
   const isNestedDecode = _depth > 0;
@@ -205,7 +251,24 @@ export async function decodeWithSelector({
         // skipped for nested decoding to prevent false positives.
         // =================================================================
         if (isNestedDecode) {
-          return null;
+          // Exception: nested bytes are often plain abi.encode(...) payloads
+          // without a selector (e.g., Universal Router `inputs`). Only guess
+          // those when they are word-aligned and at least two words long.
+          if (!isWordAlignedAbiPayload(calldata)) {
+            return null;
+          }
+          try {
+            const decoded = decodeABIEncodedData(calldata);
+            // A guess made only of fixed-size bytes found no structure (e.g.,
+            // hashes, compact signatures or packed data), so keep showing the
+            // raw bytes instead
+            if (decoded.fragment.inputs.every(isOnlyFixedBytes)) {
+              return null;
+            }
+            return decoded;
+          } catch {
+            return null;
+          }
         }
 
         // Strategy 4: Uniswap Universal Router swap path
@@ -220,18 +283,18 @@ export async function decodeWithSelector({
             try {
               return decodeUniversalRouterCommands(calldata);
             } catch {
-                // Strategy 7: Heuristic function fragment guessing
+              // Strategy 7: Heuristic function fragment guessing
+              try {
+                return decodeByGuessingFunctionFragment(calldata);
+              } catch {
+                // Strategy 8: UTF-8 text message (final fallback)
+                // Interpret the hex bytes as a UTF-8 encoded text message
                 try {
-                  return decodeByGuessingFunctionFragment(calldata);
+                  return decodeAsUtf8Text(calldata);
                 } catch {
-                  // Strategy 8: UTF-8 text message (final fallback)
-                  // Interpret the hex bytes as a UTF-8 encoded text message
-                  try {
-                    return decodeAsUtf8Text(calldata);
-                  } catch {
-                    return null;
-                  }
+                  return null;
                 }
+              }
             }
           }
         }
@@ -605,7 +668,7 @@ const decodeByGuessingFunctionFragment = (calldata: string) => {
  * Useful for decoding abi.encode() or abi.encodePacked() output.
  *
  * ⚠️ WARNING: This is an "aggressive" decoder that can match arbitrary bytes.
- * Only use for top-level calldata, not nested bytes.
+ * For nested bytes, only use on word-aligned payloads (see isWordAlignedAbiPayload).
  */
 const decodeABIEncodedData = (calldata: string) => {
   const selector = calldata.slice(0, 10);
@@ -958,15 +1021,22 @@ export async function fetchFunctionInterface({
 }
 
 /** All candidates for inference, rather than the decoder's legacy first-hit API. */
-export async function fetchFunctionInterfaces({ selector }: { selector: string }): Promise<FunctionSignatureCandidate[]> {
+export async function fetchFunctionInterfaces({
+  selector,
+}: {
+  selector: string;
+}): Promise<FunctionSignatureCandidate[]> {
   const sourcify = await fetchFunctionFromSourcify({ selector });
   if (sourcify?.length) {
-    return sourcify.filter(item => !item.filtered).map(item => ({
-      name: item.name, hasVerifiedContract: item.hasVerifiedContract,
-    }));
+    return sourcify
+      .filter((item) => !item.filtered)
+      .map((item) => ({
+        name: item.name,
+        hasVerifiedContract: item.hasVerifiedContract,
+      }));
   }
   const fourByte = await fetchFunctionFrom4Bytes({ selector });
-  return fourByte?.map(item => item.text_signature) ?? [];
+  return fourByte?.map((item) => item.text_signature) ?? [];
 }
 
 /**
@@ -1115,7 +1185,8 @@ export function decodeEventWithABI({
  *
  * The `_depth` parameter is crucial for preventing infinite loops:
  * - At depth 0 (top-level): All decoding strategies are available
- * - At depth > 0 (nested): Heuristic decoders are skipped to prevent false positives
+ * - At depth > 0 (nested): Heuristic decoders are skipped to prevent false positives,
+ *   except ABI-encoded data guessing on word-aligned payloads (see decodeWithSelector)
  *
  * @param calldata - The hex-encoded calldata to decode
  * @param address - Optional contract address for ABI lookup
@@ -1132,6 +1203,7 @@ export async function decodeRecursive({
   abi,
   encodedAbi,
   _depth = 0,
+  routerVersion = "auto",
 }: {
   calldata: string;
   address?: string;
@@ -1139,11 +1211,26 @@ export async function decodeRecursive({
   abi?: any;
   encodedAbi?: any;
   _depth?: number;
+  routerVersion?: RouterVersion;
 }): Promise<DecodeRecursiveResult> {
   // Safety: cap recursion depth to prevent infinite loops
   if (_depth > MAX_DECODE_DEPTH) {
     return null;
   }
+
+  const router = await decodeUniversalRouter({
+    calldata,
+    depth: _depth,
+    version: routerVersion,
+    generic: (data, depth) =>
+      decodeRecursive({
+        calldata: data,
+        chainId,
+        _depth: depth,
+        routerVersion,
+      }),
+  });
+  if (router) return router;
 
   const selector = calldata.slice(0, 10);
   // Step 1: Decode the function call using the best available method
@@ -1157,7 +1244,12 @@ export async function decodeRecursive({
     parsedTransaction = decodeWithABI({ abi, calldata });
   } else if (address && chainId) {
     // Fetch ABI from explorers and decode
-    parsedTransaction = await decodeWithAddress({ calldata, address, chainId, _depth });
+    parsedTransaction = await decodeWithAddress({
+      calldata,
+      address,
+      chainId,
+      _depth,
+    });
   } else {
     // Fall back to selector-based decoding
     parsedTransaction = await decodeWithSelector({ calldata, _depth });
@@ -1329,6 +1421,9 @@ export async function decodeRecursive({
         signature: parsedTransaction.signature,
         rawArgs: parsedTransaction.args,
         guessedFunctionName,
+        ...(parsedTransaction.signature === "abi.encode"
+          ? { decoding: "heuristic" as const }
+          : {}),
         args: await Promise.all(
           parsedTransaction.fragment.inputs.map(async (input, i) => {
             const value = parsedTransaction!.args[i];
@@ -1485,17 +1580,38 @@ const decodeParamTypes = async ({
 
   // Bytes types (bytes, bytes1-32) - try to decode as nested calldata
   else if (input.baseType.includes("bytes")) {
-    return await decodeBytesParam({ value, address, chainId, abi, encodedAbi, _depth });
+    return await decodeBytesParam({
+      value,
+      address,
+      chainId,
+      abi,
+      encodedAbi,
+      _depth,
+    });
   }
 
   // Tuple type - recursively decode each component
   else if (input.baseType === "tuple") {
-    return await decodeTupleParam({ input, value, address, chainId, abi, _depth });
+    return await decodeTupleParam({
+      input,
+      value,
+      address,
+      chainId,
+      abi,
+      _depth,
+    });
   }
 
   // Array type - recursively decode each element
   else if (input.baseType === "array") {
-    return await decodeArrayParam({ value, input, address, chainId, abi, _depth });
+    return await decodeArrayParam({
+      value,
+      input,
+      address,
+      chainId,
+      abi,
+      _depth,
+    });
   }
 
   // Other types (bool, string, etc.) - return as-is

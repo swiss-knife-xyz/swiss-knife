@@ -280,6 +280,11 @@ function Parameter({
               {type}
             </Text>
           </HStack>
+          {arg.decodeNote && !arg.decodeNote.startsWith("Unknown command") && (
+            <Text fontSize="10px" color="yellow.300" mt={1}>
+              {arg.decodeNote}
+            </Text>
+          )}
         </Box>
         <Box flex="1" minW={0} className="calldata-value">
           <Value arg={arg} chainId={chainId} />
@@ -353,15 +358,21 @@ function Parameter({
               color="blue.300"
             >
               {functionName}
-              {decoded?.functionName === "SafeMultiSend transactions"
+              {decoded?.functionName === "SafeMultiSend transactions" ||
+              /^[A-Z][A-Z0-9_]+$/.test(functionName)
                 ? ""
                 : "()"}
             </Text>
           </>
         )}
-        {functionDisplay?.isGuessed && (
-          <Badge fontSize="9px" color="text.tertiary" bg="whiteAlpha.100">
-            inferred
+        {arg.decodeNote && !arg.decodeNote.startsWith("Unknown command") && (
+          <Badge
+            fontSize="9px"
+            color="yellow.300"
+            bg="whiteAlpha.100"
+            whiteSpace="normal"
+          >
+            {arg.decodeNote}
           </Badge>
         )}
         <Text fontSize="11px" color="text.tertiary">
