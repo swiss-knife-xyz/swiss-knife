@@ -1148,7 +1148,7 @@ const skillResourcesData: SkillResource[] = [
     tags: ["Lending", "Liquidity", "Unsigned txs", "Prediction markets"],
     install: "npx skills add galleonlabs/crypto-defi-skills",
     description:
-      "49 MIT-licensed agent skills in 17 independently versioned packs for DeFi research, unsigned planning and verification: Aave and Morpho position risk, ERC-4626 and ERC-7540 vault exits, Uniswap and Aerodrome liquidity, LI.FI and Across route reconciliation, Polymarket resolution rules, and Safe and governance review. Works with Claude Code, Codex, Cursor, Gemini CLI, Hermes and OpenClaw. The package CLIs do not sign or submit transactions.",
+      "Independent MIT-licensed skill packs built by Andrew Wilkinson at Galleon Labs. Check Aave and Morpho position risk, screen DefiLlama yields by exact EVM token or Solana mint, compare swap quotes, or verify a cross-chain transfer against its settlement evidence. Works with Claude Code, Codex, Cursor, Gemini CLI, Hermes and OpenClaw. The package CLIs do not sign or submit transactions.",
     sourceUrls: [
       "https://github.com/galleonlabs/crypto-defi-skills",
       "https://github.com/galleonlabs/crypto-defi-skills/blob/main/docs/AGENT-INDEX.md",
