@@ -15,6 +15,8 @@ import {
 import { readJson } from "./transport";
 export type ProviderKeys = Partial<Record<VerificationProvider, string>>;
 export type ProviderResult = {
+  phase?: "queued";
+  retryAfterMs?: number;
   state: VerificationState;
   guid?: string;
   error?: keyof typeof VERIFICATION_MESSAGES;
@@ -207,6 +209,9 @@ export class ProviderClient {
             stdJsonInput: JSON.parse(source.sourceCode),
             compilerVersion: source.compilerVersion.replace(/^v/, ""),
             contractIdentifier: source.contractName,
+            ...(source.creationTransactionHash
+              ? { creationTransactionHash: source.creationTransactionHash }
+              : {}),
           }),
         },
         16_384
@@ -247,16 +252,22 @@ export class ProviderClient {
       !Object.values(this.keys).some((k) => !!k && raw.result.includes(k))
     )
       return { state: "pending", guid: raw.result };
+    if (raw?.status === "0" && typeof raw.result === "string")
+      return { state: "failed", error: "SUBMISSION_REJECTED" };
     throw new VerificationError("UNAVAILABLE");
   }
   async status(
     provider: VerificationProvider,
     chainId: string,
     address: string,
-    guid?: string
+    guid?: string,
+    options: { checkPublished?: boolean } = {}
   ): Promise<ProviderResult> {
-    // A lost response can still be reconciled by checking published source.
-    if (await this.verified(provider, chainId, address))
+    // Periodic source checks reconcile lost responses without doubling every status poll.
+    if (
+      options.checkPublished !== false &&
+      (await this.verified(provider, chainId, address))
+    )
       return { state: "verified" };
     if (!guid) return { state: "unknown" };
     if (provider === "sourcify") {
@@ -289,6 +300,8 @@ export class ProviderClient {
   private parse(raw: any): ProviderResult | undefined {
     if (!record(raw) || typeof raw.result !== "string") return;
     const text = raw.result;
+    if (raw.status === "0" && /Unable to locate ContractCode/i.test(text))
+      return { state: "failed", error: "CONTRACT_NOT_INDEXED" };
     if (
       /^(?:(?:Contract source code|Source code) already verified|Already Verified)$/i.test(
         text

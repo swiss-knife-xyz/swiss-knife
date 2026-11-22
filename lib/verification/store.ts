@@ -9,6 +9,8 @@ import {
 export type StoredTarget = VerificationTarget & {
   guid?: string;
   lastCheck?: number;
+  nextCheckAt?: number;
+  backoffMs?: number;
 };
 export type VerificationJob = {
   id: string;
@@ -139,8 +141,16 @@ export function configuredJobStore(): JobStore {
   if (
     process.env.NODE_ENV !== "production" &&
     process.env.VERIFICATION_JOB_STORE !== "redis"
-  )
+  ) {
+    if (process.env.NODE_ENV === "development") {
+      // Retain accepted provider jobs through Next.js Fast Refresh.
+      const runtime = globalThis as typeof globalThis & {
+        __ethVerificationJobs?: MemoryJobStore;
+      };
+      return (runtime.__ethVerificationJobs ??= new MemoryJobStore());
+    }
     return new MemoryJobStore();
+  }
   if (
     process.env.UPSTASH_REDIS_REST_URL &&
     process.env.UPSTASH_REDIS_REST_TOKEN

@@ -10,28 +10,15 @@ import {
   VStack,
   useDisclosure,
   IconButton,
-  Drawer,
-  DrawerBody,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerHeader,
-  DrawerOverlay,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
   Tooltip,
 } from "@chakra-ui/react";
 import { Menu, Github, BookOpen } from "lucide-react";
 import { baseURL } from "@/config";
-import subdomains from "@/subdomains";
-import { getPath } from "@/utils";
+import { ToolsDrawer } from "./ToolsDrawer";
 import { NotificationBar } from "./NotificationBar";
 import { useAddressBook } from "@/hooks/useAddressBook";
 
 export const Navbar = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isMenuOpen,
     onOpen: onMenuOpen,
@@ -117,102 +104,7 @@ export const Navbar = () => {
       {/* Notification Bar */}
       <NotificationBar />
 
-      {/* Mobile Menu Drawer */}
-      <Drawer isOpen={isMenuOpen} placement="right" onClose={onMenuClose}>
-        <DrawerOverlay backdropFilter="blur(8px)" bg="blackAlpha.600" />
-        <DrawerContent bg="bg.base" maxW="300px">
-          <DrawerCloseButton color="text.secondary" _hover={{ color: "text.primary" }} />
-          <DrawerHeader
-            borderBottomWidth="1px"
-            borderColor="border.subtle"
-            color="text.primary"
-            fontWeight="semibold"
-          >
-            All Tools
-          </DrawerHeader>
-          <DrawerBody pt={4} px={3}>
-            <Accordion allowMultiple defaultIndex={[]} width="100%">
-              {Object.keys(subdomains).map((key, index) => {
-                const subdomain = subdomains[key];
-                const hasPaths = subdomain.paths.length > 0;
-
-                return (
-                  <AccordionItem key={index} border="none" mb={1}>
-                    {hasPaths ? (
-                      <>
-                        <AccordionButton
-                          p={3}
-                          _hover={{ bg: "bg.emphasis" }}
-                          rounded="lg"
-                          color="text.primary"
-                        >
-                          <Box
-                            as="span"
-                            flex="1"
-                            textAlign="left"
-                            fontSize="sm"
-                            fontWeight="medium"
-                          >
-                            {subdomain.base}
-                          </Box>
-                          <AccordionIcon color="text.secondary" />
-                        </AccordionButton>
-                        <AccordionPanel pb={2} pl={4}>
-                          <VStack align="start" spacing={1} width="100%">
-                            {subdomain.paths.map((path, pathIndex) => (
-                              <Link
-                                key={pathIndex}
-                                href={`${getPath(
-                                  subdomain.base,
-                                  subdomain.isRelativePath
-                                )}${path}`}
-                                style={{ width: "100%" }}
-                                onClick={onMenuClose}
-                              >
-                                <Box
-                                  p={2}
-                                  pl={3}
-                                  _hover={{ bg: "bg.emphasis" }}
-                                  rounded="md"
-                                  width="100%"
-                                  fontSize="sm"
-                                  color="text.secondary"
-                                  transition="all 0.2s"
-                                >
-                                  {path}
-                                </Box>
-                              </Link>
-                            ))}
-                          </VStack>
-                        </AccordionPanel>
-                      </>
-                    ) : (
-                      <Link
-                        href={getPath(subdomain.base, subdomain.isRelativePath)}
-                        style={{ width: "100%" }}
-                        onClick={onMenuClose}
-                      >
-                        <Box
-                          p={3}
-                          _hover={{ bg: "bg.emphasis" }}
-                          rounded="lg"
-                          width="100%"
-                          fontSize="sm"
-                          fontWeight="medium"
-                          color="text.primary"
-                          transition="all 0.2s"
-                        >
-                          {subdomain.base}
-                        </Box>
-                      </Link>
-                    )}
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
+      <ToolsDrawer isOpen={isMenuOpen} onClose={onMenuClose} />
     </VStack>
   );
 };

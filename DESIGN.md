@@ -190,3 +190,36 @@
 - After approval, removed the temporary comparison gallery, baseline captures,
   QA screenshots and unused legacy OG PNGs. Migrate's current branded PNG stays
   in use; the homepage and faucet overview both use their dynamic routes.
+
+## Mock-token deployment workspace
+
+- Scope: `/mock-tokens`; technical utility for developers creating permissionless test tokens.
+- Direction: compact, precise, restrained. Aesthetic essence: quiet deployment workspace.
+- Signature: token-standard tabs above the configuration, paired with a live token identity and deployment column; stack the columns on mobile.
+- Use existing ETH.sh tokens and fonts rather than introducing a page-specific palette or font download.
+
+| Role | Existing token / scale |
+| --- | --- |
+| Heading / body / data | Site heading and body stacks; `mono` for addresses and quantities |
+| Type | `2xl` page title, `md` section titles, `sm` labels/body, `xs` metadata |
+| Surfaces | `bg.base`, `bg.subtle`, `bg.muted` |
+| Text | `text.primary`, `text.secondary`, `text.tertiary` |
+| Edges / actions | `border.default`, `primary.500`; semantic colors only for status |
+| Spacing / radius | 4px rhythm; `md` controls, `lg` surfaces; defined edges without shadows |
+
+- ERC20/ERC721/ERC1155 tabs use accessible keyboard navigation and retain draft values. Disable configuration changes during submission.
+- Keep name and symbol inputs plain; show the entered name and symbol together in the deployment summary. Group supply and recipient fields; keep NFT metadata guidance adjacent to the URI input.
+- Network selection and wallet connection remain visible without opening a modal. Deploy opens the wallet directly; Switch Chain replaces it when needed.
+- Show token identity and formatted supply before implementation details. Compiler files and constructor data use progressive disclosure.
+- Preserve deployment validation, live account/network checks and duplicate-submission protection. Do not deploy to a public network during visual verification.
+- After confirmation, verify automatically on Sourcify and the chain’s Etherscan explorer. Show independent compact statuses below the contract address; keep the Etherscan key on the server.
+
+## All Tools drawer
+
+- Artifact: developer navigation; compact, clear, restrained. Aesthetic: quiet tool index.
+- Use the shared homepage catalog, ordered Tools for Devs, Useful Tools, Directories.
+- Main tool names are always links. Related pages use a separate 36px chevron target; pages already featured in a category are not repeated in a submenu.
+- Fixed header with search; one scrolling navigation body. Full width on narrow phones, 380px on larger screens. Search expands matching related pages.
+- Existing Inter/body stack and semantic tokens: `bg.base`, `bg.subtle`, `bg.emphasis`, `text.primary`, `text.secondary`, `border.subtle`, `primary.300` for current links. 14px rows, 12px category labels, 4px spacing rhythm, `md` corners.
+- Use spacing and text hierarchy, without tool cards, emoji decoration, gradients, or extra explanatory copy. Preserve keyboard focus, labeled navigation, and real anchors.
+- Audit: links and expansion are independent; no nested interactive controls; active state uses `aria-current`; search has a label and an empty state; no extra animation or font loading.

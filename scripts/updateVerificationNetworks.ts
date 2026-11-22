@@ -3,6 +3,7 @@
  * Routescan's published /chains directory (only networks with API support).
  */
 import { writeFile } from "node:fs/promises";
+import { isRetiredChain } from "../data/retiredChains";
 async function main() {
   const [etherscan, sourcify, blockscout] = await Promise.all([
     fetch("https://api.etherscan.io/v2/chainlist").then((r) => r.json()),
@@ -30,6 +31,8 @@ async function main() {
     ...extras.map(String),
     ...routescan.map(String),
   ])) {
+    // Upstream lists may retain archival explorers after a network shuts down.
+    if (isRetiredChain(id)) continue;
     const e = etherscan.result.find(
       (c: any) => String(c.chainid) === id && c.status === 1
     );

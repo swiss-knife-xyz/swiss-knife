@@ -1,7 +1,8 @@
+import { activeExplorers } from "./activeExplorers";
 import { ExplorerData, ExplorersData } from "@/types";
 import { CHAINLABEL_KEY, TX_KEY, c, explorerChains } from "./common";
 
-export const txExplorers: ExplorersData = {
+export const txExplorers: ExplorersData = activeExplorers({
   Arbitrum: {
     urlLayout: `https://${CHAINLABEL_KEY}arbiscan.io/tx/${TX_KEY}`,
     chainIdToLabel: {
@@ -17,7 +18,6 @@ export const txExplorers: ExplorersData = {
       [c.arbitrum.id]: "",
       [c.avalanche.id]: "",
       [c.base.id]: "",
-      [c.blast.id]: "",
       [c.bsc.id]: "",
       [c.linea.id]: "",
       [c.manta.id]: "",
@@ -43,7 +43,6 @@ export const txExplorers: ExplorersData = {
       [c.base.id]: "base",
       [c.optimism.id]: "optimism",
       [c.optimismSepolia.id]: "optimism-sepolia",
-      [c.polygonZkEvm.id]: "zkevm",
       [c.zkSync.id]: "zksync",
       [c.zkSyncSepoliaTestnet.id]: "zksync-sepolia",
       [c.megaeth.id]: "megaeth",
@@ -162,11 +161,8 @@ export const txExplorers: ExplorersData = {
       [c.bsc.id]: c.bsc.id.toString(),
       [c.cronos.id]: c.cronos.id.toString(),
       [c.fantom.id]: c.fantom.id.toString(),
-      [c.moonbeam.id]: c.moonbeam.id.toString(),
-      [c.okc.id]: c.okc.id.toString(),
       [c.optimism.id]: c.optimism.id.toString(),
       [c.polygon.id]: c.polygon.id.toString(),
-      [c.polygonZkEvm.id]: c.polygonZkEvm.id.toString(),
       [c.zkSync.id]: c.zkSync.id.toString(),
     },
     faviconUrl: "https://app.sentio.xyz/favicon.ico",
@@ -210,27 +206,19 @@ export const txExplorers: ExplorersData = {
       [c.base.id]: c.base.id.toString(),
       [c.boba.id]: c.boba.id.toString(),
       [c.bsc.id]: c.bsc.id.toString(),
-      [c.canto.id]: c.canto.id.toString(),
       [c.celo.id]: c.celo.id.toString(),
       [c.cronos.id]: c.cronos.id.toString(),
       [c.dfk.id]: c.dfk.id.toString(),
-      [c.dogechain.id]: c.dogechain.id.toString(),
-      [c.evmos.id]: c.evmos.id.toString(),
       [c.fantom.id]: c.fantom.id.toString(),
       [c.fuse.id]: c.fuse.id.toString(),
       [c.gnosis.id]: c.gnosis.id.toString(),
-      [c.harmonyOne.id]: c.harmonyOne.id.toString(),
       [c.iotex.id]: c.iotex.id.toString(),
       [c.klaytn.id]: c.klaytn.id.toString(),
       [c.linea.id]: c.linea.id.toString(),
       [c.mantle.id]: c.mantle.id.toString(),
       [c.metis.id]: c.metis.id.toString(),
-      [c.moonbeam.id]: c.moonbeam.id.toString(),
-      [c.moonriver.id]: c.moonriver.id.toString(),
-      [c.okc.id]: c.okc.id.toString(),
       [c.optimism.id]: c.optimism.id.toString(),
       [c.polygon.id]: c.polygon.id.toString(),
-      [c.polygonZkEvm.id]: c.polygonZkEvm.id.toString(),
       [c.ronin.id]: c.ronin.id.toString(),
       [c.scroll.id]: c.scroll.id.toString(),
       [c.telos.id]: c.telos.id.toString(),
@@ -245,4 +233,4 @@ export const txExplorers: ExplorersData = {
   //     [c.starknet.id]: "",
   //   },
   // },
-};
+});

@@ -15,12 +15,7 @@ import { InputField } from "../InputField";
 import { DarkSelect, type FormatSelectProps } from "../DarkSelect";
 import { motion } from "framer-motion";
 
-// Add helper functions for number formatting
-const formatWithCommas = (value: string) => {
-  const parts = value.split(".");
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return parts.join(".");
-};
+import { formatWithCommas } from "@/utils/formatWithCommas";
 
 const formatCompact = (value: string) => {
   const num = parseFloat(value);

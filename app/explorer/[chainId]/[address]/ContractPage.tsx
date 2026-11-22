@@ -16,6 +16,7 @@ import {
   Button,
   Center,
   Collapse,
+  Flex,
   Grid,
   HStack,
   Icon,
@@ -1418,25 +1419,21 @@ const LoadedContractPage = ({
           {abi && (
             <>
               <Box h="1px" bg="border.default" mb={4} />
-              <Grid
-                templateColumns="minmax(0, 1fr)"
-                sx={{
-                  "@container (min-width: 620px)": { gridTemplateColumns: "minmax(0, 1fr) auto auto" },
-                  "@container (min-width: 900px)": { gridTemplateColumns: "auto minmax(0, 1fr) auto" },
-                }}
+              <Flex
+                flexWrap="wrap"
                 gap={3}
                 alignItems="center"
               >
                 {/* Left side: Contract name + proxy selector */}
-                <HStack spacing={3} flexWrap="wrap" minW={0}>
+                <HStack spacing={3} minW="min(100%, 12rem)" maxW="full" flex="0 1 auto">
                   <HStack spacing={2} minW={0}>
                     <Text color="text.secondary" fontSize="sm" flexShrink={0}>Contract:</Text>
-                    <Text color="text.primary" fontWeight="semibold" fontSize="sm" overflowWrap="anywhere" minW={0}>{abi.name || slicedText(address)}</Text>
+                    <Text color="text.primary" fontWeight="semibold" fontSize="sm" isTruncated minW={0}>{abi.name || slicedText(address)}</Text>
                   </HStack>
                 </HStack>
 
                 {/* Contract tools */}
-                <HStack spacing={2} flexWrap="wrap" minW={0} justify="flex-start" sx={{ "@container (min-width: 620px)": { justifyContent: "center" } }} rowGap={2}>
+                <HStack spacing={2} flexWrap="wrap" minW={0} flex="1 1 20rem" justify="flex-start" sx={{ "@container (min-width: 620px)": { justifyContent: "center" } }} rowGap={2}>
                   <AbiSourceCodeToggle />
                   <ContractCallPrefill
                     restoreFromUrl={contractTab?.initial ?? true}
@@ -1452,10 +1449,10 @@ const LoadedContractPage = ({
                 </HStack>
 
                 {/* Right side: Connect button */}
-                <Box minW={0} justifySelf="start" sx={{ "@container (min-width: 620px)": { justifySelf: "end" } }}>
+                <Box minW={0} maxW="full" flexShrink={0} sx={{ "@container (min-width: 620px)": { marginLeft: "auto" } }}>
                   <ConnectButton expectedChainId={chainId} />
                 </Box>
-              </Grid>
+              </Flex>
             </>
           )}
         </Box>

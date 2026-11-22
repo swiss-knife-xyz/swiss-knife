@@ -1,78 +1,48 @@
 import {
   mainnet,
   arbitrum,
-  arbitrumGoerli,
   arbitrumNova,
   arbitrumSepolia,
   avalanche,
   avalancheFuji,
   aurora,
   base,
-  baseGoerli,
   baseSepolia,
   berachain,
   bitTorrent,
-  bitTorrentTestnet,
-  blast,
-  blastSepolia,
   boba,
   bsc,
   bscTestnet,
-  canto,
   celo,
-  celoAlfajores,
   celoSepolia,
   citreaTestnet,
   confluxESpace,
   cronos,
   cronosTestnet,
   dfk,
-  dogechain,
-  evmos,
   fantom,
-  fantomTestnet,
   filecoin,
   fraxtal,
-  fraxtalTestnet,
   fuse,
   gnosis,
-  goerli,
-  harmonyOne,
-  holesky,
   hoodi,
   iotex,
-  klaytn,
-  kroma,
-  kromaSepolia,
   linea,
-  lineaTestnet,
   manta,
-  mantaTestnet,
   mantle,
   metis,
-  moonbaseAlpha,
-  moonbeam,
-  moonriver,
-  okc,
   opBNB,
   opBNBTestnet,
   optimism,
-  optimismGoerli,
   optimismSepolia,
   polygon,
-  polygonMumbai,
   polygonAmoy,
-  polygonZkEvm,
-  polygonZkEvmTestnet,
   ronin,
   scroll,
-  scrollSepolia,
   sei,
   seiTestnet,
   sepolia,
   sonic,
-  taikoJolnir,
-  taikoTestnetSepolia,
   telos,
   wanchain,
   wemix,
@@ -80,13 +50,18 @@ import {
   zkSync,
   zkSyncSepoliaTestnet,
   zora,
-  zoraTestnet,
   Chain,
+  lineaSepolia,
+  mantaSepoliaTestnet,
+  taikoHoodi,
+  zoraSepolia,
+  kaia,
   unichain,
   ink,
   worldchain,
 } from "viem/chains";
 import { _chains } from "./_chains";
+import { isRetiredChain } from "./retiredChains";
 
 import { defineChain } from "viem";
 
@@ -208,11 +183,33 @@ export const robinhood = defineChain({
   testnet: false,
 });
 
+// Current testnet definitions replace IDs whose official endpoints were reused.
+export const fraxtalHoodi = defineChain({
+  id: 2523,
+  name: "Fraxtal Hoodi",
+  testnet: true,
+  nativeCurrency: { name: "Frax", symbol: "FRAX", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.testnet.frax.com"] } },
+  blockExplorers: {
+    default: { name: "Fraxscan", url: "https://hoodi.fraxscan.com" },
+  },
+});
+export const bitTorrentDonau = defineChain({
+  id: 1029,
+  name: "BitTorrent Donau",
+  testnet: true,
+  nativeCurrency: { name: "BitTorrent", symbol: "BTT", decimals: 18 },
+  rpcUrls: { default: { http: ["https://pre-rpc.bt.io"] } },
+  blockExplorers: {
+    default: { name: "BTTC Testnet Explorer", url: "https://testscan.bt.io" },
+  },
+});
+
 export const CHAINLABEL_KEY = "$SK_CHAINLABEL";
 export const ADDRESS_KEY = "$SK_ADDRESS";
 export const TX_KEY = "$SK_TX";
 
-export const c: { [name: string]: Chain } = {
+const chainDefinitions: { [name: string]: Chain } = {
   mainnet: {
     ...mainnet,
   },
@@ -221,26 +218,20 @@ export const c: { [name: string]: Chain } = {
     rpcUrls: { default: { http: ["https://sepolia.gateway.tenderly.co"] } }, // add custom rpcs. cloudflare doesn't support publicClient.getTransaction
   },
   arbitrum,
-  arbitrumGoerli,
   arbitrumNova,
   arbitrumSepolia,
   avalanche,
   avalancheFuji,
   aurora,
   base,
-  baseGoerli,
   baseSepolia,
   berachain,
   bitTorrent,
-  bitTorrentTestnet,
-  blast,
-  blastSepolia,
+  bitTorrentDonau,
   boba,
   bsc,
   bscTestnet,
-  canto,
   celo,
-  celoAlfajores,
   celoSepolia,
   citrea,
   citreaTestnet,
@@ -248,55 +239,36 @@ export const c: { [name: string]: Chain } = {
   cronos,
   cronosTestnet,
   dfk,
-  dogechain,
-  evmos,
-  fantom,
-  fantomTestnet,
+  fantom, // Shutdown reversed: https://www.soniclabs.com/blog/the-first-1/
   filecoin,
   fraxtal,
-  fraxtalTestnet,
+  fraxtalHoodi,
   fuse,
   gnosis,
-  goerli,
-  harmonyOne,
-  holesky,
   hoodi,
   iotex,
-  klaytn,
-  kroma,
-  kromaSepolia,
+  klaytn: kaia, // Same chain ID, current Kaia name and RPC.
   linea,
-  lineaTestnet,
+  lineaSepolia,
   manta,
-  mantaTestnet,
+  mantaSepoliaTestnet,
   mantle,
   megaeth,
   metis,
   monad,
-  moonbaseAlpha,
-  moonbeam,
-  moonriver,
-  okc,
   opBNB,
   opBNBTestnet,
   optimism,
-  optimismGoerli,
   optimismSepolia,
   plasma,
   robinhood,
   polygon,
-  polygonMumbai,
   polygonAmoy,
-  polygonZkEvm,
-  polygonZkEvmTestnet,
   ronin,
   scroll,
-  scrollSepolia,
   sei,
   seiTestnet,
   sonic,
-  taikoJolnir,
-  taikoTestnetSepolia,
   telos,
   wanchain,
   wemix,
@@ -305,26 +277,18 @@ export const c: { [name: string]: Chain } = {
   zkSync,
   zkSyncSepoliaTestnet,
   zora,
-  zoraTestnet,
+  zoraSepolia,
+  taikoHoodi,
 };
 
-// Retired testnets stay in the shared registry for historical links, but should
-// not be offered by Explorer providers that generate their network lists.
-export const retiredExplorerChainIds = new Set<number>([
-  goerli.id,
-  holesky.id,
-  arbitrumGoerli.id,
-  baseGoerli.id,
-  optimismGoerli.id,
-  polygonMumbai.id,
-  polygonZkEvmTestnet.id,
-  celoAlfajores.id,
-  lineaTestnet.id,
-  zoraTestnet.id,
-]);
-export const explorerChains = Object.values(c).filter(
-  (chain) => !retiredExplorerChainIds.has(chain.id)
+export const c: Record<string, Chain> = Object.fromEntries(
+  Object.entries(chainDefinitions).filter(
+    ([, chain]) => !isRetiredChain(chain.id)
+  )
 );
+
+// All shared registries exclude retired chains; reasons and sources live in retiredChains.ts.
+export const explorerChains = Object.values(c);
 
 // Extended Chain type to include optional Routescan flag
 type ExtendedChain = Chain & { isRoutescan?: boolean };
@@ -340,47 +304,33 @@ export const etherscanChains: { [name: string]: ExtendedChain } = {
   base,
   baseSepolia,
   bitTorrent,
-  bitTorrentTestnet,
-  blast,
-  blastSepolia,
+  bitTorrentDonau,
   bsc,
   bscTestnet,
   celo,
-  celoAlfajores,
+  celoSepolia,
   cronos,
   cronosTestnet,
   fantom,
-  fantomTestnet,
   fraxtal,
-  fraxtalTestnet,
+  fraxtalHoodi,
   gnosis,
-  holesky,
-  kroma,
-  kromaSepolia,
   linea,
-  lineaTestnet,
+  lineaSepolia,
   mantle,
   manta,
   megaeth,
-  moonbeam,
-  moonriver,
-  moonbaseAlpha,
   opBNB,
   opBNBTestnet,
   optimism,
   optimismSepolia,
   plasma: { ...plasma, isRoutescan: true },
   polygon,
-  polygonMumbai,
-  polygonZkEvm,
-  polygonZkEvmTestnet,
   scroll,
-  scrollSepolia,
   sei,
   seiTestnet,
   sepolia,
-  taikoJolnir,
-  taikoTestnetSepolia,
+  taikoHoodi,
   wemix,
   wemixTestnet,
   zkSync,
@@ -403,35 +353,37 @@ export const chainIdToChain = (() => {
     [chainId: number]: Chain;
   } = {};
 
-  Object.values(c).map((chain) => {
-    const customRpcUrl = chainIdToCustomRpcUrl[chain.id];
-    if (customRpcUrl) {
-      res[chain.id] = {
-        ...chain,
-        rpcUrls: {
-          ...chain.rpcUrls,
-          default: {
-            http: [customRpcUrl],
+  Object.values(c)
+    .filter((chain) => !isRetiredChain(chain.id))
+    .map((chain) => {
+      const customRpcUrl = chainIdToCustomRpcUrl[chain.id];
+      if (customRpcUrl) {
+        res[chain.id] = {
+          ...chain,
+          rpcUrls: {
+            ...chain.rpcUrls,
+            default: {
+              http: [customRpcUrl],
+            },
           },
-        },
-      };
-    } else {
-      res[chain.id] = chain;
-    }
+        };
+      } else {
+        res[chain.id] = chain;
+      }
 
-    // Override Polygon RPC URL
-    if (chain.id === polygon.id) {
-      res[chain.id] = {
-        ...chain,
-        rpcUrls: {
-          ...chain.rpcUrls,
-          default: {
-            http: ["https://1rpc.io/matic"],
+      // Override Polygon RPC URL
+      if (chain.id === polygon.id) {
+        res[chain.id] = {
+          ...chain,
+          rpcUrls: {
+            ...chain.rpcUrls,
+            default: {
+              http: ["https://1rpc.io/matic"],
+            },
           },
-        },
-      };
-    }
-  });
+        };
+      }
+    });
 
   return res;
 })();
@@ -470,59 +422,57 @@ export const chainIdToImage = (() => {
   // Share each network's local artwork with its testnets instead of fetching
   // favicons from retired explorer domains. Asset sources are in chainIcons/SOURCES.md.
   const iconFamilies: [string, readonly Chain[]][] = [
-    ["ethereum.svg", [mainnet, goerli, sepolia, holesky, hoodi]],
-    ["arbitrum.svg", [arbitrum, arbitrumGoerli, arbitrumSepolia]],
+    ["ethereum.svg", [mainnet, sepolia, hoodi]],
+    ["arbitrum.svg", [arbitrum, arbitrumSepolia]],
     ["arbitrum-nova.svg", [arbitrumNova]],
     ["avalanche.svg", [avalanche, avalancheFuji]],
     ["aurora.svg", [aurora]],
-    ["base.svg", [base, baseGoerli, baseSepolia]],
+    ["base.svg", [base, baseSepolia]],
     ["berachain.svg", [berachain]],
-    ["blast.svg", [blast, blastSepolia]],
+
     ["boba.svg", [boba]],
     ["bsc.svg", [bsc, bscTestnet]],
-    ["celo.webp", [celo, celoAlfajores, celoSepolia]],
+    ["celo.webp", [celo, celoSepolia]],
     ["citrea.svg", [citrea, citreaTestnet]],
     ["conflux.svg", [confluxESpace]],
     ["cronos.svg", [cronos, cronosTestnet]],
-    ["dogechain.svg", [dogechain]],
-    ["evmos.png", [evmos]],
-    ["fantom.svg", [fantom, fantomTestnet]],
+
+    ["fantom.svg", [fantom]],
     ["filecoin.webp", [filecoin]],
-    ["fraxtal.svg", [fraxtal, fraxtalTestnet]],
+    ["fraxtal.svg", [fraxtal, fraxtalHoodi]],
     ["fuse.svg", [fuse]],
     ["gnosis.webp", [gnosis]],
-    ["harmony.svg", [harmonyOne]],
+
     ["ink.svg", [ink]],
     ["iotex.svg", [iotex]],
-    ["kaia.svg", [klaytn]],
-    ["kroma.svg", [kroma, kromaSepolia]],
-    ["linea.svg", [linea, lineaTestnet]],
-    ["manta-pacific.svg", [manta, mantaTestnet]],
+    ["kaia.svg", [kaia]],
+
+    ["linea.svg", [linea, lineaSepolia]],
+    ["manta-pacific.svg", [manta, mantaSepoliaTestnet]],
     ["mantle.svg", [mantle]],
     ["megaeth.svg", [megaeth]],
     ["metis-andromeda.svg", [metis]],
     ["monad.svg", [monad]],
-    ["moonbeam.svg", [moonbeam, moonbaseAlpha]],
-    ["moonriver.svg", [moonriver]],
-    ["okex.svg", [okc]],
+
     ["opbnb.png", [opBNB, opBNBTestnet]],
-    ["optimism.svg", [optimism, optimismGoerli, optimismSepolia]],
+    ["optimism.svg", [optimism, optimismSepolia]],
     ["plasma.svg", [plasma]],
-    ["polygon.svg", [polygon, polygonMumbai, polygonAmoy]],
-    ["polygon-zkevm.svg", [polygonZkEvm, polygonZkEvmTestnet]],
+    ["polygon.svg", [polygon, polygonAmoy]],
+
     ["robinhood.svg", [robinhood]],
     ["ronin.svg", [ronin]],
-    ["scroll.webp", [scroll, scrollSepolia]],
+    ["scroll.webp", [scroll]],
     ["sei.svg", [sei, seiTestnet]],
     ["sonic.svg", [sonic]],
-    ["taiko.svg", [taikoJolnir, taikoTestnetSepolia]],
+
+    ["taiko.svg", [taikoHoodi]],
     ["telos.svg", [telos]],
     ["unichain.svg", [unichain]],
     ["wanchain.png", [wanchain]],
     ["wemix.svg", [wemix, wemixTestnet]],
     ["worldchain.svg", [worldchain]],
     ["zksync.webp", [zkSync, zkSyncSepoliaTestnet]],
-    ["zora.svg", [zora, zoraTestnet]],
+    ["zora.svg", [zora, zoraSepolia]],
   ];
   for (const [file, chains] of iconFamilies) {
     for (const chain of chains) res[chain.id] = `${basePath}/${file}`;
@@ -542,8 +492,10 @@ export const chainIdToImage = (() => {
 })();
 
 export const networkOptions: { label: string; value: number; image: string }[] =
-  Object.keys(c).map((k, i) => ({
-    label: c[k].name,
-    value: c[k].id,
-    image: chainIdToImage[c[k].id],
-  }));
+  Object.keys(c)
+    .filter((k) => !isRetiredChain(c[k].id))
+    .map((k, i) => ({
+      label: c[k].name,
+      value: c[k].id,
+      image: chainIdToImage[c[k].id],
+    }));

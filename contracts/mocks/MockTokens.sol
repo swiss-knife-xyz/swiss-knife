@@ -9,7 +9,7 @@ import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 /// No owner, cap, backing, economic value or privileged mint role.
 contract MockERC20 is ERC20 {
     constructor(string memory label, string memory ticker, address recipient, uint256 initialSupply)
-        ERC20(string.concat("MOCK ", label), string.concat("MOCK_", ticker))
+        ERC20(label, ticker)
     {
         if (initialSupply > 0) _mint(recipient, initialSupply);
     }
@@ -24,7 +24,7 @@ contract MockERC721 is ERC721 {
     string private _mockBaseURI;
 
     constructor(string memory label, string memory ticker, string memory baseURI)
-        ERC721(string.concat("MOCK ", label), string.concat("MOCK_", ticker))
+        ERC721(label, ticker)
     {
         _mockBaseURI = baseURI;
     }
@@ -41,10 +41,13 @@ contract MockERC721 is ERC721 {
 /// @notice MOCK ONLY. Anyone can mint any ID and quantity to anyone.
 /// Metadata URLs are immutable; hosted content may still change.
 contract MockERC1155 is ERC1155 {
-    string public constant name = "MOCK ERC1155";
-    string public constant symbol = "MOCK_1155";
+    string public name;
+    string public symbol;
 
-    constructor(string memory uriTemplate) ERC1155(uriTemplate) {}
+    constructor(string memory label, string memory ticker, string memory uriTemplate) ERC1155(uriTemplate) {
+        name = label;
+        symbol = ticker;
+    }
 
     function mint(address to, uint256 id, uint256 amount, bytes calldata data) external {
         _mint(to, id, amount, data);

@@ -115,12 +115,6 @@
     "etherscan": "https://stablescan.xyz",
     "sourcify": true
   },
-  "999": {
-    "name": "HyperEVM Mainnet",
-    "testnet": true,
-    "etherscan": "https://hyperevmscan.io",
-    "sourcify": true
-  },
   "1015": {
     "name": "Chain 1015",
     "testnet": false,
@@ -130,11 +124,6 @@
     "name": "BitTorrent Chain Testnet",
     "testnet": true,
     "etherscan": "https://testnet.bttcscan.com",
-    "sourcify": true
-  },
-  "1135": {
-    "name": "Lisk ",
-    "testnet": false,
     "sourcify": true
   },
   "1234": {
@@ -434,11 +423,6 @@
     "etherscan": "https://berascan.com",
     "sourcify": true
   },
-  "81457": {
-    "name": "Blast",
-    "testnet": false,
-    "sourcify": true
-  },
   "84358": {
     "name": "Chain 84358",
     "testnet": false,
@@ -552,11 +536,6 @@
     "etherscan": "https://sepolia-optimism.etherscan.io",
     "blockscout": "https://optimism-sepolia.blockscout.com",
     "sourcify": true
-  },
-  "168587773": {
-    "name": "Blast Sepolia Testnet",
-    "testnet": true,
-    "routescan": true
   },
   "999999999": {
     "name": "Zora Sepolia Testnet",

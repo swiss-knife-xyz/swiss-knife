@@ -10,20 +10,60 @@ import {
 } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { MockTokenTool, type MockWallet } from "./MockTokenTool";
+vi.mock("./MockTokenVerification", () => ({ MockTokenVerification: () => null }));
+vi.mock("@/components/DarkSelect", () => ({
+  DarkSelect: ({
+    ariaLabel,
+    options,
+    selectedOption,
+    setSelectedOption,
+    isDisabled,
+  }: any) => {
+    const entries = options.flatMap((item: any) => item.options ?? [item]);
+    return (
+      <select
+        aria-label={ariaLabel}
+        disabled={isDisabled}
+        value={selectedOption?.value ?? ""}
+        onChange={(event) =>
+          setSelectedOption(
+            entries.find(
+              (option: any) => String(option.value) === event.target.value
+            )
+          )
+        }
+      >
+        <option value="">Select network</option>
+        {entries.map((option: any) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    );
+  },
+}));
+vi.mock("@/lib/publicClient", () => ({ getPublicClient: () => ({}) }));
+vi.mock("wagmi", () => ({ useAccount: () => ({}) }));
+vi.mock("@/components/AddressBook", () => ({ AddressBookButton: () => null }));
+vi.mock("@/utils/addressLabels", () => ({
+  fetchAddressLabels: async () => [],
+}));
+vi.mock("@/lib/nameResolution", () => ({
+  resolveNameToAddress: vi.fn(
+    async () => "0x1111111111111111111111111111111111111111"
+  ),
+  resolveAddressToName: async () => undefined,
+  getNameAvatar: async () => undefined,
+  isResolvableName: (value: string) => value.endsWith(".eth"),
+}));
 const account = "0x1111111111111111111111111111111111111111" as const;
 const hash = `0x${"ab".repeat(32)}` as const;
-const estimate = {
-  gas: 500000n,
-  maxFeePerGas: 1000000000n,
-  maxPriorityFeePerGas: 100000n,
-  balance: 1000000000000000000n,
-  createdAt: Date.now(),
-};
 function fixture(chainId = 11155111) {
   return {
     account,
     chainId,
-    estimate: vi.fn().mockResolvedValue({ ...estimate, createdAt: Date.now() }),
+    switchChain: vi.fn().mockResolvedValue(undefined),
     submit: vi.fn().mockResolvedValue(hash),
     receipt: vi.fn().mockResolvedValue({
       status: "success",
@@ -46,276 +86,247 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
-async function review(chainId = "11155111") {
-  fireEvent.change(screen.getByLabelText("Deployment network"), {
-    target: { value: chainId },
-  });
+function recipient() {
   fireEvent.change(screen.getByLabelText("Initial recipient"), {
     target: { value: account },
   });
-  fireEvent.click(
-    screen.getByRole("button", { name: "Estimate & review deployment" })
-  );
-  await screen.findByRole("heading", { name: "Review mock deployment" });
 }
-it("requires explicit chain selection, read-only review and unchecked consent before the only wallet write", async () => {
+it("deploys directly from current inputs without a gas review or consent step", async () => {
   const { wallet } = mount();
   expect(
     (screen.getByLabelText("Deployment network") as HTMLSelectElement).value
-  ).toBe("");
-  expect(wallet.estimate).not.toHaveBeenCalled();
-  expect(wallet.submit).not.toHaveBeenCalled();
-  await review();
-  expect(wallet.estimate).toHaveBeenCalledTimes(1);
-  expect(wallet.submit).not.toHaveBeenCalled();
-  expect(screen.getByText("MOCK Token")).toBeTruthy();
-  expect(screen.getByText(/anyone can mint/i)).toBeTruthy();
-  const deploy = screen.getByRole("button", { name: "Confirm in wallet" });
-  expect(deploy.hasAttribute("disabled")).toBe(true);
-  fireEvent.click(
-    screen.getByRole("checkbox", { name: /I understand this public/ })
-  );
-  fireEvent.click(deploy);
-  fireEvent.click(deploy);
-  await screen.findByText("Transaction submitted — not yet confirmed");
+  ).toBe("11155111");
+  expect(screen.getByText("Token (TKN)")).toBeTruthy();
+  expect(screen.getByText("1,000,000")).toBeTruthy();
+  recipient();
+  fireEvent.click(screen.getByRole("button", { name: "Deploy" }));
+  await screen.findByText("Transaction submitted");
   expect(wallet.submit).toHaveBeenCalledTimes(1);
-  expect(wallet.receipt).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Check receipt" }));
-  await screen.findByText("Deployment confirmed");
+  expect(wallet.submit.mock.calls[0][0].args[3]).toBe(
+    1000000000000000000000000n
+  );
+  expect(screen.queryByText("Review deployment")).toBeNull();
+  expect(screen.queryByRole("checkbox")).toBeNull();
+  await screen.findByText("Deployment confirmed", {}, { timeout: 4500 });
   expect(
     screen
-      .getByRole("link", { name: "Open deployed mock in explorer" })
+      .getByRole("link", { name: "Interact with the contract" })
       .getAttribute("href")
   ).toContain("11155111/0x2222");
   expect(
-    window.getComputedStyle(
-      screen.getByRole("button", { name: /Start another deployment/ })
-    ).whiteSpace
-  ).toBe("normal");
-  const abiLink = screen.getByRole("link", {
-    name: "Download selected token ABI",
-  });
-  expect(decodeURIComponent(abiLink.getAttribute("href")!)).toContain(
-    '"name": "mint"'
-  );
-  expect(
-    screen.getByText(
-      "Saved deployment parameters (constructor arguments for verification)"
-    )
-  ).toBeTruthy();
-});
-it("mainnet requires a separate real-gas consent; changing parameters invalidates both consent and gas review", async () => {
-  const { wallet } = mount(fixture(1));
-  await review("1");
-  fireEvent.click(
-    screen.getByRole("checkbox", { name: /I understand this public/ })
-  );
-  expect(
-    screen
-      .getByRole("button", { name: "Confirm in wallet" })
-      .hasAttribute("disabled")
-  ).toBe(true);
-  fireEvent.click(
-    screen.getByRole("checkbox", { name: /I explicitly choose MAINNET/ })
-  );
-  expect(
-    screen
-      .getByRole("button", { name: "Confirm in wallet" })
-      .hasAttribute("disabled")
-  ).toBe(false);
-  fireEvent.change(screen.getByLabelText(/Name suffix/), {
-    target: { value: "Changed" },
-  });
-  expect(
-    screen.queryByRole("heading", { name: "Review mock deployment" })
+    screen.queryByText(`${hash.slice(0, 10)}…${hash.slice(-8)}`)
   ).toBeNull();
-  expect(wallet.submit).not.toHaveBeenCalled();
-  fireEvent.click(
-    screen.getByRole("button", { name: "Estimate & review deployment" })
+  expect(
+    screen
+      .getByRole("link", { name: "Open contract on block explorer" })
+      .getAttribute("href")
+  ).toBe(
+    "https://sepolia.etherscan.io/address/0x2222222222222222222222222222222222222222"
   );
-  await screen.findByRole("heading", { name: "Review mock deployment" });
-  expect(
-    (
-      screen.getByRole("checkbox", {
-        name: /I understand this public/,
-      }) as HTMLInputElement
-    ).checked
-  ).toBe(false);
-  expect(
-    (
-      screen.getByRole("checkbox", {
-        name: /I explicitly choose MAINNET/,
-      }) as HTMLInputElement
-    ).checked
-  ).toBe(false);
 });
-it("shows the wallet prompt in progress and consumes a rejected or uncertain request without retrying", async () => {
+it("rejects invalid recipient details before requesting the wallet", async () => {
+  const { wallet } = mount();
+  fireEvent.click(screen.getByRole("button", { name: "Deploy" }));
+  await screen.findByText(/Initial recipient must/);
+  expect(wallet.submit).not.toHaveBeenCalled();
+});
+it("locks duplicate deployment requests and preserves uncertain wallet status", async () => {
   const wallet = fixture();
-  let reject!: (e: unknown) => void;
-  wallet.submit.mockImplementation(
+  let reject!: (error: Error) => void;
+  wallet.submit.mockImplementationOnce(
     () =>
-      new Promise((_, r) => {
-        reject = r;
+      new Promise((_, fail) => {
+        reject = fail;
       })
   );
   mount(wallet);
-  await review();
-  fireEvent.click(
-    screen.getByRole("checkbox", { name: /I understand this public/ })
-  );
-  fireEvent.click(screen.getByRole("button", { name: "Confirm in wallet" }));
-  await screen.findByRole("heading", { name: "Awaiting wallet confirmation" });
-  expect(
-    screen.queryByRole("button", { name: "Confirm in wallet" })
-  ).toBeNull();
-  reject(new Error("fixture rejected/transport lost"));
-  await screen.findByRole("heading", {
-    name: "Wallet request outcome uncertain",
-  });
+  recipient();
+  const deploy = screen.getByRole("button", { name: "Deploy" });
+  fireEvent.click(deploy);
+  fireEvent.click(deploy);
   expect(wallet.submit).toHaveBeenCalledTimes(1);
   expect(
-    screen.queryByRole("button", { name: "Estimate & review deployment" })
-  ).toBeNull();
-  expect(screen.getByText(/Check your wallet and explorer/)).toBeTruthy();
-});
-it("expires a gas review and blocks insufficient balances without any wallet request", async () => {
-  const { wallet } = mount();
-  await review();
-  fireEvent.click(
-    screen.getByRole("checkbox", { name: /I understand this public/ })
-  );
-  vi.spyOn(Date, "now").mockReturnValue(Date.now() + 61001);
-  await screen.findByText(/Gas review expired/, {}, { timeout: 2000 });
-  expect(
-    screen
-      .getByRole("button", { name: "Confirm in wallet" })
-      .hasAttribute("disabled")
+    screen.getByRole("tab", { name: "ERC721" }).hasAttribute("disabled")
   ).toBe(true);
-  expect(wallet.submit).not.toHaveBeenCalled();
-  vi.restoreAllMocks();
-  cleanup();
-  const poor = fixture();
-  poor.estimate.mockResolvedValue({
-    ...estimate,
-    balance: 0n,
-    createdAt: Date.now(),
-  });
-  mount(poor);
-  await review();
-  expect(screen.getByText(/Insufficient native balance/)).toBeTruthy();
-  expect(
-    screen
-      .getByRole("button", { name: "Confirm in wallet" })
-      .hasAttribute("disabled")
-  ).toBe(true);
-});
-it("ignores a late estimate after account changes and clears reviewed consent on wallet network changes", async () => {
-  const wallet = fixture();
-  let resolve!: (e: typeof estimate) => void;
-  wallet.estimate.mockImplementationOnce(
-    () =>
-      new Promise((r) => {
-        resolve = r;
-      })
-  );
-  const view = mount(wallet);
-  fireEvent.change(screen.getByLabelText("Deployment network"), {
-    target: { value: "11155111" },
-  });
-  fireEvent.change(screen.getByLabelText("Initial recipient"), {
-    target: { value: account },
-  });
-  fireEvent.click(
-    screen.getByRole("button", { name: "Estimate & review deployment" })
-  );
-  view.rerender(
-    <ChakraProvider>
-      <MockTokenTool
-        wallet={{
-          ...wallet,
-          account: "0x2222222222222222222222222222222222222222",
-        }}
-      />
-    </ChakraProvider>
-  );
-  await act(async () => resolve(estimate));
-  await waitFor(() =>
-    expect(
-      screen
-        .getByRole("button", { name: "Estimate & review deployment" })
-        .hasAttribute("disabled")
-    ).toBe(false)
-  );
-  expect(
-    screen.queryByRole("heading", { name: "Review mock deployment" })
-  ).toBeNull();
-  fireEvent.click(
-    screen.getByRole("button", { name: "Estimate & review deployment" })
-  );
-  await screen.findByRole("heading", { name: "Review mock deployment" });
-  fireEvent.click(
-    screen.getByRole("checkbox", { name: /I understand this public/ })
-  );
-  view.rerender(
-    <ChakraProvider>
-      <MockTokenTool wallet={{ ...wallet, chainId: 1 }} />
-    </ChakraProvider>
-  );
-  expect(
-    screen.queryByRole("button", { name: "Confirm in wallet" })
-  ).toBeNull();
-  expect(wallet.submit).not.toHaveBeenCalled();
+  await act(async () => reject(new Error("Unknown wallet result")));
+  await screen.findByText(/No transaction hash returned/);
+  expect(screen.queryByRole("button", { name: "Deploy" })).toBeNull();
+  expect(wallet.submit).toHaveBeenCalledTimes(1);
 });
 it.each(["ERC721", "ERC1155"])(
-  "reviews %s metadata and zero initial NFT supply, without metadata requests",
+  "deploys %s directly with metadata",
   async (standard) => {
-    const fetcher = vi
-      .spyOn(globalThis, "fetch")
-      .mockRejectedValue(new Error("No HTTP allowed"));
     const { wallet } = mount();
-    fireEvent.change(screen.getByLabelText("Token standard"), {
-      target: { value: standard },
+    fireEvent.click(screen.getByRole("tab", { name: standard }));
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "My Collection" },
     });
-    fireEvent.change(screen.getByLabelText("Deployment network"), {
-      target: { value: "11155111" },
+    fireEvent.change(screen.getByLabelText("Symbol"), {
+      target: { value: "NFT" },
     });
     fireEvent.change(screen.getByLabelText(/metadata URI/i), {
-      target: { value: "ipfs://fixture/{id}" },
+      target: { value: "ipfs://fixture/" },
     });
-    fireEvent.click(
-      screen.getByRole("button", { name: "Estimate & review deployment" })
-    );
-    await screen.findByRole("heading", { name: "Review mock deployment" });
-    expect(screen.getByText(/initial NFT supply: 0/)).toBeTruthy();
-    expect(wallet.estimate.mock.calls[0][0].standard).toBe(standard);
-    expect(fetcher).not.toHaveBeenCalled();
-    expect(wallet.submit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Deploy" }));
+    await screen.findByText("Transaction submitted");
+    expect(wallet.submit.mock.calls[0][0].standard).toBe(standard);
+    expect(wallet.submit.mock.calls[0][0].args).toEqual([
+      "My Collection",
+      "NFT",
+      "ipfs://fixture/",
+    ]);
   }
 );
-it("keeps a pending hash on RPC failure and reports reverted receipt without resending", async () => {
+it("retains edits across tabs and uses exact ETH or Wei input for deployment", async () => {
   const { wallet } = mount();
-  await review();
-  fireEvent.click(
-    screen.getByRole("checkbox", { name: /I understand this public/ })
+  const supply = screen.getByLabelText("Initial supply");
+  const units = screen
+    .getAllByRole("combobox")
+    .find((element) =>
+      Array.from((element as HTMLSelectElement).options).some(
+        (option) => option.value === "ETH"
+      )
+    ) as HTMLSelectElement;
+  expect(units.value).toBe("ETH");
+  fireEvent.change(supply, { target: { value: "1.000000000000000001" } });
+  fireEvent.change(units, { target: { value: "Wei" } });
+  await waitFor(() =>
+    expect((supply as HTMLInputElement).value).toBe("1000000000000000001")
   );
-  fireEvent.click(screen.getByRole("button", { name: "Confirm in wallet" }));
-  await screen.findByText("Transaction submitted — not yet confirmed");
-  wallet.receipt.mockRejectedValueOnce(new Error("RPC offline"));
-  fireEvent.click(screen.getByRole("button", { name: "Check receipt" }));
-  await screen.findByText(/Receipt not available yet/);
+  fireEvent.change(supply, { target: { value: "2000000000000000001" } });
+  fireEvent.click(screen.getByRole("tab", { name: "ERC721" }));
+  fireEvent.click(screen.getByRole("tab", { name: "ERC20" }));
+  await waitFor(() =>
+    expect(
+      (screen.getByLabelText("Initial supply") as HTMLInputElement).value
+    ).toBe("2.000000000000000001")
+  );
+  recipient();
+  fireEvent.click(screen.getByRole("button", { name: "Deploy" }));
+  await screen.findByText("Transaction submitted");
+  expect(wallet.submit.mock.calls[0][0].args[3]).toBe(2000000000000000001n);
+});
+it("disables deployment for invalid supply", () => {
+  const { wallet } = mount();
+  fireEvent.change(screen.getByLabelText("Initial supply"), {
+    target: { value: "invalid" },
+  });
+  expect(
+    screen.getByRole("button", { name: "Deploy" }).hasAttribute("disabled")
+  ).toBe(true);
+  expect(wallet.submit).not.toHaveBeenCalled();
+});
+it("resolves a recipient name before direct deployment", async () => {
+  const { wallet } = mount();
+  fireEvent.change(screen.getByLabelText("Initial recipient"), {
+    target: { value: "recipient.eth" },
+  });
+  await waitFor(
+    () =>
+      expect(
+        (screen.getByLabelText("Initial recipient") as HTMLInputElement).value
+      ).toBe(account),
+    { timeout: 2000 }
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Deploy" }));
+  await screen.findByText("Transaction submitted");
+  expect(wallet.submit.mock.calls[0][0].args[2]).toBe(account);
+});
+it("switches chain before offering Deploy and does not deploy automatically", async () => {
+  const wallet = fixture(1);
+  const view = mount(wallet);
+  fireEvent.change(screen.getByLabelText("Deployment network"), {
+    target: { value: "100" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Switch Chain" }));
+  await waitFor(() =>
+    expect(wallet.switchChain).toHaveBeenCalledWith(100)
+  );
+  view.rerender(
+    <ChakraProvider>
+      <MockTokenTool wallet={{ ...wallet, chainId: 100 }} />
+    </ChakraProvider>
+  );
+  expect(screen.getByRole("button", { name: "Deploy" })).toBeTruthy();
+  expect(wallet.submit).not.toHaveBeenCalled();
+});
+it("allows retrying a rejected chain switch without deploying", async () => {
+  const wallet = fixture(1);
+  wallet.switchChain.mockRejectedValueOnce(new Error("Rejected"));
+  mount(wallet);
+  fireEvent.click(screen.getByRole("button", { name: "Switch Chain" }));
+  await screen.findByText("Chain switch failed. Try again in your wallet.");
+  expect(
+    screen
+      .getByRole("button", { name: "Switch Chain" })
+      .hasAttribute("disabled")
+  ).toBe(false);
+  expect(wallet.submit).not.toHaveBeenCalled();
+});
+it("automatically retries pending receipts, shows a revert and never resends", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const wallet = fixture();
+  wallet.receipt.mockRejectedValueOnce(new Error("Receipt not mined yet"));
+  wallet.receipt.mockResolvedValueOnce({
+    status: "reverted",
+    contractAddress: null,
+  } as any);
+  mount(wallet);
+  recipient();
+  await act(async () =>
+    fireEvent.click(screen.getByRole("button", { name: "Deploy" }))
+  );
+  expect(screen.getByText("Transaction submitted")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Check receipt" })).toBeNull();
+  await act(async () => vi.advanceTimersByTimeAsync(3000));
+  expect(screen.getByText("Waiting for confirmation…")).toBeTruthy();
   expect(
     screen
       .getByRole("link", { name: "Open transaction explorer" })
       .getAttribute("href")
   ).toContain(hash);
-  wallet.receipt.mockResolvedValueOnce({
-    status: "reverted",
-    contractAddress: null,
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Check receipt" }));
-  await screen.findByText("Deployment reverted — gas may have been spent");
-  expect(
-    screen.queryByRole("link", { name: "Open deployed mock in explorer" })
-  ).toBeNull();
+  await act(async () => vi.advanceTimersByTimeAsync(3000));
+  expect(screen.getByText("Deployment reverted")).toBeTruthy();
+  await act(async () => vi.advanceTimersByTimeAsync(6000));
+  expect(wallet.receipt).toHaveBeenCalledTimes(2);
   expect(wallet.submit).toHaveBeenCalledTimes(1);
 });
+
+it.each([
+  Object.assign(new Error("Rejected"), { code: 4001 }),
+  new Error("Transaction failed", {
+    cause: Object.assign(new Error("Rejected"), {
+      name: "UserRejectedRequestError",
+    }),
+  }),
+])(
+  "unlocks the form and removes submission details after a confirmed wallet rejection",
+  async (error) => {
+    const { wallet } = mount();
+    wallet.submit.mockRejectedValueOnce(error);
+    recipient();
+    fireEvent.click(screen.getByRole("button", { name: "Deploy" }));
+    await screen.findByText("Transaction rejected.");
+    expect(screen.queryByText("Check wallet status")).toBeNull();
+    expect(screen.queryByText("Constructor arguments")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(
+      screen.getByRole("tab", { name: "ERC721" }).hasAttribute("disabled")
+    ).toBe(false);
+    expect(
+      (
+        screen.getByLabelText("Name", { exact: true }) as HTMLInputElement
+      ).closest("fieldset")?.disabled
+    ).toBe(false);
+    expect(
+      screen.getByRole("button", { name: "Deploy" }).hasAttribute("disabled")
+    ).toBe(false);
+    fireEvent.change(screen.getByLabelText("Name", { exact: true }), {
+      target: { value: "Retry token" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Deploy" }));
+    await screen.findByText("Transaction submitted");
+    expect(wallet.submit).toHaveBeenCalledTimes(2);
+    expect(wallet.submit.mock.calls[1][0].args[0]).toBe("Retry token");
+  }
+);

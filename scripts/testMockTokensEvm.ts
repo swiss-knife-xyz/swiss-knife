@@ -72,14 +72,8 @@ async function main() {
             bytesToHex(result.execResult.returnValue)
           );
       }
-      assert.equal(
-        (await call("name"))![0],
-        standard === "ERC1155" ? "MOCK ERC1155" : "MOCK Fixture"
-      );
-      assert.equal(
-        (await call("symbol"))![0],
-        standard === "ERC1155" ? "MOCK_1155" : "MOCK_FX"
-      );
+      assert.equal((await call("name"))![0], "Fixture");
+      assert.equal((await call("symbol"))![0], "FX");
       if (standard === "ERC20") {
         const initial = 9007199254740993000000000000000001n;
         assert.equal((await call("decimals"))![0], 18n);

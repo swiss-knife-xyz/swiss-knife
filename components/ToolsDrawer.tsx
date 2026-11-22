@@ -1,0 +1,341 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Box,
+  Flex,
+  Text,
+  Link as ChakraLink,
+  IconButton,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  DrawerHeader,
+  DrawerBody,
+} from "@chakra-ui/react";
+import { ChevronDown, Search } from "lucide-react";
+import { toolCategories, type ToolCatalogEntry } from "@/data/toolCatalog";
+import subdomains from "@/subdomains";
+import { defaultTools } from "@/lib/seo";
+import { getPath } from "@/utils";
+
+const pageLabels: Record<string, string> = {
+  decoder: "Calldata Decoder",
+  encoder: "Calldata Encoder",
+  "viem-error-simulate": "Viem Error Simulator",
+  cowswap: "CowSwap Decoder",
+  verify: "Cross-explorer Verification",
+  eth: "ETH / Wei",
+  "gas-cost": "Gas Cost",
+  hexadecimal: "Hexadecimal",
+  keccak256: "Keccak256",
+  padding: "Padding",
+  "address-checksum": "Address Checksum",
+  "send-tx": "Send Transaction",
+  "tick-to-price": "Tick to Price",
+  "pool-price-to-target": "Pool Price to Target",
+  "initialize-pool": "Initialize Pool",
+  "add-liquidity": "Add Liquidity",
+  swap: "Swap",
+  positions: "Positions",
+  "calldata-decoder": "Safe Calldata Decoder",
+  "eip-712-hash": "EIP-712 Hash",
+  compiler: "Solidity Compiler",
+  history: "ENS History",
+  ccip: "CCIP Resolve",
+  bridge: "Wallet Bridge",
+  "ds-proxy": "DS Proxy",
+  "coinbase-smart-wallet": "Coinbase Smart Wallet",
+  signatures: "Wallet Signatures",
+  "forge-stack-tracer-ui": "Forge Stack Tracer",
+};
+const featuredPages = new Set(
+  toolCategories.flatMap((category) =>
+    category.tools.map(
+      (tool) =>
+        `${tool.subdomain}/${tool.path ?? defaultTools[tool.subdomain] ?? ""}`
+    )
+  )
+);
+const navigation = toolCategories.map((category) => ({
+  ...category,
+  tools: category.tools.map((tool) => ({
+    ...tool,
+    id: `${tool.subdomain}/${tool.path ?? defaultTools[tool.subdomain] ?? ""}`,
+    children: tool.path
+      ? []
+      : (
+          Object.values(subdomains).find((item) => item.base === tool.subdomain)
+            ?.paths ?? []
+        )
+          .filter((path) => !featuredPages.has(`${tool.subdomain}/${path}`))
+          .map((path) => ({
+            path,
+            label: pageLabels[path] ?? path.replaceAll("-", " "),
+          })),
+  })),
+}));
+const toolHref = (
+  tool: ToolCatalogEntry,
+  path = tool.path ?? defaultTools[tool.subdomain] ?? ""
+) => `${getPath(tool.subdomain, tool.info.isRelativePath)}${path}`;
+
+export function ToolsNavigation({
+  query = "",
+  onNavigate,
+}: {
+  query?: string;
+  onNavigate: () => void;
+}) {
+  const pathname = usePathname();
+  const [location, setLocation] = useState<string>();
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  useEffect(() => setLocation(window.location.href), [pathname]);
+  const current = (href: string) => {
+    if (!location) return false;
+    const target = new URL(href, location),
+      actual = new URL(location);
+    return (
+      target.origin === actual.origin &&
+      target.pathname.replace(/\/$/, "") === actual.pathname.replace(/\/$/, "")
+    );
+  };
+  const search = query.trim().toLowerCase();
+  const matches = (...values: string[]) =>
+    values.join(" ").toLowerCase().includes(search);
+  const categories = navigation
+    .map((category) => ({
+      ...category,
+      tools: category.tools.flatMap((tool) => {
+        const parentMatches = matches(
+          tool.info.label,
+          tool.subdomain,
+          tool.path ?? ""
+        );
+        const children = tool.children.filter(
+          (child) => parentMatches || matches(child.label, child.path)
+        );
+        return parentMatches || children.length ? [{ ...tool, children }] : [];
+      }),
+    }))
+    .filter((category) => category.tools.length);
+  return (
+    <Box as="nav" aria-label="All tools">
+      {categories.map((category) => (
+        <Box
+          as="section"
+          key={category.id}
+          aria-labelledby={`tools-${category.id}`}
+          pt={5}
+        >
+          <Text
+            as="h2"
+            id={`tools-${category.id}`}
+            px={3}
+            mb={2}
+            fontSize="xs"
+            fontWeight="semibold"
+            color="text.secondary"
+            letterSpacing="0.06em"
+            textTransform="uppercase"
+          >
+            {category.label}
+          </Text>
+          {category.tools.map((tool) => {
+            const href = toolHref(tool),
+              active = current(href);
+            const isExpanded = Boolean(search) || expanded.has(tool.id);
+            const panelId = `tool-pages-${tool.subdomain}`;
+            return (
+              <Box key={tool.id}>
+                <Flex align="center" gap={1}>
+                  <ChakraLink
+                    as={Link}
+                    href={href}
+                    onClick={onNavigate}
+                    flex={1}
+                    minW={0}
+                    display="flex"
+                    alignItems="center"
+                    minH={10}
+                    px={3}
+                    py={2}
+                    rounded="md"
+                    fontSize="sm"
+                    fontWeight={active ? "semibold" : "medium"}
+                    color={active ? "primary.300" : "text.primary"}
+                    bg={active ? "bg.emphasis" : "transparent"}
+                    aria-current={active ? "page" : undefined}
+                    _hover={{ bg: "bg.emphasis", textDecoration: "none" }}
+                    _focusVisible={{ boxShadow: "outline" }}
+                  >
+                    {tool.info.label}
+                  </ChakraLink>
+                  {tool.children.length > 0 && !search && (
+                    <IconButton
+                      aria-label={`Show ${tool.info.label} pages`}
+                      aria-expanded={isExpanded}
+                      aria-controls={panelId}
+                      icon={
+                        <ChevronDown
+                          size={16}
+                          style={{
+                            transform: isExpanded
+                              ? "rotate(180deg)"
+                              : undefined,
+                          }}
+                        />
+                      }
+                      onClick={() =>
+                        setExpanded((previous) => {
+                          const next = new Set(previous);
+                          next.has(tool.id)
+                            ? next.delete(tool.id)
+                            : next.add(tool.id);
+                          return next;
+                        })
+                      }
+                      variant="ghost"
+                      size="sm"
+                      w={9}
+                      h={9}
+                      flexShrink={0}
+                      color="text.secondary"
+                      _hover={{ bg: "bg.emphasis", color: "text.primary" }}
+                    />
+                  )}
+                </Flex>
+                {tool.children.length > 0 && isExpanded && (
+                  <Box
+                    id={panelId}
+                    ml={4}
+                    pl={2}
+                    borderLeftWidth="1px"
+                    borderColor="border.default"
+                    my={1}
+                  >
+                    {tool.children.map((child) => {
+                      const childHref = toolHref(tool, child.path),
+                        childActive = current(childHref);
+                      return (
+                        <ChakraLink
+                          as={Link}
+                          key={child.path}
+                          href={childHref}
+                          onClick={onNavigate}
+                          display="flex"
+                          alignItems="center"
+                          minH={9}
+                          px={3}
+                          py={2}
+                          rounded="md"
+                          fontSize="sm"
+                          color={childActive ? "primary.300" : "text.secondary"}
+                          aria-current={childActive ? "page" : undefined}
+                          _hover={{
+                            bg: "bg.emphasis",
+                            color: "text.primary",
+                            textDecoration: "none",
+                          }}
+                          _focusVisible={{ boxShadow: "outline" }}
+                        >
+                          {child.label}
+                        </ChakraLink>
+                      );
+                    })}
+                  </Box>
+                )}
+              </Box>
+            );
+          })}
+        </Box>
+      ))}
+      {!categories.length && (
+        <Text px={3} py={8} fontSize="sm" color="text.secondary">
+          No tools found.
+        </Text>
+      )}
+    </Box>
+  );
+}
+
+export function ToolsDrawer({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const closeRef = useRef<HTMLButtonElement>(null!);
+  const close = () => {
+    setQuery("");
+    onClose();
+  };
+  return (
+    <Drawer
+      isOpen={isOpen}
+      placement="right"
+      onClose={close}
+      initialFocusRef={closeRef}
+    >
+      <DrawerOverlay backdropFilter="blur(8px)" bg="blackAlpha.600" />
+      <DrawerContent
+        bg="bg.base"
+        w="full"
+        maxW={{ base: "100vw", sm: "380px" }}
+        h="100dvh"
+      >
+        <DrawerCloseButton
+          ref={closeRef}
+          top={4}
+          right={4}
+          color="text.secondary"
+          _hover={{ color: "text.primary", bg: "bg.emphasis" }}
+        />
+        <DrawerHeader
+          px={5}
+          pt={5}
+          pb={4}
+          borderBottomWidth="1px"
+          borderColor="border.subtle"
+        >
+          <Text fontSize="lg" fontWeight="semibold" color="text.primary" mb={4}>
+            All Tools
+          </Text>
+          <InputGroup size="sm">
+            <InputLeftElement pointerEvents="none" h={10} color="text.tertiary">
+              <Search size={16} />
+            </InputLeftElement>
+            <Input
+              aria-label="Find a tool"
+              placeholder="Find a tool…"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              h={10}
+              bg="bg.subtle"
+              rounded="md"
+              autoComplete="off"
+              spellCheck={false}
+              fontWeight="normal"
+            />
+          </InputGroup>
+        </DrawerHeader>
+        <DrawerBody
+          px={3}
+          pt={0}
+          pb="max(24px, env(safe-area-inset-bottom))"
+          overscrollBehavior="contain"
+        >
+          {isOpen && <ToolsNavigation query={query} onNavigate={close} />}
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
+  );
+}

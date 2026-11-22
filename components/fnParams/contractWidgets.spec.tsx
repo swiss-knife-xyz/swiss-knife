@@ -40,7 +40,8 @@ const clipboardWrite = vi.fn();
 function show(
   func: JsonFragment,
   type: "read" | "write" = "read",
-  initialCall?: { args: unknown[]; value: string }
+  initialCall?: { args: unknown[]; value: string },
+  isAbiDecoded = false
 ) {
   return render(
     <ChakraProvider>
@@ -52,6 +53,7 @@ function show(
         address={address}
         chainId={1}
         initialCall={initialCall}
+        isAbiDecoded={isAbiDecoded}
       />
     </ChakraProvider>
   );
@@ -438,4 +440,60 @@ it("focuses the first tuple field when adding an array row and keeps rapid addit
     expect(document.activeElement).toBe(screen.getAllByRole("textbox")[2])
   );
   expect(screen.getAllByRole("textbox")).toHaveLength(4);
+});
+
+
+it("opens the shared Sourcify modal beside an unresolved selector warning with that selector prefilled", async () => {
+  show({
+    type: "function", name: "selector: 0x40c10f19", selector: "0x40c10f19",
+    inputInference: { source: "unknown", message: "Unknown input types" },
+    stateMutability: "nonpayable", inputs: [], outputs: [],
+  } as any, "write", undefined, true);
+  const action = await screen.findByRole("button", { name: "Submit function signature to Sourcify" });
+  expect(screen.getByLabelText("Inferred signature, not verified")).toBeTruthy();
+  fireEvent.click(action);
+  await screen.findByRole("dialog", { name: "Add a missing signature" });
+  expect((screen.getByLabelText("4-byte selector") as HTMLInputElement).value).toBe("0x40c10f19");
+  expect((screen.getByLabelText("Canonical function signature") as HTMLInputElement).value).toBe("");
+});
+
+it.each(["imported", "duplicated"])("updates the current unresolved function immediately after a %s Sourcify response", async (status) => {
+  const selector = "0x40c10f19";
+  const signature = "mint(address,uint256)";
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: { function: { [selector]: [] } } })))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: { function: {
+      imported: status === "imported" ? { [signature]: selector } : {},
+      duplicated: status === "duplicated" ? { [signature]: selector } : {}, invalid: [],
+    } } })));
+  vi.stubGlobal("fetch", fetcher);
+  show({
+    type: "function", name: `selector: ${selector}`, selector,
+    inputInference: { source: "unknown", message: "Unknown input types" },
+    stateMutability: "nonpayable", inputs: [], outputs: [],
+  } as any, "write", undefined, true);
+  fireEvent.click(await screen.findByRole("button", { name: "Submit function signature to Sourcify" }));
+  fireEvent.change(screen.getByLabelText("Canonical function signature"), { target: { value: "mint(address to, uint256 amount)" } });
+  fireEvent.click(screen.getByRole("button", { name: "Submit to Sourcify" }));
+  await screen.findByText("mint", { exact: true });
+  expect(screen.getByText("arg0", { exact: true })).toBeTruthy();
+  expect(screen.getByText("arg1", { exact: true })).toBeTruthy();
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByLabelText("Inferred signature, not verified")).toBeTruthy();
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it("does not rename the function when a Sourcify submission is not confirmed", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Offline")));
+  show({
+    type: "function", name: "selector: 0x40c10f19", selector: "0x40c10f19",
+    inputInference: { source: "unknown", message: "Unknown input types" },
+    stateMutability: "nonpayable", inputs: [], outputs: [],
+  } as any, "write", undefined, true);
+  fireEvent.click(await screen.findByRole("button", { name: "Submit function signature to Sourcify" }));
+  fireEvent.change(screen.getByLabelText("Canonical function signature"), { target: { value: "mint(address,uint256)" } });
+  fireEvent.click(screen.getByRole("button", { name: "Submit to Sourcify" }));
+  await screen.findByText(/Could not check Sourcify/);
+  expect(screen.getByText("selector: 0x40c10f19", { exact: true })).toBeTruthy();
+  expect(screen.queryByText("arg0", { exact: true })).toBeNull();
 });

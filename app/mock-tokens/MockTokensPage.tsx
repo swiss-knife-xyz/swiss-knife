@@ -1,34 +1,28 @@
 "use client";
+import { useEffect, useState } from "react";
 import { Box } from "@chakra-ui/react";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { Layout } from "@/components/Layout";
 import { getPublicClient } from "@/lib/publicClient";
-import { estimateMockDeployment, sendReviewedMock } from "@/lib/mockTokens";
+import { sendMockDeployment } from "@/lib/mockTokens";
 import { MockTokenTool, type MockWallet } from "./MockTokenTool";
 
 export function MockTokensPage() {
   const { address, chainId } = useAccount();
+  const { switchChainAsync } = useSwitchChain();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const { data: walletClient } = useWalletClient();
   const wallet: MockWallet = {
-    account: address,
-    chainId,
-    estimate: async (deployment, account) => {
-      try {
-        return await estimateMockDeployment(
-          deployment,
-          account,
-          getPublicClient(deployment.chain.id, { timeout: 10_000 })
-        );
-      } catch {
-        throw new Error(
-          "Could not estimate gas on the selected network. Check native gas balance and RPC availability. Nothing was submitted."
-        );
-      }
+    account: hydrated ? address : undefined,
+    chainId: hydrated ? chainId : undefined,
+    switchChain: async (id) => {
+      await switchChainAsync({ chainId: id });
     },
-    submit: async (deployment, estimate, account) => {
+    submit: async (deployment, account) => {
       if (!walletClient) throw new Error("Connect a wallet first.");
-      return sendReviewedMock(deployment, estimate, account, {
+      return sendMockDeployment(deployment, account, {
         getChainId: () => walletClient.getChainId(),
         getAddresses: () => walletClient.getAddresses(),
         sendTransaction: (request) => walletClient.sendTransaction(request),
@@ -46,11 +40,8 @@ export function MockTokensPage() {
   };
   return (
     <Layout minW={0}>
-      <Box mb={5} maxW="850px" mx="auto">
-        <ConnectButton />
-      </Box>
       <Box pb={8} minW={0}>
-        <MockTokenTool wallet={wallet} />
+        <MockTokenTool wallet={wallet} walletControl={<ConnectButton />} />
       </Box>
     </Layout>
   );

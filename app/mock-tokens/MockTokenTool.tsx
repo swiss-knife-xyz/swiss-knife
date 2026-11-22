@@ -1,42 +1,76 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Alert,
   AlertIcon,
   Box,
   Button,
-  Checkbox,
-  Code,
   FormControl,
   FormLabel,
   Heading,
   Input,
   Link,
-  Select,
+  SimpleGrid,
+  Flex,
+  HStack,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
+  Icon,
+  IconButton,
+  Tooltip,
+  Spinner,
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { formatUnits, type Address, type Hex } from "viem";
-import { MOCK_ARTIFACTS } from "@/lib/mockTokens.generated";
+import { getPath } from "@/utils";
+import subdomains from "@/subdomains";
+import { formatWithCommas } from "@/utils/formatWithCommas";
+import { parseUnits, formatUnits, type Address, type Hex } from "viem";
 import {
-  assertReviewReady,
   buildMockDeployment,
-  maximumCost,
   MOCK_CHAINS,
   type MockDeployment,
   type MockDraft,
-  type MockEstimate,
 } from "@/lib/mockTokens";
+
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  Clock3,
+  Wallet,
+  XCircle,
+} from "lucide-react";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { MockTokenVerification } from "./MockTokenVerification";
+import { MockContractFiles } from "./MockContractFiles";
+import { AddressInput } from "@/components/fnParams/inputs/AddressInput";
+import { IntInput } from "@/components/fnParams/inputs/IntInput";
+import { DarkSelect } from "@/components/DarkSelect";
+import { chainIdToImage } from "@/data/common";
+import { VERIFICATION_CHAINS } from "@/lib/verification/source";
+const standardOptions = ["ERC20", "ERC721", "ERC1155"].map((value) => ({
+  value,
+  label: value,
+}));
+const networkOptions = [true, false].map((testnet) => ({
+  label: testnet ? "Testnets" : "Mainnets",
+  options: MOCK_CHAINS.filter(
+    (chain) => Boolean(chain.testnet) === testnet
+  ).map((chain) => ({
+    value: String(chain.id),
+    label: chain.name,
+    image: chainIdToImage[chain.id],
+  })),
+}));
 
 export type MockWallet = {
   account?: Address;
   chainId?: number;
-  estimate(deployment: MockDeployment, account: Address): Promise<MockEstimate>;
-  submit(
-    deployment: MockDeployment,
-    estimate: MockEstimate,
-    account: Address
-  ): Promise<Hex>;
+  switchChain(chainId: number): Promise<void>;
+  submit(deployment: MockDeployment, account: Address): Promise<Hex>;
   receipt(
     chainId: number,
     hash: Hex
@@ -44,12 +78,6 @@ export type MockWallet = {
     status: "success" | "reverted";
     contractAddress: Address | null;
   }>;
-};
-type Review = {
-  deployment: MockDeployment;
-  estimate: MockEstimate;
-  account: Address;
-  key: string;
 };
 type Submission = {
   deployment: MockDeployment;
@@ -59,30 +87,62 @@ type Submission = {
   state: "wallet" | "unknown" | "pending" | "success" | "reverted";
   address?: Address;
 };
+function isWalletRejection(error: unknown): boolean {
+  const seen = new Set<object>();
+  let cause = error;
+  while (cause && typeof cause === "object" && !seen.has(cause)) {
+    seen.add(cause);
+    const details = cause as {
+      code?: unknown;
+      name?: unknown;
+      cause?: unknown;
+    };
+    if (details.code === 4001 || details.name === "UserRejectedRequestError")
+      return true;
+    cause = details.cause;
+  }
+  return false;
+}
+
 const initial: MockDraft = {
   standard: "ERC20",
-  chainId: "",
+  chainId: "11155111",
   name: "Token",
   symbol: "TKN",
-  initialSupply: "0",
+  initialSupply: "1000000",
   recipient: "",
   uri: "",
 };
-export function MockTokenTool({ wallet }: { wallet: MockWallet }) {
+export function MockTokenTool({
+  wallet,
+  walletControl,
+}: {
+  wallet: MockWallet;
+  walletControl?: ReactNode;
+}) {
   const [draft, setDraft] = useState(initial);
-  const [review, setReview] = useState<Review>();
-  const [consent, setConsent] = useState(false);
-  const [mainnetConsent, setMainnetConsent] = useState(false);
+  const [supplyInvalid, setSupplyInvalid] = useState(false);
+  const supplyValue = useMemo(() => {
+    try {
+      return parseUnits(draft.initialSupply, 18).toString();
+    } catch {
+      return "";
+    }
+  }, [draft.initialSupply]);
   const [busy, setBusy] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const [error, setError] = useState("");
   const [submission, setSubmission] = useState<Submission>();
-  const [now, setNow] = useState(Date.now());
+  const receiptRef = useRef(wallet.receipt);
+  receiptRef.current = wallet.receipt;
   const lock = useRef(false);
-  const generation = useRef(0);
   const mounted = useRef(true);
-  const key = JSON.stringify([draft, wallet.account, wallet.chainId]);
-  const latest = useRef(key);
-  latest.current = key;
+  const key = JSON.stringify([
+    draft,
+    wallet.account,
+    wallet.chainId,
+    supplyInvalid,
+  ]);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -90,585 +150,618 @@ export function MockTokenTool({ wallet }: { wallet: MockWallet }) {
     };
   }, []);
   useEffect(() => {
-    setReview(undefined);
-    setConsent(false);
-    setMainnetConsent(false);
     setError("");
   }, [key]);
   useEffect(() => {
-    if (!review) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [review]);
-  const current = review?.key === key ? review : undefined;
-  const expired = current ? now - current.estimate.createdAt > 60_000 : false;
-  const insufficient = current
-    ? maximumCost(current.estimate) > current.estimate.balance
-    : false;
-  const selected = MOCK_CHAINS.find((c) => String(c.id) === draft.chainId);
-  function edit(field: keyof MockDraft, value: string) {
-    generation.current++;
-    setDraft((d) => ({ ...d, [field]: value }));
-  }
-  async function estimate() {
-    if (lock.current) return;
-    lock.current = true;
-    setBusy(true);
-    setError("");
-    setReview(undefined);
-    setConsent(false);
-    setMainnetConsent(false);
-    const token = ++generation.current;
-    try {
-      const deployment = buildMockDeployment(draft);
-      if (!wallet.account || wallet.chainId !== deployment.chain.id)
-        throw new Error(
-          "Connect your wallet on the selected network before estimating. Network changes are never automatic."
-        );
-      const estimate = await wallet.estimate(deployment, wallet.account);
-      if (
-        mounted.current &&
-        token === generation.current &&
-        latest.current === key
-      ) {
-        setNow(Date.now());
-        setReview({ deployment, estimate, account: wallet.account, key });
+    if (submission?.state !== "pending" || !submission.hash) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const { hash, chainId } = submission;
+    async function poll() {
+      try {
+        const receipt = await receiptRef.current(chainId, hash!);
+        if (!cancelled) {
+          setSubmission((current) =>
+            current?.hash === hash && current.state === "pending"
+              ? {
+                  ...current,
+                  state: receipt.status,
+                  address: receipt.contractAddress ?? undefined,
+                }
+              : current
+          );
+        }
+      } catch {
+        if (!cancelled) timer = setTimeout(poll, 3000);
       }
-    } catch (e) {
-      if (mounted.current && token === generation.current)
-        setError(
-          e instanceof Error
-            ? e.message
-            : "Gas estimation failed. Nothing was submitted."
-        );
+    }
+    timer = setTimeout(poll, 3000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [submission?.hash, submission?.chainId, submission?.state]);
+  const selected = MOCK_CHAINS.find((c) => String(c.id) === draft.chainId);
+  const needsChainSwitch = Boolean(
+    selected && wallet.account && wallet.chainId !== selected.id
+  );
+  async function switchChain() {
+    if (lock.current || !selected || !wallet.account) return;
+    lock.current = true;
+    setSwitching(true);
+    setError("");
+    try {
+      await wallet.switchChain(selected.id);
+    } catch {
+      if (mounted.current)
+        setError("Chain switch failed. Try again in your wallet.");
     } finally {
       lock.current = false;
-      if (mounted.current) setBusy(false);
+      if (mounted.current) setSwitching(false);
     }
   }
+  function edit(field: keyof MockDraft, value: string) {
+    if (field === "standard") setSupplyInvalid(false);
+    setDraft((d) => ({ ...d, [field]: value }));
+  }
   async function submit() {
-    if (lock.current || !current || submission) return;
+    if (
+      lock.current ||
+      submission ||
+      (draft.standard === "ERC20" && supplyInvalid)
+    )
+      return;
+    let deployment: MockDeployment;
+    const account = wallet.account;
     try {
-      assertReviewReady(
-        current.deployment,
-        current.estimate,
-        current.account,
-        wallet.account,
-        wallet.chainId,
-        consent,
-        mainnetConsent
+      deployment = buildMockDeployment(draft);
+      if (!account || wallet.chainId !== deployment.chain.id)
+        throw new Error("Connect your wallet on the selected network.");
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Check the token details."
       );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Review again.");
       return;
     }
     lock.current = true;
     setBusy(true);
     setError("");
     const record: Submission = {
-      deployment: current.deployment,
-      chainId: current.deployment.chain.id,
-      explorer: current.deployment.chain.blockExplorers.default.url,
+      deployment,
+      chainId: deployment.chain.id,
+      explorer: deployment.chain.blockExplorers.default.url,
       state: "unknown",
     };
-    // Consume review before opening the wallet. Never replay an ambiguous send.
-    setReview(undefined);
-    setConsent(false);
-    setMainnetConsent(false);
     setSubmission({ ...record, state: "wallet" });
     try {
-      const hash = await wallet.submit(
-        current.deployment,
-        current.estimate,
-        current.account
-      );
+      const hash = await wallet.submit(deployment, account);
       if (mounted.current) setSubmission({ ...record, hash, state: "pending" });
-    } catch {
+    } catch (error) {
       if (mounted.current) {
-        setSubmission(record);
-        setError(
-          "Wallet request did not return a transaction hash. It may have been rejected, or delivery may be uncertain. Check your wallet and explorer before starting another deployment; do not blindly retry."
-        );
+        if (isWalletRejection(error)) {
+          setSubmission(undefined);
+          setError("Transaction rejected.");
+        } else {
+          setSubmission(record);
+          setError(
+            "No transaction hash returned. Check your wallet and explorer before trying again."
+          );
+        }
       }
     } finally {
       lock.current = false;
       if (mounted.current) setBusy(false);
     }
   }
-  async function checkReceipt() {
-    if (lock.current || !submission?.hash) return;
-    lock.current = true;
-    setBusy(true);
-    setError("");
-    try {
-      const receipt = await wallet.receipt(submission.chainId, submission.hash);
-      if (mounted.current)
-        setSubmission({
-          ...submission,
-          state: receipt.status,
-          address: receipt.contractAddress ?? undefined,
-        });
-    } catch {
-      if (mounted.current)
-        setError(
-          "Receipt not available yet or RPC unavailable. Check again or open the transaction explorer. No transaction was resent."
-        );
-    } finally {
-      lock.current = false;
-      if (mounted.current) setBusy(false);
-    }
-  }
-  return (
-    <Stack spacing={5} maxW="850px" mx="auto" minW={0}>
-      <Heading as="h1" size="lg">
-        Deploy mock tokens
-      </Heading>
-      <Alert status="warning" alignItems="start">
-        <AlertIcon />
-        <Text>
-          MOCK ONLY — anyone can mint unlimited tokens to anyone. These tokens
-          have no backing or promised value. Contracts and parameters are public
-          and permanent, even on mainnet. Never use them as real assets.
-        </Text>
-      </Alert>
-      <Text>
-        OpenZeppelin Contracts 5.0.2 with small permissionless-mint wrappers,
-        compiled with Solidity 0.8.28 for Paris EVM. No owner, upgrade, fee,
-        faucet limit or access control. Not an independent security audit.
-      </Text>
-      <Box
-        as="fieldset"
-        disabled={busy || !!submission}
-        minW={0}
-        border={0}
-        p={0}
-      >
-        <Stack spacing={4}>
-          <FormControl>
-            <FormLabel htmlFor="mock-standard">Token standard</FormLabel>
-            <Select
-              id="mock-standard"
-              value={draft.standard}
-              onChange={(e) => edit("standard", e.target.value)}
-            >
-              {["ERC20", "ERC721", "ERC1155"].map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <FormLabel htmlFor="mock-chain">Deployment network</FormLabel>
-            <Select
-              id="mock-chain"
-              value={draft.chainId}
-              onChange={(e) => edit("chainId", e.target.value)}
-            >
-              <option value="">Choose a network — no default</option>
-              {[true, false].map((testnet) => (
-                <optgroup
-                  key={String(testnet)}
-                  label={
-                    testnet
-                      ? "Testnets — test funds"
-                      : "Mainnets — real gas costs"
-                  }
-                >
-                  {MOCK_CHAINS.filter((c) => !!c.testnet === testnet).map(
-                    (c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} · {c.id} ·{" "}
-                        {testnet ? "TESTNET" : "MAINNET / REAL GAS"}
-                      </option>
-                    )
-                  )}
-                </optgroup>
-              ))}
-            </Select>
-          </FormControl>
-          {selected && !selected.testnet && (
-            <Alert status="error">
-              <AlertIcon />
-              MAINNET: deploying spends real {
-                selected.nativeCurrency.symbol
-              }{" "}
-              and permanently publishes a mock contract.
-            </Alert>
-          )}
+  const standardIndex = standardOptions.findIndex(
+    (option) => option.value === draft.standard
+  );
+  const tokenName = draft.name.trim() || "…";
+  const tokenSymbol = draft.symbol.trim() || "…";
+  const formDisabled = busy || switching || Boolean(submission);
+  const fields = (
+    <Box as="fieldset" disabled={formDisabled} border={0} p={0} minW={0}>
+      <Stack spacing={6}>
+        <Box>
           {draft.standard !== "ERC1155" && (
-            <>
-              <FormControl>
-                <FormLabel htmlFor="mock-name">
-                  Name suffix (MOCK prefix enforced onchain)
-                </FormLabel>
-                <Input
-                  id="mock-name"
-                  maxLength={64}
-                  value={draft.name}
-                  onChange={(e) => edit("name", e.target.value)}
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel htmlFor="mock-symbol">
-                  Symbol suffix (MOCK_ prefix enforced onchain)
-                </FormLabel>
-                <Input
-                  id="mock-symbol"
-                  maxLength={16}
-                  value={draft.symbol}
-                  onChange={(e) => edit("symbol", e.target.value)}
-                />
-              </FormControl>
-            </>
+            <Text fontSize="sm" color="text.secondary" mb={5}>
+              {draft.standard === "ERC20"
+                ? "Fungible tokens with 18 decimals."
+                : "Unique NFTs with individual token IDs."}
+            </Text>
           )}
-          {draft.standard === "ERC20" ? (
-            <>
-              <FormControl>
-                <FormLabel htmlFor="mock-supply">
-                  Initial supply (whole tokens, 18 decimals)
-                </FormLabel>
-                <Input
-                  id="mock-supply"
-                  inputMode="decimal"
-                  maxLength={100}
-                  value={draft.initialSupply}
-                  onChange={(e) => edit("initialSupply", e.target.value)}
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel htmlFor="mock-recipient">
-                  Initial recipient
-                </FormLabel>
-                <Input
-                  id="mock-recipient"
-                  placeholder="0x… (no ENS lookup)"
-                  value={draft.recipient}
-                  onChange={(e) => edit("recipient", e.target.value)}
-                />
-                <Button
-                  mt={2}
-                  size="sm"
-                  isDisabled={!wallet.account}
-                  onClick={() => edit("recipient", wallet.account ?? "")}
-                >
-                  Use connected wallet as recipient
-                </Button>
-              </FormControl>
-            </>
-          ) : (
-            <FormControl>
-              <FormLabel htmlFor="mock-uri">
-                {draft.standard === "ERC721"
-                  ? "Base metadata URI (token ID is appended)"
-                  : "Metadata URI template (optional {id} placeholder)"}
+          <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+            <FormControl minW={0}>
+              <FormLabel htmlFor="mock-name" fontSize="sm">
+                Name
               </FormLabel>
               <Input
-                id="mock-uri"
-                maxLength={512}
-                placeholder="Optional ipfs://… or https://…"
-                value={draft.uri}
-                onChange={(e) => edit("uri", e.target.value)}
+                id="mock-name"
+                h={10}
+                fontSize="sm"
+                minW={0}
+                maxLength={64}
+                value={draft.name}
+                onChange={(event) => edit("name", event.target.value)}
+                autoComplete="off"
               />
-              <Text fontSize="sm" mt={1}>
-                No initial NFTs are minted. URI is public and immutable;
-                external content may change and is not fetched or verified here.
-                ERC1155 ID substitution uses 64 lowercase hex digits.
-              </Text>
             </FormControl>
-          )}
+            <FormControl minW={0}>
+              <FormLabel htmlFor="mock-symbol" fontSize="sm">
+                Symbol
+              </FormLabel>
+              <Input
+                id="mock-symbol"
+                h={10}
+                fontSize="sm"
+                minW={0}
+                maxLength={16}
+                value={draft.symbol}
+                onChange={(event) => edit("symbol", event.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </FormControl>
+          </SimpleGrid>
+        </Box>
+        {draft.standard === "ERC20" ? (
+          <>
+            <FormControl>
+              <IntInput
+                input={{ name: "Initial supply", type: "uint256" }}
+                id="mock-supply"
+                aria-label="Initial supply"
+                h={10}
+                fontSize="sm"
+                inputMode="decimal"
+                fontFamily="mono"
+                maxLength={100}
+                defaultEthFormatIndex={1}
+                value={supplyValue}
+                isDisabled={formDisabled}
+                onValidationChange={setSupplyInvalid}
+                setFunctionIsDisabled={setSupplyInvalid}
+                onChange={(event) => {
+                  try {
+                    const raw = BigInt(event.target.value);
+                    edit("initialSupply", formatUnits(raw, 18));
+                  } catch {
+                    edit("initialSupply", "");
+                  }
+                }}
+              />
+            </FormControl>
+            <FormControl>
+              <AddressInput
+                input={{ name: "Initial recipient", type: "address" }}
+                chainId={selected?.id ?? 1}
+                id="mock-recipient"
+                aria-label="Initial recipient"
+                h={10}
+                fontSize="sm"
+                fontFamily="mono"
+                placeholder="0x… or name.eth"
+                value={draft.recipient}
+                onChange={(event) => edit("recipient", event.target.value)}
+                isDisabled={formDisabled}
+                hideQuickFillButtons
+                autoComplete="off"
+                spellCheck={false}
+                labelAction={
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    leftIcon={<Wallet size={13} />}
+                    isDisabled={!wallet.account || formDisabled}
+                    onClick={() => edit("recipient", wallet.account ?? "")}
+                  >
+                    Use my wallet
+                  </Button>
+                }
+              />
+            </FormControl>
+          </>
+        ) : (
+          <FormControl>
+            <FormLabel htmlFor="mock-uri" fontSize="sm">
+              {draft.standard === "ERC721"
+                ? "Base metadata URI"
+                : "Metadata URI template"}{" "}
+              <Box as="span" color="text.tertiary" fontWeight="normal">
+                (optional)
+              </Box>
+            </FormLabel>
+            <Input
+              id="mock-uri"
+              h={10}
+              fontSize="sm"
+              maxLength={512}
+              placeholder={
+                draft.standard === "ERC721"
+                  ? "ipfs://collection/"
+                  : "ipfs://collection/{id}.json"
+              }
+              value={draft.uri}
+              onChange={(event) => edit("uri", event.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <Text fontSize="xs" color="text.tertiary" mt={2}>
+              {draft.standard === "ERC721"
+                ? "Token IDs are appended to this URI."
+                : "Use {id} for the token ID."}
+            </Text>
+          </FormControl>
+        )}
+      </Stack>
+    </Box>
+  );
+  return (
+    <Box maxW="1100px" mx="auto" minW={0}>
+      <Flex
+        align={{ base: "flex-start", sm: "center" }}
+        justify="space-between"
+        gap={4}
+        flexWrap="wrap"
+        mb={7}
+      >
+        <Box>
+          <Heading
+            as="h1"
+            fontSize={{ base: "2xl", md: "3xl" }}
+            fontWeight="semibold"
+            letterSpacing="tight"
+          >
+            Deploy mock tokens
+          </Heading>
+          <Text fontSize="sm" color="text.secondary" mt={2}>
+            Create permissionless tokens for testing.
+          </Text>
+        </Box>
+        {walletControl}
+      </Flex>
+      <SimpleGrid
+        columns={{ base: 1, lg: 2 }}
+        templateColumns={{ lg: "minmax(0, 1.4fr) minmax(0, 1fr)" }}
+        gap={6}
+        alignItems="start"
+      >
+        <Stack spacing={5} minW={0}>
+          <Box
+            bg="bg.subtle"
+            borderWidth="1px"
+            borderColor="border.default"
+            rounded="lg"
+            overflow="hidden"
+            minW={0}
+          >
+            <Tabs
+              index={standardIndex}
+              onChange={(index) =>
+                edit("standard", standardOptions[index].value)
+              }
+              variant="unstyled"
+            >
+              <TabList
+                aria-label="Token standard"
+                gap={1}
+                p={3}
+                borderBottomWidth="1px"
+                borderColor="border.default"
+              >
+                {standardOptions.map((option) => (
+                  <Tab
+                    key={option.value}
+                    isDisabled={formDisabled}
+                    flex={1}
+                    h={10}
+                    px={3}
+                    fontSize="sm"
+                    fontWeight="medium"
+                    rounded="md"
+                    color="text.secondary"
+                    _selected={{ bg: "bg.muted", color: "text.primary" }}
+                    _hover={{ color: "text.primary" }}
+                    _focusVisible={{ boxShadow: "outline" }}
+                  >
+                    {option.label}
+                  </Tab>
+                ))}
+              </TabList>
+              <TabPanels>
+                {standardOptions.map((option, index) => (
+                  <TabPanel key={option.value} p={{ base: 4, md: 6 }}>
+                    {index === standardIndex ? fields : null}
+                  </TabPanel>
+                ))}
+              </TabPanels>
+            </Tabs>
+          </Box>
         </Stack>
-      </Box>
-      {!wallet.account && (
-        <Text>
-          Connect a wallet using the site wallet button, then select its network
-          explicitly.
-        </Text>
-      )}
-      {selected && wallet.account && wallet.chainId !== selected.id && (
-        <Alert status="info">
-          <AlertIcon />
-          Wallet is on chain {wallet.chainId ?? "unknown"}. Switch it to{" "}
-          {selected.name} ({selected.id}) yourself; this tool never switches
-          networks automatically.
-        </Alert>
-      )}
-      {!submission && (
-        <Button
-          onClick={estimate}
-          isLoading={busy}
-          isDisabled={
-            !wallet.account || !selected || wallet.chainId !== selected.id
-          }
-        >
-          Estimate &amp; review deployment
-        </Button>
-      )}
-      {error && (
-        <Alert status="error" role="alert">
-          <AlertIcon />
-          <Text overflowWrap="anywhere">{error}</Text>
-        </Alert>
-      )}
-      {current && (
         <Box
+          bg="bg.subtle"
           borderWidth="1px"
-          borderRadius="lg"
-          p={{ base: 3, md: 5 }}
+          borderColor="border.default"
+          rounded="lg"
+          p={{ base: 4, md: 6 }}
           minW={0}
         >
-          <Stack spacing={3}>
-            <Heading as="h2" size="md">
-              Review mock deployment
-            </Heading>
-            <Text fontWeight="bold">
-              {current.deployment.chain.name} · chain{" "}
-              {current.deployment.chain.id} ·{" "}
-              {current.deployment.chain.testnet
-                ? "TESTNET"
-                : "MAINNET — REAL GAS"}
+          <Heading as="h2" fontSize="md" fontWeight="semibold" mb={5}>
+            Deployment
+          </Heading>
+          <FormControl>
+            <FormLabel fontSize="sm">Deployment network</FormLabel>
+            <DarkSelect
+              ariaLabel="Deployment network"
+              options={networkOptions}
+              placeholder="Select network"
+              selectedOption={
+                networkOptions
+                  .flatMap((group) => group.options)
+                  .find((option) => option.value === draft.chainId) ?? null
+              }
+              setSelectedOption={(option) => {
+                if (option) edit("chainId", String(option.value));
+              }}
+              isDisabled={formDisabled}
+              boxProps={{ w: "full", minW: 0 }}
+              controlProps={{ h: 10, minH: 10, fontSize: "sm" }}
+            />
+          </FormControl>
+          <Box
+            py={5}
+            my={5}
+            borderTopWidth="1px"
+            borderBottomWidth="1px"
+            borderColor="border.default"
+          >
+            <Text fontSize="lg" fontWeight="semibold" overflowWrap="anywhere">
+              {tokenName} ({tokenSymbol})
             </Text>
-            <Text>
-              {current.deployment.standard} ·{" "}
-              <strong>{current.deployment.name}</strong> ·{" "}
-              {current.deployment.symbol}
-            </Text>
-            <Text overflowWrap="anywhere">
-              Deployer / gas payer: {current.account}
-            </Text>
-            {current.deployment.standard === "ERC20" ? (
-              <>
-                <Text>
-                  Decimals: 18 · initial supply:{" "}
-                  {formatUnits(current.deployment.args[3] as bigint, 18)} tokens
-                </Text>
-                <Text overflowWrap="anywhere">
-                  Initial recipient: {String(current.deployment.args[2])}
-                </Text>
-              </>
-            ) : (
-              <Text overflowWrap="anywhere">
-                Metadata URI:{" "}
-                {String(current.deployment.args.at(-1)) || "(empty)"} · initial
-                NFT supply: 0
+            <HStack justify="space-between" mt={4} fontSize="sm">
+              <Text color="text.secondary">Standard</Text>
+              <Text>{draft.standard}</Text>
+            </HStack>
+            <HStack justify="space-between" mt={2} fontSize="sm" align="start">
+              <Text color="text.secondary">
+                {draft.standard === "ERC20"
+                  ? "Initial supply"
+                  : "Initial NFT supply"}
+              </Text>
+              <Text
+                fontFamily="mono"
+                textAlign="right"
+                minW={0}
+                overflowWrap="anywhere"
+              >
+                {formatWithCommas(
+                  draft.standard === "ERC20" ? draft.initialSupply || "0" : "0"
+                )}
+              </Text>
+            </HStack>
+            {!submission && (
+              <Text
+                fontSize="xs"
+                color="text.secondary"
+                textAlign="center"
+                mt={5}
+              >
+                <Box as="span" mr={2} aria-hidden="true">
+                  ⚠️
+                </Box>
+                Anyone can mint these test tokens.
               </Text>
             )}
-            <Text>
-              Native value transferred to contract: 0. Gas limit:{" "}
-              {current.estimate.gas.toString()} (20% estimate buffer). Max fee:{" "}
-              {formatUnits(current.estimate.maxFeePerGas, 9)} gwei; priority
-              fee: {formatUnits(current.estimate.maxPriorityFeePerGas, 9)} gwei.
-            </Text>
-            <Text fontWeight="bold">
-              Maximum reviewed execution gas cost:{" "}
-              {formatUnits(
-                maximumCost(current.estimate),
-                current.deployment.chain.nativeCurrency.decimals
-              )}{" "}
-              {current.deployment.chain.nativeCurrency.symbol}
-            </Text>
-            <Text fontSize="sm">
-              Not a total-fee guarantee: L2 data / L1 publication or other
-              network fees may be additional. Fees fluctuate; the wallet shows
-              the final total before you approve. Nothing is sponsored. Review
-              expires after 60 seconds.
-            </Text>
-            {expired && (
-              <Alert status="warning">
-                <AlertIcon />
-                Gas review expired. Estimate again.
-              </Alert>
-            )}
-            {insufficient && (
-              <Alert status="error">
-                <AlertIcon />
-                Insufficient native balance for the reviewed execution cost.
-              </Alert>
-            )}
-            <Box as="details">
-              <Box as="summary" cursor="pointer">
-                Inspect exact deployment bytecode &amp; constructor arguments
-              </Box>
-              <Code
-                display="block"
-                whiteSpace="pre-wrap"
-                overflowWrap="anywhere"
-                maxH="240px"
-                overflowY="auto"
-                p={2}
+          </Box>
+          {!submission && (
+            <Stack spacing={4}>
+              {!wallet.account && (
+                <Text fontSize="sm" color="text.secondary">
+                  Connect a wallet to deploy.
+                </Text>
+              )}
+              <Button
+                onClick={needsChainSwitch ? switchChain : submit}
+                isLoading={busy || switching}
+                loadingText={switching ? "Switching" : "Deploying"}
+                isDisabled={
+                  !wallet.account ||
+                  !selected ||
+                  (!needsChainSwitch &&
+                    draft.standard === "ERC20" &&
+                    supplyInvalid)
+                }
+                colorScheme="blue"
+                variant="solid"
+                h={10}
+                w="full"
               >
-                {JSON.stringify(
-                  current.deployment.args,
-                  (_, v) => (typeof v === "bigint" ? v.toString() : v),
-                  2
+                {needsChainSwitch ? "Switch Chain" : "Deploy"}
+              </Button>
+            </Stack>
+          )}
+          {error && (
+            <Alert
+              status="error"
+              role="alert"
+              rounded="md"
+              mt={4}
+              fontSize="sm"
+            >
+              <AlertIcon />
+              <Text overflowWrap="anywhere">{error}</Text>
+            </Alert>
+          )}
+          {submission && (
+            <Stack role="status" spacing={3}>
+              <HStack align="center" spacing={2}>
+                {submission.state === "wallet" ||
+                submission.state === "pending" ? (
+                  <Spinner size="sm" color="blue.300" flexShrink={0} />
+                ) : (
+                  <Icon
+                    as={
+                      submission.state === "success"
+                        ? CheckCircle2
+                        : submission.state === "reverted"
+                          ? XCircle
+                          : Clock3
+                    }
+                    boxSize={5}
+                    color={
+                      submission.state === "success"
+                        ? "green.300"
+                        : submission.state === "reverted"
+                          ? "red.300"
+                          : "text.secondary"
+                    }
+                    flexShrink={0}
+                  />
                 )}
-                {"\n"}
-                {current.deployment.data}
-              </Code>
-            </Box>
-            <Checkbox
-              isChecked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-            >
-              I understand this public, permanent mock can be minted by anyone,
-              has no promised value and requires gas.
-            </Checkbox>
-            {!current.deployment.chain.testnet && (
-              <Checkbox
-                isChecked={mainnetConsent}
-                onChange={(e) => setMainnetConsent(e.target.checked)}
-              >
-                I explicitly choose MAINNET and accept spending real native
-                currency on gas.
-              </Checkbox>
-            )}
-            <Button
-              colorScheme="orange"
-              onClick={submit}
-              isDisabled={
-                busy ||
-                expired ||
-                insufficient ||
-                !consent ||
-                (!current.deployment.chain.testnet && !mainnetConsent)
-              }
-            >
-              Confirm in wallet
-            </Button>
-          </Stack>
-        </Box>
-      )}
-      {submission && (
-        <Box
-          role="status"
-          borderWidth="1px"
-          borderRadius="lg"
-          p={4}
-          overflowWrap="anywhere"
-        >
-          <Stack spacing={3}>
-            <Heading as="h2" size="md">
-              {submission.state === "wallet"
-                ? "Awaiting wallet confirmation"
-                : submission.state === "success"
-                  ? "Deployment confirmed"
-                  : submission.state === "reverted"
-                    ? "Deployment reverted — gas may have been spent"
-                    : submission.state === "pending"
-                      ? "Transaction submitted — not yet confirmed"
-                      : "Wallet request outcome uncertain"}
-            </Heading>
-            <Text>
-              Network:{" "}
-              {MOCK_CHAINS.find((c) => c.id === submission.chainId)?.name} ·
-              chain {submission.chainId}. Keep the transaction hash; progress is
-              not stored across refreshes.
-            </Text>
-            {submission.hash && (
-              <>
-                <Text>Transaction: {submission.hash}</Text>
-                <Link
-                  color="blue.300"
-                  href={`${submission.explorer}/tx/${submission.hash}`}
-                  isExternal
+                <Heading as="h3" fontSize="md" lineHeight="short">
+                  {submission.state === "wallet"
+                    ? "Awaiting wallet confirmation"
+                    : submission.state === "success"
+                      ? "Deployment confirmed"
+                      : submission.state === "reverted"
+                        ? "Deployment reverted"
+                        : submission.state === "pending"
+                          ? "Transaction submitted"
+                          : "Check wallet status"}
+                </Heading>
+                {submission.hash && (
+                  <Tooltip label="Open transaction explorer">
+                    <IconButton
+                      as={Link}
+                      href={`${submission.explorer}/tx/${submission.hash}`}
+                      isExternal
+                      aria-label="Open transaction explorer"
+                      icon={<ArrowUpRight size={16} />}
+                      size="xs"
+                      variant="ghost"
+                      color="text.secondary"
+                    />
+                  </Tooltip>
+                )}
+              </HStack>
+              {submission.state === "pending" && (
+                <Text fontSize="xs" color="text.secondary">
+                  Waiting for confirmation…
+                </Text>
+              )}
+              {submission.state === "success" && submission.address && (
+                <Box
+                  py={4}
+                  borderTopWidth="1px"
+                  borderBottomWidth="1px"
+                  borderColor="border.default"
                 >
-                  Open transaction explorer
-                </Link>
-                {submission.state === "pending" && (
-                  <Button onClick={checkReceipt} isLoading={busy}>
-                    Check receipt
+                  <Flex justify="space-between" align="center" gap={2} mb={2}>
+                    <Text fontSize="xs" color="text.secondary" flexShrink={0}>
+                      Contract address
+                    </Text>
+                    <Link
+                      href={`${getPath(subdomains.CONTRACT.base)}${submission.chainId}/${submission.address}`}
+                      isExternal
+                      fontSize="xs"
+                      color="blue.300"
+                      display="inline-flex"
+                      alignItems="center"
+                      gap={1}
+                    >
+                      Interact with the contract
+                      <ArrowUpRight size={14} />
+                    </Link>
+                  </Flex>
+                  <HStack minW={0}>
+                    <Text
+                      fontFamily="mono"
+                      fontSize="sm"
+                      overflowWrap="anywhere"
+                      minW={0}
+                    >
+                      {submission.address}
+                    </Text>
+                    <CopyToClipboard
+                      textToCopy={submission.address}
+                      size="xs"
+                    />
+                    <Tooltip label="Open contract on block explorer">
+                      <IconButton
+                        as={Link}
+                        href={`${submission.explorer}/address/${submission.address}`}
+                        isExternal
+                        aria-label="Open contract on block explorer"
+                        icon={<ArrowUpRight size={16} />}
+                        size="xs"
+                        variant="ghost"
+                        color="text.secondary"
+                      />
+                    </Tooltip>
+                  </HStack>
+                </Box>
+              )}
+              {submission.state === "success" &&
+                submission.address &&
+                submission.hash && (
+                  <Stack spacing={1}>
+                    {VERIFICATION_CHAINS[String(submission.chainId)]
+                      ?.sourcify && (
+                      <MockTokenVerification
+                        key={`${submission.chainId}:${submission.address}:${submission.hash}`}
+                        deployment={submission.deployment}
+                        address={submission.address}
+                        hash={submission.hash}
+                      />
+                    )}
+                    {VERIFICATION_CHAINS[String(submission.chainId)]
+                      ?.etherscan && (
+                      <MockTokenVerification
+                        provider="etherscan"
+                        key={`etherscan:${submission.chainId}:${submission.address}:${submission.hash}`}
+                        deployment={submission.deployment}
+                        address={submission.address}
+                        hash={submission.hash}
+                      />
+                    )}
+                  </Stack>
+                )}
+              {!busy &&
+                submission.state !== "wallet" &&
+                submission.state !== "pending" && (
+                  <Button
+                    alignSelf="center"
+                    size="sm"
+                    variant="outline"
+                    color="text.primary"
+                    bg="whiteAlpha.50"
+                    borderColor="border.default"
+                    _hover={{
+                      bg: "whiteAlpha.100",
+                      borderColor: "whiteAlpha.400",
+                    }}
+                    whiteSpace="normal"
+                    height="auto"
+                    minH="36px"
+                    mt={2}
+                    px={3}
+                    py={2}
+                    onClick={() => {
+                      setSubmission(undefined);
+                      setError("");
+                    }}
+                  >
+                    Start another deployment
                   </Button>
                 )}
-              </>
-            )}
-            {submission.state === "success" && submission.address && (
-              <>
-                <Text>Mock contract: {submission.address}</Text>
-                <Link
-                  color="blue.300"
-                  href={`https://explorer.eth.sh/${submission.chainId}/${submission.address}`}
-                  isExternal
-                >
-                  Open deployed mock in explorer
-                </Link>
-                <Text fontSize="sm">
-                  Automatic source verification is not performed. Download the
-                  exact standard JSON and compiler settings below for manual
-                  verification. Mint function:{" "}
-                  {submission.deployment.standard === "ERC20"
-                    ? "mint(to, amount) — amount is in 18-decimal base units"
-                    : submission.deployment.standard === "ERC721"
-                      ? "mint(to, tokenId) — unused uint256 ID"
-                      : "mint(to, id, amount, data) — base-unit integer amount, data can be 0x"}
-                  .
-                </Text>
-              </>
-            )}
-            <Box as="details">
-              <Box as="summary" cursor="pointer">
-                Saved deployment parameters (constructor arguments for
-                verification)
-              </Box>
-              <Code
-                display="block"
-                whiteSpace="pre-wrap"
-                overflowWrap="anywhere"
-                maxH="220px"
-                overflowY="auto"
-              >
-                {JSON.stringify(
-                  submission.deployment.args,
-                  (_, v) => (typeof v === "bigint" ? v.toString() : v),
-                  2
-                )}
-                {"\n"}Constructor arguments hex (without 0x):{" "}
-                {submission.deployment.data.slice(
-                  submission.deployment.artifact.bytecode.length
-                )}
-              </Code>
-            </Box>
-            {!busy && (
-              <Button
-                variant="outline"
-                whiteSpace="normal"
-                height="auto"
-                minH="44px"
-                py={2}
-                onClick={() => {
-                  setSubmission(undefined);
-                  setReview(undefined);
-                  setError("");
-                  generation.current++;
-                }}
-              >
-                Start another deployment (check wallet first)
-              </Button>
-            )}
-          </Stack>
+            </Stack>
+          )}
         </Box>
-      )}
-      <Text fontSize="sm">
-        <Link
-          href={`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify((submission?.deployment.artifact ?? MOCK_ARTIFACTS[draft.standard as keyof typeof MOCK_ARTIFACTS]).abi, null, 2))}`}
-          download={`Mock${submission?.deployment.standard ?? draft.standard}.abi.json`}
-          color="blue.300"
-        >
-          Download selected token ABI
-        </Link>
-        {" · "}
-        <Link href="/mock-tokens-standard-input.json" download color="blue.300">
-          Download exact compiler standard JSON
-        </Link>
-        {" · "}
-        <Link
-          href="https://github.com/OpenZeppelin/openzeppelin-contracts/tree/v5.0.2"
-          isExternal
-          color="blue.300"
-        >
-          OpenZeppelin v5.0.2 source
-        </Link>
-        . Compiler: v0.8.28+commit.7893614a; optimizer 200 runs; Paris; IPFS
-        metadata hash. Wrappers are included in the download. No automatic
-        verification or metadata fetches.
-      </Text>
-    </Stack>
+      </SimpleGrid>
+      <MockContractFiles
+        standard={submission?.deployment.standard ?? draft.standard}
+      />
+    </Box>
   );
 }

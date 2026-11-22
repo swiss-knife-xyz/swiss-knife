@@ -62,10 +62,11 @@ import { generateTenderlyUrl, slicedText } from "@/utils";
 import { getTransactionError, getContractError } from "viem/utils";
 import { config } from "@/app/providers";
 import { WriteButton } from "../WriteButton";
+import { SignatureRegistryForm } from "@/components/SignatureRegistryForm";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
 import { convertBooleans } from "@/lib/convertBooleans";
-import type { InferredFunctionInfo } from "@/lib/inferredContract";
+import { inferFunctionInputs, type InferredFunctionInfo } from "@/lib/inferredContract";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { erc165Interfaces } from "@/data/erc165Interfaces";
@@ -198,7 +199,7 @@ const ReadWriteFunctionComponent = ({
   client,
   index,
   type,
-  func: __func,
+  func: originalFunc,
   address,
   chainId,
   isAbiDecoded,
@@ -206,6 +207,15 @@ const ReadWriteFunctionComponent = ({
   initialCall,
   abiMode = "contract",
 }: ReadWriteFunctionProps) => {
+  const [submittedSignature, setSubmittedSignature] = useState<{ context: string; signature: string }>();
+  const selectorContext = `${chainId}:${address.toLowerCase()}:${originalFunc.selector ?? ""}`;
+  const __func = React.useMemo(() => {
+    if (!originalFunc.selector || submittedSignature?.context !== selectorContext) return originalFunc;
+    return {
+      ...originalFunc,
+      ...inferFunctionInputs(originalFunc.selector, undefined, [submittedSignature.signature]),
+    };
+  }, [originalFunc, submittedSignature, selectorContext]);
   const { data: walletClient } = useWalletClient();
   const { address: userAddress, chain } = useAccount();
 
@@ -1035,6 +1045,19 @@ const ReadWriteFunctionComponent = ({
               <Tooltip label="Inferred from bytecode and signature lookups. Check the input types before use." hasArrow>
                 <WarningTwoIcon aria-label="Inferred signature, not verified" tabIndex={0} color="yellow.300" boxSize={3.5} flexShrink={0} />
               </Tooltip>
+            )}
+            {isAbiDecoded && displayName.startsWith("selector: ") && fnSelector && (
+              <SignatureRegistryForm
+                selector={fnSelector}
+                iconOnly
+                onSubmitted={(signature, selector) => {
+                  if (selector !== originalFunc.selector?.toLowerCase()) return;
+                  setSubmittedSignature({ context: selectorContext, signature });
+                  setInputsState({});
+                  setFunctionIsDisabled({});
+                  setRes(null);
+                }}
+              />
             )}
           </HStack>
           <HStack mt={1} ml={{ base: 8, md: 12 }} spacing={3} flexWrap="wrap" rowGap={1} color="whiteAlpha.600" fontSize="xs">

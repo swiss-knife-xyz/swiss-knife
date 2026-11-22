@@ -1,6 +1,7 @@
 import { getAddress } from "viem";
 
 import networks from "./networks.json";
+import { isRetiredChain } from "../../data/retiredChains";
 export type VerificationProvider =
   | "etherscan"
   | "blockscout"
@@ -16,7 +17,9 @@ export type VerificationNetwork = {
   routescan?: boolean;
 };
 export const VERIFICATION_CHAINS: Record<string, VerificationNetwork> =
-  networks;
+  Object.fromEntries(
+    Object.entries(networks).filter(([id]) => !isRetiredChain(id))
+  );
 export const PROVIDERS: Record<VerificationProvider, string> = {
   etherscan: "Etherscan",
   blockscout: "Blockscout",
@@ -107,6 +110,8 @@ export const VERIFICATION_MESSAGES = {
     "Complete Solidity source and compiler settings are unavailable from this provider.",
   UNSUPPORTED_ROUTE:
     "This provider does not support verification on this network.",
+  CONTRACT_NOT_INDEXED: "The explorer has not indexed this contract yet.",
+  SUBMISSION_REJECTED: "The explorer rejected the verification request.",
   SOURCE_MISMATCH: "The source does not match this deployment’s bytecode.",
   INVALID_CONSTRUCTOR: "Check the destination constructor arguments.",
   UNSUPPORTED_COMPILER: "This compiler is not supported by the destination.",
@@ -147,6 +152,7 @@ export function verificationInput(chain: unknown, address: unknown) {
   }
 }
 export type ImportedSource = {
+  creationTransactionHash?: string;
   implementationAddress?: string;
   contractName: string;
   compilerVersion: string;

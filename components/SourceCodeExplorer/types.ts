@@ -41,6 +41,8 @@ export interface SourceCodeExplorerProps {
   diffData?: Record<string, DiffFileData>;
   /** Initial height in pixels (default: 400) */
   initialHeight?: number;
+  /** Initial file sidebar width in pixels (default: 180). */
+  initialSidebarWidth?: number;
   /** Optional viewport cap for the editor pane, excluding outer toolbars. */
   maxHeight?: string;
   /** Whether the parent container is in fullscreen mode */

@@ -10,6 +10,11 @@ export type InferredFunctionInfo = {
   inputInference?: InputInference;
 };
 
+export type FunctionSignatureCandidate = string | {
+  name: string;
+  hasVerifiedContract?: boolean;
+};
+
 function parameters(fragment: FunctionFragment): JsonFragmentType[] {
   return fragment.inputs.map((param, index) => ({
     ...JSON.parse(param.format("json")),
@@ -17,18 +22,24 @@ function parameters(fragment: FunctionFragment): JsonFragmentType[] {
   }));
 }
 
-/** A selector database is a hint, not a verified ABI. Never pick a collision's first hit. */
+/** Prefer a unique verified-contract candidate after matching bytecode types, never response order. */
 export function inferFunctionInputs(
   selector: string,
   args: string | undefined,
-  signatures: readonly string[],
+  signatures: readonly FunctionSignatureCandidate[],
 ) {
-  const candidates = new Map<string, FunctionFragment>();
-  for (const signature of signatures) {
+  const candidates = new Map<string, { fragment: FunctionFragment; verified: boolean }>();
+  for (const candidate of signatures) {
+    const signature = typeof candidate === "string" ? candidate : candidate.name;
     try {
       const fragment = FunctionFragment.from(`function ${signature}`);
       if (fragment.selector.toLowerCase() === selector.toLowerCase()) {
-        candidates.set(fragment.format("sighash"), fragment);
+        const canonical = fragment.format("sighash");
+        candidates.set(canonical, {
+          fragment,
+          verified: candidates.get(canonical)?.verified === true ||
+            (typeof candidate !== "string" && candidate.hasVerifiedContract === true),
+        });
       }
     } catch {
       // Malformed/non-ABI signatures are not evidence of parameter types.
@@ -44,10 +55,13 @@ export function inferFunctionInputs(
     }
   }
 
-  const matches = [...candidates.values()].filter(fragment =>
+  const matches = [...candidates.values()].filter(({ fragment }) =>
     !bytecode || JSON.stringify(parameters(fragment)) === JSON.stringify(parameters(bytecode)),
   );
-  const signature = matches.length === 1 ? matches[0] : undefined;
+  const verifiedMatches = matches.filter(candidate => candidate.verified);
+  const signature = matches.length === 1
+    ? matches[0].fragment
+    : verifiedMatches.length === 1 ? verifiedMatches[0].fragment : undefined;
   const fragment = bytecode ?? signature;
   const inputInference: InputInference = bytecode
     ? { source: "bytecode", message: "Input types inferred from bytecode; not a verified ABI." }

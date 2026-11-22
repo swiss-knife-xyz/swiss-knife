@@ -191,10 +191,18 @@ for (const signature of [
 }
 for (const signature of [
   "transfer(address,uint)",
-  "transfer(address to,uint256 amount)",
-  " transfer(address,uint256)",
+  "transfer(address to, uint256 amount)",
+  " transfer(address,uint256) ",
   "function transfer(address,uint256)",
   "transfer(address,uint256) returns (bool)",
+]) {
+  test(`normalizes human-readable signature ${signature}`, () => {
+    const preview = registry.previewSignatureImport(signature, "0xa9059cbb");
+    assert.equal(preview.signature, "transfer(address,uint256)");
+    assert.deepEqual(preview.body, { function: ["transfer(address,uint256)"] });
+  });
+}
+for (const signature of [
   "foo(bytes33)",
   "foo(uint7)",
   "foo(uint256[0])",
