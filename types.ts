@@ -50,14 +50,7 @@ export type DecodeTupleParamResult =
     }[]
   | null;
 
-export type DecodeArrayParamResult =
-  | {
-      name: string;
-      baseType: string;
-      type: string;
-      rawValue: any;
-      value: DecodeParamTypesResult;
-    }[];
+export type DecodeArrayParamResult = Arg[];
 
 export interface ParsedTransaction extends TransactionDescription {
   txType?: "safeMultiSend";
@@ -70,6 +63,7 @@ export type DecodeParamTypesResult =
   | DecodeArrayParamResult;
 
 export type Arg = {
+  decodeNote?: string;
   name: string;
   baseType: string;
   type: string;
@@ -83,6 +77,8 @@ export type DecodeRecursiveResult = {
   rawArgs: any;
   args: Arg[];
   guessedFunctionName?: string;
+  decodeNote?: string;
+  decoding?: "heuristic";
 } | null;
 
 export type DecodeEventResult = {

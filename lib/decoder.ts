@@ -1,3 +1,4 @@
+import { decodeUniversalRouter, type RouterVersion } from "./universalRouter";
 import type { FunctionSignatureCandidate } from "./inferredContract";
 /**
  * =============================================================================
@@ -282,18 +283,18 @@ export async function decodeWithSelector({
             try {
               return decodeUniversalRouterCommands(calldata);
             } catch {
-                // Strategy 7: Heuristic function fragment guessing
+              // Strategy 7: Heuristic function fragment guessing
+              try {
+                return decodeByGuessingFunctionFragment(calldata);
+              } catch {
+                // Strategy 8: UTF-8 text message (final fallback)
+                // Interpret the hex bytes as a UTF-8 encoded text message
                 try {
-                  return decodeByGuessingFunctionFragment(calldata);
+                  return decodeAsUtf8Text(calldata);
                 } catch {
-                  // Strategy 8: UTF-8 text message (final fallback)
-                  // Interpret the hex bytes as a UTF-8 encoded text message
-                  try {
-                    return decodeAsUtf8Text(calldata);
-                  } catch {
-                    return null;
-                  }
+                  return null;
                 }
+              }
             }
           }
         }
@@ -1020,15 +1021,22 @@ export async function fetchFunctionInterface({
 }
 
 /** All candidates for inference, rather than the decoder's legacy first-hit API. */
-export async function fetchFunctionInterfaces({ selector }: { selector: string }): Promise<FunctionSignatureCandidate[]> {
+export async function fetchFunctionInterfaces({
+  selector,
+}: {
+  selector: string;
+}): Promise<FunctionSignatureCandidate[]> {
   const sourcify = await fetchFunctionFromSourcify({ selector });
   if (sourcify?.length) {
-    return sourcify.filter(item => !item.filtered).map(item => ({
-      name: item.name, hasVerifiedContract: item.hasVerifiedContract,
-    }));
+    return sourcify
+      .filter((item) => !item.filtered)
+      .map((item) => ({
+        name: item.name,
+        hasVerifiedContract: item.hasVerifiedContract,
+      }));
   }
   const fourByte = await fetchFunctionFrom4Bytes({ selector });
-  return fourByte?.map(item => item.text_signature) ?? [];
+  return fourByte?.map((item) => item.text_signature) ?? [];
 }
 
 /**
@@ -1195,6 +1203,7 @@ export async function decodeRecursive({
   abi,
   encodedAbi,
   _depth = 0,
+  routerVersion = "auto",
 }: {
   calldata: string;
   address?: string;
@@ -1202,11 +1211,26 @@ export async function decodeRecursive({
   abi?: any;
   encodedAbi?: any;
   _depth?: number;
+  routerVersion?: RouterVersion;
 }): Promise<DecodeRecursiveResult> {
   // Safety: cap recursion depth to prevent infinite loops
   if (_depth > MAX_DECODE_DEPTH) {
     return null;
   }
+
+  const router = await decodeUniversalRouter({
+    calldata,
+    depth: _depth,
+    version: routerVersion,
+    generic: (data, depth) =>
+      decodeRecursive({
+        calldata: data,
+        chainId,
+        _depth: depth,
+        routerVersion,
+      }),
+  });
+  if (router) return router;
 
   const selector = calldata.slice(0, 10);
   // Step 1: Decode the function call using the best available method
@@ -1220,7 +1244,12 @@ export async function decodeRecursive({
     parsedTransaction = decodeWithABI({ abi, calldata });
   } else if (address && chainId) {
     // Fetch ABI from explorers and decode
-    parsedTransaction = await decodeWithAddress({ calldata, address, chainId, _depth });
+    parsedTransaction = await decodeWithAddress({
+      calldata,
+      address,
+      chainId,
+      _depth,
+    });
   } else {
     // Fall back to selector-based decoding
     parsedTransaction = await decodeWithSelector({ calldata, _depth });
@@ -1392,6 +1421,9 @@ export async function decodeRecursive({
         signature: parsedTransaction.signature,
         rawArgs: parsedTransaction.args,
         guessedFunctionName,
+        ...(parsedTransaction.signature === "abi.encode"
+          ? { decoding: "heuristic" as const }
+          : {}),
         args: await Promise.all(
           parsedTransaction.fragment.inputs.map(async (input, i) => {
             const value = parsedTransaction!.args[i];
@@ -1548,17 +1580,38 @@ const decodeParamTypes = async ({
 
   // Bytes types (bytes, bytes1-32) - try to decode as nested calldata
   else if (input.baseType.includes("bytes")) {
-    return await decodeBytesParam({ value, address, chainId, abi, encodedAbi, _depth });
+    return await decodeBytesParam({
+      value,
+      address,
+      chainId,
+      abi,
+      encodedAbi,
+      _depth,
+    });
   }
 
   // Tuple type - recursively decode each component
   else if (input.baseType === "tuple") {
-    return await decodeTupleParam({ input, value, address, chainId, abi, _depth });
+    return await decodeTupleParam({
+      input,
+      value,
+      address,
+      chainId,
+      abi,
+      _depth,
+    });
   }
 
   // Array type - recursively decode each element
   else if (input.baseType === "array") {
-    return await decodeArrayParam({ value, input, address, chainId, abi, _depth });
+    return await decodeArrayParam({
+      value,
+      input,
+      address,
+      chainId,
+      abi,
+      _depth,
+    });
   }
 
   // Other types (bool, string, etc.) - return as-is

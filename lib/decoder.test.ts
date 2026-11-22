@@ -1,8 +1,16 @@
 import assert from "node:assert/strict";
 import test, { after, before, mock } from "node:test";
 import type { DecodeArrayParamResult, DecodeBytesParamResult } from "@/types";
-import { concat, keccak256, padHex } from "viem";
+import {
+  concat,
+  keccak256,
+  padHex,
+  encodeFunctionData,
+  parseAbi,
+  encodeAbiParameters,
+} from "viem";
 import { decodeRecursive, decodeWithSelector } from "./decoder";
+import issue142 from "./fixtures/universal-router-issue142.json";
 
 // Universal Router `execute(bytes,bytes[],uint256)` calldata from
 // https://github.com/swiss-knife-xyz/swiss-knife/issues/161
@@ -99,6 +107,7 @@ const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
 // Keep signature lookups offline: only the Universal Router selector is known.
 const KNOWN_SIGNATURES: Record<string, string> = {
+  "0x1fff991f": "execute((address,address,uint256),bytes[],bytes32)",
   "0x3593564c": "execute(bytes,bytes[],uint256)",
 };
 
@@ -143,14 +152,20 @@ test("nested abi-encoded bytes[] elements are decoded recursively (#161)", async
   const decodedInputs = inputs.map(
     (input) => (input.value as DecodeBytesParamResult).decoded
   );
-  for (const decoded of decodedInputs) {
+  assert.equal(decodedInputs[0]?.functionName, "PERMIT2_PERMIT");
+  for (const decoded of decodedInputs.slice(1)) {
     assert.equal(decoded?.signature, "abi.encode");
   }
 
-  // The guessed types are heuristic, so only check the token of the first input
+  // Permit2 uses exact types; unknown fork commands retain heuristic decoding.
   const firstInput = decodedInputs[0];
-  assert.equal(firstInput?.args[0].type, "address");
-  assert.equal(firstInput?.args[0].value, USDC);
+  assert.equal(firstInput?.args[0].name, "permit");
+  const permit = firstInput?.args[0].value as DecodeArrayParamResult;
+  const details = permit[0].value as DecodeArrayParamResult;
+  assert.equal(details[0].value, USDC);
+  assert.equal(details[1].type, "uint160");
+  assert.equal(details[2].type, "uint48");
+  assert.match(inputs[1].decodeNote ?? "", /Unknown command/);
 });
 
 test("nested bytes without abi structure are not guessed as abi-encoded data", async () => {
@@ -187,4 +202,61 @@ test("nested bytes without abi structure are not guessed as abi-encoded data", a
   for (const calldata of [twoHashes, hashEndingInZero, packedPath]) {
     assert.equal(await decodeWithSelector({ calldata, _depth: 1 }), null);
   }
+});
+
+test("the original #142 transaction terminates with bounded nested decoding", async () => {
+  const decoded = await decodeRecursive({ calldata: issue142.input });
+  assert.ok(decoded);
+  // The registry's signature does not fit this transaction; preserve the
+  // existing fragment-guess fallback instead of forcing that ABI onto it.
+  assert.equal(decoded.functionName, "guessed_1fff991f");
+  let nodes = 0;
+  function visit(args: DecodeArrayParamResult, depth = 0) {
+    assert.ok(depth <= 30, "output tree must remain bounded");
+    for (const arg of args) {
+      nodes++;
+      assert.ok(nodes < 1000, "no runaway expansion");
+      if (Array.isArray(arg.value)) visit(arg.value, depth + 1);
+      else if (
+        arg.value &&
+        typeof arg.value === "object" &&
+        "decoded" in arg.value &&
+        arg.value.decoded
+      )
+        visit(arg.value.decoded.args, depth + 1);
+    }
+  }
+  visit(decoded.args);
+  assert.ok(nodes > 3);
+});
+
+test("Universal Router plans also decode inside a bytes array of an ABI-backed parent", async () => {
+  const payload = encodeAbiParameters(
+    [{ type: "address" }, { type: "uint256" }],
+    [USDC, 42n]
+  );
+  const inner = encodeFunctionData({
+    abi: parseAbi(["function execute(bytes commands,bytes[] inputs)"]),
+    functionName: "execute",
+    args: ["0x0b", [payload]],
+  });
+  const abi = parseAbi(["function multicall(bytes[] data)"]);
+  const calldata = encodeFunctionData({
+    abi,
+    functionName: "multicall",
+    args: [[inner]],
+  });
+  const result = await decodeRecursive({ calldata, abi });
+  assert.ok(result);
+  const nested = (
+    (result.args[0].value as DecodeArrayParamResult)[0]
+      .value as DecodeBytesParamResult
+  ).decoded!;
+  assert.equal(nested.functionName, "execute");
+  const command = (
+    (nested.args[1].value as DecodeArrayParamResult)[0]
+      .value as DecodeBytesParamResult
+  ).decoded!;
+  assert.equal(command.functionName, "WRAP_ETH");
+  assert.equal(command.args[1].value, "42");
 });

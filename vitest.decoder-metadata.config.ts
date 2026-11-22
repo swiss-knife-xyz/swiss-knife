@@ -8,6 +8,7 @@ export default defineConfig({
     environment: "jsdom",
     include: [
       "app/calldata/decoder/decoderMetadata.spec.tsx",
+      "app/calldata/decoder/universalRouter.spec.tsx",
       "components/decodedParams/parameterState.spec.tsx",
     ],
     maxWorkers: 1,
