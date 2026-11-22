@@ -1,10 +1,11 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Box, Container, Flex, HStack, FlexProps } from "@chakra-ui/react";
 import { useLocalStorage } from "usehooks-ts";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { BeforeFooterSlotContext } from "@/components/BeforeFooterSlot";
 
 interface LayoutParams extends FlexProps {
   children: ReactNode;
@@ -14,9 +15,20 @@ interface LayoutParams extends FlexProps {
    * content that needs horizontal scrolling.
    */
   allowSticky?: boolean;
+  /**
+   * Render an empty, page-width row immediately above the footer that pages
+   * can portal into via `useBeforeFooterSlot`. Off by default.
+   */
+  beforeFooterSlot?: boolean;
 }
 
-export const Layout = ({ children, allowSticky, ...props }: LayoutParams) => {
+export const Layout = ({
+  children,
+  allowSticky,
+  beforeFooterSlot,
+  ...props
+}: LayoutParams) => {
+  const [slotElement, setSlotElement] = useState<HTMLElement | null>(null);
   const [isNavExpanded, setIsNavExpanded] = useLocalStorage(
     "isNavExpanded",
     false
@@ -48,12 +60,30 @@ export const Layout = ({ children, allowSticky, ...props }: LayoutParams) => {
                 maxW="container.xl"
                 {...props}
               >
-                {children}
+                <BeforeFooterSlotContext.Provider
+                  value={beforeFooterSlot ? slotElement : null}
+                >
+                  {children}
+                </BeforeFooterSlotContext.Provider>
               </Container>
             </Box>
           </Flex>
         </HStack>
       </Box>
+      {beforeFooterSlot && (
+        <Container
+          px={{ base: 4, md: 6 }}
+          maxW={props.maxW ?? "container.xl"}
+          w="full"
+        >
+          <Box
+            ref={setSlotElement}
+            data-testid="layout-before-footer"
+            py={4}
+            minW={0}
+          />
+        </Container>
+      )}
       <Footer />
     </Box>
   );

@@ -6,7 +6,7 @@ export const metadata = getMetadata({
   description:
     "Check IPFS content changes, ownership transfers and more over time.",
   canonical: "https://ens.eth.sh/history",
-  images: "https://eth.sh/og/ens-history.png",
+  images: "https://eth.sh/api/og/ens-history",
 });
 
 const ENSHistoryLayout = ({ children }: { children: React.ReactNode }) => {

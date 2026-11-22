@@ -60,7 +60,7 @@ export const subdomainToInfo = {
   },
   [subdomains.EXPLORER.base]: {
     emoji: "🔍",
-    label: "Explorer",
+    label: "Explorer Directory",
     description:
       "View any address/ENS or transaction across all EVM explorers instantly",
   },

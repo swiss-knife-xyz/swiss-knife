@@ -109,9 +109,9 @@ export const UintParam = ({
           direction={{ base: "column", md: "row" }}
           width="100%"
           gap={2}
-          alignItems="flex-start"
+          alignItems="stretch"
         >
-          <Box flex="1" minW="0" maxW="100%">
+          <Box flex="1" minW="0" w="full" maxW="100%">
             <InputField
               InputLeftElement={
                 <>
@@ -179,15 +179,7 @@ export const UintParam = ({
             width={
               formatSelectProps?.boxProps?.w ?? { base: "100%", md: "auto" }
             }
-            zIndex="9999"
             position="relative"
-            className="uint-select-container"
-            sx={{
-              "& .chakra-react-select__menu": {
-                zIndex: 9999,
-                position: "absolute !important",
-              },
-            }}
           >
             <DarkSelect
               {...formatSelectProps}
@@ -195,8 +187,6 @@ export const UintParam = ({
                 minW: { base: "100%", md: "8rem" },
                 maxW: { base: "100%", md: "8rem" },
                 fontSize: "xs",
-                position: "static",
-                zIndex: 9999,
                 ...formatSelectProps?.boxProps,
               }}
               selectedOption={selectedEthFormatOption}

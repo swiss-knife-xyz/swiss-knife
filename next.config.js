@@ -47,53 +47,38 @@ const nextConfig = {
           destination: "/splashImage.png",
         },
         // set up subdomains (exclude api routes, static assets and worker from subdomain rewrites)
-        ...Object.values(subdomains).flatMap((subdomain) => [
-          {
-            source:
-              "/:path((?!_next|api|og(?:/|$)|frame(?:/|$)|robots\\.txt$|sitemap\\.xml$|favicon\\.ico$|apple-touch-icon\\.png$|chainIcons|tokenIcons|external|icon.png|logo.png|splashImage.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
-            has: [
-              {
-                type: "host",
-                value: `${subdomain.base}.eth.sh`,
-              },
-            ],
-            destination: `/${subdomain.base}/:path*`,
-          },
-        ]),
+        ...Object.values(subdomains)
+          .filter((subdomain) => !subdomain.isRelativePath)
+          .flatMap((subdomain) => [
+            {
+              source:
+                "/:path((?!_next|api|og(?:/|$)|frame(?:/|$)|robots\\.txt$|sitemap\\.xml$|favicon\\.ico$|apple-touch-icon\\.png$|chainIcons|tokenIcons|external|icon.png|logo.png|splashImage.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
+              has: [
+                {
+                  type: "host",
+                  value: `${subdomain.base}\\.eth\\.sh`,
+                },
+              ],
+              destination: `/${subdomain.base}/:path*`,
+            },
+          ]),
       ],
     };
   },
   headers() {
-    return [{
-      source: "/api/:path((?!og(?:/|$)).*)",
-      headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
-    }];
+    return [
+      {
+        source: "/api/:path((?!og(?:/|$)).*)",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+    ];
   },
   redirects() {
     return [
       {
-        source: "/contract/:chainId/:address",
-        has: [{ type: "host", value: "explorer.eth.sh" }],
-        destination: "https://contract.eth.sh/:chainId/:address",
-        permanent: true,
-      },
-      {
-        source: "/explorer/contract/:chainId/:address",
-        has: [{ type: "host", value: "eth.sh" }],
-        destination: "https://contract.eth.sh/:chainId/:address",
-        permanent: true,
-      },
-      {
         source: "/",
         has: [{ type: "host", value: "orgs.eth.sh" }],
         destination: "https://eth.sh/orgs",
-        permanent: true,
-      },
-      // Preserve the legacy back-link without masking unknown contract paths.
-      {
-        source: "/contract",
-        has: [{ type: "host", value: "contract.eth.sh" }],
-        destination: "https://contract.eth.sh/",
         permanent: true,
       },
       {
