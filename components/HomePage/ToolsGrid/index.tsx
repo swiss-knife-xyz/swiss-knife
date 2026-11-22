@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { Box, Container, SimpleGrid } from "@chakra-ui/react";
 import { ToolsGridHeading } from "./ToolsGridHeading";
 import { subdomainToInfo } from "@/data/subdomainToInfo";
@@ -39,6 +40,8 @@ const usefulToolEntries = [
       label: "Migrate Tokens",
     },
   ],
+  [gweiSubdomain, subdomainToInfo[gweiSubdomain]],
+  [usdcPaySubdomain, subdomainToInfo[usdcPaySubdomain]],
   [
     "robin-bridge",
     {
@@ -49,15 +52,71 @@ const usefulToolEntries = [
       isRelativePath: true,
     },
   ],
-  [gweiSubdomain, subdomainToInfo[gweiSubdomain]],
-  [usdcPaySubdomain, subdomainToInfo[usdcPaySubdomain]],
 ] as const;
 
-const toolEntries = Object.entries(subdomainToInfo).filter(
-  ([subdomain]) =>
-    !directorySubdomainSet.has(subdomain) &&
-    !usefulToolSubdomainSet.has(subdomain)
+type DeveloperTool = ComponentProps<typeof ToolsGridItem>;
+const orderedDeveloperTools: DeveloperTool[] = [
+  {
+    subdomain: subdomains.CONTRACT.base,
+    info: { ...subdomainToInfo[subdomains.CONTRACT.base], label: "Explorer" },
+  },
+  ...[
+    subdomains.STORAGE_SLOTS.base,
+    subdomains.ENS.base,
+    subdomains.TRANSACT.base,
+    subdomains.CONTRACT_DIFF.base,
+  ].map((subdomain) => ({ subdomain, info: subdomainToInfo[subdomain] })),
+  {
+    subdomain: subdomains.CONTRACT.base,
+    path: "verify",
+    info: {
+      emoji: "✅",
+      label: "Cross-explorer Verification",
+      description:
+        "Verify contract source across Etherscan, Blockscout, Routescan and Sourcify.",
+    },
+  },
+];
+const orderedDeveloperSubdomains = new Set(
+  orderedDeveloperTools.map((tool) => tool.subdomain)
 );
+const walletDeveloperSubdomains = [
+  subdomains.WALLET.base,
+  subdomains.EXPLORER.base,
+  subdomains.UNISWAP.base,
+  subdomains.SAFE.base,
+  subdomains.SOLIDITY.base,
+  subdomains.CONVERTER.base,
+  subdomains.EPOCH_CONVERTER.base,
+  subdomains.DETERMINE_ADDRESS.base,
+  subdomains.SIWE.base,
+  subdomains.FOUNDRY.base,
+  subdomains.CHARACTER_COUNTER.base,
+];
+const walletDeveloperSubdomainSet = new Set(walletDeveloperSubdomains);
+const toolEntries = Object.entries(subdomainToInfo)
+  .filter(
+    ([subdomain]) =>
+      !directorySubdomainSet.has(subdomain) &&
+      !usefulToolSubdomainSet.has(subdomain) &&
+      subdomain !== subdomains.CONSTANTS.base
+  )
+  .flatMap<DeveloperTool>(([subdomain, info]) => {
+    if (subdomain === subdomains.CONTRACT.base) return orderedDeveloperTools;
+    if (orderedDeveloperSubdomains.has(subdomain)) return [];
+    if (subdomain === subdomains.WALLET.base) {
+      return walletDeveloperSubdomains.map((subdomain) => ({
+        subdomain,
+        info: subdomainToInfo[subdomain],
+      }));
+    }
+    if (walletDeveloperSubdomainSet.has(subdomain)) return [];
+    return [{ subdomain, info }];
+  })
+  .concat({
+    subdomain: subdomains.CONSTANTS.base,
+    info: subdomainToInfo[subdomains.CONSTANTS.base],
+  });
 
 export const ToolsGrid = () => {
   return (
@@ -103,8 +162,11 @@ export const ToolsGrid = () => {
           columns={{ base: 1, sm: 2, lg: 3 }}
           spacing={{ base: 4, md: 8 }}
         >
-          {toolEntries.map(([subdomain, info]) => (
-            <ToolsGridItem key={subdomain} subdomain={subdomain} info={info} />
+          {toolEntries.map((tool) => (
+            <ToolsGridItem
+              key={`${tool.subdomain}/${tool.path ?? ""}`}
+              {...tool}
+            />
           ))}
         </SimpleGrid>
       </Container>

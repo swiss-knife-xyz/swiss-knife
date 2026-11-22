@@ -20,6 +20,9 @@ interface InputFieldProps extends InputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFunctionIsDisabled: (value: boolean) => void;
   isError: boolean;
+  allowBytesBuilder?: boolean;
+  immediateUpdates?: boolean;
+  rawValues?: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
@@ -43,7 +46,12 @@ const ArrayElement = ({
   removeFromArrayInputState,
   updateArrayReadIsDisabled,
   isError,
+  allowBytesBuilder,
+  immediateUpdates,
+  rawValues,
   onKeyDown,
+  fixedLength,
+  focusOnMount,
 }: {
   id: string;
   index: number;
@@ -55,13 +63,37 @@ const ArrayElement = ({
   removeFromArrayInputState: (id: string) => void;
   updateArrayReadIsDisabled: (id: string, value: boolean) => void;
   isError: boolean;
+  allowBytesBuilder?: boolean;
+  immediateUpdates?: boolean;
+  rawValues?: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  fixedLength?: number;
+  focusOnMount: boolean;
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const fieldRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!focusOnMount) return;
+    const frame = requestAnimationFrame(() => {
+      const root = fieldRef.current;
+      const field =
+        root?.querySelector<HTMLElement>(
+          'input:not([disabled]):not([readonly]):not([type="hidden"]):not([value="[ ]"]), textarea:not([disabled]):not([readonly]), select:not([disabled])'
+        ) ?? root?.querySelector<HTMLElement>("button:not([disabled])");
+      field?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusOnMount]);
 
   return (
-    <HStack mt={2} p={3} bg="whiteAlpha.50" rounded={"lg"}>
-      <Box w="full">
+    <HStack
+      minW={0}
+      mt={2}
+      p={{ base: 1.5, md: 3 }}
+      bg="whiteAlpha.50"
+      rounded={"lg"}
+    >
+      <Box w="full" minW={0}>
         <HStack w="full">
           <HStack
             cursor={"pointer"}
@@ -80,13 +112,14 @@ const ArrayElement = ({
           <Spacer />
           <Button
             mb={1}
+            isDisabled={fixedLength !== undefined}
             size="xs"
             onClick={() => removeFromArrayInputState(id)}
           >
             <DeleteIcon />
           </Button>
         </HStack>
-        <Box display={isCollapsed ? "none" : undefined}>
+        <Box ref={fieldRef} display={isCollapsed ? "none" : undefined}>
           {renderInputFields({
             chainId,
             input: {
@@ -102,6 +135,9 @@ const ArrayElement = ({
             },
             onKeyDown,
             isError,
+            allowBytesBuilder,
+            immediateUpdates,
+            rawValues,
             isArrayChild: true,
           })}
         </Box>
@@ -116,16 +152,33 @@ export const ArrayInput = ({
   onChange,
   setFunctionIsDisabled,
   isError,
+  allowBytesBuilder,
+  immediateUpdates,
+  rawValues,
   onKeyDown,
+  value,
 }: InputFieldProps) => {
   // removes [] from the end of the array type
-  const baseType = input.type!.substring(0, input.type!.length - 2);
+  const baseType = input.type!.replace(/\[\d*\]$/, "");
+  const fixedMatch = input.type!.match(/\[(\d+)\]$/);
+  const fixedLength = fixedMatch ? Number(fixedMatch[1]) : undefined;
 
-  const [arrayInputState, setArrayInputsState] = useState<ArrayInputState>({});
+  const [arrayInputState, setArrayInputsState] = useState<ArrayInputState>(
+    () => {
+      const values = Array.isArray(value)
+        ? value
+        : Array.from({ length: fixedLength ?? 0 }, () => "");
+      return Object.fromEntries(
+        values.map((v, i) => [`initial-${i}`, { id: `initial-${i}`, value: v }])
+      );
+    }
+  );
   const [arrayReadIsDisabled, setArrayReadIsDisabled] = useState<
     Record<string, boolean>
   >({});
 
+  const nextElementId = useRef(0);
+  const focusRequestedId = useRef<string | null>(null);
   const prevArrayInputStateRef = useRef(arrayInputState);
   const prevArrayReadIsDisabledRef = useRef(arrayReadIsDisabled);
 
@@ -148,7 +201,8 @@ export const ArrayInput = ({
 
   const addNewArrayElement = useCallback(() => {
     // unique id so that react re-renders the correct element when it is removed
-    const newId = `element-${Date.now()}`;
+    const newId = `element-${++nextElementId.current}`;
+    focusRequestedId.current = newId;
     setArrayInputsState((prev) => ({
       ...prev,
       [newId]: { id: newId, value: "" },
@@ -202,16 +256,26 @@ export const ArrayInput = ({
           chainId={chainId}
           input={input}
           childType={baseType}
+          fixedLength={fixedLength}
+          focusOnMount={id === focusRequestedId.current}
           value={element.value}
           updateArrayInputState={updateArrayInputState}
           removeFromArrayInputState={removeFromArrayInputState}
           updateArrayReadIsDisabled={updateArrayReadIsDisabled}
           isError={isError}
+          allowBytesBuilder={allowBytesBuilder}
+          immediateUpdates={immediateUpdates}
+          rawValues={rawValues}
           onKeyDown={onKeyDown}
         />
       ))}
       <Center mt={2}>
-        <Button onClick={addNewArrayElement}>+ Add</Button>
+        <Button
+          onClick={addNewArrayElement}
+          isDisabled={fixedLength !== undefined}
+        >
+          + Add
+        </Button>
       </Center>
     </Box>
   );

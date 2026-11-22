@@ -11,7 +11,6 @@ import {
   InputRightElement,
   InputLeftElement,
   Tag,
-  Link,
   Skeleton,
   IconButton,
   Tooltip,
@@ -32,6 +31,7 @@ import { Address } from "viem";
 import { erc20Abi } from "viem";
 import { useAddressBook } from "@/hooks/useAddressBook";
 import { AddressLabelModal } from "@/components/AddressBook";
+import { ContractAddressLink } from "@/components/ContractTabs";
 import { getPublicClient } from "@/lib/publicClient";
 
 interface Params {
@@ -351,20 +351,20 @@ export const AddressParam = ({
             </Tooltip>
           )}
           {showLink && (
-            <Link
-              href={`${getPath(
-                subdomains.EXPLORER.base,
-                subdomains.EXPLORER.isRelativePath
-              )}address/${address}${!!chainId ? "?chainId=" + chainId : ""}`}
+            <Button
+              as={ContractAddressLink}
+              displayName={addressBookLabel || addressLabels[0] || ensName || undefined}
+              address={address}
+              chainId={chainId}
+              href={`${getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}address/${address}${chainId ? "?chainId=" + chainId : ""}`}
               target="_blank"
-              _hover={{ textDecoration: "none" }}
+              rel="noopener noreferrer"
+              aria-label={`Open address ${address}`}
+              size="xs"
+              {...explorerButtonProps}
             >
-              <Button size="xs" {...explorerButtonProps}>
-                <HStack>
-                  <ExternalLinkIcon />
-                </HStack>
-              </Button>
-            </Link>
+              <ExternalLinkIcon />
+            </Button>
           )}
         </HStack>
 

@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Get the length of any arbitrary input string or its subsection.",
   canonical: "https://character-counter.eth.sh/",
-  images: "https://eth.sh/og/character-counter.png",
+  images: "https://eth.sh/api/og/character-counter",
 });
 
 const CharacterCounterLayout = ({

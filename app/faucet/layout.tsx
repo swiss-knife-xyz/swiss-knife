@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Find live Ethereum, Base, OP Stack, Arbitrum, Polygon, Unichain, Avalanche, BNB, ZKsync, Monad, and stablecoin testnet faucets.",
   canonical: "https://faucet.eth.sh/",
-  images: "https://eth.sh/og/index.png",
+  images: "https://eth.sh/api/og/faucet",
 });
 
 const FaucetLayout = ({ children }: { children: React.ReactNode }) => {

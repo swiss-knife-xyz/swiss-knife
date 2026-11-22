@@ -7,10 +7,12 @@
     "build": "next build",
     "build:robin-oft-artifacts": "tsx scripts/buildRobinOftArtifacts.ts",
     "test": "tsx --test",
-    "test:decoder-samples": "vitest run --config vitest.decoder-samples.config.ts && tsx --test app/calldata/decoder/samples.test.ts",
+    "test:contract": "vitest run --config vitest.contract.config.ts",
+    "test:contract-load": "vitest run --config vitest.contract-load.config.ts",
     "start": "next start",
     "lint": "next lint",
-    "fetch-dapps": "tsx scripts/fetchSafeDapps.ts"
+    "fetch-dapps": "tsx scripts/fetchSafeDapps.ts",
+    "test:decoder-samples": "vitest run --config vitest.decoder-samples.config.ts && tsx --test app/calldata/decoder/samples.test.ts"
   },
   "dependencies": {
     "@bprogress/next": "^3.2.12",
@@ -95,6 +97,7 @@
     "@layerzerolabs/oapp-evm": "0.3.2",
     "@layerzerolabs/oft-evm": "3.2.1",
     "@openzeppelin/contracts": "5.0.2",
+    "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.0",
     "@types/cors": "^2.8.17",
     "@types/diff": "^5.2.3",

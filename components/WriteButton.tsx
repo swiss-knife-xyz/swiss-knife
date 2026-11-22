@@ -59,10 +59,11 @@ const WriteButtonComponent = ({
       borderColor="border.strong"
     >
       {showWrongNetwork ? (
-        <ConnectButton expectedChainId={chainId} hideAccount transparentWrongNetwork />
+        <ConnectButton expectedChainId={chainId} hideAccount transparentWrongNetwork embedded />
       ) : (
         <Button
           px={4}
+          h={{ base: 10, md: 8 }}
           onClick={
             writeButtonType === WriteButtonType.Write
               ? writeFunction
@@ -86,6 +87,8 @@ const WriteButtonComponent = ({
       <Menu isLazy>
         <MenuButton
           as={IconButton}
+          h={{ base: 10, md: 8 }}
+          minW={{ base: 9, md: 6 }}
           aria-label="Options"
           icon={<ChevronDownIcon />}
           variant="ghost"

@@ -282,6 +282,9 @@ importers:
       tsx:
         specifier: ^4.19.4
         version: 4.19.4
+      '@testing-library/dom':
+        specifier: 10.4.2
+        version: 10.4.2
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@20.2.5)(jiti@2.3.3)(jsdom@26.1.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(tsx@4.19.4)
@@ -8263,7 +8266,6 @@ packages:
         optional: true
       use-sync-external-store:
         optional: true
-
   '@pierre/diffs@1.5.2':
     resolution: {integrity: sha512-QVxIWQEnNoko22k63maERzozd29+FtaUNpRrZiw603WMe5R1mFSED+jMtPkcVP3SDYS1DWg5K7sa7sJbr3xkNQ==}
     peerDependencies:
@@ -19632,7 +19634,6 @@ snapshots:
       '@types/react': 19.2.9
       react: 19.2.3
       use-sync-external-store: 1.4.0(react@19.2.3)
-
   '@pierre/diffs@1.5.2(@shikijs/themes@4.5.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@pierre/theme': 2.0.0

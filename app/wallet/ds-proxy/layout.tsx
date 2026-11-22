@@ -6,7 +6,7 @@ const _metadataInfo = {
   description:
     "Connect your DSProxy contract to any dapp via WalletConnect and execute transactions.",
   canonical: "https://wallet.eth.sh/ds-proxy",
-  images: "https://eth.sh/og/wallet-ds-proxy.png",
+  images: "https://eth.sh/api/og/wallet-ds-proxy",
 };
 
 export const metadata: Metadata = {

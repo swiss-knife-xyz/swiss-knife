@@ -48,6 +48,12 @@ import { renderInputFields } from "@/components/fnParams/Renderer";
 import { AddressInput } from "@/components/fnParams/inputs/AddressInput";
 import { IntInput } from "@/components/fnParams/inputs/IntInput";
 import { BytesInput } from "@/components/fnParams/inputs/BytesInput";
+import {
+  ManualParametersEditor,
+  ManualParam,
+  isTupleType,
+  prepareManualParams,
+} from "@/components/calldata/ManualParametersEditor";
 import { convertBooleans } from "@/lib/convertBooleans";
 import {
   encodeStandard,
@@ -57,152 +63,11 @@ import {
   encodeConstructorArgs,
   encodeSafeMultiSend,
   SafeMultiSendTx,
-  ManualParamType,
 } from "@/lib/encoder";
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
-
-const opt = (t: string) => ({ label: t, value: t });
-
-const typeOptions = [
-  {
-    label: "Common",
-    options: [
-      opt("address"),
-      opt("bool"),
-      opt("bytes"),
-      opt("bytes32"),
-      opt("int256"),
-      opt("string"),
-      opt("tuple"),
-      opt("uint256"),
-    ],
-  },
-  {
-    label: "Arrays",
-    options: [
-      opt("address[]"),
-      opt("bool[]"),
-      opt("bytes[]"),
-      opt("bytes32[]"),
-      opt("int256[]"),
-      opt("string[]"),
-      opt("tuple[]"),
-      opt("uint256[]"),
-    ],
-  },
-  {
-    label: "Unsigned Integers",
-    options: [
-      opt("uint8"),
-      opt("uint16"),
-      opt("uint32"),
-      opt("uint64"),
-      opt("uint128"),
-    ],
-  },
-  {
-    label: "Signed Integers",
-    options: [
-      opt("int8"),
-      opt("int16"),
-      opt("int32"),
-      opt("int64"),
-      opt("int128"),
-    ],
-  },
-  {
-    label: "Fixed Bytes",
-    options: [
-      opt("bytes1"),
-      opt("bytes2"),
-      opt("bytes4"),
-      opt("bytes8"),
-      opt("bytes16"),
-      opt("bytes20"),
-    ],
-  },
-];
-
-// Flat list for tuple component selector (no nested tuples)
-const componentTypeOptions = [
-  {
-    label: "Common",
-    options: [
-      opt("address"),
-      opt("bool"),
-      opt("bytes"),
-      opt("bytes32"),
-      opt("int256"),
-      opt("string"),
-      opt("uint256"),
-    ],
-  },
-  {
-    label: "Arrays",
-    options: [
-      opt("address[]"),
-      opt("bool[]"),
-      opt("bytes[]"),
-      opt("bytes32[]"),
-      opt("int256[]"),
-      opt("string[]"),
-      opt("uint256[]"),
-    ],
-  },
-  {
-    label: "Unsigned Integers",
-    options: [
-      opt("uint8"),
-      opt("uint16"),
-      opt("uint32"),
-      opt("uint64"),
-      opt("uint128"),
-    ],
-  },
-  {
-    label: "Signed Integers",
-    options: [
-      opt("int8"),
-      opt("int16"),
-      opt("int32"),
-      opt("int64"),
-      opt("int128"),
-    ],
-  },
-  {
-    label: "Fixed Bytes",
-    options: [
-      opt("bytes1"),
-      opt("bytes2"),
-      opt("bytes4"),
-      opt("bytes8"),
-      opt("bytes16"),
-      opt("bytes20"),
-    ],
-  },
-];
-
-// =============================================================================
-// MANUAL PARAM TYPES
-// =============================================================================
-
-interface TupleComponent {
-  type: string;
-  name: string;
-}
-
-interface ManualParam {
-  type: string;
-  name: string;
-  value: any;
-  components?: TupleComponent[];
-}
-
-/** Check if a type needs tuple component definitions */
-const isTupleType = (type: string) => type === "tuple" || type === "tuple[]";
 
 // =============================================================================
 // SECTION WRAPPER
@@ -307,8 +172,10 @@ function CalldataEncoderPageContent() {
   const [encodedResultPacked, setEncodedResultPacked] = useState<string>("");
   const [packedError, setPackedError] = useState<string>("");
   const [encodedParamsOnly, setEncodedParamsOnly] = useState<string>("");
-  const [encodedParamsOnlyPacked, setEncodedParamsOnlyPacked] = useState<string>("");
-  const [paramsOnlyPackedError, setParamsOnlyPackedError] = useState<string>("");
+  const [encodedParamsOnlyPacked, setEncodedParamsOnlyPacked] =
+    useState<string>("");
+  const [paramsOnlyPackedError, setParamsOnlyPackedError] =
+    useState<string>("");
   const [resultTabIndex, setResultTabIndex] = useState(0);
   const [paramsSubTabIndex, setParamsSubTabIndex] = useState(0);
   const [isEncoding, setIsEncoding] = useState(false);
@@ -500,33 +367,7 @@ function CalldataEncoderPageContent() {
 
       // --- Manual Mode ---
       if (selectedTabIndex === 0) {
-        const types: ManualParamType[] = manualParams.map((p) => ({
-          type: p.type,
-          name: p.name || "",
-          ...(isTupleType(p.type) && p.components?.length
-            ? {
-                components: p.components.map((c) => ({
-                  type: c.type,
-                  name: c.name || "",
-                })),
-              }
-            : {}),
-        }));
-        const values = manualParams.map((p) => {
-          const input: JsonFragmentType = {
-            type: p.type,
-            name: p.name || "",
-            ...(isTupleType(p.type) && p.components?.length
-              ? {
-                  components: p.components.map((c) => ({
-                    type: c.type,
-                    name: c.name || "",
-                  })),
-                }
-              : {}),
-          };
-          return convertBooleans(p.value, input);
-        });
+        const { types, values } = prepareManualParams(manualParams);
 
         // If function name is provided, encode as function calldata (selector + args)
         if (manualFunctionName.trim()) {
@@ -565,9 +406,7 @@ function CalldataEncoderPageContent() {
             convertBooleans(inputsState[i], input)
           ) || [];
 
-        if (
-          selectedFunction && selectedFunction.value === "__constructor__"
-        ) {
+        if (selectedFunction && selectedFunction.value === "__constructor__") {
           const constructorEntry = (parsedAbi as any[]).find(
             (item: any) => item.type === "constructor"
           );
@@ -616,8 +455,7 @@ function CalldataEncoderPageContent() {
             } catch (pe: any) {
               setEncodedParamsOnlyPacked("");
               setParamsOnlyPackedError(
-                pe.message ||
-                  "Packed encoding not supported for these types"
+                pe.message || "Packed encoding not supported for these types"
               );
             }
           } else {
@@ -659,129 +497,6 @@ function CalldataEncoderPageContent() {
   // =============================================================================
   // MANUAL MODE HANDLERS
   // =============================================================================
-
-  const addManualParam = () => {
-    setManualParams((prev) => [...prev, { type: "uint256", name: "", value: "" }]);
-  };
-
-  const removeManualParam = (index: number) => {
-    setManualParams((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const updateManualParamType = (index: number, type: string) => {
-    setManualParams((prev) =>
-      prev.map((p, i) => {
-        if (i !== index) return p;
-        const updated: ManualParam = { ...p, type, value: "" };
-        // Initialize components when switching to a tuple type
-        if (isTupleType(type) && !p.components?.length) {
-          updated.components = [{ type: "uint256", name: "" }];
-        }
-        // Clear components when switching away from tuple
-        if (!isTupleType(type)) {
-          updated.components = undefined;
-        }
-        return updated;
-      })
-    );
-  };
-
-  const updateManualParamValue = (index: number, value: any) => {
-    setManualParams((prev) =>
-      prev.map((p, i) => (i === index ? { ...p, value } : p))
-    );
-  };
-
-  const updateManualParamName = (index: number, name: string) => {
-    setManualParams((prev) =>
-      prev.map((p, i) => (i === index ? { ...p, name } : p))
-    );
-  };
-
-  // --- Tuple Component Handlers ---
-
-  const addTupleComponent = (paramIndex: number) => {
-    setManualParams((prev) =>
-      prev.map((p, i) => {
-        if (i !== paramIndex) return p;
-        const prevValues = Array.isArray(p.value) ? p.value : [];
-        return {
-          ...p,
-          value: [...prevValues, ""],
-          components: [...(p.components || []), { type: "uint256", name: "" }],
-        };
-      })
-    );
-  };
-
-  const removeTupleComponent = (paramIndex: number, compIndex: number) => {
-    setManualParams((prev) =>
-      prev.map((p, i) => {
-        if (i !== paramIndex) return p;
-        const prevValues = Array.isArray(p.value) ? [...p.value] : [];
-        prevValues.splice(compIndex, 1);
-        return {
-          ...p,
-          value: prevValues,
-          components: (p.components || []).filter((_, ci) => ci !== compIndex),
-        };
-      })
-    );
-  };
-
-  const updateTupleFieldValue = (
-    paramIndex: number,
-    fieldIndex: number,
-    fieldValue: any
-  ) => {
-    setManualParams((prev) =>
-      prev.map((p, i) => {
-        if (i !== paramIndex) return p;
-        const arr = Array.isArray(p.value) ? [...p.value] : [];
-        arr[fieldIndex] = fieldValue;
-        return { ...p, value: arr };
-      })
-    );
-  };
-
-  const updateTupleComponentType = (
-    paramIndex: number,
-    compIndex: number,
-    type: string
-  ) => {
-    setManualParams((prev) =>
-      prev.map((p, i) =>
-        i === paramIndex
-          ? {
-              ...p,
-              value: "",
-              components: (p.components || []).map((c, ci) =>
-                ci === compIndex ? { ...c, type } : c
-              ),
-            }
-          : p
-      )
-    );
-  };
-
-  const updateTupleComponentName = (
-    paramIndex: number,
-    compIndex: number,
-    name: string
-  ) => {
-    setManualParams((prev) =>
-      prev.map((p, i) =>
-        i === paramIndex
-          ? {
-              ...p,
-              components: (p.components || []).map((c, ci) =>
-                ci === compIndex ? { ...c, name } : c
-              ),
-            }
-          : p
-      )
-    );
-  };
 
   // =============================================================================
   // MULTISEND HANDLERS
@@ -839,336 +554,11 @@ function CalldataEncoderPageContent() {
         title="Parameters"
         badge={`${manualParams.length}`}
       >
-        <VStack spacing={3} align="stretch">
-          {manualParams.map((param, i) => (
-            <Box
-              key={i}
-              p={4}
-              bg="whiteAlpha.50"
-              border="1px solid"
-              borderColor="border.subtle"
-              borderRadius="lg"
-              position="relative"
-            >
-              {/* Header row: index badge + type selector + delete */}
-              <HStack mb={3} justify="space-between" align="center" spacing={3}>
-                <HStack spacing={3} flex={1} minW={0}>
-                  <Box
-                    bg="whiteAlpha.100"
-                    px={2}
-                    py={0.5}
-                    borderRadius="md"
-                    fontSize="xs"
-                    color="text.tertiary"
-                    fontFamily="mono"
-                    flexShrink={0}
-                  >
-                    [{i}]
-                  </Box>
-                  <Box w="200px" flexShrink={0}>
-                    <DarkSelect
-                      isCreatable
-                      placeholder="Select type..."
-                      options={typeOptions}
-                      selectedOption={
-                        param.type
-                          ? { label: param.type, value: param.type }
-                          : null
-                      }
-                      setSelectedOption={(opt) => {
-                        if (opt) updateManualParamType(i, opt.value as string);
-                      }}
-                    />
-                  </Box>
-                  <Box w="180px" flexShrink={0}>
-                    <InputField
-                      placeholder="name (optional)"
-                      value={param.name}
-                      onChange={(e) => updateManualParamName(i, e.target.value)}
-                      size="sm"
-                    />
-                  </Box>
-                </HStack>
-                <IconButton
-                  aria-label="Remove parameter"
-                  icon={<DeleteIcon />}
-                  size="xs"
-                  variant="ghost"
-                  color="text.tertiary"
-                  _hover={{ color: "red.300", bg: "whiteAlpha.100" }}
-                  onClick={() => removeManualParam(i)}
-                  isDisabled={manualParams.length <= 1}
-                  flexShrink={0}
-                />
-              </HStack>
-
-              {/* Tuple fields — merged type/name/value per field */}
-              {param.type === "tuple" && param.components?.length ? (
-                <Box>
-                  <VStack spacing={3} align="stretch">
-                    {param.components.map((comp, ci) => {
-                      const fieldValues = Array.isArray(param.value)
-                        ? param.value
-                        : [];
-                      return (
-                        <Box
-                          key={ci}
-                          p={3}
-                          bg="whiteAlpha.50"
-                          border="1px solid"
-                          borderColor="border.subtle"
-                          borderRadius="md"
-                        >
-                          {/* Field header: index + type + name + delete */}
-                          <HStack spacing={2} mb={2}>
-                            <Box
-                              bg="whiteAlpha.100"
-                              px={1.5}
-                              py={0.5}
-                              borderRadius="sm"
-                              fontSize="xs"
-                              color="text.tertiary"
-                              fontFamily="mono"
-                              flexShrink={0}
-                            >
-                              {ci}
-                            </Box>
-                            <Box w="160px" flexShrink={0}>
-                              <DarkSelect
-                                isCreatable
-                                placeholder="Type"
-                                options={componentTypeOptions}
-                                selectedOption={
-                                  comp.type
-                                    ? {
-                                        label: comp.type,
-                                        value: comp.type,
-                                      }
-                                    : null
-                                }
-                                setSelectedOption={(opt) => {
-                                  if (opt)
-                                    updateTupleComponentType(
-                                      i,
-                                      ci,
-                                      opt.value as string
-                                    );
-                                }}
-                              />
-                            </Box>
-                            <Box w="180px" flexShrink={0}>
-                              <InputField
-                                placeholder="name (optional)"
-                                value={comp.name}
-                                onChange={(e) =>
-                                  updateTupleComponentName(
-                                    i,
-                                    ci,
-                                    e.target.value
-                                  )
-                                }
-                                size="sm"
-                              />
-                            </Box>
-                            <Spacer />
-                            <IconButton
-                              aria-label="Remove field"
-                              icon={<DeleteIcon />}
-                              size="xs"
-                              variant="ghost"
-                              color="text.tertiary"
-                              _hover={{
-                                color: "red.300",
-                                bg: "whiteAlpha.100",
-                              }}
-                              onClick={() => removeTupleComponent(i, ci)}
-                              isDisabled={(param.components || []).length <= 1}
-                            />
-                          </HStack>
-                          {/* Field value input */}
-                          <Box>
-                            {renderInputFields({
-                              chainId: 1,
-                              input: {
-                                type: comp.type,
-                                name: comp.name || `field_${ci}`,
-                              },
-                              value: fieldValues[ci] || "",
-                              onChange: (
-                                e: React.ChangeEvent<HTMLInputElement>
-                              ) => updateTupleFieldValue(i, ci, e.target.value),
-                              setFunctionIsDisabled: () => {},
-                              isError: false,
-                              onKeyDown: (
-                                e: React.KeyboardEvent<HTMLInputElement>
-                              ) => {
-                                if (e.key === "Enter") encode();
-                              },
-                            })}
-                          </Box>
-                        </Box>
-                      );
-                    })}
-                    <Box>
-                      <DarkButton
-                        onClick={() => addTupleComponent(i)}
-                        size="xs"
-                      >
-                        <HStack spacing={1}>
-                          <AddIcon boxSize={2.5} />
-                          <Text fontSize="xs">Add Field</Text>
-                        </HStack>
-                      </DarkButton>
-                    </Box>
-                  </VStack>
-                </Box>
-              ) : param.type === "tuple[]" && param.components?.length ? (
-                <>
-                  {/* tuple[] — component definition separate, then array input */}
-                  <Box
-                    mb={3}
-                    p={3}
-                    bg="whiteAlpha.50"
-                    border="1px solid"
-                    borderColor="border.subtle"
-                    borderRadius="md"
-                  >
-                    <Text
-                      color="text.tertiary"
-                      fontSize="xs"
-                      fontWeight="medium"
-                      mb={2}
-                    >
-                      TUPLE STRUCTURE
-                    </Text>
-                    <VStack spacing={2} align="stretch">
-                      {param.components.map((comp, ci) => (
-                        <HStack key={ci} spacing={2}>
-                          <Box
-                            bg="whiteAlpha.100"
-                            px={1.5}
-                            py={0.5}
-                            borderRadius="sm"
-                            fontSize="xs"
-                            color="text.tertiary"
-                            fontFamily="mono"
-                            flexShrink={0}
-                          >
-                            {ci}
-                          </Box>
-                          <Box w="160px" flexShrink={0}>
-                            <DarkSelect
-                              isCreatable
-                              placeholder="Type"
-                              options={componentTypeOptions}
-                              selectedOption={
-                                comp.type
-                                  ? {
-                                      label: comp.type,
-                                      value: comp.type,
-                                    }
-                                  : null
-                              }
-                              setSelectedOption={(opt) => {
-                                if (opt)
-                                  updateTupleComponentType(
-                                    i,
-                                    ci,
-                                    opt.value as string
-                                  );
-                              }}
-                            />
-                          </Box>
-                          <Box w="180px" flexShrink={0}>
-                            <InputField
-                              placeholder="name (optional)"
-                              value={comp.name}
-                              onChange={(e) =>
-                                updateTupleComponentName(i, ci, e.target.value)
-                              }
-                              size="sm"
-                            />
-                          </Box>
-                          <Spacer />
-                          <IconButton
-                            aria-label="Remove field"
-                            icon={<DeleteIcon />}
-                            size="xs"
-                            variant="ghost"
-                            color="text.tertiary"
-                            _hover={{
-                              color: "red.300",
-                              bg: "whiteAlpha.100",
-                            }}
-                            onClick={() => removeTupleComponent(i, ci)}
-                            isDisabled={(param.components || []).length <= 1}
-                          />
-                        </HStack>
-                      ))}
-                      <Box>
-                        <DarkButton
-                          onClick={() => addTupleComponent(i)}
-                          size="xs"
-                        >
-                          <HStack spacing={1}>
-                            <AddIcon boxSize={2.5} />
-                            <Text fontSize="xs">Add Field</Text>
-                          </HStack>
-                        </DarkButton>
-                      </Box>
-                    </VStack>
-                  </Box>
-                  <Box>
-                    {renderInputFields({
-                      chainId: 1,
-                      input: {
-                        type: param.type,
-                        name: param.name || `param_${i}`,
-                        components: param.components.map((c) => ({
-                          type: c.type,
-                          name: c.name || "",
-                        })),
-                      },
-                      value: param.value || "",
-                      onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                        updateManualParamValue(i, e.target.value),
-                      setFunctionIsDisabled: () => {},
-                      isError: false,
-                      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-                        if (e.key === "Enter") encode();
-                      },
-                    })}
-                  </Box>
-                </>
-              ) : (
-                /* Non-tuple value input */
-                <Box>
-                  {renderInputFields({
-                    chainId: 1,
-                    input: { type: param.type, name: param.name || `param_${i}` },
-                    value: param.value || "",
-                    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                      updateManualParamValue(i, e.target.value),
-                    setFunctionIsDisabled: () => {},
-                    isError: false,
-                    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-                      if (e.key === "Enter") encode();
-                    },
-                  })}
-                </Box>
-              )}
-            </Box>
-          ))}
-
-          <Box>
-            <DarkButton onClick={addManualParam} size="sm">
-              <HStack spacing={2}>
-                <AddIcon boxSize={3} />
-                <Text>Add Parameter</Text>
-              </HStack>
-            </DarkButton>
-          </Box>
-        </VStack>
+        <ManualParametersEditor
+          manualParams={manualParams}
+          setManualParams={setManualParams}
+          encode={encode}
+        />
       </Section>
 
       {/* Generated ABI */}
@@ -1473,6 +863,7 @@ function CalldataEncoderPageContent() {
             {renderInputFields({
               chainId,
               input,
+              allowBytesBuilder: true,
               value: inputsState[i] || "",
               onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                 updateInputState(i, e.target.value),
@@ -1646,7 +1037,8 @@ function CalldataEncoderPageContent() {
       <Box mb={8} textAlign="center">
         <HStack justify="center" spacing={3} mb={3}>
           <Icon as={FiCode} color="primary.400" boxSize={7} />
-          <Heading as="h1"
+          <Heading
+            as="h1"
             size="lg"
             color="text.primary"
             fontWeight="bold"
@@ -1872,7 +1264,14 @@ function CalldataEncoderPageContent() {
 
 export const CalldataEncoderPage = () => {
   return (
-    <Suspense fallback={<ToolLoading title="Calldata Encoder" description="Encode smart contract function arguments into Ethereum transaction calldata." />}>
+    <Suspense
+      fallback={
+        <ToolLoading
+          title="Calldata Encoder"
+          description="Encode smart contract function arguments into Ethereum transaction calldata."
+        />
+      }
+    >
       <CalldataEncoderPageContent />
     </Suspense>
   );

@@ -1,86 +1,47 @@
-import axios from "axios";
 import { sourceCodeRequestSchema } from "@/data/schemas";
 import { etherscanChains } from "@/data/common";
+import { fetchContractMetadata } from "@/lib/contractMetadata";
 
-export const OPTIONS = async (request: Request) => {
-  return new Response(null, {
-    headers: {
-      "Access-Control-Allow-Origin": "*", // Allows all domains, adjust as necessary
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Adjust based on the methods your server supports
-      "Access-Control-Allow-Headers": "Content-Type, Authorization", // Optional, specify the headers allowed in requests
-    },
-  });
+const headers = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
+
+export const OPTIONS = async (_request: Request) =>
+  new Response(null, { headers });
 
 export const GET = async (request: Request) => {
   const { searchParams } = new URL(request.url);
   const address = searchParams.get("address");
   const chainId = searchParams.get("chainId");
 
-  // validate parameters
   try {
-    sourceCodeRequestSchema.parse({
-      address,
-      chainId: parseInt(chainId || ""),
+    if (
+      !chainId ||
+      !/^[1-9]\d*$/.test(chainId) ||
+      !Number.isSafeInteger(Number(chainId)) ||
+      !address ||
+      !/^0x[a-fA-F0-9]{40}$/.test(address)
+    )
+      throw new Error("Invalid identity");
+    sourceCodeRequestSchema.parse({ address, chainId: Number(chainId) });
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid request body" }), {
+      status: 400,
+      headers,
     });
-  } catch (error) {
-    return new Response(
-      JSON.stringify({
-        error: "Invalid request body",
-      }),
-      {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*", // Allows all domains, adjust as necessary
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Adjust based on the methods your server supports
-          "Access-Control-Allow-Headers": "Content-Type, Authorization", // Optional, specify the headers allowed in requests
-        },
-      }
-    );
   }
 
-  try {
-    // Find the chain in etherscanChains and check if it uses Routescan
-    const targetChainId = parseInt(chainId || "");
-    const chain = Object.values(etherscanChains).find(
-      (chain) => chain.id === targetChainId
-    );
-    const isRoutescanChain = chain?.isRoutescan === true;
-
-    let apiUrl: string;
-    if (isRoutescanChain) {
-      // Use Routescan API for chains like Plasma
-      apiUrl = `https://api.routescan.io/v2/network/mainnet/evm/${chainId}/etherscan/api?module=contract&action=getsourcecode&address=${address}`;
-    } else {
-      // Use Etherscan API for supported chains
-      apiUrl = `https://api.etherscan.io/v2/api?apikey=${process.env.ETHERSCAN_API_KEY}&chainid=${chainId}&module=contract&action=getsourcecode&address=${address}`;
-    }
-
-    const res = await axios.get(apiUrl);
-    return new Response(JSON.stringify(res.data), {
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*", // Allows all domains, adjust as necessary
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Adjust based on the methods your server supports
-        "Access-Control-Allow-Headers": "Content-Type, Authorization", // Optional, specify the headers allowed in requests
-      },
-    });
-  } catch (error) {
-    console.log(error);
-    return new Response(
-      JSON.stringify({
-        error: "Error fetching data",
-      }),
-      {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*", // Allows all domains, adjust as necessary
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", // Adjust based on the methods your server supports
-          "Access-Control-Allow-Headers": "Content-Type, Authorization", // Optional, specify the headers allowed in requests
-        },
-      }
-    );
-  }
+  const targetChainId = parseInt(chainId!);
+  const chain = Object.values(etherscanChains).find(
+    (chain) => chain.id === targetChainId
+  );
+  const { body, statusCode } = await fetchContractMetadata({
+    chainId: targetChainId,
+    address: address!,
+    isRoutescan: chain?.isRoutescan === true,
+  });
+  return new Response(JSON.stringify(body), { status: statusCode, headers });
 };
