@@ -11,6 +11,7 @@ import {
 import { ChakraProvider } from "@chakra-ui/react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { CalldataDecoderPage } from "./CalldataDecoderPage";
+import { Interface } from "ethers";
 import { AddressParam } from "@/components/decodedParams/AddressParam";
 
 const mocks = vi.hoisted(() => ({
@@ -150,6 +151,7 @@ function deferred<T>() {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.query = "";
+  window.history.replaceState(null, "", "/");
   mocks.decode.mockResolvedValue({
     args: [arg],
     rawArgs: [address],
@@ -628,4 +630,42 @@ it("ignores late avatars and failed ENS lookups after changing addresses", async
   await act(async () => avatar.resolve("https://example.test/old-avatar.png"));
   expect(screen.getByDisplayValue(second)).toBeTruthy();
   expect(document.querySelector('img[src="https://example.test/old-avatar.png"]')).toBeNull();
+});
+
+
+it("restores a shared ABI before automatically decoding", async () => {
+  const definitions = ["function customAction(uint256 amount)"];
+  const calldata = new Interface(definitions).encodeFunctionData("customAction", [42n]);
+  mocks.query = new URLSearchParams({ calldata }).toString();
+  window.history.replaceState(null, "", `/#${new URLSearchParams({ decode: "1", functions: JSON.stringify(definitions) })}`);
+  render(page(mocks.query));
+  await waitFor(() => expect(mocks.decode).toHaveBeenCalledWith(expect.objectContaining({
+    calldata, abi: definitions,
+  })));
+  expect(screen.getByText("Input ABI")).toBeTruthy();
+});
+
+it("reports malformed shared definitions without decoding with a different ABI", async () => {
+  mocks.query = "calldata=0x12345678";
+  window.history.replaceState(null, "", "/#decode=1&functions=invalid");
+  render(page(mocks.query));
+  await screen.findByText("Invalid shared decode link");
+  expect(mocks.decode).not.toHaveBeenCalled();
+});
+
+it("offers a share link for the completed result", async () => {
+  const calldata = new Interface(["function transfer(address)"]).encodeFunctionData("transfer", [address]);
+  mocks.query = new URLSearchParams({ calldata }).toString();
+  render(page(mocks.query));
+  const share = await screen.findByRole("button", { name: "Share decode" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.click(share);
+  expect(await screen.findByRole("dialog", { name: "Share decode" })).toBeTruthy();
+  const input = screen.getByRole("textbox", { name: "Decode link" }) as HTMLInputElement;
+  expect(input.readOnly).toBe(true);
+  const link = new URL(input.value);
+  expect(screen.getByRole("link", { name: "Open decode link" }).getAttribute("href")).toBe(link.toString());
+  expect(screen.getByRole("button", { name: "Copy link" }).getAttribute("data-copy")).toBe(link.toString());
+  expect(link.searchParams.get("calldata")).toBe(calldata);
+  expect(new URLSearchParams(link.hash.slice(1)).get("functions")).toContain("transfer(address)");
 });

@@ -29,11 +29,20 @@ import {
   IconButton,
   SimpleGrid,
   Skeleton,
+  Input,
+  Center,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
 } from "@chakra-ui/react";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
   ExternalLinkIcon,
+  LinkIcon,
 } from "@chakra-ui/icons";
 import {
   FiCode,
@@ -69,6 +78,7 @@ import TabsSelector from "@/components/Tabs/TabsSelector";
 
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { createDecoderShareLink, parseDecoderShareFragment } from "@/lib/decoderShare";
 import { decodeEvents, decodeRecursive } from "@/lib/decoder";
 import { getDisplayFunctionName } from "@/utils/functionNames";
 import { decoderSamples } from "./samples";
@@ -430,6 +440,8 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   // can be function calldata or abi.encode bytes
   const [liveResult, setResult] = useState<DecodeRecursiveResult>();
   const [isLoading, setIsLoading] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [shareModalLink, setShareModalLink] = useState<string | null>(null);
   const [pasted, setPasted] = useState(false);
   const [liveEvents, setDecodedEvents] = useState<
     DecodeEventResult[] | null
@@ -530,6 +542,19 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   };
 
   useEffect(() => {
+    try {
+      const functions = parseDecoderShareFragment(window.location.hash);
+      if (functions) {
+        if (!calldataFromURL) throw new Error("Shared decode link is missing calldata.");
+        setSelectedTabIndex(1);
+        setAbi(JSON.stringify(functions, null, 2));
+        decode({ _calldata: calldataFromURL, _abi: functions });
+        return;
+      }
+    } catch (error) {
+      toast({ title: "Invalid shared decode link", description: error instanceof Error ? error.message : "Unable to restore function definitions.", status: "error", isClosable: true });
+      return;
+    }
     if (calldataFromURL && addressFromURL) {
       setSelectedTabIndex(2);
       decode({
@@ -662,6 +687,8 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     }
     const __calldata = _calldata || calldata;
 
+    setShareLink(null);
+    setShareModalLink(null);
     setResult(undefined);
     setIsLoading(true);
     console.log("DECODING...");
@@ -675,6 +702,13 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       if (id !== requestId.current) return;
       console.log({ DECODED_RESULT: res });
       setResult(res);
+      try {
+        const baseUrl = new URL(`${getPath(subdomains.CALLDATA.base)}decoder`, window.location.origin);
+        setShareLink(createDecoderShareLink(baseUrl.toString(), startHexWith0x(__calldata), res, _abi));
+      } catch {
+        // A synthetic or oversized decode can still be viewed and copied as JSON.
+        setShareLink(null);
+      }
 
       if (res !== null) {
         toast({
@@ -1408,6 +1442,18 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                 Decoded calldata
               </Text>
               <HStack spacing={1} flexWrap="wrap">
+                {shareLink && !snapshot && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    color="whiteAlpha.700"
+                    _hover={{ color: "white", bg: "whiteAlpha.200" }}
+                    leftIcon={<LinkIcon boxSize={4} />}
+                    onClick={() => setShareModalLink(shareLink)}
+                  >
+                    Share decode
+                  </Button>
+                )}
                 <CopyToClipboard
                   textToCopy={JSON.stringify(
                     {
@@ -1473,6 +1519,44 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
         )}
         </Box>
       </ExampleSnapshotContext.Provider>
+
+      <Modal isOpen={shareModalLink !== null} onClose={() => setShareModalLink(null)} isCentered size="lg" scrollBehavior="inside">
+        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
+        <ModalContent mx={{ base: 3, sm: 4 }} maxW={{ base: "calc(100vw - 1.5rem)", sm: "lg" }} bg="bg.base" border="1px solid" borderColor="border.subtle">
+          <ModalHeader pb={2}>Share decode</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={5} px={{ base: 3, sm: 6 }}>
+            <Text fontSize="sm" color="text.secondary" mb={4}>
+              Share this calldata with the function definitions needed to decode it.
+            </Text>
+            <Box position="relative">
+              <Input aria-label="Decode link" value={shareModalLink ?? ""} isReadOnly pr={12} fontSize="sm" />
+              <IconButton
+                as="a"
+                href={shareModalLink ?? undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open decode link"
+                icon={<ExternalLinkIcon />}
+                variant="ghost"
+                size="sm"
+                position="absolute"
+                top={1}
+                right={1}
+                color="text.secondary"
+              />
+            </Box>
+            <Center mt={4}>
+              <CopyToClipboard
+                textToCopy={shareModalLink ?? ""}
+                labelText="Copy link"
+                aria-label="Copy decode link"
+                variant="outline"
+              />
+            </Center>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
 
       {/* Bottom-right, directly above the sitewide footer when the layout
           provides that slot; inline at the end of the tool otherwise. Also
