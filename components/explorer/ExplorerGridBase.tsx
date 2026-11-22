@@ -1,5 +1,5 @@
 import { useSearchParams } from "next/navigation";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Box,
   Button,
@@ -75,6 +75,12 @@ export const ExplorerGridBase = ({
       : null;
 
   const [searchExplorer, setSearchExplorer] = useState<string>("");
+  const [chainSearch, setChainSearch] = useState("");
+  const [chainFilterOpen, setChainFilterOpen] = useState(false);
+  const chainSearchRef = useRef<HTMLInputElement>(null!);
+  const matchingChainIds = chainIdOptions.filter((id) =>
+    `${chainIdToChain[id].name} ${id}`.toLowerCase().includes(chainSearch.trim().toLowerCase())
+  );
   const [chainIdsSelected, setChainIdsSelected] = useState<number[]>(() =>
     syncFiltersToUrl && urlChainId ? [urlChainId] : initialChainIds
   );
@@ -189,7 +195,10 @@ export const ExplorerGridBase = ({
                   <CloseIcon boxSize={3} />
                 </Button>
               )}
-              {showFilters && <Popover isLazy lazyBehavior="unmount">
+              {showFilters && <Popover isLazy lazyBehavior="unmount" initialFocusRef={chainSearchRef}
+                isOpen={chainFilterOpen}
+                onOpen={() => setChainFilterOpen(true)}
+                onClose={() => { setChainFilterOpen(false); setChainSearch(""); }}>
                 <PopoverTrigger>
                   <Button
                     aria-label={`Chains${chainIdsSelected.length ? ` (${chainIdsSelected.length})` : ""}`}
@@ -212,7 +221,11 @@ export const ExplorerGridBase = ({
                 </PopoverTrigger>
                 <Portal>
                 <PopoverContent
-                  w="12rem"
+                  onAnimationComplete={() => {
+                    if (chainFilterOpen) chainSearchRef.current?.focus({ preventScroll: true });
+                  }}
+                  w="16rem"
+                  maxW="calc(100vw - 2rem)"
                   bg="bg.subtle"
                   color="text.primary"
                   border="1px solid"
@@ -224,9 +237,27 @@ export const ExplorerGridBase = ({
                     <Text color="text.secondary" fontSize="sm" mb={2}>
                       Select chains:
                     </Text>
-                    <SimpleGrid spacing={1}>
-                      {chainIdOptions.map((chainId, i) => (
-                        <GridItem key={i}>
+                    <InputGroup size="sm" mb={3}>
+                      <InputLeftElement pointerEvents="none" color="text.tertiary">
+                        <Icon as={FiSearch} boxSize={3.5} />
+                      </InputLeftElement>
+                      <Input
+                        ref={chainSearchRef}
+                        aria-label="Search chains"
+                        placeholder="Search name or chain ID"
+                        value={chainSearch}
+                        onChange={(event) => setChainSearch(event.target.value)}
+                        autoComplete="off"
+                        bg="bg.base"
+                        rounded="md"
+                      />
+                    </InputGroup>
+                    <SimpleGrid spacing={1} maxH="18rem" overflowY="auto">
+                      {matchingChainIds.length === 0 && (
+                        <Text fontSize="sm" color="text.secondary" px={2} py={4}>No chains found.</Text>
+                      )}
+                      {matchingChainIds.map((chainId) => (
+                        <GridItem key={chainId}>
                           <Button
                             w="full"
                             size="sm"

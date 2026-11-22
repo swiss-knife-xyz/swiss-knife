@@ -251,3 +251,21 @@ it("directory chain query applies to result filters and updates for another past
   fireEvent.click(screen.getByRole("button", { name: "Chains (1)" }));
   expect((await screen.findByRole("button", { name: /^Ethereum/ })).getAttribute("aria-pressed")).toBe("true");
 });
+
+it("searches chain filters by name and ID without losing selected chains", async () => {
+  render(wrap(<ExplorerGridBase explorersData={addressExplorers} explorerType={ExplorerType.ADDRESS} addressOrTx={address} />));
+  fireEvent.click(screen.getByRole("button", { name: "Chains" }));
+  const search = await screen.findByRole("textbox", { name: "Search chains" });
+  await waitFor(() => expect(document.activeElement).toBe(search));
+  fireEvent.change(search, { target: { value: "bAsE" } });
+  const base = screen.getByRole("button", { name: /^Base/ });
+  expect(screen.queryByRole("button", { name: /^Ethereum/ })).toBeNull();
+  fireEvent.click(base);
+  expect(base.getAttribute("aria-pressed")).toBe("true");
+  fireEvent.change(search, { target: { value: "42161" } });
+  expect(screen.getByRole("button", { name: /^Arbitrum/ })).toBeTruthy();
+  fireEvent.change(search, { target: { value: "not-a-chain" } });
+  expect(screen.getByText("No chains found.")).toBeTruthy();
+  fireEvent.change(search, { target: { value: "" } });
+  expect(screen.getByRole("button", { name: /^Base/ }).getAttribute("aria-pressed")).toBe("true");
+});
