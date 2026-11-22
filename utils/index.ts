@@ -104,7 +104,7 @@ export const getMetadata = (_metadata: {
         // Checked-in /og PNGs are 2144×1122; generated cards are 1200×630.
         ...(_metadata.images.startsWith("https://eth.sh/og/")
           ? { width: 2144, height: 1122 }
-          : _metadata.images.startsWith("https://eth.sh/api/og/")
+          : /^https:\/\/eth\.sh\/api\/og(?:\/|\?|$)/.test(_metadata.images)
             ? { width: 1200, height: 630 }
             : {}),
       }],

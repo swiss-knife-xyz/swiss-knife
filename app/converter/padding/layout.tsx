@@ -4,7 +4,7 @@ export const metadata = getMetadata({
   title: "Padding | ETH.sh",
   description: "Left or Right pad any hex value by 32 bytes.",
   canonical: "https://converter.eth.sh/padding",
-  images: "https://eth.sh/og/converter-padding.png",
+  images: "https://eth.sh/api/og/converter-padding",
 });
 
 const PaddingLayout = ({ children }: { children: React.ReactNode }) => {

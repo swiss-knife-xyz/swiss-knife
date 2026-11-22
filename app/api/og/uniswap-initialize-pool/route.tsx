@@ -1,7 +1,8 @@
-import { toolOgImage } from "@/lib/seoOg";
+import { renderToolOg } from "@/lib/toolOg";
+import { toolOgCards } from "@/lib/toolOgCards";
 
 export const runtime = "edge";
 
-export function GET() {
-  return toolOgImage("Uniswap V4 Initialize Pool", "Configure tokens, fees, tick spacing, and initial prices for Uniswap v4 pools.");
+export async function GET() {
+  return renderToolOg(toolOgCards["uniswap-initialize-pool"]);
 }

@@ -6,7 +6,7 @@ const _metadataInfo = {
   description:
     "Connect your Coinbase Smart Wallet contract to any dapp via WalletConnect and execute transactions with your recovery address.",
   canonical: "https://wallet.eth.sh/coinbase-smart-wallet",
-  images: "https://eth.sh/og/base.png", // TODO: generate image
+  images: "https://eth.sh/api/og/wallet-coinbase-smart-wallet",
 };
 
 export const metadata: Metadata = {

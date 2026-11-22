@@ -5,7 +5,8 @@ import { getSitemapUrls, getRobotsText } from "./crawlerDiscovery";
 const sitemap = () => getPublicPageUrls().map(url => ({url}));
 import { getMetadata } from "../utils";
 import { getPath } from "../utils";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import { toolOgCards } from "./toolOgCards";
 import { readdirSync } from "node:fs";
 import nextConfig from "../next.config.js";
 import { defaultTools, getToolEntryRedirect } from "./seo";
@@ -128,7 +129,12 @@ test("static social images resolve to files or OG routes on ETH.sh", () => {
     for (const match of source.matchAll(/images: "(https:\/\/[^"\n]+)"/g)) {
       const image = new URL(match[1]);
       assert.equal(image.hostname, "eth.sh", url.pathname);
-      const file = image.pathname.startsWith("/api/og/") ? `../app${image.pathname}/route.tsx` : `../public${image.pathname}`;
+      let file = image.pathname.startsWith("/api/og/") ? `../app${image.pathname}/route.tsx` : `../public${image.pathname}`;
+      if (image.pathname.startsWith("/api/og/") && !existsSync(new URL(file, import.meta.url))) {
+        const slug = image.pathname.slice("/api/og/".length);
+        assert.ok(Object.hasOwn(toolOgCards, slug), `Unregistered OG card: ${match[1]}`);
+        file = "../app/api/og/[tool]/route.tsx";
+      }
       assert.doesNotThrow(() => readFileSync(new URL(file, import.meta.url)), match[1]);
     }
   }
@@ -185,14 +191,14 @@ test("static getMetadata layouts declare their own canonical instead of inheriti
 });
 
 test("metadata emits canonical, complete Open Graph identity and descriptive image", () => {
-  const metadata = getMetadata({ title: "Contract | ETH.sh", description: "Interact with contracts", images: "https://eth.sh/og/index.png", canonical: "https://explorer.eth.sh/" } as any);
+  const metadata = getMetadata({ title: "Contract | ETH.sh", description: "Interact with contracts", images: "https://eth.sh/api/og/home", canonical: "https://explorer.eth.sh/" } as any);
   assert.equal(metadata.alternates?.canonical, "https://explorer.eth.sh/");
   assert.equal((metadata.openGraph as any).url, "https://explorer.eth.sh/");
   assert.equal((metadata.openGraph as any).siteName, "ETH.sh");
   assert.equal((metadata.openGraph as any).locale, "en_US");
   assert.equal((metadata.openGraph as any).images[0].alt, "Contract | ETH.sh");
-  assert.equal((metadata.openGraph as any).images[0].width, 2144);
-  assert.equal((metadata.openGraph as any).images[0].height, 1122);
+  assert.equal((metadata.openGraph as any).images[0].width, 1200);
+  assert.equal((metadata.openGraph as any).images[0].height, 630);
 });
 
 test("contract detail back link targets the tool root on both hosts", () => {

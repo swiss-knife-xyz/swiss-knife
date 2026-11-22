@@ -1,7 +1,8 @@
-import { toolOgImage } from "@/lib/seoOg";
+import { renderToolOg } from "@/lib/toolOg";
+import { toolOgCards } from "@/lib/toolOgCards";
 
 export const runtime = "edge";
 
-export function GET() {
-  return toolOgImage("Calldata Encoder", "Encode smart contract function arguments into Ethereum transaction calldata.");
+export async function GET() {
+  return renderToolOg(toolOgCards["calldata-encoder"]);
 }
