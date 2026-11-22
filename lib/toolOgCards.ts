@@ -159,10 +159,10 @@ export const toolOgCards = {
     ],
   },
   "safe-eip-712-hash": {
-    title: "EIP-712 Hash Verifier",
+    title: "Safe & EIP-712 Hashes",
     description: [
-      "🧮 Hash and verify EIP-712 typed data:",
-      "domain, message and signature hashes.",
+      "🧮 Calculate Safe transaction hashes",
+      "and verify EIP-712 typed data locally.",
     ],
   },
   safe: {
