@@ -10,9 +10,8 @@ import {
   FormLabel,
   Heading,
   HStack,
-  Select,
+  SimpleGrid,
   Text,
-  Textarea,
   VStack,
 } from "@chakra-ui/react";
 import {
@@ -24,15 +23,40 @@ import {
   RPC_MESSAGES,
   RpcError,
 } from "@/lib/rawRpc/model";
+import { DarkSelect } from "@/components/DarkSelect";
+import { chainIdToImage } from "@/data/common";
+import { Editor } from "@monaco-editor/react";
+const chainOptions = RPC_CHAINS.map((chain) => ({
+  value: chain.id,
+  label: chain.name,
+  image: chainIdToImage[Number(chain.id)],
+}));
+const exampleOptions = Object.keys(RPC_EXAMPLES).map((name) => ({
+  value: name,
+  label: name,
+}));
 const pretty = (value: unknown) => JSON.stringify(value, null, 2);
 export function RpcTool() {
   const [chain, setChain] = useState("1");
-  const [draft, setDraft] = useState(pretty(RPC_EXAMPLES["Chain ID"]));
-  const [example, setExample] = useState("Chain ID");
+  const [draft, setDraft] = useState(pretty(RPC_EXAMPLES["Latest block"]));
+  const [example, setExample] = useState("Latest block");
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const responseRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!result) return;
+    const frame = requestAnimationFrame(() => {
+      responseRef.current?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
+        block: "start",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [result]);
   const version = useRef(0);
   const active = useRef<AbortController | undefined>(undefined);
   useEffect(
@@ -128,11 +152,10 @@ export function RpcTool() {
           <Heading as="h1" size="lg">
             Raw RPC console
           </Heading>
-          <Badge colorScheme="green">Read only · no wallet</Badge>
+          <Badge colorScheme="green">Read only</Badge>
         </HStack>
         <Text mt={2} color="text.secondary">
-          Inspect raw JSON-RPC results from fixed public chain providers. No
-          signing, transaction submission, admin methods or state changes.
+          Query blockchain data with JSON-RPC.
         </Text>
       </Box>
       <Box
@@ -145,69 +168,89 @@ export function RpcTool() {
         minW={0}
       >
         <VStack align="stretch" spacing={4}>
-          <FormControl>
-            <FormLabel htmlFor="rpc-chain">Chain</FormLabel>
-            <Select
-              id="rpc-chain"
-              value={chain}
-              onChange={(e) => {
-                invalidate();
-                setChain(e.target.value);
-              }}
-            >
-              {RPC_CHAINS.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} · {c.provider}
-                </option>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <FormLabel htmlFor="rpc-example">Example</FormLabel>
-            <Select
-              id="rpc-example"
-              value={example}
-              onChange={(e) => {
-                invalidate();
-                setExample(e.target.value);
-                setDraft(
-                  pretty(
-                    RPC_EXAMPLES[e.target.value as keyof typeof RPC_EXAMPLES]
-                  )
-                );
-              }}
-            >
-              <option value="" disabled>
-                Custom draft
-              </option>
-              {Object.keys(RPC_EXAMPLES).map((name) => (
-                <option key={name}>{name}</option>
-              ))}
-            </Select>
-          </FormControl>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <FormControl>
+              <FormLabel>Chain</FormLabel>
+              <DarkSelect
+                ariaLabel="Chain"
+                options={chainOptions}
+                selectedOption={
+                  chainOptions.find((option) => option.value === chain) ?? null
+                }
+                setSelectedOption={(option) => {
+                  if (!option) return;
+                  invalidate();
+                  setChain(String(option.value));
+                }}
+                boxProps={{ w: "full", minW: 0 }}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Example</FormLabel>
+              <DarkSelect
+                ariaLabel="Example"
+                placeholder="Custom request"
+                options={exampleOptions}
+                selectedOption={
+                  exampleOptions.find((option) => option.value === example) ??
+                  null
+                }
+                setSelectedOption={(option) => {
+                  if (!option) return;
+                  invalidate();
+                  const name = String(
+                    option.value
+                  ) as keyof typeof RPC_EXAMPLES;
+                  setExample(name);
+                  setDraft(pretty(RPC_EXAMPLES[name]));
+                }}
+                boxProps={{ w: "full", minW: 0 }}
+              />
+            </FormControl>
+          </SimpleGrid>
           <FormControl>
             <FormLabel htmlFor="rpc-request">JSON-RPC request</FormLabel>
-            <Textarea
-              id="rpc-request"
-              value={draft}
-              onChange={(e) => {
-                invalidate();
-                setDraft(e.target.value);
-                setExample("");
-              }}
-              rows={12}
-              fontFamily="mono"
-              fontSize="sm"
-              spellCheck={false}
-              autoComplete="off"
-              aria-describedby="rpc-help"
-              resize="vertical"
-            />
+            <Box
+              borderWidth="1px"
+              borderColor="whiteAlpha.200"
+              borderRadius="lg"
+              overflow="hidden"
+              minW={0}
+            >
+              <Editor
+                theme="vs-dark"
+                defaultLanguage="json"
+                height="280px"
+                value={draft}
+                onChange={(value) => {
+                  invalidate();
+                  setDraft(value ?? "");
+                  setExample("");
+                }}
+                onMount={(editor) => {
+                  const input = editor.getDomNode()?.querySelector("textarea");
+                  input?.setAttribute("id", "rpc-request");
+                  input?.setAttribute("aria-describedby", "rpc-help");
+                }}
+                options={{
+                  readOnly: false,
+                  minimap: { enabled: false },
+                  automaticLayout: true,
+                  fontSize: 13,
+                  lineHeight: 20,
+                  scrollBeyondLastLine: false,
+                  wordWrap: "on",
+                  folding: true,
+                  lineNumbers: "on",
+                  formatOnPaste: true,
+                  padding: { top: 12, bottom: 12 },
+                  ariaLabel: "JSON-RPC request",
+                }}
+              />
+            </Box>
           </FormControl>
           <Text id="rpc-help" fontSize="sm" color="text.secondary">
-            JSON-RPC 2.0 object or batch of 1–10 reads. Include a unique
-            string/integer id and params array for each request. Mixed or
-            invalid batches are rejected in full before querying.
+            JSON-RPC 2.0. Up to 10 requests per batch.
           </Text>
           <HStack flexWrap="wrap">
             <Button
@@ -229,16 +272,9 @@ export function RpcTool() {
                 invalidate();
               }}
             >
-              Clear result / cancel
+              {busy ? "Cancel" : "Clear result"}
             </Button>
           </HStack>
-          <Text fontSize="xs" color="text.tertiary">
-            Queries are sent only when you run them, via this site to the
-            selected public provider. Treat addresses and calldata as public; do
-            not paste secrets. Drafts/results are memory-only, not added to URLs
-            or browser storage. Providers and hosting may log requests. Public
-            RPC availability and historical state vary.
-          </Text>
         </VStack>
       </Box>
       {error && (
@@ -248,7 +284,7 @@ export function RpcTool() {
         </Alert>
       )}
       {result && (
-        <Box minW={0}>
+        <Box ref={responseRef} minW={0} scrollMarginTop={6}>
           <HStack justify="space-between" flexWrap="wrap" mb={2}>
             <Heading as="h2" size="md">
               Response
@@ -259,79 +295,46 @@ export function RpcTool() {
           </HStack>
           <Text fontSize="sm" color="text.secondary" mb={2}>
             {RPC_CHAINS.find((c) => c.id === chain)?.name} ·{" "}
-            {RPC_CHAINS.find((c) => c.id === chain)?.provider} · raw JSON-RPC
-            result; quantities remain hexadecimal.
+            {RPC_CHAINS.find((c) => c.id === chain)?.provider}
           </Text>
           <Box
-            as="pre"
-            tabIndex={0}
+            role="region"
             aria-label="JSON-RPC response"
-            p={4}
-            bg="blackAlpha.400"
-            borderRadius="md"
-            maxH="600px"
-            overflow="auto"
-            fontSize="sm"
-            whiteSpace="pre-wrap"
-            overflowWrap="anywhere"
+            borderWidth="1px"
+            borderColor="whiteAlpha.200"
+            borderRadius="lg"
+            overflow="hidden"
+            minW={0}
           >
-            {result}
+            <Editor
+              theme="vs-dark"
+              defaultLanguage="json"
+              value={result}
+              height={`${Math.min(600, Math.max(140, result.split("\n").length * 20 + 24))}px`}
+              options={{
+                readOnly: true,
+                minimap: { enabled: false },
+                automaticLayout: true,
+                fontSize: 13,
+                lineHeight: 20,
+                scrollBeyondLastLine: false,
+                wordWrap: "on",
+                folding: true,
+                lineNumbers: "on",
+                padding: { top: 12, bottom: 12 },
+                ariaLabel: "RPC JSON response editor",
+              }}
+            />
           </Box>
-          <Text fontSize="xs" mt={2} color="text.tertiary">
-            Provider error codes are preserved, but diagnostic messages/data are
-            redacted. Batch responses may arrive out of order; match their IDs.
-            Results are not a proof of chain state.
-          </Text>
         </Box>
       )}
       <Box as="details" minW={0}>
         <Box as="summary" cursor="pointer" fontWeight="bold" py={2}>
-          Allowed methods and parameter reference
+          Supported methods
         </Box>
         <Text mt={2} fontFamily="mono" fontSize="sm" overflowWrap="anywhere">
           {RPC_METHODS.join(" · ")}
         </Text>
-        <VStack
-          align="stretch"
-          spacing={2}
-          mt={3}
-          fontSize="sm"
-          color="text.secondary"
-        >
-          <Text>
-            chainId, blockNumber, gasPrice, maxPriorityFeePerGas: [].
-            getBalance, getTransactionCount, getCode: [address, block].
-            getStorageAt: [address, storageSlot, block].
-          </Text>
-          <Text>
-            getBlockByNumber: [block, fullTransactionsBoolean]. getBlockByHash:
-            [blockHash, fullTransactionsBoolean]. getTransactionByHash /
-            getTransactionReceipt / getBlockTransactionCountByHash: [hash].
-            getBlockTransactionCountByNumber: [block]. Use the full eth_ method
-            names above.
-          </Text>
-          <Text>
-            eth_call: [&#123;to, from?, data?, gas?, value?&#125;, block].
-            Simulated read only; no changes persist. Requires a destination; no
-            contract creation, state/block overrides, access lists or other
-            fields. Gas defaults to and is capped at 2,000,000; calldata at 8
-            KiB. Even non-view calls cannot submit transactions here.
-          </Text>
-          <Text>
-            Addresses/hashes must be exact 20/32-byte 0x hex, not ENS.
-            Quantities/slots are canonical hex (0x0, 0x1; no leading zeros), up
-            to uint256. Block is latest, earliest, pending, safe, finalized or a
-            hex quantity. No EIP-1898 objects.
-          </Text>
-          <Text>
-            Limits: 32 KiB request, 512 KiB per upstream response, 12-second
-            total server budget; up to 2 concurrent / 30 starts per minute per
-            server process. No retries, subscriptions, log scans, filters,
-            tracing, custom endpoints or credentials. The server independently
-            checks the allowlist and provider chain ID. A process-local gate is
-            not a distributed abuse quota.
-          </Text>
-        </VStack>
       </Box>
     </VStack>
   );

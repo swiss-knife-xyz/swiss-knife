@@ -158,8 +158,8 @@ export const toolOgCards = {
       "from Safe wallets without an ABI ✨",
     ],
   },
-  rpc: {
-    title: "Raw RPC Console",
+  "rpc-console": {
+    title: "RPC Console",
     description: ["Query blockchain data with JSON-RPC", "across Ethereum and EVM chains."],
   },
   "gas-cost": {

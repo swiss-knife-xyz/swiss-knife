@@ -33,7 +33,6 @@ const directoryEntries = directorySubdomains.map(
 );
 
 const usefulToolEntries = [
-  ["rpc", { emoji: "🔎", label: "Raw RPC Console", description: "Query blockchain data with JSON-RPC", isRelativePath: true }],
   [
     migrateSubdomain,
     {
@@ -106,10 +105,20 @@ const toolEntries = Object.entries(subdomainToInfo)
     if (subdomain === subdomains.CONTRACT.base) return orderedDeveloperTools;
     if (orderedDeveloperSubdomains.has(subdomain)) return [];
     if (subdomain === subdomains.WALLET.base) {
-      return walletDeveloperSubdomains.map((subdomain) => ({
-        subdomain,
-        info: subdomainToInfo[subdomain],
-      }));
+      return walletDeveloperSubdomains.flatMap<DeveloperTool>((subdomain) => {
+        const tool = { subdomain, info: subdomainToInfo[subdomain] };
+        return subdomain === subdomains.SOLIDITY.base
+          ? [tool, {
+              subdomain: "rpc-console",
+              info: {
+                emoji: "🔎",
+                label: "RPC Console",
+                description: "Query blockchain data with JSON-RPC",
+                isRelativePath: true,
+              },
+            }]
+          : [tool];
+      });
     }
     if (walletDeveloperSubdomainSet.has(subdomain)) return [];
     return [{ subdomain, info }];

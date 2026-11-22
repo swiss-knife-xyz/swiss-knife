@@ -1,5 +1,5 @@
 import React from "react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   cleanup,
   fireEvent,
@@ -9,9 +9,64 @@ import {
 } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { RpcTool } from "./RpcTool";
+vi.mock("@monaco-editor/react", () => ({
+  Editor: ({
+    value,
+    onChange,
+    options,
+  }: {
+    value: string;
+    onChange?: (value: string) => void;
+    options: { readOnly?: boolean; ariaLabel?: string };
+  }) =>
+    options.readOnly ? (
+      <pre>{value}</pre>
+    ) : (
+      <textarea
+        aria-label={options.ariaLabel}
+        value={value}
+        onChange={(event) => onChange?.(event.target.value)}
+      />
+    ),
+}));
+vi.mock("@/components/DarkSelect", () => ({
+  DarkSelect: ({
+    ariaLabel,
+    options,
+    selectedOption,
+    setSelectedOption,
+  }: any) => (
+    <select
+      aria-label={ariaLabel}
+      value={selectedOption?.value ?? ""}
+      onChange={(event) =>
+        setSelectedOption(
+          options.find(
+            (option: any) => String(option.value) === event.target.value
+          )
+        )
+      }
+    >
+      <option value="">Custom request</option>
+      {options.map((option: any) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ),
+}));
+beforeEach(() => {
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: vi.fn(),
+  });
+});
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 const renderTool = () =>
   render(
@@ -35,11 +90,22 @@ test("no automatic query; explicit read-only request shows exact JSON and copy",
   expect(fetcher).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Run read query" }));
   await screen.findByText(/0x123456789abcdef/);
+  await waitFor(() =>
+    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    })
+  );
   expect(fetcher.mock.calls[0][0]).toBe("/api/rpc");
   const init = fetcher.mock.calls[0][1];
   expect(JSON.parse(init.body)).toEqual({
     chain: "1",
-    request: { jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] },
+    request: {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_getBlockByNumber",
+      params: ["latest", false],
+    },
   });
   expect(init.method).toBe("POST");
   expect(init.cache).toBe("no-store");

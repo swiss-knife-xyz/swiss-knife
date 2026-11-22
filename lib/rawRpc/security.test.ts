@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createRpcHandler } from "./server";
 import { RPC_LIMITS } from "./model";
+import { RPC_ENDPOINTS } from "./chains";
 const rpc = { jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] };
 const post = (
   request: unknown = rpc,
@@ -66,13 +67,7 @@ test("normalized internal URL uses actual host and allows healthy loopback origi
   assert.equal((await handler(request("http://localhost:3153"))).status, 403);
 });
 test("all fixed provider destinations match selected chain and never forward credentials", async () => {
-  const endpoints: Record<string, string> = {
-    "1": "https://eth.drpc.org",
-    "8453": "https://mainnet.base.org",
-    "42161": "https://arb1.arbitrum.io/rpc",
-    "10": "https://mainnet.optimism.io",
-    "11155111": "https://ethereum-sepolia-rpc.publicnode.com",
-  };
+  const endpoints = RPC_ENDPOINTS;
   for (const [chain, endpoint] of Object.entries(endpoints)) {
     const handler = createRpcHandler({
       fetch: async (url, init) => {

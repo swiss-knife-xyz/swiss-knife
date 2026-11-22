@@ -144,3 +144,14 @@ test("validates each method's count and exact parameter shapes without number co
       `${method} ${JSON.stringify(params).slice(0, 120)}`
     );
 });
+
+test("RPC chains cover the shared catalog, including mainnets and testnets", async () => {
+  const { c } = await import("@/data/common");
+  const { RPC_CHAINS, RPC_ENDPOINTS } = await import("./chains");
+  const expected = [...new Set(Object.values(c).map(chain => String(chain.id)))].sort();
+  assert.deepEqual(RPC_CHAINS.map(chain => chain.id).sort(), expected);
+  for (const chain of RPC_CHAINS) {
+    assert.doesNotThrow(() => parseRpcInput(input(raw(), chain.id)));
+    assert.ok(["http:", "https:"].includes(new URL(RPC_ENDPOINTS[chain.id]).protocol));
+  }
+});

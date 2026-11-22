@@ -6,13 +6,7 @@ import {
   RPC_LIMITS,
   type RpcRequest,
 } from "./model";
-const ENDPOINTS: Record<string, string> = Object.freeze({
-  "1": "https://eth.drpc.org",
-  "8453": "https://mainnet.base.org",
-  "42161": "https://arb1.arbitrum.io/rpc",
-  "10": "https://mainnet.optimism.io",
-  "11155111": "https://ethereum-sepolia-rpc.publicnode.com",
-});
+import { RPC_ENDPOINTS as ENDPOINTS } from "./chains";
 const HEADERS = {
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",

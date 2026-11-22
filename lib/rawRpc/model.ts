@@ -1,10 +1,5 @@
-export const RPC_CHAINS = [
-  { id: "1", name: "Ethereum mainnet", provider: "dRPC" },
-  { id: "8453", name: "Base", provider: "Base public RPC" },
-  { id: "42161", name: "Arbitrum One", provider: "Arbitrum public RPC" },
-  { id: "10", name: "OP Mainnet", provider: "Optimism public RPC" },
-  { id: "11155111", name: "Sepolia testnet", provider: "PublicNode" },
-] as const;
+import { RPC_CHAINS } from "./chains";
+export { RPC_CHAINS } from "./chains";
 export const RPC_LIMITS = {
   requestBytes: 32_768,
   responseBytes: 524_288,

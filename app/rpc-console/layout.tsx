@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 const title = "Read-only Raw RPC Console | ETH.sh";
 const description =
-  "Inspect raw Ethereum, Base, Arbitrum, OP and Sepolia JSON-RPC read results. Positive method allowlist, safe batches, fixed public providers and no wallet.";
-const image = "https://eth.sh/api/og/rpc";
+  "Query JSON-RPC data across supported EVM mainnets and testnets, with request examples and formatted responses.";
+const image = "https://eth.sh/api/og/rpc-console";
 export const metadata: Metadata = {
   title,
   description,
-  alternates: { canonical: "https://eth.sh/rpc" },
+  alternates: { canonical: "https://eth.sh/rpc-console" },
   openGraph: {
     title,
     description,
-    url: "https://eth.sh/rpc",
+    url: "https://eth.sh/rpc-console",
     type: "website",
     images: [{ url: image, width: 1200, height: 630, alt: title }],
   },

@@ -5,7 +5,7 @@ export default defineConfig({
   esbuild: { jsx: "automatic" },
   test: {
     environment: "jsdom",
-    include: ["app/rpc/*.spec.tsx"],
+    include: ["app/rpc-console/*.spec.tsx"],
     maxWorkers: 1,
     testTimeout: 30_000,
   },
