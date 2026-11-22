@@ -1,8 +1,8 @@
 "use client";
 
+import { NetworkSelect } from "@/components/NetworkSelect";
 import { useState } from "react";
 import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
-import { DarkSelect } from "@/components/DarkSelect";
 import { InputField } from "@/components/InputField";
 import React from "react";
 import { SelectedOptionState } from "@/types";
@@ -195,13 +195,6 @@ export default function ContractStart({
           >
             Cross-explorer Verification
           </Link>
-          <Link
-            href={getPath(subdomains.EXPLORER.base)}
-            fontSize="sm"
-            color="text.secondary"
-          >
-            Explorer Directory
-          </Link>
         </HStack>
       )}
       {/* Input Section */}
@@ -239,7 +232,7 @@ export default function ContractStart({
             <Text color="text.secondary" fontSize="sm" mb={2}>
               Network
             </Text>
-            <DarkSelect
+            <NetworkSelect
               ariaLabel="Network"
               placeholder="Select network"
               options={networkOptions}

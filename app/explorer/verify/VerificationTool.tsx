@@ -1,4 +1,7 @@
 "use client";
+
+import { getGroupedNetworkOptions } from "@/data/networks";
+import { NetworkSelect } from "@/components/NetworkSelect";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -22,7 +25,6 @@ import { ExternalLinkIcon, WarningIcon } from "@chakra-ui/icons";
 import { BrowserVerification } from "@/lib/verification/browser";
 import type { ProviderKeys } from "@/lib/verification/providers";
 import { DarkSelect } from "@/components/DarkSelect";
-import { chainIdToImage } from "@/data/common";
 import {
   VERIFICATION_CHAINS,
   VERIFICATION_MESSAGES,
@@ -61,19 +63,9 @@ const licenseNames = [
   "AGPL-3.0",
   "BSL-1.1",
 ];
-const networkOptions = [false, true].map((testnet) => ({
-  label: testnet ? "Testnets" : "Mainnets",
-  options: Object.entries(VERIFICATION_CHAINS)
-    .filter(([, c]) => c.testnet === testnet)
-    .sort((a, b) =>
-      a[0] === "1" ? -1 : b[0] === "1" ? 1 : a[1].name.localeCompare(b[1].name)
-    )
-    .map(([value, c]) => ({
-      value,
-      label: c.name,
-      image: chainIdToImage[Number(value)],
-    })),
-}));
+const networkOptions = getGroupedNetworkOptions(
+  Object.entries(VERIFICATION_CHAINS).map(([id, chain]) => ({ id: Number(id), ...chain }))
+).map((group) => ({ ...group, options: group.options.map((option) => ({ ...option, value: String(option.value) })) }));
 const flatNetworks = networkOptions.flatMap((g) => g.options);
 export function VerificationTool() {
   const [chainId, setChain] = useState("1");
@@ -451,7 +443,7 @@ export function VerificationTool() {
             <FormLabel fontSize="sm" color="text.secondary">
               Network
             </FormLabel>
-            <DarkSelect
+            <NetworkSelect
               ariaLabel="Network"
               options={networkOptions}
               selectedOption={
@@ -518,7 +510,7 @@ export function VerificationTool() {
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} mt={3}>
               <FormControl minW={0}>
                 <FormLabel fontSize="xs">Destination network</FormLabel>
-                <DarkSelect
+                <NetworkSelect
                   ariaLabel="Destination network"
                   options={networkOptions}
                   selectedOption={

@@ -1,6 +1,6 @@
 "use client";
 
-import { c } from "@/data/common";
+import { networks } from "@/data/networks";
 import { getPublicClient } from "@/lib/publicClient";
 import {
   loadGasCostEstimate,
@@ -9,9 +9,7 @@ import {
 import { readNativeUsdPrice } from "@/lib/gasCostPrice";
 import { GasCostEstimator } from "./GasCostEstimator";
 
-const chains = Array.from(
-  new Map(Object.values(c).map((chain) => [chain.id, chain])).values()
-);
+const chains = networks;
 
 function loadEstimate(input: GasCostInput) {
   return loadGasCostEstimate(input, {

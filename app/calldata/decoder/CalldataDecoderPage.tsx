@@ -1,7 +1,8 @@
 "use client";
 
+import { useCustomChains } from "@/lib/customChains/store";
+import { NetworkSelect } from "@/components/NetworkSelect";
 import { ToolLoading } from "@/components/ToolLoading";
-
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
@@ -76,7 +77,6 @@ import { SignatureRegistryForm } from "@/components/SignatureRegistryForm";
 import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 
-import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { createDecoderShareLink, parseDecoderShareFragment } from "@/lib/decoderShare";
 import { decodeEvents, decodeRecursive } from "@/lib/decoder";
@@ -359,7 +359,7 @@ function MetadataNetworkSettings({
           <Text fontSize="xs" color="whiteAlpha.700" mb={2}>
             Optional: shows token and contract names. Decoding works without it.
           </Text>
-          <DarkSelect
+          <NetworkSelect
             ariaLabel="Network lookup"
             size="sm"
             options={[noMetadataNetwork, ...networkOptions]}
@@ -417,6 +417,7 @@ function DecoderTabs({
 }
 
 function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
+  const savedChains = useCustomChains();
   const toast = useToast();
   const searchParams = useSearchParams();
   const beforeFooterSlot = useBeforeFooterSlot();
@@ -473,6 +474,12 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     : undefined;
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>(networkOptions[networkOptionsIndex]);
+
+  useEffect(() => {
+    if (!savedChains.ready || !chainIdFromURL) return;
+    const option = networkOptions.find(option => option.value === Number(chainIdFromURL));
+    if (option) { setSelectedNetworkOption(option); setMetadataNetwork(option); }
+  }, [savedChains.ready]);
 
   const [fromTxInput, setFromTxInput] = useQueryState<string>(
     "tx",
@@ -976,7 +983,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
             </HStack>
           </Box>
           <Box flex={1} minW="200px">
-            <DarkSelect
+            <NetworkSelect
               boxProps={{
                 w: "100%",
               }}
@@ -1113,7 +1120,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
               </HStack>
             </Box>
             <Box flex={1} minW="200px">
-              <DarkSelect
+              <NetworkSelect
                 boxProps={{
                   w: "100%",
                 }}

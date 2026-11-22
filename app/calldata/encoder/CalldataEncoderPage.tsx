@@ -1,7 +1,7 @@
 "use client";
 
+import { NetworkSelect } from "@/components/NetworkSelect";
 import { ToolLoading } from "@/components/ToolLoading";
-
 import React, { Suspense, useState, useCallback, useEffect } from "react";
 import {
   Heading,
@@ -753,7 +753,7 @@ function CalldataEncoderPageContent() {
               >
                 CHAIN
               </Text>
-              <DarkSelect
+              <NetworkSelect
                 boxProps={{ w: "100%" }}
                 selectedOption={selectedNetworkOption}
                 setSelectedOption={setSelectedNetworkOption}

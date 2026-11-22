@@ -35,6 +35,8 @@ import {
 } from "@chakra-ui/react";
 import { FiLayers, FiPlus, FiX } from "react-icons/fi";
 import { isAddress } from "viem";
+import { getRpcUrlsForChain } from "@/data/networks";
+import { useCustomChains } from "@/lib/customChains/store";
 import { chainIdToChain, chainIdToImage } from "@/data/common";
 import { getPublicClient } from "@/lib/publicClient";
 import { getPath, slicedText } from "@/utils";
@@ -128,6 +130,8 @@ function AddressPanel({
   renderContract: (params: ContractTabAddress) => ReactNode;
   onChainChange: (chainId: number) => void;
 }) {
+  useCustomChains();
+  const rpcKey = getRpcUrlsForChain(tab.chainId).join("|");
   const [kind, setKind] = useState<
     "loading" | "contract" | "address" | "error"
   >(tab.initial && !tab.checkCode ? "contract" : "loading");
@@ -149,7 +153,7 @@ function AddressPanel({
     return () => {
       active = false;
     };
-  }, [tab.address, tab.chainId, tab.initial, tab.checkCode, revision]);
+  }, [tab.address, tab.chainId, tab.initial, tab.checkCode, revision, rpcKey]);
   if (kind === "loading")
     return (
       <HStack role="status" py={6}>
@@ -251,6 +255,7 @@ export function ContractTabs({
       ? { ...initial, id: keyFor(initial), initial: true }
       : { id: "new:1", kind: "new", chainId: 1 }
   ).current;
+  const savedChains = useCustomChains();
   const [tabs, setTabs] = useState<Tab[]>(() => [initialTab]);
   const [active, setActive] = useState(initialTab.id);
   const [storageReady, setStorageReady] = useState(false);
@@ -275,10 +280,12 @@ export function ContractTabs({
     setMobileOpen(false);
   }, []);
   useEffect(() => {
+    if (storageReady) return;
     try {
       const saved = JSON.parse(
         localStorage.getItem(CONTRACT_TABS_STORAGE_KEY) ?? "null"
       );
+      if (!savedChains.ready && saved?.version === 1 && Array.isArray(saved.tabs) && saved.tabs.some((item: {chainId: number}) => !chainIdToChain[item?.chainId])) return;
       if (
         saved?.version === 1 &&
         Array.isArray(saved.tabs) &&
@@ -339,7 +346,7 @@ export function ContractTabs({
       // Storage may be unavailable or contain an older/corrupt workspace.
     }
     setStorageReady(true);
-  }, []);
+  }, [savedChains.ready]);
   useEffect(() => {
     if (!storageReady) return;
     try {
@@ -718,15 +725,6 @@ export function ContractTabs({
               Contract Explorer
             </Link>
           </Heading>
-          <Link
-            as={NextLink}
-            href={getPath("explorers")}
-            fontSize="sm"
-            color="text.secondary"
-            ml="auto"
-          >
-            Explorer Directory
-          </Link>
         </HStack>
         <Button
           display={{ base: "inline-flex", md: "none" }}

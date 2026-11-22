@@ -8,18 +8,16 @@ import {
   type Hex,
   type Chain,
 } from "viem";
-import { chainIdToChain } from "../data/common";
+import { chainIdToChain, getRuntimeCustomChain } from "../data/common";
 import { MOCK_ARTIFACTS } from "./mockTokens.generated";
 
-type DeploymentChain = Chain & {
-  blockExplorers: { default: { name: string; url: string } };
-};
-export const MOCK_CHAINS = Object.values(chainIdToChain).filter(
-  (chain): chain is DeploymentChain =>
-    Boolean(
-      chain.blockExplorers?.default.url && chain.rpcUrls.default.http.length
-    )
-);
+type DeploymentChain = Chain;
+export function getMockChains(): DeploymentChain[] {
+  return Object.values(chainIdToChain).filter(chain =>
+    chain.rpcUrls.default.http.length && (chain.blockExplorers?.default.url || getRuntimeCustomChain(chain.id))
+  );
+}
+export const MOCK_CHAINS = getMockChains();
 export type MockStandard = keyof typeof MOCK_ARTIFACTS;
 export type MockDraft = {
   standard: string;
@@ -31,7 +29,7 @@ export type MockDraft = {
   uri: string;
 };
 export function buildMockDeployment(draft: MockDraft) {
-  const chain = MOCK_CHAINS.find((c) => String(c.id) === draft.chainId);
+  const chain = getMockChains().find((c) => String(c.id) === draft.chainId);
   if (!chain) throw new Error("Choose a supported network explicitly.");
   if (!["ERC20", "ERC721", "ERC1155"].includes(draft.standard))
     throw new Error("Choose an ERC20, ERC721 or ERC1155 mock.");
