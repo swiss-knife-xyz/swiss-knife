@@ -139,3 +139,54 @@
   affordance on the treasury heading.
 - 2026-07-03: Added a brief blue row flash when organization anchor links are
   opened so cross-reference jumps have clear visual confirmation.
+
+## Cross-explorer verification
+
+- Scope: `/explorer/verify`, a developer tool within the existing ETH.sh theme.
+- Direction: compact, precise, quiet. Reuse the current Inter/mono font stacks,
+  semantic background/text/border tokens, 4px spacing scale and Chakra controls.
+- Layout: one source form followed by a review with destination rows. On mobile,
+  inputs stack and each destination retains its own readable result and action.
+- Identity: choose several explorers from one imported source; no decorative
+  hero, side accent border, nested status cards or extra banners.
+- Details: source/settings, API keys and alternate deployment inputs stay secondary.
+- Accessibility: labelled inputs, keyboard dropdowns, native detail toggles, named
+  external links, text status labels and reduced-motion-aware scrolling.
+- Audit (2026-11-22): 8/10. Verified empty, review, alternate deployment and status
+  layouts at 320, 390, 768 and 1280px, with no horizontal page overflow. Retained
+  the established app type/palette rather than introducing a standalone style.
+- Changelog (2026-11-22): expanded provider/network selection and independent
+  destination states while preserving the existing tool-page visual language.
+
+## Tool Open Graph cards
+
+- Direction: familiar, minimal, readable. Reuse the approved CowSwap card's
+  Poppins Bold/Light typography, #111111 background, white copy and red ETH.sh mark.
+- Shared composition: left-aligned tool title and short description; lower-right
+  inline logo and ETH.sh wordmark with “All your EVM dev tools in one place!” below.
+- Artwork variant: retain existing screenshots/diagrams on the left and place
+  editable title/description on the right. Avoid decorative panels or gradients.
+- Changelog (2026-11-22): replaced tool PNG metadata with shared dynamic OG cards;
+  preserved screenshot artwork and added before/after comparison to the local gallery.
+- Audit: all 33 image routes rendered at 1200×630 with no missing artwork or
+  clipped copy in the contact sheet. Compare view passed desktop and 390px
+  mobile checks, with stacked comparisons and no horizontal overflow.
+- 7702 Beat now renders a wallet grid from the same data module as the page,
+  replacing the frozen screenshot. All extracted data declarations match the
+  original page; the image shows all current wallets without chain cards or
+  summary statistics. Shared footer rendering preserves the CowSwap card.
+- App Store retains the original oversized heading, italic subtitle, large app
+  grid and stacked brand column, with ETH.sh replacing the former domain.
+- USDC Pay retains its full-height payment preview, large right-hand title,
+  italic cyan/green copy and x402 credit, using the same stacked ETH.sh branding
+  as App Store. The App Store render remains byte-for-byte unchanged by reuse.
+- Homepage OG is code-rendered: the original dark field, scattered rotated tool
+  names and central logo/wordmark remain, with ETH.sh and the corrected tagline.
+- Applied the shared tool composition to Explorer, verification, encoder,
+  directory, transaction sending and all six Uniswap tool cards. Parameterized
+  directory previews retain their address/hash, and app-specific cards retain
+  third-party artwork and hostname. All 15 remaining review entries rendered
+  at 1200×630; the obsolete generic helper and base PNG were removed.
+- After approval, removed the temporary comparison gallery, baseline captures,
+  QA screenshots and unused legacy OG PNGs. Migrate's current branded PNG stays
+  in use; the homepage and faucet overview both use their dynamic routes.

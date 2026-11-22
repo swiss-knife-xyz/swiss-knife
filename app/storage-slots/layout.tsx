@@ -5,7 +5,7 @@ export const metadata = getMetadata({
   description:
     "Query custom, EIP-1967, or ERC-7201 storage slots for any EVM smart contract.",
   canonical: "https://storage-slots.eth.sh/",
-  images: "https://eth.sh/og/storage-slots.png",
+  images: "https://eth.sh/api/og/storage-slots",
 });
 
 const StorageSlotsLayout = ({ children }: { children: React.ReactNode }) => {

@@ -90,7 +90,7 @@ export async function generateMetadata({
     title,
     canonical: "https://calldata.eth.sh/decoder",
     description: metadata.description as string,
-    images: "https://eth.sh/og/calldata-decoder.png",
+    images: "https://eth.sh/api/og/calldata-decoder",
   });
 }
 

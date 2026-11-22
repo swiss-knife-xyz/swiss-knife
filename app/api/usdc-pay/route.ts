@@ -15,7 +15,7 @@ const getLocalFacilitatorUrl = (request: NextRequest) => {
     return "http://localhost:3000/api/facilitator";
   }
   // Get the host from the request to build the facilitator URL
-  const host = request.headers.get("host") || "swiss-knife.xyz";
+  const host = request.headers.get("host") || "eth.sh";
   const protocol = host.includes("localhost") ? "http" : "https";
   return `${protocol}://${host}/api/facilitator`;
 };
@@ -25,18 +25,18 @@ const PAYAI_FACILITATOR_ADDRESS = "0xc6699d2aada6c36dfea5c248dd70f9cb0235cb63";
 // Helper function to add CORS headers
 function getCorsHeaders(origin: string | null) {
   const allowedOrigins = [
-    "https://swiss-knife.xyz",
-    "https://usdc-pay.swiss-knife.xyz",
+    "https://eth.sh",
+    "https://usdc-pay.eth.sh",
     "http://localhost:3000",
   ];
 
-  // Also allow any subdomain of swiss-knife.xyz
+  // Also allow any subdomain of eth.sh
   const isAllowedSubdomain =
     origin &&
     (allowedOrigins.includes(origin) ||
-      /^https:\/\/[\w-]+\.swiss-knife\.xyz$/.test(origin));
+      /^https:\/\/[\w-]+\.eth\.sh$/.test(origin));
 
-  const corsOrigin = isAllowedSubdomain ? origin : "https://swiss-knife.xyz";
+  const corsOrigin = isAllowedSubdomain ? origin : "https://eth.sh";
 
   return {
     "Access-Control-Allow-Origin": corsOrigin,
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       request.url || "/api/usdc-pay",
       process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
         ? "http://localhost:3000"
-        : "https://swiss-knife.xyz"
+        : "https://eth.sh"
     ).toString();
 
     // Construct payment requirements per x402 spec

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Button, HStack, Link, Stack, Text } from "@chakra-ui/react";
+import { Box, Button, HStack, Stack, Text } from "@chakra-ui/react";
 import { isAddress } from "viem";
 import {
   UintParam,
@@ -14,8 +14,9 @@ import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { Arg, DecodeBytesParamResult, DecodeTupleParamResult } from "@/types";
+import { ContractAddressLink } from "@/components/ContractTabs";
 
-export const renderParamTypes = (arg: Arg, chainId?: number) => {
+export const renderParamTypes = (arg: Arg, chainId?: number, isArrayChild = false) => {
   if (arg.baseType.includes("uint")) {
     return <UintParam value={arg.value} />;
   } else if (arg.baseType.includes("int")) {
@@ -42,6 +43,7 @@ export const renderParamTypes = (arg: Arg, chainId?: number) => {
   } else if (arg.baseType === "tuple") {
     return (
       <TupleParam
+        isArrayChild={isArrayChild}
         arg={{
           ...arg,
           value: arg.value as DecodeTupleParamResult,
@@ -64,38 +66,45 @@ export const renderParamTypes = (arg: Arg, chainId?: number) => {
   }
 };
 
-export const renderParams = (key: number, arg: Arg, chainId?: number) => {
+export const renderParams = (
+  key: number,
+  arg: Arg,
+  chainId?: number,
+  variant: "surface" | "plain" = "surface"
+) => {
   const type = arg.type.includes("tuple") ? "tuple" : arg.type;
+  const linkedAddress = String(arg.baseType === "address" ? arg.value : arg.rawValue);
+  const addressLink = (arg.baseType === "address" || arg.baseType === "bytes") && isAddress(linkedAddress) ? (
+    <Button
+      as={ContractAddressLink}
+      address={linkedAddress}
+      chainId={chainId}
+      href={`${getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}address/${linkedAddress}`}
+      aria-label={`Open address ${linkedAddress}`}
+      title="Open address"
+      isExternal
+      size="xs"
+    ><ExternalLinkIcon /></Button>
+  ) : null;
+
 
   return (
-    <Stack key={key} p={4} bg={"whiteAlpha.50"} rounded={"lg"}>
-      {arg.name ? (
+    <Stack
+      key={key}
+      p={variant === "surface" ? { base: 2, md: 4 } : 0}
+      bg={variant === "surface" ? "whiteAlpha.50" : undefined}
+      rounded={variant === "surface" ? "lg" : undefined}
+      minW={0}
+    >
+      {arg.baseType === "tuple" && Array.isArray(arg.value) && arg.value.length > 0 ? null : arg.name ? (
         <Box>
-          <HStack>
+          <HStack minW={0} flexWrap="wrap">
             <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>
               {type}
             </Box>
-            {arg.baseType === "address" ||
-            (arg.baseType === "bytes" && isAddress(arg.rawValue)) ? (
-              <Link
-                href={`${getPath(
-                  subdomains.EXPLORER.base,
-                  subdomains.EXPLORER.isRelativePath
-                )}address/${
-                  arg.baseType === "address" ? arg.value : arg.rawValue
-                }`}
-                title="View on explorer"
-                isExternal
-              >
-                <Button size={"xs"}>
-                  <HStack>
-                    <ExternalLinkIcon />
-                  </HStack>
-                </Button>
-              </Link>
-            ) : null}
+            {addressLink}
           </HStack>
-          <HStack>
+          <HStack minW={0} flexWrap="wrap">
             <Box>
               {arg.name}
               {arg.baseType === "array" ? "[]" : ""}
@@ -108,7 +117,7 @@ export const renderParams = (key: number, arg: Arg, chainId?: number) => {
           </HStack>
         </Box>
       ) : (
-        <HStack>
+        <HStack minW={0} flexWrap="wrap">
           <Text fontSize={"sm"}>
             {type}
             {arg.baseType === "array" ? (type.includes("[]") ? "" : "[]") : ""}
@@ -118,28 +127,10 @@ export const renderParams = (key: number, arg: Arg, chainId?: number) => {
               (length: {Array.isArray(arg.value) ? arg.value.length : 0})
             </Box>
           ) : null}
-          {arg.baseType === "address" ||
-          (arg.baseType === "bytes" && isAddress(arg.rawValue)) ? (
-            <Link
-              href={`${getPath(
-                subdomains.EXPLORER.base,
-                subdomains.EXPLORER.isRelativePath
-              )}address/${
-                arg.baseType === "address" ? arg.value : arg.rawValue
-              }`}
-              title="View on explorer"
-              isExternal
-            >
-              <Button size={"xs"}>
-                <HStack>
-                  <ExternalLinkIcon />
-                </HStack>
-              </Button>
-            </Link>
-          ) : null}
+          {addressLink}
         </HStack>
       )}
-      <Stack spacing={2}>{renderParamTypes(arg, chainId)}</Stack>
+      <Stack spacing={2} minW={0}>{renderParamTypes(arg, chainId)}</Stack>
     </Stack>
   );
 };

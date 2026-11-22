@@ -30,7 +30,7 @@ interface AddressBookDataContextValue extends AddressBookState {
   closeDrawer: () => void;
 
   // Selector trigger (stable callback — does not change when selector opens)
-  openSelector: (onSelect: (address: string) => void) => void;
+  openSelector: (onSelect: (address: string) => void, defaultAddress?: string) => void;
 }
 
 // Selector UI context: only consumed by AddressBookSelector modal
@@ -40,6 +40,7 @@ export interface AddressBookSelectorContextValue {
   onAddressSelect: ((address: string) => void) | null;
   addresses: SavedAddressInfo[];
   isLoading: boolean;
+  defaultAddress: string;
 }
 
 const AddressBookDataContext =
@@ -61,6 +62,7 @@ export function AddressBookProvider({
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [defaultAddress, setDefaultAddress] = useState("");
   const [onAddressSelect, setOnAddressSelect] = useState<
     ((address: string) => void) | null
   >(null);
@@ -174,14 +176,16 @@ export function AddressBookProvider({
   const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
-  const openSelector = useCallback((onSelect: (address: string) => void) => {
+  const openSelector = useCallback((onSelect: (address: string) => void, address = "") => {
     setOnAddressSelect(() => onSelect);
+    setDefaultAddress(address);
     setIsSelectorOpen(true);
   }, []);
 
   const closeSelector = useCallback(() => {
     setIsSelectorOpen(false);
     setOnAddressSelect(null);
+    setDefaultAddress("");
   }, []);
 
   // Memoize data context — only changes when addresses/drawer state changes,
@@ -219,6 +223,7 @@ export function AddressBookProvider({
       isSelectorOpen,
       closeSelector,
       onAddressSelect,
+      defaultAddress,
       addresses: state.addresses,
       isLoading: state.isLoading,
     }),
@@ -226,6 +231,7 @@ export function AddressBookProvider({
       isSelectorOpen,
       closeSelector,
       onAddressSelect,
+      defaultAddress,
       state.addresses,
       state.isLoading,
     ]

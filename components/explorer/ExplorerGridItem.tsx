@@ -11,8 +11,11 @@ import {
   AvatarGroup,
   Avatar,
   Button,
+  Icon,
+  Tooltip,
 } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FiCode } from "react-icons/fi";
 import { faHeart } from "@fortawesome/free-solid-svg-icons";
 
 import { ExplorerData, ExplorerType } from "@/types";
@@ -23,7 +26,7 @@ import { useFavExplorerDragNDrop } from "@/hooks/useFavExplorerDragNDrop";
 
 interface Params {
   explorerName: string;
-  explorerData: ExplorerData;
+  explorerData: ExplorerData | undefined;
   explorerType: ExplorerType;
   addressOrTx: string;
   toggleFavorite: (explorerName: string) => void;
@@ -43,6 +46,9 @@ const CommonExplorerGridItem = ({
     onOpen: openModal,
     onClose: closeModal,
   } = useDisclosure();
+
+  // Providers can disappear after a directory refresh or from saved favorites.
+  if (!explorerData) return null;
 
   const supportedChainIds = Object.keys(explorerData.chainIdToLabel).map((k) =>
     Number(k)
@@ -64,24 +70,38 @@ const CommonExplorerGridItem = ({
     <>
       <HStack>
         <Button
+          type="button"
           size="xs"
-          color={isFavorite ? "orange.500" : "white"}
-          bg={isFavorite ? "orange.100" : "orange.200"}
+          minW={8}
+          h={8}
+          p={0}
+          position="relative"
+          zIndex={1}
+          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          aria-pressed={Boolean(isFavorite)}
+          color={isFavorite ? "orange.300" : "text.tertiary"}
+          bg="transparent"
           roundedTopRight={0}
           roundedBottomLeft={0}
           _hover={{
             color: "orange.300",
-            bg: "orange.100",
+            bg: "whiteAlpha.100",
           }}
           title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          onClick={() => toggleFavorite(explorerName)}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleFavorite(explorerName);
+          }}
         >
           <FontAwesomeIcon icon={faHeart} />
         </Button>
         {explorerData.forContracts ? (
           <>
             <Spacer />
-            <Text>🤖</Text>
+            <Tooltip label="For contracts" hasArrow>
+              <Icon as={FiCode} boxSize={4} color="text.secondary" role="img" aria-label="For contracts" tabIndex={0} mr={2} />
+            </Tooltip>
           </>
         ) : null}
       </HStack>
@@ -97,15 +117,18 @@ const CommonExplorerGridItem = ({
           >
             <Image
               bg={explorerData.faviconWhite ? "gray.800" : "white"}
-              w="2rem"
+              boxSize={8}
+              objectFit="contain"
+              flexShrink={0}
+              fallback={<Center boxSize={8} rounded="full" bg="bg.muted" color="text.secondary" fontSize="sm">{explorerName[0]}</Center>}
               src={imageUrl}
               alt={explorerName}
               borderRadius="full"
             />
-            <Text mt="0.5rem" textAlign={"center"}>
+            <Text mt="0.5rem" textAlign="center" overflowWrap="anywhere">
               {explorerName}
             </Text>
-            <AvatarGroup size="2xs" spacing={"2px"} max={5}>
+            <AvatarGroup size="2xs" spacing="2px" max={5} sx={{ "& .chakra-avatar__excess": { color: "white", bg: "whiteAlpha.200" } }}>
               {supportedChainIds
                 // sort according to chain names instead of chainIds
                 .sort((a, b) =>
@@ -147,16 +170,19 @@ const CommonExplorerGridItem = ({
           {/* TODO: allow bookmarking, and show the bookmarked explorers on the top */}
           <Center flexDir={"column"} h="100%" p="1rem" pt={"0"} mt={"-4"}>
             <Image
-              bg="white"
-              w="2rem"
+              bg={explorerData.faviconWhite ? "gray.800" : "white"}
+              boxSize={8}
+              objectFit="contain"
+              flexShrink={0}
+              fallback={<Center boxSize={8} rounded="full" bg="bg.muted" color="text.secondary" fontSize="sm">{explorerName[0]}</Center>}
               src={imageUrl}
               alt={explorerName}
               borderRadius="full"
             />
-            <Text mt="0.5rem" textAlign={"center"}>
+            <Text mt="0.5rem" textAlign="center" overflowWrap="anywhere">
               {explorerName}
             </Text>
-            <AvatarGroup size="2xs" spacing={"2px"} max={5}>
+            <AvatarGroup size="2xs" spacing="2px" max={5} sx={{ "& .chakra-avatar__excess": { color: "white", bg: "whiteAlpha.200" } }}>
               {supportedChainIds
                 // sort according to chain names instead of chainIds
                 .sort((a, b) =>
@@ -188,19 +214,17 @@ export const ExplorerGridItem = ({
 }: Params) => {
   return (
     <GridItem
-      border="2px solid"
-      borderColor={"gray.500"}
-      bg={"white"}
+      minW={0}
+      border="1px solid"
+      borderColor="border.default"
+      bg="bg.subtle"
+      color="text.primary"
       _hover={{
         cursor: "pointer",
-        bgColor: "whiteAlpha.300",
-        borderColor: "gray.400",
+        bg: "bg.muted",
+        borderColor: "border.strong",
       }}
       rounded="lg"
-      sx={{
-        "& p": { color: "gray.800" },
-        "&:hover p": { color: "white" },
-      }}
     >
       <CommonExplorerGridItem
         explorerName={explorerName}
@@ -236,20 +260,18 @@ export const FavoriteExplorerGridItem = ({
 
   return (
     <GridItem
+      minW={0}
       ref={ref}
-      border="2px solid"
-      borderColor={"gray.500"}
-      bg={"white"}
+      border="1px solid"
+      borderColor="border.default"
+      bg="bg.subtle"
+      color="text.primary"
       _hover={{
         cursor: "pointer",
-        bgColor: "whiteAlpha.300",
-        borderColor: "gray.400",
+        bg: "bg.muted",
+        borderColor: "border.strong",
       }}
       rounded="lg"
-      sx={{
-        "& p": { color: "gray.800" },
-        "&:hover p": { color: "white" },
-      }}
     >
       <CommonExplorerGridItem
         explorerName={explorerName}

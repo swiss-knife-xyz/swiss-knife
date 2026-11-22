@@ -6,7 +6,7 @@ export default defineConfig({
   esbuild: { jsx: "automatic" },
   test: {
     environment: "jsdom",
-    include: ["app/contract/contractExplorer.spec.tsx"],
+    include: ["app/explorer/contractExplorer.spec.tsx"],
     maxWorkers: 1,
   },
 });
