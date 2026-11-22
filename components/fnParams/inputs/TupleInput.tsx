@@ -12,6 +12,9 @@ interface InputFieldProps extends InputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFunctionIsDisabled: (value: boolean) => void;
   isError: boolean;
+  allowBytesBuilder?: boolean;
+  immediateUpdates?: boolean;
+  rawValues?: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   isArrayChild?: boolean;
 }
@@ -26,11 +29,19 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   onChange,
   setFunctionIsDisabled,
   isError,
+  allowBytesBuilder,
+  immediateUpdates,
+  rawValues,
   onKeyDown,
   isArrayChild,
   value,
 }) => {
-  const [tupleInputsState, setTupleInputsState] = useState<TupleInputState>({});
+  const [tupleInputsState, setTupleInputsState] = useState<TupleInputState>(
+    () =>
+      Array.isArray(value)
+        ? Object.fromEntries(value.map((v, i) => [i, v]))
+        : {}
+  );
   const [tupleReadIsDisabled, setTupleReadIsDisabled] = useState<
     Record<number, boolean>
   >({});
@@ -79,6 +90,11 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   // Handle parent state updates with debouncing
   useEffect(() => {
     if (!isEqual(tupleInputsState, prevTupleInputStateRef.current)) {
+      if (immediateUpdates) {
+        prevTupleInputStateRef.current = tupleInputsState;
+        onChange({ target: { value: Object.values(tupleInputsState) } } as any);
+        return;
+      }
       const timeoutId = setTimeout(() => {
         onChange({
           target: {
@@ -90,7 +106,7 @@ export const TupleInput: React.FC<InputFieldProps> = ({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [tupleInputsState, onChange]);
+  }, [tupleInputsState, onChange, immediateUpdates]);
 
   // Handle disabled state updates with debouncing
   useEffect(() => {
@@ -110,7 +126,8 @@ export const TupleInput: React.FC<InputFieldProps> = ({
 
   return (
     <Box
-      p={2}
+      minW={0}
+      p={{ base: 1.5, md: 2 }}
       mb={!isCollapsed ? 4 : undefined}
       pb={!isCollapsed ? 4 : undefined}
       border="2px solid"
@@ -118,8 +135,8 @@ export const TupleInput: React.FC<InputFieldProps> = ({
         !isArrayChild
           ? "whiteAlpha.200"
           : isError && isAnyChildInvalid
-          ? "red.300"
-          : "transparent"
+            ? "red.300"
+            : "transparent"
       }
       rounded="md"
       bg={"whiteAlpha.50"}
@@ -134,8 +151,8 @@ export const TupleInput: React.FC<InputFieldProps> = ({
         <InputInfo input={input} />
       </HStack>
       <Box
-        ml={2}
-        pl={4}
+        ml={{ base: 0, md: 2 }}
+        pl={{ base: 2, md: 4 }}
         borderLeft={"1px"}
         borderColor={"whiteAlpha.100"}
         display={isCollapsed ? "none" : undefined}
@@ -152,6 +169,9 @@ export const TupleInput: React.FC<InputFieldProps> = ({
                 updateTupleReadIsDisabled(i, value),
               onKeyDown,
               isError,
+              allowBytesBuilder,
+              immediateUpdates,
+              rawValues,
             })}
           </Box>
         ))}

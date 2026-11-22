@@ -4,7 +4,8 @@ export const metadata = getMetadata({
   title: "Epoch Converter | ETH.sh",
   description:
     "Convert unix timestamp to human-readable date or Get Ethereum block number for a given date & time.",
-  images: "https://eth.sh/og/epoch-converter.png",
+  canonical: "https://epoch-converter.eth.sh/",
+  images: "https://eth.sh/api/og/epoch-converter",
 });
 
 const EpochConverterLayout = ({ children }: { children: React.ReactNode }) => {

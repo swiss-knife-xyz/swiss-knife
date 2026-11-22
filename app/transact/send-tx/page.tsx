@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import { useSearchParams } from "next/navigation";
 import React, {
   Suspense,
@@ -28,12 +30,10 @@ import {
   ModalHeader,
   ModalCloseButton,
   ModalBody,
-  Stack,
   Avatar,
   Spinner,
   Tooltip,
   Image,
-  Badge,
   Icon,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
@@ -71,11 +71,14 @@ import debounce from "lodash/debounce";
 import { DarkButton } from "@/components/DarkButton";
 import { chainIdToChain } from "@/data/common";
 import { decodeRecursive } from "@/lib/decoder";
-import { renderParams } from "@/components/renderParams";
+import { useAutoHideScrollbars } from "@/hooks/useAutoHideScrollbars";
+import { DecodedCalldataSkeleton } from "@/components/decodedParams/DecodedCalldataSkeleton";
+import { TreeView } from "@/components/decodedParams/TreeView";
 import { config } from "@/app/providers";
 import { getDisplayFunctionName } from "@/utils/functionNames";
 
 function SendTxContent() {
+  const scrollbars = useAutoHideScrollbars();
   const { data: walletClient } = useWalletClient();
   const { chain, address: connectedAddress } = useAccount();
   const { switchChain } = useSwitchChain();
@@ -117,6 +120,7 @@ function SendTxContent() {
 
   const [isDecodeModalOpen, setIsDecodeModalOpen] = useState(false);
   const [isDecoding, setIsDecoding] = useState(false);
+  const [decodeError, setDecodeError] = useState<string>();
   const [decoded, setDecoded] = useState<any>();
   const decodedFunctionName = useMemo(
     () =>
@@ -453,7 +457,10 @@ function SendTxContent() {
   };
 
   const decode = useCallback(async () => {
+    setIsDecodeModalOpen(true);
     setIsDecoding(true);
+    setDecoded(undefined);
+    setDecodeError(undefined);
     console.log("DECODING...");
     try {
       const res = await decodeRecursive({
@@ -464,13 +471,12 @@ function SendTxContent() {
       console.log({ DECODED_RESULT: res });
       setDecoded(res);
 
-      if (res !== null) {
-        setIsDecodeModalOpen(true);
-      } else {
+      if (res === null) {
         throw new Error("Unable to decode this calldata");
       }
     } catch (e: any) {
       console.log("Error Decoding");
+      setDecodeError(e.message || "Unable to decode this calldata");
       toast({
         title: "Error",
         description: e.message,
@@ -499,7 +505,7 @@ function SendTxContent() {
       <Box mb={8} textAlign="center">
         <HStack justify="center" spacing={3} mb={4}>
           <Icon as={FiSend} color="blue.400" boxSize={8} />
-          <Heading size="xl" color="gray.100" fontWeight="bold" letterSpacing="tight">
+          <Heading as="h1" size="xl" color="gray.100" fontWeight="bold" letterSpacing="tight">
             Send Transaction
           </Heading>
         </HStack>
@@ -631,6 +637,7 @@ function SendTxContent() {
           isOpen={isDecodeModalOpen}
           onClose={() => setIsDecodeModalOpen(false)}
           isCentered
+          scrollBehavior="inside"
         >
           <ModalOverlay
             bg="none"
@@ -638,61 +645,54 @@ function SendTxContent() {
             backdropBlur="5px"
           />
           <ModalContent
-            minW={{
-              base: 0,
-              sm: "30rem",
-              md: "40rem",
-            }}
-            pb="6"
+            w="calc(100% - 2rem)"
+            maxW="1200px"
+            my={{ base: 4, md: 8 }}
+            maxH={{ base: "calc(100dvh - 2rem)", md: "calc(100dvh - 4rem)" }}
             bg="bg.900"
           >
-            <ModalHeader color="gray.100">Decoded Calldata</ModalHeader>
+            <ModalHeader color="gray.100" px={{ base: 5, md: 8 }} pt={6}>Decoded Calldata</ModalHeader>
             <ModalCloseButton />
-            <ModalBody>
-              {decoded && (
-                <Box minW={"80%"}>
-                  {decodedFunctionName.name ? (
-                    <HStack>
-                      <Box>
-                        <Text fontSize="xs" color="gray.500">
-                          {`function${
-                            decodedFunctionName.isGuessed ? " (guessed)" : ""
-                          }`}
-                        </Text>
-                        <Text color="gray.100">{decodedFunctionName.name}</Text>
-                      </Box>
-                      {decodedFunctionName.isGuessed ? (
-                        <Badge colorScheme="purple" variant="outline">
-                          guessed
-                        </Badge>
-                      ) : null}
-                      <Spacer />
-                      <CopyToClipboard
-                        textToCopy={JSON.stringify(
-                          {
-                            function: decoded.signature,
-                            params: JSON.parse(stringify(decoded.rawArgs)),
-                          },
-                          undefined,
-                          2
-                        )}
-                        labelText={"Copy params"}
-                      />
-                    </HStack>
-                  ) : null}
-                  <Stack
-                    mt={2}
+            <ModalBody {...scrollbars} px={{ base: 5, md: 8 }} pb={{ base: 5, md: 8 }}>
+              {isDecoding ? (
+                <DecodedCalldataSkeleton />
+              ) : decodeError ? (
+                <VStack align="start" spacing={4} py={4}>
+                  <Text role="alert" color="red.300">{decodeError}</Text>
+                  <Button size="sm" onClick={decode}>Try again</Button>
+                </VStack>
+              ) : decoded ? (
+                <Box>
+                  <HStack mb={2} justify="flex-end">
+                    <CopyToClipboard
+                      textToCopy={JSON.stringify(
+                        {
+                          function: decoded.signature,
+                          params: JSON.parse(stringify(decoded.rawArgs)),
+                        },
+                        undefined,
+                        2
+                      )}
+                      labelText="Copy params"
+                    />
+                  </HStack>
+                  <Box
                     p={4}
-                    spacing={4}
-                    bg={"whiteAlpha.50"}
-                    rounded={"lg"}
+                    bg="whiteAlpha.50"
+                    borderRadius="lg"
+                    border="1px solid"
+                    borderColor="whiteAlpha.200"
+                    data-tree-wrapper="true"
                   >
-                    {decoded.args.map((arg: any, i: number) => {
-                      return renderParams(i, arg, chainId);
-                    })}
-                  </Stack>
+                    <TreeView
+                      args={decoded.args}
+                      chainId={chainId}
+                      functionName={decodedFunctionName.name ?? decoded.functionName}
+                      isFunctionNameGuessed={decodedFunctionName.isGuessed}
+                    />
+                  </Box>
                 </Box>
-              )}
+              ) : null}
             </ModalBody>
           </ModalContent>
         </Modal>
@@ -801,7 +801,7 @@ function SendTxContent() {
 
 export default function SendTx() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<ToolLoading title="Send Transaction" description="Send custom calldata to contracts or deploy raw bytecode." />}>
       <SendTxContent />
     </Suspense>
   );

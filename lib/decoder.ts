@@ -1,3 +1,4 @@
+import type { FunctionSignatureCandidate } from "./inferredContract";
 /**
  * =============================================================================
  * CALLDATA DECODER
@@ -954,6 +955,18 @@ export async function fetchFunctionInterface({
   }
 
   return result;
+}
+
+/** All candidates for inference, rather than the decoder's legacy first-hit API. */
+export async function fetchFunctionInterfaces({ selector }: { selector: string }): Promise<FunctionSignatureCandidate[]> {
+  const sourcify = await fetchFunctionFromSourcify({ selector });
+  if (sourcify?.length) {
+    return sourcify.filter(item => !item.filtered).map(item => ({
+      name: item.name, hasVerifiedContract: item.hasVerifiedContract,
+    }));
+  }
+  const fourByte = await fetchFunctionFrom4Bytes({ selector });
+  return fourByte?.map(item => item.text_signature) ?? [];
 }
 
 /**

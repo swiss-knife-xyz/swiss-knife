@@ -10,7 +10,9 @@ import {
 } from "@chakra-ui/react";
 import { AddIcon, MinusIcon } from "@chakra-ui/icons";
 import {
+  getNearestUsableTick,
   isValidNumericInput,
+  priceRangeToTicksOutward,
   priceRatioToTick,
   tickToPriceRatio,
 } from "../lib/utils";
@@ -56,6 +58,8 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
 }) => {
   const [tempLowerPrice, setTempLowerPrice] = useState<string>(lowerPrice);
   const [tempUpperPrice, setTempUpperPrice] = useState<string>(upperPrice);
+  const hasTokenDecimals =
+    currency0Decimals !== undefined && currency1Decimals !== undefined;
 
   // Add ref to track internal updates to prevent circular dependencies
   const isInternalUpdate = useRef(false);
@@ -72,7 +76,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
   const handleModeSwitch = () => {
     const newMode = !priceInputMode;
 
-    if (currency0Decimals && currency1Decimals && tickSpacing !== undefined) {
+    if (hasTokenDecimals && tickSpacing !== undefined) {
       if (newMode) {
         // Switching TO price mode - convert current ticks to prices
         if (tickLower && tickUpper) {
@@ -118,25 +122,20 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
         // Switching TO tick mode - convert current prices to ticks
         if (lowerPrice && upperPrice) {
           console.log("Converting prices to ticks:", lowerPrice, upperPrice);
-          const lowerTickNum = priceRatioToTick(
-            lowerPrice,
-            priceDirection,
-            currency0Decimals,
-            currency1Decimals,
-            tickSpacing
-          );
-          const upperTickNum = priceRatioToTick(
-            upperPrice,
-            priceDirection,
-            currency0Decimals,
-            currency1Decimals,
-            tickSpacing
-          );
-          const finalLowerTick = Math.min(lowerTickNum, upperTickNum);
-          const finalUpperTick = Math.max(lowerTickNum, upperTickNum);
-          console.log("Setting ticks:", finalLowerTick, finalUpperTick);
-          setTickLower(finalLowerTick.toString());
-          setTickUpper(finalUpperTick.toString());
+          try {
+            const range = priceRangeToTicksOutward(
+              lowerPrice,
+              upperPrice,
+              priceDirection,
+              currency0Decimals,
+              currency1Decimals,
+              tickSpacing
+            );
+            setTickLower(range.tickLower.toString());
+            setTickUpper(range.tickUpper.toString());
+          } catch (error) {
+            console.error("Invalid price range:", error);
+          }
         }
       }
     }
@@ -149,32 +148,27 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
   useEffect(() => {
     if (
       priceInputMode &&
-      currency0Decimals &&
-      currency1Decimals &&
+      hasTokenDecimals &&
       lowerPrice &&
       upperPrice &&
       tickSpacing !== undefined &&
       !isInternalUpdate.current
     ) {
       isInternalUpdate.current = true;
-      const lowerTickNum = priceRatioToTick(
-        lowerPrice,
-        priceDirection,
-        currency0Decimals,
-        currency1Decimals,
-        tickSpacing
-      );
-      const upperTickNum = priceRatioToTick(
-        upperPrice,
-        priceDirection,
-        currency0Decimals,
-        currency1Decimals,
-        tickSpacing
-      );
-      const finalLowerTick = Math.min(lowerTickNum, upperTickNum);
-      const finalUpperTick = Math.max(lowerTickNum, upperTickNum);
-      setTickLower(finalLowerTick.toString());
-      setTickUpper(finalUpperTick.toString());
+      try {
+        const range = priceRangeToTicksOutward(
+          lowerPrice,
+          upperPrice,
+          priceDirection,
+          currency0Decimals,
+          currency1Decimals,
+          tickSpacing
+        );
+        setTickLower(range.tickLower.toString());
+        setTickUpper(range.tickUpper.toString());
+      } catch (error) {
+        console.error("Invalid price range:", error);
+      }
       setTimeout(() => {
         isInternalUpdate.current = false;
       }, 0);
@@ -189,14 +183,14 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
     setTickUpper,
     tickSpacing,
     priceInputMode,
+    hasTokenDecimals,
   ]);
 
   // Update price inputs when ticks change in price mode (for live updates)
   useEffect(() => {
     if (
       priceInputMode &&
-      currency0Decimals &&
-      currency1Decimals &&
+      hasTokenDecimals &&
       tickLower &&
       tickUpper &&
       !isInternalUpdate.current
@@ -254,7 +248,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
 
   // Helper function to get the tick that corresponds to the lower price
   const getTickForPrice = (isLowerPrice: boolean): string => {
-    if (!currency0Decimals || !currency1Decimals || !tickLower || !tickUpper) {
+    if (!hasTokenDecimals || !tickLower || !tickUpper) {
       return "";
     }
 
@@ -290,7 +284,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
 
   // Helper function to get the color for price tick display
   const getTickColor = (isLowerPrice: boolean): string => {
-    if (!currency0Decimals || !currency1Decimals || !tickLower || !tickUpper) {
+    if (!hasTokenDecimals || !tickLower || !tickUpper) {
       return "gray.400";
     }
 
@@ -326,7 +320,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
 
   // Helper function to get the correct tick label based on actual tick values
   const getTickLabel = (isLowerPrice: boolean): string => {
-    if (!currency0Decimals || !currency1Decimals || !tickLower || !tickUpper) {
+    if (!hasTokenDecimals || !tickLower || !tickUpper) {
       return "Tick";
     }
 
@@ -349,7 +343,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
   };
 
   const handleLowerPriceBlur = () => {
-    if (currency0Decimals && currency1Decimals && tickSpacing !== undefined) {
+    if (hasTokenDecimals && tickSpacing !== undefined) {
       const tempNum = parseFloat(tempLowerPrice);
       const currentNum = parseFloat(lowerPrice);
       // Only update if the numbers are actually different (avoid precision comparison issues)
@@ -363,7 +357,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
   };
 
   const handleUpperPriceBlur = () => {
-    if (currency0Decimals && currency1Decimals && tickSpacing !== undefined) {
+    if (hasTokenDecimals && tickSpacing !== undefined) {
       const tempNum = parseFloat(tempUpperPrice);
       const currentNum = parseFloat(upperPrice);
       // Only update if the numbers are actually different (avoid precision comparison issues)
@@ -380,17 +374,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
     if (tickSpacing !== undefined) {
       const tickNum = parseInt(tickLower);
       if (!isNaN(tickNum)) {
-        // Round to nearest valid tick based on tick spacing
-        const roundedTick = Math.round(tickNum / tickSpacing) * tickSpacing;
-
-        // Calculate the maximum valid tick that's divisible by tickSpacing and within bounds
-        const maxValidTick = Math.floor(887272 / tickSpacing) * tickSpacing;
-        const minValidTick = Math.ceil(-887272 / tickSpacing) * tickSpacing;
-
-        const clampedTick = Math.max(
-          minValidTick,
-          Math.min(maxValidTick, roundedTick)
-        );
+        const clampedTick = getNearestUsableTick(tickNum, tickSpacing);
         if (clampedTick !== tickNum) {
           setTickLower(clampedTick.toString());
         }
@@ -402,17 +386,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
     if (tickSpacing !== undefined) {
       const tickNum = parseInt(tickUpper);
       if (!isNaN(tickNum)) {
-        // Round to nearest valid tick based on tick spacing
-        const roundedTick = Math.round(tickNum / tickSpacing) * tickSpacing;
-
-        // Calculate the maximum valid tick that's divisible by tickSpacing and within bounds
-        const maxValidTick = Math.floor(887272 / tickSpacing) * tickSpacing;
-        const minValidTick = Math.ceil(-887272 / tickSpacing) * tickSpacing;
-
-        const clampedTick = Math.max(
-          minValidTick,
-          Math.min(maxValidTick, roundedTick)
-        );
+        const clampedTick = getNearestUsableTick(tickNum, tickSpacing);
         if (clampedTick !== tickNum) {
           setTickUpper(clampedTick.toString());
         }
@@ -461,8 +435,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
 
   // Add increment/decrement functions for prices (work through tick conversion)
   const incrementPrice = (isUpper: boolean) => {
-    if (!currency0Decimals || !currency1Decimals || tickSpacing === undefined)
-      return;
+    if (!hasTokenDecimals || tickSpacing === undefined) return;
 
     const currentPrice = isUpper ? tempUpperPrice : tempLowerPrice;
     if (!currentPrice) return;
@@ -505,8 +478,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
   };
 
   const decrementPrice = (isUpper: boolean) => {
-    if (!currency0Decimals || !currency1Decimals || tickSpacing === undefined)
-      return;
+    if (!hasTokenDecimals || tickSpacing === undefined) return;
 
     const currentPrice = isUpper ? tempUpperPrice : tempLowerPrice;
     if (!currentPrice) return;
@@ -563,7 +535,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
         >
           {priceInputMode ? "📈 Price Mode" : "🔢 Tick Mode"}
         </Button>
-        {priceInputMode && currency0Decimals && currency1Decimals && (
+        {priceInputMode && hasTokenDecimals && (
           <Button
             colorScheme="blue"
             variant="outline"
@@ -629,11 +601,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
                 icon={<MinusIcon />}
                 size="sm"
                 onClick={() => decrementPrice(false)}
-                isDisabled={
-                  !currency0Decimals ||
-                  !currency1Decimals ||
-                  tickSpacing === undefined
-                }
+                isDisabled={!hasTokenDecimals || tickSpacing === undefined}
                 colorScheme="gray"
                 variant="outline"
               />
@@ -653,11 +621,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
                 icon={<AddIcon />}
                 size="sm"
                 onClick={() => incrementPrice(false)}
-                isDisabled={
-                  !currency0Decimals ||
-                  !currency1Decimals ||
-                  tickSpacing === undefined
-                }
+                isDisabled={!hasTokenDecimals || tickSpacing === undefined}
                 colorScheme="gray"
                 variant="outline"
               />
@@ -689,11 +653,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
                 icon={<MinusIcon />}
                 size="sm"
                 onClick={() => decrementPrice(true)}
-                isDisabled={
-                  !currency0Decimals ||
-                  !currency1Decimals ||
-                  tickSpacing === undefined
-                }
+                isDisabled={!hasTokenDecimals || tickSpacing === undefined}
                 colorScheme="gray"
                 variant="outline"
               />
@@ -713,11 +673,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
                 icon={<AddIcon />}
                 size="sm"
                 onClick={() => incrementPrice(true)}
-                isDisabled={
-                  !currency0Decimals ||
-                  !currency1Decimals ||
-                  tickSpacing === undefined
-                }
+                isDisabled={!hasTokenDecimals || tickSpacing === undefined}
                 colorScheme="gray"
                 variant="outline"
               />
@@ -833,7 +789,7 @@ export const PositionRangeInput: React.FC<PositionRangeInputProps> = ({
         </VStack>
       )}
 
-      {priceInputMode && (!currency0Decimals || !currency1Decimals) && (
+      {priceInputMode && !hasTokenDecimals && (
         <Text fontSize="sm" color="yellow.400">
           ⚠️ Please enter valid token addresses to use price mode
         </Text>

@@ -1,0 +1,54 @@
+[
+  {
+    "name": "Fey",
+    "reason": "Viral lists give conflicting February vs April dates; official profile/post unavailable and no recoverable primary closure statement.",
+    "attempts": [
+      "Fey crypto ceasing operations",
+      "feyprotocol shutdown April 2026",
+      "https://fey.io"
+    ],
+    "sources": [
+      "https://www.coinlive.com/news/the-first-batch-of-projects-to-perish-in-the-bear",
+      "https://www.binance.com/en-IN/square/post/309148697681730"
+    ]
+  },
+  {
+    "name": "Cura",
+    "reason": "Founder closure article explicitly describes Cura as product of Karma3 Labs, covered in OpenRank record to avoid counting company and its product twice.",
+    "attempts": [
+      "Cura RootData crypto",
+      "https://cura.network",
+      "https://x.com/SahilDewan/status/2066587393529098534"
+    ]
+  },
+  {
+    "name": "Kiosk",
+    "reason": "RootData inactive label and current kiosk.app now Kiki do not establish shutdown date or distinguish rebrand from company closure.",
+    "attempts": [
+      "Kiosk web3 closure",
+      "Kiosk Denis Nazarov winding down",
+      "https://kiosk.app"
+    ],
+    "sources": ["https://vi.rootdata.com/projects/detail/Kiosk?k=MTI1OTU%3D"]
+  },
+  {
+    "name": "CIFDAQ",
+    "reason": "Aggregate list reports closure but no primary shutdown statement recovered; official site still presents exchange landing page.",
+    "attempts": [
+      "CIFDAQ closing 2026",
+      "CIFDAQ ceased operations",
+      "https://www.cifdaq.com"
+    ],
+    "sources": [
+      "https://www.cryptotimes.io/2026/08/04/from-bitmex-to-leap-wallet-100-crypto-projects-have-shut-down-in-h1-2026/"
+    ]
+  },
+  {
+    "name": "Enclave Markets",
+    "reason": "Primary URL explicitly says operations paused; blank rendered page does not prove permanent shutdown or date.",
+    "attempts": [
+      "Enclave Markets paused 2026",
+      "https://www.enclave.market/operations-paused"
+    ]
+  }
+]

@@ -21,7 +21,6 @@ export const getFaucetMetadata = (chain?: string): Metadata => {
       title: seo.title,
       description: seo.description,
       url: seo.canonicalUrl,
-      images: seo.image,
     },
     twitter: {
       ...metadata.twitter,

@@ -5,7 +5,8 @@ export const metadata = getMetadata({
   title: "Foundry | ETH.sh",
   description:
     "Foundry tools to easily visualize and collapse stack traces, and more.",
-  images: "https://eth.sh/og/foundry.png",
+  canonical: "https://foundry.eth.sh/",
+  images: "https://eth.sh/api/og/foundry",
 });
 
 const FoundryLayout = ({ children }: { children: React.ReactNode }) => {

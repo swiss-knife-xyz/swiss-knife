@@ -735,6 +735,49 @@ export const ethereumOrgs: EthereumOrg[] = [
     ],
   },
   {
+    id: "ethcoordinate",
+    name: "EthCoordinate",
+    shortName: "EthCoordinate",
+    handle: "@EthCoordinate",
+    website: "https://ethcoordinate.org/",
+    twitter: "https://x.com/EthCoordinate",
+    logoDomain: "ethcoordinate.org",
+    accent: "#60A5FA",
+    category: "Protocol coordination",
+    stage: "Announced Aug 2026",
+    role: "Ethereum governance coordination, upgrade tracking, and home-staker support.",
+    summary:
+      "EthCoordinate is an independent Ethereum organization that grew out of EthStaker, broadening its home-staking support into protocol coordination, stakeholder engagement, Forkcast upgrade tracking, and support for protocol economics research.",
+    evidence: [
+      "The August 11, 2026 launch announcement presents EthCoordinate as an evolution of EthStaker, bringing existing coordination and staking-support efforts under one organization.",
+      "Its about page commits to open calls, documentation, and repositories, and says the organization will avoid taking positions on roadmap items.",
+      "Its Forkcast page describes upgrade dashboards, AllCoreDevs summaries, client priorities, stakeholder impacts, and devnet tracking.",
+    ],
+    workstreams: [
+      "Coordinating AllCoreDevs calls, breakout discussions, agendas, notes, and stakeholder engagement around proposed Ethereum upgrades.",
+      "Developing and stewarding Forkcast while supporting research and discussion around Ethereum protocol economics.",
+      "Continuing EthStaker community support, documentation, and open-source home-staking tools such as Eth Docker, Wagyu Key Gen, and the deposit CLI.",
+    ],
+    watch: [
+      "How coordination responsibilities are shared with EF, client teams, and other independent Ethereum organizations.",
+      "How conflict-of-interest mechanisms preserve credible neutrality in protocol coordination.",
+      "Whether home-staker support and tooling remain well resourced as the organization's scope expands.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://ethcoordinate.org/" },
+      { label: "About and FAQ", href: "https://ethcoordinate.org/about" },
+      { label: "Forkcast", href: "https://ethcoordinate.org/forkcast" },
+      {
+        label: "Protocol coordination",
+        href: "https://ethcoordinate.org/initiatives/protocol-coordination",
+      },
+      {
+        label: "Launch announcement",
+        href: "https://x.com/EthCoordinate/status/2087163391282708641",
+      },
+    ],
+  },
+  {
     id: "european-ethereum-institute",
     name: "European Ethereum Institute",
     shortName: "EEI",
@@ -778,6 +821,49 @@ export const ethereumOrgs: EthereumOrg[] = [
     ],
   },
   {
+    id: "geode-labs",
+    name: "Geode Labs",
+    shortName: "Geode",
+    handle: "@geodelabs",
+    website: "https://geode.build/",
+    twitter: "https://x.com/geodelabs",
+    logoDomain: "geode.build",
+    accent: "#8B5CF6",
+    category: "Global ecosystem development",
+    stage: "EF spin-out, active by Mar 2025",
+    role: "Global Ethereum talent, regional communities, and builder opportunity infrastructure.",
+    summary:
+      "Geode Labs is an Ethereum Foundation spin-out supporting Ethereum's global talent and regional communities through grants, educational and community infrastructure, ecosystem publications, and builder opportunity tools.",
+    evidence: [
+      "A March 21, 2025 announcement under its former name, Geodework, identifies the organization as an Ethereum Foundation spin-out dedicated to global Ethereum ecosystem development.",
+      "The official site lists Local Ethereum, the ETHStars Opportunity Board, and the Ethereum Job Board as publications and products supporting Ethereum's global talent layer.",
+      "Its grant program supports R&D, education, community infrastructure, and early experiments, with a public list of supported projects across multiple regions.",
+    ],
+    workstreams: [
+      "Grantmaking for Ethereum research, education, local communities, and early ecosystem experiments.",
+      "Community and builder opportunity infrastructure through ETHStars and the Ethereum Job Board.",
+      "Local Ethereum coverage of regional ecosystems, adoption, global R&D, and protocol-adjacent work.",
+    ],
+    watch: [
+      "Whether grants and opportunity tools help regional builders find sustained work and support beyond individual programs.",
+      "How funding sources, grant decisions, and recipient outcomes are documented as the program grows.",
+      "How Geode coordinates with EF and other regional builder programs while maintaining an independent ecosystem-development mandate.",
+    ],
+    sources: [
+      { label: "Official site", href: "https://geode.build/" },
+      { label: "Grant program", href: "https://geode.build/grants" },
+      {
+        label: "Spin-out announcement",
+        href: "https://x.com/geodelabs/status/1903124993380323650",
+      },
+      {
+        label: "Local Ethereum",
+        href: "https://localethereum.substack.com/",
+      },
+      { label: "GitHub", href: "https://github.com/geodelabs" },
+    ],
+  },
+  {
     id: "nyx-foundation",
     name: "Nyx Foundation",
     shortName: "Nyx",
@@ -787,19 +873,19 @@ export const ethereumOrgs: EthereumOrg[] = [
     logoDomain: "nyx.foundation",
     accent: "#D946EF",
     category: "Security and formal verification",
-    stage: "Established Sep 2025",
+    stage: "Active research organization",
     role: "Vulnerability research and machine-checked proofs across Ethereum clients, protocol specifications, and applications.",
     summary:
-      "Nyx Foundation is a Tokyo-based non-profit research institute that finds security bugs across the Ethereum stack and proves them away, combining formal verification in Lean 4, cryptography, and AI agents across client implementations, protocol specifications, and DeFi.",
+      "Nyx Foundation is a Tokyo-based research organization working on Ethereum client security, formal verification, and cryptography. Its public projects include specification-driven auditing tools and machine-checked proofs for protocol specifications and cryptographic components.",
     evidence: [
-      "Founded in Tokyo in September 2025 by researchers holding Ethereum Foundation research grants; the team has co-authored papers with the EF and works inside its post-quantum migration effort.",
-      "Ranked first worldwide by report count in the Fusaka client audit contest with 17 vulnerabilities, and has audited DeFi and ZK systems including zERC20, Intmax's zkRollup proof library, and SP1 zkVM.",
-      "Funded entirely by donations, research grants, and sponsorships from the Ethereum Foundation, Fenbushi Capital, and the TL;DR Fellowship, with all output released as open source, public vulnerability reports, and machine-checkable formal specifications.",
+      "SPECA applies specification-driven auditing to Ethereum clients; the team's published research describes its use across 11 clients in the Fusaka audit contest.",
+      "Nyx reports 17 vulnerability findings and first place by report count in the Fusaka client audit contest.",
+      "Public repositories document Lean 4 formalization of leanEthereum specifications and verification work on cryptographic components, including post-quantum signatures.",
     ],
     workstreams: [
-      "Client and protocol security: specification-driven agents that detect vulnerabilities in client implementations before they ship (SPECA), and a Lean 4-verified consensus client alongside formalization of the leanEthereum specification (Verity).",
-      "Application and market security: audits of DeFi protocols and ZK systems, an experimental L2 that stress-tests live DeFi designs before mainnet (Eris), and empirical research on liquidity provision, JIT liquidity, and MEV.",
-      "Post-quantum and education: formal verification of post-quantum signature schemes for Ethereum's PQ transition, and the Advanced Cryptography Program on ZK, FHE, and MPC, taken over from the Ethereum Foundation in 2025 and co-hosted with the University of Tokyo in 2026.",
+      "Client security: developing SPECA to turn protocol requirements into auditing checklists across client implementations.",
+      "Formal verification: building machine-checked models and proofs for Ethereum specifications, serialization, and cryptographic components.",
+      "Research and education: publishing cryptography and DeFi research and contributing to the Advanced Cryptography Program.",
     ],
     watch: [
       "Whether formalizing leanEthereum in Lean 4 keeps surfacing specification-level bugs as the spec stabilizes.",
@@ -808,9 +894,15 @@ export const ethereumOrgs: EthereumOrg[] = [
     ],
     sources: [
       { label: "Official site", href: "https://nyx.foundation/en/" },
-      { label: "Dashboard", href: "https://nyx.foundation/en/dashboard" },
-      { label: "GitHub", href: "https://github.com/NyxFoundation" },
-      { label: "Support", href: "https://nyx.foundation/en/support" },
+      { label: "SPECA", href: "https://github.com/NyxFoundation/speca" },
+      {
+        label: "Formal verification projects",
+        href: "https://github.com/NyxFoundation/formal-eth",
+      },
+      {
+        label: "Fusaka findings announcement",
+        href: "https://prtimes.jp/main/html/rd/p/000000006.000170100.html",
+      },
       {
         label: "Advanced Cryptography Program",
         href: "https://github.com/zk-tokyo/advanced-cryptography-2026",
@@ -869,6 +961,12 @@ export const ethTreasuryCompanies: EthTreasuryCompany[] = [
 
 export const roleMap = [
   {
+    label: "Protocol coordination",
+    description:
+      "Governance operations, stakeholder engagement, upgrade tracking, and home-staker support",
+    orgIds: ["ethcoordinate"],
+  },
+  {
     label: "Stewardship",
     description: "Values, grants, public goods, long-horizon coordination",
     orgIds: ["ethereum-foundation"],
@@ -901,6 +999,12 @@ export const roleMap = [
     label: "Applications",
     description: "Builder networks, emerging markets, funding, real users",
     orgIds: ["ethereum-applications-guild"],
+  },
+  {
+    label: "Global ecosystem development",
+    description:
+      "Regional communities, global talent, grants, builder opportunity tools",
+    orgIds: ["geode-labs"],
   },
   {
     label: "Unified liquidity",
@@ -958,6 +1062,30 @@ export const roleMap = [
 ];
 
 export const sourceTrail: SourceLink[] = [
+  { label: "Nyx Foundation", href: "https://nyx.foundation/en/" },
+  {
+    label: "Nyx SPECA research",
+    href: "https://github.com/NyxFoundation/speca",
+  },
+  {
+    label: "Nyx formal verification",
+    href: "https://github.com/NyxFoundation/formal-eth",
+  },
+  { label: "EthCoordinate about", href: "https://ethcoordinate.org/about" },
+  {
+    label: "EthCoordinate Forkcast",
+    href: "https://ethcoordinate.org/forkcast",
+  },
+  {
+    label: "EthCoordinate launch",
+    href: "https://x.com/EthCoordinate/status/2087163391282708641",
+  },
+  { label: "Geode Labs official site", href: "https://geode.build/" },
+  { label: "Geode grant program", href: "https://geode.build/grants" },
+  {
+    label: "Geode spin-out announcement",
+    href: "https://x.com/geodelabs/status/1903124993380323650",
+  },
   { label: "EF official site", href: "https://ethereum.foundation/ef" },
   {
     label: "EF new structure",

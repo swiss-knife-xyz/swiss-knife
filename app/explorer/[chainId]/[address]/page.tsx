@@ -1,0 +1,68 @@
+import type { Metadata } from "next";
+import { fetchContractAbi, getMetadata } from "@/utils";
+import { Layout } from "@/components/Layout";
+// Putting the page into separate component as it uses "use client" which doesn't work with `generateMetadata`
+import { ContractPage as ContractP } from "./ContractPage";
+import { generateMetadata as layoutGenerateMetadata } from "./layout";
+
+interface PageProps {
+  params: Promise<{ address: string; chainId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { address, chainId } = await params;
+  let title = `Contract ${address} | ETH.sh`;
+
+  // add contract name to the title if possible
+  let contractName = undefined as string | undefined;
+  try {
+    const fetchedAbi = await fetchContractAbi({
+      address,
+      chainId: parseInt(chainId),
+    });
+    contractName = fetchedAbi?.name;
+  } catch {}
+
+  if (contractName) {
+    title = `${contractName} - ${address} | ETH.sh`;
+  }
+
+  const layoutMetadata = await layoutGenerateMetadata({
+    params: Promise.resolve({ address, chainId }),
+  });
+
+  return {
+    ...getMetadata({
+      title,
+      canonical: `https://explorer.eth.sh/${chainId}/${address}`,
+      description: layoutMetadata.description as string,
+      images: "https://eth.sh/api/og/contract",
+    }),
+    robots: { index: false, follow: true },
+  };
+}
+
+const ContractPage = async ({
+  params,
+}: {
+  params: Promise<{
+    address: string;
+    chainId: string;
+  }>;
+}) => {
+  const { address, chainId } = await params;
+  return (
+    <Layout minW={0} allowSticky>
+      <ContractP
+        params={{
+          address,
+          chainId: parseInt(chainId),
+        }}
+      />
+    </Layout>
+  );
+};
+export default ContractPage;

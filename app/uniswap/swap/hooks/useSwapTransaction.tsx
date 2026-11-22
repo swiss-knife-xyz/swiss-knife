@@ -3,44 +3,28 @@ import { useToast, Link, HStack, Text } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { useSendCalls, useWaitForCallsStatus } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Hex,
-  Call,
-  Address,
-  zeroAddress,
-  parseUnits,
-  encodeFunctionData,
-  erc20Abi,
-} from "viem";
-import { useAccount } from "wagmi";
-import { QuoteExactInputParams } from "@/lib/uniswap/types";
-import { getExactInputCalldata } from "@/lib/uniswap/universalRouter";
-import {
-  UniversalRouterAddress,
-  Permit2Address,
-  Permit2Abi,
-  DEFAULT_SLIPPAGE_BPS,
-} from "../../lib/constants";
+import { erc20Abi, Hex, zeroAddress } from "viem";
+import { useAccount, usePublicClient } from "wagmi";
+import { SwapQuoteSnapshot } from "../lib/quoteState";
 import { slippageToBasiPoints } from "../lib/utils";
+import { buildSwapCalls } from "../lib/transactions";
+import { getSwapChainConfig } from "../lib/utils";
+import { Permit2Abi } from "../../lib/constants";
 
 interface UseSwapTransactionParams {
   isChainSupported: boolean;
 }
 
 interface SwapParams {
-  quoteParams: QuoteExactInputParams;
-  amountOut: bigint;
+  quote: SwapQuoteSnapshot;
   slippage: string;
-  fromCurrency: Address;
-  toCurrency: Address;
-  swapAmount: string;
-  fromDecimals: number;
 }
 
 export const useSwapTransaction = ({
   isChainSupported,
 }: UseSwapTransactionParams) => {
   const { chain, address } = useAccount();
+  const publicClient = usePublicClient();
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -88,7 +72,7 @@ export const useSwapTransaction = ({
 
   const executeSwap = useCallback(
     async (swapParams: SwapParams) => {
-      if (!isChainSupported || !chain?.id || !address) {
+      if (!isChainSupported || !chain?.id || !address || !publicClient) {
         toast({
           title: "Chain not supported",
           description: "Please switch to a supported chain",
@@ -112,63 +96,47 @@ export const useSwapTransaction = ({
       setIsTransactionComplete(false);
 
       try {
-        const calls: Call[] = [];
-        const currentChainId = chain.id;
-
-        // Calculate slippage
-        const slippageBps =
-          slippageToBasiPoints(swapParams.slippage) || DEFAULT_SLIPPAGE_BPS;
-        const amountOutMin =
-          (swapParams.amountOut * (10000n - BigInt(slippageBps))) / 10000n;
-
-        // Generate swap calldata
-        const swapCalldata = getExactInputCalldata({
-          quoteParams: swapParams.quoteParams,
-          amountOutMin,
-          tokenOut: swapParams.toCurrency,
-        });
-
-        // If not ETH, add token approval
-        if (swapParams.fromCurrency !== zeroAddress) {
-          const amountIn = parseUnits(
-            swapParams.swapAmount,
-            swapParams.fromDecimals
-          );
-
-          // Approve token to Permit2
-          calls.push({
-            to: swapParams.fromCurrency,
-            data: encodeFunctionData({
+        const slippageBps = slippageToBasiPoints(swapParams.slippage);
+        let erc20Allowance: bigint | undefined;
+        let permit2Allowance:
+          | { amount: bigint; expiration: number }
+          | undefined;
+        if (swapParams.quote.quoteParams.exactCurrency !== zeroAddress) {
+          const chainConfig = getSwapChainConfig(chain.id);
+          if (!chainConfig)
+            throw new Error("Swap contracts are not configured.");
+          const [tokenAllowance, permitAllowance] = await Promise.all([
+            publicClient.readContract({
+              address: swapParams.quote.quoteParams.exactCurrency,
               abi: erc20Abi,
-              functionName: "approve",
-              args: [Permit2Address[currentChainId], amountIn],
+              functionName: "allowance",
+              args: [address, chainConfig.permit2],
             }),
-          });
-
-          // Approve Permit2 to UniversalRouter
-          calls.push({
-            to: Permit2Address[currentChainId],
-            data: encodeFunctionData({
+            publicClient.readContract({
+              address: chainConfig.permit2,
               abi: Permit2Abi,
-              functionName: "approve",
+              functionName: "allowance",
               args: [
-                swapParams.fromCurrency,
-                UniversalRouterAddress[currentChainId],
-                2n ** 160n - 1n, // maxUint160 as bigint
-                Math.floor(Date.now() / 1000) + 3600, // 1 hour expiration as number
+                address,
+                swapParams.quote.quoteParams.exactCurrency,
+                chainConfig.universalRouter,
               ],
             }),
-          });
+          ]);
+          erc20Allowance = tokenAllowance;
+          permit2Allowance = {
+            amount: permitAllowance[0],
+            expiration: permitAllowance[1],
+          };
         }
-
-        // Add swap call
-        calls.push({
-          to: UniversalRouterAddress[currentChainId],
-          data: swapCalldata,
-          value:
-            swapParams.fromCurrency === zeroAddress
-              ? parseUnits(swapParams.swapAmount, swapParams.fromDecimals)
-              : undefined,
+        const calls = buildSwapCalls({
+          quote: swapParams.quote,
+          chainId: chain.id,
+          sender: address,
+          slippageBps,
+          nowSeconds: Math.floor(Date.now() / 1000),
+          erc20Allowance,
+          permit2Allowance,
         });
 
         await new Promise((resolve, reject) => {
@@ -221,6 +189,7 @@ export const useSwapTransaction = ({
       clearAllTimeouts,
       chain?.id,
       address,
+      publicClient,
     ]
   );
 

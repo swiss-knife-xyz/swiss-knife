@@ -5,7 +5,8 @@ export const metadata = getMetadata({
   title: "Converter | ETH.sh",
   description:
     "All your essential unit converters on one-page. Convert between wei, gwei, ether, hexadecimal, decimal, keccak256, 4 bytes selector and more.",
-  images: "https://eth.sh/og/converter.png",
+  canonical: "https://converter.eth.sh/",
+  images: "https://eth.sh/api/og/converter",
 });
 
 const ConverterLayout = ({ children }: { children: React.ReactNode }) => {

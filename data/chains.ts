@@ -6,16 +6,13 @@ import {
   base,
   baseSepolia,
   bsc,
-  canto,
   citreaTestnet,
-  evmos,
   gnosis,
   linea,
   ink,
   monadTestnet,
   optimism,
   polygon,
-  polygonMumbai,
   pulsechain,
   sei,
   seiTestnet,
@@ -26,9 +23,16 @@ import {
   zora,
   Chain,
 } from "wagmi/chains";
-import { plasma, megaeth, citrea, monad, robinhood } from "./common";
+import {
+  plasma,
+  megaeth,
+  citrea,
+  monad,
+  robinhood,
+  chainIdToChain,
+} from "./common";
 
-export const walletChains: readonly [Chain, ...Chain[]] = [
+const preferredWalletChains: readonly [Chain, ...Chain[]] = [
   // first chain is the default
   mainnet,
   base,
@@ -58,5 +62,14 @@ export const walletChains: readonly [Chain, ...Chain[]] = [
   baseSepolia,
   citreaTestnet,
   monadTestnet,
-  polygonMumbai,
+];
+
+// Keep the familiar wallet ordering while allowing switches to every network
+// available in the shared tool selectors.
+export const walletChains: readonly [Chain, ...Chain[]] = [
+  ...preferredWalletChains,
+  ...Object.values(chainIdToChain).filter(
+    (chain) =>
+      !preferredWalletChains.some((preferred) => preferred.id === chain.id)
+  ),
 ];

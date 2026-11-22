@@ -53,6 +53,17 @@ function TreeNode({ node, depth, selectedPath, onFileSelect, defaultOpen = true,
     <Box>
       <HStack
         ref={rowRef}
+        role="button"
+        tabIndex={0}
+        aria-label={node.path}
+        aria-expanded={isFolder ? isOpen : undefined}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleClick();
+          }
+        }}
+        _focusVisible={{ outline: "2px solid", outlineColor: "primary.400", outlineOffset: "-2px" }}
         spacing={1}
         py={0.5}
         px={2}

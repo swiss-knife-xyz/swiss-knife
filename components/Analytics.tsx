@@ -1,8 +1,18 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import Script from "next/script";
 
 const GA_ID = "G-9BJG2FRNP5";
 
 export const Analytics = () => {
+  const pathname = usePathname();
+
+  // The address-book storage iframe is infrastructure, not a user page view.
+  if (pathname === "/_storage" || pathname?.startsWith("/_storage/")) {
+    return null;
+  }
+
   return (
     <>
       <Script

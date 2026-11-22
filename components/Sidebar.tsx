@@ -1,5 +1,5 @@
 import { usePathname } from "next/navigation";
-import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
+
 import { Box, Flex, Center, Heading, Icon, VStack } from "@chakra-ui/react";
 import { getPath } from "@/utils";
 
@@ -23,7 +23,7 @@ const SidebarItem = ({
   isRelativePath,
   icon,
 }: SidebarItemProps) => {
-  const router = useTopLoaderRouter();
+
   const pathname = usePathname();
 
   const fullPath = `${getPath(subdomain, isRelativePath)}${path}`;
@@ -39,8 +39,8 @@ const SidebarItem = ({
 
   return (
     <Flex
-      as="button"
-      type="button"
+      as="a"
+      href={fullPath}
       align="center"
       alignSelf="stretch"
       appearance="none"
@@ -62,9 +62,7 @@ const SidebarItem = ({
       transitionDuration="fast"
       transitionTimingFunction="ease-out"
       aria-current={isActive ? "page" : undefined}
-      onClick={() =>
-        router.push(`${getPath(subdomain, isRelativePath)}${path}`)
-      }
+
       _hover={{
         bg: isActive ? "bg.muted" : "whiteAlpha.50",
         borderColor: isActive ? "whiteAlpha.200" : "whiteAlpha.100",

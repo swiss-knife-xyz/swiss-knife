@@ -1,30 +1,37 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useToast } from "@chakra-ui/react";
 import { useSendCalls, useWaitForCallsStatus } from "wagmi";
-import { useAccount } from "wagmi";
-import { Hex, Call, encodeAbiParameters, encodeFunctionData } from "viem";
+import { useAccount, usePublicClient } from "wagmi";
+import { Hex, Call } from "viem";
 import {
+  StateViewAbi,
+  StateViewAddress,
   UniV4PositionManagerAddress,
-  V4PMActions,
-  DecreaseLiquidityParamsAbi,
-  SettlePairParamsAbi,
-  TakePairParamsAbi,
-  UniV4PositionManagerAbi as PositionManagerAbi,
 } from "../../lib/constants";
 import { PositionDetails } from "./usePositionDetails";
+import { buildRemoveLiquidityCalldata } from "../lib/transactions";
+import { getPoolId } from "../../add-liquidity/lib/utils";
 
 interface UseRemoveLiquidityTransactionProps {
   isChainSupported: boolean;
+}
+
+export interface RemoveLiquidityOptions {
+  slippageBps?: number;
+  hookData?: Hex;
 }
 
 export const useRemoveLiquidityTransaction = ({
   isChainSupported,
 }: UseRemoveLiquidityTransactionProps) => {
   const { chain } = useAccount();
+  const publicClient = usePublicClient();
   const toast = useToast();
 
   const activeSendCallsIdRef = useRef<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const handledSuccessIdRef = useRef<string | null>(null);
+  const handledErrorIdRef = useRef<string | null>(null);
 
   const [localIsLoading, setLocalIsLoading] = useState(false);
   const [currentTxHash, setCurrentTxHash] = useState<Hex | undefined>();
@@ -61,8 +68,11 @@ export const useRemoveLiquidityTransaction = ({
   }, []);
 
   const executeRemoveLiquidity = useCallback(
-    async (positionDetails: PositionDetails) => {
-      if (!isChainSupported || !chain?.id) {
+    async (
+      positionDetails: PositionDetails,
+      options: RemoveLiquidityOptions = {}
+    ) => {
+      if (!isChainSupported || !chain?.id || !publicClient) {
         toast({
           title: "Chain not supported",
           description: "Please switch to a supported chain",
@@ -75,7 +85,8 @@ export const useRemoveLiquidityTransaction = ({
       }
 
       const positionManagerAddress = UniV4PositionManagerAddress[chain.id];
-      if (!positionManagerAddress) {
+      const stateViewAddress = StateViewAddress[chain.id];
+      if (!positionManagerAddress || !stateViewAddress) {
         toast({
           title: "Position Manager not found",
           description: "Position Manager not deployed on this chain",
@@ -91,53 +102,20 @@ export const useRemoveLiquidityTransaction = ({
 
       // Clear any existing state
       activeSendCallsIdRef.current = null;
+      handledSuccessIdRef.current = null;
+      handledErrorIdRef.current = null;
       clearAllTimeouts();
       setCurrentTxHash(undefined);
       setIsTransactionComplete(false);
 
       try {
-        // Encode the decrease liquidity parameters
-        const decreaseLiquidityParams = encodeAbiParameters(
-          DecreaseLiquidityParamsAbi,
-          [
-            BigInt(positionDetails.tokenId),
-            BigInt(positionDetails.liquidity), // Remove 100% of liquidity
-            0n, // amount0Min - set to 0 for simplicity (can be improved)
-            0n, // amount1Min - set to 0 for simplicity (can be improved)
-            "0x", // empty hookData
-          ]
-        );
-
-        // Encode settle pair parameters
-        const settlePairParams = encodeAbiParameters(SettlePairParamsAbi, [
-          positionDetails.poolKey.currency0,
-          positionDetails.poolKey.currency1,
-        ]);
-
-        // Encode take pair parameters (recipient is the user)
-        const takePairParams = encodeAbiParameters(TakePairParamsAbi, [
-          positionDetails.poolKey.currency0,
-          positionDetails.poolKey.currency1,
-          "0x0000000000000000000000000000000000000001", // Use address(1) as placeholder for current user
-        ]);
-
-        // Build the actions sequence
-        const actions =
-          V4PMActions.DECREASE_LIQUIDITY +
-          V4PMActions.SETTLE_PAIR +
-          V4PMActions.TAKE_PAIR;
-
-        // Build the params for modifyLiquidities
-        const unlockData = encodeAbiParameters(
-          [
-            { type: "bytes", name: "actions" },
-            { type: "bytes[]", name: "params" },
-          ],
-          [
-            `0x${actions}`,
-            [decreaseLiquidityParams, settlePairParams, takePairParams],
-          ]
-        );
+        const [currentSqrtPriceX96, currentTick] =
+          (await publicClient.readContract({
+            address: stateViewAddress,
+            abi: StateViewAbi,
+            functionName: "getSlot0",
+            args: [getPoolId(positionDetails.poolKey)],
+          })) as readonly [bigint, number, number, number];
 
         // Calculate deadline (30 minutes from now)
         const deadline = BigInt(Math.floor(Date.now() / 1000) + 30 * 60);
@@ -145,10 +123,17 @@ export const useRemoveLiquidityTransaction = ({
         const calls: Call[] = [
           {
             to: positionManagerAddress,
-            data: encodeFunctionData({
-              abi: PositionManagerAbi,
-              functionName: "modifyLiquidities",
-              args: [unlockData, deadline],
+            data: buildRemoveLiquidityCalldata({
+              tokenId: BigInt(positionDetails.tokenId),
+              liquidity: BigInt(positionDetails.liquidity),
+              poolKey: positionDetails.poolKey,
+              tickLower: positionDetails.positionInfo.tickLower,
+              tickUpper: positionDetails.positionInfo.tickUpper,
+              currentSqrtPriceX96,
+              currentTick,
+              deadline,
+              slippageBps: options.slippageBps,
+              hookData: options.hookData,
             }),
             value: 0n,
           },
@@ -197,24 +182,38 @@ export const useRemoveLiquidityTransaction = ({
         setLocalIsLoading(false);
       }
     },
-    [isChainSupported, chain?.id, sendCalls, toast, clearAllTimeouts]
+    [
+      isChainSupported,
+      chain?.id,
+      publicClient,
+      sendCalls,
+      toast,
+      clearAllTimeouts,
+    ]
   );
 
-  // Handle transaction status updates
-  if (sendCallsData?.id === activeSendCallsIdRef.current) {
+  // Handle transaction status updates outside render. Refs make the toast side
+  // effects idempotent under React Strict Mode.
+  useEffect(() => {
+    const callsId = sendCallsData?.id;
+    if (!callsId || callsId !== activeSendCallsIdRef.current) return;
+
     if (txHash && txHash !== currentTxHash) {
       setCurrentTxHash(txHash);
     }
 
-    if (isCallsSuccess && !isTransactionComplete) {
+    if (isCallsSuccess && handledSuccessIdRef.current !== callsId) {
+      handledSuccessIdRef.current = callsId;
       setIsTransactionComplete(true);
       setLocalIsLoading(false);
 
+      const explorerUrl = chain?.blockExplorers?.default?.url;
       toast({
         title: "Liquidity Removed Successfully!",
-        description: txHash
-          ? `Your position has been closed. View transaction: https://basescan.org/tx/${txHash}`
-          : "Your position has been closed.",
+        description:
+          txHash && explorerUrl
+            ? `Your position has been closed. View transaction: ${explorerUrl}/tx/${txHash}`
+            : "Your position has been closed.",
         status: "success",
         position: "bottom-right",
         duration: 8000,
@@ -222,7 +221,11 @@ export const useRemoveLiquidityTransaction = ({
       });
     }
 
-    if ((isCallsError || isSendCallsError) && localIsLoading) {
+    if (
+      (isCallsError || isSendCallsError) &&
+      handledErrorIdRef.current !== callsId
+    ) {
+      handledErrorIdRef.current = callsId;
       setLocalIsLoading(false);
       toast({
         title: "Transaction Failed",
@@ -233,7 +236,16 @@ export const useRemoveLiquidityTransaction = ({
         isClosable: true,
       });
     }
-  }
+  }, [
+    chain?.blockExplorers?.default?.url,
+    currentTxHash,
+    isCallsError,
+    isCallsSuccess,
+    isSendCallsError,
+    sendCallsData?.id,
+    toast,
+    txHash,
+  ]);
 
   const isLoading = localIsLoading || isPending || isWaitingForCalls;
 

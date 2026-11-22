@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { Address, parseUnits, formatUnits } from "viem";
-import { useAccount, useSimulateContract } from "wagmi";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Address, formatUnits } from "viem";
+import { useSimulateContract } from "wagmi";
 import { PoolWithHookData } from "@/lib/uniswap/types";
 import { getExactInputParams } from "@/lib/uniswap/quote";
-import { findRoutingPath } from "../lib/utils";
+import { findRoutingPath, parseTokenAmount } from "../lib/utils";
 import { quoterAbi, quoterAddress } from "../../lib/constants";
+import { SwapQuoteSnapshot, createQuoteRequestKey } from "../lib/quoteState";
 
 interface UseSwapQuoteParams {
   fromCurrency: Address;
@@ -13,17 +14,16 @@ interface UseSwapQuoteParams {
   pools: PoolWithHookData[];
   chainId?: number;
   enabled: boolean;
-  fromDecimals: number;
-  toDecimals: number;
+  fromDecimals?: number;
+  toDecimals?: number;
 }
 
 interface SwapQuoteResult {
+  quote: SwapQuoteSnapshot | null;
   quotedAmount: string | null;
-  amountOut: bigint | null;
   isQuoting: boolean;
   quoteError: string | null;
-  routingPath: PoolWithHookData[] | null;
-  fetchQuote: () => void;
+  fetchQuote: () => Promise<void>;
 }
 
 export const useSwapQuote = ({
@@ -36,122 +36,143 @@ export const useSwapQuote = ({
   fromDecimals,
   toDecimals,
 }: UseSwapQuoteParams): SwapQuoteResult => {
-  const { chain } = useAccount();
-  const [quotedAmount, setQuotedAmount] = useState<string | null>(null);
-  const [amountOut, setAmountOut] = useState<bigint | null>(null);
+  const [quote, setQuote] = useState<SwapQuoteSnapshot | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
-  const [routingPath, setRoutingPath] = useState<PoolWithHookData[] | null>(
-    null
-  );
+  const [isQuotePending, setIsQuotePending] = useState(false);
+  const activeRequestKeyRef = useRef<string | null>(null);
 
-  // Memoize routing path to prevent recalculation on every render
-  const path = useMemo(() => {
-    return enabled ? findRoutingPath(fromCurrency, toCurrency, pools) : null;
-  }, [enabled, fromCurrency, toCurrency, pools]);
-
-  // Memoize quote params to prevent recalculation on every render
-  const quoteParams = useMemo(() => {
-    return path && swapAmount && swapAmount !== "0"
-      ? getExactInputParams({
-          amountIn: parseUnits(swapAmount, fromDecimals),
-          tokenIn: fromCurrency,
-          pools: path,
-        })
-      : null;
-  }, [path, swapAmount, fromDecimals, fromCurrency]);
-
-  const result = useSimulateContract({
-    address: chain?.id ? quoterAddress[chain.id] : undefined,
-    abi: quoterAbi,
-    functionName: "quoteExactInput",
-    args: quoteParams
-      ? [
-          {
-            exactCurrency: quoteParams.exactCurrency,
-            path: quoteParams.path,
-            exactAmount: quoteParams.exactAmount,
-          },
-        ]
-      : undefined,
-    query: {
-      enabled: false, // Disable auto-fetching
-    },
-  });
-
-  const fetchQuote = useCallback(() => {
+  const requestState = useMemo(() => {
     if (
       !enabled ||
-      !chain ||
-      !quoterAddress[chain.id] ||
+      !chainId ||
+      !quoterAddress[chainId] ||
       !fromCurrency ||
       !toCurrency ||
       !swapAmount ||
       swapAmount === "0" ||
       fromCurrency === toCurrency ||
-      !path
+      fromDecimals === undefined ||
+      toDecimals === undefined
     ) {
-      setQuotedAmount(null);
-      setAmountOut(null);
-      setQuoteError(null);
-      setRoutingPath(null);
-      return;
+      return { request: null, error: null };
     }
 
-    setRoutingPath(path);
-    result.refetch();
-  }, [enabled, chain, fromCurrency, toCurrency, swapAmount, path]);
-
-  // Process the result when it changes
-  useEffect(() => {
-    if (result.data?.result) {
-      try {
-        const [amountOutResult] = result.data.result as readonly [
-          bigint,
-          bigint[],
-          number[],
-          bigint
-        ];
-        setAmountOut(amountOutResult);
-
-        // Format the output amount using correct decimals
-        const formattedAmount = formatUnits(amountOutResult, toDecimals);
-        setQuotedAmount(formattedAmount);
-        setQuoteError(null);
-      } catch (error) {
-        console.error("Error processing quote result:", error);
-        setQuoteError("Failed to process quote result");
-        setQuotedAmount(null);
-        setAmountOut(null);
+    try {
+      const routingPath = findRoutingPath(fromCurrency, toCurrency, pools);
+      if (!routingPath) {
+        return { request: null, error: "No connected routing path found." };
       }
-    } else if (result.error) {
-      console.error("Quote error:", result.error);
-      setQuoteError(
-        result.error instanceof Error
-          ? result.error.message
-          : "Failed to get quote"
-      );
-      setQuotedAmount(null);
-      setAmountOut(null);
-    } else if (!result.isLoading && !result.data && !result.error) {
-      // Reset state when no result
-      setQuotedAmount(null);
-      setAmountOut(null);
-      setQuoteError(null);
+      const quoteParams = getExactInputParams({
+        amountIn: parseTokenAmount(swapAmount, fromDecimals),
+        tokenIn: fromCurrency,
+        tokenOut: toCurrency,
+        pools: routingPath,
+      });
+      return {
+        request: {
+          requestKey: createQuoteRequestKey({
+            chainId,
+            tokenOut: toCurrency,
+            quoteParams,
+          }),
+          chainId,
+          tokenOut: toCurrency,
+          quoteParams,
+          routingPath,
+        },
+        error: null,
+      };
+    } catch (error) {
+      return {
+        request: null,
+        error: error instanceof Error ? error.message : "Invalid quote input.",
+      };
     }
-  }, [result.data, result.error, result.isLoading, toDecimals]);
+  }, [
+    chainId,
+    enabled,
+    fromCurrency,
+    fromDecimals,
+    pools,
+    swapAmount,
+    toCurrency,
+    toDecimals,
+  ]);
 
-  // Auto-fetch quote when dependencies change
+  const request = requestState.request;
+  const result = useSimulateContract({
+    address: chainId ? quoterAddress[chainId] : undefined,
+    abi: quoterAbi,
+    functionName: "quoteExactInput",
+    args: request
+      ? [
+          {
+            exactCurrency: request.quoteParams.exactCurrency,
+            path: request.quoteParams.path,
+            exactAmount: request.quoteParams.exactAmount,
+          },
+        ]
+      : undefined,
+    query: { enabled: false },
+  });
+
+  const fetchQuote = useCallback(async () => {
+    if (!request) return;
+    const requestKey = request.requestKey;
+
+    try {
+      const response = await result.refetch();
+      if (activeRequestKeyRef.current !== requestKey) return;
+      if (response.error) throw response.error;
+      if (!response.data?.result) throw new Error("Quoter returned no result.");
+
+      const [amountOut] = response.data.result as readonly [
+        bigint,
+        bigint[],
+        number[],
+        bigint,
+      ];
+      setQuote({ ...request, amountOut });
+      setQuoteError(null);
+    } catch (error) {
+      if (activeRequestKeyRef.current !== requestKey) return;
+      setQuote(null);
+      setQuoteError(
+        error instanceof Error ? error.message : "Failed to get quote."
+      );
+    } finally {
+      if (activeRequestKeyRef.current === requestKey) {
+        setIsQuotePending(false);
+      }
+    }
+  }, [request, result.refetch]);
+
   useEffect(() => {
-    const timeoutId = setTimeout(fetchQuote, 500); // Debounce quotes
+    const requestKey = request?.requestKey ?? null;
+    activeRequestKeyRef.current = requestKey;
+    setQuote(null);
+    setQuoteError(requestState.error);
+    setIsQuotePending(request !== null);
+
+    if (!request) return;
+    const timeoutId = setTimeout(() => void fetchQuote(), 500);
     return () => clearTimeout(timeoutId);
-  }, [fetchQuote]);
+  }, [fetchQuote, request, requestState.error]);
+
+  const currentQuote =
+    quote && request && quote.requestKey === request.requestKey ? quote : null;
 
   return {
-    quotedAmount,
-    amountOut,
-    isQuoting: result.isLoading,
+    quote: currentQuote,
+    quotedAmount:
+      currentQuote && toDecimals !== undefined
+        ? formatUnits(currentQuote.amountOut, toDecimals)
+        : null,
+    isQuoting:
+      isQuotePending ||
+      result.isFetching ||
+      (request !== null && !currentQuote),
     quoteError,
-    routingPath,
     fetchQuote,
   };
 };

@@ -5,7 +5,8 @@ export const metadata = getMetadata({
   title: "ENS | ETH.sh",
   description:
     "Tools for Ethereum Name Service (ENS) - Check IPFS content changes, ownership transfers and more over time.",
-  images: "https://eth.sh/og/ens-history.png",
+  canonical: "https://ens.eth.sh/",
+  images: "https://eth.sh/api/og/ens-history",
 });
 
 const ENSLayout = ({ children }: { children: React.ReactNode }) => {

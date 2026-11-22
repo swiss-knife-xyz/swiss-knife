@@ -4,16 +4,17 @@ const subdomains = {
     paths: ["decoder", "encoder", "viem-error-simulate", "cowswap"],
   },
   CONTRACT: {
-    base: "contract",
-    paths: [],
+    base: "explorer",
+    paths: ["verify"],
   },
   EXPLORER: {
-    base: "explorer",
-    paths: ["address", "tx"],
+    base: "explorers",
+    paths: [],
+    isRelativePath: true,
   },
   CONVERTER: {
     base: "converter",
-    paths: ["eth", "hexadecimal", "keccak256", "padding", "address-checksum"],
+    paths: ["eth", "gas-cost", "hexadecimal", "keccak256", "padding", "address-checksum"],
   },
   CONSTANTS: {
     base: "constants",
@@ -37,7 +38,7 @@ const subdomains = {
   },
   UNISWAP: {
     base: "uniswap",
-    paths: ["tick-to-price", "pool-price-to-target"],
+    paths: ["tick-to-price", "pool-price-to-target", "initialize-pool", "add-liquidity", "swap", "positions"],
   },
   DETERMINE_ADDRESS: {
     base: "determine-address",
@@ -53,7 +54,7 @@ const subdomains = {
   },
   WALLET: {
     base: "wallet",
-    paths: ["bridge", "ds-proxy", "signatures"],
+    paths: ["bridge", "ds-proxy", "coinbase-smart-wallet", "signatures"],
   },
   MIGRATE: {
     base: "migrate",
@@ -65,7 +66,7 @@ const subdomains = {
   },
   ENS: {
     base: "ens",
-    paths: ["history"],
+    paths: ["history", "ccip"],
   },
   "7702BEAT": {
     base: "7702beat",
@@ -103,6 +104,10 @@ const subdomains = {
     base: "orgs",
     paths: [],
     isRelativePath: true,
+  },
+  RIP: {
+    base: "rip",
+    paths: [],
   },
   PRIVACY: {
     base: "privacy",

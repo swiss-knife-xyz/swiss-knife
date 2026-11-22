@@ -60,7 +60,7 @@ export const subdomainToInfo = {
   },
   [subdomains.EXPLORER.base]: {
     emoji: "🔍",
-    label: "Explorer",
+    label: "Explorer Directory",
     description:
       "View any address/ENS or transaction across all EVM explorers instantly",
   },
@@ -154,5 +154,11 @@ export const subdomainToInfo = {
     label: "Privacy Protocols",
     description:
       "Compare Ethereum privacy protocols by chains, assets, fees, wait times, and privacy model",
+  },
+  [subdomains.RIP.base]: {
+    emoji: "🪦",
+    label: "R.I.P.",
+    description:
+      "Web3 projects that shut down, with timelines and original announcements",
   },
 };

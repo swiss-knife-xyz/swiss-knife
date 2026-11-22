@@ -205,7 +205,7 @@ export default function SolidityIDE() {
         flexShrink={0}
       >
         <VStack spacing={6} align="stretch">
-          <Heading
+          <Heading as="h1"
             size="md"
             color="white"
             display="flex"

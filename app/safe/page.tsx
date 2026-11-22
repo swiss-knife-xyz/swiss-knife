@@ -1,18 +1,8 @@
-"use client";
+import { headers } from "next/headers";
+import { permanentRedirect } from "next/navigation";
+import { getToolEntryRedirect } from "@/lib/seo";
 
-import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
-import { useEffect } from "react";
-import { getPath } from "@/utils";
-import subdomains from "@/subdomains";
-
-const Safe = () => {
-  const router = useTopLoaderRouter();
-
-  useEffect(() => {
-    router.push(`${getPath(subdomains.SAFE.base)}eip-712-hash`);
-  }, []);
-
-  return <></>;
-};
-
-export default Safe;
+export default async function ToolEntry() {
+  const host = (await headers()).get("host");
+  permanentRedirect(getToolEntryRedirect("safe", host));
+}

@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import { Suspense } from "react";
 import { Box, Heading, Text, VStack, Link, HStack, Badge, Divider, Flex, Spacer } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
@@ -14,11 +16,11 @@ import { SiweValidator } from "./components";
 const SiwePage = () => {
   return (
     <Layout>
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<ToolLoading title="SIWE Message Validator" description="Validate and debug Sign in with Ethereum messages for EIP-4361 validity." />}>
         <Box w="90vw" maxW="1400px" px={{ base: 4, md: 8 }} py={8}>
           <VStack spacing={3} mb={6}>
             <HStack spacing={3}>
-              <Heading textAlign="center" size="lg">
+              <Heading as="h1" textAlign="center" size="lg">
                 SIWE Message Validator
               </Heading>
               <Badge colorScheme="blue" fontSize="xs" px={2} py={1}>

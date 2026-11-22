@@ -1352,12 +1352,6 @@ export default function WalletBridgePage() {
             ".chakra-react-select__menu-list": {
               zIndex: "9999 !important",
             },
-            ".chakra-modal__content": {
-              overflow: "visible !important",
-            },
-            ".chakra-modal__body": {
-              overflow: "visible !important",
-            },
           }}
         />
 
@@ -1415,7 +1409,7 @@ export default function WalletBridgePage() {
             direction={{ base: "column", lg: "row" }}
             gap={{ base: 4, lg: 0 }}
           >
-            <Heading size={{ base: "xl", md: "xl" }}>Wallet Bridge</Heading>
+            <Heading as="h1" size={{ base: "xl", md: "xl" }}>Wallet Bridge</Heading>
             {isConnected && <ConnectButton />}
           </Flex>
 

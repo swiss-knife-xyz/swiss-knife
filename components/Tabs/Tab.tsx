@@ -17,8 +17,9 @@ export default function Tab({
 
   return (
     <HStack
-      px={4}
+      px={{ base: 2, md: 4 }}
       py={2}
+      minW={0}
       fontWeight="medium"
       fontSize="sm"
       color={isSelected ? "white" : "whiteAlpha.700"}
@@ -33,7 +34,7 @@ export default function Tab({
       onClick={() => setSelectedTabIndex(tabIndex)}
       transition="all 0.2s"
     >
-      <Box>{children}</Box>
+      <Box overflowWrap="anywhere">{children}</Box>
     </HStack>
   );
 }

@@ -707,7 +707,7 @@ export default function GweiMigrationPage() {
           mb={6}
         >
           <Box minW={0}>
-            <Heading
+            <Heading as="h1"
               color="text.primary"
               fontSize={{ base: "2xl", md: "4xl", xl: "5xl" }}
               lineHeight="0.98"

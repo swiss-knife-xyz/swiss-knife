@@ -14,11 +14,13 @@ export const ConnectButton = ({
   hideAccount,
   hideChain,
   transparentWrongNetwork,
+  embedded,
 }: {
   expectedChainId?: number;
   hideAccount?: boolean;
   hideChain?: boolean;
   transparentWrongNetwork?: boolean;
+  embedded?: boolean;
 }) => {
   const { switchChain } = useSwitchChain();
   const isMobile = useBreakpointValue({ base: true, md: false });
@@ -53,7 +55,7 @@ export const ConnectButton = ({
           <Box hidden={!ready}>
             {(() => {
               if (!connected) {
-                return <ConnectWalletBtn onClick={openConnectModal} />;
+                return <ConnectWalletBtn onClick={openConnectModal} embedded={embedded} />;
               }
 
               return (

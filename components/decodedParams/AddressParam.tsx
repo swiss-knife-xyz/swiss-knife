@@ -1,6 +1,8 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { ExampleSnapshotContext } from "./ExampleSnapshotContext";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Button,
+  type ButtonProps,
   HStack,
   Box,
   Text,
@@ -10,12 +12,16 @@ import {
   InputRightElement,
   InputLeftElement,
   Tag,
-  Link,
   Skeleton,
   IconButton,
   Tooltip,
 } from "@chakra-ui/react";
-import { resolveAddressToName, getNameAvatar, getPath, fetchContractAbi } from "@/utils";
+import {
+  resolveAddressToName,
+  getNameAvatar,
+  getPath,
+  fetchContractAbi,
+} from "@/utils";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import subdomains from "@/subdomains";
@@ -27,24 +33,42 @@ import { erc20Abi } from "viem";
 import { useAddressBook } from "@/hooks/useAddressBook";
 import { AddressLabelModal } from "@/components/AddressBook";
 import { getPublicClient } from "@/lib/publicClient";
+import { ContractAddressLink } from "@/components/ContractTabs";
 
 interface Params {
   address: any;
   showLink?: boolean;
   chainId?: number;
   name?: string;
+  explorerButtonProps?: Pick<ButtonProps, "borderRadius">;
+  modeButtonProps?: Pick<ButtonProps, "borderRadius">;
 }
 
 const skeletonAddress = "0x1111222233334444000000000000000000000000";
 
 type DisplayMode = "label" | "ens" | "address";
 
-export const AddressParam = ({
+// Metadata and display choices belong to one address/network/source. Remount
+// before rendering a different identity, rather than clearing old data in an effect.
+export const AddressParam = (props: Params) => {
+  const example = useContext(ExampleSnapshotContext);
+  return (
+    <AddressParamContent
+      key={JSON.stringify([props.address, props.chainId, !!example])}
+      {...props}
+    />
+  );
+};
+
+const AddressParamContent = ({
   address: _address,
   showLink,
   chainId,
   name,
+  explorerButtonProps,
+  modeButtonProps,
 }: Params) => {
+  const example = useContext(ExampleSnapshotContext);
   const showSkeleton = _address === null || _address === undefined;
   const address = !showSkeleton ? _address : skeletonAddress;
 
@@ -52,7 +76,19 @@ export const AddressParam = ({
   const [ensAvatar, setEnsAvatar] = useState("");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("address");
 
-  const [addressLabels, setAddressLabels] = useState<string[]>([]);
+  const [labelResult, setLabelResult] = useState<{
+    address: string;
+    chainId?: number;
+    labels: string[];
+  }>();
+  // Never display the previous address/network's metadata, even before effects run.
+  const addressLabels = example
+    ? (example.addresses[`${chainId}:${address.toLowerCase()}`]?.labels ?? [])
+    : labelResult &&
+        labelResult.address === address &&
+        labelResult.chainId === chainId
+      ? labelResult.labels
+      : [];
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Get label from global address book
@@ -81,6 +117,16 @@ export const AddressParam = ({
 
   const value = getDisplayValue();
   const isShowingLabel = displayMode === "label" && addressBookLabel;
+  const showAddToAddressBook = !addressBookLabel && isAddressBookReady;
+  const hasLeadingIcon = isShowingLabel || (displayMode === "ens" && ensAvatar);
+  const inputLeftPadding =
+    availableModes.length > 1
+      ? hasLeadingIcon
+        ? 6.5
+        : 5
+      : hasLeadingIcon
+        ? 2.5
+        : 1;
 
   // Cycle through available modes
   const cycleDisplayMode = () => {
@@ -104,82 +150,84 @@ export const AddressParam = ({
     }
   };
 
-  const fetchSetAddressLabels = useCallback(async () => {
-    setAddressLabels([]);
+  useEffect(() => {
+    if (example || address === skeletonAddress) return;
+    let cancelled = false;
 
-    try {
-      if (!chainId) throw new Error("Chain ID not provided");
+    const fetchLabels = async (): Promise<string[]> => {
+      try {
+        if (!chainId) throw new Error("Chain ID not provided");
+        const client = getPublicClient(chainId);
+        await client.getBytecode({ address: address as Address });
+        if (cancelled) return [];
 
-      const client = getPublicClient(chainId);
+        // Reuse the existing token symbol / verified contract name lookup.
+        try {
+          const symbol = await client.readContract({
+            address: address as Address,
+            abi: erc20Abi,
+            functionName: "symbol",
+          });
+          return symbol ? [symbol] : [];
+        } catch {
+          if (cancelled) return [];
+          const fetchedAbi = await fetchContractAbi({ address, chainId });
+          return fetchedAbi?.name ? [fetchedAbi.name] : [];
+        }
+      } catch {
+        return cancelled ? [] : fetchAddressLabels(address, chainId);
+      }
+    };
 
-      // check if the address is a contract
-      const res = await client.getBytecode({
-        address: address as Address,
+    fetchLabels()
+      .then((labels) => {
+        if (!cancelled) setLabelResult({ address, chainId, labels });
+      })
+      .catch(() => {
+        if (!cancelled) setLabelResult({ address, chainId, labels: [] });
       });
-
-      // try fetching the contract symbol() if it's a token
-      try {
-        const symbol = await client.readContract({
-          address: address as Address,
-          abi: erc20Abi,
-          functionName: "symbol",
-        });
-        setAddressLabels([symbol]);
-      } catch {
-        // else try fetching the contract name if it's verified
-        const fetchedAbi = await fetchContractAbi({ address, chainId });
-        if (fetchedAbi) {
-          setAddressLabels([fetchedAbi.name]);
-        }
-      }
-    } catch {
-      try {
-        const labels = await fetchAddressLabels(address, chainId);
-        if (labels.length > 0) {
-          setAddressLabels(labels);
-        }
-      } catch {
-        setAddressLabels([]);
-      }
-    }
-  }, [address, chainId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [address, chainId, example]);
 
   useEffect(() => {
-    if (address !== skeletonAddress) {
-      resolveAddressToName(address).then((res) => {
-        if (res) {
-          setEnsName(res);
-          // Default to showing ENS if no address book label
-          if (!addressBookLabel) {
-            setDisplayMode("ens");
+    let cancelled = false;
+    if (!example && address !== skeletonAddress) {
+      resolveAddressToName(address)
+        .then((res) => {
+          if (!cancelled && res) {
+            setEnsName(res);
           }
-        }
-      });
+        })
+        .catch(() => {});
     }
-  }, [address]);
+    return () => {
+      cancelled = true;
+    };
+  }, [address, example]);
 
-  // Set display mode to label when address book label becomes available
+  // Resolve the preference from current metadata, not the address-book value
+  // captured when an asynchronous ENS lookup started.
   useEffect(() => {
-    if (addressBookLabel) {
-      setDisplayMode("label");
-    }
-  }, [addressBookLabel]);
-
-  useEffect(() => {
-    if (address !== skeletonAddress) {
-      fetchSetAddressLabels();
-    }
-  }, [address, chainId, fetchSetAddressLabels]);
+    setDisplayMode(addressBookLabel ? "label" : ensName ? "ens" : "address");
+  }, [addressBookLabel, ensName]);
 
   useEffect(() => {
-    if (ensName) {
-      getNameAvatar(ensName).then((res) => {
-        if (res) {
-          setEnsAvatar(res);
-        }
-      });
+    let cancelled = false;
+    if (!example && ensName) {
+      getNameAvatar(ensName)
+        .then((res) => {
+          if (!cancelled && res) {
+            setEnsAvatar(res);
+          }
+        })
+        .catch(() => {});
     }
-  }, [ensName]);
+    return () => {
+      cancelled = true;
+    };
+  }, [ensName, example]);
 
   useEffect(() => {
     if (!showSkeleton) {
@@ -188,7 +236,12 @@ export const AddressParam = ({
   }, [showSkeleton]);
 
   // Get the value to copy (always the address for copying)
-  const copyValue = displayMode === "address" ? address : (displayMode === "ens" ? ensName : address);
+  const copyValue =
+    displayMode === "address"
+      ? address
+      : displayMode === "ens"
+        ? ensName
+        : address;
 
   return showSkeleton ? (
     <Box>
@@ -248,28 +301,11 @@ export const AddressParam = ({
           </HStack>
         )}
         <HStack>
-          {/* Save to address book button - on left side when not saved */}
-          {!addressBookLabel && isAddressBookReady && (
-            <Tooltip label="Save to Address Book" placement="top">
-              <IconButton
-                aria-label="Save to address book"
-                icon={
-                  <HStack spacing={0.5}>
-                    <BookOpen size={12} />
-                    <AddIcon boxSize={2} />
-                  </HStack>
-                }
-                size="xs"
-                variant="ghost"
-                color="whiteAlpha.400"
-                _hover={{ color: "white", bg: "whiteAlpha.200" }}
-                onClick={() => setIsLabelModalOpen(true)}
-              />
-            </Tooltip>
-          )}
-          <InputGroup>
+          <InputGroup minW={0}>
             {/* Toggle button + icon inside input */}
-            {(availableModes.length > 1 || isShowingLabel || (displayMode === "ens" && ensAvatar)) ? (
+            {availableModes.length > 1 ||
+            isShowingLabel ||
+            (displayMode === "ens" && ensAvatar) ? (
               <InputLeftElement width="auto" h="full" pl={2}>
                 <HStack spacing={2}>
                   {availableModes.length > 1 && (
@@ -278,13 +314,12 @@ export const AddressParam = ({
                       size="xs"
                       px="2"
                       h="5"
+                      {...modeButtonProps}
                     >
                       {getToggleButtonText()}
                     </Button>
                   )}
-                  {isShowingLabel && (
-                    <BookOpen size={16} color="#9F7AEA" />
-                  )}
+                  {isShowingLabel && <BookOpen size={16} color="#9F7AEA" />}
                   {displayMode === "ens" && ensAvatar && (
                     <Avatar src={ensAvatar} w={"1.2rem"} h={"1.2rem"} />
                   )}
@@ -298,20 +333,35 @@ export const AddressParam = ({
               border="1px solid"
               borderColor={isShowingLabel ? "purple.500" : "whiteAlpha.200"}
               borderRadius="lg"
-              _hover={{ borderColor: isShowingLabel ? "purple.400" : "whiteAlpha.400" }}
+              _hover={{
+                borderColor: isShowingLabel ? "purple.400" : "whiteAlpha.400",
+              }}
               color={isShowingLabel ? "purple.100" : "white"}
-              pl={
-                availableModes.length > 1 && (isShowingLabel || (displayMode === "ens" && ensAvatar))
-                  ? "6.5rem"
-                  : availableModes.length > 1
-                  ? "5rem"
-                  : (isShowingLabel || (displayMode === "ens" && ensAvatar))
-                  ? 10
-                  : 4
-              }
+              pl={`${inputLeftPadding}rem`}
+              pr={showAddToAddressBook ? 16 : 10}
             />
-            <InputRightElement pr={1}>
-              <CopyToClipboard textToCopy={copyValue ?? ""} />
+            <InputRightElement width="auto" h="full" pr={1}>
+              <HStack spacing={1}>
+                {showAddToAddressBook && (
+                  <Tooltip label="Save to Address Book" placement="top">
+                    <IconButton
+                      aria-label="Save to address book"
+                      icon={
+                        <HStack spacing={0.5}>
+                          <BookOpen size={12} />
+                          <AddIcon boxSize={2} />
+                        </HStack>
+                      }
+                      size="xs"
+                      variant="ghost"
+                      color="whiteAlpha.400"
+                      _hover={{ color: "white", bg: "whiteAlpha.200" }}
+                      onClick={() => setIsLabelModalOpen(true)}
+                    />
+                  </Tooltip>
+                )}
+                <CopyToClipboard textToCopy={copyValue ?? ""} />
+              </HStack>
             </InputRightElement>
           </InputGroup>
           {/* Edit address book button - on right side when saved */}
@@ -329,20 +379,22 @@ export const AddressParam = ({
             </Tooltip>
           )}
           {showLink && (
-            <Link
-              href={`${getPath(
-                subdomains.EXPLORER.base,
-                subdomains.EXPLORER.isRelativePath
-              )}address/${address}${!!chainId ? "?chainId=" + chainId : ""}`}
+            <Button
+              as={ContractAddressLink}
+              displayName={
+                addressBookLabel || addressLabels[0] || ensName || undefined
+              }
+              address={address}
+              chainId={chainId}
+              href={`${getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}address/${address}${chainId ? "?chainId=" + chainId : ""}`}
               target="_blank"
-              _hover={{ textDecoration: "none" }}
+              rel="noopener noreferrer"
+              aria-label={`Open address ${address}`}
+              size="xs"
+              {...explorerButtonProps}
             >
-              <Button size={"xs"}>
-                <HStack>
-                  <ExternalLinkIcon />
-                </HStack>
-              </Button>
-            </Link>
+              <ExternalLinkIcon />
+            </Button>
           )}
         </HStack>
 

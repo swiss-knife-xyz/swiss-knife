@@ -1,5 +1,25 @@
-import { Address, zeroAddress } from "viem";
+import {
+  Address,
+  formatUnits,
+  getAddress,
+  isAddress,
+  isAddressEqual,
+  parseUnits,
+  zeroAddress,
+} from "viem";
 import { PoolWithHookData } from "@/lib/uniswap/types";
+import { assertValidRoutePool } from "@/lib/uniswap/quote";
+import {
+  Permit2Address,
+  UniversalRouterAddress,
+  quoterAddress,
+} from "../../lib/constants";
+import { parseSlippageBps } from "../../lib/validation";
+
+export const DEFAULT_NATIVE_GAS_RESERVE_WEI = 1_000_000_000_000_000n;
+
+const addressesEqual = (left: Address, right: Address) =>
+  isAddress(left) && isAddress(right) && isAddressEqual(left, right);
 
 /**
  * Validates if a routing path exists between two currencies using the provided pools
@@ -9,7 +29,11 @@ export const findRoutingPath = (
   toCurrency: Address,
   pools: PoolWithHookData[]
 ): PoolWithHookData[] | null => {
-  if (!fromCurrency || !toCurrency || fromCurrency === toCurrency) {
+  if (
+    !isAddress(fromCurrency) ||
+    !isAddress(toCurrency) ||
+    addressesEqual(fromCurrency, toCurrency)
+  ) {
     return null;
   }
 
@@ -19,8 +43,10 @@ export const findRoutingPath = (
   // Direct route check
   const directPool = pools.find(
     (pool) =>
-      (pool.currency0 === fromCurrency && pool.currency1 === toCurrency) ||
-      (pool.currency0 === toCurrency && pool.currency1 === fromCurrency)
+      (addressesEqual(pool.currency0, fromCurrency) &&
+        addressesEqual(pool.currency1, toCurrency)) ||
+      (addressesEqual(pool.currency0, toCurrency) &&
+        addressesEqual(pool.currency1, fromCurrency))
   );
 
   if (directPool) {
@@ -32,9 +58,9 @@ export const findRoutingPath = (
     let intermediate: Address | null = null;
 
     // Check if fromCurrency connects to this pool
-    if (intermediatePool.currency0 === fromCurrency) {
+    if (addressesEqual(intermediatePool.currency0, fromCurrency)) {
       intermediate = intermediatePool.currency1;
-    } else if (intermediatePool.currency1 === fromCurrency) {
+    } else if (addressesEqual(intermediatePool.currency1, fromCurrency)) {
       intermediate = intermediatePool.currency0;
     }
 
@@ -43,8 +69,10 @@ export const findRoutingPath = (
       const secondPool = pools.find(
         (pool) =>
           pool !== intermediatePool &&
-          ((pool.currency0 === intermediate && pool.currency1 === toCurrency) ||
-            (pool.currency0 === toCurrency && pool.currency1 === intermediate))
+          ((addressesEqual(pool.currency0, intermediate!) &&
+            addressesEqual(pool.currency1, toCurrency)) ||
+            (addressesEqual(pool.currency0, toCurrency) &&
+              addressesEqual(pool.currency1, intermediate!)))
       );
 
       if (secondPool) {
@@ -72,17 +100,19 @@ export const getAvailableCurrencies = (
   // Count how many pools each currency appears in and collect all currencies
   pools.forEach((pool) => {
     if (pool.currency0 && isValidCurrency(pool.currency0)) {
-      allCurrencies.add(pool.currency0);
+      const currency0 = getAddress(pool.currency0);
+      allCurrencies.add(currency0);
       currencyConnections.set(
-        pool.currency0,
-        (currencyConnections.get(pool.currency0) || 0) + 1
+        currency0,
+        (currencyConnections.get(currency0) || 0) + 1
       );
     }
     if (pool.currency1 && isValidCurrency(pool.currency1)) {
-      allCurrencies.add(pool.currency1);
+      const currency1 = getAddress(pool.currency1);
+      allCurrencies.add(currency1);
       currencyConnections.set(
-        pool.currency1,
-        (currencyConnections.get(pool.currency1) || 0) + 1
+        currency1,
+        (currencyConnections.get(currency1) || 0) + 1
       );
     }
   });
@@ -106,26 +136,19 @@ export const getAvailableCurrencies = (
  * Validates if a currency address is valid
  */
 export const isValidCurrency = (currency: string): boolean => {
-  if (!currency) return false;
-  if (currency === zeroAddress) return true; // ETH
-
-  // Basic address validation
-  return /^0x[a-fA-F0-9]{40}$/.test(currency);
+  return isAddress(currency);
 };
 
 /**
  * Validates if a pool configuration is complete and valid
  */
 export const isValidPool = (pool: PoolWithHookData): boolean => {
-  return (
-    isValidCurrency(pool.currency0) &&
-    isValidCurrency(pool.currency1) &&
-    pool.currency0 !== pool.currency1 &&
-    pool.fee >= 0 &&
-    pool.tickSpacing > 0 &&
-    isValidCurrency(pool.hooks) &&
-    pool.hookData !== undefined
-  );
+  try {
+    assertValidRoutePool(pool);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 /**
@@ -160,9 +183,7 @@ export const isValidNumericInput = (value: string): boolean => {
  * Formats slippage percentage to basis points
  */
 export const slippageToBasiPoints = (slippagePercent: string): number => {
-  const percent = parseFloat(slippagePercent);
-  if (isNaN(percent)) return 50; // Default 0.5%
-  return Math.round(percent * 100); // Convert percentage to basis points
+  return parseSlippageBps(slippagePercent);
 };
 
 /**
@@ -173,10 +194,10 @@ export const canPoolsConnect = (
   pool2: PoolWithHookData
 ): boolean => {
   return (
-    pool1.currency1 === pool2.currency0 ||
-    pool1.currency1 === pool2.currency1 ||
-    pool1.currency0 === pool2.currency0 ||
-    pool1.currency0 === pool2.currency1
+    addressesEqual(pool1.currency1, pool2.currency0) ||
+    addressesEqual(pool1.currency1, pool2.currency1) ||
+    addressesEqual(pool1.currency0, pool2.currency0) ||
+    addressesEqual(pool1.currency0, pool2.currency1)
   );
 };
 
@@ -188,9 +209,10 @@ export const formatTokenBalance = (
   decimals?: number,
   symbol?: string
 ): string => {
-  if (!balance || !decimals) return "0";
+  if (balance === undefined || decimals === undefined) return "0";
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 255) return "0";
 
-  const divisor = BigInt(10 ** decimals);
+  const divisor = 10n ** BigInt(decimals);
   const wholePart = balance / divisor;
   const fractionalPart = balance % divisor;
 
@@ -225,3 +247,47 @@ export const formatTokenBalance = (
     })} ${symbol || ""}`.trim();
   }
 };
+
+export const parseTokenAmount = (value: string, decimals: number): bigint => {
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 255) {
+    throw new RangeError("Token decimals must be an integer from 0 to 255.");
+  }
+  const match = /^(?:\d+)(?:\.(\d*))?$/.exec(value.trim());
+  if (!match) throw new RangeError("Token amount is not a valid decimal.");
+  if ((match[1]?.length ?? 0) > decimals) {
+    throw new RangeError("Token amount has too many decimal places.");
+  }
+  return parseUnits(value.trim(), decimals);
+};
+
+export const getSpendableNativeBalance = (
+  balance: bigint,
+  gasReserve = DEFAULT_NATIVE_GAS_RESERVE_WEI
+): bigint => {
+  if (balance <= 0n || gasReserve < 0n) return 0n;
+  return balance > gasReserve ? balance - gasReserve : 0n;
+};
+
+export const formatSpendableBalance = (
+  balance: bigint,
+  decimals: number,
+  isNative: boolean
+) =>
+  formatUnits(
+    isNative ? getSpendableNativeBalance(balance) : balance,
+    decimals
+  );
+
+export const getSwapChainConfig = (chainId: number) => {
+  const quoter = quoterAddress[chainId];
+  const universalRouter = UniversalRouterAddress[chainId];
+  const permit2 = Permit2Address[chainId];
+  return quoter && universalRouter && permit2
+    ? { quoter, universalRouter, permit2 }
+    : null;
+};
+
+export const getSupportedSwapChainIds = () =>
+  Object.keys(quoterAddress)
+    .map(Number)
+    .filter((chainId) => getSwapChainConfig(chainId) !== null);

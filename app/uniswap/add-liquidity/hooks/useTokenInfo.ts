@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Address, zeroAddress, erc20Abi } from "viem";
+import { Address, zeroAddress, erc20Abi, isAddress } from "viem";
 import { useReadContracts, useBalance } from "wagmi";
 
 interface TokenInfoResult {
@@ -18,6 +18,12 @@ export const useTokenInfo = (
   currency0EthBalance?: bigint,
   currency1EthBalance?: bigint
 ): TokenInfoResult => {
+  const currency0IsToken =
+    !!currency0 && currency0 !== zeroAddress && isAddress(currency0);
+  const currency1IsToken =
+    !!currency1 && currency1 !== zeroAddress && isAddress(currency1);
+  const currency0IsValid = currency0 === zeroAddress || currency0IsToken;
+  const currency1IsValid = currency1 === zeroAddress || currency1IsToken;
   const [currency0Symbol, setCurrency0Symbol] = useState<string | undefined>();
   const [currency0Decimals, setCurrency0Decimals] = useState<
     number | undefined
@@ -35,7 +41,7 @@ export const useTokenInfo = (
 
   const { data: currencyInfo } = useReadContracts({
     contracts: [
-      ...(currency0 && currency0 !== zeroAddress
+      ...(currency0IsToken
         ? [
             {
               address: currency0 as Address,
@@ -55,7 +61,7 @@ export const useTokenInfo = (
             },
           ]
         : []),
-      ...(currency1 && currency1 !== zeroAddress
+      ...(currency1IsToken
         ? [
             {
               address: currency1 as Address,
@@ -77,12 +83,7 @@ export const useTokenInfo = (
         : []),
     ],
     query: {
-      enabled:
-        !!address &&
-        !!currency0 &&
-        currency0.length > 0 &&
-        !!currency1 &&
-        currency1.length > 0,
+      enabled: !!address && currency0IsValid && currency1IsValid,
     },
   });
 
@@ -92,7 +93,7 @@ export const useTokenInfo = (
       setCurrency0Symbol("ETH");
       setCurrency0Decimals(18);
       setCurrency0Balance(currency0EthBalance);
-    } else if (currencyInfo && currency0 && currency0.length > 0) {
+    } else if (currencyInfo && currency0IsToken) {
       const currency0InfoIndex = 0;
       setCurrency0Symbol(currencyInfo[currency0InfoIndex]?.result as string);
       setCurrency0Decimals(
@@ -101,6 +102,10 @@ export const useTokenInfo = (
       setCurrency0Balance(
         currencyInfo[currency0InfoIndex + 2]?.result as bigint
       );
+    } else {
+      setCurrency0Symbol(undefined);
+      setCurrency0Decimals(undefined);
+      setCurrency0Balance(undefined);
     }
 
     // Handle currency1
@@ -108,8 +113,8 @@ export const useTokenInfo = (
       setCurrency1Symbol("ETH");
       setCurrency1Decimals(18);
       setCurrency1Balance(currency1EthBalance);
-    } else if (currencyInfo && currency1 && currency1.length > 0) {
-      const currency1InfoIndex = currency0 && currency0 !== zeroAddress ? 3 : 0;
+    } else if (currencyInfo && currency1IsToken) {
+      const currency1InfoIndex = currency0IsToken ? 3 : 0;
       if (currencyInfo.length > currency1InfoIndex) {
         setCurrency1Symbol(currencyInfo[currency1InfoIndex]?.result as string);
         setCurrency1Decimals(
@@ -119,6 +124,10 @@ export const useTokenInfo = (
           currencyInfo[currency1InfoIndex + 2]?.result as bigint
         );
       }
+    } else {
+      setCurrency1Symbol(undefined);
+      setCurrency1Decimals(undefined);
+      setCurrency1Balance(undefined);
     }
   }, [
     currencyInfo,
@@ -127,6 +136,8 @@ export const useTokenInfo = (
     currency0EthBalance,
     currency1EthBalance,
     address,
+    currency0IsToken,
+    currency1IsToken,
   ]);
 
   return {

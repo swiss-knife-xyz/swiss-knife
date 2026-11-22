@@ -34,6 +34,7 @@ interface IntInputProps extends InputProps {
   isArrayChild?: boolean;
   setFunctionIsDisabled: (value: boolean) => void;
   defaultEthFormatIndex?: number;
+  onValidationChange?: (isInvalid: boolean) => void;
 }
 
 const futureTimeOptions = ["minutes", "hours", "days"] as const;
@@ -53,6 +54,7 @@ export const IntInput = ({
   isArrayChild,
   setFunctionIsDisabled,
   defaultEthFormatIndex,
+  onValidationChange,
   ...props
 }: IntInputProps) => {
   // Refs
@@ -73,6 +75,10 @@ export const IntInput = ({
   const delayedAnimationDuration = 10;
   const [isError, setIsError] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    onValidationChange?.(isError || isNaN(Number(displayValue)));
+  }, [isError, displayValue, onValidationChange]);
 
   // time state
   const [showLocalTime, setShowLocalTime] = useState(false);
@@ -298,7 +304,7 @@ export const IntInput = ({
 
   // Render helpers
   const renderInputField = () => (
-    <Box position="relative" width="100%">
+    <Box position="relative" width="100%" minW={0} flex={1}>
       <motion.div
         initial={false}
         animate={{
@@ -392,7 +398,7 @@ export const IntInput = ({
 
   const renderUnixTimeControls = () => (
     <Box>
-      <HStack mt="1" ml="4" fontSize="sm" color="whiteAlpha.800">
+      <HStack flexWrap="wrap" mt="1" ml={{ base: 0, md: 4 }} fontSize="sm" color="whiteAlpha.800">
         <Box>
           {
             (showLocalTime
@@ -431,7 +437,7 @@ export const IntInput = ({
   );
 
   const renderCurrentTimeTab = () => (
-    <HStack mt="8">
+    <HStack mt={4} flexWrap="wrap" gap={2}>
       <Button
         size="sm"
         onClick={() => {
@@ -452,7 +458,7 @@ export const IntInput = ({
   );
 
   const renderFutureTimeTab = () => (
-    <HStack mt="3">
+    <HStack mt="3" flexWrap="wrap" gap={2}>
       <Button
         size="sm"
         onClick={() => {
@@ -508,11 +514,13 @@ export const IntInput = ({
         : {})}
     >
       <InputInfo input={input} />
-      <HStack>
+      <HStack flexDirection={{ base: "column", sm: "row" }} align="stretch" spacing={2}>
         {renderInputField()}
         <DarkSelect
           boxProps={{
-            minW: "9rem",
+            minW: 0,
+            w: { base: "full", sm: "9rem" },
+            flexShrink: 0,
             fontSize: "small",
           }}
           selectedOption={selectedEthFormatOption}

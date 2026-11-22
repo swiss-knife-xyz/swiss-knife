@@ -7,6 +7,7 @@ import {
   UniV4PositionManagerAddress,
 } from "../../lib/constants";
 import { Chain } from "viem/chains";
+import { Permit2AllowanceState } from "../lib/approvals";
 
 // Define the type for publicClient based on usePublicClient hook
 type PublicClientType = ReturnType<typeof usePublicClient>;
@@ -14,8 +15,8 @@ type PublicClientType = ReturnType<typeof usePublicClient>;
 interface ApprovalStatesResult {
   currency0Approval?: bigint;
   currency1Approval?: bigint;
-  currency0Permit2Allowance?: bigint;
-  currency1Permit2Allowance?: bigint;
+  currency0Permit2Allowance?: Permit2AllowanceState;
+  currency1Permit2Allowance?: Permit2AllowanceState;
   isCheckingApprovals: boolean;
   checkApprovals: () => Promise<void>;
 }
@@ -37,10 +38,10 @@ export const useApprovalStates = (
     bigint | undefined
   >();
   const [currency0Permit2Allowance, setCurrency0Permit2Allowance] = useState<
-    bigint | undefined
+    Permit2AllowanceState | undefined
   >();
   const [currency1Permit2Allowance, setCurrency1Permit2Allowance] = useState<
-    bigint | undefined
+    Permit2AllowanceState | undefined
   >();
   const [isCheckingApprovals, setIsCheckingApprovals] =
     useState<boolean>(false);
@@ -123,16 +124,24 @@ export const useApprovalStates = (
       }
 
       if (currency0 && currency0 !== zeroAddress) {
-        const [amount] = results[resultIndex] as [bigint, number, number];
-        setCurrency0Permit2Allowance(amount);
+        const [amount, expiration, nonce] = results[resultIndex] as [
+          bigint,
+          number,
+          number,
+        ];
+        setCurrency0Permit2Allowance({ amount, expiration, nonce });
         resultIndex++;
       } else {
         setCurrency0Permit2Allowance(undefined);
       }
 
       if (currency1 && currency1 !== zeroAddress) {
-        const [amount] = results[resultIndex] as [bigint, number, number];
-        setCurrency1Permit2Allowance(amount);
+        const [amount, expiration, nonce] = results[resultIndex] as [
+          bigint,
+          number,
+          number,
+        ];
+        setCurrency1Permit2Allowance({ amount, expiration, nonce });
       } else {
         setCurrency1Permit2Allowance(undefined);
       }

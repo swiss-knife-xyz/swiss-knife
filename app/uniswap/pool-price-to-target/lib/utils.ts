@@ -1,22 +1,25 @@
-import { concat, pad, toHex, keccak256 } from "viem";
 import { PoolKey } from "../../lib/constants";
+import {
+  getPoolId as getCanonicalPoolId,
+  priceToSqrtPriceX96 as priceToSqrtPriceX96Exact,
+  sqrtPriceX96ToPrice as sqrtPriceX96ToPriceExact,
+  tryGetPoolId as tryGetCanonicalPoolId,
+} from "../../add-liquidity/lib/utils";
+import { getTargetSwapDirection } from "./search";
 
 export const getPoolId = (poolKey: PoolKey) => {
-  // Pack the data in the same order as Solidity struct
-  const packed = concat([
-    pad(poolKey.currency0, { size: 32 }), // address padded to 32 bytes
-    pad(poolKey.currency1, { size: 32 }), // address padded to 32 bytes
-    pad(toHex(poolKey.fee), { size: 32 }), // uint24 padded to 32 bytes
-    pad(toHex(poolKey.tickSpacing), { size: 32 }), // int24 padded to 32 bytes
-    pad(poolKey.hooks, { size: 32 }), // address padded to 32 bytes
-  ]);
-
-  return keccak256(packed);
+  return getCanonicalPoolId(poolKey);
 };
+
+export const tryGetPoolId = (poolKey: PoolKey) =>
+  tryGetCanonicalPoolId(poolKey);
 
 // Helper function to convert price to tick
 export const priceToTick = (price: number): number => {
-  return Math.round(Math.log(price) / Math.log(1.0001));
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error("Price must be finite and positive");
+  }
+  return Math.floor(Math.log(price) / Math.log(1.0001));
 };
 
 // Helper function to convert tick to price
@@ -30,9 +33,7 @@ export const sqrtPriceX96ToPrice = (
   decimals0: number,
   decimals1: number
 ): number => {
-  const Q96 = 2n ** 96n;
-  const price = (Number(sqrtPriceX96) / Number(Q96)) ** 2;
-  return (price * 10 ** decimals0) / 10 ** decimals1;
+  return sqrtPriceX96ToPriceExact(sqrtPriceX96, decimals0, decimals1, true);
 };
 
 // Helper function to convert price to sqrtPriceX96
@@ -41,10 +42,7 @@ export const priceToSqrtPriceX96 = (
   decimals0: number,
   decimals1: number
 ): bigint => {
-  const adjustedPrice = (price * 10 ** decimals1) / 10 ** decimals0;
-  const sqrtPrice = Math.sqrt(adjustedPrice);
-  const Q96 = 2n ** 96n;
-  return BigInt(Math.round(sqrtPrice * Number(Q96)));
+  return priceToSqrtPriceX96Exact(price, decimals0, decimals1, true);
 };
 
 // Helper function to validate numeric input
@@ -151,21 +149,17 @@ export const getSearchRangeTokenSymbol = (
     ? Number(currentZeroForOnePrice)
     : Number(currentOneForZeroPrice);
 
-  let swapZeroForOne: boolean;
-
-  if (targetPriceDirection) {
-    if (targetPriceNum > currentPriceNum) {
-      swapZeroForOne = false;
-    } else {
-      swapZeroForOne = true;
-    }
-  } else {
-    if (targetPriceNum > currentPriceNum) {
-      swapZeroForOne = false;
-    } else {
-      swapZeroForOne = true;
-    }
+  let swapZeroForOne: boolean | null;
+  try {
+    swapZeroForOne = getTargetSwapDirection(
+      targetPriceNum,
+      currentPriceNum,
+      targetPriceDirection
+    );
+  } catch {
+    return "";
   }
+  if (swapZeroForOne === null) return "";
 
   return swapZeroForOne
     ? currency0Symbol || "Currency0"
@@ -183,8 +177,8 @@ export const calculateEffectivePrice = (
   if (
     !amount ||
     Number(amount) <= 0 ||
-    !currency0Decimals ||
-    !currency1Decimals
+    currency0Decimals === undefined ||
+    currency1Decimals === undefined
   ) {
     return "N/A";
   }
@@ -207,8 +201,8 @@ export const calculateEffectivePrice = (
       ? effectivePrice
       : 1 / effectivePrice
     : zeroForOne
-    ? 1 / effectivePrice
-    : effectivePrice;
+      ? 1 / effectivePrice
+      : effectivePrice;
 
   // Return raw number as string for calculations - format only on display
   return displayPrice.toString();
@@ -226,8 +220,8 @@ export const calculatePriceImpact = (
   if (
     !amount ||
     Number(amount) <= 0 ||
-    !currency0Decimals ||
-    !currency1Decimals ||
+    currency0Decimals === undefined ||
+    currency1Decimals === undefined ||
     !currentZeroForOnePriceStr ||
     !currentOneForZeroPriceStr
   ) {
@@ -272,7 +266,7 @@ export const calculatePriceAfterSwap = (
   currency1Decimals: number,
   priceAfterSwapDirection: boolean
 ): string => {
-  if (!currency0Decimals || !currency1Decimals) {
+  if (currency0Decimals === undefined || currency1Decimals === undefined) {
     return "Loading decimals...";
   }
   const directPrice = sqrtPriceX96ToPrice(
@@ -294,8 +288,8 @@ export const calculatePriceChangePercentage = (
   currentOneForZeroPriceStr: string | undefined
 ): { value: string; color: string } | null => {
   if (
-    !currency0Decimals ||
-    !currency1Decimals ||
+    currency0Decimals === undefined ||
+    currency1Decimals === undefined ||
     !currentZeroForOnePriceStr ||
     !currentOneForZeroPriceStr
   ) {

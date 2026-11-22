@@ -47,24 +47,40 @@ const nextConfig = {
           destination: "/splashImage.png",
         },
         // set up subdomains (exclude api routes, static assets and worker from subdomain rewrites)
-        ...Object.values(subdomains).flatMap((subdomain) => [
-          {
-            source:
-              "/:path((?!_next|api|chainIcons|tokenIcons|external|icon.png|logo.png|splashImage.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
-            has: [
-              {
-                type: "host",
-                value: `${subdomain.base}.eth.sh`,
-              },
-            ],
-            destination: `/${subdomain.base}/:path*`,
-          },
-        ]),
+        ...Object.values(subdomains)
+          .filter((subdomain) => !subdomain.isRelativePath)
+          .flatMap((subdomain) => [
+            {
+              source:
+                "/:path((?!_next|api|og(?:/|$)|frame(?:/|$)|robots\\.txt$|sitemap\\.xml$|favicon\\.ico$|apple-touch-icon\\.png$|chainIcons|tokenIcons|external|icon.png|logo.png|splashImage.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
+              has: [
+                {
+                  type: "host",
+                  value: `${subdomain.base}\\.eth\\.sh`,
+                },
+              ],
+              destination: `/${subdomain.base}/:path*`,
+            },
+          ]),
       ],
     };
   },
+  headers() {
+    return [
+      {
+        source: "/api/:path((?!og(?:/|$)).*)",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+    ];
+  },
   redirects() {
     return [
+      {
+        source: "/",
+        has: [{ type: "host", value: "orgs.eth.sh" }],
+        destination: "https://eth.sh/orgs",
+        permanent: true,
+      },
       {
         source: "/discord",
         destination: process.env.DISCORD_URL || "https://discord.com",

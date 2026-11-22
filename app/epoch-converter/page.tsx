@@ -69,7 +69,7 @@ const Epoch = () => {
         <Box mb={8} textAlign="center">
           <HStack justify="center" spacing={3} mb={3}>
             <Icon as={FiClock} color="blue.400" boxSize={7} />
-            <Heading size="lg" color="gray.100" fontWeight="bold" letterSpacing="tight">
+            <Heading as="h1" size="lg" color="gray.100" fontWeight="bold" letterSpacing="tight">
               Unix Epoch Timestamp
             </Heading>
           </HStack>

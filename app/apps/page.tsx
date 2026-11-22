@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -67,7 +69,7 @@ import { SafeDappInfo } from "@/types/safeDapps";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart } from "@fortawesome/free-solid-svg-icons";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { zeroAddress } from "viem";
+import { stringify, zeroAddress } from "viem";
 import { impersonatorConnectorId } from "@/utils/impersonatorConnector/connector";
 import subdomains from "@/subdomains";
 
@@ -268,7 +270,8 @@ function AppStoreContent({
         });
 
         console.log("Decoded transaction data:", decodedData);
-        setDecodedTxData(decodedData);
+        // Keep display state JSON-safe for React devtools, preserving integer precision.
+        setDecodedTxData(JSON.parse(stringify(decodedData)));
       } catch (error) {
         console.error("Failed to decode transaction data:", error);
       } finally {
@@ -928,7 +931,7 @@ function AppStoreContent({
         )}
 
         <Center flexDir="column" gap={2}>
-          <Heading
+          <Heading as="h1"
             size="xl"
             color="gray.100"
             fontWeight="bold"
@@ -1396,7 +1399,7 @@ export default function WalletBridgeAppsPage() {
       signMessage={handleSignMessage}
       signTypedData={handleSignTypedData}
     >
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<ToolLoading title="Web3 App Store" description="Discover Web3 apps and inspect dapp requests with ETH.sh." />}>
         <AppStoreContent
           chainId={chainId}
           address={address}

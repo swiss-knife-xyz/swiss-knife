@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   Button,
+  type ButtonProps,
   HStack,
   InputLeftElement,
   Skeleton,
@@ -11,15 +12,10 @@ import {
 } from "@chakra-ui/react";
 import { ethFormatOptions, convertTo, ETHSelectedOptionState } from "@/utils";
 import { InputField } from "../InputField";
-import { DarkSelect } from "../DarkSelect";
+import { DarkSelect, type FormatSelectProps } from "../DarkSelect";
 import { motion } from "framer-motion";
 
-// Add helper functions for number formatting
-const formatWithCommas = (value: string) => {
-  const parts = value.split(".");
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return parts.join(".");
-};
+import { formatWithCommas } from "@/utils/formatWithCommas";
 
 const formatCompact = (value: string) => {
   const num = parseFloat(value);
@@ -41,10 +37,18 @@ const numericFormats = [
 ];
 
 interface Params {
+  formatSelectProps?: FormatSelectProps;
+  formatting?: "compact" | "separators";
+  formatButtonProps?: Pick<ButtonProps, "borderRadius" | "color" | "_hover">;
   value: any;
 }
 
-export const UintParam = ({ value: _value }: Params) => {
+export const UintParam = ({
+  value: _value,
+  formatSelectProps,
+  formatButtonProps,
+  formatting = "compact",
+}: Params) => {
   // for skeleton loading
   const showSkeleton = _value === undefined || _value === null;
   const value = !showSkeleton ? (_value as BigInt).toString() : "1234";
@@ -66,6 +70,10 @@ export const UintParam = ({ value: _value }: Params) => {
   );
   const hasCompactNotation =
     isNumericFormat && formatCompact(conversionValue) !== conversionValue;
+  const canFormat =
+    formatting === "separators"
+      ? isNumericFormat && /^-?\d{4,}(?:\.\d+)?$/.test(conversionValue)
+      : hasCompactNotation;
 
   return showSkeleton ? (
     <HStack w="full">
@@ -96,9 +104,9 @@ export const UintParam = ({ value: _value }: Params) => {
           direction={{ base: "column", md: "row" }}
           width="100%"
           gap={2}
-          alignItems="flex-start"
+          alignItems="stretch"
         >
-          <Box flex="1" minW="0" maxW="100%">
+          <Box flex="1" minW="0" w="full" maxW="100%">
             <InputField
               InputLeftElement={
                 <>
@@ -114,12 +122,13 @@ export const UintParam = ({ value: _value }: Params) => {
                       </Button>
                     </InputLeftElement>
                   )}
-                  {hasCompactNotation && (
+                  {canFormat && formatting === "compact" && (
                     <InputLeftElement width="auto" h="full" pl={2}>
                       <Button
                         size="xs"
                         px="2"
                         h="5"
+                        {...formatButtonProps}
                         onClick={() => setShowFormatted((prev) => !prev)}
                       >
                         {showFormatted ? "Raw" : "Format"}
@@ -133,11 +142,27 @@ export const UintParam = ({ value: _value }: Params) => {
                   ? showLocalTime
                     ? new Date(Number(value) * 1_000).toString()
                     : conversionValue
-                  : hasCompactNotation && showFormatted
-                  ? formatWithCommas(conversionValue)
-                  : conversionValue
+                  : formatting === "compact" && canFormat && showFormatted
+                    ? formatWithCommas(conversionValue)
+                    : conversionValue
               }
-              pl={unixSelected || hasCompactNotation ? "5rem" : undefined}
+              copyValue={
+                formatting === "separators" && !unixSelected
+                  ? conversionValue
+                  : undefined
+              }
+              valueTooltip={
+                formatting === "separators" &&
+                canFormat &&
+                hasCompactNotation
+                  ? `${formatWithCommas(conversionValue)} (${formatCompact(conversionValue)})`
+                  : undefined
+              }
+              pl={
+                unixSelected || (canFormat && formatting === "compact")
+                  ? "5rem"
+                  : undefined
+              }
               placeholder=""
               isReadOnly
               onChange={() => {}}
@@ -146,24 +171,18 @@ export const UintParam = ({ value: _value }: Params) => {
             />
           </Box>
           <Box
-            width={{ base: "100%", md: "auto" }}
-            zIndex="9999"
+            width={
+              formatSelectProps?.boxProps?.w ?? { base: "100%", md: "auto" }
+            }
             position="relative"
-            className="uint-select-container"
-            sx={{
-              "& .chakra-react-select__menu": {
-                zIndex: 9999,
-                position: "absolute !important",
-              },
-            }}
           >
             <DarkSelect
+              {...formatSelectProps}
               boxProps={{
                 minW: { base: "100%", md: "8rem" },
                 maxW: { base: "100%", md: "8rem" },
                 fontSize: "xs",
-                position: "static",
-                zIndex: 9999,
+                ...formatSelectProps?.boxProps,
               }}
               selectedOption={selectedEthFormatOption}
               setSelectedOption={(value) =>
@@ -176,24 +195,27 @@ export const UintParam = ({ value: _value }: Params) => {
             />
           </Box>
         </Flex>
-        {hasCompactNotation && showFormatted && (() => {
-          const compact = formatCompact(conversionValue);
-          // Only show compact notation when it actually simplifies (K, M, B suffix)
-          if (compact === conversionValue) return null;
-          return (
-            <Box ml={unixSelected || hasCompactNotation ? "5rem" : 0} mt={1}>
-              <Tag
-                size="sm"
-                variant="subtle"
-                colorScheme="blue"
-                fontFamily="mono"
-                fontSize="xs"
-              >
-                {compact}
-              </Tag>
-            </Box>
-          );
-        })()}
+        {formatting === "compact" &&
+          hasCompactNotation &&
+          showFormatted &&
+          (() => {
+            const compact = formatCompact(conversionValue);
+            // Only show compact notation when it actually simplifies (K, M, B suffix)
+            if (compact === conversionValue) return null;
+            return (
+              <Box ml={unixSelected || hasCompactNotation ? "5rem" : 0} mt={1}>
+                <Tag
+                  size="sm"
+                  variant="subtle"
+                  colorScheme="blue"
+                  fontFamily="mono"
+                  fontSize="xs"
+                >
+                  {compact}
+                </Tag>
+              </Box>
+            );
+          })()}
       </Box>
     </motion.div>
   );

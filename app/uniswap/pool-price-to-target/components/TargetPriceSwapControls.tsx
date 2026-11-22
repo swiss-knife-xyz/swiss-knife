@@ -23,6 +23,7 @@ import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { useLocalStorage } from "usehooks-ts";
 import { Address, zeroAddress } from "viem";
 import { PoolWithHookData } from "@/lib/uniswap/types";
+import { assertValidRoutePool } from "@/lib/uniswap/quote";
 import { SwapLocalStorageKeys } from "../../lib/constants";
 import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
@@ -41,15 +42,6 @@ interface TargetPriceSwapControlsProps {
   setZeroForOne: (value: boolean | ((prev: boolean) => boolean)) => void;
   swapAmountRef?: React.RefObject<HTMLElement>;
   threshold: string;
-  targetPrice?: string;
-  currentZeroForOnePrice?: string;
-  currentOneForZeroPrice?: string;
-  currency0?: Address;
-  currency1?: Address;
-  fee?: number;
-  tickSpacing?: number;
-  hookAddress?: Address;
-  hookData?: string;
 }
 
 export const TargetPriceSwapControls: React.FC<
@@ -68,15 +60,6 @@ export const TargetPriceSwapControls: React.FC<
   setZeroForOne,
   swapAmountRef,
   threshold,
-  targetPrice,
-  currentZeroForOnePrice,
-  currentOneForZeroPrice,
-  currency0,
-  currency1,
-  fee,
-  tickSpacing,
-  hookAddress,
-  hookData,
 }) => {
   const router = useTopLoaderRouter();
 
@@ -97,82 +80,27 @@ export const TargetPriceSwapControls: React.FC<
     SwapLocalStorageKeys.AMOUNT,
     "1"
   );
-  const [, setSwapSlippage] = useLocalStorage<string>(
-    SwapLocalStorageKeys.SLIPPAGE,
-    "0.5"
-  );
-
-  // Utility function to calculate price impact for slippage
-  const calculatePriceImpact = (amount: string, direction: string): number => {
-    if (!amount || !currentZeroForOnePrice || !currentOneForZeroPrice) {
-      return 0.5; // Default 0.5%
-    }
-
-    try {
-      const amountNum = Number(amount);
-      const isZeroForOne = direction.includes("Sell Currency0");
-
-      // For small amounts, use a base impact of 0.1%
-      // For larger amounts, scale up the impact
-      // This is a simplified heuristic - in reality, you'd want to use the actual price change
-      const baseImpact = 0.1;
-      const scaleFactor = Math.log10(Math.max(amountNum, 1)) / 2;
-      const estimatedImpact = baseImpact + scaleFactor * 0.2;
-
-      // Add 0.5% buffer as requested in FIXME
-      return Math.min(estimatedImpact + 0.5, 5.0); // Cap at 5%
-    } catch (error) {
-      console.error("Error calculating price impact:", error);
-      return 0.5; // Default fallback
-    }
-  };
-
-  // Utility function to calculate actual price deviation
-  const calculateActualDeviation = (): string | null => {
-    if (!searchResult?.finalPrice || !targetPrice) return null;
-
-    try {
-      const finalPriceNum = Number(searchResult.finalPrice);
-      const targetPriceNum = Number(targetPrice);
-      const deviation =
-        (Math.abs(finalPriceNum - targetPriceNum) / targetPriceNum) * 100;
-      return deviation.toFixed(3);
-    } catch (error) {
-      console.error("Error calculating price deviation:", error);
-      return null;
-    }
-  };
-
   const handleNavigateToSwap = () => {
-    if (!searchResult || !currency0 || !currency1) return;
+    if (!searchResult) return;
 
-    // Set pool configuration using the same hook as swap page
-    const poolData: PoolWithHookData[] = [
-      {
-        currency0: currency0,
-        currency1: currency1,
-        fee: fee ?? 3000,
-        tickSpacing: tickSpacing || 60,
-        hooks: hookAddress || zeroAddress,
-        hookData: (hookData || "0x") as `0x${string}`,
-      },
-    ];
+    const poolData: PoolWithHookData[] = [searchResult.pool];
 
     // Set swap configuration based on search result
-    const isZeroForOne = searchResult.direction.includes("Sell Currency0");
+    assertValidRoutePool(poolData[0]);
 
     // Use the local storage setters to ensure consistency with swap page
     setSwapPools(poolData);
-    setSwapFromCurrency(isZeroForOne ? currency0 : currency1);
-    setSwapToCurrency(isZeroForOne ? currency1 : currency0);
-    setSwapAmount(searchResult.amount);
-
-    // Calculate actual price impact + 0.5% buffer (fixes FIXME)
-    const priceImpact = calculatePriceImpact(
-      searchResult.amount,
-      searchResult.direction
+    setSwapFromCurrency(
+      searchResult.zeroForOne
+        ? searchResult.pool.currency0
+        : searchResult.pool.currency1
     );
-    setSwapSlippage(priceImpact.toFixed(2));
+    setSwapToCurrency(
+      searchResult.zeroForOne
+        ? searchResult.pool.currency1
+        : searchResult.pool.currency0
+    );
+    setSwapAmount(searchResult.amount);
 
     // Navigate to the swap page with hash fragment to scroll to swap interface
     router.push(`${getPath(subdomains.UNISWAP.base)}swap#swap`);
@@ -245,15 +173,15 @@ export const TargetPriceSwapControls: React.FC<
               searchProgress.startsWith("❌")
                 ? "red.900"
                 : searchProgress.startsWith("🛑")
-                ? "yellow.900"
-                : "green.900"
+                  ? "yellow.900"
+                  : "green.900"
             }
             color={
               searchProgress.startsWith("❌")
                 ? "red.100"
                 : searchProgress.startsWith("🛑")
-                ? "yellow.100"
-                : "green.100"
+                  ? "yellow.100"
+                  : "green.100"
             }
             p={4}
             borderRadius="md"
@@ -264,8 +192,8 @@ export const TargetPriceSwapControls: React.FC<
               searchProgress.startsWith("❌")
                 ? "red.600"
                 : searchProgress.startsWith("🛑")
-                ? "yellow.600"
-                : "green.600"
+                  ? "yellow.600"
+                  : "green.600"
             }
           >
             <Text whiteSpace="pre-wrap">{searchProgress}</Text>
@@ -366,9 +294,7 @@ export const TargetPriceSwapControls: React.FC<
                   leftIcon={<Icon as={FiArrowUp} boxSize={3} />}
                   onClick={() => {
                     setAmount(searchResult.amount);
-                    setZeroForOne(
-                      searchResult.direction.includes("Sell Currency0")
-                    );
+                    setZeroForOne(searchResult.zeroForOne);
                     swapAmountRef?.current?.scrollIntoView({
                       behavior: "smooth",
                       block: "center",

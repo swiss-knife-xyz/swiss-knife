@@ -9,8 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
 // Helper function to add CORS headers
 function getCorsHeaders(origin: string | null) {
   const allowedOrigins = [
-    "https://swiss-knife.xyz",
-    "https://usdc-pay.swiss-knife.xyz",
+    "https://eth.sh",
+    "https://usdc-pay.eth.sh",
     "http://localhost:3000",
   ];
 

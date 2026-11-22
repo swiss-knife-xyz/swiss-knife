@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSimulateContract } from "wagmi";
-import { Address, parseUnits, zeroAddress, Hex, Chain } from "viem";
+import { Address, zeroAddress, Hex, Chain } from "viem";
 import { quoterAbi, quoterAddress } from "../../lib/constants";
+import { assertValidRoutePool } from "@/lib/uniswap/quote";
+import { parseTokenAmount } from "../../swap/lib/utils";
 
 interface UseSwapQuoteProps {
   currency0: string;
@@ -35,28 +37,56 @@ export function useSwapQuote({
   // State for forced quote loading
   const [isForcedQuoteLoading, setIsForcedQuoteLoading] = useState(false);
 
-  const decimals = zeroForOne
-    ? currency0Decimals || 18
-    : currency1Decimals || 18;
+  const quoteInput = useMemo(() => {
+    const decimals = zeroForOne ? currency0Decimals : currency1Decimals;
+    if (
+      decimals === undefined ||
+      !chain?.id ||
+      !quoterAddress[chain.id] ||
+      !isChainSupported
+    ) {
+      return null;
+    }
+
+    try {
+      const poolKey = {
+        currency0: currency0 as Address,
+        currency1: currency1 as Address,
+        tickSpacing: tickSpacing!,
+        fee: fee!,
+        hooks: (hookAddress || zeroAddress) as Address,
+      };
+      const normalizedHookData = (hookData || "0x") as Hex;
+      assertValidRoutePool({ ...poolKey, hookData: normalizedHookData });
+      return {
+        poolKey,
+        zeroForOne,
+        exactAmount: parseTokenAmount(amount, decimals),
+        hookData: normalizedHookData,
+      };
+    } catch {
+      return null;
+    }
+  }, [
+    amount,
+    chain?.id,
+    currency0,
+    currency0Decimals,
+    currency1,
+    currency1Decimals,
+    fee,
+    hookAddress,
+    hookData,
+    isChainSupported,
+    tickSpacing,
+    zeroForOne,
+  ]);
 
   const result = useSimulateContract({
     address: chain?.id ? quoterAddress[chain.id] : undefined,
     abi: quoterAbi,
     functionName: "quoteExactInputSingle",
-    args: [
-      {
-        poolKey: {
-          currency0: currency0 as Address,
-          currency1: currency1 as Address,
-          tickSpacing: tickSpacing!,
-          fee: fee!,
-          hooks: (hookAddress || zeroAddress) as Address,
-        },
-        zeroForOne,
-        exactAmount: parseUnits(amount, decimals),
-        hookData: (hookData || "0x") as Hex,
-      },
-    ],
+    args: quoteInput ? [quoteInput] : undefined,
     query: {
       enabled: false, // Disable auto-fetching
     },
@@ -66,12 +96,7 @@ export function useSwapQuote({
   const isQuoteLoading = result.isLoading || isForcedQuoteLoading;
 
   const fetchQuoteResult = async () => {
-    if (
-      currency0.length > 0 &&
-      currency1.length > 0 &&
-      amount &&
-      isChainSupported
-    ) {
+    if (quoteInput) {
       // Set forced loading state immediately
       setIsForcedQuoteLoading(true);
 
@@ -91,14 +116,7 @@ export function useSwapQuote({
   // Auto-fetch quote result with debounce when amount changes
   useEffect(() => {
     // Only set up debounce if all conditions are met
-    if (
-      currency0.length > 0 &&
-      currency1.length > 0 &&
-      amount &&
-      isChainSupported &&
-      !isNaN(Number(amount)) &&
-      Number(amount) > 0
-    ) {
+    if (quoteInput) {
       const timeoutId = setTimeout(() => {
         result.refetch();
       }, 800); // 800ms debounce
@@ -106,23 +124,14 @@ export function useSwapQuote({
       // Cleanup function to clear timeout on dependency change
       return () => clearTimeout(timeoutId);
     }
-  }, [
-    amount,
-    currency0,
-    currency1,
-    zeroForOne,
-    fee,
-    tickSpacing,
-    hookAddress,
-    hookData,
-    isChainSupported,
-    result,
-  ]);
+  }, [quoteInput, result.refetch]);
 
   return {
-    quoteData: result.data?.result as
-      | readonly [bigint, bigint, number, bigint]
-      | undefined,
+    quoteData: quoteInput
+      ? (result.data?.result as
+          | readonly [bigint, bigint, number, bigint]
+          | undefined)
+      : undefined,
     quoteError: result.error,
     isQuoteLoading,
     fetchQuoteResult,

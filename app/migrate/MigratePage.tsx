@@ -991,7 +991,7 @@ export default function MigratePage() {
           mb={6}
         >
           <Box flex={1} textAlign={{ base: "center", md: "left" }} minW={0}>
-            <Heading
+            <Heading as="h1"
               fontSize={{ base: "3xl", md: "4xl", lg: "5xl", xl: "6xl" }}
               color="text.primary"
               fontWeight="bold"
