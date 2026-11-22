@@ -269,3 +269,30 @@ it("searches chain filters by name and ID without losing selected chains", async
   fireEvent.change(search, { target: { value: "" } });
   expect(screen.getByRole("button", { name: /^Base/ }).getAttribute("aria-pressed")).toBe("true");
 });
+
+it("promotes the registry's native explorer for URL and manually selected chains", async () => {
+  state.query = new URLSearchParams("chainId=8453");
+  render(wrap(<ExplorerGridBase explorersData={addressExplorers} explorerType={ExplorerType.ADDRESS} addressOrTx={address} />));
+  const before = (first: string, second: string) => {
+    expect(screen.getByText(first).compareDocumentPosition(screen.getByText(second)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  };
+  before("Basescan", "ABINinja");
+  fireEvent.click(screen.getByRole("button", { name: "Chains (1)" }));
+  fireEvent.click(await screen.findByRole("button", { name: /^Base Base/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Ethereum Ethereum/ }));
+  before("Etherscan", "ABINinja");
+});
+
+it("orders native explorer entries by selected chains and retains the remaining order", async () => {
+  const { orderDirectoryExplorers } = await import("@/lib/explorerDirectory");
+  const { txExplorers } = await import("@/data/txExplorers");
+  for (const entries of [addressExplorers, txExplorers]) {
+    const names = Object.keys(entries);
+    expect(orderDirectoryExplorers(names, entries, [])).toEqual(names);
+    expect(orderDirectoryExplorers(names, entries, [8453])[0]).toBe("Basescan");
+    expect(orderDirectoryExplorers(names, entries, [42161, 8453]).slice(0, 2)).toEqual(["Arbitrum", "Basescan"]);
+    expect(orderDirectoryExplorers(names, entries, [999999999])).toEqual(names);
+    const sorted = orderDirectoryExplorers(names, entries, [8453]);
+    expect(sorted.slice(1)).toEqual(names.filter(name => name !== "Basescan"));
+  }
+});

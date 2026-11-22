@@ -34,6 +34,7 @@ import { ExplorerGridItem, FavoriteExplorerGridItem } from "./ExplorerGridItem";
 import { ExplorersData, ExplorerType } from "@/types";
 import { c, chainIdToChain, chainIdToImage } from "@/data/common";
 import { swap } from "@/utils";
+import { orderDirectoryExplorers } from "@/lib/explorerDirectory";
 
 interface Params {
   explorersData: ExplorersData;
@@ -136,7 +137,7 @@ export const ExplorerGridBase = ({
   }, [forContractsFromURL, setUrlForContracts, syncFiltersToUrl]);
 
   const filteredExplorerNames = useMemo(
-    () => Object.keys(explorersData)
+    () => orderDirectoryExplorers(Object.keys(explorersData)
         .filter((explorerName) => {
           if (!searchExplorer) return true;
 
@@ -160,7 +161,7 @@ export const ExplorerGridBase = ({
             return explorersData[explorerName].forContracts;
           }
           return true;
-        }),
+        }), explorersData, chainIdsSelected),
     [searchExplorer, chainIdsSelected, forContracts, explorerType, explorersData]
   );
 
