@@ -1049,6 +1049,11 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   };
 
   const FromTxBody = () => {
+    const value = fromTxInput.trim();
+    const explorerBase = chainIdToChain[Number(selectedNetworkOption?.value)]?.blockExplorers?.default?.url;
+    const explorerHref = /^0x[\da-f]{64}$/i.test(value)
+      ? explorerBase ? `${explorerBase.replace(/\/$/, "")}/tx/${value}` : undefined
+      : /^https?:\/\//i.test(value) ? value : undefined;
     return (
       <VStack spacing={4} w="full" align="stretch">
         <HStack
@@ -1085,8 +1090,8 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                   decodeFromTx(_fromTxInput);
                 }}
               />
-              {fromTxInput.includes("http") && (
-                <Link href={fromTxInput} title="View on explorer" isExternal>
+              {explorerHref && (
+                <Link href={explorerHref} title="View on explorer" aria-label="View transaction on block explorer" isExternal>
                   <Button
                     size="sm"
                     variant="ghost"

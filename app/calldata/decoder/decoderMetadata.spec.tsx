@@ -669,3 +669,20 @@ it("offers a share link for the completed result", async () => {
   expect(link.searchParams.get("calldata")).toBe(calldata);
   expect(new URLSearchParams(link.hash.slice(1)).get("functions")).toContain("transfer(address)");
 });
+
+it.each([[1, "https://etherscan.io"], [8453, "https://basescan.org"]])("links a raw transaction hash to chain %s's block explorer", async (chain, explorer) => {
+  const hash = `0x${"ab".repeat(32)}`;
+  render(page(`?tx=${hash}&chainId=${chain}`));
+  const link = await screen.findByRole("link", { name: "View transaction on block explorer" });
+  expect(link.getAttribute("href")).toBe(`${explorer}/tx/${hash}`);
+  expect(link.getAttribute("target")).toBe("_blank");
+  await act(async () => {});
+  const nextChain = chain === 1 ? 8453 : 1;
+  fireEvent.change(screen.getByRole("combobox", { name: "Network" }), {
+    target: { value: String(nextChain) },
+  });
+  await waitFor(() => expect(screen.getByRole("link", { name: "View transaction on block explorer" }).getAttribute("href"))
+    .toBe(`${nextChain === 1 ? "https://etherscan.io" : "https://basescan.org"}/tx/${hash}`));
+  fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), { target: { value: "0x123" } });
+  await waitFor(() => expect(screen.queryByRole("link", { name: "View transaction on block explorer" })).toBeNull());
+});
