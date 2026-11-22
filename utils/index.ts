@@ -86,7 +86,7 @@ export const getMetadata = (_metadata: {
     alternates: _metadata.canonical ? { canonical: _metadata.canonical } : undefined,
     twitter: {
       card: "summary_large_image",
-      creator: "@swissknifexyz",
+      creator: "@ethdotsh",
       title: _metadata.title,
       description: _metadata.description,
       images: _metadata.images,

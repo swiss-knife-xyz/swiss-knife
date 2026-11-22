@@ -48,7 +48,7 @@ export const HomePageNavBar = () => {
         <ChakraLink href="/discord" isExternal>
           <FontAwesomeIcon icon={faDiscord} size="lg" color="white" />
         </ChakraLink>
-        <ChakraLink href="https://twitter.com/swissknifexyz" isExternal>
+        <ChakraLink href="https://x.com/ethdotsh" isExternal>
           <FontAwesomeIcon icon={faTwitter} size="lg" color="white" />
         </ChakraLink>
         <ChakraLink
