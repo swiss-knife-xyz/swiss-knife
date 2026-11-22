@@ -7,6 +7,7 @@
     "build": "next build",
     "build:robin-oft-artifacts": "tsx scripts/buildRobinOftArtifacts.ts",
     "test": "tsx --test",
+    "test:tuples": "vitest run --config vitest.tuples.config.ts",
     "test:contract": "vitest run --config vitest.contract.config.ts",
     "test:contract-load": "vitest run --config vitest.contract-load.config.ts",
     "start": "next start",

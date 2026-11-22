@@ -16,7 +16,7 @@ import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { Arg, DecodeBytesParamResult, DecodeTupleParamResult } from "@/types";
 import { ContractAddressLink } from "@/components/ContractTabs";
 
-export const renderParamTypes = (arg: Arg, chainId?: number) => {
+export const renderParamTypes = (arg: Arg, chainId?: number, isArrayChild = false) => {
   if (arg.baseType.includes("uint")) {
     return <UintParam value={arg.value} />;
   } else if (arg.baseType.includes("int")) {
@@ -43,6 +43,7 @@ export const renderParamTypes = (arg: Arg, chainId?: number) => {
   } else if (arg.baseType === "tuple") {
     return (
       <TupleParam
+        isArrayChild={isArrayChild}
         arg={{
           ...arg,
           value: arg.value as DecodeTupleParamResult,
@@ -95,7 +96,7 @@ export const renderParams = (
       rounded={variant === "surface" ? "lg" : undefined}
       minW={0}
     >
-      {arg.name ? (
+      {arg.baseType === "tuple" && Array.isArray(arg.value) && arg.value.length > 0 ? null : arg.name ? (
         <Box>
           <HStack minW={0} flexWrap="wrap">
             <Box fontSize={"xs"} fontWeight={"thin"} color={"whiteAlpha.600"}>

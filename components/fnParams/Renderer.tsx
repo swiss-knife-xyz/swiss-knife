@@ -1,3 +1,4 @@
+import { contractOutputArg } from "@/lib/contractOutput";
 import { JsonFragmentType } from "ethers";
 import {
   AddressInput,
@@ -176,10 +177,14 @@ export const renderParamTypes = ({
   chainId,
   type,
   value,
+  components,
+  name,
 }: {
   chainId: number;
   type: string;
   value: any;
+  components?: readonly JsonFragmentType[];
+  name?: string;
 }) => {
   console.log({
     chainId,
@@ -187,48 +192,12 @@ export const renderParamTypes = ({
     value,
   });
 
-  if (type.endsWith("[]")) {
-    return (
-      <ArrayParam
-        arg={{
-          name: "",
-          baseType: "array",
-          type,
-          rawValue: value,
-          value:
-            value && Array.isArray(value)
-              ? value.map((v: any) => ({
-                  name: "",
-                  baseType: type.slice(0, type.length - 2),
-                  type: type.slice(0, type.length - 2),
-                  rawValue: v,
-                  value: v,
-                }))
-              : [],
-        }}
-        chainId={chainId}
-      />
-    );
-  } else if (type === "tuple") {
-    return (
-      <TupleParam
-        arg={{
-          name: "",
-          baseType: "tuple",
-          type: "tuple",
-          rawValue: value,
-          value: Array.isArray(value)
-            ? value.map((v: any, i: number) => ({
-                name: "",
-                baseType: v.type,
-                type: v.type,
-                rawValue: v.value,
-                value: v.value,
-              }))
-            : [],
-        }}
-        chainId={chainId}
-      />
+  if (/\[\d*\]$/.test(type) || type === "tuple") {
+    const arg = value == null ? value : contractOutputArg({ type, components, name }, value);
+    return type === "tuple" ? (
+      <TupleParam arg={arg} chainId={chainId} />
+    ) : (
+      <ArrayParam arg={arg} chainId={chainId} />
     );
   } else if (type === "calldata") {
     return <CalldataParam value={value} chainId={chainId} variant="plain" />;

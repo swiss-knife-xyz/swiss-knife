@@ -132,7 +132,7 @@ export const ArrayParam = ({ arg: _arg, chainId }: Params) => {
                         </Link>
                       ) : null}
                     </HStack>
-                    <Box mt={2}>{renderParamTypes(ar, chainId)}</Box>
+                    <Box mt={2}>{renderParamTypes(ar, chainId, true)}</Box>
                   </Box>
                 );
               })}
