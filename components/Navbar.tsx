@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   Box,
@@ -12,13 +13,18 @@ import {
   IconButton,
   Tooltip,
 } from "@chakra-ui/react";
-import { Menu, Github, BookOpen } from "lucide-react";
+import { Menu, Github, BookOpen, Network } from "lucide-react";
 import { baseURL } from "@/config";
 import { ToolsDrawer } from "./ToolsDrawer";
 import { NotificationBar } from "./NotificationBar";
 import { useAddressBook } from "@/hooks/useAddressBook";
 
+const CustomChainDrawer = dynamic(() =>
+  import("./CustomChainModal").then((module) => module.CustomChainModal)
+);
+
 export const Navbar = () => {
+  const networks = useDisclosure();
   const {
     isOpen: isMenuOpen,
     onOpen: onMenuOpen,
@@ -76,6 +82,18 @@ export const Navbar = () => {
             <Github size={isMobile ? 20 : 22} />
           </ChakraLink>
 
+          <Tooltip label="Custom networks & RPCs" placement="bottom">
+            <IconButton
+              aria-label="Manage custom networks and RPCs"
+              icon={<Network size={isMobile ? 18 : 20} />}
+              variant="ghost"
+              color="text.secondary"
+              _hover={{ color: "text.primary", bg: "bg.emphasis" }}
+              onClick={networks.onOpen}
+              size="md"
+            />
+          </Tooltip>
+
           {/* Address Book */}
           <Tooltip label="Address Book" placement="bottom">
             <IconButton
@@ -104,6 +122,14 @@ export const Navbar = () => {
       {/* Notification Bar */}
       <NotificationBar />
 
+      {networks.isOpen && (
+        <CustomChainDrawer
+          presentation="drawer"
+          isOpen={networks.isOpen}
+          onClose={networks.onClose}
+          onSaved={() => {}}
+        />
+      )}
       <ToolsDrawer isOpen={isMenuOpen} onClose={onMenuClose} />
     </VStack>
   );

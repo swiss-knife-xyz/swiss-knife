@@ -268,3 +268,44 @@ it("reports RPC autodetection failure and removes both loaders without saving", 
   expect(screen.queryByText("Fetching RPC chain ID")).toBeNull();
   expect(saved).not.toHaveBeenCalled();
 });
+
+it("manages saved RPCs in the right drawer without selecting a tool network", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => Response.json({ result: "0x7a69" }))
+  );
+  const onSaved = vi.fn();
+  const onClose = vi.fn();
+  render(
+    <ChakraProvider>
+      <CustomChainModal
+        presentation="drawer"
+        isOpen
+        onClose={onClose}
+        onSaved={onSaved}
+      />
+    </ChakraProvider>
+  );
+  expect(
+    await screen.findByRole("dialog", { name: /Custom networks/ })
+  ).toBeTruthy();
+  expect(screen.queryByLabelText(/Network name/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Add custom network" }));
+  await fill();
+  fireEvent.click(screen.getByRole("button", { name: "Verify & add" }));
+  await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+  expect(getRpcUrlsForChain(31337)).toEqual(["http://127.0.0.1:18545/"]);
+  expect(onClose).not.toHaveBeenCalled();
+  expect(screen.queryByLabelText(/Network name/)).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "Edit My local fork" })
+  ).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Edit My local fork" }));
+  expect(
+    (await screen.findByLabelText(/Network name/)).getAttribute("value")
+  ).toBe("My local fork");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Back to custom networks" })
+  );
+  expect(screen.queryByLabelText(/Network name/)).toBeNull();
+});

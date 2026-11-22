@@ -93,6 +93,11 @@ as Ethereum's `1`. Removing the saved entry restores the built-in definition.
   iframe messages elsewhere, and cross-window change notifications.
 - `lib/customChains/store.ts`: external React store and browser catalog updates.
 - `components/CustomChainModal.tsx`: add, edit, remove, and confirmation UI.
+  The shared tool navbar opens this editor as a right-hand drawer from the
+  network icon immediately before Address Book. The homepage omits this action.
+  The drawer opens to the saved list; Add/Edit reveals the form, and saving
+  returns to the list. Rows show chain identity and override status.
+  Managing saved networks here does not change any tool's selected network.
 - `app/%5Fstorage/page.tsx`: the actual `/_storage` route. A literal `_storage`
   directory is private in Next.js; the escaped segment exposes the existing hub
   component. This is an internal noindex page, not a public tool. App providers
