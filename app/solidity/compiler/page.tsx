@@ -1,4 +1,5 @@
 "use client";
+import { ContractSize } from "./ContractSize";
 import { flashSourceLine } from "@/components/SourceCodeExplorer/flashSourceLine";
 import { CompilationErrors } from "./CompilationErrors";
 import { WorkspaceDependencies } from "./WorkspaceDependencies";
@@ -792,6 +793,7 @@ export default function SolidityIDE() {
                         </Text>
                       )}
                     </Box>
+                    <ContractSize contract={selectedContract!} />
                     <Accordion
                       allowToggle
                       index={artifactOpen ? 0 : -1}

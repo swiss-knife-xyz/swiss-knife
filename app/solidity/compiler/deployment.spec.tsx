@@ -316,3 +316,46 @@ it("records wallet rejection separately from an on-chain revert and allows a fre
   expect(history.update).toHaveBeenCalledWith("journal",{status:"rejected",error:"Transaction rejected in wallet."});
   expect((screen.getByRole("button",{name:"Deploy"}) as HTMLButtonElement).disabled).toBe(false);
 });
+
+it("updates initcode size with encoded constructor arguments and warns only above the reference limit", async () => {
+  const contract = {...emptyContract, bytecode:"60".repeat(49056), abi:[{type:"constructor",stateMutability:"nonpayable",inputs:[{name:"data",type:"bytes"}]}]};
+  const {wallet} = mount(undefined, {contract});
+  fireEvent.change(screen.getByLabelText("data"), {target:{value:"0x11"}});
+  await screen.findByText("49,152 / 49,152 B");
+  expect(screen.queryByText(/bytes over EIP-3860/)).toBeNull();
+  fireEvent.change(screen.getByLabelText("data"), {target:{value:`0x${"11".repeat(33)}`}});
+  await screen.findByText("49,184 / 49,152 B");
+  expect(screen.getByText(/32 bytes over EIP-3860/)).toBeTruthy();
+  expect(wallet.submit).not.toHaveBeenCalled();
+  expect((screen.getByRole("button",{name:"Deploy"}) as HTMLButtonElement).disabled).toBe(false);
+});
+
+it("keeps constructor values when the parameter box is collapsed and reopened", async () => {
+  const contract={...emptyContract,abi:[{type:"constructor",stateMutability:"nonpayable",inputs:[{name:"label",type:"string"}]}]};
+  mount(undefined,{contract});
+  fireEvent.change(screen.getByLabelText("label"),{target:{value:"My token"}});
+  const toggle=screen.getByRole("button",{name:"Constructor parameters"});
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  expect((screen.getByLabelText("label") as HTMLInputElement).value).toBe("My token");
+});
+
+it("scrolls the constructor box into view after reopening, but not on initial render", async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype,"scrollIntoView");
+  const scroll=vi.fn();
+  Object.defineProperty(HTMLElement.prototype,"scrollIntoView",{configurable:true,value:scroll});
+  try {
+    mount(undefined,{contract:{...emptyContract,abi:[{type:"constructor",inputs:[{name:"amount",type:"uint256"}]}]}});
+    expect(scroll).not.toHaveBeenCalled();
+    const toggle=screen.getByRole("button",{name:"Constructor parameters"});
+    fireEvent.click(toggle);
+    expect(scroll).not.toHaveBeenCalled();
+    fireEvent.click(toggle);
+    await waitFor(()=>expect(scroll).toHaveBeenCalledWith({behavior:"smooth",block:"nearest"}));
+  } finally {
+    if (descriptor) Object.defineProperty(HTMLElement.prototype,"scrollIntoView",descriptor);
+    else delete (HTMLElement.prototype as any).scrollIntoView;
+  }
+});

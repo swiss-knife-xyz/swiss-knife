@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useId,
   useEffect,
   useRef,
   useState,
@@ -13,6 +14,7 @@ import {
   AlertIcon,
   Box,
   Button,
+  Collapse,
   Flex,
   FormControl,
   FormLabel,
@@ -23,7 +25,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { ArrowUpRight, CheckCircle2, CircleAlert } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, ChevronDown, ChevronRight, CircleAlert } from "lucide-react";
 import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
 import {
   encodeDeployData,
@@ -35,6 +37,8 @@ import {
 } from "viem";
 import type { JsonFragmentType } from "ethers";
 import { chainIdToChain, chainIdToImage } from "@/data/common";
+import { bytecodeSize } from "@/lib/solidity/contractSize";
+import { InitcodeSize } from "./ContractSize";
 import { ReuseConstructorArguments } from "./ReuseConstructorArguments";
 import { NetworkSelect } from "@/components/NetworkSelect";
 import { useCustomChains } from "@/lib/customChains/store";
@@ -209,6 +213,10 @@ export function ContractDeploymentForm({
   const [chainId, setChainId] = useState(11155111);
   const [values, setValues] = useState<Record<number, any>>({});
   const [reuseVersion, setReuseVersion] = useState(0);
+  const [constructorOpen, setConstructorOpen] = useState(true);
+  const constructorPanelId = useId();
+  const constructorBoxRef = useRef<HTMLDivElement>(null);
+  const revealConstructor = useRef(false);
   const [invalid, setInvalid] = useState<Record<number, boolean>>({});
   const [value, setValue] = useState("0");
   const [valueInvalid, setValueInvalid] = useState(false);
@@ -232,6 +240,20 @@ export function ContractDeploymentForm({
   const receiptRef = useRef(wallet.receipt);
   receiptRef.current = wallet.receipt;
   const constructor = contract.abi.find((item) => item.type === "constructor");
+  const [initcode, setInitcode] = useState<{bytes: number | null; values: typeof values; bytecode: string} | null>(null);
+  const hasConstructorArgs = !!constructor?.inputs?.length;
+  const invalidArgs = Object.values(invalid).some(Boolean);
+  useEffect(() => {
+    if (!hasConstructorArgs) return;
+    const timer = setTimeout(() => {
+      let bytes: number | null = null;
+      if (!invalidArgs) {
+        try { bytes = bytecodeSize(deploymentData(contract, values)); } catch { /* Incomplete inputs or unlinked libraries. */ }
+      }
+      setInitcode({bytes, values, bytecode: contract.bytecode});
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [contract, values, invalidArgs, hasConstructorArgs]);
   const chain = chainIdToChain[chainId];
   const needsSwitch = !!wallet.account && wallet.chainId !== chainId;
   const busy =
@@ -366,24 +388,39 @@ export function ContractDeploymentForm({
               borderWidth="1px"
               borderColor="border.default"
               as="fieldset"
+              ref={constructorBoxRef}
               borderRadius="lg"
               px={3}
-              pb={3}
+              pb={constructorOpen ? 3 : 2}
               minW={0}
             >
               <Box as="legend" px={2} w="full">
                 <Flex align="center" gap={2} wrap="wrap">
-                  <Text fontSize="sm" color="text.secondary">Constructor parameters</Text>
+                  <Button variant="unstyled" display="inline-flex" alignItems="center" gap={1.5}
+                    h="auto" minW={0} fontWeight="normal" fontSize="sm" color="text.secondary"
+                    aria-expanded={constructorOpen} aria-controls={constructorPanelId}
+                    onClick={() => { revealConstructor.current = !constructorOpen; setConstructorOpen(open => !open); }}>
+                    {constructorOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    Constructor parameters
+                  </Button>
                   <Box aria-hidden="true" flex={1} minW={4} borderTopWidth="1px" borderColor="border.default" />
                   {history && <ReuseConstructorArguments
                     inputs={constructor.inputs}
                     history={history}
                     disabled={busy || isStale}
-                    onReuse={(next) => { setValues(next); setInvalid({}); setReuseVersion(version => version + 1); setError(""); }}
+                    onReuse={(next) => { revealConstructor.current = !constructorOpen; setConstructorOpen(true); setValues(next); setInvalid({}); setReuseVersion(version => version + 1); setError(""); }}
                   />}
                 </Flex>
               </Box>
-              <VStack align="stretch" spacing={0}>
+              <Collapse in={constructorOpen} animateOpacity onAnimationComplete={() => {
+                if (!constructorOpen || !revealConstructor.current) return;
+                revealConstructor.current = false;
+                constructorBoxRef.current?.scrollIntoView?.({
+                  behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth",
+                  block: "nearest",
+                });
+              }}>
+              <VStack id={constructorPanelId} align="stretch" spacing={0}>
                 {constructor.inputs.map(
                   (input: JsonFragmentType, index: number) => (
                     <Box
@@ -407,8 +444,10 @@ export function ContractDeploymentForm({
                   )
                 )}
               </VStack>
+              </Collapse>
             </Box>
           )}
+          {hasConstructorArgs && <InitcodeSize bytes={initcode?.bytes ?? null} pending={initcode?.values !== values || initcode?.bytecode !== contract.bytecode} />}
           <FormControl>
             <FormLabel fontSize="sm">Deployment network</FormLabel>
             <NetworkSelect

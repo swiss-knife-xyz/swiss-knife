@@ -192,7 +192,7 @@ Reference: https://unpkg.com (exact-version URLs and file metadata/integrity API
 - [x] Optional auto-compile, inline Monaco diagnostics and click-to-jump errors.
 - [x] Workspace-wide find/replace and search/replace keyboard shortcuts.
 - [ ] Bounded local source revision history with preview and restore.
-- [ ] Contract byte-size indicators and deployment-size limit warnings.
+- [x] Contract byte-size indicators and deployment-size limit warnings.
 - [x] Import a verified contract into a new workspace.
 
 ## Storage architecture
@@ -536,3 +536,18 @@ input. All 204 compiler tests and the production build passed.
   display limits. Drafts survive switching Explorer/Search and opening the drawer.
 - Cmd/Ctrl+Shift+F opens search; Cmd/Ctrl+Shift+H opens replace. Existing single-file
   Monaco search shortcuts remain available.
+
+### Contract size indicators
+
+- Compact Runtime and Creation meters below the selected contract, within the
+  Contract Size fieldset. EIP-170 (24,576 bytes) and EIP-3860 (49,152 bytes) are
+  reference limits, not universal network limits; no network is blocked by them.
+- Show near-limit warnings at 90%, and over-limit warnings strictly above the cap.
+- Debounced deployment initcode sizing includes ABI-encoded constructor arguments.
+  Incomplete arguments show an unavailable estimate rather than a misleading count.
+- Library link placeholders count as their eventual 20-byte address; missing
+  bytecode is zero bytes, malformed bytecode is unavailable.
+- Constructor parameters collapse without losing input state. Reopening scrolls
+  into view after expansion; initial rendering never triggers the scroll.
+- The initcode meter sits immediately below constructor parameters and above
+  the deployment network, using the same visual treatment as the size meters.
