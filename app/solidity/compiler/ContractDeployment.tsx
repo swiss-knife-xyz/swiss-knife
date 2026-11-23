@@ -40,6 +40,7 @@ import type { JsonFragmentType } from "ethers";
 import { chainIdToChain, chainIdToImage } from "@/data/common";
 import { bytecodeSize } from "@/lib/solidity/contractSize";
 import { InitcodeSize } from "./ContractSize";
+import { deploymentMatchesContract } from "@/lib/solidity/deploymentConstructor";
 import { ReuseConstructorArguments } from "./ReuseConstructorArguments";
 import { NetworkSelect } from "@/components/NetworkSelect";
 import { useCustomChains } from "@/lib/customChains/store";
@@ -424,13 +425,15 @@ export function ContractDeploymentForm({
                     Constructor parameters
                   </Button>
               </Box>
-              {history && history.records.some(record => !record.deletedAt && record.status !== "rejected") && <Box
+              {history && history.records.some(record => deploymentMatchesContract(record, contract)) && <Box
                 display="flex" justifyContent="flex-end" pt={2} minW={0}
                 sx={{"@container constructor-header (min-width: 480px)": {
                   position: "absolute", top: "2px", right: "12px", paddingTop: 0,
                   bg: "bg.base", paddingInline: "4px",
                 }}}>
                 <ReuseConstructorArguments
+                    key={`${contract.sourcePath}:${contract.name}`}
+                    contract={contract}
                     inputs={constructor.inputs}
                     history={history}
                     disabled={busy || isStale}

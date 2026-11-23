@@ -142,11 +142,19 @@ export function FileExplorerPanel({
       )}
       {outline && !body && (
         <Box
-          flex={outlineOpen ? (filesOpen ? "0 1 45%" : "1 1 0%") : "0 0 auto"}
-          minH={outlineOpen ? "100px" : undefined}
+          flex={
+            stickySections
+              ? "0 1 auto"
+              : outlineOpen
+                ? filesOpen
+                  ? "0 1 45%"
+                  : "1 1 0%"
+                : "0 0 auto"
+          }
+          minH={stickySections ? 0 : outlineOpen ? "100px" : undefined}
           maxH={outlineOpen ? outlineMaxHeight : undefined}
           position={stickySections ? "sticky" : undefined}
-          bottom={stickySections ? 4 : undefined}
+          bottom={stickySections ? 0 : undefined}
           zIndex={stickySections ? 1 : undefined}
           bg={background}
           minW={0}
@@ -159,8 +167,13 @@ export function FileExplorerPanel({
             setOutlineOpen((value) => !value)
           )}
           {outlineOpen && (
-            <Box flex={1} minH={0} minW={0}>
-              <SourceOutline source={outline} />
+            <Box
+              flex={1}
+              minH={0}
+              minW={0}
+              overflowY={stickySections ? "auto" : undefined}
+            >
+              <SourceOutline source={outline} fitContent={stickySections} />
             </Box>
           )}
         </Box>

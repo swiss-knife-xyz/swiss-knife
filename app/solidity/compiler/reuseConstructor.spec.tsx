@@ -124,15 +124,24 @@ it("lists decoded saved and imported deployments, disables mismatches and applie
   const changed = {
     ...record,
     id: "changed",
-    contractName: "Changed",
+    contractName: "Token",
     constructorInputs: [{ name: "amount", type: "uint256" }],
     constructorArgs: encodeAbiParameters([{ type: "uint256" }], [123n]),
   };
-  const history: any = { records: [record, changed], getBuild: vi.fn() };
+  const history: any = {
+    records: [
+      record,
+      changed,
+      { ...record, id: "other", contractName: "Other" },
+      { ...record, id: "other-path", sourcePath: "Other.sol" },
+    ],
+    getBuild: vi.fn(),
+  };
   const reuse = vi.fn();
   render(
     <ChakraProvider>
       <ReuseConstructorArguments
+        contract={{ name: "Token", sourcePath: "Token.sol" }}
         inputs={inputs}
         history={history}
         disabled={false}
@@ -145,15 +154,21 @@ it("lists decoded saved and imported deployments, disables mismatches and applie
   );
   await screen.findByText("Constructor parameters don’t match");
   expect(
+    screen.queryByRole("button", { name: "Reuse Other constructor arguments" })
+  ).toBeNull();
+  expect(
+    screen.getAllByRole("button", { name: "Reuse Token constructor arguments" })
+  ).toHaveLength(2);
+  expect(
     (
-      screen.getByRole("button", {
-        name: "Reuse Changed constructor arguments",
-      }) as HTMLButtonElement
+      screen.getAllByRole("button", {
+        name: "Reuse Token constructor arguments",
+      })[1] as HTMLButtonElement
     ).disabled
   ).toBe(true);
-  const button = screen.getByRole("button", {
+  const button = screen.getAllByRole("button", {
     name: "Reuse Token constructor arguments",
-  });
+  })[0];
   await waitFor(() =>
     expect((button as HTMLButtonElement).disabled).toBe(false)
   );
@@ -169,6 +184,7 @@ it("hides the action when there are no deployments", () => {
   render(
     <ChakraProvider>
       <ReuseConstructorArguments
+        contract={{ name: "Token", sourcePath: "Token.sol" }}
         inputs={inputs}
         history={{ records: [] } as any}
         disabled={false}
@@ -179,4 +195,30 @@ it("hides the action when there are no deployments", () => {
   expect(
     screen.queryByRole("button", { name: "Reuse from prev deployments" })
   ).toBeNull();
+});
+
+it("shows reuse only for the selected contract name and source path", () => {
+  const show = (name: string, sourcePath: string) => (
+    <ChakraProvider>
+      <ReuseConstructorArguments
+        contract={{ name, sourcePath }}
+        inputs={inputs}
+        history={{ records: [record], getBuild: vi.fn() } as any}
+        disabled={false}
+        onReuse={vi.fn()}
+      />
+    </ChakraProvider>
+  );
+  const view = render(show("Other", "Token.sol"));
+  expect(
+    screen.queryByRole("button", { name: "Reuse from prev deployments" })
+  ).toBeNull();
+  view.rerender(show("Token", "Other.sol"));
+  expect(
+    screen.queryByRole("button", { name: "Reuse from prev deployments" })
+  ).toBeNull();
+  view.rerender(show("Token", "Token.sol"));
+  expect(
+    screen.getByRole("button", { name: "Reuse from prev deployments" })
+  ).toBeTruthy();
 });

@@ -5,6 +5,18 @@ import { readConstructorAbi } from "@/lib/verification/constructorAbi";
 import { readJson } from "@/lib/verification/transport";
 import { decodeConstructorArguments } from "./constructorArguments";
 import type { VerifiedContract } from "./verifiedContract";
+export function deploymentMatchesContract(
+  record: DeploymentRecord,
+  contract: { name: string; sourcePath: string }
+) {
+  return (
+    !record.deletedAt &&
+    record.status !== "rejected" &&
+    record.contractName === contract.name &&
+    record.sourcePath === contract.sourcePath
+  );
+}
+
 export async function loadDeploymentConstructor(
   record: DeploymentRecord,
   getBuild: (id: string) => Promise<DeploymentBuild>,

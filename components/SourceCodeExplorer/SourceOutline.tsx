@@ -213,9 +213,11 @@ function OutlineRows({
 export function SourceOutline({
   source,
   enabled = true,
+  fitContent = false,
 }: {
   source: SourceOutlineInput;
   enabled?: boolean;
+  fitContent?: boolean;
 }) {
   const supported = source.path.endsWith(".sol");
   const { symbols, loading, unavailable } = useSourceOutline(
@@ -229,7 +231,7 @@ export function SourceOutline({
       aria-label="Source outline"
       minW={0}
       overflowY="auto"
-      h="full"
+      h={fitContent ? "auto" : "full"}
       py={1}
     >
       {symbols.length ? (

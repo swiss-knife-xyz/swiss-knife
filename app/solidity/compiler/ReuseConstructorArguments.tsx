@@ -32,6 +32,7 @@ import type { DeploymentHistoryController } from "./useDeploymentHistory";
 import type { DeploymentRecord } from "@/lib/solidity/deployments";
 import {
   constructorsMatch,
+  deploymentMatchesContract,
   loadDeploymentConstructor,
   reuseConstructorValues,
 } from "@/lib/solidity/deploymentConstructor";
@@ -41,11 +42,13 @@ import { shortenAddress } from "@/utils/helpers";
 import { chainIdToChain, chainIdToImage } from "@/data/common";
 type Loaded = Awaited<ReturnType<typeof loadDeploymentConstructor>>;
 export function ReuseConstructorArguments({
+  contract,
   inputs,
   history,
   disabled,
   onReuse,
 }: {
+  contract: { name: string; sourcePath: string };
   inputs: readonly JsonFragmentType[];
   history: DeploymentHistoryController;
   disabled: boolean;
@@ -55,7 +58,7 @@ export function ReuseConstructorArguments({
   const [loaded, setLoaded] = useState<Record<string, Loaded | string>>({});
   const [error, setError] = useState("");
   const records = history.records.filter(
-    (record) => !record.deletedAt && record.status !== "rejected"
+    (record) => deploymentMatchesContract(record, contract)
   );
   const latest = useRef(records);
   latest.current = records;
