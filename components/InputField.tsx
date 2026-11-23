@@ -9,6 +9,7 @@ import {
   Box,
   Portal,
 } from "@chakra-ui/react";
+import { useCompactParameterInputs } from "./fnParams/ParameterInputStyle";
 import { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
@@ -36,6 +37,7 @@ interface MultilineInputFieldProps extends TextareaProps {
 type InputFieldProps = SingleLineInputFieldProps | MultilineInputFieldProps;
 
 export const InputField = (props: InputFieldProps) => {
+  const compact = useCompactParameterInputs();
   const { value, isInvalid, InputLeftElement: LeftElement } = props;
   const [tooltipPointer, setTooltipPointer] = useState<{
     x: number;
@@ -63,11 +65,23 @@ export const InputField = (props: InputFieldProps) => {
     fontSize: "md",
     py: 3,
     transition: "all 0.2s",
+    ...(compact
+      ? {
+          h: 8,
+          minH: 8,
+          py: 1,
+          fontSize: "13px",
+          fontFamily: "mono",
+          borderRadius: "md",
+          bg: "bg.subtle",
+        }
+      : {}),
   } satisfies InputProps;
 
   let control;
   if (props.multiline) {
-    const { multiline, InputLeftElement, copyValue, valueTooltip, ...rest } = props;
+    const { multiline, InputLeftElement, copyValue, valueTooltip, ...rest } =
+      props;
     control = (
       <Textarea
         {...styles}
@@ -78,7 +92,8 @@ export const InputField = (props: InputFieldProps) => {
       />
     );
   } else {
-    const { multiline, InputLeftElement, copyValue, valueTooltip, ...rest } = props;
+    const { multiline, InputLeftElement, copyValue, valueTooltip, ...rest } =
+      props;
     control = (
       <Input
         {...styles}

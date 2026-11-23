@@ -700,3 +700,110 @@
 - Tx calldata controls include Edit in Contract Explorer ↗ for a known recipient,
   sharing the address-field link and its calldata/value import. Controls wrap on
   narrow screens; the link opens a new tab.
+
+## Calldata encoder
+
+- Scope: `/calldata/encoder`, a technical developer workspace. Direction: compact,
+  precise, professional. Aesthetic essence: build, encode, inspect.
+- References: the calldata decoder's quiet tabs and editable parameter fields,
+  plus the contract explorer's existing ABI input widgets. Retain the ETH.sh
+  Inter/JetBrains Mono stacks and semantic palette; no extra fonts or artwork.
+- Tokens: `bg.subtle` workspace, `border.default` edges, `text.primary` labels,
+  `text.secondary` supporting text, `primary.400` selected tabs, `primary.600`
+  primary action. Use the existing 4px spacing rhythm, `md` controls and `lg`
+  workspace corners, 14px section headings and 12–13px labels/code.
+- Signature: one workspace with four peer input modes and a shared action footer.
+  Function name and parameters are compact groups rather than independent cards.
+  Manual parameters keep their type/name toolbar and typed value together.
+- Manual/ABI/address/MultiSend modes retain their own drafts. Address lookup uses
+  a two-column desktop form; MultiSend uses paired fields, stacking on mobile.
+  Mode tabs use a two-by-two grid on phones so every mode remains visible.
+- The editor's `compact` variant is opt-in; embedded bytes builders retain their
+  existing surface/plain variants. Scope input typography and density to this page.
+- Result: separate output surface with byte count, selector highlighting,
+  compact standard/packed and full/parameters tabs, and contextual copy action.
+- Accessibility: native keyboard tabs, named input controls and actual buttons
+  for ABI disclosures; copy remains independent of disclosure. Keep shared
+  input validation, focus rings and typed-value conversions.
+- Audit (2026-11-24): retained the established app theme, removed redundant
+  section surfaces and the secondary mode row, kept labels near inputs and a
+  single primary action. No decorative imagery, shadows or new motion. Browser
+  verification covered manual and ABI encoding, mode switching and mobile layout.
+- Changelog (2026-11-24): redesigned the encoder around a compact tabbed workspace.
+
+## Decoder explorer links
+
+- From Address and From Tx expose a compact, right-aligned “Open in Contract
+  Explorer” text action below their inputs, using the transaction page's shared
+  call-link format. Keep current chain, recipient, calldata and transaction value.
+- Hide unresolved destinations and stale transaction drafts. Use a new tab and
+  retain the separate external block-explorer link in transaction mode.
+- Changelog (2026-11-24): added contextual Contract Explorer links in both modes.
+
+## Contract parameter forms
+
+- Scope: editable function parameters in Contract Explorer, including recursive
+  tuple and array fields. Direction: compact, precise, readable. Reuse existing
+  Inter/mono fonts, semantic dark surfaces and blue focus states.
+- Apply compact density through a React context around editable inputs only;
+  read results and other tools keep their existing density. Fields and format
+  selectors use 32px height, 12px labels and 12–13px monospace values.
+- Array items use a thin outlined row, a small index/collapse button and a named
+  remove control. Show item counts beside the array name, and a quiet empty
+  state with a centered Add action. Fixed arrays retain disabled add/remove.
+- Hide the redundant tuple heading inside array items. Standalone tuples use a
+  native disclosure button and a light nesting rail. Avoid cumulative padding,
+  progressively lighter backgrounds and decorative tabs at every nesting level.
+- Keep integer values and unit selectors in one row on narrow screens. Place
+  address/bytes quick-fill actions beside labels; bytes-builder actions are
+  independent small icon/text actions rather than tabs joined to the field.
+- Preserve mounted values on collapse, stable item identities on deletion,
+  automatic focus for additions, typed validation, copy, ENS and bytes builders.
+- Audit (2026-11-24): checked the supplied two-operation EntryPoint call on desktop
+  and mobile, plus empty nested arrays and adding an aggregator tuple. No page
+  overflow at 390px; no new font, palette, shadow or animation system introduced.
+- Changelog (2026-11-24): replaced the padded recursive input presentation with
+  compact contract-parameter rows and accessible disclosure controls.
+
+
+## Bytes builder modal
+
+- Scope: the dynamic-bytes field builder in contract forms, the encoder and nested
+  builders. Reuse the encoder's compact 32px controls, restrained dark surfaces,
+  12–13px field typography, 4px spacing rhythm and blue primary Apply action.
+- Use three peer tabs: Manual, From ABI and From Address. Manual always shows an
+  optional function-name input; blank encodes parameters, a name adds a selector.
+  Remove the Payload format dropdown. No Safe MultiSend mode in this dialog.
+- From ABI accepts JSON objects or human-readable signatures. Function choices
+  use full signatures to distinguish overloads; constructors encode arguments.
+  From Address uses the shared network selector and verified ABI lookup, with
+  independent network state, stale-request protection and explicit fetch errors.
+- Keep manual parameters, ABI text/selection/values, address/network/fetched ABI,
+  active mode and generated output in the mounted dialog controller. Closing or
+  applying retains those drafts for reopening; changing mode invalidates output
+  while preserving each mode's inputs. Do not imply persistence across reloads.
+- Preserve nested builders, local base-unit inputs, validation, copy, result
+  scrolling and a separate Set bytes value action. Labels, tabs and modal focus
+  remain keyboard accessible; reduced motion uses instant result scrolling.
+- Audit (2026-11-24): verified manual/function bytes, human-readable ABI decoding
+  into input fields, verified Base ABI lookup, close/reopen recovery, and 390px
+  mobile sizing without horizontal overflow. Existing builder tests plus new
+  mode/draft, overloaded-function, constructor and stale-fetch tests pass.
+- Changelog (2026-11-24): aligned the modal with the standalone encoder workflow.
+
+## Validation error reveal
+
+- Contract function forms observe their actual `aria-invalid` input markers.
+  Newly marked fields expand all containing array/tuple/function disclosures;
+  after React commits those openings, scroll once to the first invalid leaf in
+  parameter order. Do not move keyboard focus or reset mounted draft values.
+- Keep reveal scoped to the current function. A general execution/RPC error with
+  valid inputs must not expand parameters or move the page. A repeated failed
+  attempt can reveal the same invalid fields again after manual collapse.
+- Use smooth centered scrolling with a small scroll margin; reduced-motion
+  preferences use instant scrolling. Cancel observers/queued work on unmount.
+- Changelog (2026-11-24): added automatic expansion and scrolling for invalid
+  scalar fields, selectors and recursively nested tuples/arrays.
+- Audit: browser-verified against an empty collapsed EntryPoint `handleOps` row;
+  tests cover nested ancestors, first-field ordering, repeat attempts, all basic
+  input types, fixed arrays, valid-input execution errors and unmount cleanup.

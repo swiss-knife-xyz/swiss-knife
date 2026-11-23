@@ -22,9 +22,13 @@ import {
   convertGMTToUnixSeconds,
 } from "@/utils";
 import { stringify } from "viem";
+import { useCompactParameterInputs } from "../ParameterInputStyle";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { motion } from "framer-motion";
-import { compactFormatSelectProps, compactValueFieldProps } from "@/components/decodedParams/paramStyles";
+import {
+  compactFormatSelectProps,
+  compactValueFieldProps,
+} from "@/components/decodedParams/paramStyles";
 
 // Types and Interfaces
 interface IntInputProps extends InputProps {
@@ -60,6 +64,8 @@ export const IntInput = ({
   compact = false,
   ...props
 }: IntInputProps) => {
+  const dense = useCompactParameterInputs();
+  const compactControls = compact || dense;
   // Refs
   const prevValueRef = useRef<string>("0");
   const buttonClickedRef = useRef<boolean>(false);
@@ -350,7 +356,7 @@ export const IntInput = ({
         />
       </motion.div>
       <InputField
-        {...(compact ? compactValueFieldProps : {})}
+        {...(compactControls ? compactValueFieldProps : {})}
         InputLeftElement={
           selectedEthFormatOption?.value === "Bps ↔️ %" ? (
             <InputLeftElement bg="whiteAlpha.100">%</InputLeftElement>
@@ -402,7 +408,13 @@ export const IntInput = ({
 
   const renderUnixTimeControls = () => (
     <Box>
-      <HStack flexWrap="wrap" mt="1" ml={{ base: 0, md: 4 }} fontSize="sm" color="whiteAlpha.800">
+      <HStack
+        flexWrap="wrap"
+        mt="1"
+        ml={{ base: 0, md: 4 }}
+        fontSize="sm"
+        color="whiteAlpha.800"
+      >
         <Box>
           {
             (showLocalTime
@@ -519,29 +531,52 @@ export const IntInput = ({
           }
         : {})}
     >
-      {compact ? <Box as="label" fontSize="11px" fontFamily="mono" color="text.secondary" mb={1} htmlFor={props.id}>{input.name || input.type}</Box> : <InputInfo input={input} />}
+      {compact ? (
+        <Box
+          as="label"
+          fontSize="11px"
+          fontFamily="mono"
+          color="text.secondary"
+          mb={1}
+          htmlFor={props.id}
+        >
+          {input.name || input.type}
+        </Box>
+      ) : (
+        <InputInfo input={input} />
+      )}
       <HStack
         align="stretch"
         spacing={2}
-        sx={compact ? { flexDirection: "row" } : {
-          flexDirection: "column",
-          "@container integer-input (min-width: 380px)": { flexDirection: "row" },
-        }}
+        sx={
+          compactControls
+            ? { flexDirection: "row" }
+            : {
+                flexDirection: "column",
+                "@container integer-input (min-width: 380px)": {
+                  flexDirection: "row",
+                },
+              }
+        }
       >
         {renderInputField()}
         <DarkSelect
-          {...(compact ? compactFormatSelectProps : {})}
-          boxProps={compact ? compactFormatSelectProps.boxProps : {
-            minW: 0,
-            w: "full",
-            sx: {
-              "@container integer-input (min-width: 380px)": {
-                width: "7rem",
-              },
-            },
-            flexShrink: 0,
-            fontSize: "small",
-          }}
+          {...(compactControls ? compactFormatSelectProps : {})}
+          boxProps={
+            compactControls
+              ? compactFormatSelectProps.boxProps
+              : {
+                  minW: 0,
+                  w: "full",
+                  sx: {
+                    "@container integer-input (min-width: 380px)": {
+                      width: "7rem",
+                    },
+                  },
+                  flexShrink: 0,
+                  fontSize: "small",
+                }
+          }
           selectedOption={selectedEthFormatOption}
           setSelectedOption={(option) =>
             setSelectedEthFormatOption(option as ETHSelectedOptionState)

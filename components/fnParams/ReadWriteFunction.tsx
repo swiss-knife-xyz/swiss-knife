@@ -60,6 +60,8 @@ import {
   IntInput,
 } from "@/components/fnParams/inputs";
 import { ExtendedJsonFragmentType, HighlightedContent } from "@/types";
+import { useInvalidInputReveal } from "./useInvalidInputReveal";
+import { CompactParameterInputs } from "./ParameterInputStyle";
 import { renderInputFields, renderParamTypes } from "./Renderer";
 import { generateTenderlyUrl, slicedText } from "@/utils";
 import { getTransactionError, getContractError } from "viem/utils";
@@ -340,7 +342,14 @@ const ReadWriteFunctionComponent = ({
   const [confirmedTxHash, setConfirmedTxHash] = useState<string | null>(null);
 
   const [loading, setLoading] = useState<boolean>(false);
-  const [isError, setIsError] = useState<boolean>(false);
+  const [isError, setIsErrorState] = useState<boolean>(false);
+  const [validationAttempt, setValidationAttempt] = useState(0);
+  const setIsError = useCallback((value: boolean) => {
+    setIsErrorState(value);
+    if (value) setValidationAttempt(previous => previous + 1);
+  }, []);
+  const validationRootRef = useRef<HTMLDivElement>(null);
+  useInvalidInputReveal(validationRootRef, validationAttempt);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [enterPressed, setEnterPressed] = useState<boolean>(false);
   const [calldataModalOpen, setCalldataModalOpen] = useState<boolean>(false);
@@ -1100,6 +1109,8 @@ const ReadWriteFunctionComponent = ({
 
   return (
     <Box
+      ref={validationRootRef}
+      data-parameter-branch=""
       minW={0}
       w="full"
       mb={2}
@@ -1182,6 +1193,7 @@ const ReadWriteFunctionComponent = ({
                 gridColumn={1}
                 gridRow={1}
                 alignSelf="start"
+                data-parameter-toggle=""
                 aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${displayName}`}
                 aria-expanded={!isCollapsed}
                 icon={isCollapsed ? <ChevronUpIcon boxSize={5} /> : <ChevronDownIcon boxSize={5} />}
@@ -1482,29 +1494,31 @@ const ReadWriteFunctionComponent = ({
           </Box>
         )}
         {inputs && inputs.length > 0 && (
-          <Box ml={{ base: 0, md: 4 }}>
-            {inputs.map((input, i) => (
-              <Box key={i} mt={2}>
-                {renderInputFields({
-                  chainId,
-                  input,
-                  suggestions: isSupportsInterface && i === 0 ? interfacePresetOptions : undefined,
-                  value: inputsState[i] ?? "",
-                  allowBytesBuilder: true,
-                  onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                    updateInputState(i, e.target.value),
-                  setFunctionIsDisabled: (value: boolean) =>
-                    updateFunctionIsDisabled(i, value),
-                  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-                    if (e.key === "Enter" && !functionIsDisabled) {
-                      setEnterPressed(true);
-                    }
-                  },
-                  isError,
-                })}
-              </Box>
-            ))}
-          </Box>
+          <CompactParameterInputs.Provider value={true}>
+            <Box ml={{ base: 0, md: 4 }} minW={0}>
+              {inputs.map((input, i) => (
+                <Box key={i} mt={2}>
+                  {renderInputFields({
+                    chainId,
+                    input,
+                    suggestions: isSupportsInterface && i === 0 ? interfacePresetOptions : undefined,
+                    value: inputsState[i] ?? "",
+                    allowBytesBuilder: true,
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateInputState(i, e.target.value),
+                    setFunctionIsDisabled: (value: boolean) =>
+                      updateFunctionIsDisabled(i, value),
+                    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                      if (e.key === "Enter" && !functionIsDisabled) {
+                        setEnterPressed(true);
+                      }
+                    },
+                    isError,
+                  })}
+                </Box>
+              ))}
+            </Box>
+          </CompactParameterInputs.Provider>
         )}
         {/* Keep the same output widgets mounted across query modes and reloads. */}
         <Box display={outputVisible ? undefined : "none"} mt={2} ml={{ base: 0, md: 4 }} mb={inputs && inputs.length > 0 ? 0 : 4}

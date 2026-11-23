@@ -22,6 +22,7 @@ import {
 } from "@/utils";
 import { useAccount } from "wagmi";
 import { JsonFragment } from "ethers";
+import { useCompactParameterInputs } from "../ParameterInputStyle";
 import { InputInfo } from "@/components/fnParams/inputs";
 import subdomains from "@/subdomains";
 import debounce from "lodash/debounce";
@@ -69,6 +70,7 @@ export const AddressInput = ({
   hideQuickFillButtons,
   ...rest
 }: InputFieldProps) => {
+  const compact = useCompactParameterInputs();
   const { address: userAddress } = useAccount();
 
   const [ensName, setEnsName] = useState("");
@@ -270,9 +272,74 @@ export const AddressInput = ({
     } as any);
   };
 
+  const quickFillButtons = !hideQuickFillButtons && (
+    <HStack
+      my={compact ? 0 : 2}
+      flexWrap="wrap"
+      rowGap={1}
+      sx={
+        compact
+          ? {
+              "& button": {
+                height: 6,
+                minHeight: 6,
+                borderRadius: "md",
+                fontSize: "xs",
+                fontWeight: "normal",
+                color: "text.secondary",
+              },
+            }
+          : undefined
+      }
+    >
+      <Spacer display={compact ? "none" : undefined} />
+      <AddressBookButton
+        onSelect={(address: string) => {
+          onChange({
+            target: { value: address },
+          } as any);
+        }}
+      />
+      <Button
+        onClick={() => {
+          onChange({
+            target: { value: zeroAddress },
+          } as any);
+        }}
+        size={"sx"}
+        fontWeight={"thin"}
+        variant={"ghost"}
+        color="whiteAlpha.300"
+      >
+        [zeroAddr]
+      </Button>
+      {userAddress && (
+        <Button
+          onClick={() => {
+            onChange({
+              target: { value: userAddress },
+            } as any);
+          }}
+          size={"sx"}
+          fontWeight={"thin"}
+          variant={"ghost"}
+          color="whiteAlpha.300"
+        >
+          [{slicedText(userAddress)}]
+        </Button>
+      )}
+    </HStack>
+  );
+
   return (
     <Box>
-      <HStack mb={2} minW={0} flexWrap="wrap" rowGap={1}>
+      <HStack
+        mb={compact ? 1.5 : 2}
+        minW={0}
+        flexWrap="wrap"
+        rowGap={1}
+        sx={compact ? { "& .fn-input-info": { mb: 0 } } : undefined}
+      >
         <InputInfo input={input} />
         {addressLabels.length > 0 && (
           <HStack py="2" flexWrap="wrap">
@@ -287,6 +354,7 @@ export const AddressInput = ({
           </HStack>
         )}
         <Spacer />
+        {compact && quickFillButtons}
         {labelAction}
         <AnimatePresence>
           {ensName && (
@@ -362,46 +430,7 @@ export const AddressInput = ({
           />
         </Box>
 
-        {!hideQuickFillButtons && (
-          <HStack my={2} flexWrap="wrap" rowGap={1}>
-            <Spacer />
-            <AddressBookButton
-              onSelect={(address: string) => {
-                onChange({
-                  target: { value: address },
-                } as any);
-              }}
-            />
-            <Button
-              onClick={() => {
-                onChange({
-                  target: { value: zeroAddress },
-                } as any);
-              }}
-              size={"sx"}
-              fontWeight={"thin"}
-              variant={"ghost"}
-              color="whiteAlpha.300"
-            >
-              [zeroAddr]
-            </Button>
-            {userAddress && (
-              <Button
-                onClick={() => {
-                  onChange({
-                    target: { value: userAddress },
-                  } as any);
-                }}
-                size={"sx"}
-                fontWeight={"thin"}
-                variant={"ghost"}
-                color="whiteAlpha.300"
-              >
-                [{slicedText(userAddress)}]
-              </Button>
-            )}
-          </HStack>
-        )}
+        {!compact && quickFillButtons}
       </Box>
     </Box>
   );

@@ -5,6 +5,8 @@ import { NetworkSelect } from "@/components/NetworkSelect";
 import dynamic from "next/dynamic";
 import { ClearSigningScrollArea } from "@/components/ClearSigning/ClearSigningScrollArea";
 import type { ClearSigningRequest } from "@/lib/clearSigning/resolve";
+import { createContractCallLink } from "@/lib/contractCall";
+import { parseJsonAbi } from "@/lib/parseJsonAbi";
 import { ToolLoading } from "@/components/ToolLoading";
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useState, useEffect, useMemo } from "react";
@@ -582,6 +584,36 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const previewSummaryRequest = summaryRequest && typeof draftCalldata === "string"
     ? { ...summaryRequest, calldata: draftCalldata }
     : summaryRequest;
+  const contractExplorerHref = useMemo(() => {
+    const selectedChain = Number(selectedNetworkOption?.value);
+    const transactionChain = parseTransactionExplorerUrl(fromTxInput)?.chainId ?? selectedChain;
+    const request = selectedTabIndex === 3 && fromTxInput.trim() &&
+      summaryRequest?.chainId === transactionChain ? summaryRequest : undefined;
+    const destination = selectedTabIndex === 2 ? contractAddress : request?.to;
+    const destinationChain = selectedTabIndex === 2 ? selectedChain : request?.chainId;
+    if (!destination || !/^0x[\da-f]{40}$/i.test(destination) || !destinationChain) return undefined;
+    const base = getPath(subdomains.CONTRACT.base);
+    const route = `${base}${destinationChain}/${destination}`;
+    const data = selectedTabIndex === 2 ? calldata : request?.calldata;
+    if (!data?.trim()) return route;
+    try {
+      const link = new URL(createContractCallLink(new URL(base, "https://eth.sh").href,
+        destinationChain, destination, { data: startHexWith0x(data.trim()), value: request?.value ?? "0" }));
+      return base.startsWith("/") ? `${link.pathname}${link.hash}` : link.href;
+    } catch {
+      return route;
+    }
+  }, [selectedTabIndex, selectedNetworkOption, contractAddress, calldata, fromTxInput, summaryRequest]);
+
+  const renderContractExplorerLink = () => contractExplorerHref ? (
+    <HStack justify="flex-end" w="full">
+      <Button as={Link} href={contractExplorerHref} isExternal size="sm" variant="ghost"
+        color="primary.300" rightIcon={<ExternalLinkIcon boxSize={3} />}>
+        Open in Contract Explorer
+      </Button>
+    </HStack>
+  ) : null;
+
   const rememberSummaryVisibility = React.useCallback((visible: boolean) => {
     if (visible) setClearSigningVisibleFor(result);
   }, [result]);
@@ -788,11 +820,12 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     setIsLoading(true);
     console.log("DECODING...");
     try {
+      const suppliedAbi = typeof _abi === "string" ? parseJsonAbi(_abi) : _abi;
       const res = await decodeRecursive({
         calldata: startHexWith0x(__calldata),
         address: _address,
         chainId: _chainId,
-        abi: _abi,
+        abi: suppliedAbi,
         mode: _mode ?? (selectedTabIndex !== 3 && decodeMode === "revert" ? "revert" : "auto"),
       });
       if (id !== requestId.current) return;
@@ -801,7 +834,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       setClearSigningRequest(res?.kind === "revert" ? undefined : { calldata: startHexWith0x(__calldata), to: _address, chainId: _chainId, from: _from, value: _value });
       try {
         const baseUrl = new URL(`${getPath(subdomains.CALLDATA.base)}decoder`, window.location.origin);
-        setShareLink(createDecoderShareLink(baseUrl.toString(), startHexWith0x(__calldata), res, _abi));
+        setShareLink(createDecoderShareLink(baseUrl.toString(), startHexWith0x(__calldata), res, suppliedAbi));
       } catch {
         // A synthetic or oversized decode can still be viewed and copied as JSON.
         setShareLink(null);
@@ -1110,6 +1143,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
             </FormControl>
           </Box>
         )}
+        {renderContractExplorerLink()}
       </VStack>
     );
   };
@@ -1204,6 +1238,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
             </Box>
           </HStack>
         )}
+        {renderContractExplorerLink()}
       </VStack>
     );
   };

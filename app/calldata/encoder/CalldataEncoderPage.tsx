@@ -12,7 +12,13 @@ import {
   Text,
   Icon,
   IconButton,
-  Checkbox,
+  Button,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
+  SimpleGrid,
   Collapse,
   useDisclosure,
   Spacer,
@@ -30,8 +36,10 @@ import {
   FiFileText,
   FiLayers,
   FiShield,
+  FiArrowRight,
 } from "react-icons/fi";
 import { JsonFragmentType } from "ethers";
+import { parseJsonAbi } from "@/lib/parseJsonAbi";
 import { Abi, Hex } from "viem";
 import { Editor } from "@monaco-editor/react";
 
@@ -42,7 +50,6 @@ import { resolveERC3770Address, fetchContractAbi } from "@/utils";
 import { InputField } from "@/components/InputField";
 import { DarkButton } from "@/components/DarkButton";
 import { DarkSelect } from "@/components/DarkSelect";
-import TabsSelector from "@/components/Tabs/TabsSelector";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { renderInputFields } from "@/components/fnParams/Renderer";
 import { AddressInput } from "@/components/fnParams/inputs/AddressInput";
@@ -86,21 +93,9 @@ const Section = ({
   children: React.ReactNode;
   noPadding?: boolean;
 }) => (
-  <Box
-    bg="bg.subtle"
-    border="1px solid"
-    borderColor="border.default"
-    borderRadius="xl"
-    overflow="hidden"
-  >
-    <HStack
-      px={5}
-      py={3}
-      borderBottom="1px solid"
-      borderColor="border.subtle"
-      bg="bg.muted"
-    >
-      <Icon as={icon} color="primary.400" boxSize={4} />
+  <Box minW={0}>
+    <HStack mb={3} spacing={2}>
+      <Icon as={icon} color="text.secondary" boxSize={4} />
       <Text color="text.primary" fontWeight="semibold" fontSize="sm">
         {title}
       </Text>
@@ -117,11 +112,65 @@ const Section = ({
         </Badge>
       )}
     </HStack>
-    <Box px={noPadding ? 0 : 5} py={noPadding ? 0 : 4}>
+    <Box
+      minW={0}
+      {...(noPadding
+        ? {
+            border: "1px solid",
+            borderColor: "border.default",
+            borderRadius: "md",
+            overflow: "hidden",
+          }
+        : {})}
+    >
       {children}
     </Box>
   </Box>
 );
+
+// Match the decoder's compact, keyboard-accessible result tabs.
+function ResultTabs({
+  tabs,
+  selectedTabIndex,
+  setSelectedTabIndex,
+}: {
+  tabs: string[];
+  selectedTabIndex: number;
+  setSelectedTabIndex: (index: number) => void;
+}) {
+  return (
+    <Tabs
+      index={selectedTabIndex}
+      onChange={setSelectedTabIndex}
+      variant="unstyled"
+      minW={0}
+    >
+      <TabList
+        flexWrap="wrap"
+        borderBottom="1px solid"
+        borderColor="border.default"
+        gap={1}
+      >
+        {tabs.map((label) => (
+          <Tab
+            key={label}
+            px={3}
+            py={2}
+            fontSize="xs"
+            color="text.secondary"
+            borderBottom="2px solid"
+            borderColor="transparent"
+            _selected={{ color: "text.primary", borderColor: "primary.400" }}
+            _hover={{ color: "text.primary", bg: "whiteAlpha.50" }}
+            _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
+          >
+            {label}
+          </Tab>
+        ))}
+      </TabList>
+    </Tabs>
+  );
+}
 
 // =============================================================================
 // MAIN COMPONENT
@@ -144,6 +193,7 @@ function CalldataEncoderPageContent() {
 
   // --- ABI Mode State ---
   const [abi, setAbi] = useState<string>("");
+  const [abiParseError, setAbiParseError] = useState("");
   const [parsedFunctions, setParsedFunctions] = useState<
     { label: string; value: string; inputs: readonly JsonFragmentType[] }[]
   >([]);
@@ -169,6 +219,24 @@ function CalldataEncoderPageContent() {
 
   // --- Result ---
   const [encodedResult, setEncodedResult] = useState<string>("");
+  const resultAnchorRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (
+      !encodedResult ||
+      typeof resultAnchorRef.current?.scrollIntoView !== "function"
+    )
+      return;
+    const frame = requestAnimationFrame(() => {
+      const reduceMotion = window.matchMedia?.(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+      resultAnchorRef.current?.scrollIntoView({
+        behavior: reduceMotion ? "instant" : "smooth",
+        block: "start",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [encodedResult]);
   const [encodedResultPacked, setEncodedResultPacked] = useState<string>("");
   const [packedError, setPackedError] = useState<string>("");
   const [encodedParamsOnly, setEncodedParamsOnly] = useState<string>("");
@@ -188,6 +256,7 @@ function CalldataEncoderPageContent() {
   // Parse ABI when it changes (for ABI and Address modes)
   useEffect(() => {
     const abiStr = selectedTabIndex === 2 ? fetchedAbi : abi;
+    setAbiParseError("");
     if (!abiStr) {
       setParsedFunctions([]);
       setSelectedFunction(null);
@@ -196,7 +265,7 @@ function CalldataEncoderPageContent() {
     }
 
     try {
-      const parsed = JSON.parse(abiStr);
+      const parsed = parseJsonAbi(abiStr);
       const abiFunctions: {
         label: string;
         value: string;
@@ -204,7 +273,7 @@ function CalldataEncoderPageContent() {
       }[] = [];
 
       const constructorEntry = parsed.find(
-        (item: any) => item.type === "constructor"
+        (item) => item.type === "constructor"
       );
       if (constructorEntry) {
         abiFunctions.push({
@@ -243,9 +312,18 @@ function CalldataEncoderPageContent() {
           setFunctionInputs(first.inputs);
           setInputsState({});
         }
+      } else {
+        setSelectedFunction(null);
+        setFunctionInputs([]);
+        setInputsState({});
+        setAbiParseError("This ABI has no functions or constructor to encode.");
       }
-    } catch {
+    } catch (error) {
       setParsedFunctions([]);
+      setSelectedFunction(null);
+      setFunctionInputs([]);
+      setInputsState({});
+      setAbiParseError(error instanceof Error ? error.message : "Invalid ABI.");
     }
   }, [abi, fetchedAbi, selectedTabIndex]);
 
@@ -400,7 +478,7 @@ function CalldataEncoderPageContent() {
         const abiStr = selectedTabIndex === 2 ? fetchedAbi : abi;
         if (!abiStr) throw new Error("No ABI provided");
 
-        const parsedAbi = JSON.parse(abiStr) as Abi;
+        const parsedAbi = parseJsonAbi(abiStr);
         const preparedArgs =
           functionInputs?.map((input, i) =>
             convertBooleans(inputsState[i], input)
@@ -533,6 +611,8 @@ function CalldataEncoderPageContent() {
       <Section icon={FiCode} title="Function Name" badge="Optional">
         <VStack spacing={3} align="stretch">
           <InputField
+            id="encoder-function-name"
+            aria-label="Function name (optional)"
             placeholder="e.g. transfer, approve, swap"
             value={manualFunctionName}
             onChange={(e) => setManualFunctionName(e.target.value)}
@@ -558,6 +638,7 @@ function CalldataEncoderPageContent() {
           manualParams={manualParams}
           setManualParams={setManualParams}
           encode={encode}
+          variant="compact"
         />
       </Section>
 
@@ -597,31 +678,44 @@ function CalldataEncoderPageContent() {
               bg="bg.subtle"
               border="1px solid"
               borderColor="border.default"
-              borderRadius="xl"
+              borderRadius="lg"
               overflow="hidden"
             >
               <HStack
-                px={5}
-                py={3}
+                px={3}
+                py={2}
                 borderBottom={isGeneratedAbiOpen ? "1px solid" : "none"}
                 borderColor="border.subtle"
                 bg="bg.muted"
                 cursor="pointer"
-                onClick={onGeneratedAbiToggle}
                 _hover={{ bg: "bg.emphasis" }}
                 transition="background 0.15s"
               >
                 <Icon as={FiFileText} color="primary.400" boxSize={4} />
-                <Text color="text.primary" fontWeight="semibold" fontSize="sm">
+                <Button
+                  variant="unstyled"
+                  h="auto"
+                  minW={0}
+                  flex={1}
+                  textAlign="left"
+                  fontSize="sm"
+                  fontWeight="medium"
+                  onClick={onGeneratedAbiToggle}
+                  aria-expanded={isGeneratedAbiOpen}
+                  rightIcon={
+                    isGeneratedAbiOpen ? <ChevronUpIcon /> : <ChevronDownIcon />
+                  }
+                  _focusVisible={{
+                    outline: "2px solid",
+                    outlineColor: "blue.400",
+                  }}
+                >
                   Generated ABI
-                </Text>
+                </Button>
                 <Spacer />
                 <Box onClick={(e) => e.stopPropagation()}>
                   <CopyToClipboard textToCopy={abiStr} />
                 </Box>
-                <Text fontSize="xl" fontWeight="bold" color="text.tertiary">
-                  {isGeneratedAbiOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                </Text>
               </HStack>
               <Collapse in={isGeneratedAbiOpen} animateOpacity>
                 <Box borderTop="0">
@@ -690,11 +784,19 @@ function CalldataEncoderPageContent() {
           </Box>
         </Section>
 
+        {abiParseError && (
+          <Text role="alert" color="red.300" fontSize="sm">
+            {abiParseError}
+          </Text>
+        )}
+
         {/* Function Selector */}
         {parsedFunctions.length > 0 && (
           <Section icon={FiCode} title="Function">
             <DarkSelect
               boxProps={{ w: "100%" }}
+              ariaLabel="Function"
+              size="sm"
               placeholder="Select function..."
               options={parsedFunctions.map((f) => ({
                 label: f.label,
@@ -723,12 +825,14 @@ function CalldataEncoderPageContent() {
       <VStack spacing={5} align="stretch" w="full">
         {/* Contract Lookup */}
         <Section icon={FiMapPin} title="Contract Lookup">
-          <VStack spacing={4} align="stretch">
-            <Box>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+            <Box minW={0}>
               <AddressInput
                 chainId={chainId}
                 input={{ name: "Contract Address", type: "address" }}
                 placeholder="0x... or ENS name"
+                aria-label="Contract address"
+                hideTags
                 value={contractAddress}
                 onChange={(e) => {
                   const input = e.target.value;
@@ -745,31 +849,31 @@ function CalldataEncoderPageContent() {
               />
             </Box>
             <Box>
-              <Text
-                color="text.tertiary"
-                fontSize="xs"
-                mb={1.5}
-                fontWeight="medium"
-              >
-                CHAIN
-              </Text>
+              <HStack mb={2}>
+                <Text className="fn-input-info" fontWeight="medium">
+                  Network
+                </Text>
+              </HStack>
               <NetworkSelect
+                ariaLabel="Contract network"
+                size="sm"
+                controlProps={{ h: 9, minH: 9, borderRadius: "md" }}
                 boxProps={{ w: "100%" }}
                 selectedOption={selectedNetworkOption}
                 setSelectedOption={setSelectedNetworkOption}
                 options={networkOptions}
               />
             </Box>
-            <Box>
+            <Box gridColumn={{ md: "1 / -1" }} textAlign="center">
               <DarkButton
+                size="sm"
                 onClick={fetchAbiFromAddress}
                 isLoading={isFetchingAbi}
-                w="full"
               >
                 Fetch ABI
               </DarkButton>
             </Box>
-          </VStack>
+          </SimpleGrid>
         </Section>
 
         {/* Fetched ABI Display */}
@@ -778,31 +882,42 @@ function CalldataEncoderPageContent() {
             bg="bg.subtle"
             border="1px solid"
             borderColor="border.default"
-            borderRadius="xl"
+            borderRadius="lg"
             overflow="hidden"
           >
             <HStack
-              px={5}
-              py={3}
+              px={3}
+              py={2}
               borderBottom={isAbiOpen ? "1px solid" : "none"}
               borderColor="border.subtle"
               bg="bg.muted"
               cursor="pointer"
-              onClick={onAbiToggle}
               _hover={{ bg: "bg.emphasis" }}
               transition="background 0.15s"
             >
               <Icon as={FiFileText} color="primary.400" boxSize={4} />
-              <Text color="text.primary" fontWeight="semibold" fontSize="sm">
+              <Button
+                variant="unstyled"
+                h="auto"
+                minW={0}
+                flex={1}
+                textAlign="left"
+                fontSize="sm"
+                fontWeight="medium"
+                onClick={onAbiToggle}
+                aria-expanded={isAbiOpen}
+                rightIcon={isAbiOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                _focusVisible={{
+                  outline: "2px solid",
+                  outlineColor: "blue.400",
+                }}
+              >
                 ABI
-              </Text>
+              </Button>
               <Spacer />
               <Box onClick={(e) => e.stopPropagation()}>
                 <CopyToClipboard textToCopy={fetchedAbi} />
               </Box>
-              <Text fontSize="xl" fontWeight="bold" color="text.tertiary">
-                {isAbiOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-              </Text>
             </HStack>
             <Collapse in={isAbiOpen} animateOpacity>
               <Editor
@@ -828,6 +943,8 @@ function CalldataEncoderPageContent() {
           <Section icon={FiCode} title="Function">
             <DarkSelect
               boxProps={{ w: "100%" }}
+              ariaLabel="Function"
+              size="sm"
               placeholder="Select function..."
               options={parsedFunctions.map((f) => ({
                 label: f.label,
@@ -863,6 +980,7 @@ function CalldataEncoderPageContent() {
             {renderInputFields({
               chainId,
               input,
+              ariaLabel: input.name || `Parameter ${i + 1} value`,
               allowBytesBuilder: true,
               value: inputsState[i] || "",
               onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -901,9 +1019,9 @@ function CalldataEncoderPageContent() {
             <Box
               key={i}
               p={4}
-              bg="whiteAlpha.50"
+              bg="transparent"
               border="1px solid"
-              borderColor="border.subtle"
+              borderColor="border.default"
               borderRadius="lg"
             >
               <HStack mb={3} justify="space-between" align="center">
@@ -932,17 +1050,17 @@ function CalldataEncoderPageContent() {
                 />
               </HStack>
 
-              <VStack spacing={3} align="stretch">
-                <Box>
-                  <Text
-                    color="text.tertiary"
-                    fontSize="xs"
-                    mb={1.5}
-                    fontWeight="medium"
-                  >
-                    OPERATION
-                  </Text>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+                <Box minW={0}>
+                  <HStack mb={2}>
+                    <Text className="fn-input-info" fontWeight="medium">
+                      Operation
+                    </Text>
+                  </HStack>
                   <DarkSelect
+                    ariaLabel={`Transaction ${i + 1} operation`}
+                    size="sm"
+                    controlProps={{ h: 9, minH: 9, borderRadius: "md" }}
                     boxProps={{ w: "100%" }}
                     options={[
                       { label: "CALL (0)", value: 0 },
@@ -963,7 +1081,8 @@ function CalldataEncoderPageContent() {
                 <Box>
                   <AddressInput
                     chainId={1}
-                    input={{ name: "to", type: "address" }}
+                    aria-label={`Transaction ${i + 1} recipient`}
+                    input={{ name: "Recipient", type: "address" }}
                     value={tx.to}
                     onChange={(e) => updateMultiSendTx(i, "to", e.target.value)}
                     hideTags
@@ -972,7 +1091,8 @@ function CalldataEncoderPageContent() {
 
                 <Box>
                   <IntInput
-                    input={{ name: "value", type: "uint256" }}
+                    aria-label={`Transaction ${i + 1} value`}
+                    input={{ name: "Value", type: "uint256" }}
                     value={tx.value}
                     onChange={(e) =>
                       updateMultiSendTx(i, "value", e.target.value)
@@ -984,18 +1104,19 @@ function CalldataEncoderPageContent() {
 
                 <Box>
                   <BytesInput
-                    input={{ name: "data", type: "bytes" }}
+                    aria-label={`Transaction ${i + 1} data`}
+                    input={{ name: "Data", type: "bytes" }}
                     value={tx.data}
                     onChange={(e) =>
                       updateMultiSendTx(i, "data", e.target.value)
                     }
                   />
                 </Box>
-              </VStack>
+              </SimpleGrid>
             </Box>
           ))}
 
-          <Box>
+          <Box textAlign="center">
             <DarkButton onClick={addMultiSendTx} size="sm">
               <HStack spacing={2}>
                 <AddIcon boxSize={3} />
@@ -1032,11 +1153,30 @@ function CalldataEncoderPageContent() {
   // =============================================================================
 
   return (
-    <Box w="full" maxW="900px" mx="auto">
+    <Box
+      w="full"
+      maxW="1000px"
+      mx="auto"
+      minW={0}
+      sx={{
+        "& .chakra-input, & .chakra-textarea": {
+          fontFamily: "mono",
+          fontSize: "13px",
+          borderRadius: "md",
+        },
+        "& .chakra-input": { height: "36px", minHeight: "36px", py: 1.5 },
+        "& .fn-input-info": {
+          fontSize: "xs",
+          color: "text.secondary",
+          mb: 1.5,
+        },
+        "& .fn-input-info > *": { fontSize: "inherit" },
+      }}
+    >
       {/* Page Header */}
-      <Box mb={8} textAlign="center">
-        <HStack justify="center" spacing={3} mb={3}>
-          <Icon as={FiCode} color="primary.400" boxSize={7} />
+      <Box mb={6}>
+        <HStack spacing={2.5} mb={2}>
+          <Icon as={FiCode} color="primary.400" boxSize={5} />
           <Heading
             as="h1"
             size="lg"
@@ -1047,56 +1187,98 @@ function CalldataEncoderPageContent() {
             Calldata Encoder
           </Heading>
         </HStack>
-        <Text color="text.secondary" fontSize="md" maxW="520px" mx="auto">
-          Encode Ethereum calldata manually, from ABI, or from a verified
-          contract address
+        <Text color="text.secondary" fontSize="sm">
+          Build transaction calldata from parameters, an ABI, or a verified
+          contract.
         </Text>
       </Box>
 
-      {/* Mode Selection */}
-      <VStack spacing={4} mb={6}>
-        <TabsSelector
-          tabs={["Manual", "From ABI", "From Address"]}
-          selectedTabIndex={isSafeMultiSend ? -1 : selectedTabIndex}
-          setSelectedTabIndex={(idx) => {
-            setSelectedTabIndex(idx);
-            setIsSafeMultiSend(false);
+      <Box
+        border="1px solid"
+        borderColor="border.default"
+        borderRadius="lg"
+        bg="bg.subtle"
+        mb={5}
+      >
+        <Tabs
+          index={isSafeMultiSend ? 3 : selectedTabIndex}
+          onChange={(idx) => {
+            if (idx === 3) setIsSafeMultiSend(true);
+            else {
+              setSelectedTabIndex(idx);
+              setIsSafeMultiSend(false);
+            }
           }}
-        />
-
-        <HStack spacing={5} justify="center">
-          <Checkbox
-            isChecked={isSafeMultiSend}
-            onChange={(e) => setIsSafeMultiSend(e.target.checked)}
-            colorScheme="blue"
-            size="sm"
-          >
-            <HStack spacing={1.5}>
-              <Icon as={FiShield} boxSize={3.5} color="text.tertiary" />
-              <Text color="text.secondary" fontSize="sm">
-                Safe MultiSend
-              </Text>
-            </HStack>
-          </Checkbox>
-        </HStack>
-      </VStack>
-
-      {/* Content */}
-      <VStack spacing={5} align="stretch" mb={6}>
-        {renderTabContent()}
-      </VStack>
-
-      {/* Encode Button */}
-      <Box textAlign="center" mb={8}>
-        <DarkButton
-          onClick={encode}
-          isLoading={isEncoding}
-          px={10}
-          py={5}
-          fontSize="md"
+          isLazy
         >
-          Encode
-        </DarkButton>
+          <TabList
+            px={{ base: 2, md: 4 }}
+            borderColor="border.default"
+            display="grid"
+            gridTemplateColumns={{
+              base: "repeat(2, minmax(0, 1fr))",
+              sm: "repeat(4, max-content)",
+            }}
+          >
+            {["Manual", "From ABI", "From Address", "Safe MultiSend"].map(
+              (label, idx) => (
+                <Tab
+                  key={label}
+                  flexShrink={0}
+                  px={{ base: 3, md: 4 }}
+                  py={3}
+                  fontSize="sm"
+                  color="text.secondary"
+                  _selected={{
+                    color: "text.primary",
+                    borderColor: "primary.400",
+                  }}
+                  _hover={{ color: "text.primary", bg: "whiteAlpha.50" }}
+                  _focusVisible={{
+                    outline: "2px solid",
+                    outlineColor: "blue.400",
+                    outlineOffset: "-2px",
+                  }}
+                >
+                  {idx === 3 && <Icon as={FiShield} mr={1.5} boxSize={3.5} />}
+                  {label}
+                </Tab>
+              )
+            )}
+          </TabList>
+          <TabPanels>
+            {[0, 1, 2, 3].map((idx) => (
+              <TabPanel key={idx} p={{ base: 3, md: 5 }}>
+                {(isSafeMultiSend ? 3 : selectedTabIndex) === idx
+                  ? renderTabContent()
+                  : null}
+              </TabPanel>
+            ))}
+          </TabPanels>
+        </Tabs>
+        <HStack
+          px={{ base: 3, md: 5 }}
+          py={3}
+          borderTop="1px solid"
+          borderColor="border.default"
+          justify="flex-end"
+        >
+          <Button
+            onClick={encode}
+            isLoading={isEncoding}
+            loadingText="Encoding"
+            size="sm"
+            h={9}
+            px={4}
+            bg="primary.600"
+            color="white"
+            _hover={{ bg: "primary.500" }}
+            _active={{ bg: "primary.700" }}
+            rightIcon={<FiArrowRight />}
+          >
+            Encode calldata
+          </Button>
+        </HStack>
       </Box>
 
       {/* Result */}
@@ -1156,106 +1338,113 @@ function CalldataEncoderPageContent() {
             : packedError;
 
           return (
-            <Section
-              icon={FiCode}
-              title="Encoded Result"
-              badge={displayResult ? `${activeByteLength} bytes` : undefined}
+            <Box
+              ref={resultAnchorRef}
+              scrollMarginTop={6}
+              p={{ base: 3, md: 5 }}
+              border="1px solid"
+              borderColor="border.default"
+              borderRadius="lg"
+              bg="bg.subtle"
             >
-              <VStack spacing={3} align="stretch">
-                {/* Manual mode: Standard / Packed tabs */}
-                {showManualPackedTab && (
-                  <TabsSelector
-                    tabs={[
-                      "Standard (abi.encode)",
-                      "Packed (abi.encodePacked)",
-                    ]}
-                    selectedTabIndex={resultTabIndex}
-                    setSelectedTabIndex={setResultTabIndex}
-                    mt={0}
-                  />
-                )}
-
-                {/* ABI/Address mode: Full Calldata / Params Only tabs */}
-                {isAbiFunctionMode && (
-                  <VStack spacing={2} align="stretch">
-                    <TabsSelector
-                      tabs={["Full Calldata", "Params Only"]}
+              <Section
+                icon={FiCode}
+                title="Encoded Result"
+                badge={displayResult ? `${activeByteLength} bytes` : undefined}
+              >
+                <VStack spacing={3} align="stretch">
+                  {/* Manual mode: Standard / Packed tabs */}
+                  {showManualPackedTab && (
+                    <ResultTabs
+                      tabs={[
+                        "Standard (abi.encode)",
+                        "Packed (abi.encodePacked)",
+                      ]}
                       selectedTabIndex={resultTabIndex}
-                      setSelectedTabIndex={(idx) => {
-                        setResultTabIndex(idx);
-                        setParamsSubTabIndex(0);
-                      }}
-                      mt={0}
+                      setSelectedTabIndex={setResultTabIndex}
                     />
-                    {resultTabIndex === 1 && (
-                      <TabsSelector
-                        tabs={[
-                          "Standard (abi.encode)",
-                          "Packed (abi.encodePacked)",
-                        ]}
-                        selectedTabIndex={paramsSubTabIndex}
-                        setSelectedTabIndex={setParamsSubTabIndex}
-                        mt={0}
-                      />
-                    )}
-                  </VStack>
-                )}
+                  )}
 
-                {showPackedError ? (
-                  <Box
-                    p={4}
-                    bg="whiteAlpha.50"
-                    border="1px solid"
-                    borderColor="red.400"
-                    borderRadius="lg"
-                    fontFamily="mono"
-                    fontSize="sm"
-                    color="red.300"
-                  >
-                    Packed encoding failed: {packedErrorMsg}
-                  </Box>
-                ) : displayResult ? (
-                  <>
+                  {/* ABI/Address mode: Full Calldata / Params Only tabs */}
+                  {isAbiFunctionMode && (
+                    <VStack spacing={2} align="stretch">
+                      <ResultTabs
+                        tabs={["Full Calldata", "Params Only"]}
+                        selectedTabIndex={resultTabIndex}
+                        setSelectedTabIndex={(idx) => {
+                          setResultTabIndex(idx);
+                          setParamsSubTabIndex(0);
+                        }}
+                      />
+                      {resultTabIndex === 1 && (
+                        <ResultTabs
+                          tabs={[
+                            "Standard (abi.encode)",
+                            "Packed (abi.encodePacked)",
+                          ]}
+                          selectedTabIndex={paramsSubTabIndex}
+                          setSelectedTabIndex={setParamsSubTabIndex}
+                        />
+                      )}
+                    </VStack>
+                  )}
+
+                  {showPackedError ? (
                     <Box
                       p={4}
                       bg="whiteAlpha.50"
                       border="1px solid"
-                      borderColor="border.subtle"
+                      borderColor="red.400"
                       borderRadius="lg"
                       fontFamily="mono"
                       fontSize="sm"
-                      wordBreak="break-all"
-                      maxH="300px"
-                      overflowY="auto"
-                      color="text.primary"
-                      lineHeight="1.7"
-                      letterSpacing="0.01em"
+                      color="red.300"
                     >
-                      {hasSelector && resultTabIndex === 0 ? (
-                        <>
-                          <Text
-                            as="span"
-                            color="primary.400"
-                            fontWeight="semibold"
-                          >
-                            {displayResult.slice(0, 10)}
-                          </Text>
-                          <Text as="span">{displayResult.slice(10)}</Text>
-                        </>
-                      ) : (
-                        displayResult
-                      )}
+                      Packed encoding failed: {packedErrorMsg}
                     </Box>
-                    <HStack justify="flex-end">
-                      <CopyToClipboard
-                        textToCopy={displayResult}
-                        labelText={displayLabel}
-                      />
-                    </HStack>
-                  </>
-                ) : null}
-              </VStack>
-            </Section>
+                  ) : displayResult ? (
+                    <>
+                      <Box
+                        p={4}
+                        bg="whiteAlpha.50"
+                        border="1px solid"
+                        borderColor="border.subtle"
+                        borderRadius="lg"
+                        fontFamily="mono"
+                        fontSize="sm"
+                        wordBreak="break-all"
+                        maxH="300px"
+                        overflowY="auto"
+                        color="text.primary"
+                        lineHeight="1.7"
+                        letterSpacing="0.01em"
+                      >
+                        {hasSelector && resultTabIndex === 0 ? (
+                          <>
+                            <Text
+                              as="span"
+                              color="primary.400"
+                              fontWeight="semibold"
+                            >
+                              {displayResult.slice(0, 10)}
+                            </Text>
+                            <Text as="span">{displayResult.slice(10)}</Text>
+                          </>
+                        ) : (
+                          displayResult
+                        )}
+                      </Box>
+                      <HStack justify="flex-end">
+                        <CopyToClipboard
+                          textToCopy={displayResult}
+                          labelText={displayLabel}
+                        />
+                      </HStack>
+                    </>
+                  ) : null}
+                </VStack>
+              </Section>
+            </Box>
           );
         })()}
     </Box>

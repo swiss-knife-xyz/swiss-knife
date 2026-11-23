@@ -184,9 +184,10 @@ export function ManualParametersEditor({
   setManualParams: React.Dispatch<React.SetStateAction<ManualParam[]>>;
   encode: () => void;
   rawValues?: boolean;
-  variant?: "surface" | "plain";
+  variant?: "surface" | "plain" | "compact";
 }) {
-  const NameInput = variant === "plain" ? Input : InputField;
+  const isCompact = variant === "compact";
+  const NameInput = variant !== "surface" ? Input : InputField;
   const nameInputStyles =
     variant === "plain"
       ? {
@@ -340,16 +341,27 @@ export function ManualParametersEditor({
       {manualParams.map((param, i) => (
         <Box
           key={`${manualParams.length}-${i}-${param.type}-${JSON.stringify(param.components?.map((c) => c.type))}`}
-          p={{ base: variant === "plain" ? 3 : 2, md: 4 }}
-          bg={variant === "plain" ? "transparent" : "whiteAlpha.50"}
+          p={isCompact ? 3 : { base: variant === "plain" ? 3 : 2, md: 4 }}
+          bg={variant !== "surface" ? "transparent" : "whiteAlpha.50"}
           border="1px solid"
           borderColor={variant === "plain" ? "border.default" : "border.subtle"}
           borderRadius="lg"
           position="relative"
+          minW={0}
         >
           {/* Header row: index badge + type selector + delete */}
-          <HStack mb={3} justify="space-between" align="start" spacing={3}>
-            <HStack spacing={3} flex={1} minW={0} flexWrap="wrap">
+          <HStack
+            mb={3}
+            justify="space-between"
+            align="start"
+            spacing={isCompact ? 2 : 3}
+          >
+            <HStack
+              spacing={isCompact ? 2 : 3}
+              flex={1}
+              minW={0}
+              flexWrap="wrap"
+            >
               <Box
                 display={variant === "plain" ? "none" : undefined}
                 bg="whiteAlpha.100"
@@ -361,13 +373,24 @@ export function ManualParametersEditor({
                 fontFamily="mono"
                 flexShrink={0}
               >
-                [{i}]
+                {isCompact ? String(i + 1).padStart(2, "0") : `[${i}]`}
               </Box>
-              <Box w={{ base: "full", md: "200px" }} minW={0}>
+              <Box
+                w={
+                  isCompact
+                    ? { base: "calc(100% - 46px)", sm: "170px" }
+                    : { base: "full", md: "200px" }
+                }
+                minW={0}
+              >
                 <DarkSelect
-                  size={variant === "plain" ? "sm" : "md"}
+                  size={variant !== "surface" ? "sm" : "md"}
                   controlProps={
-                    variant === "plain" ? { h: 8, minH: 8 } : undefined
+                    isCompact
+                      ? { h: 9, minH: 9, borderRadius: "md" }
+                      : variant === "plain"
+                        ? { h: 8, minH: 8 }
+                        : undefined
                   }
                   isCreatable
                   ariaLabel={`Parameter ${i + 1} type`}
@@ -381,11 +404,16 @@ export function ManualParametersEditor({
                   }}
                 />
               </Box>
-              <Box w={{ base: "full", md: "180px" }} minW={0}>
+              <Box
+                flex={isCompact ? 1 : undefined}
+                w={{ base: "full", md: "180px" }}
+                minW={isCompact ? "120px" : 0}
+              >
                 <NameInput
                   {...nameInputStyles}
-                  h={variant === "plain" ? 8 : undefined}
-                  minH={variant === "plain" ? 8 : undefined}
+                  h={isCompact ? 9 : variant === "plain" ? 8 : undefined}
+                  minH={isCompact ? 9 : variant === "plain" ? 8 : undefined}
+                  aria-label={`Parameter ${i + 1} name`}
                   placeholder="name (optional)"
                   value={param.name}
                   onChange={(e) => updateManualParamName(i, e.target.value)}
@@ -439,11 +467,13 @@ export function ManualParametersEditor({
                         </Box>
                         <Box w={{ base: "full", md: "160px" }} minW={0}>
                           <DarkSelect
-                            size={variant === "plain" ? "sm" : "md"}
+                            size={variant !== "surface" ? "sm" : "md"}
                             controlProps={
-                              variant === "plain"
-                                ? { h: 8, minH: 8 }
-                                : undefined
+                              isCompact
+                                ? { h: 9, minH: 9, borderRadius: "md" }
+                                : variant === "plain"
+                                  ? { h: 8, minH: 8 }
+                                  : undefined
                             }
                             isCreatable
                             ariaLabel={`Parameter ${i + 1} field ${ci + 1} type`}
@@ -467,11 +497,28 @@ export function ManualParametersEditor({
                             }}
                           />
                         </Box>
-                        <Box w={{ base: "full", md: "180px" }} minW={0}>
+                        <Box
+                          flex={isCompact ? 1 : undefined}
+                          w={{ base: "full", md: "180px" }}
+                          minW={isCompact ? "120px" : 0}
+                        >
                           <NameInput
                             {...nameInputStyles}
-                            h={variant === "plain" ? 8 : undefined}
-                            minH={variant === "plain" ? 8 : undefined}
+                            h={
+                              isCompact
+                                ? 9
+                                : variant === "plain"
+                                  ? 8
+                                  : undefined
+                            }
+                            minH={
+                              isCompact
+                                ? 9
+                                : variant === "plain"
+                                  ? 8
+                                  : undefined
+                            }
+                            aria-label={`Parameter ${i + 1} field ${ci + 1} name`}
                             placeholder="name (optional)"
                             value={comp.name}
                             onChange={(e) =>
@@ -567,9 +614,11 @@ export function ManualParametersEditor({
                       </Box>
                       <Box w={{ base: "full", md: "160px" }} minW={0}>
                         <DarkSelect
-                          size={variant === "plain" ? "sm" : "md"}
+                          size={variant !== "surface" ? "sm" : "md"}
                           controlProps={
-                            variant === "plain" ? { h: 8, minH: 8 } : undefined
+                            variant !== "surface"
+                              ? { h: 8, minH: 8 }
+                              : undefined
                           }
                           isCreatable
                           ariaLabel={`Parameter ${i + 1} field ${ci + 1} type`}
@@ -593,11 +642,20 @@ export function ManualParametersEditor({
                           }}
                         />
                       </Box>
-                      <Box w={{ base: "full", md: "180px" }} minW={0}>
+                      <Box
+                        flex={isCompact ? 1 : undefined}
+                        w={{ base: "full", md: "180px" }}
+                        minW={isCompact ? "120px" : 0}
+                      >
                         <NameInput
                           {...nameInputStyles}
-                          h={variant === "plain" ? 8 : undefined}
-                          minH={variant === "plain" ? 8 : undefined}
+                          h={
+                            isCompact ? 9 : variant === "plain" ? 8 : undefined
+                          }
+                          minH={
+                            isCompact ? 9 : variant === "plain" ? 8 : undefined
+                          }
+                          aria-label={`Parameter ${i + 1} field ${ci + 1} name`}
                           placeholder="name (optional)"
                           value={comp.name}
                           onChange={(e) =>
@@ -665,7 +723,14 @@ export function ManualParametersEditor({
                 immediateUpdates: true,
                 rawValues,
                 allowBytesBuilder: true,
-                input: { type: param.type, name: param.name || `param_${i}` },
+                input: {
+                  type: param.type,
+                  name:
+                    isCompact && param.type !== "bytes"
+                      ? "Value"
+                      : param.name || `param_${i}`,
+                },
+                ariaLabel: `Parameter ${i + 1} value`,
                 value: param.value || "",
                 onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
                   updateManualParamValue(i, e.target.value),
@@ -680,7 +745,7 @@ export function ManualParametersEditor({
         </Box>
       ))}
 
-      <Box>
+      <Box textAlign={isCompact ? "center" : undefined}>
         <DarkButton onClick={addManualParam} size="sm">
           <HStack spacing={2}>
             <AddIcon boxSize={3} />

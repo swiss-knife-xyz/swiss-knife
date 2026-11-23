@@ -8,6 +8,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { InputField } from "@/components/InputField";
+import { useCompactParameterInputs } from "../ParameterInputStyle";
 import { InputInfo } from "./InputInfo";
 import { JsonFragment } from "ethers";
 import { DarkSelect } from "@/components/DarkSelect";
@@ -30,6 +31,7 @@ export const BytesInput = ({
   headerAction,
   ...props
 }: InputFieldProps) => {
+  const compact = useCompactParameterInputs();
   // Parse fixed size from type (e.g. "bytes32" → 32, "bytes" → null)
   const fixedMatch = input.type?.match(/^bytes(\d+)$/);
   const fixedSize = fixedMatch ? parseInt(fixedMatch[1]) : null;
@@ -43,6 +45,48 @@ export const BytesInput = ({
       target: { value: "0x" + "00".repeat(byteCount) },
     } as any);
   };
+
+  const zeroFillAction = (
+    <HStack
+      my={compact ? 0 : 2}
+      sx={
+        compact
+          ? {
+              "& button": {
+                height: 6,
+                minHeight: 6,
+                fontSize: "xs",
+                fontWeight: "normal",
+                color: "text.secondary",
+              },
+            }
+          : undefined
+      }
+    >
+      <Spacer display={compact ? "none" : undefined} />
+      {fixedSize ? (
+        <Button
+          onClick={() => fillZero(fixedSize)}
+          size={"sx"}
+          fontWeight={"thin"}
+          variant={"ghost"}
+          color="whiteAlpha.300"
+        >
+          [zero]
+        </Button>
+      ) : (
+        <Button
+          onClick={() => fillZero(32)}
+          size={"sx"}
+          fontWeight={"thin"}
+          variant={"ghost"}
+          color="whiteAlpha.300"
+        >
+          [zero-32]
+        </Button>
+      )}
+    </HStack>
+  );
 
   return (
     <Box>
@@ -71,10 +115,14 @@ export const BytesInput = ({
           justify="space-between"
           align={headerAction ? "center" : "baseline"}
           spacing={3}
-          flexWrap={headerAction ? "nowrap" : "wrap"}
-          mb={0}
+          flexWrap={compact ? "wrap" : headerAction ? "nowrap" : "wrap"}
+          mb={compact ? 1.5 : 0}
+          sx={compact ? { "& .fn-input-info": { mb: 0 } } : undefined}
         >
-          <Box minW={0} flex={headerAction ? 1 : undefined}>
+          <Box
+            minW={0}
+            flex={compact ? "1 1 120px" : headerAction ? 1 : undefined}
+          >
             <InputInfo input={input} />
           </Box>
           {selectedSuggestion && (
@@ -88,6 +136,7 @@ export const BytesInput = ({
               {selectedSuggestion.label}
             </Text>
           )}
+          {compact && zeroFillAction}
           {headerAction}
         </HStack>
         {suggestions ? (
@@ -129,7 +178,7 @@ export const BytesInput = ({
             placeholder=""
             onChange={onChange}
             {...props}
-            {...(headerAction
+            {...(headerAction && !compact
               ? {
                   bg: "bg.subtle",
                   borderTopRightRadius: 0,
@@ -140,30 +189,7 @@ export const BytesInput = ({
           />
         )}
       </Box>
-      <HStack my={2}>
-        <Spacer />
-        {fixedSize ? (
-          <Button
-            onClick={() => fillZero(fixedSize)}
-            size={"sx"}
-            fontWeight={"thin"}
-            variant={"ghost"}
-            color="whiteAlpha.300"
-          >
-            [zero]
-          </Button>
-        ) : (
-          <Button
-            onClick={() => fillZero(32)}
-            size={"sx"}
-            fontWeight={"thin"}
-            variant={"ghost"}
-            color="whiteAlpha.300"
-          >
-            [zero-32]
-          </Button>
-        )}
-      </HStack>
+      {!compact && zeroFillAction}
     </Box>
   );
 };

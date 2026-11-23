@@ -14,6 +14,11 @@ import { Interface, AbiCoder, type JsonFragment } from "ethers";
 import { CalldataEncoderPage } from "@/app/calldata/encoder/CalldataEncoderPage";
 import { ReadWriteFunction } from "./ReadWriteFunction";
 
+const { fetchBuilderAbi } = vi.hoisted(() => ({ fetchBuilderAbi: vi.fn() }));
+vi.mock("@/utils", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/utils")>()),
+  fetchContractAbi: fetchBuilderAbi,
+}));
 vi.mock("@monaco-editor/react", () => ({
   Editor: ({ value, onChange }: any) => (
     <textarea
@@ -69,6 +74,7 @@ function show(
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  fetchBuilderAbi.mockReset();
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
     value: { writeText: clipboardWrite },
@@ -112,7 +118,7 @@ it("builds standard ABI bytes and applies only to the originating contract field
   );
   fireEvent.click(screen.getAllByRole("button", { name: /Build bytes/ })[0]);
   const dialog = within(await screen.findByRole("dialog"));
-  fireEvent.change(dialog.getAllByRole("textbox")[1], {
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: "42" },
   });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
@@ -153,7 +159,7 @@ it("offers the builder on nested dynamic bytes and inner editor bytes, but not f
   fireEvent.keyDown(select, { key: "ArrowDown" });
   fireEvent.click(await dialog.findByRole("option", { name: "bytes" }));
   expect(dialog.getByRole("button", { name: "Build bytes" })).toBeTruthy();
-  fireEvent.change(dialog.getAllByRole("textbox")[1], {
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: "0xabcd" },
   });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
@@ -171,7 +177,9 @@ it("offers the builder on nested dynamic bytes and inner editor bytes, but not f
   // Existing tuple propagation is debounced by 100ms before the parent form sees it.
   await act(() => new Promise((resolve) => setTimeout(resolve, 150)));
   fireEvent.click(screen.getByRole("button", { name: "Read options" }));
-  fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
+  fireEvent.click(
+    await screen.findByRole("menuitem", { name: "Encode Calldata" })
+  );
   fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
   expect(
     await screen.findByText(
@@ -193,6 +201,14 @@ async function selectType(
   const select = dialog.getByRole("combobox", { name });
   fireEvent.keyDown(select, { key: "ArrowDown" });
   fireEvent.click(await dialog.findByRole("option", { name: type }));
+}
+function builderFields(scope: ReturnType<typeof within>) {
+  return scope
+    .getAllByRole("textbox")
+    .filter(
+      (field: HTMLElement) =>
+        field.getAttribute("aria-label") !== "Function name"
+    );
 }
 async function openBuilder() {
   fireEvent.click(screen.getAllByRole("button", { name: /Build bytes/ })[0]);
@@ -222,7 +238,7 @@ it("keeps raw hex and sibling drafts through cancel, error, Escape and a retaine
       }) as HTMLButtonElement
     ).disabled
   ).toBe(true);
-  fireEvent.change(dialog.getAllByRole("textbox")[1], {
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: "not an integer" },
   });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
@@ -240,7 +256,7 @@ it("keeps raw hex and sibling drafts through cancel, error, Escape and a retaine
   expect((fields[0] as HTMLInputElement).value).toBe("0xaabb");
   expect((fields[1] as HTMLInputElement).value).toBe("keep me");
   dialog = await openBuilder();
-  fireEvent.change(dialog.getAllByRole("textbox")[1], {
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: "7" },
   });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
@@ -269,7 +285,7 @@ it("keeps raw hex and sibling drafts through cancel, error, Escape and a retaine
 it("invalidates generated output on edits, format changes and errors before allowing Apply", async () => {
   show(outer, "write");
   const dialog = await openBuilder();
-  const field = dialog.getAllByRole("textbox")[1];
+  const field = builderFields(dialog)[1];
   fireEvent.change(field, { target: { value: "7" } });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
   expect(
@@ -289,7 +305,10 @@ it("invalidates generated output on edits, format changes and errors before allo
   ).toBe(true);
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
   expect(await dialog.findByRole("alert")).toBeTruthy();
-  await selectType(dialog, "Payload format", "Function calldata");
+
+  fireEvent.change(dialog.getByRole("textbox", { name: "Function name" }), {
+    target: { value: "invalid(name" },
+  });
   expect(dialog.queryByRole("alert")).toBeNull();
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
   expect(await dialog.findByText(/Enter a function name/)).toBeTruthy();
@@ -298,16 +317,16 @@ it("invalidates generated output on edits, format changes and errors before allo
 it("builds exact ERC20 transfer function calldata with its selector, distinct from parameter-only bytes", async () => {
   show(outer, "write");
   const dialog = await openBuilder();
-  await selectType(dialog, "Payload format", "Function calldata");
+
   fireEvent.change(dialog.getByRole("textbox", { name: "Function name" }), {
     target: { value: "transfer" },
   });
   await selectType(dialog, "Parameter 1 type", "address");
-  fireEvent.change(dialog.getAllByRole("textbox")[2], {
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: "0x0000000000000000000000000000000000000001" },
   });
   fireEvent.click(dialog.getByRole("button", { name: "Add Parameter" }));
-  fireEvent.change(dialog.getAllByRole("textbox")[4], {
+  fireEvent.change(builderFields(dialog)[3], {
     target: { value: "42" },
   });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
@@ -320,7 +339,9 @@ it("builds exact ERC20 transfer function calldata with its selector, distinct fr
       [address, 42]
     )
   );
-  await selectType(dialog, "Payload format", "ABI parameters");
+  fireEvent.change(dialog.getByRole("textbox", { name: "Function name" }), {
+    target: { value: "" },
+  });
   expect(
     (
       dialog.getByRole("button", {
@@ -330,7 +351,11 @@ it("builds exact ERC20 transfer function calldata with its selector, distinct fr
   ).toBe(true);
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
   expect(await dialog.findByText("0x" + args)).toBeTruthy();
-  await selectType(dialog, "Payload format", "Function calldata");
+
+  fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
+  fireEvent.change(dialog.getByRole("textbox", { name: "Function name" }), {
+    target: { value: "transfer" },
+  });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
   fireEvent.click(dialog.getByRole("button", { name: "Set bytes value" }));
   await waitFor(() =>
@@ -350,7 +375,7 @@ it("builds tuple-array payloads with exact large integers and compares to the st
   await selectType(dialog, "Parameter 1 field 2 type", "string");
   fireEvent.click(dialog.getByRole("button", { name: "+ Add" }));
   // Names in the schema precede the recursive tuple item's uint and string fields.
-  const fields = dialog.getAllByRole("textbox");
+  const fields = builderFields(dialog);
   fireEvent.change(fields[3], { target: { value: "9007199254740993" } });
   fireEvent.change(fields[4], { target: { value: "hello" } });
   const expected = AbiCoder.defaultAbiCoder().encode(
@@ -386,7 +411,7 @@ it("does not apply a stale tuple-array result while recursive edits propagate", 
   const dialog = await openBuilder();
   await selectType(dialog, "Parameter 1 type", "tuple[]");
   fireEvent.click(dialog.getByRole("button", { name: "+ Add" }));
-  const field = dialog.getAllByRole("textbox")[2];
+  const field = builderFields(dialog)[2];
   fireEvent.change(field, { target: { value: "7" } });
   await act(() => new Promise((resolve) => setTimeout(resolve, 150)));
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
@@ -432,7 +457,7 @@ it("preserves standalone manual standard/packed/function results with the shared
       )!,
     { target: { value: "42" } }
   );
-  fireEvent.click(page.getByRole("button", { name: "Encode" }));
+  fireEvent.click(page.getByRole("button", { name: "Encode calldata" }));
   expect(
     await page.findByText(AbiCoder.defaultAbiCoder().encode(["uint8"], [42]))
   ).toBeTruthy();
@@ -442,7 +467,7 @@ it("preserves standalone manual standard/packed/function results with the shared
     target: { value: "set" },
   });
   expect(page.queryByText("Encoded Result")).toBeNull();
-  fireEvent.click(page.getByRole("button", { name: "Encode" }));
+  fireEvent.click(page.getByRole("button", { name: "Encode calldata" }));
   const expected = new Interface(["function set(uint8)"]).encodeFunctionData(
     "set",
     [42]
@@ -469,13 +494,13 @@ it("keeps tuple schema name input focus and values while typing names", async ()
 it("uses exact raw integers in the builder, without hidden unit-conversion drafts", async () => {
   show(outer, "write");
   const dialog = await openBuilder();
-  // Only the payload format and ABI type selectors: integer base units are explicit.
-  expect(dialog.getAllByRole("combobox")).toHaveLength(2);
-  fireEvent.change(dialog.getAllByRole("textbox")[1], {
+  // Only the ABI type selector: the function name is optional and integers use base units.
+  expect(dialog.getAllByRole("combobox")).toHaveLength(1);
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: "7" },
   });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
-  fireEvent.change(dialog.getAllByRole("textbox")[1], {
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: "invalid" },
   });
   expect(
@@ -503,7 +528,7 @@ it("removes a tuple-array schema column from every row without dropping rows", a
   fireEvent.click(dialog.getByRole("button", { name: "Add Field" }));
   await selectType(dialog, "Parameter 1 field 2 type", "string");
   fireEvent.click(dialog.getByRole("button", { name: "+ Add" }));
-  const fields = dialog.getAllByRole("textbox");
+  const fields = builderFields(dialog);
   fireEvent.change(fields[3], { target: { value: "7" } });
   fireEvent.change(fields[4], { target: { value: "keep row" } });
   fireEvent.click(dialog.getAllByRole("button", { name: "Remove field" })[0]);
@@ -516,7 +541,7 @@ it("removes a tuple-array schema column from every row without dropping rows", a
   fireEvent.click(dialog.getByRole("button", { name: "Add Field" }));
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
   expect(await dialog.findByRole("alert")).toBeTruthy();
-  const rowFields = dialog.getAllByRole("textbox");
+  const rowFields = builderFields(dialog);
   expect((rowFields[3] as HTMLInputElement).value).toBe("keep row");
   fireEvent.change(rowFields[4], { target: { value: "9" } });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
@@ -542,7 +567,7 @@ it("rejects an empty integer rather than silently encoding zero; explicit zero a
       }) as HTMLButtonElement
     ).disabled
   ).toBe(true);
-  fireEvent.change(dialog.getAllByRole("textbox")[1], {
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: "0" },
   });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
@@ -558,7 +583,7 @@ it("rejects odd-length or non-hex inner bytes without changing the raw contract 
   const dialog = await openBuilder();
   await selectType(dialog, "Parameter 1 type", "bytes");
   for (const value of ["0x1", "no hex"]) {
-    fireEvent.change(dialog.getAllByRole("textbox")[1], { target: { value } });
+    fireEvent.change(builderFields(dialog)[1], { target: { value } });
     fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
     expect(await dialog.findByRole("alert")).toBeTruthy();
     expect(
@@ -576,7 +601,7 @@ it("keeps builder addresses local without background name or metadata lookups", 
   show(outer, "write");
   const dialog = await openBuilder();
   await selectType(dialog, "Parameter 1 type", "address");
-  fireEvent.change(dialog.getAllByRole("textbox")[1], {
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: address },
   });
   await act(() => new Promise((resolve) => setTimeout(resolve, 600)));
@@ -589,14 +614,14 @@ it("keeps builder addresses local without background name or metadata lookups", 
 it("retains builder format, names and parameter values after setting bytes and regenerates fresh output", async () => {
   show(outer, "write");
   let dialog = await openBuilder();
-  await selectType(dialog, "Payload format", "Function calldata");
+
   fireEvent.change(dialog.getByRole("textbox", { name: "Function name" }), {
     target: { value: "innerCall" },
   });
   fireEvent.change(dialog.getByPlaceholderText("name (optional)"), {
     target: { value: "amount" },
   });
-  fireEvent.change(dialog.getAllByRole("textbox")[2], {
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: "42" },
   });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
@@ -616,10 +641,8 @@ it("retains builder format, names and parameter values after setting bytes and r
   expect(
     (dialog.getByPlaceholderText("name (optional)") as HTMLInputElement).value
   ).toBe("amount");
-  expect((dialog.getAllByRole("textbox")[2] as HTMLInputElement).value).toBe(
-    "42"
-  );
-  fireEvent.change(dialog.getAllByRole("textbox")[2], {
+  expect((builderFields(dialog)[1] as HTMLInputElement).value).toBe("42");
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: "43" },
   });
   expect(
@@ -651,7 +674,7 @@ it("builds nested bytes above the parent modal without applying the parent's dra
     name: "Build bytes for param_0",
   });
   const child = within(childNode);
-  fireEvent.change(child.getAllByRole("textbox")[1], {
+  fireEvent.change(builderFields(child)[1], {
     target: { value: "42" },
   });
   fireEvent.click(child.getByRole("button", { name: "Generate bytes" }));
@@ -662,9 +685,7 @@ it("builds nested bytes above the parent modal without applying the parent's dra
   parent = within(
     screen.getByRole("dialog", { name: "Build bytes for payload" })
   );
-  expect((parent.getAllByRole("textbox")[1] as HTMLInputElement).value).toBe(
-    inner
-  );
+  expect((builderFields(parent)[1] as HTMLInputElement).value).toBe(inner);
   // The outer contract input remains unchanged until its own builder is applied.
   expect(
     (screen.getAllByRole("textbox", { hidden: true })[0] as HTMLInputElement)
@@ -690,7 +711,7 @@ it("opens the bytes builder from the standalone encoder and preserves the genera
   await selectType(page, "Parameter 1 type", "bytes");
   fireEvent.click(page.getByRole("button", { name: "Build bytes" }));
   const dialog = within(await screen.findByRole("dialog"));
-  fireEvent.change(dialog.getAllByRole("textbox")[1], {
+  fireEvent.change(builderFields(dialog)[1], {
     target: { value: "7" },
   });
   fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
@@ -698,7 +719,7 @@ it("opens the bytes builder from the standalone encoder and preserves the genera
   expect(await dialog.findByText(inner)).toBeTruthy();
   fireEvent.click(dialog.getByRole("button", { name: "Set bytes value" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  fireEvent.click(page.getByRole("button", { name: "Encode" }));
+  fireEvent.click(page.getByRole("button", { name: "Encode calldata" }));
   expect(
     await page.findByText(AbiCoder.defaultAbiCoder().encode(["bytes"], [inner]))
   ).toBeTruthy();
@@ -733,16 +754,255 @@ it("focuses added array values in the encoder and its nested bytes builder", asy
   await selectType(child, "Parameter 1 type", "uint256[]");
   fireEvent.click(child.getByRole("button", { name: "+ Add" }));
   await waitFor(() =>
-    expect(document.activeElement).toBe(child.getAllByRole("textbox")[1])
+    expect(document.activeElement).toBe(builderFields(child)[1])
   );
-  fireEvent.change(child.getAllByRole("textbox")[1], {
+  fireEvent.change(builderFields(child)[1], {
     target: { value: "42" },
   });
   fireEvent.click(child.getByRole("button", { name: "+ Add" }));
   await waitFor(() =>
-    expect(document.activeElement).toBe(child.getAllByRole("textbox")[2])
+    expect(document.activeElement).toBe(builderFields(child)[2])
   );
-  expect((child.getAllByRole("textbox")[1] as HTMLInputElement).value).toBe(
-    "42"
+  expect((builderFields(child)[1] as HTMLInputElement).value).toBe("42");
+});
+
+it.each(["human-readable", "JSON"])(
+  "selects and encodes %s ABI signatures, and clears selection for invalid replacements",
+  async (format) => {
+    render(
+      <ChakraProvider>
+        <CalldataEncoderPage />
+      </ChakraProvider>
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "From ABI" }));
+    const signatures = [
+      "function execTransaction(address to, uint256 value, bytes data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, bytes signatures)",
+      "function multiSend(bytes)",
+      "function approve(address spender, uint256 value)",
+      "function supply(address asset, uint256 amount)",
+    ];
+    fireEvent.change(screen.getByRole("textbox", { name: "ABI editor" }), {
+      target: {
+        value:
+          format === "JSON"
+            ? new Interface(signatures).formatJson()
+            : JSON.stringify(signatures),
+      },
+    });
+    expect(await screen.findByRole("textbox", { name: "to" })).toBeTruthy();
+    const selector = screen.getByRole("combobox", {
+      name: "Function",
+    });
+    fireEvent.keyDown(selector, { key: "ArrowDown" });
+    fireEvent.click(
+      await screen.findByText("approve(address, uint256)", { exact: true })
+    );
+    fireEvent.change(await screen.findByRole("textbox", { name: "spender" }), {
+      target: { value: address },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "value" }), {
+      target: { value: "42" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Encode calldata" }));
+    const expected = new Interface(signatures).encodeFunctionData("approve", [
+      address,
+      42,
+    ]);
+    expect(await screen.findByText(expected.slice(0, 10))).toBeTruthy();
+    expect(screen.getByText(expected.slice(10))).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", { name: "ABI editor" }), {
+      target: { value: "[]" },
+    });
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent",
+      "This ABI has no functions or constructor to encode."
+    );
+    expect(screen.queryByRole("combobox", { name: "Function" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "spender" })).toBeNull();
+  }
+);
+
+it("keeps manual and human-readable ABI drafts independent across mode changes and reopenings, including overload selection", async () => {
+  show(outer, "write");
+  let dialog = await openBuilder();
+  expect(dialog.queryByRole("combobox", { name: "Payload format" })).toBeNull();
+  expect(dialog.queryByText("Safe MultiSend")).toBeNull();
+  fireEvent.change(dialog.getByRole("textbox", { name: "Parameter 1 value" }), {
+    target: { value: "42" },
+  });
+  fireEvent.click(dialog.getByRole("tab", { name: "From ABI" }));
+  const signatures = [
+    "function set(uint256 amount)",
+    "function set(bytes data)",
+  ];
+  fireEvent.change(dialog.getByRole("textbox", { name: "Contract ABI" }), {
+    target: { value: JSON.stringify(signatures) },
+  });
+  expect(
+    await dialog.findByRole("textbox", { name: "Argument 1 amount" })
+  ).toBeTruthy();
+  await selectType(dialog, "ABI function", "set(bytes)");
+  fireEvent.change(dialog.getByRole("textbox", { name: "Argument 1 data" }), {
+    target: { value: "0x1234" },
+  });
+  fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
+  const expected = new Interface(signatures).encodeFunctionData("set(bytes)", [
+    "0x1234",
+  ]);
+  expect(await dialog.findByText(expected)).toBeTruthy();
+  fireEvent.click(dialog.getByRole("tab", { name: "Manual" }));
+  expect(
+    (
+      dialog.getByRole("textbox", {
+        name: "Parameter 1 value",
+      }) as HTMLInputElement
+    ).value
+  ).toBe("42");
+  fireEvent.click(dialog.getByRole("tab", { name: "From ABI" }));
+  expect(
+    (
+      dialog.getByRole("textbox", {
+        name: "Argument 1 data",
+      }) as HTMLInputElement
+    ).value
+  ).toBe("0x1234");
+  fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
+  fireEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  dialog = await openBuilder();
+  expect(
+    dialog.getByRole("tab", { name: "From ABI" }).getAttribute("aria-selected")
+  ).toBe("true");
+  expect(dialog.getByText(expected)).toBeTruthy();
+  expect(
+    (
+      dialog.getByRole("textbox", {
+        name: "Argument 1 data",
+      }) as HTMLInputElement
+    ).value
+  ).toBe("0x1234");
+  fireEvent.change(dialog.getByRole("textbox", { name: "Contract ABI" }), {
+    target: { value: "[]" },
+  });
+  expect(await dialog.findByRole("alert")).toBeTruthy();
+  expect(
+    (
+      dialog.getByRole("button", {
+        name: "Set bytes value",
+      }) as HTMLButtonElement
+    ).disabled
+  ).toBe(true);
+  expect(fetchBuilderAbi).not.toHaveBeenCalled();
+});
+
+it("fetches an ABI from an independent address/network, keeps the draft on reopening, and invalidates it when the address changes", async () => {
+  fetchBuilderAbi.mockResolvedValue({
+    abi: ["function set(uint256 amount)"],
+    name: "Test",
+  });
+  show(outer, "write");
+  let dialog = await openBuilder();
+  fireEvent.click(dialog.getByRole("tab", { name: "From Address" }));
+  fireEvent.change(dialog.getByRole("textbox", { name: "Contract address" }), {
+    target: { value: `base:${address}` },
+  });
+  fireEvent.click(dialog.getByRole("button", { name: "Fetch ABI" }));
+  await waitFor(() =>
+    expect(fetchBuilderAbi).toHaveBeenCalledWith({ address, chainId: 8453 })
   );
+  fireEvent.change(
+    await dialog.findByRole("textbox", { name: "Argument 1 amount" }),
+    { target: { value: "99" } }
+  );
+  fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
+  const expected = new Interface(["function set(uint256)"]).encodeFunctionData(
+    "set",
+    [99]
+  );
+  expect(await dialog.findByText(expected)).toBeTruthy();
+  fireEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  dialog = await openBuilder();
+  expect(
+    (
+      dialog.getByRole("textbox", {
+        name: "Contract address",
+      }) as HTMLInputElement
+    ).value
+  ).toBe(address);
+  expect(
+    (
+      dialog.getByRole("textbox", {
+        name: "Argument 1 amount",
+      }) as HTMLInputElement
+    ).value
+  ).toBe("99");
+  expect(dialog.getByText(expected)).toBeTruthy();
+  expect(fetchBuilderAbi).toHaveBeenCalledTimes(1);
+  fireEvent.change(dialog.getByRole("textbox", { name: "Contract address" }), {
+    target: { value: "0x123" },
+  });
+  expect(
+    dialog.queryByRole("textbox", { name: "Argument 1 amount" })
+  ).toBeNull();
+  expect(
+    (
+      dialog.getByRole("button", {
+        name: "Set bytes value",
+      }) as HTMLButtonElement
+    ).disabled
+  ).toBe(true);
+});
+
+it("ignores an obsolete ABI lookup and encodes constructor arguments without a function selector", async () => {
+  let finish!: (value: any) => void;
+  fetchBuilderAbi.mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  show(outer, "write");
+  const dialog = await openBuilder();
+  fireEvent.click(dialog.getByRole("tab", { name: "From Address" }));
+  fireEvent.change(dialog.getByRole("textbox", { name: "Contract address" }), {
+    target: { value: address },
+  });
+  fireEvent.click(dialog.getByRole("button", { name: "Fetch ABI" }));
+  fireEvent.change(dialog.getByRole("textbox", { name: "Contract address" }), {
+    target: { value: "0x0000000000000000000000000000000000000002" },
+  });
+  await act(async () => finish({ abi: ["function stale(uint256 value)"] }));
+  expect(dialog.queryByRole("combobox", { name: "ABI function" })).toBeNull();
+  fireEvent.click(dialog.getByRole("tab", { name: "From ABI" }));
+  fireEvent.change(dialog.getByRole("textbox", { name: "Contract ABI" }), {
+    target: {
+      value: JSON.stringify([
+        { type: "constructor", inputs: [{ type: "uint256", name: "amount" }] },
+      ]),
+    },
+  });
+  fireEvent.change(
+    await dialog.findByRole("textbox", { name: "Argument 1 amount" }),
+    { target: { value: "7" } }
+  );
+  fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
+  expect(
+    await dialog.findByText(AbiCoder.defaultAbiCoder().encode(["uint256"], [7]))
+  ).toBeTruthy();
+});
+
+it("encodes untouched empty arrays and preserves tuple slots in ABI mode", async () => {
+  show(outer, "write");
+  const dialog = await openBuilder();
+  fireEvent.click(dialog.getByRole("tab", { name: "From ABI" }));
+  const abi = ["function grouped((uint256[] items,bool active) config)"];
+  fireEvent.change(dialog.getByRole("textbox", { name: "Contract ABI" }), {
+    target: { value: JSON.stringify(abi) },
+  });
+  fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
+  expect(
+    await dialog.findByText(
+      new Interface(abi).encodeFunctionData("grouped", [[[], false]])
+    )
+  ).toBeTruthy();
 });

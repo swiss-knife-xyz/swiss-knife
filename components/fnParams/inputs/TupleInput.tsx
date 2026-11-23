@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { Box, HStack, InputProps } from "@chakra-ui/react";
+import { Box, Button, InputProps } from "@chakra-ui/react";
 import { JsonFragmentType } from "ethers";
+import { useCompactParameterInputs } from "../ParameterInputStyle";
 import { InputInfo } from "./InputInfo";
 import { renderInputFields } from "../Renderer";
-import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon, ChevronRightIcon } from "@chakra-ui/icons";
 import { isEqual } from "lodash";
 
 interface InputFieldProps extends InputProps {
@@ -36,6 +37,7 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   isArrayChild,
   value,
 }) => {
+  const compact = useCompactParameterInputs();
   const [tupleInputsState, setTupleInputsState] = useState<TupleInputState>(
     () =>
       Array.isArray(value)
@@ -126,11 +128,12 @@ export const TupleInput: React.FC<InputFieldProps> = ({
 
   return (
     <Box
+      data-parameter-branch={compact && isArrayChild ? undefined : ""}
       minW={0}
-      p={{ base: 1.5, md: 2 }}
-      mb={!isCollapsed ? 4 : undefined}
-      pb={!isCollapsed ? 4 : undefined}
-      border="2px solid"
+      p={compact ? 0 : { base: 1.5, md: 2 }}
+      mb={compact ? 0 : !isCollapsed ? 4 : undefined}
+      pb={compact ? 0 : !isCollapsed ? 4 : undefined}
+      border={compact ? "none" : "2px solid"}
       borderColor={
         !isArrayChild
           ? "whiteAlpha.200"
@@ -139,26 +142,42 @@ export const TupleInput: React.FC<InputFieldProps> = ({
             : "transparent"
       }
       rounded="md"
-      bg={"whiteAlpha.50"}
-      borderTopLeftRadius={isArrayChild ? 0 : "md"}
+      bg={compact ? "transparent" : "whiteAlpha.50"}
     >
-      <HStack flexGrow={1} onClick={toggleCollapse} cursor={"pointer"}>
-        {!isArrayChild && (
-          <Box fontSize={"2xl"}>
-            {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
+      {!(compact && isArrayChild) && (
+        <Button
+          variant="ghost"
+          size="sm"
+          h="auto"
+          minH={7}
+          px={compact ? 0 : 1}
+          py={1}
+          mb={compact ? 2 : 0}
+          minW={0}
+          maxW="full"
+          textAlign="left"
+          justifyContent="flex-start"
+          fontWeight="normal"
+          data-parameter-toggle=""
+          aria-expanded={!isCollapsed}
+          aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${input.name || "tuple"}`}
+          onClick={toggleCollapse}
+          leftIcon={isCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
+        >
+          <Box sx={{ "& .fn-input-info": { mb: 0 } }}>
+            <InputInfo input={input} />
           </Box>
-        )}
-        <InputInfo input={input} />
-      </HStack>
+        </Button>
+      )}
       <Box
-        ml={{ base: 0, md: 2 }}
-        pl={{ base: 2, md: 4 }}
-        borderLeft={"1px"}
-        borderColor={"whiteAlpha.100"}
+        ml={compact ? 0 : { base: 0, md: 2 }}
+        pl={compact ? (isArrayChild ? 0 : 3) : { base: 2, md: 4 }}
+        borderLeft={compact && isArrayChild ? "none" : "1px solid"}
+        borderColor="border.default"
         display={isCollapsed ? "none" : undefined}
       >
         {input.components?.map((component, i) => (
-          <Box key={i} mt={2}>
+          <Box key={i} mt={compact ? (i === 0 ? 0 : 3) : 2} minW={0}>
             {renderInputFields({
               chainId,
               input: component,

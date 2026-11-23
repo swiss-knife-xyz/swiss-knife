@@ -1,3 +1,4 @@
+import { useCompactParameterInputs } from "./fnParams/ParameterInputStyle";
 import { useEffect, useState, useRef, useId, useCallback } from "react";
 import { Box, BoxProps, HStack, Image, useToken } from "@chakra-ui/react";
 import {
@@ -53,7 +54,7 @@ export const DarkSelect = ({
   selectedOption,
   setSelectedOption,
   boxProps,
-  size = "md",
+  size: requestedSize,
   controlProps,
   menuMinWidth,
   menuAlign = "left",
@@ -68,6 +69,8 @@ export const DarkSelect = ({
   isDisabled,
   onKeyDown,
 }: DarkSelectProps) => {
+  const compact = useCompactParameterInputs();
+  const size = requestedSize ?? (compact ? "sm" : "md");
   // Body-portaled menus stay below modal overlays; menus inside dialogs keep
   // their existing portal target and participate in that dialog's stack.
   const [dropdownZIndex] = useToken("zIndices", ["dropdown"]);
@@ -136,6 +139,9 @@ export const DarkSelect = ({
           ? "blue.400"
           : "whiteAlpha.200",
       borderRadius: "lg",
+      ...(compact
+        ? { h: 8, minH: 8, borderRadius: "md", fontSize: "13px" }
+        : {}),
       ...controlProps,
       boxShadow: state.isFocused
         ? "0 0 0 1px var(--chakra-colors-blue-400)"
@@ -356,6 +362,7 @@ export const DarkSelect = ({
     >
       <SelectComponent
         aria-label={ariaLabel}
+        aria-invalid={isInvalid || undefined}
         instanceId={uniqueId}
         ref={selectRef}
         options={options}

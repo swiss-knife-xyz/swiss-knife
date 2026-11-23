@@ -1,5 +1,5 @@
 import React from "react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   act,
   cleanup,
@@ -11,6 +11,9 @@ import {
 } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { Interface, type JsonFragment } from "ethers";
+import { useInvalidInputReveal } from "./useInvalidInputReveal";
+import { CompactParameterInputs } from "./ParameterInputStyle";
+import { renderInputFields } from "./Renderer";
 import { ReadWriteFunction } from "./ReadWriteFunction";
 
 vi.mock("wagmi", () => ({
@@ -62,7 +65,9 @@ function show(
 async function encodeCurrent() {
   if (!screen.queryByRole("button", { name: "Encode Calldata" })) {
     fireEvent.click(screen.getByRole("button", { name: "Read options" }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Encode Calldata" })
+    );
   }
   fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
 }
@@ -260,7 +265,9 @@ it("zero-input write encodes selector-only without connection, signing or reads"
   );
   await encodeCurrent();
   expect(
-    within(await screen.findByRole("dialog", {name:"Encoded Calldata"})).getByText(new Interface([func]).encodeFunctionData("ping"))
+    within(
+      await screen.findByRole("dialog", { name: "Encoded Calldata" })
+    ).getByText(new Interface([func]).encodeFunctionData("ping"))
   ).toBeTruthy();
   expect(client.readContract).not.toHaveBeenCalled();
   expect(client.call).not.toHaveBeenCalled();
@@ -451,179 +458,424 @@ it("focuses the first tuple field when adding an array row and keeps rapid addit
   expect(screen.getAllByRole("textbox")).toHaveLength(4);
 });
 
-
 it("opens the shared Sourcify modal beside an unresolved selector warning with that selector prefilled", async () => {
-  show({
-    type: "function", name: "selector: 0x40c10f19", selector: "0x40c10f19",
-    inputInference: { source: "unknown", message: "Unknown input types" },
-    stateMutability: "nonpayable", inputs: [], outputs: [],
-  } as any, "write", undefined, true);
-  const action = await screen.findByRole("button", { name: "Submit function signature to Sourcify" });
-  expect(screen.getByLabelText("Inferred signature, not verified")).toBeTruthy();
+  show(
+    {
+      type: "function",
+      name: "selector: 0x40c10f19",
+      selector: "0x40c10f19",
+      inputInference: { source: "unknown", message: "Unknown input types" },
+      stateMutability: "nonpayable",
+      inputs: [],
+      outputs: [],
+    } as any,
+    "write",
+    undefined,
+    true
+  );
+  const action = await screen.findByRole("button", {
+    name: "Submit function signature to Sourcify",
+  });
+  expect(
+    screen.getByLabelText("Inferred signature, not verified")
+  ).toBeTruthy();
   fireEvent.click(action);
   await screen.findByRole("dialog", { name: "Add a missing signature" });
-  expect((screen.getByLabelText("4-byte selector") as HTMLInputElement).value).toBe("0x40c10f19");
-  expect((screen.getByLabelText("Canonical function signature") as HTMLInputElement).value).toBe("");
+  expect(
+    (screen.getByLabelText("4-byte selector") as HTMLInputElement).value
+  ).toBe("0x40c10f19");
+  expect(
+    (screen.getByLabelText("Canonical function signature") as HTMLInputElement)
+      .value
+  ).toBe("");
 });
 
-it.each(["imported", "duplicated"])("updates the current unresolved function immediately after a %s Sourcify response", async (status) => {
-  const selector = "0x40c10f19";
-  const signature = "mint(address,uint256)";
-  const fetcher = vi.fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: { function: { [selector]: [] } } })))
-    .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: { function: {
-      imported: status === "imported" ? { [signature]: selector } : {},
-      duplicated: status === "duplicated" ? { [signature]: selector } : {}, invalid: [],
-    } } })));
-  vi.stubGlobal("fetch", fetcher);
-  show({
-    type: "function", name: `selector: ${selector}`, selector,
-    inputInference: { source: "unknown", message: "Unknown input types" },
-    stateMutability: "nonpayable", inputs: [], outputs: [],
-  } as any, "write", undefined, true);
-  fireEvent.click(await screen.findByRole("button", { name: "Submit function signature to Sourcify" }));
-  fireEvent.change(screen.getByLabelText("Canonical function signature"), { target: { value: "mint(address to, uint256 amount)" } });
-  fireEvent.click(screen.getByRole("button", { name: "Submit to Sourcify" }));
-  await screen.findByText("mint", { exact: true });
-  expect(screen.getByText("arg0", { exact: true })).toBeTruthy();
-  expect(screen.getByText("arg1", { exact: true })).toBeTruthy();
-  expect(screen.queryByRole("dialog")).toBeNull();
-  expect(screen.getByLabelText("Inferred signature, not verified")).toBeTruthy();
-  expect(fetcher).toHaveBeenCalledTimes(2);
-});
+it.each(["imported", "duplicated"])(
+  "updates the current unresolved function immediately after a %s Sourcify response",
+  async (status) => {
+    const selector = "0x40c10f19";
+    const signature = "mint(address,uint256)";
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ ok: true, result: { function: { [selector]: [] } } })
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ok: true,
+            result: {
+              function: {
+                imported:
+                  status === "imported" ? { [signature]: selector } : {},
+                duplicated:
+                  status === "duplicated" ? { [signature]: selector } : {},
+                invalid: [],
+              },
+            },
+          })
+        )
+      );
+    vi.stubGlobal("fetch", fetcher);
+    show(
+      {
+        type: "function",
+        name: `selector: ${selector}`,
+        selector,
+        inputInference: { source: "unknown", message: "Unknown input types" },
+        stateMutability: "nonpayable",
+        inputs: [],
+        outputs: [],
+      } as any,
+      "write",
+      undefined,
+      true
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Submit function signature to Sourcify",
+      })
+    );
+    fireEvent.change(screen.getByLabelText("Canonical function signature"), {
+      target: { value: "mint(address to, uint256 amount)" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit to Sourcify" }));
+    await screen.findByText("mint", { exact: true });
+    expect(screen.getByText("arg0", { exact: true })).toBeTruthy();
+    expect(screen.getByText("arg1", { exact: true })).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(
+      screen.getByLabelText("Inferred signature, not verified")
+    ).toBeTruthy();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  }
+);
 
 it("does not rename the function when a Sourcify submission is not confirmed", async () => {
   vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Offline")));
-  show({
-    type: "function", name: "selector: 0x40c10f19", selector: "0x40c10f19",
-    inputInference: { source: "unknown", message: "Unknown input types" },
-    stateMutability: "nonpayable", inputs: [], outputs: [],
-  } as any, "write", undefined, true);
-  fireEvent.click(await screen.findByRole("button", { name: "Submit function signature to Sourcify" }));
-  fireEvent.change(screen.getByLabelText("Canonical function signature"), { target: { value: "mint(address,uint256)" } });
+  show(
+    {
+      type: "function",
+      name: "selector: 0x40c10f19",
+      selector: "0x40c10f19",
+      inputInference: { source: "unknown", message: "Unknown input types" },
+      stateMutability: "nonpayable",
+      inputs: [],
+      outputs: [],
+    } as any,
+    "write",
+    undefined,
+    true
+  );
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: "Submit function signature to Sourcify",
+    })
+  );
+  fireEvent.change(screen.getByLabelText("Canonical function signature"), {
+    target: { value: "mint(address,uint256)" },
+  });
   fireEvent.click(screen.getByRole("button", { name: "Submit to Sourcify" }));
   await screen.findByText(/Could not check Sourcify/);
-  expect(screen.getByRole("button", { name: "Toggle selector: 0x40c10f19", hidden: true })).toBeTruthy();
+  expect(
+    screen.getByRole("button", {
+      name: "Toggle selector: 0x40c10f19",
+      hidden: true,
+    })
+  ).toBeTruthy();
   expect(screen.queryByText("arg0", { exact: true })).toBeNull();
 });
 
-it.each(["uint256", "int256"])("preserves the %s output unit across latest, block, time and subsequent reads", async outputType => {
-  client.readContract.mockResolvedValueOnce(2000000n).mockResolvedValueOnce(3000000n).mockResolvedValueOnce(4000000n).mockResolvedValueOnce(5000000n);
-  const getBlock = vi.fn(async ({ blockTag, blockNumber }: any) => {
-    const number = blockTag === "latest" ? 1000n : blockNumber;
-    return { number, timestamp: 1700000000n + number * 12n };
-  });
-  Object.assign(client, { getBlock });
-  show({ type: "function", name: "supply", stateMutability: "view", inputs: [], outputs: [{ type: outputType }] }, "read", { args: [], value: "0" });
-  fireEvent.click(screen.getByRole("button", { name: "Read" }));
-  await screen.findByDisplayValue("2000000");
-  fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
-  fireEvent.click(await screen.findByRole("option", { name: "10^6" }));
-  await screen.findByDisplayValue("2");
-  fireEvent.click(screen.getByRole("button", { name: "Read options" }));
-  fireEvent.click(await screen.findByRole("menuitem", { name: "Query at Block" }));
-  const blockSettings = await screen.findByRole("dialog");
-  expect(within(blockSettings).getByText("Enter Block Number")).toBeTruthy();
-  expect(within(blockSettings).queryByText("Block number", { selector: "label" })).toBeNull();
-  expect(blockSettings.textContent).not.toContain("Uses your configured");
-  fireEvent.change(within(blockSettings).getByLabelText("Block number"), { target: { value: "100" } });
-  fireEvent.click(within(blockSettings).getByRole("button", { name: "Set" }));
-  fireEvent.click(screen.getByRole("button", { name: "Query at Block" }));
-  await screen.findByDisplayValue("3");
-  expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Read options" }));
-  fireEvent.click(await screen.findByRole("menuitem", { name: "Query at Time" }));
-  const timeSettings = await screen.findByRole("dialog");
-  fireEvent.change(await within(timeSettings).findByRole("combobox", { name: "Year" }), { target: { value: "2023" } });
-  fireEvent.change(within(timeSettings).getByRole("combobox", { name: "Month" }), { target: { value: "10" } });
-  fireEvent.click(await within(timeSettings).findByRole("button", { name: "14 November 2023" }));
-  for (const [label, value] of [["Hours (UTC)", "10"], ["Minutes", "33"], ["Seconds", "25"]]) {
-    fireEvent.change(within(timeSettings).getByLabelText(label), { target: { value } });
+it.each(["uint256", "int256"])(
+  "preserves the %s output unit across latest, block, time and subsequent reads",
+  async (outputType) => {
+    client.readContract
+      .mockResolvedValueOnce(2000000n)
+      .mockResolvedValueOnce(3000000n)
+      .mockResolvedValueOnce(4000000n)
+      .mockResolvedValueOnce(5000000n);
+    const getBlock = vi.fn(async ({ blockTag, blockNumber }: any) => {
+      const number = blockTag === "latest" ? 1000n : blockNumber;
+      return { number, timestamp: 1700000000n + number * 12n };
+    });
+    Object.assign(client, { getBlock });
+    show(
+      {
+        type: "function",
+        name: "supply",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [{ type: outputType }],
+      },
+      "read",
+      { args: [], value: "0" }
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Read" }));
+    await screen.findByDisplayValue("2000000");
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "10^6" }));
+    await screen.findByDisplayValue("2");
+    fireEvent.click(screen.getByRole("button", { name: "Read options" }));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Query at Block" })
+    );
+    const blockSettings = await screen.findByRole("dialog");
+    expect(within(blockSettings).getByText("Enter Block Number")).toBeTruthy();
+    expect(
+      within(blockSettings).queryByText("Block number", { selector: "label" })
+    ).toBeNull();
+    expect(blockSettings.textContent).not.toContain("Uses your configured");
+    fireEvent.change(within(blockSettings).getByLabelText("Block number"), {
+      target: { value: "100" },
+    });
+    fireEvent.click(within(blockSettings).getByRole("button", { name: "Set" }));
+    fireEvent.click(screen.getByRole("button", { name: "Query at Block" }));
+    await screen.findByDisplayValue("3");
+    expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Read options" }));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Query at Time" })
+    );
+    const timeSettings = await screen.findByRole("dialog");
+    fireEvent.change(
+      await within(timeSettings).findByRole("combobox", { name: "Year" }),
+      { target: { value: "2023" } }
+    );
+    fireEvent.change(
+      within(timeSettings).getByRole("combobox", { name: "Month" }),
+      { target: { value: "10" } }
+    );
+    fireEvent.click(
+      await within(timeSettings).findByRole("button", {
+        name: "14 November 2023",
+      })
+    );
+    for (const [label, value] of [
+      ["Hours (UTC)", "10"],
+      ["Minutes", "33"],
+      ["Seconds", "25"],
+    ]) {
+      fireEvent.change(within(timeSettings).getByLabelText(label), {
+        target: { value },
+      });
+    }
+    fireEvent.change(
+      within(timeSettings).getByRole("combobox", { name: "AM/PM" }),
+      { target: { value: "PM" } }
+    );
+    fireEvent.click(within(timeSettings).getByRole("button", { name: "Set" }));
+    fireEvent.click(screen.getByRole("button", { name: "Query at Time" }));
+    await screen.findByDisplayValue("4");
+    expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Read options" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Read" }));
+    expect(screen.queryByRole("textbox")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Read" }));
+    await screen.findByDisplayValue("5");
+    expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
   }
-  fireEvent.change(within(timeSettings).getByRole("combobox", { name: "AM/PM" }), { target: { value: "PM" } });
-  fireEvent.click(within(timeSettings).getByRole("button", { name: "Set" }));
-  fireEvent.click(screen.getByRole("button", { name: "Query at Time" }));
-  await screen.findByDisplayValue("4");
-  expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Read options" }));
-  fireEvent.click(await screen.findByRole("menuitem", { name: "Read" }));
-  expect(screen.queryByRole("textbox")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Read" }));
-  await screen.findByDisplayValue("5");
-  expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
-});
-
+);
 
 it.each([
-  { label: "uint32", output: { type: "uint32" }, result: 1234567n, raw: "1234567" },
-  { label: "uint256", output: { type: "uint256" }, result: (1n << 256n) - 1n, raw: ((1n << 256n) - 1n).toString() },
-  { label: "tuple uint", output: { type: "tuple", components: [{ name: "amount", type: "uint256" }] }, result: { amount: 1234567n }, raw: "1234567" },
-])("uses decoder-style uint output for $label without losing raw precision", async ({ output, result, raw }) => {
-  client.readContract.mockResolvedValueOnce(result);
-  show({ type: "function", name: "amount", stateMutability: "view", inputs: [], outputs: [output] }, "read", { args: [], value: "0" });
-  fireEvent.click(screen.getByRole("button", { name: "Read" }));
-  const input = await screen.findByDisplayValue(raw);
-  expect(screen.queryByRole("button", { name: /^(Format|Raw)$/ })).toBeNull();
-  fireEvent.focus(input);
-  const tooltip = await screen.findByRole("tooltip");
-  expect(tooltip.textContent).toContain(raw.replace(/\B(?=(\d{3})+(?!\d))/g, ","));
-  expect(tooltip.textContent).toMatch(/\([\d.e+]+[KMB]\)/);
-  const copy = input.closest('.chakra-input__group')!.querySelector("button")!;
-  fireEvent.click(copy);
-  await waitFor(() => expect(clipboardWrite).toHaveBeenCalledWith(raw));
-});
+  {
+    label: "uint32",
+    output: { type: "uint32" },
+    result: 1234567n,
+    raw: "1234567",
+  },
+  {
+    label: "uint256",
+    output: { type: "uint256" },
+    result: (1n << 256n) - 1n,
+    raw: ((1n << 256n) - 1n).toString(),
+  },
+  {
+    label: "tuple uint",
+    output: {
+      type: "tuple",
+      components: [{ name: "amount", type: "uint256" }],
+    },
+    result: { amount: 1234567n },
+    raw: "1234567",
+  },
+])(
+  "uses decoder-style uint output for $label without losing raw precision",
+  async ({ output, result, raw }) => {
+    client.readContract.mockResolvedValueOnce(result);
+    show(
+      {
+        type: "function",
+        name: "amount",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [output],
+      },
+      "read",
+      { args: [], value: "0" }
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Read" }));
+    const input = await screen.findByDisplayValue(raw);
+    expect(screen.queryByRole("button", { name: /^(Format|Raw)$/ })).toBeNull();
+    fireEvent.focus(input);
+    const tooltip = await screen.findByRole("tooltip");
+    expect(tooltip.textContent).toContain(
+      raw.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+    );
+    expect(tooltip.textContent).toMatch(/\([\d.e+]+[KMB]\)/);
+    const copy = input
+      .closest(".chakra-input__group")!
+      .querySelector("button")!;
+    fireEvent.click(copy);
+    await waitFor(() => expect(clipboardWrite).toHaveBeenCalledWith(raw));
+  }
+);
 
 it.each([
   { type: "bytes", hex: "0x6162", text: "ab" },
   { type: "bytes4", hex: "0x61626364", text: "abcd" },
-  { type: "bytes20", hex: "0x6162636465666768696a6b6c6d6e6f7071727374", text: "abcdefghijklmnopqrst" },
+  {
+    type: "bytes20",
+    hex: "0x6162636465666768696a6b6c6d6e6f7071727374",
+    text: "abcdefghijklmnopqrst",
+  },
   { type: "tuple", hex: "0x6162", text: "ab" },
-])("uses shared bytes controls for $type returns and preserves the format on refresh", async ({ type, hex, text }) => {
-  const tuple = type === "tuple";
-  const output = tuple ? { type, components: [{ name: "data", type: "bytes" }] } : { type };
-  client.readContract.mockResolvedValue(tuple ? { data: hex } : hex);
-  show({ type: "function", name: "data", stateMutability: "view", inputs: [], outputs: [output] }, "read", { args: [], value: "0" });
-  fireEvent.click(screen.getByRole("button", { name: "Read" }));
-  const input = await screen.findByDisplayValue(hex);
-  fireEvent.click(input.closest('.chakra-input__group')!.querySelector('button')!);
-  await waitFor(() => expect(clipboardWrite).toHaveBeenCalledWith(hex));
-  expect(screen.queryByText("to Decimal", { exact: true })).toBeNull();
-  for (const [format, expected] of [["Decimal", BigInt(hex).toString()], ["Binary", BigInt(hex).toString(2)], ["Text", text], ["Hex", hex]]) {
+])(
+  "uses shared bytes controls for $type returns and preserves the format on refresh",
+  async ({ type, hex, text }) => {
+    const tuple = type === "tuple";
+    const output = tuple
+      ? { type, components: [{ name: "data", type: "bytes" }] }
+      : { type };
+    client.readContract.mockResolvedValue(tuple ? { data: hex } : hex);
+    show(
+      {
+        type: "function",
+        name: "data",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [output],
+      },
+      "read",
+      { args: [], value: "0" }
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Read" }));
+    const input = await screen.findByDisplayValue(hex);
+    fireEvent.click(
+      input.closest(".chakra-input__group")!.querySelector("button")!
+    );
+    await waitFor(() => expect(clipboardWrite).toHaveBeenCalledWith(hex));
+    expect(screen.queryByText("to Decimal", { exact: true })).toBeNull();
+    for (const [format, expected] of [
+      ["Decimal", BigInt(hex).toString()],
+      ["Binary", BigInt(hex).toString(2)],
+      ["Text", text],
+      ["Hex", hex],
+    ]) {
+      fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+      fireEvent.click(await screen.findByRole("option", { name: format }));
+      await screen.findByDisplayValue(expected);
+    }
     fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
-    fireEvent.click(await screen.findByRole("option", { name: format }));
-    await screen.findByDisplayValue(expected);
+    fireEvent.click(await screen.findByRole("option", { name: "Decimal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Read" }));
+    await screen.findByDisplayValue(BigInt(hex).toString());
+    expect(screen.getByText("Decimal", { exact: true })).toBeTruthy();
   }
-  fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
-  fireEvent.click(await screen.findByRole("option", { name: "Decimal" }));
-  fireEvent.click(screen.getByRole("button", { name: "Read" }));
-  await screen.findByDisplayValue(BigInt(hex).toString());
-  expect(screen.getByText("Decimal", { exact: true })).toBeTruthy();
-});
+);
 
 it.each([
-  { label: "fixed array", output: { type: "uint256[2]" }, result: [11n, 22n], values: ["11", "22"] },
-  { label: "nested array", output: { type: "uint256[][]" }, result: [[11n], [22n, 33n]], values: ["11", "22", "33"] },
-  { label: "tuple array", output: { type: "tuple[]", components: [{ name: "amount", type: "uint256" }, { name: "data", type: "bytes" }] }, result: [{ amount: 11n, data: "0x6162" }], values: ["11", "0x6162"] },
-  { label: "bytes array", output: { type: "bytes4[]" }, result: ["0x61626364"], values: ["0x61626364"] },
-  { label: "empty array", output: { type: "uint256[]" }, result: [], values: [] },
-])("renders $label returns in the shared decoder tree", async ({ output, result, values }) => {
-  client.readContract.mockResolvedValueOnce(result);
-  show({ type: "function", name: "items", stateMutability: "view", inputs: [], outputs: [output] }, "read", { args: [], value: "0" });
-  fireEvent.click(screen.getByRole("button", { name: "Read" }));
-  const branch = await screen.findByRole("button", { name: "arg0", expanded: true });
-  expect(within(branch).getByText(`${result.length} items`, { exact: true })).toBeTruthy();
-  for (const value of values) expect(screen.getByDisplayValue(value)).toBeTruthy();
-  if (!values.length) expect(screen.getByText("No items")).toBeTruthy();
-  fireEvent.click(branch);
-  expect(screen.getByRole("button", { name: "arg0", expanded: false })).toBeTruthy();
-  for (const value of values) expect(screen.getByDisplayValue(value).closest('[hidden]')).toBeTruthy();
-  fireEvent.click(branch);
-  expect(screen.getByRole("button", { name: "arg0", expanded: true })).toBeTruthy();
-});
+  {
+    label: "fixed array",
+    output: { type: "uint256[2]" },
+    result: [11n, 22n],
+    values: ["11", "22"],
+  },
+  {
+    label: "nested array",
+    output: { type: "uint256[][]" },
+    result: [[11n], [22n, 33n]],
+    values: ["11", "22", "33"],
+  },
+  {
+    label: "tuple array",
+    output: {
+      type: "tuple[]",
+      components: [
+        { name: "amount", type: "uint256" },
+        { name: "data", type: "bytes" },
+      ],
+    },
+    result: [{ amount: 11n, data: "0x6162" }],
+    values: ["11", "0x6162"],
+  },
+  {
+    label: "bytes array",
+    output: { type: "bytes4[]" },
+    result: ["0x61626364"],
+    values: ["0x61626364"],
+  },
+  {
+    label: "empty array",
+    output: { type: "uint256[]" },
+    result: [],
+    values: [],
+  },
+])(
+  "renders $label returns in the shared decoder tree",
+  async ({ output, result, values }) => {
+    client.readContract.mockResolvedValueOnce(result);
+    show(
+      {
+        type: "function",
+        name: "items",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [output],
+      },
+      "read",
+      { args: [], value: "0" }
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Read" }));
+    const branch = await screen.findByRole("button", {
+      name: "arg0",
+      expanded: true,
+    });
+    expect(
+      within(branch).getByText(`${result.length} items`, { exact: true })
+    ).toBeTruthy();
+    for (const value of values)
+      expect(screen.getByDisplayValue(value)).toBeTruthy();
+    if (!values.length) expect(screen.getByText("No items")).toBeTruthy();
+    fireEvent.click(branch);
+    expect(
+      screen.getByRole("button", { name: "arg0", expanded: false })
+    ).toBeTruthy();
+    for (const value of values)
+      expect(screen.getByDisplayValue(value).closest("[hidden]")).toBeTruthy();
+    fireEvent.click(branch);
+    expect(
+      screen.getByRole("button", { name: "arg0", expanded: true })
+    ).toBeTruthy();
+  }
+);
 
 it("retains array item units and collapsed branches across refreshed return values", async () => {
-  client.readContract.mockResolvedValueOnce([2000000n]).mockResolvedValueOnce([3000000n]);
-  show({ type: "function", name: "items", stateMutability: "view", inputs: [], outputs: [{ type: "uint256[]" }] }, "read", { args: [], value: "0" });
+  client.readContract
+    .mockResolvedValueOnce([2000000n])
+    .mockResolvedValueOnce([3000000n]);
+  show(
+    {
+      type: "function",
+      name: "items",
+      stateMutability: "view",
+      inputs: [],
+      outputs: [{ type: "uint256[]" }],
+    },
+    "read",
+    { args: [], value: "0" }
+  );
   fireEvent.click(screen.getByRole("button", { name: "Read" }));
   await screen.findByDisplayValue("2000000");
   fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
@@ -633,20 +885,50 @@ it("retains array item units and collapsed branches across refreshed return valu
   fireEvent.click(screen.getByRole("button", { name: "Read" }));
   await waitFor(() => expect(client.readContract).toHaveBeenCalledTimes(2));
   await waitFor(() => expect(screen.getByDisplayValue("3")).toBeTruthy());
-  expect(screen.getByRole("button", { name: "arg0", expanded: false })).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "arg0", expanded: false })
+  ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "arg0" }));
   expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
 });
 
 it("renders nested struct fields in one tree and preserves formats and disclosure on refresh", async () => {
-  const outputs = [{ type: "tuple", components: [
-    { name: "configuration", type: "tuple", components: [{ name: "data", type: "uint256" }] },
-    { name: "active", type: "bool" },
-    { name: "amounts", type: "uint256[2]" },
-  ] }];
-  client.readContract.mockResolvedValueOnce({ configuration: { data: 2000000n }, active: true, amounts: [11n, 22n] })
-    .mockResolvedValueOnce({ configuration: { data: 3000000n }, active: false, amounts: [33n, 44n] });
-  show({ type: "function", name: "reserve", stateMutability: "view", inputs: [], outputs }, "read", { args: [], value: "0" });
+  const outputs = [
+    {
+      type: "tuple",
+      components: [
+        {
+          name: "configuration",
+          type: "tuple",
+          components: [{ name: "data", type: "uint256" }],
+        },
+        { name: "active", type: "bool" },
+        { name: "amounts", type: "uint256[2]" },
+      ],
+    },
+  ];
+  client.readContract
+    .mockResolvedValueOnce({
+      configuration: { data: 2000000n },
+      active: true,
+      amounts: [11n, 22n],
+    })
+    .mockResolvedValueOnce({
+      configuration: { data: 3000000n },
+      active: false,
+      amounts: [33n, 44n],
+    });
+  show(
+    {
+      type: "function",
+      name: "reserve",
+      stateMutability: "view",
+      inputs: [],
+      outputs,
+    },
+    "read",
+    { args: [], value: "0" }
+  );
   fireEvent.click(screen.getByRole("button", { name: "Read" }));
   await screen.findByDisplayValue("2000000");
   expect(screen.getByDisplayValue("true")).toBeTruthy();
@@ -659,7 +941,9 @@ it("renders nested struct fields in one tree and preserves formats and disclosur
   await screen.findByDisplayValue("false");
   expect(screen.getByDisplayValue("3")).toBeTruthy();
   expect(screen.getByDisplayValue("44")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "configuration", expanded: false })).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "configuration", expanded: false })
+  ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "configuration" }));
   expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
 });
@@ -667,18 +951,377 @@ it("renders nested struct fields in one tree and preserves formats and disclosur
 it.each([
   { type: "int24", result: -1234567n },
   { type: "int256", result: -(1n << 255n) },
-])("renders and copies negative $type returns exactly using shared integer controls", async ({ type, result }) => {
-  client.readContract.mockResolvedValueOnce(result);
-  show({ type: "function", name: "signedValue", stateMutability: "view", inputs: [], outputs: [{ type }] }, "read", { args: [], value: "0" });
-  fireEvent.click(screen.getByRole("button", { name: "Read" }));
-  const input = await screen.findByDisplayValue(result.toString());
-  fireEvent.click(input.closest('.chakra-input__group')!.querySelector('button')!);
-  await waitFor(() => expect(clipboardWrite).toHaveBeenCalledWith(result.toString()));
-  if (type === "int24") {
-    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
-    fireEvent.click(await screen.findByRole("option", { name: "10^6" }));
-    const converted = await screen.findByDisplayValue("-1.234567");
-    fireEvent.click(converted.closest('.chakra-input__group')!.querySelector('button')!);
-    await waitFor(() => expect(clipboardWrite).toHaveBeenCalledWith("-1.234567"));
+])(
+  "renders and copies negative $type returns exactly using shared integer controls",
+  async ({ type, result }) => {
+    client.readContract.mockResolvedValueOnce(result);
+    show(
+      {
+        type: "function",
+        name: "signedValue",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [{ type }],
+      },
+      "read",
+      { args: [], value: "0" }
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Read" }));
+    const input = await screen.findByDisplayValue(result.toString());
+    fireEvent.click(
+      input.closest(".chakra-input__group")!.querySelector("button")!
+    );
+    await waitFor(() =>
+      expect(clipboardWrite).toHaveBeenCalledWith(result.toString())
+    );
+    if (type === "int24") {
+      fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+      fireEvent.click(await screen.findByRole("option", { name: "10^6" }));
+      const converted = await screen.findByDisplayValue("-1.234567");
+      fireEvent.click(
+        converted.closest(".chakra-input__group")!.querySelector("button")!
+      );
+      await waitFor(() =>
+        expect(clipboardWrite).toHaveBeenCalledWith("-1.234567")
+      );
+    }
   }
+);
+
+it("keeps compact nested tuple values when array rows collapse, expand and are removed", async () => {
+  const func: JsonFragment = {
+    type: "function",
+    name: "batch",
+    stateMutability: "nonpayable",
+    inputs: [
+      {
+        name: "ops",
+        type: "tuple[]",
+        components: [
+          { name: "nonce", type: "uint256" },
+          {
+            name: "calls",
+            type: "tuple[]",
+            components: [
+              { name: "target", type: "address" },
+              { name: "data", type: "bytes" },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  show(func, "write", {
+    args: [
+      [
+        ["478", [[address, "0x1234"]]],
+        ["599", []],
+      ],
+    ],
+    value: "0",
+  });
+  const collapse = await screen.findByRole("button", {
+    name: "Collapse ops item 0",
+  });
+  expect(collapse.tagName).toBe("BUTTON");
+  fireEvent.click(collapse);
+  expect(
+    screen
+      .getByRole("button", { name: "Expand ops item 0" })
+      .getAttribute("aria-expanded")
+  ).toBe("false");
+  fireEvent.click(screen.getByRole("button", { name: "Expand ops item 0" }));
+  expect(screen.getByDisplayValue("478")).toBeTruthy();
+  expect(screen.getByDisplayValue("0x1234")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Remove ops item 0" }));
+  await waitFor(() => expect(screen.queryByDisplayValue("478")).toBeNull());
+  expect(screen.getByDisplayValue("599")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Options" }));
+  fireEvent.click(
+    await screen.findByRole("menuitem", { name: "Encode Calldata" })
+  );
+  await encodeCurrent();
+  expect(
+    await screen.findByText(
+      new Interface([func]).encodeFunctionData("batch", [[[599n, []]]])
+    )
+  ).toBeTruthy();
+  expect(client.simulateContract).not.toHaveBeenCalled();
+});
+
+function ValidationRevealHarness({
+  inputs,
+  values,
+}: {
+  inputs: JsonFragment["inputs"];
+  values: any[];
+}) {
+  const root = React.useRef<HTMLDivElement>(null);
+  const [isError, setError] = React.useState(false);
+  const [attempt, setAttempt] = React.useState(0);
+  const [collapsed, setCollapsed] = React.useState(false);
+  useInvalidInputReveal(root, attempt);
+  return (
+    <CompactParameterInputs.Provider value={true}>
+      <div ref={root} data-parameter-branch="">
+        <button
+          data-parameter-toggle=""
+          aria-expanded={!collapsed}
+          onClick={() => setCollapsed((value) => !value)}
+        >
+          Toggle form
+        </button>
+        <button
+          onClick={() => {
+            setError(true);
+            setAttempt((value) => value + 1);
+          }}
+        >
+          Validate
+        </button>
+        <div style={{ display: collapsed ? "none" : undefined }}>
+          {inputs?.map((input, index) => (
+            <div key={index}>
+              {renderInputFields({
+                chainId: 1,
+                input,
+                value: values[index],
+                isError,
+                ariaLabel: input.name || input.type,
+                onChange: () => {},
+                onKeyDown: () => {},
+                setFunctionIsDisabled: () => {},
+                allowBytesBuilder: true,
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </CompactParameterInputs.Provider>
+  );
+}
+
+describe("revealing invalid parameter inputs", () => {
+  let frames: Map<number, FrameRequestCallback>;
+  let nextFrame: number;
+  let scrolled: HTMLElement[];
+  let previousScroll: PropertyDescriptor | undefined;
+  beforeEach(() => {
+    frames = new Map();
+    nextFrame = 1;
+    scrolled = [];
+    previousScroll = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "scrollIntoView"
+    );
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: vi.fn(function (this: HTMLElement) {
+        scrolled.push(this);
+      }),
+    });
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      const id = nextFrame++;
+      frames.set(id, callback);
+      return id;
+    });
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+      frames.delete(id);
+    });
+  });
+  afterEach(() => {
+    if (previousScroll)
+      Object.defineProperty(
+        HTMLElement.prototype,
+        "scrollIntoView",
+        previousScroll
+      );
+    else Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+  });
+  const flushFrames = async () => {
+    for (let pass = 0; pass < 10 && frames.size; pass++) {
+      await act(async () => {
+        const callbacks = [...frames.values()];
+        frames.clear();
+        callbacks.forEach((callback) => callback(0));
+        await Promise.resolve();
+      });
+    }
+  };
+
+  it("opens every collapsed invalid ancestor and scrolls once to the first invalid leaf, including on repeat attempts", async () => {
+    render(
+      <ChakraProvider>
+        <ValidationRevealHarness
+          inputs={[
+            {
+              name: "groups",
+              type: "tuple[]",
+              components: [
+                {
+                  name: "settings",
+                  type: "tuple",
+                  components: [{ name: "label", type: "string" }],
+                },
+              ],
+            },
+            {
+              name: "other",
+              type: "tuple",
+              components: [{ name: "payload", type: "bytes" }],
+            },
+          ]}
+          values={[[[[""]]], [""]]}
+        />
+      </ChakraProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Collapse settings" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Collapse groups item 0" })
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Collapse other" }));
+    fireEvent.click(screen.getByRole("button", { name: "Toggle form" }));
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    await flushFrames();
+    expect(
+      screen
+        .getByRole("button", { name: "Toggle form" })
+        .getAttribute("aria-expanded")
+    ).toBe("true");
+    expect(
+      screen.getByRole("button", { name: "Collapse groups item 0" })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Collapse settings" })
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Collapse other" })).toBeTruthy();
+    expect(scrolled).toEqual([screen.getAllByRole("textbox")[0]]);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Collapse groups item 0" })
+    );
+    await flushFrames();
+    expect(
+      screen.getByRole("button", { name: "Expand groups item 0" })
+    ).toBeTruthy();
+    expect(scrolled).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    await flushFrames();
+    expect(
+      screen.getByRole("button", { name: "Collapse groups item 0" })
+    ).toBeTruthy();
+    expect(scrolled).toHaveLength(2);
+  });
+
+  it("reveals the real contract form after a failed action marks a collapsed array invalid", async () => {
+    client.readContract.mockRejectedValueOnce(new Error("Invalid arguments"));
+    show(
+      {
+        type: "function",
+        name: "validateRun",
+        stateMutability: "view",
+        inputs: [
+          {
+            name: "items",
+            type: "tuple[]",
+            components: [{ name: "amount", type: "uint256" }],
+          },
+        ],
+      },
+      "read",
+      { args: [[[""]]], value: "0" }
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Collapse items item 0" })
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Collapse validateRun" })
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Read" }));
+    await waitFor(() =>
+      expect(document.querySelector('input[aria-invalid="true"]')).toBeTruthy()
+    );
+    await flushFrames();
+    expect(
+      screen.getByRole("button", { name: "Collapse validateRun" })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Collapse items item 0" })
+    ).toBeTruthy();
+    expect(scrolled).toHaveLength(1);
+    expect(scrolled[0].getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it.each([
+    { name: "address", type: "address", value: "" },
+    { name: "integer", type: "uint256", value: "" },
+    { name: "bytes", type: "bytes", value: "" },
+    { name: "fixedBytes", type: "bytes4", value: "" },
+    { name: "fixedArray", type: "uint256[2]", value: ["", ""] },
+    { name: "nestedArray", type: "uint256[][]", value: [[""]] },
+    { name: "string", type: "string", value: "" },
+    { name: "boolean", type: "bool", value: "" },
+    { name: "array", type: "uint256[]", value: [""] },
+    { name: "fixedArray", type: "uint256[1]", value: [""] },
+  ])(
+    "reveals invalid $name fields and respects reduced motion",
+    async ({ name, type, value }) => {
+      vi.stubGlobal("matchMedia", () => ({
+        matches: true,
+        addListener() {},
+        removeListener() {},
+      }));
+      render(
+        <ChakraProvider>
+          <ValidationRevealHarness inputs={[{ name, type }]} values={[value]} />
+        </ChakraProvider>
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Toggle form" }));
+      fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+      await flushFrames();
+      expect(scrolled).toHaveLength(1);
+      expect(scrolled[0].getAttribute("aria-invalid")).toBe("true");
+      expect(scrolled[0].scrollIntoView).toHaveBeenCalledWith({
+        block: "center",
+        behavior: "instant",
+      });
+      expect(
+        screen
+          .getByRole("button", { name: "Toggle form" })
+          .getAttribute("aria-expanded")
+      ).toBe("true");
+    }
+  );
+
+  it("does not expand for a general error with valid inputs and cancels queued work on unmount", async () => {
+    const view = render(
+      <ChakraProvider>
+        <ValidationRevealHarness
+          inputs={[{ name: "label", type: "string" }]}
+          values={["valid"]}
+        />
+      </ChakraProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Toggle form" }));
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    await flushFrames();
+    expect(
+      screen
+        .getByRole("button", { name: "Toggle form" })
+        .getAttribute("aria-expanded")
+    ).toBe("false");
+    expect(scrolled).toHaveLength(0);
+    view.unmount();
+    const invalid = render(
+      <ChakraProvider>
+        <ValidationRevealHarness
+          inputs={[{ name: "label", type: "string" }]}
+          values={[""]}
+        />
+      </ChakraProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    invalid.unmount();
+    await flushFrames();
+    expect(scrolled).toHaveLength(0);
+  });
 });

@@ -86,7 +86,7 @@ The user builds parameters from scratch.
 
 #### 2. From ABI Mode (`selectedTabIndex === 1`)
 
-The user pastes a JSON ABI.
+The user pastes a JSON ABI object array or a JSON array of human-readable signatures, such as `["function approve(address spender, uint256 value)"]`. Both the encoder and decoder normalize pasted text through `lib/parseJsonAbi.ts`; human-readable fragments become JSON ABI objects before function selection, encoding, decoding, and decoder sharing.
 
 **State:** `abi` (raw JSON string), `parsedFunctions`, `selectedFunction`, `functionInputs`, `inputsState`
 

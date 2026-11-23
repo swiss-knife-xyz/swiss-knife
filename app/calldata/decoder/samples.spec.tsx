@@ -93,7 +93,7 @@ vi.mock("axios", () => ({ default: { get: mocks.lookup } }));
 vi.mock("@/hooks/useAddressBook", () => ({
   useAddressBook: () => ({ getLabel: () => null, isReady: true, addresses: [] }),
 }));
-vi.mock("@monaco-editor/react", () => ({ Editor: ({ value, options }: any) => <textarea aria-label={options?.ariaLabel ?? "Editor"} value={value ?? ""} readOnly={options?.readOnly} /> }));
+vi.mock("@monaco-editor/react", () => ({ Editor: ({ value, options, onChange }: any) => <textarea aria-label={options?.ariaLabel ?? "Editor"} value={value ?? ""} onChange={event => onChange?.(event.target.value)} readOnly={options?.readOnly} /> }));
 vi.mock("@/components/CopyToClipboard", () => ({
   CopyToClipboard: ({ textToCopy, labelText }: any) =>
     labelText ? (
@@ -1215,4 +1215,66 @@ describe("decoder transaction examples", () => {
     expect(screen.getByText("ExecutionSuccess")).toBeTruthy();
     expect(screen.queryByText("StaleEvent")).toBeNull();
   });
+});
+
+
+it.each(["human-readable", "JSON"])("normalizes %s input in From ABI before decoding", async (format) => {
+  mount();
+  fireEvent.click(screen.getByRole("button", { name: "from ABI" }));
+  const signatures = [
+    "function execTransaction(address to, uint256 value, bytes data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, bytes signatures)",
+    "function multiSend(bytes)",
+    "function approve(address spender, uint256 value)",
+    "function supply(address asset, uint256 amount)",
+  ];
+  const iface = new Interface(signatures);
+  const calldata = iface.encodeFunctionData("approve", ["0x0000000000000000000000000000000000000001", 42]);
+  fireEvent.change(screen.getByRole("textbox", { name: "Editor" }), {
+    target: { value: format === "JSON" ? iface.formatJson() : JSON.stringify(signatures) },
+  });
+  fireEvent.change(screen.getByRole("textbox", { name: "Calldata" }), { target: { value: calldata } });
+  fireEvent.click(screen.getByRole("button", { name: "Decode" }));
+  await waitFor(() => expect(mocks.decode).toHaveBeenCalledWith(expect.objectContaining({
+    calldata,
+    abi: JSON.parse(iface.formatJson()),
+  })));
+});
+
+it("links From Address to the selected-chain Contract Explorer with the current calldata", () => {
+  mount();
+  fireEvent.click(screen.getByRole("button", { name: "from Address" }));
+  expect(screen.queryByRole("link", { name: "Open in Contract Explorer" })).toBeNull();
+  const address = "0x0000000000000000000000000000000000000001";
+  fireEvent.change(screen.getByPlaceholderText("0x... or eth:0x..."), { target: { value: address } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Network" }), { target: { value: "8453" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Calldata" }), { target: { value: "0x12345678" } });
+  const url = new URL(screen.getByRole("link", { name: "Open in Contract Explorer" }).getAttribute("href")!, "https://eth.sh");
+  expect(url.hostname).toBe("explorer.eth.sh");
+  expect(url.pathname).toBe(`/8453/${address}`);
+  expect(new URLSearchParams(url.hash.slice(1)).get("data")).toBe("0x12345678");
+  fireEvent.change(screen.getByPlaceholderText("0x... or eth:0x..."), { target: { value: "0x123" } });
+  expect(screen.queryByRole("link", { name: "Open in Contract Explorer" })).toBeNull();
+});
+
+it("links a loaded transaction to its recipient and envelope, clearing the link for changed drafts and networks", async () => {
+  const to = "0x0000000000000000000000000000000000000001";
+  mocks.tx.mockResolvedValue({ input: "0x12345678", to, value: 42n });
+  mount();
+  fireEvent.click(screen.getByRole("button", { name: "from Tx" }));
+  const input = screen.getByPlaceholderText("etherscan link / tx hash");
+  fireEvent.change(input, { target: { value: `https://basescan.org/tx/0x${"ab".repeat(32)}` } });
+  expect(screen.queryByRole("link", { name: "Open in Contract Explorer" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Decode" }));
+  const link = await screen.findByRole("link", { name: "Open in Contract Explorer" });
+  const url = new URL(link.getAttribute("href")!, "https://eth.sh");
+  expect(url.hostname).toBe("explorer.eth.sh");
+  expect(url.pathname).toBe(`/8453/${to}`);
+  expect(new URLSearchParams(url.hash.slice(1)).get("data")).toBe("0x12345678");
+  expect(new URLSearchParams(url.hash.slice(1)).get("value")).toBe("42");
+  fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), { target: { value: "0x" + "ab".repeat(32) } });
+  expect(screen.queryByRole("link", { name: "Open in Contract Explorer" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Decode" }));
+  await screen.findByRole("link", { name: "Open in Contract Explorer" });
+  fireEvent.change(screen.getByRole("combobox", { name: "Network" }), { target: { value: "1" } });
+  expect(screen.queryByRole("link", { name: "Open in Contract Explorer" })).toBeNull();
 });

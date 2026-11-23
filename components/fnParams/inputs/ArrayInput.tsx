@@ -5,11 +5,18 @@ import {
   HStack,
   InputProps,
   Spacer,
+  IconButton,
+  Text,
 } from "@chakra-ui/react";
+import { useCompactParameterInputs } from "../ParameterInputStyle";
 import { JsonFragment, JsonFragmentType } from "ethers";
 import { renderInputFields } from "../Renderer";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDownIcon, ChevronUpIcon, DeleteIcon } from "@chakra-ui/icons";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  DeleteIcon,
+} from "@chakra-ui/icons";
 import { InputField } from "@/components/InputField";
 import { InputInfo } from "./InputInfo";
 import isEqual from "lodash/isEqual";
@@ -70,6 +77,7 @@ const ArrayElement = ({
   fixedLength?: number;
   focusOnMount: boolean;
 }) => {
+  const compact = useCompactParameterInputs();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const fieldRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -86,63 +94,85 @@ const ArrayElement = ({
   }, [focusOnMount]);
 
   return (
-    <HStack
+    <Box
+      data-parameter-branch=""
       minW={0}
       mt={2}
-      p={{ base: 1.5, md: 3 }}
-      bg="whiteAlpha.50"
-      rounded={"lg"}
+      p={compact ? 0 : { base: 1.5, md: 3 }}
+      bg={compact ? "transparent" : "whiteAlpha.50"}
+      border={compact ? "1px solid" : undefined}
+      borderColor="border.default"
+      borderRadius={compact ? "md" : "lg"}
     >
-      <Box w="full" minW={0}>
-        <HStack w="full">
-          <HStack
-            cursor={"pointer"}
-            onClick={() => setIsCollapsed((prev) => !prev)}
-            bg="whiteAlpha.50"
-            p={2}
-            pr={4}
-            roundedTop={"lg"}
-            roundedBottom={isCollapsed ? "lg" : undefined}
-          >
-            <Box fontSize={"sm"}>
-              {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </Box>
-            <Box>i = {index}</Box>
-          </HStack>
-          <Spacer />
-          <Button
-            mb={1}
-            isDisabled={fixedLength !== undefined}
-            size="xs"
-            onClick={() => removeFromArrayInputState(id)}
-          >
-            <DeleteIcon />
-          </Button>
-        </HStack>
-        <Box ref={fieldRef} display={isCollapsed ? "none" : undefined}>
-          {renderInputFields({
-            chainId,
-            input: {
-              ...input,
-              type: childType,
-            },
-            value,
-            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-              updateArrayInputState(id, e.target.value);
-            },
-            setFunctionIsDisabled: (value: boolean) => {
-              updateArrayReadIsDisabled(id, value);
-            },
-            onKeyDown,
-            isError,
-            allowBytesBuilder,
-            immediateUpdates,
-            rawValues,
-            isArrayChild: true,
-          })}
-        </Box>
+      <HStack
+        px={0}
+        py={0}
+        spacing={compact ? 0 : 2}
+        borderBottom={compact && !isCollapsed ? "1px solid" : undefined}
+        borderColor="border.subtle"
+      >
+        <Button
+          variant="ghost"
+          size="xs"
+          h={compact ? 9 : 7}
+          minW={0}
+          flex={1}
+          justifyContent="flex-start"
+          borderRadius={compact ? 0 : "md"}
+          borderTopLeftRadius="md"
+          borderBottomLeftRadius={isCollapsed ? "md" : 0}
+          _hover={{ bg: "whiteAlpha.100" }}
+          px={compact ? 3 : 2}
+          color="text.secondary"
+          fontWeight="normal"
+          fontFamily={compact ? "mono" : undefined}
+          aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${input.name || "array"} item ${index}`}
+          data-parameter-toggle=""
+          aria-expanded={!isCollapsed}
+          leftIcon={isCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
+          onClick={() => setIsCollapsed((previous) => !previous)}
+        >
+          {compact ? `[${index}]` : `i = ${index}`}
+        </Button>
+        <IconButton
+          aria-label={`Remove ${input.name || "array"} item ${index}`}
+          icon={<DeleteIcon />}
+          variant="ghost"
+          borderRadius={compact ? 0 : "md"}
+          borderTopRightRadius="md"
+          borderBottomRightRadius={isCollapsed ? "md" : 0}
+          color="text.tertiary"
+          _hover={{ color: "red.300", bg: "whiteAlpha.100" }}
+          isDisabled={fixedLength !== undefined}
+          size="xs"
+          h={compact ? 9 : 6}
+          minW={compact ? 9 : 6}
+          onClick={() => removeFromArrayInputState(id)}
+        />
+      </HStack>
+      <Box
+        ref={fieldRef}
+        p={compact ? 2 : 0}
+        display={isCollapsed ? "none" : undefined}
+        minW={0}
+      >
+        {renderInputFields({
+          chainId,
+          input: { ...input, type: childType },
+          value,
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+            updateArrayInputState(id, e.target.value),
+          setFunctionIsDisabled: (value: boolean) =>
+            updateArrayReadIsDisabled(id, value),
+          onKeyDown,
+          isError,
+          allowBytesBuilder,
+          immediateUpdates,
+          rawValues,
+          isArrayChild: true,
+        })}
       </Box>
-    </HStack>
+    </Box>
   );
 };
 
@@ -158,6 +188,7 @@ export const ArrayInput = ({
   onKeyDown,
   value,
 }: InputFieldProps) => {
+  const compact = useCompactParameterInputs();
   // removes [] from the end of the array type
   const baseType = input.type!.replace(/\[\d*\]$/, "");
   const fixedMatch = input.type!.match(/\[(\d+)\]$/);
@@ -237,17 +268,28 @@ export const ArrayInput = ({
   const length = Object.keys(arrayInputState).length;
 
   return (
-    <Box maxW="30rem">
-      <HStack>
+    <Box maxW={compact ? "full" : "30rem"} minW={0}>
+      <HStack spacing={2} align="start">
         <InputInfo input={input} />
         <Spacer />
-        <Box color={"whiteAlpha.700"} fontSize={"sm"}>
-          (length = {length})
-        </Box>
+        <Text
+          color="text.secondary"
+          fontSize={compact ? "xs" : "sm"}
+          whiteSpace="nowrap"
+        >
+          {compact
+            ? `${length} ${length === 1 ? "item" : "items"}`
+            : `(length = ${length})`}
+        </Text>
       </HStack>
-      {length === 0 && (
-        <InputField value={"[ ]"} placeholder="" onChange={() => {}} />
-      )}
+      {length === 0 &&
+        (compact ? (
+          <Text color="text.tertiary" fontSize="xs" py={2}>
+            No items
+          </Text>
+        ) : (
+          <InputField value={"[ ]"} placeholder="" onChange={() => {}} />
+        ))}
       {Object.entries(arrayInputState).map(([id, element], index) => (
         <ArrayElement
           key={id}
@@ -272,6 +314,11 @@ export const ArrayInput = ({
       <Center mt={2}>
         <Button
           onClick={addNewArrayElement}
+          size={compact ? "xs" : undefined}
+          h={compact ? 7 : undefined}
+          variant={compact ? "ghost" : undefined}
+          color={compact ? "text.secondary" : undefined}
+          fontWeight={compact ? "medium" : undefined}
           isDisabled={fixedLength !== undefined}
         >
           + Add
