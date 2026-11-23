@@ -12,6 +12,8 @@ export function FileExplorerPanel({
   actions,
   onRootSelect,
   title = "Explorer",
+  titleIcon,
+  titleActionLabel = "Select workspace root",
   body,
   background = "bg.muted",
   outline,
@@ -20,6 +22,8 @@ export function FileExplorerPanel({
   actions?: ReactNode;
   onRootSelect?: () => void;
   title?: string;
+  titleIcon?: ReactNode;
+  titleActionLabel?: string;
   body?: ReactNode;
   background?: string;
   outline?: SourceOutlineInput;
@@ -77,9 +81,13 @@ export function FileExplorerPanel({
             h="auto"
             minW={0}
             onClick={onRootSelect}
-            title="Select workspace root"
-            aria-label="Select workspace root"
+            display="flex"
+            alignItems="center"
+            gap={1.5}
+            title={titleActionLabel}
+            aria-label={titleActionLabel}
           >
+            {titleIcon}
             <Text
               as="span"
               fontSize="xs"

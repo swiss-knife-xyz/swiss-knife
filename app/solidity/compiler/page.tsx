@@ -557,6 +557,7 @@ export default function SolidityIDE() {
             disabled={filesLocked}
             isOpen={filesDrawer.isOpen}
             onClose={filesDrawer.onClose}
+            onOpen={() => { if (!window.matchMedia("(min-width: 80em)").matches) filesDrawer.onOpen(); }}
             revealFile={explorerReveal}
             onOpenDependencies={(name = "", remove = false) => openDependencyRef.current(name, remove)}
             onRevealFile={(id, lineNumber) =>

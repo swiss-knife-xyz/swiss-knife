@@ -31,6 +31,7 @@ import {
   type ToastId,
 } from "@chakra-ui/react";
 import {
+  ArrowLeft,
   Download,
   Package,
   FolderPlus,
@@ -41,6 +42,14 @@ import {
   Search,
 } from "lucide-react";
 import { FileExplorerPanel } from "@/components/SourceCodeExplorer/FileExplorerPanel";
+import { ReplacePreview } from "./ReplacePreview";
+import {
+  applyReplacements,
+  canApplyReplacements,
+  planReplacements,
+  type ReplacementPlan,
+} from "@/lib/solidity/workspaceSearch";
+import type { SearchDraft } from "@/components/SourceCodeExplorer/SearchPanel";
 import { SearchPanel } from "@/components/SourceCodeExplorer/SearchPanel";
 import { buildFileTree } from "@/components/SourceCodeExplorer/utils";
 import {
@@ -66,6 +75,7 @@ type Props = {
   disabled: boolean;
   isOpen: boolean;
   onClose(): void;
+  onOpen?(): void;
   onRevealFile?(id: string, lineNumber: number): void;
   revealFile?: { id: string; nonce: number };
   onOpenDependencies?(name?: string, remove?: boolean): void;
@@ -118,6 +128,7 @@ export function WorkspaceFiles({
   disabled,
   isOpen,
   onClose,
+  onOpen,
   onRevealFile,
   revealFile,
   onOpenDependencies,
@@ -142,6 +153,97 @@ export function WorkspaceFiles({
   );
   const [selectedFolder, setSelectedFolder] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchDraft, setSearchDraft] = useState<SearchDraft>();
+  const [replacementPlan, setReplacementPlan] =
+    useState<ReplacementPlan | null>(null);
+  const writablePaths = useMemo(
+    () =>
+      new Set(
+        workspace?.files
+          .filter((file) => !lockedPath(workspace, file.name))
+          .map((file) => file.name)
+      ),
+    [workspace]
+  );
+  const latestWorkspace = useRef(workspace);
+  latestWorkspace.current = workspace;
+  const previewStale =
+    !!replacementPlan &&
+    (!workspace || !canApplyReplacements(workspace, replacementPlan));
+  const applyReplacementPlan = () => {
+    const plan = replacementPlan;
+    if (
+      !plan ||
+      !workspace ||
+      disabled ||
+      !canApplyReplacements(workspace, plan)
+    )
+      return;
+    update((current) => applyReplacements(current, plan));
+    setReplacementPlan(null);
+    const id = toast({
+      duration: 12000,
+      position: "bottom",
+      render: ({ onClose }) => (
+        <HStack
+          bg="bg.muted"
+          borderWidth="1px"
+          borderColor="border.default"
+          borderRadius="lg"
+          p={3}
+        >
+          <Text fontSize="sm">Replaced {plan.count} matches</Text>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              const current = latestWorkspace.current;
+              if (!current || !canApplyReplacements(current, plan, true)) {
+                toast({
+                  status: "warning",
+                  description:
+                    "Files changed since replacement. Undo would overwrite newer edits.",
+                });
+                return;
+              }
+              update((value) => applyReplacements(value, plan, true));
+              onClose();
+            }}
+          >
+            Undo
+          </Button>
+        </HStack>
+      ),
+    });
+    undoToasts.current.push(id);
+  };
+  const openSearchRef = useRef(onOpen);
+  openSearchRef.current = onOpen;
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if (
+        !(event.metaKey || event.ctrlKey) ||
+        !event.shiftKey ||
+        event.altKey ||
+        !["f", "h"].includes(event.key.toLowerCase()) ||
+        document.querySelector('[role="dialog"]')
+      )
+        return;
+      event.preventDefault();
+      event.stopPropagation();
+      setSearchOpen(true);
+      if (event.key.toLowerCase() === "h")
+        setSearchDraft((current) => ({
+          query: current?.query ?? "",
+          options: current?.options ?? { caseSensitive: false, regex: false },
+          replacement: current?.replacement ?? "",
+          replacing: true,
+        }));
+      openSearchRef.current?.();
+    };
+    window.addEventListener("keydown", shortcut, true);
+    return () => window.removeEventListener("keydown", shortcut, true);
+  }, []);
   const inputRef = useRef<HTMLInputElement>(null!);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -461,11 +563,13 @@ export function WorkspaceFiles({
       </MenuList>
     </Menu>
   );
-  const list = () => (
+  const list = (inDrawer = false) => (
     <FileExplorerPanel
       background="bg.subtle"
       data={fileTree}
       title={searchOpen ? "Search" : "Explorer"}
+      titleIcon={searchOpen ? <ArrowLeft size={14} /> : undefined}
+      titleActionLabel={searchOpen ? "Back to Explorer" : "Select workspace root"}
       height="auto"
       selectedPath={selectedPath}
       scrollToSelection={false}
@@ -587,14 +691,46 @@ export function WorkspaceFiles({
         </>
       }
       body={
-        searchOpen ? (
+        searchOpen && (inDrawer || !isOpen) ? (
           <SearchPanel
+            initialDraft={searchDraft}
+            onDraftChange={setSearchDraft}
+            replacement={{
+              writablePaths,
+              disabled,
+              onPreview: (query, replacement, options, path) => {
+                if (!workspace || disabled) return;
+                try {
+                  const plan = planReplacements(
+                    workspace,
+                    query,
+                    replacement,
+                    options,
+                    path
+                  );
+                  if (!plan.files.length) {
+                    toast({ description: "No changes to apply." });
+                    return;
+                  }
+                  setReplacementPlan(plan);
+                } catch (error) {
+                  toast({
+                    status: "error",
+                    description:
+                      error instanceof Error
+                        ? error.message
+                        : "Couldn't prepare replacements.",
+                  });
+                }
+              },
+            }}
             sourceCode={sources}
             onResultClick={(path, _content, lineNumber) =>
               selectFile(path, lineNumber)
             }
             isOpen={true}
             showHeader={false}
+            onCloseSearch={() => setSearchOpen(false)}
           />
         ) : !workspace ? (
           <Text px={3} py={4} color="text.secondary" fontSize="sm">
@@ -606,6 +742,12 @@ export function WorkspaceFiles({
   );
   return (
     <>
+      <ReplacePreview
+        plan={replacementPlan}
+        stale={previewStale || disabled}
+        onClose={() => setReplacementPlan(null)}
+        onApply={applyReplacementPlan}
+      />
       <Box
         ref={paneRef}
         id="solidity-files-panel"
@@ -636,7 +778,7 @@ export function WorkspaceFiles({
             display="flex"
             flexDirection="column"
           >
-            {list()}
+            {list(true)}
           </DrawerBody>
         </DrawerContent>
       </Drawer>

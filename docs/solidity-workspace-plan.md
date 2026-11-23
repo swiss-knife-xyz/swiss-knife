@@ -190,7 +190,7 @@ Reference: https://unpkg.com (exact-version URLs and file metadata/integrity API
 ### 9. Focused quality-of-life features
 
 - [x] Optional auto-compile, inline Monaco diagnostics and click-to-jump errors.
-- [ ] Workspace-wide find/replace and workspace-specific keyboard shortcuts.
+- [x] Workspace-wide find/replace and search/replace keyboard shortcuts.
 - [ ] Bounded local source revision history with preview and restore.
 - [ ] Contract byte-size indicators and deployment-size limit warnings.
 - [x] Import a verified contract into a new workspace.
@@ -525,3 +525,14 @@ closes the modal without switching chains or submitting a wallet request. The
 shared constructor loader handles saved ABIs and older imported records. Live
 browser validation reused Aave's imported admin address into its constructor
 input. All 204 compiler tests and the production build passed.
+
+### Workspace-wide find and replace
+
+- Reuses the shared Explorer search view; replacement controls are opt-in for
+  editable compiler workspaces. Libraries remain searchable and read-only.
+- Case-sensitive/literal/regex search, per-file or all editable files, reviewed
+  before/after previews, and guarded Undo. Preview and Undo reject stale files.
+- Search uses bounded results; replacement scans all matches, independent of
+  display limits. Drafts survive switching Explorer/Search and opening the drawer.
+- Cmd/Ctrl+Shift+F opens search; Cmd/Ctrl+Shift+H opens replace. Existing single-file
+  Monaco search shortcuts remain available.

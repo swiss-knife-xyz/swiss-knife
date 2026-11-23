@@ -438,3 +438,12 @@
   body owns scrolling; parameter values wrap without nested scroll areas.
 - Use existing semantic tokens and crisp borders; no glow, decorative gradients,
   new fonts or explanatory filler. Preserve constructor checks and exact values.
+
+### Workspace search and replace
+
+- Extend the existing compact Explorer search view with a disclosure for the
+  replacement input and a per-file or workspace replacement action.
+- Review changes in a bounded modal: path headers, line numbers, paired red/green
+  source rows. Reuse dark surfaces, semantic colors, crisp borders and typography.
+- Keep dependency results searchable but read-only. Preserve search drafts while
+  switching views; apply edits together and offer a guarded Undo toast.
