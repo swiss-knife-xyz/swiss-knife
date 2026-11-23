@@ -7,6 +7,7 @@ export default defineConfig({
     environment: "jsdom",
     include: [
       "lib/contractAbi.spec.ts",
+      "lib/abiToSolidity.spec.ts",
       "lib/eip7702.spec.ts",
       "components/ContractAbiEditor.spec.tsx",
       "app/explorer/contractProvenance.spec.tsx",

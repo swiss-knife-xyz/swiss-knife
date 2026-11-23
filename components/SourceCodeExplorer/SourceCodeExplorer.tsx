@@ -6,6 +6,7 @@ import { Box, HStack, Text, VStack, IconButton, Tooltip, Button, Icon } from "@c
 import { Editor, type OnMount } from "@monaco-editor/react";
 import { Search, Files, Columns2, Rows2 } from "lucide-react";
 import { resolveImport } from "@/lib/solidity/compilation";
+import { configureSolidityLanguage } from "./solidityLanguage";
 import { flashSourceLine } from "./flashSourceLine";
 import { registerSelectorLenses } from "./selectorLenses";
 import { FileExplorerPanel } from "./FileExplorerPanel";
@@ -382,107 +383,7 @@ export function SourceCodeExplorer({
   }, [searchQuery, searchOptions, displayedContent, sidebarTab, sidebarOpen]);
 
   // Patch Solidity language to support single-quote strings
-  const patchSolidityLanguage = useCallback((monaco: MonacoInstance) => {
-    monaco.languages.setMonarchTokensProvider("sol", {
-      defaultToken: "",
-      tokenPostfix: ".sol",
-      brackets: [
-        { token: "delimiter.curly", open: "{", close: "}" },
-        { token: "delimiter.parenthesis", open: "(", close: ")" },
-        { token: "delimiter.square", open: "[", close: "]" },
-        { token: "delimiter.angle", open: "<", close: ">" },
-      ],
-      keywords: [
-        "pragma", "solidity", "contract", "library", "using", "struct",
-        "function", "modifier", "constructor", "address", "string", "bool",
-        "int", "uint", "byte", "bytes", "fixed", "ufixed",
-        "int8", "int16", "int24", "int32", "int40", "int48", "int56", "int64",
-        "int72", "int80", "int88", "int96", "int104", "int112", "int120", "int128",
-        "int136", "int144", "int152", "int160", "int168", "int176", "int184", "int192",
-        "int200", "int208", "int216", "int224", "int232", "int240", "int248", "int256",
-        "uint8", "uint16", "uint24", "uint32", "uint40", "uint48", "uint56", "uint64",
-        "uint72", "uint80", "uint88", "uint96", "uint104", "uint112", "uint120", "uint128",
-        "uint136", "uint144", "uint152", "uint160", "uint168", "uint176", "uint184", "uint192",
-        "uint200", "uint208", "uint216", "uint224", "uint232", "uint240", "uint248", "uint256",
-        "bytes1", "bytes2", "bytes3", "bytes4", "bytes5", "bytes6", "bytes7", "bytes8",
-        "bytes9", "bytes10", "bytes11", "bytes12", "bytes13", "bytes14", "bytes15", "bytes16",
-        "bytes17", "bytes18", "bytes19", "bytes20", "bytes21", "bytes22", "bytes23", "bytes24",
-        "bytes25", "bytes26", "bytes27", "bytes28", "bytes29", "bytes30", "bytes31", "bytes32",
-        "event", "enum", "let", "mapping", "private", "public", "external", "internal",
-        "inherited", "payable", "nonpayable", "view", "pure", "virtual", "override",
-        "abstract", "interface", "true", "false", "var", "import", "constant", "immutable",
-        "if", "else", "for", "while", "do", "break", "continue", "throw",
-        "returns", "return", "suicide", "selfdestruct", "new", "is", "this", "super",
-        "emit", "require", "assert", "revert", "memory", "storage", "calldata",
-        "delete", "unchecked", "try", "catch", "assembly", "type", "error",
-        "receive", "fallback",
-      ],
-      operators: [
-        "=", ">", "<", "!", "~", "?", ":", "==", "<=", ">=", "!=",
-        "&&", "||", "++", "--", "+", "-", "*", "/", "&", "|", "^", "%",
-        "<<", ">>", ">>>", "+=", "-=", "*=", "/=", "&=", "|=", "^=",
-        "%=", "<<=", ">>=", ">>>=",
-      ],
-      symbols: /[=><!~?:&|+\-*\/\^%]+/,
-      escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
-      integersuffix: /(ll|LL|u|U|l|L)?(ll|LL|u|U|l|L)?/,
-      floatsuffix: /[fFlL]?/,
-      tokenizer: {
-        root: [
-          [/[a-zA-Z_]\w*/, { cases: { "@keywords": { token: "keyword.$0" }, "@default": "identifier" } }],
-          { include: "@whitespace" },
-          [/\[\[.*\]\]/, "annotation"],
-          [/^\s*#\w+/, "keyword"],
-          [/int\d*/, "keyword"],
-          [/[{}()\[\]]/, "@brackets"],
-          [/[<>](?!@symbols)/, "@brackets"],
-          [/@symbols/, { cases: { "@operators": "delimiter", "@default": "" } }],
-          [/\d*\d+[eE]([\-+]?\d+)?(@floatsuffix)/, "number.float"],
-          [/\d*\.\d+([eE][\-+]?\d+)?(@floatsuffix)/, "number.float"],
-          [/0[xX][0-9a-fA-F']*[0-9a-fA-F](@integersuffix)/, "number.hex"],
-          [/0[0-7']*[0-7](@integersuffix)/, "number.octal"],
-          [/0[bB][0-1']*[0-1](@integersuffix)/, "number.binary"],
-          [/\d[\d']*\d(@integersuffix)/, "number"],
-          [/\d(@integersuffix)/, "number"],
-          [/[;,.]/, "delimiter"],
-          // Double-quoted strings
-          [/"([^"\\]|\\.)*$/, "string.invalid"],
-          [/"/, "string", "@string_double"],
-          // Single-quoted strings (Solidity supports both)
-          [/'([^'\\]|\\.)*$/, "string.invalid"],
-          [/'/, "string", "@string_single"],
-        ],
-        whitespace: [
-          [/[ \t\r\n]+/, ""],
-          [/\/\*\*(?!\/)/, "comment.doc", "@doccomment"],
-          [/\/\*/, "comment", "@comment"],
-          [/\/\/.*$/, "comment"],
-        ],
-        comment: [
-          [/[^\/*]+/, "comment"],
-          [/\*\//, "comment", "@pop"],
-          [/[\/*]/, "comment"],
-        ],
-        doccomment: [
-          [/[^\/*]+/, "comment.doc"],
-          [/\*\//, "comment.doc", "@pop"],
-          [/[\/*]/, "comment.doc"],
-        ],
-        string_double: [
-          [/[^\\"]+/, "string"],
-          [/@escapes/, "string.escape"],
-          [/\\./, "string.escape.invalid"],
-          [/"/, "string", "@pop"],
-        ],
-        string_single: [
-          [/[^\\']+/, "string"],
-          [/@escapes/, "string.escape"],
-          [/\\./, "string.escape.invalid"],
-          [/'/, "string", "@pop"],
-        ],
-      },
-    });
-  }, []);
+
 
   // Handle Monaco editor mount (with optional diff decorations)
   const handleEditorMount = useCallback(
@@ -498,7 +399,7 @@ export function SourceCodeExplorer({
       });
 
       // Patch Solidity single-quote string support
-      patchSolidityLanguage(monaco);
+      configureSolidityLanguage(monaco);
 
       // Check if there's a pending line to scroll to
       if (pendingLineRef.current !== null) {
@@ -512,7 +413,7 @@ export function SourceCodeExplorer({
       // Apply search highlights on mount
       applySearchHighlights(editor, monaco);
     },
-    [applySearchHighlights, patchSolidityLanguage]
+    [applySearchHighlights]
   );
 
   // Scroll to line when active tab changes and we have a pending line

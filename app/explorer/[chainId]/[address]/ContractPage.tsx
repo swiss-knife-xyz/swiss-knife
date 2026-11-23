@@ -71,6 +71,8 @@ import { useFunctionLocations } from "@/components/SourceCodeExplorer/useFunctio
 import type { FunctionLocation, FunctionLocations } from "@/components/SourceCodeExplorer/functionLocations";
 import { ContractCallPrefill, type PrefilledCall } from "@/components/fnParams/ContractCallPrefill";
 import { contractFunctionSignature } from "@/lib/contractCall";
+import { configureSolidityLanguage } from "@/components/SourceCodeExplorer/solidityLanguage";
+import { abiToSolidity } from "@/lib/abiToSolidity";
 
 import { ContractAbiEditor, type ContractAbiEditorState } from "@/components/ContractAbiEditor";
 import { mergeContractAbi, contractAbiFunctionSelector, compareContractFunctions, contractFunctionStateKey } from "@/lib/contractAbi";
@@ -208,7 +210,7 @@ const AbiSourceCodeContent = ({
   const context = useContext(AbiExpandedContext);
   const isExpanded = context?.isExpanded ?? false;
 
-  // 0 = Source Code, 1 = ABI
+  // 0 = Source Code, 1 = ABI, 2 = Interface
   const [contentTabIndex, setContentTabIndex] = useState(0);
   // 0 = Implementation, 1 = Proxy (only shown for proxy contracts)
   const [contractTabIndex, setContractTabIndex] = useState(0);
@@ -300,6 +302,15 @@ const AbiSourceCodeContent = ({
     }
   }, [currentAbi]);
 
+  const solidityInterface = useMemo(() => {
+    if (!isExpanded || contentTabIndex !== 2 || !currentAbi) return { source: "", error: "" };
+    try {
+      return { source: abiToSolidity(currentAbi.abi, currentAbi.name), error: "" };
+    } catch (error) {
+      return { source: "", error: error instanceof Error ? error.message : "Could not generate this interface." };
+    }
+  }, [currentAbi, isExpanded, contentTabIndex]);
+
   const sourceFileEntries = useMemo(() => {
     if (!currentSourceCode) return [];
     return Object.entries(currentSourceCode);
@@ -357,7 +368,7 @@ const AbiSourceCodeContent = ({
 
         {/* Content tabs */}
         <TabsSelector
-          tabs={["Source Code", "ABI"]}
+          tabs={["Source Code", "ABI", "Interface"]}
           selectedTabIndex={contentTabIndex}
           setSelectedTabIndex={setContentTabIndex}
           mt={0}
@@ -400,8 +411,11 @@ const AbiSourceCodeContent = ({
           )}
 
           {/* Copy / Download action buttons */}
-          {abiContent && (
-            <CopyToClipboard textToCopy={abiContent} labelText="Copy ABI" />
+          {(contentTabIndex === 2 ? solidityInterface.source : abiContent) && (
+            <CopyToClipboard
+              textToCopy={contentTabIndex === 2 ? solidityInterface.source : abiContent}
+              labelText={contentTabIndex === 2 ? "Copy Interface" : "Copy ABI"}
+            />
           )}
           {contentTabIndex === 0 && !isLoadingSourceCode && sourceFileEntries.length === 1 && (
             <CopyToClipboard textToCopy={sourceFileEntries[0][1]} labelText="Copy Code" />
@@ -469,7 +483,7 @@ const AbiSourceCodeContent = ({
             )}
           </Box>
         ) : (
-          // ABI View
+          // ABI / generated Solidity interface
           <Box h={isFullscreen ? "100%" : undefined} display="flex" flexDirection="column">
             {currentAbi?.isDecoded ? (
               <Alert status="info" mb={3} rounded="lg" fontSize="sm" flexShrink={0}>
@@ -477,38 +491,46 @@ const AbiSourceCodeContent = ({
                 This contract isn’t verified. Its functions were inferred from bytecode and signature lookups, so some names or input types may differ from the original contract.
               </Alert>
             ) : null}
-            <Box
-              border="1px solid"
-              borderColor="whiteAlpha.200"
-              borderRadius="lg"
-              overflow="hidden"
-              flex={isFullscreen ? 1 : undefined}
-            >
-              <Editor
-                theme="vs-dark"
-                defaultLanguage="json"
-                value={abiContent}
-                height={isFullscreen ? "100%" : "400px"}
-                options={{
-                  readOnly: true,
-                  minimap: { enabled: true },
-                  fontSize: 13,
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  wordWrap: "on",
-                  lineNumbers: "on",
-                  folding: true,
-                  renderLineHighlight: "all",
-                  scrollbar: {
-                    useShadows: false,
-                    vertical: "visible",
-                    horizontal: "visible",
-                    verticalScrollbarSize: 12,
-                    horizontalScrollbarSize: 12,
-                  },
-                }}
-              />
-            </Box>
+            {solidityInterface.error && contentTabIndex === 2 ? (
+              <Alert status="warning" rounded="lg" fontSize="sm">
+                <AlertIcon />
+                {solidityInterface.error}
+              </Alert>
+            ) : (
+              <Box
+                border="1px solid"
+                borderColor="whiteAlpha.200"
+                borderRadius="lg"
+                overflow="hidden"
+                flex={isFullscreen ? 1 : undefined}
+              >
+                <Editor
+                  theme="vs-dark"
+                  language={contentTabIndex === 2 ? "sol" : "json"}
+                  onMount={(_, monaco) => configureSolidityLanguage(monaco)}
+                  value={contentTabIndex === 2 ? solidityInterface.source : abiContent}
+                  height={isFullscreen ? "100%" : "400px"}
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: true },
+                    fontSize: 13,
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    wordWrap: "on",
+                    lineNumbers: "on",
+                    folding: true,
+                    renderLineHighlight: "all",
+                    scrollbar: {
+                      useShadows: false,
+                      vertical: "visible",
+                      horizontal: "visible",
+                      verticalScrollbarSize: 12,
+                      horizontalScrollbarSize: 12,
+                    },
+                  }}
+                />
+              </Box>
+            )}
           </Box>
         )}
       </Box>

@@ -151,6 +151,35 @@ it("does not mark an explorer ABI as inferred", async () => {
   expect(screen.queryByText(/This contract isn’t verified/i)).toBeNull();
 });
 
+it("generates the interface for the selected implementation or proxy ABI", async () => {
+  fetchAbi.mockResolvedValue({ abi, name: "Proxy", implementation: {
+    address: implementationAddress,
+    abi: [{ type: "function", name: "implementationRead", stateMutability: "view", outputs: [{ type: "bool" }] }],
+    name: "Implementation",
+  } });
+  render(page());
+  await screen.findByText("implementationRead");
+  fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
+  fireEvent.click(screen.getByText("Interface", { exact: true }));
+  expect(screen.getByText(/interface IImplementation/).textContent).toContain("function implementationRead() external view returns (bool)");
+  fireEvent.click(screen.getByText("Proxy", { exact: true, selector: "div" }));
+  expect(screen.getByText(/interface IProxy/).textContent).toContain("function candidate(uint256 arg0) external view");
+  fireEvent.click(screen.getByText("ABI", { exact: true }));
+  expect(screen.queryByText(/pragma solidity/)).toBeNull();
+  fireEvent.click(screen.getByText("Interface", { exact: true }));
+  expect(screen.getByText(/interface IProxy/)).toBeTruthy();
+});
+
+it("regenerates the interface after custom ABI edits", async () => {
+  render(page());
+  await inferred(false);
+  fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
+  fireEvent.click(screen.getByText("Interface", { exact: true }));
+  await addFunction();
+  fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
+  expect(screen.getByText(/pragma solidity/).textContent).toContain("function added(uint256 value) external view returns (address)");
+});
+
 it("tracks a verified implementation separately from its reconstructed proxy ABI", async () => {
   fetchAbi
     .mockRejectedValueOnce(new Error("Proxy not verified"))
