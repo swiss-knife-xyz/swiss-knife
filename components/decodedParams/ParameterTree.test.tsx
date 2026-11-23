@@ -24,7 +24,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 const modules = Promise.all([
   import("@chakra-ui/react"),
-  import("../renderParams"),
+  import("./CalldataTree"),
 ]);
 
 const leaf: Arg = {
@@ -43,12 +43,12 @@ const tuple: Arg = {
 };
 
 async function mount(arg: Arg) {
-  const [{ ChakraProvider }, { renderParamTypes }] = await modules;
+  const [{ ChakraProvider }, { CalldataTree }] = await modules;
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
   await act(async () => {
-    root.render(<ChakraProvider>{renderParamTypes(arg)}</ChakraProvider>);
+    root.render(<ChakraProvider><CalldataTree args={[arg]} showControls={false} /></ChakraProvider>);
   });
   return {
     container,
@@ -65,38 +65,27 @@ function disclosure(container: HTMLElement) {
   );
 }
 
-test("standalone decoded tuple starts expanded and toggles a right/down disclosure", async () => {
+test("standalone decoded tuple uses an accessible tree branch and retains child state", async () => {
   const ui = await mount(tuple);
   try {
-    const button = disclosure(ui.container);
-    assert.ok(button, "standalone tuple needs an accessible disclosure button");
-    assert.equal(button.type, "button");
+    const button = ui.container.querySelector<HTMLElement>('[role="button"][aria-label="record"]')!;
+    assert.ok(button);
     assert.equal(button.getAttribute("aria-expanded"), "true");
-    assert.match(button.getAttribute("aria-label")!, /collapse.*tuple/i);
-    assert.ok(button.querySelector('svg[data-disclosure="down"]'));
-    const content = document.getElementById(
-      button.getAttribute("aria-controls")!
-    )!;
-    const input = content.querySelector("input");
-    assert.ok(input);
+    const input = ui.container.querySelector("input")!;
     assert.equal(input.value, "hello");
     await act(async () => button.click());
     assert.equal(button.getAttribute("aria-expanded"), "false");
-    assert.equal(getComputedStyle(content).display, "none");
-    assert.ok(button.querySelector('svg[data-disclosure="right"]'));
-    await act(async () => button.click());
+    assert.ok(ui.container.querySelector("input")!.closest("[hidden]"));
+    await act(async () => button.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
     assert.equal(button.getAttribute("aria-expanded"), "true");
-    assert.notEqual(getComputedStyle(content).display, "none");
-    assert.ok(
-      content.querySelector("input") === input,
-      "toggle must retain child DOM state"
-    );
+    assert.equal(ui.container.querySelector("input")!.closest("[hidden]"), null);
+    assert.equal(ui.container.querySelector("input")!.value, "hello");
   } finally {
     await ui.cleanup();
   }
 });
 
-test("direct tuple array items have no redundant disclosure, but nested tuples do", async () => {
+test("tuple array items and nested tuples use shared tree branches", async () => {
   const nested = { ...tuple, name: "nested" };
   const item = { ...tuple, value: [leaf, nested] };
   const ui = await mount({
@@ -107,38 +96,18 @@ test("direct tuple array items have no redundant disclosure, but nested tuples d
     rawValue: [["hello", ["hello"]]],
   });
   try {
-    // ArrayParam retains its existing collapsed default and independent control.
-    const arrayToggle = Array.from(ui.container.querySelectorAll("p")).find(
-      (p) => p.querySelector("svg")
-    );
+    const arrayToggle = ui.container.querySelector<HTMLElement>('[role="button"][aria-label="records"]')!;
+    const nestedToggle = ui.container.querySelector<HTMLElement>('[role="button"][aria-label="nested"]')!;
     assert.ok(arrayToggle);
-    const arrayContent =
-      ui.container.querySelector<HTMLElement>(".chakra-collapse")!;
-    assert.equal(arrayContent.style.height, "0px");
-    await act(async () => arrayToggle.click());
-    const buttons = ui.container.querySelectorAll(
-      "button[aria-expanded][aria-controls]"
-    );
-    assert.equal(
-      buttons.length,
-      1,
-      "only the nested standalone tuple gets a disclosure"
-    );
-    assert.match(buttons[0].getAttribute("aria-label")!, /nested/);
-    const nestedButton = buttons[0] as HTMLButtonElement;
-    await act(async () => nestedButton.click());
-    assert.equal(nestedButton.getAttribute("aria-expanded"), "false");
+    assert.ok(nestedToggle);
+    assert.equal(arrayToggle.getAttribute("aria-expanded"), "true");
+    assert.equal(disclosure(ui.container), null, "no legacy tuple disclosure inside the tree");
+    await act(async () => nestedToggle.click());
+    assert.equal(nestedToggle.getAttribute("aria-expanded"), "false");
     await act(async () => arrayToggle.click());
     await act(async () => arrayToggle.click());
-    assert.ok(
-      ui.container.contains(nestedButton),
-      "nested control remains mounted"
-    );
-    assert.equal(
-      nestedButton.getAttribute("aria-expanded"),
-      "false",
-      "array toggle retains nested tuple state"
-    );
+    assert.ok(ui.container.contains(nestedToggle));
+    assert.equal(nestedToggle.getAttribute("aria-expanded"), "false", "array toggle retains nested state");
   } finally {
     await ui.cleanup();
   }
@@ -152,12 +121,12 @@ test("nested standalone tuples have unique controls and retain independent state
   try {
     const buttons = Array.from(
       ui.container.querySelectorAll<HTMLButtonElement>(
-        "button[aria-controls][aria-expanded]"
+        '[role="button"][aria-expanded]'
       )
     );
     assert.equal(buttons.length, 3);
     assert.equal(
-      new Set(buttons.map((button) => button.getAttribute("aria-controls")))
+      new Set(buttons.map((button) => button.closest("[data-calldata-branch]")?.getAttribute("data-calldata-branch")))
         .size,
       3
     );
@@ -182,15 +151,14 @@ test("primitive and empty arrays do not acquire tuple controls", async () => {
     });
     try {
       assert.equal(disclosure(ui.container), null);
+      const toggle = ui.container.querySelector<HTMLElement>('[role="button"][aria-label="messages"]')!;
+      assert.ok(toggle);
+      assert.equal(toggle.getAttribute("aria-expanded"), "true");
       if (value.length) {
-        const toggle = Array.from(ui.container.querySelectorAll("p")).find(
-          (p) => p.querySelector("svg")
-        );
-        assert.ok(toggle);
-        await act(async () => toggle.click());
         assert.equal(ui.container.querySelector("input")?.value, "hello");
       } else {
-        assert.equal(ui.container.querySelector("input")?.value, "[ ]");
+        assert.match(ui.container.textContent!, /0 items/);
+        assert.match(ui.container.textContent!, /No items/);
       }
     } finally {
       await ui.cleanup();
@@ -198,18 +166,14 @@ test("primitive and empty arrays do not acquire tuple controls", async () => {
   }
 });
 
-test("empty and fallback object tuples keep their existing representations", async () => {
-  for (const value of [[], { message: "hello" }]) {
-    const ui = await mount({ ...tuple, value: value as Arg["value"] });
-    try {
-      assert.equal(disclosure(ui.container), null);
-      assert.equal(
-        ui.container.querySelector("input")?.value,
-        Array.isArray(value) ? "()" : "hello"
-      );
-    } finally {
-      await ui.cleanup();
-    }
+test("empty tuples retain an explicit empty tree branch", async () => {
+  const ui = await mount({ ...tuple, value: [] });
+  try {
+    assert.equal(disclosure(ui.container), null);
+    assert.match(ui.container.textContent!, /0 fields/);
+    assert.match(ui.container.textContent!, /No parameters/);
+  } finally {
+    await ui.cleanup();
   }
 });
 
@@ -246,7 +210,7 @@ test("contract named tuple objects render their ABI fields instead of an empty t
   const ui = await mount(arg);
   try {
     assert.equal(
-      ui.container.querySelectorAll("button[aria-controls][aria-expanded]")
+      ui.container.querySelectorAll('[role="button"][aria-expanded]')
         .length,
       2
     );

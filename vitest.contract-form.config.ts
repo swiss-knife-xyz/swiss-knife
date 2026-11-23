@@ -13,6 +13,7 @@ export default defineConfig({
       "lib/historicalQuery.spec.ts",
       "components/fnParams/contractForm.spec.tsx",
       "components/fnParams/contractWidgets.spec.tsx",
+      "components/fnParams/rawCallRefresh.spec.tsx",
       "app/explorer/contractCallFlow.spec.tsx",
       "app/explorer/contractProvenance.spec.tsx",
     ],

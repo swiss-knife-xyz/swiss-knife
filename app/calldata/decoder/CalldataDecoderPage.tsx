@@ -579,6 +579,23 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     }
   };
 
+  const changeTransactionDraft = (value: string) => {
+    if (value !== fromTxInput) {
+      // Supersede the transaction lookup, decode and receipt/event work together.
+      requestId.current++;
+      leaveExample();
+      setResult(undefined);
+      setDecodedEvents(null);
+      setClearSigningRequest(undefined);
+      setIsLoading(false);
+      setIsLoadingEvents(false);
+      setResultTabIndex(0);
+      setShareLink(null);
+      setShareModalLink(null);
+    }
+    setFromTxInput(value);
+  };
+
   const showExample = (sample: (typeof decoderSamples)[number], input: string) => {
     requestId.current++;
     setResult(undefined);
@@ -1114,15 +1131,14 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                 placeholder="etherscan link / tx hash"
                 value={fromTxInput}
                 onChange={(e) => {
-                  if (e.target.value !== fromTxInput) leaveExample();
-                  setFromTxInput(e.target.value);
+                  changeTransactionDraft(e.target.value);
                 }}
                 onPaste={(e) => {
                   e.preventDefault();
                   setPasted(true);
                   const _fromTxInput = e.clipboardData.getData("text");
-                  setFromTxInput(_fromTxInput);
-                  decodeFromTx(_fromTxInput);
+                  changeTransactionDraft(_fromTxInput);
+                  if (_fromTxInput.trim()) decodeFromTx(_fromTxInput);
                 }}
               />
               {explorerHref && (

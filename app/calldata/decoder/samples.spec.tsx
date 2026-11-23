@@ -82,7 +82,7 @@ vi.mock("axios", () => ({ default: { get: mocks.lookup } }));
 vi.mock("@/hooks/useAddressBook", () => ({
   useAddressBook: () => ({ getLabel: () => null, isReady: true }),
 }));
-vi.mock("@monaco-editor/react", () => ({ Editor: () => <div>Editor</div> }));
+vi.mock("@monaco-editor/react", () => ({ Editor: ({ value, options }: any) => <textarea aria-label={options?.ariaLabel ?? "Editor"} value={value ?? ""} readOnly={options?.readOnly} /> }));
 vi.mock("@/components/CopyToClipboard", () => ({
   CopyToClipboard: ({ textToCopy, labelText }: any) =>
     labelText ? (
@@ -100,13 +100,9 @@ vi.mock("@/components/DarkButton", () => ({
   ),
 }));
 vi.mock("@/components/DarkSelect", () => ({
-  DarkSelect: ({ selectedOption, setSelectedOption, options }: any) => (
+  DarkSelect: ({ selectedOption, setSelectedOption, options, ariaLabel }: any) => (
     <select
-      aria-label={
-        options.length === 2 && options[0].label === "Ethereum"
-          ? "Chain"
-          : "Format"
-      }
+      aria-label={ariaLabel ?? "Format"}
       value={selectedOption?.value}
       onChange={(e) =>
         setSelectedOption(
@@ -505,7 +501,7 @@ describe("decoder transaction examples", () => {
     // No-ABI flow keeps calldata as the only inline field.
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Network lookup settings" })
+      screen.getByRole("button", { name: "Decoder settings" })
     ).toBeTruthy();
   });
 
@@ -708,7 +704,7 @@ describe("decoder transaction examples", () => {
           tree.querySelector('img[src="/decoder-examples/zora-20000.jpg"]')
         ).toBeTruthy();
         fireEvent.click(within(tree).getByRole("button", { name: "Raw JSON" }));
-        const raw = within(tree).getByRole("textbox", {
+        const raw = await within(tree).findByRole("textbox", {
           name: "Raw JSON",
         }) as HTMLTextAreaElement;
         expect(JSON.parse(raw.value).name).toBe("dmxx");
@@ -734,7 +730,7 @@ describe("decoder transaction examples", () => {
         ).value
       ).toBe(sample.explorerUrl);
       expect(
-        (screen.getByRole("combobox", { name: "Chain" }) as HTMLSelectElement)
+        (screen.getByRole("combobox", { name: "Network" }) as HTMLSelectElement)
           .value
       ).toBe("1");
       fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
@@ -774,7 +770,7 @@ describe("decoder transaction examples", () => {
     fireEvent.paste(screen.getByPlaceholderText("etherscan link / tx hash"), {
       clipboardData: { getData: () => "0x" + "ab".repeat(32) },
     });
-    fireEvent.change(screen.getByRole("combobox", { name: "Chain" }), {
+    fireEvent.change(screen.getByRole("combobox", { name: "Network" }), {
       target: { value: "8453" },
     });
     fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), {
@@ -788,7 +784,7 @@ describe("decoder transaction examples", () => {
     );
     expect(mocks.client).not.toHaveBeenCalled();
     expect(
-      (screen.getByRole("combobox", { name: "Chain" }) as HTMLSelectElement)
+      (screen.getByRole("combobox", { name: "Network" }) as HTMLSelectElement)
         .value
     ).toBe("1");
   });
@@ -808,6 +804,7 @@ describe("decoder transaction examples", () => {
       address: undefined,
       chainId: undefined,
       abi: undefined,
+      mode: "auto",
     });
   });
 
@@ -835,7 +832,7 @@ describe("decoder transaction examples", () => {
       clipboardData: { getData: () => hash },
     });
     expect(mocks.tx).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByRole("combobox", { name: "Chain" }), {
+    fireEvent.change(screen.getByRole("combobox", { name: "Network" }), {
       target: { value: "8453" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Decode" }));
@@ -887,7 +884,7 @@ describe("decoder transaction examples", () => {
       within(await screen.findByTestId("decoded")).getByDisplayValue("dmxx")
     ).toBeTruthy();
     expect(mocks.client).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByRole("combobox", { name: "Chain" }), {
+    fireEvent.change(screen.getByRole("combobox", { name: "Network" }), {
       target: { value: "8453" },
     });
     expect(screen.queryByTestId("decoded")).toBeNull();
@@ -998,6 +995,55 @@ describe("decoder transaction examples", () => {
     expect(screen.getByText("ActiveEvent")).toBeTruthy();
   });
 
+  it.each(["edit", "paste"])("clearing a draft by %s ignores a late transaction lookup and restores the example cards", async clearMethod => {
+    let finishTransaction!: (value: unknown) => void;
+    mocks.tx.mockReturnValueOnce(new Promise(resolve => { finishTransaction = resolve; }));
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: "from Tx" }));
+    fireEvent.paste(screen.getByPlaceholderText("etherscan link / tx hash"), {
+      clipboardData: { getData: () => `https://etherscan.io/tx/0x${"ab".repeat(32)}` },
+    });
+    await waitFor(() => expect(mocks.tx).toHaveBeenCalledOnce());
+    expect((screen.getByRole("button", { name: "Decode" }) as HTMLButtonElement).disabled).toBe(true);
+    if (clearMethod === "paste") fireEvent.paste(screen.getByPlaceholderText("etherscan link / tx hash"), { clipboardData: { getData: () => "" } });
+    else fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), { target: { value: "" } });
+    expect(mocks.tx).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "NFT mint · Zora" })).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Decode" }) as HTMLButtonElement).disabled).toBe(false);
+    await act(async () => finishTransaction({ input: "0x12345678", to: "0x0000000000000000000000000000000000000001" }));
+    expect(mocks.decode).not.toHaveBeenCalled();
+    expect(mocks.events).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("decoded")).toBeNull();
+    expect(screen.getByRole("button", { name: "NFT mint · Zora" })).toBeTruthy();
+  });
+
+  it("clearing a draft discards late decode/events and permits a fresh live decode", async () => {
+    let finishDecode!: (value: unknown) => void;
+    let finishEvents!: (value: unknown) => void;
+    mocks.decode.mockReturnValueOnce(new Promise(resolve => { finishDecode = resolve; }));
+    mocks.events.mockReturnValueOnce(new Promise(resolve => { finishEvents = resolve; }));
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: "from Tx" }));
+    const paste = (byte: string) => fireEvent.paste(screen.getByPlaceholderText("etherscan link / tx hash"), {
+      clipboardData: { getData: () => `https://etherscan.io/tx/0x${byte.repeat(32)}` },
+    });
+    paste("ab");
+    await waitFor(() => expect(mocks.events).toHaveBeenCalledOnce());
+    fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), { target: { value: "" } });
+    expect(screen.getByRole("button", { name: "NFT mint · Zora" })).toBeTruthy();
+    await act(async () => {
+      finishDecode({ functionName: "stale", signature: "stale()", rawArgs: [], args: [] });
+      finishEvents([{ eventName: "StaleEvent", signature: "StaleEvent()", args: [] }]);
+    });
+    expect(screen.queryByTestId("decoded")).toBeNull();
+    expect(screen.queryByRole("tab", { name: /Events/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "NFT mint · Zora" })).toBeTruthy();
+    paste("cd");
+    expect((await screen.findByTestId("decoded")).textContent).toContain("mint");
+    expect(mocks.decode).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText("StaleEvent")).toBeNull();
+  });
+
   it("ignores an older live decode and events after selecting a sample", async () => {
     let finishDecode!: (value: unknown) => void;
     let finishEvents!: (value: unknown) => void;
@@ -1023,14 +1069,10 @@ describe("decoder transaction examples", () => {
     fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), {
       target: { value: "" },
     });
-    // The live decode keeps cards hidden until loading settles. Starting a new
-    // hash draft without a selected network exits that pending decode.
-    fireEvent.paste(screen.getByPlaceholderText("etherscan link / tx hash"), {
-      clipboardData: { getData: () => "0x" + "cd".repeat(32) },
-    });
-    fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), {
-      target: { value: "" },
-    });
+    // Clearing the transaction draft cancels pending decode/event presentation
+    // immediately, so a saved example can be selected without waiting for RPCs.
+    expect((screen.getByRole("button", { name: "Decode" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.queryByRole("tab", { name: "Events (...)" })).toBeNull();
     fireEvent.click(
       screen.getByRole("button", { name: "Safe multicall · USDC supply" })
     );

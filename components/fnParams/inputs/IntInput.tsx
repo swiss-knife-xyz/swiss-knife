@@ -24,6 +24,7 @@ import {
 import { stringify } from "viem";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 import { motion } from "framer-motion";
+import { compactFormatSelectProps, compactValueFieldProps } from "@/components/decodedParams/paramStyles";
 
 // Types and Interfaces
 interface IntInputProps extends InputProps {
@@ -35,6 +36,7 @@ interface IntInputProps extends InputProps {
   setFunctionIsDisabled: (value: boolean) => void;
   defaultEthFormatIndex?: number;
   onValidationChange?: (isInvalid: boolean) => void;
+  compact?: boolean;
 }
 
 const futureTimeOptions = ["minutes", "hours", "days"] as const;
@@ -55,6 +57,7 @@ export const IntInput = ({
   setFunctionIsDisabled,
   defaultEthFormatIndex,
   onValidationChange,
+  compact = false,
   ...props
 }: IntInputProps) => {
   // Refs
@@ -347,6 +350,7 @@ export const IntInput = ({
         />
       </motion.div>
       <InputField
+        {...(compact ? compactValueFieldProps : {})}
         InputLeftElement={
           selectedEthFormatOption?.value === "Bps ↔️ %" ? (
             <InputLeftElement bg="whiteAlpha.100">%</InputLeftElement>
@@ -515,20 +519,19 @@ export const IntInput = ({
           }
         : {})}
     >
-      <InputInfo input={input} />
+      {compact ? <Box as="label" fontSize="11px" fontFamily="mono" color="text.secondary" mb={1} htmlFor={props.id}>{input.name || input.type}</Box> : <InputInfo input={input} />}
       <HStack
         align="stretch"
         spacing={2}
-        sx={{
+        sx={compact ? { flexDirection: "row" } : {
           flexDirection: "column",
-          "@container integer-input (min-width: 380px)": {
-            flexDirection: "row",
-          },
+          "@container integer-input (min-width: 380px)": { flexDirection: "row" },
         }}
       >
         {renderInputField()}
         <DarkSelect
-          boxProps={{
+          {...(compact ? compactFormatSelectProps : {})}
+          boxProps={compact ? compactFormatSelectProps.boxProps : {
             minW: 0,
             w: "full",
             sx: {

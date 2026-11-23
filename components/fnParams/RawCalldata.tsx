@@ -1,10 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import {
   useUpdateEffect,
   Box,
+  Text,
   HStack,
   Button,
-  Skeleton,
   Spinner,
   Link,
   Center,
@@ -39,6 +39,7 @@ import { config } from "@/app/providers";
 import { getTransactionError } from "viem/utils";
 import { renderParamTypes } from "./Renderer";
 import { generateTenderlyUrl, slicedText } from "@/utils";
+import { compactValueFieldProps } from "../decodedParams/paramStyles";
 
 export const RawCalldata = ({
   readAllCollapsed,
@@ -51,6 +52,8 @@ export const RawCalldata = ({
   address: string;
   client: PublicClient;
 }) => {
+  const valueInputId = useId();
+  const calldataInputId = useId();
   const { data: walletClient } = useWalletClient();
   const { address: userAddress, chain } = useAccount();
 
@@ -64,7 +67,8 @@ export const RawCalldata = ({
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
 
-  const [res, setRes] = useState<any>(null);
+  const [res, setRes] = useState<Hex | null>(null);
+  const [readPhase, setReadPhase] = useState<"idle" | "pending" | "ready" | "error">("idle");
   const [txHash, setTxHash] = useState<string | null>(null);
   const [confirmedTxHash, setConfirmedTxHash] = useState<string | null>(null);
 
@@ -126,7 +130,7 @@ export const RawCalldata = ({
     }
 
     setLoading(true);
-    setRes(null);
+    setReadPhase("pending");
 
     try {
       const result = await client.call({
@@ -134,13 +138,13 @@ export const RawCalldata = ({
         data: calldata as Hex,
         value: BigInt(payableETH),
       });
-      setRes(result.data);
+      setRes(result.data ?? "0x");
+      setReadPhase("ready");
     } catch (e: any) {
       console.error(e);
       setIsError(true);
 
-      setRes(null);
-
+      setReadPhase("error");
       setErrorMsg("An unknown error occurred");
     } finally {
       setLoading(false);
@@ -179,25 +183,11 @@ export const RawCalldata = ({
     userAddress,
   ]);
 
-  const renderRes = () => {
-    if (res !== null) {
-      return (
-        <Box>
-          <Box mt={2} rounded={"md"}>
-            {renderParamTypes({
-              chainId,
-              type: "calldata",
-              value: res,
-            })}
-          </Box>
-        </Box>
-      );
-    } else if (loading && writeButtonType === WriteButtonType.CallAsViewFn) {
-      return <Skeleton mt={2} h={"5rem"} rounded={"lg"} />;
-    } else {
-      return <></>;
-    }
-  };
+  const renderRes = () => readPhase === "idle" ? null : (
+    <Box hidden={isError || readPhase === "error"}>
+      {renderParamTypes({ chainId, type: "calldata", value: readPhase === "ready" ? res : null })}
+    </Box>
+  );
 
   return (
     <Box
@@ -299,7 +289,7 @@ export const RawCalldata = ({
         )}
         </HStack>
       </HStack>
-      <Box mt={4} ml={{ base: 0, md: 4 }} px={{ base: 0, md: 4 }} display={isCollapsed ? "none" : undefined}>
+      <Box mt={3} px={{ base: 0, md: 2 }} display={isCollapsed ? "none" : undefined}>
         {/* Inputs */}
         {/* Transaction status for Write */}
         {txHash && !confirmedTxHash && (
@@ -348,10 +338,13 @@ export const RawCalldata = ({
           </Center>
         )}
         <>
-          <Box mb={4} p={{ base: 2, md: 4 }} bg="whiteAlpha.100" rounded={"lg"}>
+          <Box mb={3}>
             <IntInput
+              compact
+              id={valueInputId}
+              aria-label="Payable Value"
               input={{
-                name: "Payable ETH",
+                name: "Payable Value",
                 type: "uint256",
               }}
               defaultEthFormatIndex={1}
@@ -370,7 +363,11 @@ export const RawCalldata = ({
               setFunctionIsDisabled={setPayableETHIsDisabled}
             />
           </Box>
+          <Text as="label" htmlFor={calldataInputId} display="block" fontSize="11px" fontFamily="mono" color="text.secondary" mb={1}>Calldata</Text>
           <InputField
+            {...compactValueFieldProps}
+            id={calldataInputId}
+            aria-label="Raw calldata"
             value={calldata}
             onChange={(e) => setCalldata(e.target.value)}
             placeholder="Enter calldata to transact"
@@ -378,8 +375,8 @@ export const RawCalldata = ({
           />
         </>
         {/* Output fields for Read or Call as View Fn */}
-        <Box mt={2} ml={{ base: 0, md: 4 }} mb={4}>
-          {!isError && renderRes()}
+        <Box mt={3} mb={2}>
+          {renderRes()}
         </Box>
       </Box>
     </Box>

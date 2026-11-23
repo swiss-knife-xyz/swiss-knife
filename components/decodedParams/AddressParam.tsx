@@ -2,7 +2,6 @@ import { ExampleSnapshotContext } from "./ExampleSnapshotContext";
 import React, { useContext, useEffect, useState } from "react";
 import {
   Button,
-  type ButtonProps,
   HStack,
   Box,
   Text,
@@ -34,14 +33,13 @@ import { useAddressBook } from "@/hooks/useAddressBook";
 import { AddressLabelModal } from "@/components/AddressBook";
 import { getPublicClient } from "@/lib/publicClient";
 import { ContractAddressLink } from "@/components/ContractTabs";
+import { compactValueFieldProps } from "./paramStyles";
 
 interface Params {
   address: any;
   showLink?: boolean;
   chainId?: number;
   name?: string;
-  explorerButtonProps?: Pick<ButtonProps, "borderRadius">;
-  modeButtonProps?: Pick<ButtonProps, "borderRadius">;
 }
 
 const skeletonAddress = "0x1111222233334444000000000000000000000000";
@@ -65,8 +63,6 @@ const AddressParamContent = ({
   showLink,
   chainId,
   name,
-  explorerButtonProps,
-  modeButtonProps,
 }: Params) => {
   const example = useContext(ExampleSnapshotContext);
   const showSkeleton = _address === null || _address === undefined;
@@ -314,7 +310,7 @@ const AddressParamContent = ({
                       size="xs"
                       px="2"
                       h="5"
-                      {...modeButtonProps}
+                      borderRadius={0}
                     >
                       {getToggleButtonText()}
                     </Button>
@@ -327,12 +323,12 @@ const AddressParamContent = ({
               </InputLeftElement>
             ) : null}
             <Input
+              {...compactValueFieldProps}
               value={value}
               isReadOnly
               bg={isShowingLabel ? "purple.900" : "whiteAlpha.50"}
               border="1px solid"
               borderColor={isShowingLabel ? "purple.500" : "whiteAlpha.200"}
-              borderRadius="lg"
               _hover={{
                 borderColor: isShowingLabel ? "purple.400" : "whiteAlpha.400",
               }}
@@ -391,7 +387,7 @@ const AddressParamContent = ({
               rel="noopener noreferrer"
               aria-label={`Open address ${address}`}
               size="xs"
-              {...explorerButtonProps}
+              borderRadius="4px"
             >
               <ExternalLinkIcon />
             </Button>

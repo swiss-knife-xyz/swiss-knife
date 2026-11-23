@@ -1,40 +1,45 @@
-import { ExampleSnapshotContext } from "./ExampleSnapshotContext";
-import React, { useContext, useEffect, useState } from "react";
-import { InputField } from "../InputField";
 import {
-  Textarea,
+  lazy,
+  Suspense,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
   Box,
   Button,
-  Flex,
-  Stack,
-  Table,
-  Tbody,
-  Tr,
-  Td,
   HStack,
-  Spacer,
   Link,
   Skeleton,
+  Spinner,
   Text,
+  useToken,
 } from "@chakra-ui/react";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
+import { ExternalLink, RotateCw } from "lucide-react";
 import axios from "axios";
-import { decodeBase64, isBigInt, isValidJSON, resolveIPFS } from "@/utils";
-import TabsSelector from "../Tabs/TabsSelector";
+import { resolveIPFS } from "@/utils";
+import { PlainStringValue } from "./StringValue";
 import { CopyToClipboard } from "../CopyToClipboard";
 import { ResizableImage } from "../ResizableImage";
-import { motion } from "framer-motion";
-import { isAddress } from "viem";
-import { renderParamTypes } from "../renderParams";
-import { Editor } from "@monaco-editor/react";
+import { ExampleSnapshotContext } from "./ExampleSnapshotContext";
+import { analyzeString, isImageUrl, parseJsonContent } from "./stringContent";
+import { RichJsonContent } from "./RichJsonContent";
+
+const RichCodeEditor = lazy(() =>
+  import("../ContentSizedEditor").then((module) => ({
+    default: module.ContentSizedEditor,
+  }))
+);
 
 interface Params {
   value: string | null;
   chainId?: number;
   disableRich?: boolean;
+  inlinePreview?: boolean;
 }
 
-// URL previews and view choices must never carry over to another parameter.
+// A new value or snapshot starts with its own preview and disclosure state.
 export const StringParam = (props: Params) => {
   const example = useContext(ExampleSnapshotContext);
   return (
@@ -45,512 +50,267 @@ export const StringParam = (props: Params) => {
   );
 };
 
-const StringParamContent = ({
-  value: _value,
+function StringParamContent({
+  value: suppliedValue,
   chainId,
   disableRich,
-}: Params) => {
+  inlinePreview,
+}: Params) {
+  const value = suppliedValue ?? "";
+  const [editorBackground] = useToken("colors", ["bg.subtle"]);
   const example = useContext(ExampleSnapshotContext);
-  const showSkeleton = _value === undefined || _value === null;
-  const value = !showSkeleton ? _value : "abcdef1234";
+  const content = useMemo(() => analyzeString(value), [value]);
+  const captured = example?.urls[value];
+  const [remote, setRemote] = useState<{
+    json?: Record<string, unknown> | unknown[];
+    image?: string;
+  }>();
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(
+    "loading"
+  );
+  const [attempt, setAttempt] = useState(0);
+  const [view, setView] = useState<"preview" | "raw" | "original">("preview");
+  const directImage =
+    content.image ?? (isImageUrl(value) ? resolveIPFS(value) : undefined);
 
-  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
-  const [richSelectedTabIndex, setRichSelectedTabIndex] = useState(0);
-  const [liveUrlContent, setUrlContent] = useState<string | null>(null);
-  const [liveUrlType, setIsUrlImageOrJson] = useState<{
-    isImage?: boolean;
-    isJson?: boolean;
-  } | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  useEffect(() => {
+    if (example || disableRich || !content.isUrl || directImage) return;
+    let cancelled = false;
+    setStatus("loading");
+    setRemote(undefined);
+    axios
+      .get(resolveIPFS(value))
+      .then((response) => {
+        if (cancelled) return;
+        const json = parseJsonContent(response.data);
+        if (json !== undefined) setRemote({ json });
+        else if (
+          String(response.headers?.["content-type"] ?? "").startsWith("image/")
+        )
+          setRemote({ image: resolveIPFS(value) });
+        else {
+          setStatus("error");
+          return;
+        }
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [value, content.isUrl, directImage, example, disableRich, attempt]);
 
-  const capturedUrl =
-    example && Object.hasOwn(example.urls, value)
-      ? example.urls[value]
-      : undefined;
-  const urlContent = example
-    ? JSON.stringify(capturedUrl?.json)
-    : liveUrlContent;
-  const isUrlImageOrJson = example
-    ? capturedUrl && {
-        isJson: capturedUrl.json !== undefined,
-        isImage: Boolean(capturedUrl.image),
-      }
-    : liveUrlType;
+  const json =
+    content.json ?? (example ? parseJsonContent(captured?.json) : remote?.json);
+  const image = example
+    ? (captured?.image ?? content.image)
+    : (directImage ?? remote?.image);
+  const raw = useMemo(
+    () => (json !== undefined ? JSON.stringify(json, null, 2) : content.svg),
+    [json, content.svg]
+  );
+  const rich = !disableRich && (content.isUrl || json !== undefined || image);
+  const pending =
+    !example && content.isUrl && !directImage && status === "loading";
+  const unavailable = content.isUrl && !json && !image && !pending;
+  const selectedText = view === "original" || !raw ? value : raw;
 
-  let displayValue = value;
-  let isJson = false;
-  let isImage = false;
-  let isBase64Encoded = false;
-  let isUrl = false;
+  if (suppliedValue == null)
+    return <Skeleton h="32px" w="full" rounded="4px" />;
+  if (!rich) return <PlainStringValue value={value} />;
 
-  const base64 = decodeBase64(value);
-  if (base64 && base64.content) {
-    displayValue = base64.content;
-    isBase64Encoded = true;
-    isImage = base64.isSvg;
-  }
-
-  try {
-    const _value = isBase64Encoded ? base64!.content : value;
-    const parsedValue = JSON.parse(_value);
-    displayValue = JSON.stringify(parsedValue, null, 4);
-    // Don't show decoded JSON for null, empty arrays/objects, or invalid JSON
-    if (
-      displayValue === "null" ||
-      displayValue === "[]" ||
-      displayValue === "{}" ||
-      !isValidJSON(_value)
-    ) {
-      throw new Error("Invalid JSON");
-    }
-    isJson = true;
-  } catch (e) {
-    // If parsing fails, keep the original value
-  }
-
-  if (
-    typeof value === "string" &&
-    (value.startsWith("http") || value.startsWith("ipfs://"))
-  ) {
-    isUrl = true;
-  }
-
-  const SimpleString = () => {
-    // use Textarea if value is large
-    return value.length > 200 ? (
-      <Box w="full">
-        <HStack mb={1} w="full">
-          <Spacer />
-          <HStack>
-            <CopyToClipboard textToCopy={value ?? ""} size="xs" />
-            {isUrl && (
-              <Link href={resolveIPFS(value)} title="visit link" isExternal>
-                <Button size={"xs"}>
-                  <ExternalLinkIcon />
-                </Button>
-              </Link>
+  const preview =
+    json !== undefined ? (
+      <RichJsonContent value={json} chainId={chainId} />
+    ) : image ? (
+      <ResizableImage
+        src={image}
+        maxInitialWidth={320}
+        maxInitialHeight={280}
+      />
+    ) : (
+      <Box>
+        <PlainStringValue value={value} />
+        {pending && (
+          <HStack mt={2} spacing={2} color="text.tertiary">
+            <Spinner size="xs" />
+            <Text fontSize="xs">Loading preview…</Text>
+          </HStack>
+        )}
+        {unavailable && (
+          <HStack mt={2} justify="space-between">
+            <Text fontSize="xs" color="text.tertiary">
+              Preview unavailable
+            </Text>
+            {!example && (
+              <Button
+                variant="ghost"
+                size="xs"
+                leftIcon={<RotateCw size={12} />}
+                onClick={() => setAttempt((n) => n + 1)}
+              >
+                Retry
+              </Button>
             )}
           </HStack>
-        </HStack>
-        <Textarea
-          className="scroll"
-          value={value}
-          isReadOnly
-          resize={"vertical"}
-          rows={2}
-          placeholder=""
-          w="full"
-          bg="whiteAlpha.50"
-          border="1px solid"
-          borderColor="whiteAlpha.200"
-          borderRadius="lg"
-          color="white"
-          _hover={{ borderColor: "whiteAlpha.400" }}
-          _focus={{
-            borderColor: "blue.400",
-            boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
-          }}
-        />
-      </Box>
-    ) : (
-      <HStack w="full">
-        <Box flex="1" minW={0}>
-          <InputField
-            w="full"
-            value={value}
-            placeholder=""
-            isReadOnly
-            onChange={() => {}}
-          />
-        </Box>
-        {isUrl && (
-          <Link href={resolveIPFS(value)} title="visit link" isExternal>
-            <Button size={"xs"}>
-              <ExternalLinkIcon />
-            </Button>
-          </Link>
         )}
-      </HStack>
+      </Box>
     );
-  };
-
-  const RichJsonTable = ({
-    _value,
-    chainId,
-  }: {
-    _value: string;
-    chainId?: number;
-  }) => {
-    let jsonValue: { [key: string]: any };
-
-    try {
-      jsonValue = isValidJSON(_value)
-        ? JSON.parse(_value)
-        : JSON.parse(JSON.stringify(_value));
-    } catch (e) {
-      jsonValue = {};
-    }
-
+  if (inlinePreview)
     return (
-      <Table
-        variant="unstyled"
-        w="full"
-        minW={0}
-        display={{ base: "block", md: "table" }}
-      >
-        <Tbody display={{ base: "block", md: "table-row-group" }}>
-          {Object.keys(jsonValue).map((key) => {
-            const __value: any = jsonValue[key];
-            // avoids the quotes from the string
-            const isString = typeof __value === "string";
-
-            let type: "uint" | "address" | "bytes" | null = null;
-            if (isString) {
-              if (isAddress(__value)) {
-                type = "address";
-              } else if (
-                __value.startsWith("0x") &&
-                /^0x[0-9a-fA-F]*$/.test(__value)
-              ) {
-                type = "bytes";
-              } else if (isBigInt(__value)) {
-                type = "uint";
-              }
-            }
-
-            if (type) {
-              return (
-                <Tr key={key} display={{ base: "block", md: "table-row" }}>
-                  <Td
-                    colSpan={2}
-                    display={{ base: "block", md: "table-cell" }}
-                    px={{ base: 0, md: 6 }}
-                    py={{ base: 3, md: 4 }}
-                  >
-                    <Box>
-                      <Text
-                        fontSize={{ base: "xs", md: "md" }}
-                        fontWeight={{ base: "medium", md: "bold" }}
-                        color={{ base: "text.secondary", md: "inherit" }}
-                        overflowWrap="anywhere"
-                        mb={2}
-                      >
-                        {key}
-                      </Text>
-                      {renderParamTypes(
-                        {
-                          name: key,
-                          type: type,
-                          baseType: type,
-                          value: __value,
-                          rawValue: __value,
-                        },
-                        chainId
-                      )}
-                    </Box>
-                  </Td>
-                </Tr>
-              );
-            }
-
-            return (
-              <Tr key={key} display={{ base: "block", md: "table-row" }}>
-                <Td
-                  display={{ base: "block", md: "table-cell" }}
-                  fontSize={{ base: "xs", md: "md" }}
-                  fontWeight={{ base: "medium", md: "bold" }}
-                  color={{ base: "text.secondary", md: "inherit" }}
-                  overflowWrap="anywhere"
-                  px={{ base: 0, md: 6 }}
-                  pt={{ base: 3, md: 4 }}
-                  pb={{ base: 1, md: 4 }}
-                >
-                  {key}
-                </Td>
-                <Td
-                  display={{ base: "block", md: "table-cell" }}
-                  w={{ base: "full", md: "auto" }}
-                  minW={0}
-                  px={{ base: 0, md: 6 }}
-                  pt={{ base: 0, md: 4 }}
-                  pb={{ base: 3, md: 4 }}
-                >
-                  {isString && !isValidJSON(__value) ? (
-                    <>
-                      <HStack
-                        display={{ base: "flex", md: "none" }}
-                        align="start"
-                        spacing={2}
-                        minW={0}
-                      >
-                        <Text
-                          fontSize="sm"
-                          fontFamily="mono"
-                          whiteSpace="pre-wrap"
-                          overflowWrap="anywhere"
-                          flex={1}
-                          minW={0}
-                        >
-                          {__value}
-                        </Text>
-                        <CopyToClipboard
-                          textToCopy={__value}
-                          flexShrink={0}
-                          aria-label={`Copy ${key}`}
-                        />
-                      </HStack>
-                      <Box display={{ base: "none", md: "block" }}>
-                        <StringParam value={__value} />
-                      </Box>
-                    </>
-                  ) : (
-                    <StringParam
-                      value={isString ? __value : JSON.stringify(__value)}
-                    />
-                  )}
-                </Td>
-              </Tr>
-            );
-          })}
-        </Tbody>
-      </Table>
-    );
-  };
-
-  const renderContent = (chainId?: number) => {
-    // Decoded Base64 / JSON / SVG / URL
-    if (selectedTabIndex === 0) {
-      // Rich Output
-      if (richSelectedTabIndex === 0) {
-        // Return key-value table
-        if (isJson) {
-          return <RichJsonTable _value={displayValue} chainId={chainId} />;
-        } else if (isImage) {
-          return <ResizableImage src={value} />;
-        } else {
-          if (isUrlImageOrJson?.isJson && urlContent) {
-            return <RichJsonTable _value={urlContent} chainId={chainId} />;
-          } else if (isUrlImageOrJson?.isImage) {
-            return (
-              <ResizableImage src={capturedUrl?.image ?? resolveIPFS(value)} />
-            );
-          } else {
-            return <SimpleString />;
-          }
-        }
-      } else {
-        // Raw JSON / SVG
-        if (isJson || isImage) {
-          const lineCount = (displayValue?.split("\n").length ?? 1) + 1;
-          const editorHeight = `${Math.min(500, Math.max(80, lineCount * 19 + 10))}px`;
-          return (
-            <Box>
-              <HStack mb={1}>
-                <Spacer />
-                <CopyToClipboard textToCopy={value ?? ""} size="xs" />
-              </HStack>
-              <Editor
-                height={editorHeight}
-                theme="vs-dark"
-                defaultLanguage="json"
-                value={displayValue}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                }}
-              />
-            </Box>
-          );
-        } else if (isUrlImageOrJson?.isJson && urlContent) {
-          // Raw JSON from URL
-          const formattedUrlContent = JSON.stringify(
-            example ? capturedUrl?.json : urlContent,
-            null,
-            4
-          );
-          const lineCount = (formattedUrlContent?.split("\n").length ?? 1) + 1;
-          const editorHeight = `${Math.min(500, Math.max(80, lineCount * 19 + 10))}px`;
-          return (
-            <Box>
-              <HStack mb={1}>
-                <Spacer />
-                <CopyToClipboard
-                  textToCopy={formattedUrlContent ?? ""}
-                  size="xs"
-                />
-              </HStack>
-              {example ? (
-                <Textarea
-                  className="scroll"
-                  fontFamily="mono"
-                  height={editorHeight}
-                  value={formattedUrlContent}
-                  isReadOnly
-                  aria-label="Raw JSON"
-                />
-              ) : (
-                <Editor
-                  height={editorHeight}
-                  theme="vs-dark"
-                  defaultLanguage="json"
-                  value={formattedUrlContent}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                  }}
-                />
-              )}
-            </Box>
-          );
-        } else {
-          // Raw URL
-          return <SimpleString />;
-        }
-      }
-    } else {
-      // Original
-      return <SimpleString />;
-    }
-  };
-
-  const StringFormatOptions = [
-    `Decoded ${isBase64Encoded ? "Base64" : ""} ${isJson ? "JSON" : ""} ${
-      base64?.isSvg ? "SVG" : ""
-    } ${isUrl ? "URL" : ""}`,
-    "Original",
-  ];
-
-  let richTabs: string[] = [];
-  if (isJson) {
-    richTabs = ["Rich Output", "Raw JSON"];
-  } else if (isImage) {
-    richTabs = ["Image", "Raw SVG"];
-  } else if (isUrl) {
-    if (isUrlImageOrJson?.isJson) {
-      richTabs = ["Rich Output", "Raw JSON"];
-    } else {
-      richTabs = ["Fetched URL", "Raw URL"];
-    }
-  }
-
-  useEffect(() => {
-    // Reset URL-related state when value changes
-    setUrlContent(null);
-    setIsUrlImageOrJson(null);
-
-    if (!example && isUrl) {
-      let cancelled = false;
-      // Check if the URL returns an image or JSON
-      axios
-        .get(resolveIPFS(value))
-        .then((res) => {
-          if (cancelled) return;
-          let _urlContent = res.data;
-          setUrlContent(_urlContent);
-          try {
-            const stringified = JSON.stringify(_urlContent);
-            // Check for valid JSON object or array
-            if (
-              !(
-                (stringified.startsWith("{") && stringified.endsWith("}")) ||
-                (stringified.startsWith("[") && stringified.endsWith("]"))
-              )
-            ) {
-              throw new Error("Invalid JSON");
-            }
-
-            setIsUrlImageOrJson({
-              isJson: true,
-            });
-          } catch (e) {
-            const contentType = res.headers["content-type"];
-            if (contentType?.startsWith("image")) {
-              setIsUrlImageOrJson({
-                isImage: true,
-              });
-            }
-          }
-        })
-        .catch(() => {});
-      return () => {
-        cancelled = true;
-      };
-    }
-  }, [example, isUrl, value]);
-
-  useEffect(() => {
-    if (!showSkeleton) {
-      setIsLoaded(true);
-    }
-  }, [showSkeleton]);
-
-  return showSkeleton ? (
-    <HStack w="full">
-      <Skeleton
-        height="2rem"
-        width="20rem"
-        rounded="md"
-        startColor="whiteAlpha.50"
-        endColor="whiteAlpha.400"
-      />
-      <Skeleton
-        flexGrow={1}
-        height="2rem"
-        rounded="md"
-        startColor="whiteAlpha.50"
-        endColor="whiteAlpha.400"
-      />
-    </HStack>
-  ) : (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={isLoaded ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5 }}
-      style={{ width: "100%" }}
-    >
-      <Box w="full">
-        {!disableRich && (isJson || isImage || (isUrl && isUrlImageOrJson)) ? (
-          <Stack
-            mt={2}
-            p={{ base: 2, md: 4 }}
-            w="full"
-            minW={0}
-            bg={"whiteAlpha.50"}
-            rounded={"lg"}
-            boxShadow="lg"
-          >
-            {/* Decoded / Original button */}
-            <Flex justifyContent="flex-end" mb={2}>
-              <Button
-                size="sm"
-                onClick={() =>
-                  setSelectedTabIndex((prev) => (prev === 0 ? 1 : 0))
-                }
-              >
-                {StringFormatOptions[selectedTabIndex]}
-              </Button>
-            </Flex>
-            {/* Rich tabs selector */}
-            {selectedTabIndex === 0 ? (
-              <Box fontSize={"sm"}>
-                <TabsSelector
-                  mt={0}
-                  tabs={richTabs}
-                  selectedTabIndex={richSelectedTabIndex}
-                  setSelectedTabIndex={setRichSelectedTabIndex}
-                />
-              </Box>
-            ) : null}
-            {renderContent(chainId)}
-          </Stack>
-        ) : (
-          <SimpleString />
+      <Box minW={0}>
+        {preview}
+        {image && content.isUrl && (
+          <HStack mt={1} justify="flex-end">
+            <Link
+              href={resolveIPFS(value)}
+              isExternal
+              fontSize="xs"
+              color="text.secondary"
+            >
+              Open image{" "}
+              <ExternalLink size={11} style={{ display: "inline" }} />
+            </Link>
+            <CopyToClipboard
+              textToCopy={value}
+              size="xs"
+              aria-label="Copy image URL"
+            />
+          </HStack>
         )}
       </Box>
-    </motion.div>
+    );
+
+  return (
+    <Box
+      className="rich-string-viewer"
+      w="full"
+      minW={0}
+      border="1px solid"
+      borderColor="border.default"
+      borderRadius="4px"
+      bg="bg.subtle"
+      sx={{ containerType: "inline-size", containerName: "rich-string" }}
+    >
+      <HStack
+        px={2}
+        minH="40px"
+        gap={1}
+        justify="space-between"
+        borderBottom="1px solid"
+        borderColor="border.default"
+        flexWrap="wrap"
+      >
+        <HStack spacing={0.5} role="group" aria-label="String output views">
+          {(
+            [
+              { id: "preview", label: "Preview" },
+              ...(raw
+                ? [
+                    {
+                      id: "raw",
+                      label: json !== undefined ? "Raw JSON" : "Raw SVG",
+                    },
+                  ]
+                : []),
+              { id: "original", label: "Original" },
+            ] as const
+          ).map((tab) => (
+            <Button
+              key={tab.id}
+              variant="ghost"
+              size="xs"
+              h={7}
+              px={2}
+              borderRadius="3px"
+              fontWeight="medium"
+              color={view === tab.id ? "text.primary" : "text.secondary"}
+              bg={view === tab.id ? "whiteAlpha.100" : "transparent"}
+              aria-pressed={view === tab.id}
+              onClick={() => setView(tab.id as typeof view)}
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </HStack>
+        <HStack spacing={0.5}>
+          <CopyToClipboard
+            textToCopy={selectedText}
+            size="xs"
+            h={7}
+            minW={7}
+            borderRadius="3px"
+            aria-label={
+              view === "original"
+                ? "Copy original string"
+                : raw
+                  ? "Copy decoded content"
+                  : "Copy string"
+            }
+          />
+          {content.isUrl && (
+            <Button
+              as={Link}
+              href={resolveIPFS(value)}
+              isExternal
+              aria-label="Open source URL"
+              title="Open source URL"
+              variant="ghost"
+              size="xs"
+              h={7}
+              minW={7}
+              p={1}
+              borderRadius="3px"
+            >
+              <ExternalLink size={14} />
+            </Button>
+          )}
+        </HStack>
+      </HStack>
+      <Box minW={0} p={3}>
+        {view === "original" ? (
+          <PlainStringValue value={value} />
+        ) : view === "raw" && raw ? (
+          <Suspense fallback={<Skeleton h="104px" w="full" />}>
+            <RichCodeEditor
+              value={raw}
+              language={json !== undefined ? "json" : "xml"}
+              theme="eth-rich-output"
+              beforeMount={(monaco) =>
+                monaco.editor.defineTheme("eth-rich-output", {
+                  base: "vs-dark",
+                  inherit: true,
+                  rules: [],
+                  colors: { "editor.background": editorBackground },
+                })
+              }
+              options={{
+                readOnly: true,
+                domReadOnly: true,
+                ariaLabel: json !== undefined ? "Raw JSON" : "Raw SVG",
+                fontSize: 12,
+                lineHeight: 20,
+                padding: { top: 4, bottom: 4 },
+                lineNumbers: "on",
+                lineNumbersMinChars: 3,
+                glyphMargin: false,
+                folding: true,
+                renderLineHighlight: "none",
+                overviewRulerLanes: 0,
+                hideCursorInOverviewRuler: true,
+                scrollbar: {
+                  verticalScrollbarSize: 6,
+                  horizontalScrollbarSize: 6,
+                },
+              }}
+            />
+          </Suspense>
+        ) : (
+          preview
+        )}
+      </Box>
+    </Box>
   );
-};
+}

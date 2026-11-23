@@ -38,7 +38,6 @@ vi.mock("@/components/ResizableImage", () => ({
     <span role="img" aria-label="URL preview" data-src={src} />
   ),
 }));
-vi.mock("@/components/renderParams", () => ({ renderParamTypes: () => null }));
 vi.mock("@monaco-editor/react", () => ({ Editor: () => null }));
 vi.mock("@/components/Tabs/TabsSelector", () => ({ default: () => null }));
 vi.mock("@/components/DarkSelect", () => ({

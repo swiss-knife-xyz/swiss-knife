@@ -4,13 +4,20 @@ import { ethFormatOptions, ETHSelectedOptionState, convertTo } from "@/utils";
 import { InputField } from "../InputField";
 import { DarkSelect, type FormatSelectProps } from "../DarkSelect";
 import { motion } from "framer-motion";
+import {
+  compactFormatSelectProps,
+  compactValueFieldProps,
+} from "./paramStyles";
 
 interface Params {
   formatSelectProps?: FormatSelectProps;
   value: any;
 }
 
-export const IntParam = ({ value: _value, formatSelectProps }: Params) => {
+export const IntParam = ({
+  value: _value,
+  formatSelectProps = compactFormatSelectProps,
+}: Params) => {
   // for skeleton loading
   const showSkeleton = _value === undefined || _value === null;
   const value = !showSkeleton ? (_value as BigInt).toString() : "1234";
@@ -43,9 +50,11 @@ export const IntParam = ({ value: _value, formatSelectProps }: Params) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      style={{ width: "100%" }}
     >
-      <HStack className="decoded-integer" flexDirection={{ base: "column", sm: "row" }} align="stretch">
+      <HStack className="decoded-integer" flexDirection="row" align="stretch">
         <InputField
+          {...compactValueFieldProps}
           value={convertTo(selectedEthFormatOption, value)}
           placeholder=""
           isReadOnly
@@ -55,10 +64,10 @@ export const IntParam = ({ value: _value, formatSelectProps }: Params) => {
           {...formatSelectProps}
           boxProps={{
             className: "decoded-integer-format",
-            w: { base: "full", sm: "9rem" },
-            minW: 0,
+            w: "7rem",
+            minW: "7rem",
             flexShrink: 0,
-            fontSize: "small",
+            fontSize: "xs",
             ...formatSelectProps?.boxProps,
           }}
           selectedOption={selectedEthFormatOption}

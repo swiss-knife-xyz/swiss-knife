@@ -9,27 +9,11 @@ import {
   getTypeColor,
 } from "@/components/decodedParams/TypeIcon";
 import type { Arg, DecodeBytesParamResult } from "@/types";
-import {
-  AddressParam,
-  IntParam,
-  StringParam,
-  UintParam,
-} from "@/components/decodedParams";
+import { ParamValue } from "./ParamValue";
 import { TreeBytesParam } from "@/components/decodedParams/TreeBytesParam";
 import { getDisplayFunctionName } from "@/utils/functionNames";
 
-import type { FormatSelectProps } from "@/components/DarkSelect";
-
-const formatSelectProps: FormatSelectProps = {
-  size: "sm",
-  controlProps: {
-    h: "32px",
-    minH: "32px",
-    borderRadius: "4px",
-    fontSize: "12px",
-  },
-  boxProps: { w: "7rem", minW: "7rem", maxW: "7rem", flexShrink: 0 },
-};
+import { compactFormatSelectProps as formatSelectProps } from "./paramStyles";
 
 interface Props {
   args: Arg[];
@@ -53,56 +37,6 @@ function childrenOf(arg: Arg): Arg[] | undefined {
     return arg.value as Arg[];
   if (arg.baseType.includes("bytes"))
     return (arg.value as DecodeBytesParamResult | null)?.decoded?.args;
-}
-
-function Value({ arg, chainId }: { arg: Arg; chainId?: number }) {
-  if (arg.baseType === "address")
-    return (
-      <AddressParam
-        address={arg.value}
-        chainId={chainId}
-        showLink
-        explorerButtonProps={{ borderRadius: "4px" }}
-        modeButtonProps={{ borderRadius: 0 }}
-      />
-    );
-  if (arg.baseType.includes("uint"))
-    return (
-      <UintParam
-        value={arg.value}
-        formatting="separators"
-        formatSelectProps={formatSelectProps}
-        formatButtonProps={{
-          borderRadius: 0,
-          color: "text.secondary",
-          _hover: { bg: "whiteAlpha.100", color: "text.primary" },
-        }}
-      />
-    );
-  if (arg.baseType.includes("int"))
-    return <IntParam value={arg.value} formatSelectProps={formatSelectProps} />;
-  if (arg.baseType.includes("bytes"))
-    return (
-      <TreeBytesParam
-        formatSelectProps={formatSelectProps}
-        arg={{
-          rawValue: String(arg.rawValue ?? "0x"),
-          value: { decoded: null },
-        }}
-        chainId={chainId}
-      />
-    );
-  return (
-    <StringParam
-      value={
-        arg.baseType === "tuple"
-          ? "{}"
-          : arg.value == null
-            ? "null"
-            : String(arg.value)
-      }
-    />
-  );
 }
 
 function BranchHeader({
@@ -222,12 +156,8 @@ function Parameter({
   const name = indexed
     ? `[${index}]${arg.name ? ` ${arg.name}` : ""}`
     : arg.name || `arg${index}`;
-  const type = arg.type.includes("tuple")
-    ? arg.baseType === "array"
-      ? "tuple[]"
-      : "tuple"
-    : arg.type;
-  const expandable = !!decoded || !!children?.length;
+  const type = arg.type;
+  const expandable = !!decoded || children !== undefined;
   if (!expandable)
     return (
       <Flex
@@ -290,7 +220,7 @@ function Parameter({
           )}
         </Box>
         <Box flex="1" minW={0} className="calldata-value">
-          <Value arg={arg} chainId={chainId} />
+          <ParamValue arg={arg} chainId={chainId} />
         </Box>
       </Flex>
     );
@@ -423,7 +353,7 @@ function Parameter({
         ))}
         {!children?.length && (
           <Text fontSize="xs" color="text.tertiary" py={2}>
-            No parameters
+            {arg.baseType === "array" ? "No items" : "No parameters"}
           </Text>
         )}
       </Box>
@@ -449,7 +379,7 @@ export function CalldataTree({
         const id = `${prefix}.${i}`;
         const children = childrenOf(arg);
         if (
-          children?.length ||
+          children !== undefined ||
           (arg.baseType.includes("bytes") &&
             (arg.value as DecodeBytesParamResult | null)?.decoded)
         )
@@ -460,29 +390,30 @@ export function CalldataTree({
     visit(args, "args");
     return result;
   }, [args, hasRoot]);
-  const [expanded, setExpanded] = useState(() => new Set(ids));
+  const [collapsed, setCollapsed] = useState(() => new Set<string>());
+  const expanded = useMemo(() => new Set(ids.filter(id => !collapsed.has(id))), [ids, collapsed]);
   useEffect(() => {
-    setExpanded(new Set(ids));
+    // Drop obsolete disclosures; new branches are expanded in their first render.
+    setCollapsed(previous => {
+      const next = new Set([...previous].filter(id => ids.includes(id)));
+      return next.size === previous.size ? previous : next;
+    });
   }, [ids]);
-  const state = useMemo(
-    () => ({
-      expanded,
-      toggle: (id: string) =>
-        setExpanded((previous) => {
-          const next = new Set(previous);
-          next.has(id) ? next.delete(id) : next.add(id);
-          return next;
-        }),
+  const state = useMemo(() => ({
+    expanded,
+    toggle: (id: string) => setCollapsed(previous => {
+      const next = new Set(previous);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
     }),
-    [expanded]
-  );
+  }), [expanded]);
   const treeControls = showControls ? (
     <HStack spacing={1}>
       <Button
         size="xs"
         variant="ghost"
         leftIcon={<Icon as={FiMaximize2} boxSize={3} />}
-        onClick={() => setExpanded(new Set(ids))}
+        onClick={() => setCollapsed(new Set())}
       >
         Expand all
       </Button>
@@ -490,7 +421,7 @@ export function CalldataTree({
         size="xs"
         variant="ghost"
         leftIcon={<Icon as={FiMinimize2} boxSize={3} />}
-        onClick={() => setExpanded(new Set())}
+        onClick={() => setCollapsed(new Set(ids))}
       >
         Collapse all
       </Button>
@@ -532,26 +463,7 @@ export function CalldataTree({
                   "&::before": { display: "none" },
                 },
                 "& .calldata-value": { width: "100%" },
-                "& .calldata-value .decoded-integer": {
-                  flexDirection: "column", alignItems: "stretch", gap: "6px",
-                },
-                "& .calldata-value .decoded-integer-format, & .calldata-value .decoded-integer-format > div": {
-                  width: "100%", minWidth: 0, maxWidth: "100%",
-                },
               },
-              "& .calldata-value input.chakra-input": {
-                height: "32px",
-                fontSize: "12px",
-                fontFamily: "mono",
-                borderRadius: "4px",
-              },
-              "& .calldata-value .chakra-input__right-element": {
-                height: "32px",
-              },
-              "& .calldata-value .chakra-input__left-element": {
-                height: "32px",
-              },
-
               "& .calldata-value > div": {
                 transform: "none !important",
                 opacity: "1 !important",

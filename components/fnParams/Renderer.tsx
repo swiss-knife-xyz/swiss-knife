@@ -9,16 +9,9 @@ import {
   StringInput,
   TupleInput,
 } from "./inputs";
-import {
-  AddressParam,
-  ArrayParam,
-  BytesParam,
-  IntParam,
-  StringParam,
-  TupleParam,
-  UintParam,
-} from "../decodedParams";
-import { isAddress } from "viem";
+import { ParamValue } from "../decodedParams/ParamValue";
+import { Skeleton } from "@chakra-ui/react";
+import { CalldataTree } from "../decodedParams/CalldataTree";
 import { CalldataParam } from "../decodedParams/CalldataParam";
 import type { SelectedOption } from "@/types";
 import { ContractBytesInput } from "./ContractBytesInput";
@@ -186,56 +179,13 @@ export const renderParamTypes = ({
   components?: readonly JsonFragmentType[];
   name?: string;
 }) => {
-  console.log({
-    chainId,
-    type,
-    value,
-  });
-
   if (/\[\d*\]$/.test(type) || type === "tuple") {
-    const arg = value == null ? value : contractOutputArg({ type, components, name }, value);
-    return type === "tuple" ? (
-      <TupleParam arg={arg} chainId={chainId} />
-    ) : (
-      <ArrayParam arg={arg} chainId={chainId} />
+    return value == null ? <Skeleton h="4rem" w="full" rounded="4px" /> : (
+      <CalldataTree args={[contractOutputArg({ type, components, name }, value)]} chainId={chainId} showControls={false} />
     );
   } else if (type === "calldata") {
-    return <CalldataParam value={value} chainId={chainId} variant="plain" />;
-  } else if (type.includes("uint")) {
-    return <UintParam value={value} />;
-  } else if (type.includes("int")) {
-    return <IntParam value={value} />;
-  } else if (type === "address") {
-    return <AddressParam address={value} showLink chainId={chainId} />;
-  } else if (type.includes("bytes")) {
-    // account for cases where the bytes value is just an address
-    if (isAddress(value)) {
-      return <AddressParam address={value} chainId={chainId} />;
-    } else {
-      return (
-        <BytesParam
-          arg={
-            value === null || value === undefined
-              ? value
-              : { rawValue: value, value: { decoded: null } }
-          }
-          chainId={chainId}
-        />
-      );
-    }
-  } else if (type === "bool") {
-    return (
-      <StringParam
-        value={
-          value === null || value === undefined
-            ? value
-            : value
-              ? "true"
-              : "false"
-        }
-      />
-    );
+    return <CalldataParam value={value} chainId={chainId} />;
   } else {
-    return <StringParam value={value} />;
+    return <ParamValue arg={contractOutputArg({ type, components, name }, value)} chainId={chainId} />;
   }
 };

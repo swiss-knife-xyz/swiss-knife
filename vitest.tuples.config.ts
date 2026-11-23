@@ -6,7 +6,7 @@ export default defineConfig({
   esbuild: { jsx: "automatic" },
   test: {
     environment: "jsdom",
-    include: ["components/decodedParams/TupleParam.test.tsx"],
+    include: ["components/decodedParams/ParameterTree.test.tsx"],
     maxWorkers: 1,
   },
 });

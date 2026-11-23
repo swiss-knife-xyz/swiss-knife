@@ -552,3 +552,133 @@ it.each(["uint256", "int256"])("preserves the %s output unit across latest, bloc
   await screen.findByDisplayValue("5");
   expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
 });
+
+
+it.each([
+  { label: "uint32", output: { type: "uint32" }, result: 1234567n, raw: "1234567" },
+  { label: "uint256", output: { type: "uint256" }, result: (1n << 256n) - 1n, raw: ((1n << 256n) - 1n).toString() },
+  { label: "tuple uint", output: { type: "tuple", components: [{ name: "amount", type: "uint256" }] }, result: { amount: 1234567n }, raw: "1234567" },
+])("uses decoder-style uint output for $label without losing raw precision", async ({ output, result, raw }) => {
+  client.readContract.mockResolvedValueOnce(result);
+  show({ type: "function", name: "amount", stateMutability: "view", inputs: [], outputs: [output] }, "read", { args: [], value: "0" });
+  fireEvent.click(screen.getByRole("button", { name: "Read" }));
+  const input = await screen.findByDisplayValue(raw);
+  expect(screen.queryByRole("button", { name: /^(Format|Raw)$/ })).toBeNull();
+  fireEvent.focus(input);
+  const tooltip = await screen.findByRole("tooltip");
+  expect(tooltip.textContent).toContain(raw.replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+  expect(tooltip.textContent).toMatch(/\([\d.e+]+[KMB]\)/);
+  const copy = input.closest('.chakra-input__group')!.querySelector("button")!;
+  fireEvent.click(copy);
+  await waitFor(() => expect(clipboardWrite).toHaveBeenCalledWith(raw));
+});
+
+it.each([
+  { type: "bytes", hex: "0x6162", text: "ab" },
+  { type: "bytes4", hex: "0x61626364", text: "abcd" },
+  { type: "bytes20", hex: "0x6162636465666768696a6b6c6d6e6f7071727374", text: "abcdefghijklmnopqrst" },
+  { type: "tuple", hex: "0x6162", text: "ab" },
+])("uses shared bytes controls for $type returns and preserves the format on refresh", async ({ type, hex, text }) => {
+  const tuple = type === "tuple";
+  const output = tuple ? { type, components: [{ name: "data", type: "bytes" }] } : { type };
+  client.readContract.mockResolvedValue(tuple ? { data: hex } : hex);
+  show({ type: "function", name: "data", stateMutability: "view", inputs: [], outputs: [output] }, "read", { args: [], value: "0" });
+  fireEvent.click(screen.getByRole("button", { name: "Read" }));
+  const input = await screen.findByDisplayValue(hex);
+  fireEvent.click(input.closest('.chakra-input__group')!.querySelector('button')!);
+  await waitFor(() => expect(clipboardWrite).toHaveBeenCalledWith(hex));
+  expect(screen.queryByText("to Decimal", { exact: true })).toBeNull();
+  for (const [format, expected] of [["Decimal", BigInt(hex).toString()], ["Binary", BigInt(hex).toString(2)], ["Text", text], ["Hex", hex]]) {
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: format }));
+    await screen.findByDisplayValue(expected);
+  }
+  fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+  fireEvent.click(await screen.findByRole("option", { name: "Decimal" }));
+  fireEvent.click(screen.getByRole("button", { name: "Read" }));
+  await screen.findByDisplayValue(BigInt(hex).toString());
+  expect(screen.getByText("Decimal", { exact: true })).toBeTruthy();
+});
+
+it.each([
+  { label: "fixed array", output: { type: "uint256[2]" }, result: [11n, 22n], values: ["11", "22"] },
+  { label: "nested array", output: { type: "uint256[][]" }, result: [[11n], [22n, 33n]], values: ["11", "22", "33"] },
+  { label: "tuple array", output: { type: "tuple[]", components: [{ name: "amount", type: "uint256" }, { name: "data", type: "bytes" }] }, result: [{ amount: 11n, data: "0x6162" }], values: ["11", "0x6162"] },
+  { label: "bytes array", output: { type: "bytes4[]" }, result: ["0x61626364"], values: ["0x61626364"] },
+  { label: "empty array", output: { type: "uint256[]" }, result: [], values: [] },
+])("renders $label returns in the shared decoder tree", async ({ output, result, values }) => {
+  client.readContract.mockResolvedValueOnce(result);
+  show({ type: "function", name: "items", stateMutability: "view", inputs: [], outputs: [output] }, "read", { args: [], value: "0" });
+  fireEvent.click(screen.getByRole("button", { name: "Read" }));
+  const branch = await screen.findByRole("button", { name: "arg0", expanded: true });
+  expect(within(branch).getByText(`${result.length} items`, { exact: true })).toBeTruthy();
+  for (const value of values) expect(screen.getByDisplayValue(value)).toBeTruthy();
+  if (!values.length) expect(screen.getByText("No items")).toBeTruthy();
+  fireEvent.click(branch);
+  expect(screen.getByRole("button", { name: "arg0", expanded: false })).toBeTruthy();
+  for (const value of values) expect(screen.getByDisplayValue(value).closest('[hidden]')).toBeTruthy();
+  fireEvent.click(branch);
+  expect(screen.getByRole("button", { name: "arg0", expanded: true })).toBeTruthy();
+});
+
+it("retains array item units and collapsed branches across refreshed return values", async () => {
+  client.readContract.mockResolvedValueOnce([2000000n]).mockResolvedValueOnce([3000000n]);
+  show({ type: "function", name: "items", stateMutability: "view", inputs: [], outputs: [{ type: "uint256[]" }] }, "read", { args: [], value: "0" });
+  fireEvent.click(screen.getByRole("button", { name: "Read" }));
+  await screen.findByDisplayValue("2000000");
+  fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+  fireEvent.click(await screen.findByRole("option", { name: "10^6" }));
+  await screen.findByDisplayValue("2");
+  fireEvent.click(screen.getByRole("button", { name: "arg0" }));
+  fireEvent.click(screen.getByRole("button", { name: "Read" }));
+  await waitFor(() => expect(client.readContract).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(screen.getByDisplayValue("3")).toBeTruthy());
+  expect(screen.getByRole("button", { name: "arg0", expanded: false })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "arg0" }));
+  expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
+});
+
+it("renders nested struct fields in one tree and preserves formats and disclosure on refresh", async () => {
+  const outputs = [{ type: "tuple", components: [
+    { name: "configuration", type: "tuple", components: [{ name: "data", type: "uint256" }] },
+    { name: "active", type: "bool" },
+    { name: "amounts", type: "uint256[2]" },
+  ] }];
+  client.readContract.mockResolvedValueOnce({ configuration: { data: 2000000n }, active: true, amounts: [11n, 22n] })
+    .mockResolvedValueOnce({ configuration: { data: 3000000n }, active: false, amounts: [33n, 44n] });
+  show({ type: "function", name: "reserve", stateMutability: "view", inputs: [], outputs }, "read", { args: [], value: "0" });
+  fireEvent.click(screen.getByRole("button", { name: "Read" }));
+  await screen.findByDisplayValue("2000000");
+  expect(screen.getByDisplayValue("true")).toBeTruthy();
+  expect(screen.getByDisplayValue("22")).toBeTruthy();
+  fireEvent.keyDown(screen.getAllByRole("combobox")[0], { key: "ArrowDown" });
+  fireEvent.click(await screen.findByRole("option", { name: "10^6" }));
+  await screen.findByDisplayValue("2");
+  fireEvent.click(screen.getByRole("button", { name: "configuration" }));
+  fireEvent.click(screen.getByRole("button", { name: "Read" }));
+  await screen.findByDisplayValue("false");
+  expect(screen.getByDisplayValue("3")).toBeTruthy();
+  expect(screen.getByDisplayValue("44")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "configuration", expanded: false })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "configuration" }));
+  expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
+});
+
+it.each([
+  { type: "int24", result: -1234567n },
+  { type: "int256", result: -(1n << 255n) },
+])("renders and copies negative $type returns exactly using shared integer controls", async ({ type, result }) => {
+  client.readContract.mockResolvedValueOnce(result);
+  show({ type: "function", name: "signedValue", stateMutability: "view", inputs: [], outputs: [{ type }] }, "read", { args: [], value: "0" });
+  fireEvent.click(screen.getByRole("button", { name: "Read" }));
+  const input = await screen.findByDisplayValue(result.toString());
+  fireEvent.click(input.closest('.chakra-input__group')!.querySelector('button')!);
+  await waitFor(() => expect(clipboardWrite).toHaveBeenCalledWith(result.toString()));
+  if (type === "int24") {
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "10^6" }));
+    const converted = await screen.findByDisplayValue("-1.234567");
+    fireEvent.click(converted.closest('.chakra-input__group')!.querySelector('button')!);
+    await waitFor(() => expect(clipboardWrite).toHaveBeenCalledWith("-1.234567"));
+  }
+});

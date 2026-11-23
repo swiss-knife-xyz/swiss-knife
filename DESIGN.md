@@ -528,8 +528,8 @@
   decoder snapshots and make no live fallback lookups.
 
 - Calldata trees use their container width, rather than the browser width, to
-  switch parameter rows to labels above full-width values. Narrow trees stack
-  integer format selectors below the input. Nested clear-signing disclosures
+  switch parameter rows to labels above full-width values. Narrow trees keep
+  compact integer format selectors beside the input. Nested clear-signing disclosures
   hide the global expand/collapse toolbar; the main decoder retains it.
 
 - Explorer parameter import uses underline Calldata / From transaction tabs in
@@ -603,3 +603,37 @@
 - Both entry points use the same bounded source-diff builder. Preserve compiler
   line navigation and the confirmed Revert to original action. Keep large source
   previews available without unbounded diff computation.
+
+### Shared rich string output
+
+- Scope: contract return strings and calldata decoder strings use one shared
+  viewer. Direction: compact, precise, professional, aligned with the ETH.sh
+  tool theme rather than nested cards.
+- Keep the existing Inter UI and JetBrains Mono value stacks, semantic
+  `bg.subtle`, `bg.muted`, `text.secondary`, `text.tertiary` and border tokens.
+  Use 4px spacing increments, 12px data text, 11px keys and 4px control corners.
+- One ruled surface owns Preview / Raw JSON (or SVG) / Original controls,
+  copy-current-view and source-link actions. Nested objects and arrays are
+  disclosures inside that surface; nested URL/image fields have inline previews
+  without their own tab bars. Small content widths place keys above values.
+- Images use a bounded, natively resizable preview without captions or decorative
+  shadows. Original strings remain available and copyable; raw JSON is read-only,
+  formatted and syntax-highlighted using the shared ContentSizedEditor. Load the
+  editor only when its raw tab opens. Keep the toolbar limited to view tabs and
+  actionable copy/source buttons; omit format icons and preview footer text.
+- Preserve typed address/integer/bytes helpers and snapshot-only enrichment.
+  Loading, unavailable/retry and image-error states stay inline. Buttons keep
+  keyboard focus and disclosures expose their expanded state.
+- Audit: one surface, no nested card stacks, no word-per-letter table columns,
+  no new palette, no decorative motion. Browser QA covers narrow explorer and
+  decoder views, metadata images, nested JSON and raw/original switching.
+
+### Shared output integration
+
+- `ParamValue` owns primitive output dispatch and forwards the selected chain to
+  rich string content. Explorer code normalizes ABI values and selects tree or
+  raw-data decoding; it does not duplicate leaf control configuration. JSON
+  metadata infers a type before using the same dispatcher.
+- Raw-call loading and errors hide the existing viewer without unmounting it.
+  Repeated calls preserve units, raw-byte formats and disclosure state. New tree
+  branches expand immediately; existing collapsed branches retain their state.

@@ -1,7 +1,12 @@
 "use client";
 
+import {
+  compactFormatSelectProps,
+  compactValueFieldProps,
+} from "./paramStyles";
+
 import React, { useState, useMemo } from "react";
-import { Box, Flex } from "@chakra-ui/react";
+import { Box, Flex, Skeleton } from "@chakra-ui/react";
 import { hexToBigInt, hexToString } from "viem";
 import bigInt from "big-integer";
 import { startHexWith0x } from "@/utils";
@@ -20,14 +25,10 @@ interface Params {
   chainId?: number;
 }
 
-/**
- * A simplified bytes param component for the tree view.
- * Uses a dropdown for format selection like UintParam.
- */
+// Shared bytes presentation for decoded calldata and contract returns.
 export const TreeBytesParam = ({
   arg: _arg,
-  chainId,
-  formatSelectProps,
+  formatSelectProps = compactFormatSelectProps,
 }: Params) => {
   const arg = _arg ?? {
     rawValue: "0x",
@@ -88,10 +89,13 @@ export const TreeBytesParam = ({
     }
   };
 
+  if (_arg == null) return <Skeleton h="32px" w="full" rounded="4px" />;
+
   return (
     <Flex gap={2} align="flex-start" width="100%">
       <Box flex="1" minW="0">
         <InputField
+          {...compactValueFieldProps}
           value={getDisplayValue()}
           placeholder=""
           isReadOnly
