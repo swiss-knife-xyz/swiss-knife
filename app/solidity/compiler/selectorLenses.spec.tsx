@@ -108,9 +108,11 @@ function setup(dependencies?: Parameters<typeof registerSelectorLenses>[2]) {
     commandDispose,
     lenses: () => provider.provideCodeLenses(active).lenses,
     foreignLenses: () => provider.provideCodeLenses({ ...model }).lenses,
-    copy: (value: string) => command(null, value),
+    copy: (value: string) => commands.get("ethsh.copyFunctionSelector.test-editor")?.(null, value),
     openImport: (id: string) =>
       commands.get("ethsh.openImportedFile.test-editor")?.(null, id),
+    callFunction: (signature: string) =>
+      commands.get("ethsh.callSourceFunction.test-editor")?.(null, signature),
     install: (value: string) =>
       commands.get("ethsh.installDependency.test-editor")?.(null, value),
     edit: (value: string) => {
@@ -304,5 +306,44 @@ it("supports import navigation in read-only source viewers without a compiler wo
   expect(view.lenses()).toHaveLength(1);
   view.openImport("contracts/B.sol");
   expect(onOpenImport).toHaveBeenCalledWith("contracts/B.sol");
+  view.registration.dispose();
+});
+
+
+it("adds explorer-only Call function lenses and rejects stale or unknown targets", () => {
+  const onCallFunction = vi.fn();
+  let targets = [{ signature: "mint(address,uint256)", selector: "0x40c10f19", line: 2, column: 2 }];
+  const view = setup({ getCallTargets: () => targets, onCallFunction });
+  vi.advanceTimersByTime(300);
+  SelectorWorker.instances[0].finish();
+  expect(view.lenses()).toHaveLength(2);
+  expect(view.lenses().map((lens: any) => lens.command.title)).toEqual([
+    expect.stringContaining("selector 0x40c10f19"), expect.stringContaining("Call function"),
+  ]);
+  expect(view.foreignLenses()).toEqual([]);
+  view.callFunction("unknown()");
+  expect(onCallFunction).not.toHaveBeenCalled();
+  view.callFunction("mint(address,uint256)");
+  expect(onCallFunction).toHaveBeenCalledWith("mint(address,uint256)");
+  targets = [];
+  view.registration.refreshContext();
+  expect(view.lenses()).toHaveLength(1);
+  view.callFunction("mint(address,uint256)");
+  expect(onCallFunction).toHaveBeenCalledOnce();
+  view.registration.dispose();
+});
+
+it("uses the explorer's multi-file index for imported types and generated getters without reparsing", async () => {
+  const onCallFunction = vi.fn();
+  const targets = [{ signature: "set((uint256))", selector: "0x12345678", line: 2, column: 2 }];
+  const view = setup({ getCallTargets: () => targets, onCallFunction });
+  view.edit('import {Item} from "./Types.sol";\ncontract A { function set(Item calldata item) external {} }');
+  vi.advanceTimersByTime(300);
+  SelectorWorker.instances[0].finish();
+  expect(view.lenses()).toHaveLength(2);
+  await view.copy("0x12345678");
+  expect(navigator.clipboard.writeText).toHaveBeenCalledWith("0x12345678");
+  view.callFunction("set((uint256))");
+  expect(onCallFunction).toHaveBeenCalledWith("set((uint256))");
   view.registration.dispose();
 });

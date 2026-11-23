@@ -56,7 +56,10 @@ const useDiffStyles = () => {
 export function SourceCodeExplorer({
   sourceCode,
   targetFileName,
+  navigation,
   contractName,
+  callableFunctions,
+  onCallFunction,
   diffData,
   onDiffNavigate,
   initialHeight = 400,
@@ -86,10 +89,16 @@ export function SourceCodeExplorer({
   // Monaco namespace ref (for creating Range objects)
   const monacoRef = useRef<MonacoInstance | null>(null);
   const selectorLensesRef = useRef<ReturnType<typeof registerSelectorLenses> | null>(null);
+  const callNavigationRef = useRef<{ targets: NonNullable<SourceCodeExplorerProps["callableFunctions"]>; onCall?: (signature: string) => void }>({ targets: [] });
+  callNavigationRef.current = {
+    targets: callableFunctions?.filter(item => item.path === activeTabId) ?? [],
+    onCall: onCallFunction,
+  };
   const importNavigationRef = useRef<{resolve:(path:string)=>{id:string;name:string}|null;open:(path:string)=>void}>({resolve:()=>null,open:()=>{}});
   useEffect(() => () => selectorLensesRef.current?.dispose(), []);
   // Pending line to scroll to after file opens
   const pendingLineRef = useRef<number | null>(null);
+  const pendingColumnRef = useRef(1);
   // Container ref for resize calculations
   const containerRef = useRef<HTMLDivElement | null>(null);
   // Search highlight decorations collection ref
@@ -307,7 +316,7 @@ export function SourceCodeExplorer({
     },
   };
 
-  useEffect(() => { selectorLensesRef.current?.refreshContext(); }, [sourceCode, diffData, diffViewMode, activeTabId]);
+  useEffect(() => { selectorLensesRef.current?.refreshContext(); }, [sourceCode, diffData, diffViewMode, activeTabId, callableFunctions, onCallFunction]);
 
   // Get language for current file (falls back to content-based detection)
   const language = useMemo(() => {
@@ -484,6 +493,8 @@ export function SourceCodeExplorer({
       selectorLensesRef.current = registerSelectorLenses(editor, monaco, {
         resolveSourceImport: path => importNavigationRef.current.resolve(path),
         onOpenImport: path => importNavigationRef.current.open(path),
+        getCallTargets: () => callNavigationRef.current.onCall ? callNavigationRef.current.targets : [],
+        onCallFunction: signature => callNavigationRef.current.onCall?.(signature),
       });
 
       // Patch Solidity single-quote string support
@@ -492,8 +503,9 @@ export function SourceCodeExplorer({
       // Check if there's a pending line to scroll to
       if (pendingLineRef.current !== null) {
         editor.revealLineInCenter(pendingLineRef.current);
-        editor.setPosition({ lineNumber: pendingLineRef.current, column: 1 });
+        editor.setPosition({ lineNumber: pendingLineRef.current, column: pendingColumnRef.current });
         flashSourceLine(editor, pendingLineRef.current);
+        editor.focus();
         pendingLineRef.current = null;
       }
 
@@ -510,7 +522,7 @@ export function SourceCodeExplorer({
       setTimeout(() => {
         if (editorRef.current && pendingLineRef.current !== null) {
           editorRef.current.revealLineInCenter(pendingLineRef.current);
-          editorRef.current.setPosition({ lineNumber: pendingLineRef.current, column: 1 });
+          editorRef.current.setPosition({ lineNumber: pendingLineRef.current, column: pendingColumnRef.current });
           flashSourceLine(editorRef.current, pendingLineRef.current);
           pendingLineRef.current = null;
         }
@@ -597,7 +609,8 @@ export function SourceCodeExplorer({
   }, [isResizingSidebar]);
 
   // Handle search result click - open file and scroll to line
-  const handleSearchResultClick = useCallback((path: string, content: string, lineNumber: number) => {
+  const handleSearchResultClick = useCallback((path: string, content: string, lineNumber: number, column = 1) => {
+    pendingColumnRef.current = column;
     if (isDiffMode) setDiffViewMode(diffData?.[path]?.oldExists === false ? 2 : 0);
     // Store the line number to scroll to after file opens
     pendingLineRef.current = lineNumber;
@@ -609,8 +622,9 @@ export function SourceCodeExplorer({
         // If tab already active, scroll immediately
         if (existingTab.id === activeTabId && editorRef.current) {
           editorRef.current.revealLineInCenter(lineNumber);
-          editorRef.current.setPosition({ lineNumber, column: 1 });
+          editorRef.current.setPosition({ lineNumber, column: pendingColumnRef.current });
           flashSourceLine(editorRef.current, lineNumber);
+          editorRef.current.focus();
           pendingLineRef.current = null;
         }
         return prevTabs;
@@ -630,6 +644,14 @@ export function SourceCodeExplorer({
       return [...prevTabs, newTab];
     });
   }, [activeTabId, isDiffMode, diffData]);
+
+  const appliedNavigation = useRef<typeof navigation>(undefined);
+  useEffect(() => {
+    if (!navigation || appliedNavigation.current === navigation || !Object.hasOwn(sourceCode, navigation.path)) return;
+    appliedNavigation.current = navigation;
+    handleSearchResultClick(navigation.path, sourceCode[navigation.path], navigation.line, navigation.column);
+    setImportReveal(value => (value ?? 0) + 1);
+  }, [navigation, sourceCode, handleSearchResultClick]);
 
   if (!sourceCode || Object.keys(sourceCode).length === 0) {
     return (
@@ -706,6 +728,7 @@ export function SourceCodeExplorer({
                 path: activeTab?.path ?? "",
                 content: activeFileDiff ? (diffViewMode === 2 || activeFileDiff.oldExists === false ? activeFileDiff.newCode : activeFileDiff.oldCode) : displayedContent,
                 onSelect: (line) => {
+                  pendingColumnRef.current = 1;
                   if (activeFileDiff && diffViewMode === 1) {
                     pendingLineRef.current = line;
                     setDiffViewMode(activeFileDiff.oldExists === false ? 2 : 0);

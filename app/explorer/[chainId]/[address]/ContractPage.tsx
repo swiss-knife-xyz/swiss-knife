@@ -32,7 +32,6 @@ import {
   Link,
   Select,
   Skeleton,
-  Spacer,
   Spinner,
   Text,
   Tooltip,
@@ -68,6 +67,8 @@ import { Editor } from "@monaco-editor/react";
 import { Code, CornerDownLeft, Download, ExternalLink, FileText, Maximize2, Minimize2 } from "lucide-react";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { SourceCodeExplorer } from "@/components/SourceCodeExplorer";
+import { useFunctionLocations } from "@/components/SourceCodeExplorer/useFunctionLocations";
+import type { FunctionLocation, FunctionLocations } from "@/components/SourceCodeExplorer/functionLocations";
 import { ContractCallPrefill, type PrefilledCall } from "@/components/fnParams/ContractCallPrefill";
 import { contractFunctionSignature } from "@/lib/contractCall";
 
@@ -103,7 +104,13 @@ type AbiType = {
   functionEdits?: { base: AbiType; declarations: string };
 };
 
+type FunctionFocus = { signature: string; mode: "contract" | "implementation"; type: "read" | "write"; revision: number };
 type SourceCodeType = Record<string, string> | undefined;
+type SourceNavigation = FunctionLocation & {
+  mode: "contract" | "implementation";
+  sources: Record<string, string>;
+  revision: number;
+};
 
 // Context for ABI section expanded state - prevents parent re-renders
 const AbiExpandedContext = createContext<{
@@ -176,7 +183,15 @@ const AbiSourceCodeContent = ({
   isDelegated = false,
   isLoadingSourceCode,
   renderAbiEditor,
+  sourceNavigation,
+  interactionSources,
+  interactionLocations,
+  onCallFunction,
 }: {
+  interactionSources: SourceCodeType;
+  interactionLocations: FunctionLocations;
+  onCallFunction: (signature: string, mode: "contract" | "implementation") => void;
+  sourceNavigation: SourceNavigation | null;
   address: string;
   chainId: number;
   abi: AbiType | null;
@@ -198,6 +213,28 @@ const AbiSourceCodeContent = ({
   // 0 = Implementation, 1 = Proxy (only shown for proxy contracts)
   const [contractTabIndex, setContractTabIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const regionRef = useRef<HTMLDivElement>(null);
+  const setIsExpanded = context?.setIsExpanded;
+  const appliedNavigation = useRef<SourceNavigation | null>(null);
+  const scrolledNavigation = useRef<SourceNavigation | null>(null);
+  useEffect(() => {
+    if (!sourceNavigation || appliedNavigation.current === sourceNavigation) return;
+    appliedNavigation.current = sourceNavigation;
+    setIsExpanded?.(true);
+    setContentTabIndex(0);
+    setContractTabIndex(sourceNavigation.mode === "implementation" ? 0 : 1);
+  }, [sourceNavigation, setIsExpanded]);
+  useEffect(() => {
+    if (!sourceNavigation || scrolledNavigation.current === sourceNavigation || !isExpanded || contentTabIndex !== 0) return;
+    const frame = requestAnimationFrame(() => {
+      scrolledNavigation.current = sourceNavigation;
+      regionRef.current?.scrollIntoView?.({
+        block: "start",
+        behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [sourceNavigation, isExpanded, contentTabIndex]);
 
   // Escape key exits fullscreen; lock body scroll while fullscreen
   useEffect(() => {
@@ -226,6 +263,33 @@ const AbiSourceCodeContent = ({
     if (!isProxy) return sourceCode;
     return contractTabIndex === 0 ? implementationSourceCode : proxySourceCode;
   }, [isProxy, contractTabIndex, sourceCode, implementationSourceCode, proxySourceCode]);
+
+  // Reuse the interaction index. Only index a different source tab when it is open.
+  const { locations: otherSourceLocations } = useFunctionLocations(
+    isExpanded && contentTabIndex === 0 && currentSourceCode !== interactionSources ? currentSourceCode : undefined,
+    currentAbi?.name
+  );
+  const currentLocations = currentSourceCode === interactionSources ? interactionLocations : otherSourceLocations;
+  const callableFunctions = useMemo(() => (currentAbi?.abi ?? []).flatMap(func => {
+    if (func.type !== "function") return [];
+    try {
+      const signature = contractFunctionSignature(func);
+      const location = currentLocations[signature];
+      const selector = contractAbiFunctionSelector(func);
+      return location && selector ? [{ ...location, signature, selector }] : [];
+    } catch { return []; }
+  }), [currentAbi, currentLocations]);
+  const handleCallFunction = useCallback((signature: string) => {
+    if (!callableFunctions.some(item => item.signature === signature)) return;
+    setIsFullscreen(false);
+    onCallFunction(signature, isProxy && contractTabIndex === 0 ? "implementation" : "contract");
+  }, [callableFunctions, onCallFunction, isProxy, contractTabIndex]);
+
+  // Reveal only after the panel is visible and the requested source bundle is active.
+  const editorNavigation = sourceNavigation && isExpanded && contentTabIndex === 0 &&
+    sourceNavigation.sources === currentSourceCode &&
+    (!isProxy || contractTabIndex === (sourceNavigation.mode === "implementation" ? 0 : 1))
+      ? sourceNavigation : undefined;
 
   const abiContent = useMemo(() => {
     if (!currentAbi) return "";
@@ -260,6 +324,8 @@ const AbiSourceCodeContent = ({
 
   return (
     <Box
+      ref={regionRef}
+      scrollMarginTop="6rem"
       role="region"
       aria-label="ABI and source code"
       display={isExpanded ? "flex" : "none"}
@@ -278,7 +344,7 @@ const AbiSourceCodeContent = ({
       transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
     >
       {/* Compact tabs row */}
-      <HStack spacing={4} mb={3} flexWrap="wrap" flexShrink={0}>
+      <HStack spacing={2} mb={3} flexWrap="wrap" flexShrink={0}>
         {/* Contract tabs for proxy */}
         {isProxy && (
           <TabsSelector
@@ -318,46 +384,54 @@ const AbiSourceCodeContent = ({
           </HStack>
         </Button>
 
-        <Spacer />
+        <HStack
+          spacing={0}
+          ml="auto"
+          flexShrink={0}
+          flexWrap="nowrap"
+          maxW="full"
+          overflowX="auto"
+          sx={{ "& > button": { px: 2 }, "& > button:last-child": { px: 0, minW: 8 } }}
+        >
+          {renderAbiEditor(
+            isProxy && contractTabIndex === 0 ? "implementation" : "contract",
+            () => setIsFullscreen(false),
+            () => context?.setIsExpanded(false)
+          )}
 
-        {renderAbiEditor(
-          isProxy && contractTabIndex === 0 ? "implementation" : "contract",
-          () => setIsFullscreen(false),
-          () => context?.setIsExpanded(false)
-        )}
+          {/* Copy / Download action buttons */}
+          {abiContent && (
+            <CopyToClipboard textToCopy={abiContent} labelText="Copy ABI" />
+          )}
+          {contentTabIndex === 0 && !isLoadingSourceCode && sourceFileEntries.length === 1 && (
+            <CopyToClipboard textToCopy={sourceFileEntries[0][1]} labelText="Copy Code" />
+          )}
+          {contentTabIndex === 0 && !isLoadingSourceCode && sourceFileEntries.length > 1 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              color="whiteAlpha.700"
+              _hover={{ color: "white", bg: "whiteAlpha.200" }}
+              onClick={handleDownloadZip}
+              leftIcon={<Download size={16} />}
+            >
+              Download Zip
+            </Button>
+          )}
 
-        {/* Copy / Download action buttons */}
-        {abiContent && (
-          <CopyToClipboard textToCopy={abiContent} labelText="Copy ABI" />
-        )}
-        {contentTabIndex === 0 && !isLoadingSourceCode && sourceFileEntries.length === 1 && (
-          <CopyToClipboard textToCopy={sourceFileEntries[0][1]} labelText="Copy Code" />
-        )}
-        {contentTabIndex === 0 && !isLoadingSourceCode && sourceFileEntries.length > 1 && (
-          <Button
-            size="sm"
-            variant="ghost"
-            color="whiteAlpha.700"
-            _hover={{ color: "white", bg: "whiteAlpha.200" }}
-            onClick={handleDownloadZip}
-            leftIcon={<Download size={16} />}
-          >
-            Download Zip
-          </Button>
-        )}
-
-        {/* Fullscreen toggle */}
-        <Tooltip label={isFullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen"} placement="bottom" hasArrow>
-          <IconButton
-            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-            icon={<Icon as={isFullscreen ? Minimize2 : Maximize2} boxSize={4} />}
-            size="sm"
-            variant="ghost"
-            color="text.tertiary"
-            _hover={{ color: "text.primary", bg: "whiteAlpha.200" }}
-            onClick={() => setIsFullscreen((prev) => !prev)}
-          />
-        </Tooltip>
+          {/* Fullscreen toggle */}
+          <Tooltip label={isFullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen"} placement="bottom" hasArrow>
+            <IconButton
+              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              icon={<Icon as={isFullscreen ? Minimize2 : Maximize2} boxSize={4} />}
+              size="sm"
+              variant="ghost"
+              color="text.tertiary"
+              _hover={{ color: "text.primary", bg: "whiteAlpha.200" }}
+              onClick={() => setIsFullscreen((prev) => !prev)}
+            />
+          </Tooltip>
+        </HStack>
       </HStack>
 
       {/* Content */}
@@ -384,6 +458,9 @@ const AbiSourceCodeContent = ({
               >
                 <SourceCodeExplorer
                   sourceCode={currentSourceCode}
+                  navigation={editorNavigation}
+                  callableFunctions={callableFunctions}
+                  onCallFunction={handleCallFunction}
                   contractName={currentAbi?.name}
                   initialSidebarWidth={320}
                   isFullscreen={isFullscreen}
@@ -453,7 +530,14 @@ const ReadWriteSection = ({
   mobileActive,
   abiMode,
   addedFunctionFocus,
+  sourceFunctionFocus,
+  sourceLocations,
+  sourceUnavailableReason,
+  onGoToSource,
 }: {
+  sourceLocations: FunctionLocations;
+  sourceUnavailableReason: string;
+  onGoToSource: (location: FunctionLocation) => void;
   type: "read" | "write";
   abi: AbiType;
   client: PublicClient | null;
@@ -467,6 +551,7 @@ const ReadWriteSection = ({
   mobileActive: boolean;
   abiMode: "contract" | "implementation";
   addedFunctionFocus: { selector: string; revision: number } | null;
+  sourceFunctionFocus: FunctionFocus | null;
 }) => {
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
 
@@ -517,6 +602,27 @@ const ReadWriteSection = ({
     });
     return () => cancelAnimationFrame(frame);
   }, [addedFunctionFocus, functions, client, mobileActive]);
+
+  const scrolledSourceRevision = useRef<number | null>(null);
+  useEffect(() => {
+    if (!sourceFunctionFocus || !client || !mobileActive || scrolledSourceRevision.current === sourceFunctionFocus.revision) return;
+    const index = functions.findIndex(func => {
+      try { return contractFunctionSignature(func) === sourceFunctionFocus.signature; }
+      catch { return false; }
+    });
+    if (index < 0) return;
+    const frame = requestAnimationFrame(() => {
+      const target = functionRefs.current[index];
+      if (!target) return;
+      scrolledSourceRevision.current = sourceFunctionFocus.revision;
+      target.scrollIntoView?.({
+        block: "start",
+        behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      });
+      target.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [sourceFunctionFocus, functions, client, mobileActive]);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -838,6 +944,13 @@ const ReadWriteSection = ({
             const selector = contractAbiFunctionSelector(func) ?? "";
             const inferred = Boolean(isAbiDecoded && !abi.customFunctionSelectors?.includes(selector));
             const customAdded = abi.addedFunctionSelectors?.includes(selector);
+            let sourceFocusRevision: number | undefined;
+            try {
+              if (sourceFunctionFocus?.signature === contractFunctionSignature(func)) sourceFocusRevision = sourceFunctionFocus.revision;
+            } catch { /* Unknown inferred shapes cannot be focused. */ }
+            let sourceLocation: FunctionLocation | undefined;
+            try { sourceLocation = sourceLocations[contractFunctionSignature(func)]; }
+            catch { /* Inferred or custom signatures may have no source declaration. */ }
             let initialCall: PrefilledCall | undefined;
             try {
               if (prefilledCall?.signature === contractFunctionSignature(func)) initialCall = prefilledCall;
@@ -847,6 +960,8 @@ const ReadWriteSection = ({
               key={`${contractFunctionStateKey(func, inferred)}:${initialCall ? prefillRevision : "ordinary"}`}
               data-prefilled={initialCall ? "true" : undefined}
               data-function-selector={selector || undefined}
+              tabIndex={-1}
+              _focusVisible={{ outline: "none" }}
               data-custom-added={customAdded ? "true" : undefined}
               scrollMarginTop="8rem"
               ref={(el) => { functionRefs.current[index] = el; }}
@@ -863,6 +978,10 @@ const ReadWriteSection = ({
                 readAllCollapsed={allCollapsed}
                 initialCall={initialCall}
                 abiMode={abiMode}
+                sourceFocusRevision={sourceFocusRevision}
+                sourceLocation={sourceLocation}
+                onGoToSource={onGoToSource}
+                sourceUnavailableReason={sourceUnavailableReason}
               />
             </Box>
           ); })}
@@ -1219,6 +1338,41 @@ const LoadedContractPage = ({
     if (abi?.name) document.title = `${abi.name} - ${address} | ETH.sh`;
   }, [abi?.name, address]);
 
+  const selectedSources = implementationAddress
+    ? (selectedAbiMode === "implementation" ? implementationSourceCode : proxySourceCode)
+    : sourceCode;
+  const { locations: sourceLocations, isIndexing: isIndexingSources } = useFunctionLocations(selectedSources, abi?.name);
+  const [sourceNavigation, setSourceNavigation] = useState<SourceNavigation | null>(null);
+  const sourceNavigationRevision = useRef(0);
+  const onGoToSource = useCallback((location: FunctionLocation) => {
+    if (!selectedSources) return;
+    setSourceNavigation({ ...location, mode: selectedAbiMode, sources: selectedSources, revision: ++sourceNavigationRevision.current });
+  }, [selectedSources, selectedAbiMode]);
+  const [sourceFunctionFocus, setSourceFunctionFocus] = useState<FunctionFocus | null>(null);
+  const functionFocusRevision = useRef(0);
+  const onCallSourceFunction = useCallback((signature: string, mode: "contract" | "implementation") => {
+    const targetAbi = mode === "implementation" ? customAbis.implementation ?? implementationAbi
+      : customAbis.contract ?? (implementationAddress ? proxyAbi : loadedAbi);
+    const func = targetAbi?.abi.find(item => {
+      try { return item.type === "function" && contractFunctionSignature(item) === signature; }
+      catch { return false; }
+    });
+    if (!func) return;
+    if (selectedAbiMode !== mode) {
+      setPrefill(previous => ({ call: null, revision: previous.revision + 1 }));
+      setAbi(targetAbi);
+      setIsInteractingAsProxy(mode === "implementation");
+    }
+    const type = func.stateMutability === "view" || func.stateMutability === "pure" ? "read" : "write";
+    setMobileFunctionType(type);
+    setSourceFunctionFocus({ signature, mode, type, revision: ++functionFocusRevision.current });
+  }, [customAbis, implementationAbi, implementationAddress, proxyAbi, loadedAbi, selectedAbiMode]);
+
+  const sourceUnavailableReason = isLoadingSourceCode ? "Loading source code…"
+    : isIndexingSources ? "Finding function definitions…"
+    : !selectedSources || !Object.keys(selectedSources).length ? "Verified source code is unavailable"
+    : "No unambiguous source definition found";
+
   const renderFunctions = () => {
     return (
         <Box w="full" maxW="70rem" mx="auto">
@@ -1351,6 +1505,10 @@ const LoadedContractPage = ({
               mobileActive={mobileFunctionType === "read"}
               abi={abi}
               client={client}
+              sourceFunctionFocus={sourceFunctionFocus?.mode === selectedAbiMode && sourceFunctionFocus.type === "read" ? sourceFunctionFocus : null}
+              sourceLocations={sourceLocations}
+              sourceUnavailableReason={sourceUnavailableReason}
+              onGoToSource={onGoToSource}
               functions={readFunctions}
               address={address}
               chainId={chainId}
@@ -1367,6 +1525,10 @@ const LoadedContractPage = ({
               mobileActive={mobileFunctionType === "write"}
               abi={abi}
               client={client}
+              sourceLocations={sourceLocations}
+              sourceUnavailableReason={sourceUnavailableReason}
+              onGoToSource={onGoToSource}
+              sourceFunctionFocus={sourceFunctionFocus?.mode === selectedAbiMode && sourceFunctionFocus.type === "write" ? sourceFunctionFocus : null}
               functions={writeFunctions}
               address={address}
               chainId={chainId}
@@ -1663,6 +1825,10 @@ const LoadedContractPage = ({
             isDelegated={isDelegated}
             isLoadingSourceCode={isLoadingSourceCode}
             renderAbiEditor={renderAbiEditor}
+            interactionSources={selectedSources}
+            interactionLocations={sourceLocations}
+            onCallFunction={onCallSourceFunction}
+            sourceNavigation={sourceNavigation && (sourceNavigation.sources === sourceCode || sourceNavigation.sources === proxySourceCode || sourceNavigation.sources === implementationSourceCode) ? sourceNavigation : null}
           />
 
         </Box>

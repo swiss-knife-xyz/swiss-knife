@@ -38,7 +38,12 @@ export interface DiffFileData {
 export interface SourceCodeExplorerProps {
   sourceCode: Record<string, string>;
   targetFileName?: string;
+  /** A new request object also repeats navigation to an already open location. */
+  navigation?: { path: string; line: number; column: number; revision: number };
   contractName?: string;
+  /** Explorer-only actions, already resolved against the contract ABI and source index. */
+  callableFunctions?: (import("@/lib/solidity/functionSelectors").FunctionSelector & { path: string })[];
+  onCallFunction?(signature: string): void;
   /** When provided, enables diff mode with Old/Diff/New view switching */
   diffData?: Record<string, DiffFileData>;
   onDiffNavigate?(path: string, lineNumber: number): void;

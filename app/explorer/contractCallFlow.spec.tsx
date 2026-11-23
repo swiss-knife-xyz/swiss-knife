@@ -12,6 +12,8 @@ import { ChakraProvider } from "@chakra-ui/react";
 import { Interface } from "ethers";
 import { ContractPage } from "./[chainId]/[address]/ContractPage";
 import { createContractCallLink } from "@/lib/contractCall";
+import { getSourceCode } from "@/utils";
+import { buildFunctionLocations } from "@/components/SourceCodeExplorer/functionLocations";
 
 const { fetchAbi, client, wallet, copied } = vi.hoisted(() => ({
   fetchAbi: vi.fn(),
@@ -55,7 +57,10 @@ vi.mock("@/components/fnParams/StorageSlot", () => ({
   StorageSlot: () => null,
 }));
 vi.mock("@/components/SourceCodeExplorer", () => ({
-  SourceCodeExplorer: () => null,
+  SourceCodeExplorer: ({ navigation, sourceCode, callableFunctions, onCallFunction }: any) => <>
+    <output data-testid="source-target">{JSON.stringify({ navigation, files: Object.keys(sourceCode) })}</output>
+    {callableFunctions?.map((item: any) => <button key={item.signature} onClick={() => onCallFunction(item.signature)}>Call source {item.signature}</button>)}
+  </>,
 }));
 vi.mock("@/components/CopyToClipboard", () => ({
   CopyToClipboard: ({ textToCopy, labelText, "aria-label": ariaLabel }: any) => (
@@ -167,6 +172,7 @@ async function openRawCalldata() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(getSourceCode).mockResolvedValue(undefined as any);
   client.getCode.mockResolvedValue("0x");
   fetchAbi.mockResolvedValue({ abi, name: "Verified contract" });
   window.history.replaceState(null, "", `/explorer/1/${address}`);
@@ -546,5 +552,127 @@ it("preserves read results and edited inputs across ABI additions, reordering an
   expect(screen.getByText("223")).toBe(middleResult);
   expect(screen.getByText("445")).toBe(lookupResult);
   expect(input.value).toBe("19");
+  expect(wallet.sendTransaction).not.toHaveBeenCalled();
+});
+
+
+it("jumps from read/write tools to inherited source, reopens a collapsed section and selects Source Code", async () => {
+  const sources = { "Main.sol": 'import "./Base.sol"; contract Main is Base {}', "Base.sol": "contract Base { uint public count;\n function transfer(uint amount) public payable {}\n function transfer(address to, uint tokens) public {}\n}" };
+  fetchAbi.mockResolvedValue({ abi: [...abi, { type: "function", name: "count", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" }], name: "Main" });
+  vi.mocked(getSourceCode).mockResolvedValue(sources);
+  vi.stubGlobal("Worker", class {
+    onmessage: any;
+    onerror: any;
+    terminate() {}
+    postMessage(data: any) { queueMicrotask(() => this.onmessage?.({ data: buildFunctionLocations(data.sources, data.contractName) })); }
+  });
+  render(page());
+  const readJump = await screen.findByRole("button", { name: "Go to source for count" });
+  await waitFor(() => expect((readJump as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(readJump);
+  await waitFor(() => expect(JSON.parse(screen.getByTestId("source-target").textContent!).navigation).toMatchObject({ path: "Base.sol", line: 1 }));
+  fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
+  fireEvent.click(await screen.findByRole("tab", { name: "Write" }));
+  const buttons = ["transfer(uint256)", "transfer(address,uint256)"].map(signature => document.querySelector(`[data-function-selector="${iface.getFunction(signature)!.selector}"] button[aria-label="Go to source for transfer"]`) as HTMLButtonElement);
+  await waitFor(() => expect((buttons[0] as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(buttons[0]);
+  await waitFor(() => expect(screen.getByRole("button", { name: "ABI & Source Code" }).getAttribute("aria-expanded")).toBe("true"));
+  expect(JSON.parse(screen.getByTestId("source-target").textContent!).navigation).toMatchObject({ path: "Base.sol", line: 2, mode: "contract" });
+  fireEvent.click(screen.getByText("ABI", { exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
+  fireEvent.click(buttons[1]);
+  await waitFor(() => expect(screen.getByTestId("source-target")).toBeTruthy());
+  expect(JSON.parse(screen.getByTestId("source-target").textContent!).navigation).toMatchObject({ path: "Base.sol", line: 3 });
+  expect(wallet.sendTransaction).not.toHaveBeenCalled();
+});
+
+it("selects the correct implementation or proxy source tab and reuses the cached index when switching back", async () => {
+  const proxy = { "Proxy.sol": "contract Proxy { function transfer(uint amount) public payable {} function transfer(address to, uint tokens) public {} }" };
+  const impl = { "Impl.sol": "contract Impl { function transfer(uint amount) public payable {} function transfer(address to, uint tokens) public {} }" };
+  fetchAbi.mockResolvedValue({ abi, name: "Proxy", implementation: { address: implementation, abi, name: "Impl" } });
+  vi.mocked(getSourceCode).mockImplementation(async (_chain, target) => target === implementation ? impl : proxy);
+  const posted = vi.fn();
+  vi.stubGlobal("Worker", class {
+    onmessage: any;
+    onerror: any;
+    terminate() {}
+    postMessage(data: any) { posted(data); queueMicrotask(() => this.onmessage?.({ data: buildFunctionLocations(data.sources, data.contractName) })); }
+  });
+  render(page());
+  fireEvent.click(await screen.findByRole("tab", { name: "Write" }));
+  const jump = () => screen.getAllByRole("button", { name: "Go to source for transfer" })[0] as HTMLButtonElement;
+  await waitFor(() => expect(jump().disabled).toBe(false));
+  fireEvent.click(jump());
+  await waitFor(() => expect(JSON.parse(screen.getByTestId("source-target").textContent!).navigation).toMatchObject({ path: "Impl.sol", mode: "implementation" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "Interact as" }), { target: { value: "contract" } });
+  await waitFor(() => expect(jump().disabled).toBe(false));
+  fireEvent.click(jump());
+  await waitFor(() => expect(JSON.parse(screen.getByTestId("source-target").textContent!).navigation).toMatchObject({ path: "Proxy.sol", mode: "contract" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "Interact as" }), { target: { value: "proxy" } });
+  await waitFor(() => expect(jump().disabled).toBe(false));
+  fireEvent.click(jump());
+  await waitFor(() => expect(JSON.parse(screen.getByTestId("source-target").textContent!).navigation).toMatchObject({ path: "Impl.sol" }));
+  expect(posted).toHaveBeenCalledTimes(2);
+});
+
+
+it("jumps back from source to the exact read/write overload, expands and highlights it, and preserves arguments on repeated jumps", async () => {
+  const sources = { "Main.sol": "contract Main { function count(uint slot) public view returns(uint) {} function transfer(uint amount) public payable {} function transfer(address to, uint tokens) public {} }" };
+  const read = { type: "function", name: "count", inputs: [{ type: "uint256", name: "slot" }], outputs: [{ type: "uint256" }], stateMutability: "view" };
+  fetchAbi.mockResolvedValue({ abi: [...abi, read], name: "Main" });
+  vi.mocked(getSourceCode).mockResolvedValue(sources);
+  vi.stubGlobal("Worker", class {
+    onmessage: any;
+    onerror: any;
+    terminate() {}
+    postMessage(data: any) { queueMicrotask(() => this.onmessage?.({ data: buildFunctionLocations(data.sources, data.contractName) })); }
+  });
+  render(page());
+  fireEvent.click(await screen.findByRole("button", { name: "ABI & Source Code" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Call source transfer(uint256)" }));
+  expect(screen.getByRole("tab", { name: "Write" }).getAttribute("aria-selected")).toBe("true");
+  const target = document.querySelector(`[data-function-selector="${iface.getFunction("transfer(uint256)")!.selector}"]`)!;
+  await waitFor(() => expect(target.querySelector('[data-source-highlighted="true"]')).toBeTruthy());
+  expect(target.querySelector('[aria-label="Collapse transfer"]')?.getAttribute("aria-expanded")).toBe("true");
+  expect(target.scrollIntoView).toHaveBeenCalled();
+  expect(document.activeElement).toBe(target);
+  fireEvent.change(screen.getByRole("textbox", { name: "amount" }), { target: { value: "42" } });
+  fireEvent.click(target.querySelector('[aria-label="Collapse transfer"]')!);
+  fireEvent.click(screen.getByRole("button", { name: "Call source transfer(uint256)" }));
+  await waitFor(() => expect(target.querySelector('[aria-label="Collapse transfer"]')).toBeTruthy());
+  expect((screen.getByRole("textbox", { name: "amount" }) as HTMLInputElement).value).toBe("42");
+  fireEvent.click(screen.getByRole("button", { name: "Call source count(uint256)" }));
+  expect(screen.getByRole("tab", { name: "Read" }).getAttribute("aria-selected")).toBe("true");
+  expect(screen.getByRole("button", { name: "Collapse count" }).getAttribute("aria-expanded")).toBe("true");
+  expect(document.querySelectorAll('[data-source-highlighted="true"]')).toHaveLength(1);
+  expect(wallet.sendTransaction).not.toHaveBeenCalled();
+  expect(client.simulateContract).not.toHaveBeenCalled();
+});
+
+it("calls from the displayed proxy source tab, switches ABI mode, and exits fullscreen", async () => {
+  const proxy = { "Proxy.sol": "contract Proxy { function transfer(uint amount) public payable {} function transfer(address to, uint tokens) public {} }" };
+  const impl = { "Impl.sol": "contract Impl { function transfer(uint amount) public payable {} function transfer(address to, uint tokens) public {} }" };
+  fetchAbi.mockResolvedValue({ abi, name: "Proxy", implementation: { address: implementation, abi, name: "Impl" } });
+  vi.mocked(getSourceCode).mockImplementation(async (_chain, target) => target === implementation ? impl : proxy);
+  vi.stubGlobal("Worker", class {
+    onmessage: any;
+    onerror: any;
+    terminate() {}
+    postMessage(data: any) { queueMicrotask(() => this.onmessage?.({ data: buildFunctionLocations(data.sources, data.contractName) })); }
+  });
+  render(page());
+  await screen.findByRole("button", { name: "ABI & Source Code" });
+  await waitFor(() => expect(screen.getByRole("combobox", { name: "Interact as" })).toBeTruthy());
+  fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
+  fireEvent.click(await screen.findByText("Proxy", { exact: true, selector: "div" }));
+  await waitFor(() => expect(JSON.parse(screen.getByTestId("source-target").textContent!).files).toEqual(["Proxy.sol"]));
+  fireEvent.click(screen.getByRole("button", { name: "Enter fullscreen" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Call source transfer(address,uint256)" }));
+  await waitFor(() => expect((screen.getByRole("combobox", { name: "Interact as" }) as HTMLSelectElement).value).toBe("contract"));
+  expect(screen.getByRole("button", { name: "Enter fullscreen" })).toBeTruthy();
+  const target = document.querySelector(`[data-function-selector="${iface.getFunction("transfer(address,uint256)")!.selector}"]`)!;
+  expect(target.querySelector('[data-source-highlighted="true"]')).toBeTruthy();
+  expect(target.querySelector('[aria-label="Collapse transfer"]')).toBeTruthy();
+  expect(document.body.style.overflow).toBe("");
   expect(wallet.sendTransaction).not.toHaveBeenCalled();
 });

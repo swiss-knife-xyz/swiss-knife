@@ -39,6 +39,8 @@ import {
   SettingsIcon,
   WarningTwoIcon,
 } from "@chakra-ui/icons";
+import { FileCode2 } from "lucide-react";
+import type { FunctionLocation } from "@/components/SourceCodeExplorer/functionLocations";
 import { useWalletClient, useAccount } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { FunctionFragment, JsonFragment, JsonFragmentType } from "ethers";
@@ -96,6 +98,10 @@ interface ReadWriteFunctionProps {
   // Parent keys this form by prefill revision so child-local widget state resets.
   initialCall?: { args: unknown[]; value: string };
   abiMode?: "contract" | "implementation";
+  sourceLocation?: FunctionLocation;
+  onGoToSource?: (location: FunctionLocation) => void;
+  sourceUnavailableReason?: string;
+  sourceFocusRevision?: number;
 }
 
 const extractStringFromReactNode = (node: HighlightedContent): string => {
@@ -209,6 +215,10 @@ const ReadWriteFunctionComponent = ({
   readAllCollapsed,
   initialCall,
   abiMode = "contract",
+  sourceLocation,
+  onGoToSource,
+  sourceUnavailableReason,
+  sourceFocusRevision,
 }: ReadWriteFunctionProps) => {
   const [submittedSignature, setSubmittedSignature] = useState<{ context: string; signature: string }>();
   const selectorContext = `${chainId}:${address.toLowerCase()}:${originalFunc.selector ?? ""}`;
@@ -279,12 +289,13 @@ const ReadWriteFunctionComponent = ({
 
   const [fnSelector, setFnSelector] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
-    initialCall
+    initialCall || sourceFocusRevision !== undefined
       ? false
       : readAllCollapsed !== undefined
         ? readAllCollapsed
         : false
   );
+  const [isSourceHighlighted, setIsSourceHighlighted] = useState(false);
   const [payableETH, setPayableETH] = useState<string>(
     initialCall?.value ?? "0"
   );
@@ -908,6 +919,14 @@ const ReadWriteFunctionComponent = ({
   }, [readAllCollapsed, initialCall]);
 
   useEffect(() => {
+    if (sourceFocusRevision === undefined) { setIsSourceHighlighted(false); return; }
+    setIsCollapsed(false);
+    setIsSourceHighlighted(true);
+    const timer = setTimeout(() => setIsSourceHighlighted(false), 1500);
+    return () => clearTimeout(timer);
+  }, [sourceFocusRevision]);
+
+  useEffect(() => {
     // uncollapse if result fetched
     if (res) {
       setIsCollapsed(false);
@@ -1012,9 +1031,13 @@ const ReadWriteFunctionComponent = ({
       p={2}
       pb={!inputs || inputs.length === 0 ? undefined : 4}
       border="1px solid"
-      borderColor={isCustomAdded ? "rgba(236, 201, 75, 0.3)" : initialCall ? "blue.400" : "whiteAlpha.200"}
+      data-source-highlighted={isSourceHighlighted ? "true" : undefined}
+      transition={isSourceHighlighted ? "none" : "background-color 900ms ease-out, border-color 900ms ease-out, box-shadow 900ms ease-out"}
+      sx={{ "@media (prefers-reduced-motion: reduce)": { transition: "none" } }}
+      boxShadow={isSourceHighlighted ? "0 0 0 1px rgba(236, 201, 75, 0.35)" : undefined}
+      borderColor={isSourceHighlighted ? "yellow.400" : isCustomAdded ? "rgba(236, 201, 75, 0.3)" : initialCall ? "blue.400" : "whiteAlpha.200"}
       rounded="md"
-      bg={initialCall ? "whiteAlpha.50" : !inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
+      bg={isSourceHighlighted ? "rgba(236, 201, 75, 0.12)" : initialCall ? "whiteAlpha.50" : !inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
       {/* Show the function name above its selector and tools. */}
       <Box display="grid" gridTemplateColumns="1.5rem max-content minmax(0, 1fr) auto" columnGap={1.5} rowGap={0} alignItems="start" mb={1}>
@@ -1031,6 +1054,19 @@ const ReadWriteFunctionComponent = ({
               _focusVisible={{outline:"2px solid", outlineColor:"blue.400"}}
             >selector: {fnSelector}</Box>}
           <HStack spacing={0.5} align="center" flexWrap="nowrap" minH={6} aria-label="Function tools">
+            {onGoToSource && (
+              <Tooltip label={sourceLocation ? "Go to source" : sourceUnavailableReason} hasArrow>
+                <span>
+                  <IconButton
+                    aria-label={`Go to source for ${displayName}`}
+                    icon={<FileCode2 size={12} />}
+                    size="xs" h={6} minW={6} variant="ghost" color="text.secondary"
+                    isDisabled={!sourceLocation}
+                    onClick={() => sourceLocation && onGoToSource(sourceLocation)}
+                  />
+                </span>
+              </Tooltip>
+            )}
             <Tooltip label="Share function call" hasArrow>
               <IconButton
                 aria-label={`Share ${displayName} function call`}

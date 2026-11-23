@@ -19,6 +19,8 @@ export function registerSelectorLenses(
     onInstall?(name: string, source: "npm" | "github"): void;
     resolveSourceImport?(path: string): { id: string; name: string } | null;
     onOpenImport?(id: string): void;
+    getCallTargets?(): FunctionSelector[];
+    onCallFunction?(signature: string): void;
   }
 ) {
   type Provider = Parameters<
@@ -30,6 +32,15 @@ export function registerSelectorLenses(
   let sequence = 0;
   let selectors: FunctionSelector[] = [];
   let imports: SourceImport[] = [];
+  const callCommandId = `ethsh.callSourceFunction.${editor.getId()}`;
+  const callTargets = () => dependencies?.onCallFunction ? dependencies.getCallTargets?.() ?? [] : [];
+  const availableSelectors = () => {
+    const result = [...selectors];
+    for (const target of callTargets()) {
+      if (!result.some(item => item.signature === target.signature && item.line === target.line)) result.push(target);
+    }
+    return result;
+  };
   const installCommandId = `ethsh.installDependency.${editor.getId()}`;
   const missingImports = () => {
     const workspace = dependencies?.getWorkspace?.();
@@ -155,7 +166,7 @@ export function registerSelectorLenses(
   const command = monaco.editor.registerCommand(
     commandId,
     async (_, selector: string) => {
-      if (!selectors.some((item) => item.selector === selector)) return;
+      if (!availableSelectors().some((item) => item.selector === selector)) return;
       try {
         await navigator.clipboard.writeText(selector);
         if (disposed) return;
@@ -183,6 +194,11 @@ export function registerSelectorLenses(
           dependencies.onOpenImport?.(id);
       })
     : null;
+  const callCommand = dependencies?.onCallFunction
+    ? monaco.editor.registerCommand(callCommandId, (_, signature: string) => {
+        if (!disposed && callTargets().some(item => item.signature === signature)) dependencies.onCallFunction?.(signature);
+      })
+    : null;
   const definition: Provider = {
     onDidChange: changed.event,
     provideCodeLenses(model) {
@@ -190,7 +206,7 @@ export function registerSelectorLenses(
         lenses:
           model === editor.getModel()
             ? [
-                ...selectors.map((item) => ({
+                ...availableSelectors().map((item) => ({
                   range: new monaco.Range(
                     item.line,
                     item.column,
@@ -205,6 +221,15 @@ export function registerSelectorLenses(
                         : `$(copy)\u00a0 selector ${item.selector}`,
                     tooltip: `${item.signature} — Copy selector`,
                     arguments: [item.selector],
+                  },
+                })),
+                ...callTargets().map(item => ({
+                  range: new monaco.Range(item.line, item.column, item.line, item.column),
+                  command: {
+                    id: callCommandId,
+                    title: "$(arrow-down)\u00a0 Call function",
+                    tooltip: `${item.signature} — Open the function form`,
+                    arguments: [item.signature],
                   },
                 })),
                 ...resolvedImports().map((item) => ({
@@ -259,6 +284,7 @@ export function registerSelectorLenses(
     command.dispose();
     installCommand?.dispose();
     openCommand?.dispose();
+    callCommand?.dispose();
     changed.dispose();
     disposal.dispose();
   };
