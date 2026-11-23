@@ -20,6 +20,9 @@ importers:
       '@chakra-ui/react':
         specifier: ^2.10.3
         version: 2.10.3(@emotion/react@11.13.3(@types/react@19.2.9)(react@19.2.3))(@emotion/styled@11.13.0(@emotion/react@11.13.3(@types/react@19.2.9)(react@19.2.3))(@types/react@19.2.9)(react@19.2.3))(@types/react@19.2.9)(framer-motion@12.29.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@daypicker/react':
+        specifier: ^10.0.2
+        version: 10.0.2(@types/react@19.2.9)(react@19.2.3)
       '@emotion/react':
         specifier: ^11.13.3
         version: 11.13.3(@types/react@19.2.9)(react@19.2.3)
@@ -305,6 +308,30 @@ importers:
         version: 3.2.4(@types/debug@4.1.13)(@types/node@20.2.5)(jiti@2.3.3)(jsdom@26.1.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(tsx@4.19.4)
 
 packages:
+
+  '@date-fns/tz@1.5.0':
+    resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
+
+  '@daypicker/react@10.0.2':
+    resolution: {integrity: sha512-Z/gvGXnc/xjRr5Z6l9OhIey00C7kwbIyJ85Pff9B9EWDkjTlkTQztB3qeylmGJDQ9xmxRJUV1W+02rskqarUBw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/react': '>=16.8.0'
+      react: '>=16.8.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
+  react-day-picker@10.0.2:
+    resolution: {integrity: sha512-QetiKtZWE9Uaw/pM/SYNv6WPYOTRnSJ2puL0GgwkmUFMIwiY0dtjH1W4B7DOVXVNQM0ZOClGpH/heOfBSzWeiA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/react': '>=16.8.0'
+      react: '>=16.8.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
 
   tar@7.5.23:
     resolution: {integrity: sha512-lkukzdoGngZHJZXxW4S/E4Fp9ghTDlyZXrQGRNoJ/LXvDKcXUTq2sg5yQe74po7Voea6n/IN09+wE/QvJMiifA==}
@@ -8511,6 +8538,24 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 snapshots:
+
+  '@date-fns/tz@1.5.0': {}
+
+  '@daypicker/react@10.0.2(@types/react@19.2.9)(react@19.2.3)':
+    dependencies:
+      react: 19.2.3
+      react-day-picker: 10.0.2(@types/react@19.2.9)(react@19.2.3)
+    optionalDependencies:
+      '@types/react': 19.2.9
+
+  react-day-picker@10.0.2(@types/react@19.2.9)(react@19.2.3):
+    dependencies:
+      '@date-fns/tz': 1.5.0
+      date-fns: 4.1.0
+      react: 19.2.3
+    optionalDependencies:
+      '@types/react': 19.2.9
+
 
   tar@7.5.23:
     dependencies:

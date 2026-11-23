@@ -1,0 +1,105 @@
+.picker :global(.rdp-root) {
+  --rdp-accent-color: var(--chakra-colors-primary-400);
+  --rdp-accent-background-color: var(--chakra-colors-whiteAlpha-100);
+  --rdp-day-height: 36px;
+  --rdp-day-width: 40px;
+  --rdp-day_button-height: 34px;
+  --rdp-day_button-width: 34px;
+  --rdp-day_button-border-radius: var(--chakra-radii-md);
+  --rdp-day_button-border: 1px solid transparent;
+  --rdp-selected-border: 1px solid var(--chakra-colors-primary-400);
+  --rdp-nav_button-height: 28px;
+  --rdp-nav_button-width: 28px;
+  --rdp-nav-height: 36px;
+  --rdp-today-color: var(--chakra-colors-primary-300);
+  --rdp-outside-opacity: 0.35;
+  --rdp-disabled-opacity: 0.25;
+  --rdp-weekday-opacity: 1;
+  color: var(--chakra-colors-text-primary);
+  font-size: var(--chakra-fontSizes-sm);
+}
+
+.picker :global(.rdp-months),
+.picker :global(.rdp-month) {
+  width: 100%;
+}
+.picker :global(.rdp-month_grid) {
+  width: 100%;
+  table-layout: fixed;
+}
+.picker :global(.rdp-weekday) {
+  font-size: var(--chakra-fontSizes-xs);
+  font-weight: 400;
+  color: var(--chakra-colors-text-tertiary);
+  padding-block: 8px;
+}
+.picker :global(.rdp-day) {
+  text-align: center;
+}
+.picker :global(.rdp-day_button) {
+  margin-inline: auto;
+  font-size: var(--chakra-fontSizes-sm);
+  font-weight: 400;
+  transition:
+    background-color 120ms ease-out,
+    border-color 120ms ease-out;
+}
+.picker :global(.rdp-day_button):hover:not(:disabled) {
+  background: var(--chakra-colors-bg-muted);
+}
+.picker :global(.rdp-selected) :global(.rdp-day_button) {
+  background: var(--chakra-colors-primary-500);
+  color: white;
+  font-weight: 500;
+}
+.picker :global(.rdp-selected) :global(.rdp-day_button):hover {
+  background: var(--chakra-colors-primary-600);
+}
+.picker
+  :global(.rdp-today):not(:global(.rdp-selected))
+  :global(.rdp-day_button) {
+  border-color: var(--chakra-colors-border-strong);
+}
+.picker :global(.rdp-button_previous),
+.picker :global(.rdp-button_next) {
+  border-radius: var(--chakra-radii-md);
+  color: var(--chakra-colors-text-secondary);
+}
+.picker :global(.rdp-button_previous):hover:not(:disabled),
+.picker :global(.rdp-button_next):hover:not(:disabled) {
+  background: var(--chakra-colors-bg-muted);
+}
+.picker :global(.rdp-dropdowns) {
+  font-size: var(--chakra-fontSizes-sm);
+  font-weight: 500;
+  gap: 4px;
+}
+.picker :global(.rdp-dropdown_root) {
+  border-radius: var(--chakra-radii-md);
+  padding: 4px;
+}
+.picker :global(.rdp-dropdown_root):hover {
+  background: var(--chakra-colors-bg-muted);
+}
+.picker :global(.rdp-dropdown) {
+  color-scheme: dark;
+  background: var(--chakra-colors-bg-muted);
+  color: var(--chakra-colors-text-primary);
+}
+.picker :global(.rdp-chevron) {
+  width: 14px;
+  height: 14px;
+  color: var(--chakra-colors-text-secondary);
+  fill: none;
+}
+.picker :global(.rdp-day_button):focus-visible,
+.picker :global(.rdp-button_previous):focus-visible,
+.picker :global(.rdp-button_next):focus-visible {
+  outline: 2px solid var(--chakra-colors-primary-400);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .picker :global(.rdp-day_button) {
+    transition: none;
+  }
+}

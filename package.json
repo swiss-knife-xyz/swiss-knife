@@ -33,6 +33,7 @@
     "@chakra-ui/icons": "^2.2.4",
     "@chakra-ui/next-js": "^2.4.2",
     "@chakra-ui/react": "^2.10.3",
+    "@daypicker/react": "^10.0.2",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@ensdomains/content-hash": "^3.0.0",

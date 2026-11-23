@@ -8,6 +8,9 @@ export default defineConfig({
     environment: "jsdom",
     include: [
       "components/fnParams/contractPrefill.spec.tsx",
+      "components/fnParams/historicalQuery.spec.tsx",
+      "components/fnParams/historicalDateTimePicker.spec.tsx",
+      "lib/historicalQuery.spec.ts",
       "components/fnParams/contractForm.spec.tsx",
       "components/fnParams/contractWidgets.spec.tsx",
       "app/explorer/contractCallFlow.spec.tsx",

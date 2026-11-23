@@ -24,6 +24,7 @@ const WriteButtonComponent = ({
   callAsReadFunction,
   simulateOnTenderly,
   encodeCalldata,
+  onHistoricalQuery,
   isDisabled,
   loading,
   setWriteButtonType,
@@ -38,14 +39,16 @@ const WriteButtonComponent = ({
   callAsReadFunction: () => void;
   simulateOnTenderly: () => void;
   encodeCalldata?: () => void;
+  onHistoricalQuery?: () => void;
   isDisabled: boolean;
   loading: boolean;
   setWriteButtonType: (writeButtonType: WriteButtonType) => void;
   setIsError: (isError: boolean) => void;
 }) => {
+  const historical = writeButtonType === WriteButtonType.CallAtBlock || writeButtonType === WriteButtonType.CallAtTime;
   const showWrongNetwork =
     (!userAddress && writeButtonType === WriteButtonType.Write) ||
-    (writeButtonType !== WriteButtonType.SimulateOnTenderly &&
+    (!historical && writeButtonType !== WriteButtonType.SimulateOnTenderly &&
       writeButtonType !== WriteButtonType.EncodeCalldata &&
       chain &&
       chain.id !== chainId);
@@ -65,7 +68,7 @@ const WriteButtonComponent = ({
           px={4}
           h={{ base: 10, md: 8 }}
           onClick={
-            writeButtonType === WriteButtonType.Write
+            historical ? onHistoricalQuery : writeButtonType === WriteButtonType.Write
               ? writeFunction
               : writeButtonType === WriteButtonType.CallAsViewFn
               ? () => callAsReadFunction()
@@ -76,14 +79,15 @@ const WriteButtonComponent = ({
           isDisabled={isDisabled}
           isLoading={loading}
           size={"sm"}
-          title={"write"}
+          title={historical ? writeButtonType : "write"}
+          aria-label={historical ? writeButtonType : undefined}
           variant="ghost"
           borderLeftRadius="lg"
           borderRightRadius={0}
           color={!isError ? "text.primary" : "red.300"}
           _hover={{ bg: "whiteAlpha.100" }}
         >
-          {writeButtonType}
+          {historical ? (writeButtonType === WriteButtonType.CallAtBlock ? "Call at Block" : "Call at Time") : writeButtonType}
         </Button>
       )}
       <Menu isLazy>
@@ -156,6 +160,12 @@ const WriteButtonComponent = ({
               Encode Calldata
             </MenuItem>
           )}
+          {onHistoricalQuery && [WriteButtonType.CallAtBlock, WriteButtonType.CallAtTime].map(option => (
+            <MenuItem key={option} color="text.primary" bg="transparent" _hover={{ bg: "bg.emphasis" }} onClick={() => {
+              setWriteButtonType(option);
+              setIsError(false);
+            }}>{option}</MenuItem>
+          ))}
         </MenuList>
       </Menu>
     </HStack>

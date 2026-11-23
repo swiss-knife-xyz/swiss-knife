@@ -506,3 +506,49 @@ it("does not rename the function when a Sourcify submission is not confirmed", a
   expect(screen.getByRole("button", { name: "Toggle selector: 0x40c10f19", hidden: true })).toBeTruthy();
   expect(screen.queryByText("arg0", { exact: true })).toBeNull();
 });
+
+it.each(["uint256", "int256"])("preserves the %s output unit across latest, block, time and subsequent reads", async outputType => {
+  client.readContract.mockResolvedValueOnce(2000000n).mockResolvedValueOnce(3000000n).mockResolvedValueOnce(4000000n).mockResolvedValueOnce(5000000n);
+  const getBlock = vi.fn(async ({ blockTag, blockNumber }: any) => {
+    const number = blockTag === "latest" ? 1000n : blockNumber;
+    return { number, timestamp: 1700000000n + number * 12n };
+  });
+  Object.assign(client, { getBlock });
+  show({ type: "function", name: "supply", stateMutability: "view", inputs: [], outputs: [{ type: outputType }] }, "read", { args: [], value: "0" });
+  fireEvent.click(screen.getByRole("button", { name: "Read" }));
+  await screen.findByDisplayValue("2000000");
+  fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+  fireEvent.click(await screen.findByRole("option", { name: "10^6" }));
+  await screen.findByDisplayValue("2");
+  fireEvent.click(screen.getByRole("button", { name: "Read options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Query at Block" }));
+  const blockSettings = await screen.findByRole("dialog");
+  expect(within(blockSettings).getByText("Enter Block Number")).toBeTruthy();
+  expect(within(blockSettings).queryByText("Block number", { selector: "label" })).toBeNull();
+  expect(blockSettings.textContent).not.toContain("Uses your configured");
+  fireEvent.change(within(blockSettings).getByLabelText("Block number"), { target: { value: "100" } });
+  fireEvent.click(within(blockSettings).getByRole("button", { name: "Set" }));
+  fireEvent.click(screen.getByRole("button", { name: "Query at Block" }));
+  await screen.findByDisplayValue("3");
+  expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Read options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Query at Time" }));
+  const timeSettings = await screen.findByRole("dialog");
+  fireEvent.change(await within(timeSettings).findByRole("combobox", { name: "Year" }), { target: { value: "2023" } });
+  fireEvent.change(within(timeSettings).getByRole("combobox", { name: "Month" }), { target: { value: "10" } });
+  fireEvent.click(await within(timeSettings).findByRole("button", { name: "14 November 2023" }));
+  for (const [label, value] of [["Hours (UTC)", "10"], ["Minutes", "33"], ["Seconds", "25"]]) {
+    fireEvent.change(within(timeSettings).getByLabelText(label), { target: { value } });
+  }
+  fireEvent.change(within(timeSettings).getByRole("combobox", { name: "AM/PM" }), { target: { value: "PM" } });
+  fireEvent.click(within(timeSettings).getByRole("button", { name: "Set" }));
+  fireEvent.click(screen.getByRole("button", { name: "Query at Time" }));
+  await screen.findByDisplayValue("4");
+  expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Read options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Read" }));
+  expect(screen.queryByRole("textbox")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Read" }));
+  await screen.findByDisplayValue("5");
+  expect(screen.getByText("10^6", { exact: true })).toBeTruthy();
+});

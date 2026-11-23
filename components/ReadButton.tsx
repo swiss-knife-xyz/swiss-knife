@@ -10,13 +10,14 @@ import {
 } from "@chakra-ui/react";
 import { ChevronDownIcon } from "@chakra-ui/icons";
 
-export type ReadAction = "Read" | "Encode Calldata";
+export type ReadAction = "Read" | "Encode Calldata" | "Query at Block" | "Query at Time";
 
 export function ReadButton({
   action,
   onActionChange,
   onRead,
   onEncode,
+  onHistoricalQuery,
   isDisabled,
   isLoading,
   isError,
@@ -25,6 +26,7 @@ export function ReadButton({
   onActionChange: (action: ReadAction) => void;
   onRead: () => void;
   onEncode: () => void;
+  onHistoricalQuery: () => void;
   isDisabled: boolean;
   isLoading: boolean;
   isError: boolean;
@@ -49,9 +51,9 @@ export function ReadButton({
         color={isError ? "red.300" : "text.primary"}
         _hover={{ bg: "whiteAlpha.100" }}
         isDisabled={isDisabled}
-        isLoading={action === "Read" && isLoading}
-        onClick={action === "Read" ? onRead : onEncode}
-        title={action === "Read" ? "Read function" : "Encode calldata"}
+        isLoading={action !== "Encode Calldata" && isLoading}
+        onClick={action === "Read" ? onRead : action === "Encode Calldata" ? onEncode : onHistoricalQuery}
+        title={action === "Read" ? "Read function" : action}
       >
         {action}
       </Button>
@@ -81,7 +83,7 @@ export function ReadButton({
             py={1}
             minW="11rem"
           >
-            {(["Read", "Encode Calldata"] as const).map((option) => (
+            {(["Read", "Encode Calldata", "Query at Block", "Query at Time"] as const).map((option) => (
               <MenuItem
                 key={option}
                 bg="transparent"

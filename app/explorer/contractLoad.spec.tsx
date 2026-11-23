@@ -401,3 +401,19 @@ it("keeps expanded ABI/source above the function skeleton and in place after loa
   const readSection = screen.getByText(/Read.*Contract/);
   expect(panel.compareDocumentPosition(readSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
+
+
+it("keeps known implementation details above the function skeleton while its ABI loads", async () => {
+  const delegate = "0x0000000000000000000000000000000000000002";
+  getClient.mockReturnValue({ getCode: vi.fn(async () => `0xef0100${delegate.slice(2)}`) });
+  let finish!: (value: any) => void;
+  fetchAbi.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  render(page());
+  const banner = (await screen.findByText("EIP-7702 delegated implementation:")).closest('[role="alert"]')!;
+  const skeleton = screen.getByRole("status", { name: "Loading contract functions" });
+  expect(banner.compareDocumentPosition(skeleton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.queryByRole("tabpanel", { name: "Read" })).toBeNull();
+  await act(async () => finish({ abi: [], name: "Delegate" }));
+  await waitFor(() => expect(screen.queryByRole("status", { name: "Loading contract functions" })).toBeNull());
+  expect(screen.getByText("EIP-7702 delegated implementation:")).toBeTruthy();
+});

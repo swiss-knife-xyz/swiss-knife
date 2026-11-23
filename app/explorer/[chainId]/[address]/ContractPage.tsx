@@ -1377,9 +1377,8 @@ const LoadedContractPage = ({
     return (
         <Box w="full" maxW="70rem" mx="auto">
 
-          {abi && <>
-          {/* Proxy and inferred ABI details */}
-          <VStack spacing={3} align="stretch" mb={implementationAddress || isAbiDecoded ? 4 : 0}>
+          {/* Proxy and inferred ABI details stay above loading and loaded functions. */}
+          {(implementationAddress || isAbiDecoded) && <VStack spacing={3} align="stretch" mb={implementationAddress || isAbiDecoded ? 4 : 0}>
             {implementationAddress && (
               <Alert
                 status="info"
@@ -1416,6 +1415,7 @@ const LoadedContractPage = ({
                 {!isDelegated && <HStack spacing={2} gridColumn={{ base: 2, lg: "auto" }} minW={0} flexWrap="wrap">
                   <Text color="text.primary" fontSize="sm">Interact as</Text>
                   <DarkSelect
+                    isDisabled={isFetchingAbi}
                     boxProps={{
                       minW: { base: 0, sm: "120px" },
                       flex: { base: 1, sm: "initial" },
@@ -1451,8 +1451,64 @@ const LoadedContractPage = ({
                 </Text>
               </Alert>
             )}
-          </VStack>
+          </VStack>}
 
+        {isFetchingAbi && (
+          <Box role="status" aria-label="Loading contract functions" w="full" maxW="70rem" mt={implementationAddress || isAbiDecoded ? 0 : 4}>
+            {/* Reserve banner space only until contract details are known. */}
+            {!implementationAddress && !isAbiDecoded && (
+              <VStack spacing={3} align="stretch" mb={4}>
+                <Skeleton height="48px" borderRadius="lg" />
+              </VStack>
+            )}
+
+            {/* Read/Write sections skeleton */}
+            <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "repeat(2, minmax(0, 1fr))" }} gap={6} w="full" minW={0}>
+              {/* Read section skeleton */}
+              <Box>
+                <Box p={3} bg="bg.muted" rounded="lg" mb={3} border="1px solid" borderColor="border.default">
+                  <HStack justify="space-between" mb={3}>
+                    <Skeleton height="20px" width="100px" />
+                    <Skeleton height="32px" width="100px" borderRadius="md" />
+                  </HStack>
+                  <Skeleton height="40px" width="70%" mx="auto" borderRadius="md" />
+                </Box>
+                <VStack spacing={3}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <Box key={i} w="full" p={3} bg="bg.subtle" rounded="lg" border="1px solid" borderColor="border.default">
+                      <HStack justify="space-between">
+                        <Skeleton height="18px" width={`${80 + i * 20}px`} />
+                        <Skeleton height="24px" width="24px" borderRadius="md" />
+                      </HStack>
+                    </Box>
+                  ))}
+                </VStack>
+              </Box>
+
+              {/* Write section skeleton */}
+              <Box>
+                <Box p={3} bg="bg.muted" rounded="lg" mb={3} border="1px solid" borderColor="border.default">
+                  <HStack justify="space-between" mb={3}>
+                    <Skeleton height="20px" width="100px" />
+                    <Skeleton height="32px" width="100px" borderRadius="md" />
+                  </HStack>
+                  <Skeleton height="40px" width="70%" mx="auto" borderRadius="md" />
+                </Box>
+                <VStack spacing={3}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <Box key={i} w="full" p={3} bg="bg.subtle" rounded="lg" border="1px solid" borderColor="border.default">
+                      <HStack justify="space-between">
+                        <Skeleton height="18px" width={`${100 + i * 15}px`} />
+                        <Skeleton height="24px" width="24px" borderRadius="md" />
+                      </HStack>
+                    </Box>
+                  ))}
+                </VStack>
+              </Box>
+            </Grid>
+          </Box>
+        )}
+          {abi && !isFetchingAbi && <>
           <HStack
             role="tablist"
             aria-label="Contract functions"
@@ -1832,59 +1888,6 @@ const LoadedContractPage = ({
           />
 
         </Box>
-        {isFetchingAbi && (
-          <Box role="status" aria-label="Loading contract functions" w="full" maxW="70rem" mt={4}>
-            {/* Alerts skeleton */}
-            <VStack spacing={3} align="stretch" mb={4}>
-              <Skeleton height="48px" borderRadius="lg" />
-            </VStack>
-
-            {/* Read/Write sections skeleton */}
-            <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "repeat(2, minmax(0, 1fr))" }} gap={6} w="full" minW={0}>
-              {/* Read section skeleton */}
-              <Box>
-                <Box p={3} bg="bg.muted" rounded="lg" mb={3} border="1px solid" borderColor="border.default">
-                  <HStack justify="space-between" mb={3}>
-                    <Skeleton height="20px" width="100px" />
-                    <Skeleton height="32px" width="100px" borderRadius="md" />
-                  </HStack>
-                  <Skeleton height="40px" width="70%" mx="auto" borderRadius="md" />
-                </Box>
-                <VStack spacing={3}>
-                  {[1, 2, 3, 4].map((i) => (
-                    <Box key={i} w="full" p={3} bg="bg.subtle" rounded="lg" border="1px solid" borderColor="border.default">
-                      <HStack justify="space-between">
-                        <Skeleton height="18px" width={`${80 + i * 20}px`} />
-                        <Skeleton height="24px" width="24px" borderRadius="md" />
-                      </HStack>
-                    </Box>
-                  ))}
-                </VStack>
-              </Box>
-
-              {/* Write section skeleton */}
-              <Box>
-                <Box p={3} bg="bg.muted" rounded="lg" mb={3} border="1px solid" borderColor="border.default">
-                  <HStack justify="space-between" mb={3}>
-                    <Skeleton height="20px" width="100px" />
-                    <Skeleton height="32px" width="100px" borderRadius="md" />
-                  </HStack>
-                  <Skeleton height="40px" width="70%" mx="auto" borderRadius="md" />
-                </Box>
-                <VStack spacing={3}>
-                  {[1, 2, 3, 4].map((i) => (
-                    <Box key={i} w="full" p={3} bg="bg.subtle" rounded="lg" border="1px solid" borderColor="border.default">
-                      <HStack justify="space-between">
-                        <Skeleton height="18px" width={`${100 + i * 15}px`} />
-                        <Skeleton height="24px" width="24px" borderRadius="md" />
-                      </HStack>
-                    </Box>
-                  ))}
-                </VStack>
-              </Box>
-            </Grid>
-          </Box>
-        )}
         {unableToFetchAbi && !abi?.isCustom && (
           <Box
             mt={4}

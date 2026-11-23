@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import React, {
   useEffect,
   useState,
@@ -74,6 +75,9 @@ import { getPath } from "@/utils";
 import subdomains from "@/subdomains";
 import { erc165Interfaces } from "@/data/erc165Interfaces";
 import { createContractCallLink, contractFunctionSignature } from "@/lib/contractCall";
+import { formatHistoricalTimestamp, type HistoricalQueryResult } from "@/lib/historicalQuery";
+
+const HistoricalQuery = dynamic(() => import("./HistoricalQuery"), { ssr: false });
 
 const interfacePresetOptions = erc165Interfaces.map(({ label, id }) => ({
   label: label.replace(" (optional)", ""),
@@ -197,6 +201,8 @@ export enum WriteButtonType {
   CallAsViewFn = "Call as View Fn",
   SimulateOnTenderly = "Simulate on Tenderly",
   EncodeCalldata = "Encode Calldata",
+  CallAtBlock = "Call as View Fn at Block",
+  CallAtTime = "Call as View Fn at Time",
 }
 
 /**
@@ -313,6 +319,14 @@ const ReadWriteFunctionComponent = ({
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
     WriteButtonType.Write
   );
+  const [historicalOpen, setHistoricalOpen] = useState(false);
+  const [historicalLoading, setHistoricalLoading] = useState(false);
+  const historicalActionRef = useRef<(() => void) | null>(null);
+  const [historicalResult, setHistoricalResult] = useState<HistoricalQueryResult>();
+  const historicalMode = type === "read"
+    ? readAction === "Query at Block" ? "block" : readAction === "Query at Time" ? "time" : null
+    : writeButtonType === WriteButtonType.CallAtBlock ? "block" : writeButtonType === WriteButtonType.CallAtTime ? "time" : null;
+  const queryContext = JSON.stringify([chainId, address.toLowerCase(), type, functionName, inputs, _outputs, inputsState, payableETH, abiMode, isAbiDecoded, __func.selector], (_, value) => typeof value === "bigint" ? value.toString() : value);
   const [settingsIsOpen, setSettingsIsOpen] = useState<boolean>(false);
   const [tenderlyForkId, setTenderlyForkId] = useState<string>(
     tenderlyForkIdCache ?? ""
@@ -371,8 +385,38 @@ const ReadWriteFunctionComponent = ({
     return inputs?.map((input, i) => convertBooleans(inputsState[i], input));
   }, [inputs, inputsState]);
 
+  const latestReadAllowed = useRef(true);
+  latestReadAllowed.current = type === "read" && readAction === "Read";
+  const readRequestId = useRef(0);
+  const readContext = useRef({ key: "", client });
+  const readContextKey = `${queryContext}:${readAction}:${writeButtonType}`;
+  if (readContext.current.key !== readContextKey || readContext.current.client !== client) {
+    readContext.current = { key: readContextKey, client };
+  }
+  useEffect(() => () => { ++readRequestId.current; }, []);
+
+  const executeHistoricalQuery = useCallback(async (blockNumber: bigint) => {
+    const abi = [_func] as unknown as Abi;
+    const args = prepareArgs();
+    if (isAbiDecoded) {
+      const result = await client.call({
+        to: address as Hex,
+        data: encodeFunctionData({ abi, functionName, args }),
+        value: BigInt(payableETH),
+        blockNumber,
+      });
+      return result.data ?? "0x";
+    }
+    if (type === "read") return client.readContract({ address: address as Hex, abi, functionName, args, blockNumber });
+    const result = await client.simulateContract({ address: address as Hex, abi, functionName, args, value: BigInt(payableETH), blockNumber });
+    return result.result;
+  }, [client, address, _func, prepareArgs, encodeFunctionData, functionName, isAbiDecoded, payableETH, type]);
+
   const readFunction = useCallback(async () => {
     if (inputsUnknown) return;
+    const id = ++readRequestId.current;
+    const context = readContext.current;
+    const isCurrent = () => id === readRequestId.current && context === readContext.current;
     if (isError) {
       setIsError(false);
     }
@@ -388,6 +432,7 @@ const ReadWriteFunctionComponent = ({
       try {
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           try {
+            if (!isCurrent()) return;
             if (!isAbiDecoded) {
               const result = await client.readContract({
                 address: address as Hex,
@@ -395,7 +440,7 @@ const ReadWriteFunctionComponent = ({
                 functionName,
                 args,
               });
-              setRes(result);
+              if (isCurrent()) setRes(result);
             } else {
               const result = await client.call({
                 to: address as Hex,
@@ -414,11 +459,12 @@ const ReadWriteFunctionComponent = ({
                 outputs,
                 isAbiDecoded,
               });
-              setRes(result.data);
+              if (isCurrent()) setRes(result.data);
             }
             // Success - break out of retry loop
             break;
           } catch (e: any) {
+            if (!isCurrent()) return;
             // Check if this is a 429 rate limit error and we can retry
             const is429 =
               e?.cause?.message?.includes("429") ||
@@ -455,10 +501,10 @@ const ReadWriteFunctionComponent = ({
           }
         }
       } finally {
-        setLoading(false);
+        if (isCurrent()) setLoading(false);
       }
     }
-  }, [isError, functionName, client, address, _func, inputs, inputsState]);
+  }, [isError, functionName, client, address, _func, prepareArgs, encodeFunctionData, inputsUnknown, isAbiDecoded, payableETH]);
 
   const [writePreview, setWritePreview] = useState<{
     key: string;
@@ -487,6 +533,11 @@ const ReadWriteFunctionComponent = ({
   writeContextRef.current = writeContextKey;
   const simulationId = useRef(0);
   const writeInFlight = useRef(false);
+  useEffect(() => {
+    setRes(null);
+    setIsError(false);
+    if (!writeInFlight.current) setLoading(false);
+  }, [readContextKey, client]);
   const cancelWritePreview = useCallback(() => {
     simulationId.current++;
     setWritePreview(null);
@@ -618,6 +669,9 @@ const ReadWriteFunctionComponent = ({
   const callAsReadFunction = useCallback(
     async (bypassSettingError: boolean = false) => {
       if (inputsUnknown) return;
+      const id = ++readRequestId.current;
+      const context = readContext.current;
+      const isCurrent = () => id === readRequestId.current && context === readContext.current;
       if (isError) {
         setIsError(false);
       }
@@ -639,7 +693,7 @@ const ReadWriteFunctionComponent = ({
               args,
               value: BigInt(payableETH),
             });
-            setRes(result.result);
+            if (isCurrent()) setRes(result.result);
           } else {
             const result = await client.call({
               to: address as Hex,
@@ -650,9 +704,10 @@ const ReadWriteFunctionComponent = ({
               }),
               value: BigInt(payableETH),
             });
-            setRes(result.data);
+            if (isCurrent()) setRes(result.data);
           }
         } catch (e: any) {
+          if (!isCurrent()) return;
           console.error(e);
           setRes(null);
           if (!bypassSettingError) {
@@ -674,7 +729,7 @@ const ReadWriteFunctionComponent = ({
             }
           }
         } finally {
-          setLoading(false);
+          if (isCurrent()) setLoading(false);
         }
       }
     },
@@ -688,6 +743,9 @@ const ReadWriteFunctionComponent = ({
       inputsState,
       payableETH,
       isAbiDecoded,
+      inputsUnknown,
+      prepareArgs,
+      encodeFunctionData,
     ]
   );
 
@@ -881,11 +939,12 @@ const ReadWriteFunctionComponent = ({
 
   useEffect(() => {
     if (enterPressed) {
-      if (type === "read" && readAction === "Encode Calldata") encodeCalldataFn();
+      if (historicalMode) { setHistoricalOpen(true); setIsCollapsed(false); }
+      else if (type === "read" && readAction === "Encode Calldata") encodeCalldataFn();
       else readFunction();
       setEnterPressed(false);
     }
-  }, [inputsState, enterPressed, readFunction, type, readAction, encodeCalldataFn]);
+  }, [inputsState, enterPressed, readFunction, type, readAction, encodeCalldataFn, historicalMode]);
 
   useEffect(() => {
     // if there are no inputs, then auto fetch the value
@@ -898,7 +957,7 @@ const ReadWriteFunctionComponent = ({
     ) {
       const delay = index * 150;
       const timer = setTimeout(() => {
-        readFunction();
+        if (latestReadAllowed.current) void readFunction();
       }, delay);
       return () => clearTimeout(timer);
     }
@@ -973,8 +1032,24 @@ const ReadWriteFunctionComponent = ({
     ));
   };
 
-  const renderRes = () => {
-    if (isAbiDecoded ? res !== null && res !== undefined : outputs) {
+  const currentHistoricalResult = historicalMode && historicalResult?.mode === historicalMode &&
+    historicalResult.contextKey === queryContext && historicalResult.client === client ? historicalResult : undefined;
+  const resultValue = historicalMode ? currentHistoricalResult?.data : res;
+  const hasResultValue = historicalMode ? Boolean(currentHistoricalResult) : res !== null && res !== undefined;
+  const outputSchema = JSON.stringify([functionName, inputs, _outputs, isAbiDecoded]);
+  const lastOutput = useRef<{ schema: string; value: any }>({ schema: outputSchema, value: undefined });
+  if (lastOutput.current.schema !== outputSchema) lastOutput.current = { schema: outputSchema, value: undefined };
+  if (hasResultValue) lastOutput.current.value = resultValue;
+  const outputVisible = historicalMode ? Boolean(currentHistoricalResult)
+    : inputs && inputs.length > 0
+      ? (type === "read" || writeButtonType === WriteButtonType.CallAsViewFn) && (loading || hasResultValue)
+      : !isError;
+  const outputPending = !historicalMode && outputs.length > 0 && (loading || !hasResultValue);
+  const outputMounted = useRef(false);
+  if (outputVisible) outputMounted.current = true;
+
+  const renderRes = (value: any = res, isLoading = loading) => {
+    if (isAbiDecoded ? value !== null && value !== undefined : outputs) {
       return (
         <Box>
           {outputs.map((output, i) => (
@@ -1003,10 +1078,10 @@ const ReadWriteFunctionComponent = ({
                   name: outputs.length > 1 ? output.name : "",
                   value:
                     outputs.length > 1
-                      ? res !== null && res !== undefined
-                        ? res[i]
+                      ? value !== null && value !== undefined
+                        ? value[i]
                         : null
-                      : res,
+                      : value,
                 })}
             </Box>
           ))}
@@ -1014,7 +1089,7 @@ const ReadWriteFunctionComponent = ({
       );
     } else if (
       isAbiDecoded &&
-      loading &&
+      isLoading &&
       writeButtonType === WriteButtonType.CallAsViewFn
     ) {
       return <Skeleton mt={2} h={"5rem"} rounded={"lg"} />;
@@ -1140,10 +1215,14 @@ const ReadWriteFunctionComponent = ({
           <HStack gridColumn={4} gridRow="1 / 3" justify="flex-end" alignSelf="start" spacing={1.5} flexWrap="nowrap" align="start">
           {type === "read" && <ReadButton
             action={readAction}
-            onActionChange={action => { setReadAction(action); setIsError(false); setEncodingError(""); }}
+            onActionChange={action => {
+              setReadAction(action); setIsError(false); setEncodingError(""); setRes(null);
+              if (action === "Query at Block" || action === "Query at Time") { setHistoricalOpen(true); setIsCollapsed(false); }
+            }}
             onRead={readFunction}
             onEncode={encodeCalldataFn}
-            isLoading={loading}
+            onHistoricalQuery={() => { setIsCollapsed(false); if (historicalActionRef.current) historicalActionRef.current(); else setHistoricalOpen(true); }}
+            isLoading={historicalMode ? historicalLoading : loading}
             isError={isError}
             isDisabled={inputsUnknown || Boolean(inputs?.some((_, i) => functionIsDisabled[i] === true))}
           />}
@@ -1158,17 +1237,35 @@ const ReadWriteFunctionComponent = ({
             callAsReadFunction={callAsReadFunction}
             simulateOnTenderly={simulateOnTenderly}
             encodeCalldata={encodeCalldataFn}
+            onHistoricalQuery={() => { setIsCollapsed(false); if (historicalActionRef.current) historicalActionRef.current(); else setHistoricalOpen(true); }}
             isDisabled={
               inputsUnknown ||
               (inputs &&
                 inputs.some((_, i) => functionIsDisabled[i] === true)) ||
               payableETHIsDisabled
             }
-            loading={loading}
-            setWriteButtonType={setWriteButtonType}
+            loading={historicalMode ? historicalLoading : loading}
+            setWriteButtonType={action => {
+              setWriteButtonType(action); setRes(null);
+              if (action === WriteButtonType.CallAtBlock || action === WriteButtonType.CallAtTime) { setHistoricalOpen(true); setIsCollapsed(false); }
+            }}
             setIsError={setIsError}
           />
         )}
+        {historicalMode && <HistoricalQuery
+          mode={historicalMode}
+          isOpen={historicalOpen}
+          onClose={() => setHistoricalOpen(false)}
+          onOpen={() => setHistoricalOpen(true)}
+          actionRef={historicalActionRef}
+          onLoadingChange={setHistoricalLoading}
+          onResultChange={setHistoricalResult}
+          client={client}
+          chainId={chainId}
+          contextKey={queryContext}
+          isDisabled={inputsUnknown || Boolean(inputs?.some((_, i) => functionIsDisabled[i] === true)) || (type === "write" && payableETHIsDisabled)}
+          execute={executeHistoricalQuery}
+        />}
         {type === "write" &&
           writeButtonType === WriteButtonType.SimulateOnTenderly && (
             <Popover
@@ -1352,7 +1449,7 @@ const ReadWriteFunctionComponent = ({
           {txIsTenderlySimulation && confirmedTxHash && <Text fontSize="xs" mt={1}>(view on your Tenderly dashboard)</Text>}
         </Box>
       )}
-      {isError && errorMsg && type === "write" && (
+      {!historicalMode && isError && errorMsg && type === "write" && (
         <Center mt={2} p={4} color="red.300" maxW="40rem">
           {errorMsg}
         </Center>
@@ -1409,26 +1506,28 @@ const ReadWriteFunctionComponent = ({
             ))}
           </Box>
         )}
-        {/* Output fields for Read or Call as View Fn */}
-        <Box mt={2} ml={{ base: 0, md: 4 }} mb={inputs && inputs.length > 0 ? 0 : 4}>
-          {inputs && inputs.length > 0
-            ? // Show skeleton (res = null) if loading
-              (type === "read" ||
-                writeButtonType === WriteButtonType.CallAsViewFn) &&
-              (loading || (!loading && res !== null && res !== undefined)) && (
-                <Box pt={3} borderTopWidth="1px" borderColor="whiteAlpha.100">
-                  {!(outputs.length === 1 && outputs[0].type === "tuple") && (
-                    <Text fontSize="xs" color="whiteAlpha.600" mb={2}>
-                      Result
-                    </Text>
-                  )}
-                  {renderRes()}
-                </Box>
-              )
-            : !isError && renderRes()}
+        {/* Keep the same output widgets mounted across query modes and reloads. */}
+        <Box display={outputVisible ? undefined : "none"} mt={2} ml={{ base: 0, md: 4 }} mb={inputs && inputs.length > 0 ? 0 : 4}
+          aria-label={currentHistoricalResult ? "Historical query result" : undefined}>
+          <Box display={currentHistoricalResult ? undefined : "none"} pt={3} borderTopWidth="1px" borderColor="border.default">
+            <Text fontSize="xs" color="primary.300" fontFamily="mono">
+              {currentHistoricalResult && <>Block {currentHistoricalResult.block.number.toString()} · {formatHistoricalTimestamp(currentHistoricalResult.block.timestamp)}</>}
+            </Text>
+            <Text fontSize="xs" color="text.tertiary" mb={2}>State at the end of this block</Text>
+          </Box>
+          <Box display={!historicalMode && inputs && inputs.length > 0 ? undefined : "none"} pt={3} borderTopWidth="1px" borderColor="whiteAlpha.100">
+            {!(outputs.length === 1 && outputs[0].type === "tuple") && <Text fontSize="xs" color="whiteAlpha.600" mb={2}>Result</Text>}
+          </Box>
+          <Box position="relative">
+            <Box visibility={outputPending ? "hidden" : undefined}>
+              {outputMounted.current && renderRes(lastOutput.current.value, false)}
+            </Box>
+            {outputPending && <Skeleton position="absolute" inset={0} minH={8} rounded="md" />}
+            {currentHistoricalResult && outputs.length === 0 && <Text fontSize="sm" color="text.primary">Call completed with no return values.</Text>}
+          </Box>
         </Box>
 
-        {isError && errorMsg && type === "read" && (
+        {!historicalMode && isError && errorMsg && type === "read" && (
           <Center mt={2} p={4} color="red.300" maxW="40rem">
             {errorMsg}
           </Center>
