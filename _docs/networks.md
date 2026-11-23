@@ -124,3 +124,13 @@ For cross-origin local QA, a development-only `NEXT_PUBLIC_CHAIN_STORAGE_ORIGIN`
 can select the shared origin (for example `http://localhost:3210` for tools served
 on another localhost port). Different `*.localhost` top-level sites may receive
 partitioned iframe storage, unlike same-site production ETH.sh subdomains.
+
+## Name resolution
+
+Reuse `resolveNameToAddress` from `lib/nameResolution.ts` (also re-exported by
+`utils`) for forward name lookups. It uses the shared mainnet client: ENS names
+and subdomains retain viem's ENS/CCIP resolution, `.gwei` uses the GNS universal
+resolver, and `.wei` reads the WNS address record with the full namehash. Contract
+addresses live in `lib/nameServiceContracts.ts`; the Gwei tool re-exports its
+existing resolver constant for compatibility. Missing, expired, zero-address or
+failed lookups return `null`. Do not implement separate name resolvers in tools.

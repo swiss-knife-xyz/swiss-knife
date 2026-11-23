@@ -2,7 +2,6 @@
 
 import { ToolLoading } from "@/components/ToolLoading";
 
-import { useSearchParams } from "next/navigation";
 import React, { Suspense, useEffect, useState } from "react";
 import {
   Heading,
@@ -29,12 +28,9 @@ import { useLocalStorage } from "usehooks-ts";
 import { InputField } from "@/components/InputField";
 
 function ETHUnitConverterContent() {
-  const searchParams = useSearchParams();
-  const weiFromUrl = searchParams.get("wei");
-
   const [wei, setWei] = useQueryState<string>(
     "wei",
-    parseAsString.withDefault(weiFromUrl ?? "")
+    parseAsString.withDefault("")
   );
   const [gwei, setGwei] = useState<string>();
   const [eth, setEth] = useState<string>();
@@ -51,14 +47,14 @@ function ETHUnitConverterContent() {
   ) => {
     const value = e.target.value;
 
-    if (unit === "wei") setWei(value);
-    else if (unit === "gwei") setGwei(value);
+    if (unit === "gwei") setGwei(value);
     else if (unit === "eth") setEth(value);
     else if (unit === "unit") setUnit(value);
     else if (unit === "usd") setUsd(value);
 
     if (value.length > 0) {
       const wei = valueToWei(value);
+      setWei(wei);
       setValues(wei, unit);
     } else {
       setWei("");
@@ -73,8 +69,6 @@ function ETHUnitConverterContent() {
     inWei: string,
     exceptUnit: "wei" | "gwei" | "eth" | "unit" | "usd"
   ) => {
-    setWei(inWei);
-
     if (inWei.length > 0) {
       if (exceptUnit !== "gwei") setGwei(formatGwei(BigInt(inWei)));
       if (exceptUnit !== "eth") setEth(formatEther(BigInt(inWei)));
@@ -117,15 +111,8 @@ function ETHUnitConverterContent() {
   }, []);
 
   useEffect(() => {
-    if (weiFromUrl) {
-      handleOnChange(
-        {
-          target: { value: weiFromUrl },
-        } as React.ChangeEvent<HTMLInputElement>,
-        "wei",
-        (value) => value
-      );
-    }
+    // Restore derived fields without writing the incoming query back to nuqs.
+    setValues(wei, "wei");
   }, []);
 
   useEffect(() => {

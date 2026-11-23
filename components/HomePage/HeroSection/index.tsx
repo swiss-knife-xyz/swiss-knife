@@ -2,6 +2,7 @@ import { Container, Flex } from "@chakra-ui/react";
 import { BackgroundBlur } from "./BackgroundBlur";
 import { LeftSection } from "./LeftSection";
 import { RightSection } from "./RightSection";
+import { Omnibox } from "./Omnibox";
 
 export const HeroSection = () => {
   return (
@@ -24,6 +25,7 @@ export const HeroSection = () => {
         {/* Right side with text and buttons */}
         <RightSection />
       </Flex>
+      <Omnibox />
     </Container>
   );
 };

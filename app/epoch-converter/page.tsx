@@ -3,7 +3,10 @@
 import { networkOptions } from "@/data/networks";
 import { NetworkSelect } from "@/components/NetworkSelect";
 import { getEthersProvider } from "@/lib/ethersProvider";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { parseUnixTimestamp } from "@/lib/unixTimestamp";
+import { ToolLoading } from "@/components/ToolLoading";
 import {
   HStack,
   Heading,
@@ -27,7 +30,10 @@ import { DarkButton } from "@/components/DarkButton";
 
 const timeOptions = ["minutes", "hours", "days"];
 
-const Epoch = () => {
+const EpochContent = () => {
+  const searchParams = useSearchParams();
+  const initialTimestamp = parseUnixTimestamp(searchParams.get("timestamp"));
+  const initialDate = initialTimestamp === undefined ? undefined : new Date(initialTimestamp * 1000);
   const [timestamp, setTimestamp] = useState<number>(
     Math.floor(Date.now() / 1000)
   );
@@ -38,9 +44,14 @@ const Epoch = () => {
     });
   const [futureTimeInput, setFutureTimeInput] = useState<number>();
   const [futureTimestamp, setFutureTimestamp] = useState<number>();
-  const [toHumanDateInput, setToHumanDateInput] = useState<number>();
-  const [humanDateUTC, setHumanDateUTC] = useState<string>();
+  const [toHumanDateInput, setToHumanDateInput] = useState<number | undefined>(initialTimestamp);
+  const [humanDateUTC, setHumanDateUTC] = useState<string | undefined>(initialDate?.toUTCString());
   const [humanDateLocal, setHumanDateLocal] = useState<string>();
+
+  useEffect(() => {
+    // The local timezone belongs to the browser, not the rendering server.
+    if (initialDate) setHumanDateLocal(initialDate.toString());
+  }, []);
 
   // dateTime to block
   const [dateTime, setDateTime] = useState<string>();
@@ -51,9 +62,10 @@ const Epoch = () => {
   const [blockDate, setBlockDate] = useState<string>();
 
   useEffect(() => {
-    setInterval(() => {
+    const timer = setInterval(() => {
       setTimestamp(Math.floor(Date.now() / 1000));
     }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
   return (
@@ -184,7 +196,7 @@ const Epoch = () => {
                 type="number"
                 flex={1}
                 placeholder="Timestamp in seconds"
-                value={toHumanDateInput}
+                value={toHumanDateInput ?? ""}
                 onChange={(e) => setToHumanDateInput(parseFloat(e.target.value))}
                 bg="whiteAlpha.100"
                 border="1px solid"
@@ -197,7 +209,7 @@ const Epoch = () => {
               <Button
                 colorScheme="blue"
                 onClick={() => {
-                  if (!toHumanDateInput) return;
+                  if (toHumanDateInput === undefined || !Number.isFinite(toHumanDateInput)) return;
 
                   const d = new Date(toHumanDateInput * 1_000);
                   setHumanDateUTC(d.toUTCString());
@@ -316,4 +328,8 @@ const Epoch = () => {
   );
 };
 
-export default Epoch;
+export default function Epoch() {
+  return <Suspense fallback={<ToolLoading title="Epoch Converter" description="Convert Unix timestamps to dates." />}>
+    <EpochContent />
+  </Suspense>;
+}

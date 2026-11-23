@@ -67,7 +67,7 @@ const orderedDeveloperTools: DeveloperTool[] = [
     info: { ...subdomainToInfo[subdomains.CONTRACT.base], label: "Explorer" },
   },
   ...[
-    subdomains.STORAGE_SLOTS.base,
+    subdomains.SOLIDITY.base,
     subdomains.ENS.base,
     subdomains.TRANSACT.base,
     subdomains.CONTRACT_DIFF.base,
@@ -91,7 +91,7 @@ const walletDeveloperSubdomains = [
   subdomains.EXPLORER.base,
   subdomains.UNISWAP.base,
   subdomains.SAFE.base,
-  subdomains.SOLIDITY.base,
+  subdomains.STORAGE_SLOTS.base,
   subdomains.CONVERTER.base,
   subdomains.EPOCH_CONVERTER.base,
   subdomains.DETERMINE_ADDRESS.base,
@@ -127,7 +127,7 @@ export const toolEntries = Object.entries(subdomainToInfo)
             },
           ];
         }
-        return subdomain === subdomains.SOLIDITY.base
+        return subdomain === subdomains.STORAGE_SLOTS.base
           ? [
               tool,
               {
