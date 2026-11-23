@@ -10,8 +10,9 @@ import {
 import { ChakraProvider } from "@chakra-ui/react";
 import { ContractPage } from "./[chainId]/[address]/ContractPage";
 
-const { fetchAbi, detectProxy, processCode, client } = vi.hoisted(() => ({
+const { fetchAbi, detectProxy, processCode, sourceCode, client } = vi.hoisted(() => ({
   fetchAbi: vi.fn(),
+  sourceCode: vi.fn(async () => undefined),
   detectProxy: vi.fn(),
   processCode: vi.fn(),
   client: { getCode: vi.fn() },
@@ -63,7 +64,7 @@ vi.mock("@/utils", () => ({
   getImplementationFromBytecodeIfProxy: detectProxy,
   processContractBytecode: processCode,
   getPath: (s: string) => `/${s}/`,
-  getSourceCode: vi.fn(async () => undefined),
+  getSourceCode: sourceCode,
   slicedText: (s: string) => s,
   startHexWith0x: (s: string) => s,
 }));
@@ -361,4 +362,41 @@ it("collapses ABI & Source Code after a successful submission, but keeps it open
   await addFunction();
   await waitFor(() => expect(screen.getByRole("button", { name: "ABI & Source Code" }).getAttribute("aria-expanded")).toBe("false"));
   expect(screen.queryByRole("button", { name: "Modify ABI" })).toBeNull();
+});
+
+
+it("resolves a 7702 authorization on-chain, fetches the target ABI, and calls the EOA", async () => {
+  client.getCode.mockResolvedValue(`0xef0100${implementationAddress.slice(2)}`);
+  fetchAbi.mockResolvedValue({ abi, name: "Delegated wallet" });
+  render(page());
+  await inferred(false);
+  expect(screen.getByText("EIP-7702 delegated implementation:")).toBeTruthy();
+  expect(screen.queryByRole("combobox", { name: "Interact as" })).toBeNull();
+  expect(fetchAbi).toHaveBeenCalledExactlyOnceWith({ address: implementationAddress, chainId: 1 });
+  await waitFor(() => expect(sourceCode).toHaveBeenCalledWith(1, implementationAddress));
+  expect(detectProxy).not.toHaveBeenCalled();
+  expect(processCode).not.toHaveBeenCalled();
+  expect(screen.getByTestId("function-provenance").getAttribute("data-address")).toBe(address);
+  fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
+  expect(screen.getByText("EOA", { exact: true })).toBeTruthy();
+});
+
+it("infers unverified 7702 implementation functions from target code, never the marker", async () => {
+  client.getCode.mockImplementation(async ({ address: target }: any) =>
+    target === address ? `0xef0100${implementationAddress.slice(2)}` : "0x6001600055"
+  );
+  fetchAbi.mockRejectedValue(new Error("Unverified delegate"));
+  render(page());
+  await inferred(true);
+  expect(processCode).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ contractCode: "0x6001600055" }));
+  expect(screen.getByTestId("function-provenance").getAttribute("data-address")).toBe(address);
+});
+
+it("does not infer functions from an empty or chained delegation target", async () => {
+  client.getCode.mockResolvedValue(`0xef0100${implementationAddress.slice(2)}`);
+  fetchAbi.mockRejectedValue(new Error("Unverified delegate"));
+  render(page());
+  await screen.findByText(/Unable to fetch ABI for this address/);
+  expect(processCode).not.toHaveBeenCalled();
+  expect(detectProxy).not.toHaveBeenCalled();
 });

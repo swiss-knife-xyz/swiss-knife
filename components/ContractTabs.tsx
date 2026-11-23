@@ -33,7 +33,7 @@ import {
   VStack,
   type LinkProps,
 } from "@chakra-ui/react";
-import { FiLayers, FiPlus, FiX } from "react-icons/fi";
+import { FiExternalLink, FiLayers, FiPlus, FiX } from "react-icons/fi";
 import { isAddress } from "viem";
 import { getRpcUrlsForChain } from "@/data/networks";
 import { useCustomChains } from "@/lib/customChains/store";
@@ -672,6 +672,11 @@ export function ContractTabs({
       )}
     </>
   );
+  const activeTab = tabs.find((tab) => tab.id === active);
+  const directoryHref = activeTab && activeTab.kind !== "new"
+    ? `${getPath("explorers")}address/${activeTab.address}?chainId=${activeTab.chainId}`
+    : getPath("explorers");
+
   return (
     <Box
       ref={workspaceRef}
@@ -725,6 +730,26 @@ export function ContractTabs({
               Contract Explorer
             </Link>
           </Heading>
+          <Link
+            href={directoryHref}
+            isExternal
+            rel="noopener noreferrer"
+            alignSelf="flex-end"
+            display="inline-flex"
+            alignItems="center"
+            justifyContent="center"
+            gap={1.5}
+            fontSize="sm"
+            color="text.secondary"
+            ml="auto"
+            flexShrink={0}
+            transition="color 0.15s"
+            _hover={{ color: "text.primary", textDecoration: "none" }}
+            _focusVisible={{ outline: "2px solid", outlineColor: "primary.400", outlineOffset: "2px" }}
+          >
+            Explorer Directory
+            <Icon as={FiExternalLink} boxSize={3.5} aria-hidden="true" />
+          </Link>
         </HStack>
         <Button
           display={{ base: "inline-flex", md: "none" }}

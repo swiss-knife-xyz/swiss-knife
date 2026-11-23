@@ -122,7 +122,7 @@ function stage() {
 }
 beforeEach(() => {
   vi.clearAllMocks();
-  getClient.mockReturnValue({});
+  getClient.mockReturnValue({ getCode: vi.fn(async () => "0x6000") });
   fetchAbi.mockResolvedValue({ abi: [], name: "Loaded contract" });
   source.mockResolvedValue(undefined);
   vi.stubGlobal("matchMedia", () => ({
@@ -182,7 +182,7 @@ it.each(["Load", "Enter"])(
     );
     expect(push).toHaveBeenCalledTimes(1);
     expect(source).toHaveBeenCalledExactlyOnceWith(8453, draft);
-    expect(getClient).toHaveBeenCalledExactlyOnceWith(8453);
+    expect(getClient.mock.calls.every(([chainId]) => chainId === 8453)).toBe(true);
     expect(
       (screen.getByRole("combobox", { name: "Network" }) as HTMLSelectElement)
         .value

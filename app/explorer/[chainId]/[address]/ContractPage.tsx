@@ -11,6 +11,7 @@ import {
   HighlightedContent,
   SelectedOptionState,
 } from "@/types";
+import { getDelegatedImplementation } from "@/lib/eip7702";
 import { parseContractAddressInput } from "@/lib/contractExplorerInput";
 import { chainIdToChain, networkOptions } from "@/data/common";
 import {
@@ -170,6 +171,7 @@ const AbiSourceCodeContent = ({
   proxySourceCode,
   implementationSourceCode,
   implementationAddress,
+  isDelegated = false,
   isLoadingSourceCode,
   renderAbiEditor,
 }: {
@@ -180,6 +182,7 @@ const AbiSourceCodeContent = ({
   proxySourceCode: SourceCodeType;
   implementationSourceCode: SourceCodeType;
   implementationAddress: string | null;
+  isDelegated?: boolean;
   isLoadingSourceCode: boolean;
   renderAbiEditor: (mode: "contract" | "implementation", onOpen?: () => void, onSubmitted?: () => void) => React.ReactNode;
 }) => {
@@ -273,7 +276,7 @@ const AbiSourceCodeContent = ({
         {/* Contract tabs for proxy */}
         {isProxy && (
           <TabsSelector
-            tabs={["Implementation", "Proxy"]}
+            tabs={["Implementation", isDelegated ? "EOA" : "Proxy"]}
             selectedTabIndex={contractTabIndex}
             setSelectedTabIndex={setContractTabIndex}
             mt={0}
@@ -914,6 +917,7 @@ const LoadedContractPage = ({
   const [implementationAbi, setImplementationAbi] = useState<AbiType | null>(
     null
   );
+  const [isDelegated, setIsDelegated] = useState(false);
   const [proxyAbi, setProxyAbi] = useState<AbiType | null>(null);
   const [prefill, setPrefill] = useState<{ call: PrefilledCall | null; revision: number; onScrollStart?: () => void }>({ call: null, revision: 0 });
   const handlePrefill = useCallback((call: PrefilledCall | null, onScrollStart?: () => void) => {
@@ -966,9 +970,43 @@ const LoadedContractPage = ({
   const fetchSetAbi = useCallback(async () => {
     if (!evmole) return;
 
+    let resolvingDelegation = false;
     try {
       setIsFetchingAbi(true);
       setUnableToFetchAbi(false);
+
+      // Resolve the active authorization from on-chain code, as in 7702beat.
+      // Load the delegate ABI while calls still target the EOA (`address`).
+      const rpcClient = getPublicClient(chainId);
+      const code = await rpcClient.getCode({ address: address as Address }).catch(() => undefined);
+      const delegate = getDelegatedImplementation(code);
+      setIsDelegated(Boolean(delegate));
+      if (delegate) {
+        resolvingDelegation = true;
+        setImplementationAddress(delegate);
+        setProxyAbi({ abi: [], name: slicedText(address) });
+        setIsInteractingAsProxy(true);
+        let implementation: AbiType;
+        try {
+          const verified = await fetchContractAbiRaw({ address: delegate, chainId });
+          // Do not follow another delegation or a proxy stored at the target:
+          // the EVM executes that target's own code in the EOA's storage context.
+          implementation = { abi: verified.abi as JsonFragment[], name: verified.name };
+        } catch {
+          const implementationCode = await rpcClient.getCode({ address: delegate });
+          if (!implementationCode || implementationCode === "0x" || getDelegatedImplementation(implementationCode)) {
+            throw new Error("Delegated implementation has no executable contract code");
+          }
+          implementation = {
+            abi: await processContractBytecode({ contractCode: implementationCode, evmole }) as JsonFragment[],
+            name: slicedText(delegate),
+            isDecoded: true,
+          };
+        }
+        setImplementationAbi(implementation);
+        setAbi(implementation);
+        return;
+      }
 
       // try fetching if contract is verified
       const fetchedAbi = await fetchContractAbiRaw({ address, chainId });
@@ -997,6 +1035,10 @@ const LoadedContractPage = ({
       }
     } catch (e) {
       console.log("Error fetching verified ABI:", e);
+      if (resolvingDelegation) {
+        setUnableToFetchAbi(true);
+        return;
+      }
 
       try {
         // Create client for bytecode fetch
@@ -1161,6 +1203,7 @@ const LoadedContractPage = ({
             proxySourceCode={proxySourceCode}
             implementationSourceCode={implementationSourceCode}
             implementationAddress={implementationAddress}
+            isDelegated={isDelegated}
             isLoadingSourceCode={isLoadingSourceCode}
             renderAbiEditor={renderAbiEditor}
           />
@@ -1183,7 +1226,7 @@ const LoadedContractPage = ({
                 <AlertIcon color="primary.400" mr={0} mt={1} />
                 <Box minW={0}>
                   <Text color="text.secondary" fontSize="sm">
-                    Proxy implementation:
+                    {isDelegated ? "EIP-7702 delegated implementation:" : "Proxy implementation:"}
                   </Text>
                   <ContractAddressLink
                     address={implementationAddress}
@@ -1201,7 +1244,7 @@ const LoadedContractPage = ({
                     <Icon as={ExternalLink} boxSize={3} verticalAlign="middle" />
                   </ContractAddressLink>
                 </Box>
-                <HStack spacing={2} gridColumn={{ base: 2, lg: "auto" }} minW={0} flexWrap="wrap">
+                {!isDelegated && <HStack spacing={2} gridColumn={{ base: 2, lg: "auto" }} minW={0} flexWrap="wrap">
                   <Text color="text.primary" fontSize="sm">Interact as</Text>
                   <DarkSelect
                     boxProps={{
@@ -1222,7 +1265,7 @@ const LoadedContractPage = ({
                     }}
                     options={proxyOptions}
                   />
-                </HStack>
+                </HStack>}
               </Alert>
             )}
             {isAbiDecoded && (
