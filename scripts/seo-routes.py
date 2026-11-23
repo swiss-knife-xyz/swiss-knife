@@ -35,7 +35,7 @@ check("usdc-pay.eth.sh", "/", 200, canonical="https://usdc-pay.eth.sh/")
 check("determine-address.eth.sh", "/", 200, canonical="https://determine-address.eth.sh/")
 check("solidity.eth.sh", "/", 308, "https://solidity.eth.sh/compiler")
 check("solidity.eth.sh", "/compiler", 200, canonical="https://solidity.eth.sh/compiler")
-for base, tool in {"calldata": "decoder", "converter": "eth", "ens": "history", "foundry": "forge-stack-tracer-ui", "safe": "eip-712-hash", "transact": "send-tx", "uniswap": "tick-to-price", "wallet": "bridge"}.items():
+for base, tool in {"calldata": "decoder", "converter": "eth", "ens": "history", "foundry": "forge-stack-tracer-ui", "safe": "eip-712-hash", "uniswap": "tick-to-price", "wallet": "bridge"}.items():
     check(f"{base}.eth.sh", "/", 308, f"https://{base}.eth.sh/{tool}")
 check("orgs.eth.sh", "/", 308, "https://eth.sh/orgs")
 check("eth.sh", "/orgs", 200, canonical="https://eth.sh/orgs")

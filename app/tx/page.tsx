@@ -49,16 +49,15 @@ import {
   useQueryState,
 } from "nuqs";
 import { parseEther, formatEther, isAddress, stringify, zeroAddress } from "viem";
-import { normalize } from "viem/ens";
 import { useWalletClient, useAccount, useSwitchChain } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { InputField } from "@/components/InputField";
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import {
+  getPath,
   ethFormatOptions,
   ETHSelectedOptionState,
-  publicClient,
   startHexWith0x,
   resolveNameToAddress,
   resolveAddressToName,
@@ -67,7 +66,7 @@ import {
   slicedText,
   generateTenderlyUrl,
 } from "@/utils";
-import debounce from "lodash/debounce";
+import subdomains from "@/subdomains";
 import { DarkButton } from "@/components/DarkButton";
 import { chainIdToChain } from "@/data/common";
 import { decodeRecursive } from "@/lib/decoder";
@@ -131,81 +130,50 @@ function SendTxContent() {
     [decoded]
   );
 
-  // ENS resolution state
+  // Shared ENS, GNS and WNS resolution for recipient previews.
   const [ensName, setEnsName] = useState("");
   const [ensAvatar, setEnsAvatar] = useState("");
   const [resolvedAddress, setResolvedAddress] = useState("");
   const [isResolvingEns, setIsResolvingEns] = useState(false);
   const [lastResolvedValue, setLastResolvedValue] = useState("");
 
-  // Debounced name resolution (ENS, Basename, etc.)
-  const resolveEns = useCallback(
-    debounce(async (val: string) => {
-      if (!val || val === lastResolvedValue) return;
-      
+  useEffect(() => {
+    let cancelled = false;
+    setEnsName("");
+    setResolvedAddress("");
+    setLastResolvedValue("");
+    const canResolve = isResolvableName(to) || isAddress(to);
+    setIsResolvingEns(canResolve);
+    if (!canResolve) return;
+
+    const timer = setTimeout(async () => {
       try {
-        if (isResolvableName(val)) {
-          // Looks like a name (ENS, Basename, etc.)
-          setIsResolvingEns(true);
-          const address = await resolveNameToAddress(val);
-          if (address) {
-            setResolvedAddress(address);
-            setEnsName(val);
-            setLastResolvedValue(val);
-          } else {
-            setEnsName("");
-            setResolvedAddress("");
-          }
-        } else if (isAddress(val)) {
-          // It's an address, try to get reverse resolution
-          setIsResolvingEns(true);
-          setResolvedAddress(val);
-          try {
-            const name = await resolveAddressToName(val);
-            if (name) {
-              setEnsName(name);
-            } else {
-              setEnsName("");
-            }
-          } catch {
-            setEnsName("");
-          }
-          setLastResolvedValue(val);
-        } else {
-          setEnsName("");
-          setResolvedAddress("");
-        }
-      } catch (error) {
-        console.error("Error resolving name:", error);
-        setEnsName("");
-        setResolvedAddress("");
+        const isRawAddress = isAddress(to);
+        const address = isRawAddress ? to : await resolveNameToAddress(to);
+        const name = isRawAddress ? await resolveAddressToName(to) : address ? to : "";
+        if (cancelled) return;
+        setResolvedAddress(address || "");
+        setEnsName(name || "");
+        setLastResolvedValue(to);
       } finally {
-        setIsResolvingEns(false);
+        if (!cancelled) setIsResolvingEns(false);
       }
-    }, 500),
-    [lastResolvedValue]
-  );
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [to]);
 
-  // Resolve ENS when "to" changes
   useEffect(() => {
-    if (to && to !== lastResolvedValue) {
-      resolveEns(to);
-    } else if (!to) {
-      setEnsName("");
-      setResolvedAddress("");
-      setLastResolvedValue("");
-    }
-  }, [to, resolveEns, lastResolvedValue]);
-
-  // Fetch avatar when ensName changes
-  useEffect(() => {
+    let cancelled = false;
+    setEnsAvatar("");
     if (ensName) {
-      getNameAvatar(ensName).then((avatar) => {
-        setEnsAvatar(avatar || "");
+      getNameAvatar(ensName).then(avatar => {
+        if (!cancelled) setEnsAvatar(avatar || "");
       });
-    } else {
-      setEnsAvatar("");
     }
+    return () => { cancelled = true; };
   }, [ensName]);
 
   useEffect(() => {
@@ -297,21 +265,6 @@ function SendTxContent() {
     setHasEverMatchedUrlChain(true);
   };
 
-  const resolveAddress = async (addressOrEns: string) => {
-    if (isAddress(addressOrEns)) {
-      return addressOrEns;
-    } else {
-      const ensResolvedAddress = await publicClient.getEnsAddress({
-        name: normalize(addressOrEns),
-      });
-      if (ensResolvedAddress) {
-        return ensResolvedAddress;
-      } else {
-        return undefined;
-      }
-    }
-  };
-
   const sendTx = async () => {
     if (!walletClient) return;
 
@@ -372,11 +325,13 @@ function SendTxContent() {
         });
       } else {
         // Use already-resolved address if available, otherwise resolve now
-        const resolvedTo = resolvedAddress || (await resolveAddress(to));
+        const resolvedTo = isAddress(to)
+          ? to
+          : (lastResolvedValue === to && resolvedAddress) || (await resolveNameToAddress(to));
 
         if (!resolvedTo) {
           toast({
-            title: "Invalid address or ENS name",
+            title: "Invalid address or unresolved name",
             status: "error",
             position: "bottom-right",
             duration: 5_000,
@@ -512,6 +467,12 @@ function SendTxContent() {
         <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
           Send a transaction or deploy a contract with custom calldata
         </Text>
+        <Text color="gray.500" fontSize="sm" maxW="600px" mx="auto" mt={2}>
+          A more human readable experience now at{" "}
+          <Link href={getPath(subdomains.CONTRACT.base)} color="gray.300" textDecoration="underline" textUnderlineOffset="3px">
+            Contract Explorer
+          </Link>
+        </Text>
       </Box>
 
       <VStack spacing={6} align="stretch">
@@ -570,7 +531,7 @@ function SendTxContent() {
                 )}
             </HStack>
             <InputField
-              placeholder="Address or ENS name. Leave blank to deploy contract"
+              placeholder="Address or .eth, .gwei, .wei name.    Leave blank to deploy contract"
               value={to}
               onChange={(e) => {
                 setTo(e.target.value.trim());
@@ -758,7 +719,7 @@ function SendTxContent() {
               bg: "whiteAlpha.100"
             }}
             onClick={() => {
-              const targetAddress = resolvedAddress || to || "";
+              const targetAddress = (lastResolvedValue === to && resolvedAddress) || to || "";
               const url = generateTenderlyUrl(
                 {
                   from: connectedAddress || zeroAddress,

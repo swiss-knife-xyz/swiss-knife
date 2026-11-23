@@ -4,7 +4,7 @@ import subdomains from "@/subdomains";
 export const defaultTools: Record<string, string> = {
   calldata: "decoder", converter: "eth", ens: "history",
   foundry: "forge-stack-tracer-ui", safe: "eip-712-hash",
-  solidity: "compiler", transact: "send-tx", uniswap: "tick-to-price", wallet: "bridge",
+  solidity: "compiler", uniswap: "tick-to-price", wallet: "bridge",
 };
 
 export function getCanonicalUrl(appPath: string): string {

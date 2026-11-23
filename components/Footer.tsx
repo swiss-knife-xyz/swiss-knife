@@ -172,7 +172,7 @@ export const Footer = () => {
                   Explorer Directory
                 </ChakraLink>
                 <ChakraLink
-                  href={`${getPath(subdomains.TRANSACT.base)}send-tx`}
+                  href={getPath(subdomains.TRANSACT.base)}
                   color="text.secondary"
                   fontSize="sm"
                   _hover={{ color: "primary.400" }}
