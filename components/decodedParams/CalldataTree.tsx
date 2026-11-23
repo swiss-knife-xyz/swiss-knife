@@ -7,7 +7,7 @@ import { FiTerminal, FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import {
   TypeIcon,
   getTypeColor,
-} from "@/components/decodedParams/TreeView/TypeIcon";
+} from "@/components/decodedParams/TypeIcon";
 import type { Arg, DecodeBytesParamResult } from "@/types";
 import {
   AddressParam,
@@ -15,7 +15,7 @@ import {
   StringParam,
   UintParam,
 } from "@/components/decodedParams";
-import { TreeBytesParam } from "@/components/decodedParams/TreeView/TreeBytesParam";
+import { TreeBytesParam } from "@/components/decodedParams/TreeBytesParam";
 import { getDisplayFunctionName } from "@/utils/functionNames";
 
 import type { FormatSelectProps } from "@/components/DarkSelect";

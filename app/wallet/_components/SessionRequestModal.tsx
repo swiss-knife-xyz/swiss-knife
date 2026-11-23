@@ -36,7 +36,7 @@ import {
 import { useAccount } from "wagmi";
 import { formatEther, Address, erc20Abi, zeroAddress } from "viem";
 import { DecodedSignatureData, SessionRequest } from "../bridge/types";
-import { TreeView } from "@/components/decodedParams/TreeView";
+import { CalldataTree } from "@/components/decodedParams/CalldataTree";
 import { useAutoHideScrollbars } from "@/hooks/useAutoHideScrollbars";
 import { DecodedCalldataSkeleton } from "@/components/decodedParams/DecodedCalldataSkeleton";
 import { getDisplayFunctionName } from "@/utils/functionNames";
@@ -525,7 +525,6 @@ export default function SessionRequestModal({
                                   borderRadius="lg"
                                   border="1px solid"
                                   borderColor="whiteAlpha.200"
-                                  data-tree-wrapper="true"
                                   maxH={
                                     isExpanded
                                       ? "calc(100dvh - 280px)"
@@ -533,7 +532,7 @@ export default function SessionRequestModal({
                                   }
                                   overflowY="auto"
                                 >
-                                  <TreeView
+                                  <CalldataTree
                                     args={decodedTxData.args}
                                     chainId={Number(
                                       currentSessionRequest.params.chainId.split(

@@ -9,7 +9,7 @@ import {
 } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { StringParam } from "./StringParam";
-import { TreeBytesParam } from "./TreeView/TreeBytesParam";
+import { TreeBytesParam } from "./TreeBytesParam";
 import { ExampleSnapshotContext } from "./ExampleSnapshotContext";
 
 const mocks = vi.hoisted(() => ({ get: vi.fn() }));

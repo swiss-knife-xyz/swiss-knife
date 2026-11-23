@@ -2,6 +2,9 @@
 
 import { useCustomChains } from "@/lib/customChains/store";
 import { NetworkSelect } from "@/components/NetworkSelect";
+import dynamic from "next/dynamic";
+import { ClearSigningScrollArea } from "@/components/ClearSigning/ClearSigningScrollArea";
+import type { ClearSigningRequest } from "@/lib/clearSigning/resolve";
 import { ToolLoading } from "@/components/ToolLoading";
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useState, useEffect, useMemo } from "react";
@@ -72,7 +75,7 @@ import subdomains from "@/subdomains";
 import { Editor } from "@monaco-editor/react";
 
 import { InputField } from "@/components/InputField";
-import { CalldataTree } from "./components/CalldataTree";
+import { CalldataTree } from "@/components/decodedParams/CalldataTree";
 import { SignatureRegistryForm } from "@/components/SignatureRegistryForm";
 import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
@@ -416,6 +419,8 @@ function DecoderTabs({
   );
 }
 
+const ClearSigningSummary = dynamic(() => import("@/components/ClearSigning/ClearSigningSummary"), { ssr: false });
+
 function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const savedChains = useCustomChains();
   const toast = useToast();
@@ -486,6 +491,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     parseAsString.withDefault("")
   );
   const requestId = React.useRef(0);
+  const [clearSigningRequest, setClearSigningRequest] = useState<ClearSigningRequest>();
   const [example, setExample] = useState<{
     sample: (typeof decoderSamples)[number];
     input: string;
@@ -520,6 +526,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const isPreparingExample = !!selectedSnapshot && readyExample !== example;
   const snapshot = isPreparingExample ? undefined : selectedSnapshot;
   const result = isPreparingExample ? undefined : snapshot?.result ?? liveResult;
+  const summaryRequest = snapshot?.clearSigningRequest ?? clearSigningRequest;
   const decodedEvents = isPreparingExample
     ? null
     : snapshot?.events ?? liveEvents;
@@ -678,12 +685,16 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     _address,
     _chainId,
     _abi,
+    _from,
+    _value,
     id,
   }: {
     _calldata?: string;
     _address?: string;
     _chainId?: number;
     _abi?: any;
+    _from?: string;
+    _value?: string;
     id?: number;
   }) => {
     if (id === undefined) {
@@ -709,6 +720,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       if (id !== requestId.current) return;
       console.log({ DECODED_RESULT: res });
       setResult(res);
+      setClearSigningRequest({ calldata: startHexWith0x(__calldata), to: _address, chainId: _chainId, from: _from, value: _value });
       try {
         const baseUrl = new URL(`${getPath(subdomains.CALLDATA.base)}decoder`, window.location.origin);
         setShareLink(createDecoderShareLink(baseUrl.toString(), startHexWith0x(__calldata), res, _abi));
@@ -795,7 +807,9 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       // Start decoding calldata first (priority)
       decode({
         _calldata: transaction.input,
-        _address: transaction.to!,
+        _address: transaction.to ?? undefined,
+        _from: transaction.from,
+        _value: transaction.value?.toString(),
         _chainId: chain.id,
         id,
       });
@@ -1432,50 +1446,95 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
         )}
 
         {/* Calldata Result - show directly for non-Tx modes, or when Calldata tab selected for Tx mode */}
-        {result && (selectedTabIndex !== 3 || resultTabIndex === 0) && (
-          <Box w="full" minW={0}>
-            {/* Copy controls - outside the box */}
-            <HStack mb={3} justify="space-between" flexWrap="wrap">
-              <Text fontSize="sm" fontWeight="semibold" color="text.secondary">
-                Decoded calldata
-              </Text>
-              <HStack spacing={1} flexWrap="wrap">
-                {shareLink && !snapshot && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    color="whiteAlpha.700"
-                    _hover={{ color: "white", bg: "whiteAlpha.200" }}
-                    leftIcon={<LinkIcon boxSize={4} />}
-                    onClick={() => setShareModalLink(shareLink)}
-                  >
-                    Share decode
-                  </Button>
-                )}
-                <CopyToClipboard
-                  textToCopy={JSON.stringify(
-                    {
-                      function: result.signature,
-                      params: JSON.parse(stringify(result.rawArgs)),
+        {result && (
+          <Box
+            w="full"
+            minW={0}
+            display={selectedTabIndex === 3 && resultTabIndex !== 0 ? "none" : undefined}
+          >
+            <Box
+              display="grid"
+              gridTemplateColumns="minmax(0, 1fr)"
+              alignItems="start"
+              gap={6}
+              sx={{
+                "@media (min-width: 1200px)": {
+                  "&:has(> [data-clear-signing-column] [data-clear-signing-content] > section)": {
+                    gridTemplateColumns: "minmax(340px, 440px) minmax(0, 1fr)",
+                  },
+                },
+              }}
+            >
+              {summaryRequest && (
+                <Box
+                  data-clear-signing-column
+                  minW={0}
+                  sx={{
+                    "&:not(:has([data-clear-signing-content] > section))": { display: "none" },
+                    "@media (min-width: 1200px)": {
+                      position: "sticky",
+                      top: 6,
                     },
-                    undefined,
-                    2
-                  )}
-                  labelText="Copy params"
-                />
-                <CopyToClipboard
-                  textToCopy={decodedJson}
-                  labelText="Copy decoded JSON"
-                />
-              </HStack>
-            </HStack>
-            <Box minW={0}>
-              <CalldataTree
-                args={result.args}
-                chainId={selectedTabIndex === 0 ? metadataChainId : chainId}
-                functionName={resolvedFunctionName.name ?? result.functionName}
-                isFunctionNameGuessed={resolvedFunctionName.isGuessed}
-              />
+                  }}
+                >
+                  <HStack minH={8} mb={3} w="full" maxW="640px" mx="auto">
+                    <Text fontSize="sm" fontWeight="semibold" color="text.secondary">
+                      Clear Signing
+                    </Text>
+                  </HStack>
+                  <ClearSigningScrollArea>
+                  <ClearSigningSummary
+                    {...summaryRequest}
+                    chainId={selectedTabIndex === 0 ? metadataChainId : summaryRequest.chainId}
+                  />
+                  </ClearSigningScrollArea>
+                </Box>
+              )}
+              <Box minW={0}>
+                {/* Copy controls - outside the box */}
+                <HStack minH={8} mb={3} justify="space-between" flexWrap="wrap">
+                  <Text fontSize="sm" fontWeight="semibold" color="text.secondary">
+                    Decoded calldata
+                  </Text>
+                  <HStack spacing={1} flexWrap="wrap">
+                    {shareLink && !snapshot && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        color="whiteAlpha.700"
+                        _hover={{ color: "white", bg: "whiteAlpha.200" }}
+                        leftIcon={<LinkIcon boxSize={4} />}
+                        onClick={() => setShareModalLink(shareLink)}
+                      >
+                        Share decode
+                      </Button>
+                    )}
+                    <CopyToClipboard
+                      textToCopy={JSON.stringify(
+                        {
+                          function: result.signature,
+                          params: JSON.parse(stringify(result.rawArgs)),
+                        },
+                        undefined,
+                        2
+                      )}
+                      labelText="Copy params"
+                    />
+                    <CopyToClipboard
+                      textToCopy={decodedJson}
+                      labelText="Copy decoded JSON"
+                    />
+                  </HStack>
+                </HStack>
+                <Box minW={0}>
+                  <CalldataTree
+                    args={result.args}
+                    chainId={selectedTabIndex === 0 ? metadataChainId : chainId}
+                    functionName={resolvedFunctionName.name ?? result.functionName}
+                    isFunctionNameGuessed={resolvedFunctionName.isGuessed}
+                  />
+                </Box>
+              </Box>
             </Box>
           </Box>
         )}

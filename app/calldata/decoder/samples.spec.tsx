@@ -133,9 +133,9 @@ vi.mock("@/components/Tabs/TabsSelector", () => ({
     </div>
   ),
 }));
-vi.mock("./components/CalldataTree", async (importOriginal) => {
+vi.mock("@/components/decodedParams/CalldataTree", async (importOriginal) => {
   const { CalldataTree } =
-    await importOriginal<typeof import("./components/CalldataTree")>();
+    await importOriginal<typeof import("@/components/decodedParams/CalldataTree")>();
   return {
     CalldataTree: (props: React.ComponentProps<typeof CalldataTree>) => (
       <div data-testid={props.functionName ? "decoded" : "event-params"}>

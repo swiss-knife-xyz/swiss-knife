@@ -22,7 +22,14 @@ const mocks = vi.hoisted(() => ({
   resolve: vi.fn(),
   avatar: vi.fn(),
   url: vi.fn(),
+  clearMount: vi.fn(),
   query: "",
+}));
+vi.mock("@/components/ClearSigning/ClearSigningSummary", () => ({
+  default: function ClearSigningTestSummary() {
+    React.useEffect(() => { mocks.clearMount(); }, []);
+    return <section aria-label="Clear signing test" data-testid="clear-summary">Readable summary</section>;
+  },
 }));
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(mocks.query),
@@ -61,7 +68,7 @@ vi.mock("@/components/decodedParams", async () => ({
   IntParam: () => null,
   StringParam: () => null,
 }));
-vi.mock("@/components/decodedParams/TreeView/TreeBytesParam", () => ({
+vi.mock("@/components/decodedParams/TreeBytesParam", () => ({
   TreeBytesParam: () => null,
 }));
 vi.mock("@/components/DarkSelect", () => ({
@@ -733,4 +740,23 @@ it.each(["alice.gwei", "alice.wei"])("displays the shared primary name %s for de
   expect(mocks.avatar).toHaveBeenCalledWith(name);
   fireEvent.click(screen.getByRole("button", { name: /^Address$/ }));
   expect(screen.getByDisplayValue(address)).toBeTruthy();
+});
+
+
+it("keeps the clear-signing result mounted across Calldata and Events tabs", async () => {
+  const hash = `0x${"ef".repeat(32)}`;
+  mocks.getClient.mockReturnValue({
+    getTransaction: vi.fn(async () => ({ input: "0x12345678", to: address, from: address, value: 0n })),
+    getTransactionReceipt: vi.fn(async () => ({ logs: [] })),
+  });
+  render(page(`tx=${hash}&chainId=1`));
+  const summary = await screen.findByTestId("clear-summary");
+  expect(screen.getByText("Clear Signing").closest("[data-clear-signing-scroll]")).toBeNull();
+  expect(mocks.clearMount).toHaveBeenCalledTimes(1);
+  fireEvent.click(await screen.findByRole("tab", { name: "Events (0)" }));
+  expect(screen.queryByRole("region", { name: "Clear signing test" })).toBeNull();
+  expect(screen.getByTestId("clear-summary")).toBe(summary);
+  fireEvent.click(screen.getByRole("tab", { name: "Calldata" }));
+  expect(screen.getByRole("region", { name: "Clear signing test" })).toBe(summary);
+  expect(mocks.clearMount).toHaveBeenCalledTimes(1);
 });
