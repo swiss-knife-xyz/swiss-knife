@@ -1,4 +1,6 @@
 "use client";
+import { importVerifiedWorkspace } from "@/lib/solidity/importVerifiedWorkspace";
+import type { VerifiedContract } from "@/lib/solidity/verifiedContract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   loadWorkspace,
@@ -53,13 +55,13 @@ export function useLocalWorkspace(initialCode: string) {
     saveError.current = "";
     if (!mounted.current) return;
     setWorkspace(loaded.workspace);
-    setActiveWorkspace({ id: loaded.id, name: loaded.name });
+    setActiveWorkspace({ id: loaded.id, name: loaded.name, ...(loaded.workspace.importedContract ? { importedContract: loaded.workspace.importedContract } : {}) });
     setStatus("saved");
     setError("");
     setWorkspaces((entries) =>
       [
         ...entries.filter((entry) => entry.id !== loaded.id),
-        { id: loaded.id, name: loaded.name },
+        { id: loaded.id, name: loaded.name, ...(loaded.workspace.importedContract ? { importedContract: loaded.workspace.importedContract } : {}) },
       ].sort((a, b) => a.name.localeCompare(b.name))
     );
   }, []);
@@ -174,6 +176,13 @@ export function useLocalWorkspace(initialCode: string) {
       action(() => createWorkspace(name, initialCode, workspace)),
     [action, initialCode]
   );
+  const importVerifiedContract = useCallback(
+    (name: string, workspace: SolidityWorkspace, contract: VerifiedContract) =>
+      action(() =>
+        importVerifiedWorkspace(name, initialCode, workspace, contract)
+      ),
+    [action, initialCode]
+  );
   const changeName = useCallback(
     (name: string) => action((current) => renameWorkspace(current, name)),
     [action]
@@ -254,6 +263,7 @@ export function useLocalWorkspace(initialCode: string) {
     switchWorkspace,
     addWorkspace,
     importWorkspace,
+    importVerifiedContract,
     changeName,
     removeWorkspace,
     update,

@@ -97,12 +97,14 @@ export function DeploymentVerification({
           (await (async () => {
             const build = await getBuild(record.buildId);
             const source = deploymentVerificationSource(build, record);
+            const bytecode = build.contract.bytecode;
+            if (!bytecode) throw new Error("Saved deployment bytecode unavailable.");
             if (
-              (await verificationSourceId(source, build.contract.bytecode)) !==
+              (await verificationSourceId(source, bytecode)) !==
               sourceId
             )
               throw new Error("Saved verification input changed.");
-            return { source, bytecode: build.contract.bytecode };
+            return { source, bytecode };
           })());
         return provider === "sourcify"
           ? submitDeploymentSourcify(chainId, address, data.source)
@@ -159,6 +161,7 @@ export function DeploymentVerification({
       const build = await getBuild(record.buildId);
       const source = deploymentVerificationSource(build, record);
       const bytecode = build.contract.bytecode;
+      if (!bytecode) throw new Error("Saved deployment bytecode unavailable.");
       const sourceId = await verificationSourceId(source, bytecode);
       if (!mounted.current) return;
       const task = makeTask(provider, sourceId, undefined, {

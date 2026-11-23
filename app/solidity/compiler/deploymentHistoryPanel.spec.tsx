@@ -76,3 +76,14 @@ it("reveals an expanded deployment, ignoring nested argument disclosures and col
     else delete (HTMLElement.prototype as any).scrollIntoView;
   }
 });
+it("shows an imported deployed address with source attribution and no missing-transaction warning",()=>{
+  const imported={...record,hash:undefined,account:undefined,value:undefined,data:undefined,imported:{provider:"etherscan",sourceUrl:`https://sepolia.etherscan.io/address/${record.address}#code`}};
+  mount(history({records:[imported]}));
+  expect(screen.getByText("Imported")).toBeTruthy();
+  expect(screen.queryByRole("button",{name:/Delete .* deployment/})).toBeNull();
+  expect(screen.getByRole("link",{name:"Interact"}).getAttribute("href")).toContain(record.address);
+  expect(screen.getByRole("link",{name:/Source verified on Etherscan/}).getAttribute("href")).toBe(imported.imported.sourceUrl);
+  expect(screen.queryByText(/No transaction hash/)).toBeNull();
+  expect(screen.queryByRole("button",{name:/Verify on/})).toBeNull();
+  expect(screen.queryByRole("link",{name:/deployment transaction/})).toBeNull();
+});

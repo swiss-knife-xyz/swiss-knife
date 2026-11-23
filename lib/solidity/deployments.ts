@@ -2,7 +2,12 @@ import {
   mergeVerificationProgress,
   type DeploymentVerifications,
 } from "@/lib/verification/progress";
-import type { Address, Hex } from "viem";
+import type { VerificationProvider } from "@/lib/verification/source";
+import type { Address, Hex, AbiParameter } from "viem";
+import {
+  decodeConstructorArguments,
+  stringifyConstructorValues,
+} from "./constructorArguments";
 import type { CompilerBuild } from "@/app/solidity/compiler/useSolidityCompiler";
 import type { CompiledContract } from "@/app/solidity/compiler/types";
 import { standardJsonInput, type CompilerSettings } from "./settings";
@@ -21,9 +26,10 @@ export type DeploymentRecord = {
   contractName: string;
   sourcePath: string;
   chainId: number;
-  account: Address;
-  value: string;
-  data: Hex;
+  account?: Address;
+  value?: string;
+  data?: Hex;
+  constructorInputs?: readonly AbiParameter[];
   constructorArgs: Hex;
   arguments: string;
   createdAt: number;
@@ -35,6 +41,7 @@ export type DeploymentRecord = {
   error?: string;
   deletedAt?: number;
   verification?: DeploymentVerifications;
+  imported?: { provider: VerificationProvider; sourceUrl: string };
 };
 export type DeploymentBuild = {
   id: string;
@@ -43,7 +50,8 @@ export type DeploymentBuild = {
   settings: CompilerSettings;
   input: ReturnType<typeof standardJsonInput>;
   output?: CompilerBuild["output"];
-  contract: CompiledContract;
+  contract: Pick<CompiledContract, "name" | "sourcePath"> &
+    Partial<Pick<CompiledContract, "abi" | "bytecode" | "deployedBytecode">>;
 };
 export type DeploymentDraft = {
   workspaceId: string;
@@ -176,6 +184,99 @@ export async function prepareDeployment(
       if (!request.result) builds.add(savedBuild);
     };
     tx.objectStore("deployments").add(record);
+  });
+}
+/** Save an already-deployed contract without inventing transaction/wallet data. */
+export async function saveImportedDeployment(
+  workspaceId: string,
+  imported: import("./verifiedContract").VerifiedContract
+): Promise<DeploymentRecord> {
+  const { verifiedContractBackup } = await import("./verifiedContract");
+  const { explorerUrl } = await import("@/lib/verification/source");
+  const { getAddress } = await import("viem");
+  const backup = verifiedContractBackup(imported.source);
+  const sourcePath = backup.activeFile;
+  const contractName = imported.source.contractName.slice(
+    imported.source.contractName.lastIndexOf(":") + 1
+  );
+  const id = `imported-${workspaceId}`;
+  const constructorArgs: Hex = `0x${imported.source.constructorArguments.replace(/^0x/, "")}`;
+  const constructorInputs = imported.source.constructorAbi?.inputs;
+  const decoded = constructorInputs
+    ? decodeConstructorArguments(constructorInputs, constructorArgs)
+    : undefined;
+  const now = Date.now();
+  const record: DeploymentRecord = {
+    id,
+    buildId: id,
+    workspaceId,
+    sourcePath,
+    contractName,
+    chainId: imported.chainId,
+    address: getAddress(imported.address),
+    status: "success",
+    constructorArgs,
+    ...(constructorInputs ? { constructorInputs } : {}),
+    arguments: decoded
+      ? stringifyConstructorValues(decoded)
+      : imported.source.constructorArguments
+        ? JSON.stringify({ encoded: constructorArgs })
+        : "[]",
+    createdAt: now,
+    updatedAt: now,
+    revision: 1,
+    imported: {
+      provider: imported.provider,
+      sourceUrl: explorerUrl(
+        imported.provider,
+        String(imported.chainId),
+        imported.address
+      ),
+    },
+  };
+  const build: DeploymentBuild = {
+    id,
+    workspaceId,
+    entry: sourcePath,
+    settings: backup.compilerSettings,
+    input: JSON.parse(imported.source.sourceCode),
+    // No local compiler output exists yet; only the verified target is known.
+    contract: {
+      name: contractName,
+      sourcePath,
+      ...(imported.source.constructorAbi
+        ? { abi: [imported.source.constructorAbi] }
+        : {}),
+    },
+  };
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["builds", "deployments"], "readwrite");
+    tx.oncomplete = () => resolve(record);
+    tx.onabort = tx.onerror = () =>
+      reject(tx.error ?? new Error("Couldn't save the imported deployment."));
+    tx.objectStore("builds").add(build);
+    tx.objectStore("deployments").add(record);
+  });
+}
+/** Roll back only a staged import whose workspace failed to be created. */
+export async function discardImportedDeployment(workspaceId: string) {
+  const db = await openDatabase();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(["builds", "deployments"], "readwrite");
+    tx.oncomplete = () => resolve();
+    tx.onabort = tx.onerror = () => reject(tx.error);
+    const id = `imported-${workspaceId}`;
+    const request = tx.objectStore("deployments").get(id);
+    request.onsuccess = () => {
+      if (
+        request.result?.workspaceId === workspaceId &&
+        request.result.imported
+      ) {
+        tx.objectStore("deployments").delete(id);
+        tx.objectStore("builds").delete(id);
+      }
+    };
   });
 }
 export async function listDeployments(

@@ -180,21 +180,20 @@ Reference: https://unpkg.com (exact-version URLs and file metadata/integrity API
   existing verification flows.
 - [x] Retain deployment-linked build records even when trimming disposable caches.
 
-### 8. Contract interaction
+### 8. Contract interaction — complete via Explorer link
 
-- Reuse existing Contract Explorer inputs, read/write actions, simulations,
-  results and wallet handling.
-- Supply the compiled ABI and deployed address directly, without waiting for
-  explorer verification.
-- Start with the existing Interact link. Embed shared components later if useful;
-  avoid maintaining a separate interaction implementation.
+- [x] Interact opens the existing full Contract Explorer.
+- Embedded interaction panels and cross-domain ABI/source sharing are intentionally
+  out of scope. Explorer already supports inferred interfaces for unverified
+  contracts and manual ABI input; users can also verify their saved source.
 
 ### 9. Focused quality-of-life features
 
-- Workspace find/replace; keyboard shortcuts; optional auto-compile.
-- Inline Monaco diagnostics and click-to-jump errors.
-- Bounded local revision history and contract byte-size indicators.
-- Import a verified contract into a workspace.
+- [x] Optional auto-compile, inline Monaco diagnostics and click-to-jump errors.
+- [ ] Workspace-wide find/replace and workspace-specific keyboard shortcuts.
+- [ ] Bounded local source revision history with preview and restore.
+- [ ] Contract byte-size indicators and deployment-size limit warnings.
+- [x] Import a verified contract into a new workspace.
 
 ## Storage architecture
 
@@ -456,3 +455,73 @@ poll. Concurrent explorer saves and storage-failure retries retain both GUIDs.
 No API keys or source payloads are duplicated in checkpoint metadata.
 Validation: 170 compiler tests, 22 mock-token UI tests and TypeScript passed.
 Production build passed for verification checkpoint persistence and recovery.
+
+
+Verified-contract import lives beside the workspace’s three-dot menu. Address or recognized
+explorer links plus a network fetch complete source through the existing
+Etherscan/Sourcify/Blockscout/Routescan verification adapters. Review shows the
+provider, exact compiler and entry path, with a collapsed source list and editable
+workspace name. Creation uses the existing atomic new-workspace flow and switches
+to it; no existing source is replaced. Verified compiler/settings are retained,
+not inferred from pragma. Proxies import their own source with an explicit notice;
+implementation imports are separate. Unsupported compiler versions and source
+paths/settings fail before writes. Cancellation and field edits invalidate late
+responses. Public source reads use server-configured provider keys; no keys are
+returned. Imported sources remain local and editable, with no package installs.
+
+Validation: all 179 compiler tests, TypeScript and the production build passed.
+Live browser checks imported Dai on Ethereum, retained solc 0.5.12, compiled and
+restored it after reload. Aave pool proxy lookup returned six files and solc
+0.8.10 with the explicit proxy notice. Lookup/review controls fit a 320px viewport.
+No wallet request, deployment or verification publication was made.
+
+
+Verified-contract imports now save an Imported deployment entry in the new
+workspace before it is adopted. The entry keeps its original network/address,
+provider source link and immutable Standard JSON/settings snapshot. It works
+before local compilation and after reload, without a wallet, receipt polling or
+invented transaction/deployer/value fields. Imported snapshots retain contract identity and the verified constructor ABI,
+without fabricating local compiler output. The existing Interact and download actions apply. Imported entries have no
+Delete action; deletion and Undo remain available for compiler deployments. History save failure prevents workspace creation;
+failed workspace creation rolls back its staged import entry. The previous
+workspace stays unchanged. Validation: 184 compiler tests, TypeScript and the
+production build passed; a live Dai import displayed its deployment immediately
+and retained it after reload.
+
+
+Compiler URL imports use `?address=0x…&chainId=1`. An address without chainId
+opens the existing import modal for network selection. Both parameters fetch and
+create the workspace/deployment without a review confirmation; failures remain
+visible and no partial workspace is adopted. Imported workspace provenance is
+saved with its metadata. Manual imports update the URL too, workspace switches
+remove or restore only these parameters, and unrelated queries/hash are retained.
+Reloading a matching imported workspace reuses it; matching stored workspaces
+can be reopened without fetching or duplicating sources. Lookups cancel across
+URL changes and effect replay; a stale completion cannot consume a newer link.
+Validation: 192 compiler tests, TypeScript and production build passed. Browser
+checks covered the address-only modal, automatic six-file Aave import, switching
+to an ordinary workspace and back, and reload with the same workspace count.
+
+
+Imported constructor arguments now decode against the verified constructor ABI,
+with parameter names/types and values inside the existing collapsed disclosure.
+New imports retain constructor metadata and decoded values in IndexedDB; uints
+are serialized as decimal strings without precision loss. Etherscan, Sourcify
+metadata and Blockscout share the constructor ABI extraction. Older entries read
+their saved ABI, or fetch verified metadata only on expansion; edited workspace
+sources are never used to guess an original constructor. If metadata is unavailable
+or decoding fails, encoded data remains available. Validation: 198 compiler tests,
+26 verification/provider tests and TypeScript passed. The existing Aave import
+successfully displayed its decoded admin address in the browser.
+
+
+Constructor parameters expose a two-line Reuse from prev deployment action only
+when this workspace has deployment records. The modal lists decoded saved and
+imported constructor arguments with right-arrow selection. Changed types, array
+sizes, parameter order/names or nested tuple names disable reuse; names and types
+are checked again when applying. Reuse fills positional form values with precise
+integer strings and existing boolean/array/tuple shapes, resets validation, and
+closes the modal without switching chains or submitting a wallet request. The
+shared constructor loader handles saved ABIs and older imported records. Live
+browser validation reused Aave's imported admin address into its constructor
+input. All 204 compiler tests and the production build passed.

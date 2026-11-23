@@ -2,7 +2,9 @@ import type { DependencyLock } from "./dependencies";
 import { normalizeCompilerSettings, type CompilerSettings } from "./settings";
 import { validatePath, assertPaths } from "./paths";
 export type SolidityFile = { id: string; name: string; content: string };
+export type ImportedContractIdentity = { address: string; chainId: number };
 export type SolidityWorkspace = {
+  importedContract?: ImportedContractIdentity;
   files: SolidityFile[];
   folders?: string[];
   compilerSettings?: CompilerSettings;
@@ -10,7 +12,7 @@ export type SolidityWorkspace = {
   activeFileId: string | null;
   openFileIds: string[];
 };
-export type WorkspaceSummary = { id: string; name: string };
+export type WorkspaceSummary = { id: string; name: string; importedContract?: ImportedContractIdentity };
 export type SavedWorkspace = WorkspaceSummary & {
   workspace: SolidityWorkspace;
   revision: number;
@@ -147,7 +149,7 @@ export async function listWorkspaces(): Promise<WorkspaceSummary[]> {
     request.onsuccess = () =>
       resolve(
         request.result
-          .map(({ id, name }) => ({ id, name }))
+          .map(({ id, name, importedContract }) => ({ id, name, ...(importedContract ? { importedContract } : {}) }))
           .sort((a, b) => a.name.localeCompare(b.name))
       );
   });
@@ -218,6 +220,7 @@ export async function loadWorkspace(
               name: record.name,
               revision: record.revision,
               workspace: {
+                ...(record.importedContract ? { importedContract: record.importedContract } : {}),
                 files: savedFiles,
                 folders: record.folders ?? [],
                 ...(record.dependencies?.length
@@ -306,7 +309,8 @@ export async function saveWorkspace(
 export async function createWorkspace(
   value: string,
   initialCode: string,
-  importedWorkspace?: SolidityWorkspace
+  importedWorkspace?: SolidityWorkspace,
+  workspaceId = crypto.randomUUID()
 ): Promise<SavedWorkspace> {
   const name = validateWorkspaceName(value);
   const workspace = importedWorkspace ?? seed(initialCode);
@@ -320,7 +324,7 @@ export async function createWorkspace(
       ["workspaces", "files", "preferences"],
       "readwrite"
     );
-    const id = crypto.randomUUID();
+    const id = workspaceId;
     tx.oncomplete = () => resolve({ id, name, workspace, revision: 1 });
     tx.onabort = () =>
       reject(
@@ -332,6 +336,7 @@ export async function createWorkspace(
       id,
       name,
       nameKey: name.toLowerCase(),
+      ...(workspace.importedContract ? { importedContract: workspace.importedContract } : {}),
       revision: 1,
       folders: workspace.folders ?? [],
       dependencies: workspace.dependencies ?? [],

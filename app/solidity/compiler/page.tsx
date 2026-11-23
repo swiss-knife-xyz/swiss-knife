@@ -58,6 +58,8 @@ import { normalizeCompilerSettings } from "@/lib/solidity/settings";
 import { useSolidityCompiler } from "./useSolidityCompiler";
 import { syncDiagnosticMarkers } from "./diagnosticMarkers";
 import { registerSolidityIntellisense } from "./intellisense";
+import { useWorkspaceUrl } from "./useWorkspaceUrl";
+import { ImportVerifiedContract } from "./ImportVerifiedContract";
 import { WorkspaceBackupActions } from "./WorkspaceBackup";
 import { WorkspaceSelector } from "./WorkspaceSelector";
 import {
@@ -195,6 +197,17 @@ export default function SolidityIDE() {
 
   const filesLocked =
     deploymentBusy || (deploymentHistory.hasUnsaved && !!deploymentHistory.error) || local.isChanging || local.status === "loading";
+  const workspaceUrl = useWorkspaceUrl({
+    ready: !!local.activeWorkspace && local.status !== "loading" && deploymentHistory.ready,
+    disabled: filesLocked,
+    activeId: local.activeWorkspace?.id,
+    identity: local.workspace?.importedContract ?? (() => {
+      const imported = deploymentHistory.records.find(record => record.workspaceId === local.activeWorkspace?.id && record.imported && record.address);
+      return imported?.address ? { address: imported.address, chainId: imported.chainId } : undefined;
+    })(),
+    workspaces: local.workspaces,
+    onSwitch: local.switchWorkspace,
+  });
   const editorContext = useRef<WorkspaceEditorContext>({workspace:null, blocked:true});
   editorContext.current = {workspace:local.workspace, workspaceId:local.activeWorkspace?.id, blocked:filesLocked};
   const editorBinding = useRef<ReturnType<typeof bindWorkspaceEditor> | null>(null);
@@ -442,7 +455,7 @@ export default function SolidityIDE() {
           borderColor="border.default"
           wrap="wrap"
         >
-          <HStack spacing={2} minW={0}>
+          <HStack spacing={2} minW={0} flexWrap="wrap" rowGap={2}>
             <IconButton
               display={{ base: "inline-flex", xl: "none" }}
               aria-label="Open workspace files"
@@ -480,6 +493,15 @@ export default function SolidityIDE() {
                 />
               )}
             </WorkspaceBackupActions>
+            <ImportVerifiedContract
+              key={`import-${local.activeWorkspace?.id ?? "loading"}`}
+              request={workspaceUrl.request}
+              onRequestDone={workspaceUrl.done}
+              disabled={deploymentBusy || (deploymentHistory.hasUnsaved && !!deploymentHistory.error) || local.isChanging || local.status === "loading" || !local.workspace}
+              workspaceNames={local.workspaces.map((entry) => entry.name)}
+              onCreate={local.importVerifiedContract}
+              onOpen={filesDrawer.onClose}
+            />
           </HStack>
           <HStack spacing={3} flexWrap="wrap" rowGap={2}>
             <CompilerConfiguration

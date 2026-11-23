@@ -394,6 +394,26 @@
   latest action. Installed cards link to the pinned GitHub tree and show a short
   commit SHA with its full value on hover. Import annotations and folder deletion
   open this same modal.
+
+- Verified-contract import: a labelled toolbar button next to workspace actions opens a compact two-stage modal.
+  Address/link and the shared network selector lead to a source review with
+  explorer attribution, pinned compiler, entry path and collapsed file list.
+  Create workspace is the primary action; existing workspaces are preserved.
+  Reuse existing dark tokens, small typography, rounded inputs and icon buttons.
+  Lookup can be cancelled; errors stay inline and failed saves remain retryable.
+  New imports also appear in Deployments as Imported, with the original address,
+  source attribution and existing Interact/download actions. Delete is only shown
+  for deployments made from the compiler.
+  Address-only deep links open network selection; address + chainId imports use
+  the same loading/error surface and create directly. Workspace-linked URL
+  identity survives editing and reload, with no extra controls or confirmation.
+  Imported constructor arguments stay collapsed initially and show compact typed,
+  named decoded values on expansion, with a copy action beside each parameter.
+  Constructor forms place a compact two-line reuse action at the top right; its
+  modal shows decoded deployment rows with right arrows and disables mismatches.
+  Only the deployment list scrolls; its scrollbar is hidden and edge shadows
+  appear when more content remains above or below.
+
 ## Homepage omnibox
 
 - Artifact: developer-tool launcher inside the existing homepage hero, centered below the logo/text columns and their Explore Tools / GitHub row. Adjectives: direct, compact, precise, restrained. Essence: paste to tool.
@@ -404,3 +424,17 @@
 - Audit: one functional surface, quiet result states, no decorative cards; the animated gradient is isolated to the input perimeter, secondary alternatives remain subordinate. Verify desktop and phone layouts, keyboard selection, URL inference, and existing decoder/converter URL entry points.
 
 - Text fallback in the homepage omnibox uses `lib/toolNavigation.ts`, shared with All Tools: the same catalog, related-page labels, matching, and ordering. Show up to six tool/page results in a bounded scrolling menu; keep data recognition and paste navigation ahead of text search.
+
+
+### Constructor reuse modal
+
+- Direction: compact inspection panel, precise and understated; retain existing
+  dark surfaces and typography. A divided deployment header gives contract name,
+  chain logo, imported provenance and shortened address a clear hierarchy.
+- An explicit blue Use arguments action with a right arrow anchors each header;
+  compatibility is communicated by both text and icon, and mismatches disable use.
+- A ruled two-column definition list pairs parameter names/types with readable
+  values and copy buttons. Narrow layouts stack labels above values. The modal
+  body owns scrolling; parameter values wrap without nested scroll areas.
+- Use existing semantic tokens and crisp borders; no glow, decorative gradients,
+  new fonts or explanatory filler. Preserve constructor checks and exact values.

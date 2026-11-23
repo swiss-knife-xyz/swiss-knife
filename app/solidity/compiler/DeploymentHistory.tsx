@@ -28,6 +28,9 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { getPath } from "@/utils";
 import { shortenAddress } from "@/utils/helpers";
 import subdomains from "@/subdomains";
+import { PROVIDERS } from "@/lib/verification/source";
+import { DeploymentScrollArea } from "./DeploymentScrollArea";
+import { DeploymentConstructorArguments } from "./DeploymentConstructorArguments";
 import { DeploymentVerification } from "./DeploymentVerification";
 import { compilerVersion } from "@/lib/solidity/settings";
 import type { DeploymentRecord } from "@/lib/solidity/deployments";
@@ -190,7 +193,7 @@ function Row({
               <Box w="6px" h="6px" bg={color} borderRadius="full" />
             )}
             <Text fontSize="xs" color={color}>
-              {waitingForWallet ? "Confirm in wallet" : labels[record.status]}
+              {record.imported ? "Imported" : waitingForWallet ? "Confirm in wallet" : labels[record.status]}
             </Text>
             {record.hash && explorer && (
               <IconButton
@@ -287,25 +290,16 @@ function Row({
           </Box>
         )}
         {record.arguments !== "[]" && (
-          <Box as="details">
-            <Box as="summary" color="text.secondary" cursor="pointer">
-              Constructor arguments
-            </Box>
-            <Box
-              as="pre"
-              mt={2}
-              whiteSpace="pre-wrap"
-              overflowWrap="anywhere"
-              maxH="120px"
-              overflowY="auto"
-              fontFamily="mono"
-            >
-              {JSON.stringify(JSON.parse(record.arguments), null, 2)}
-            </Box>
-          </Box>
+          <DeploymentConstructorArguments record={record} getBuild={history.getBuild} />
         )}
+        {record.imported ? (
+          <Link href={record.imported.sourceUrl} isExternal fontSize="xs" color="primary.300" display="inline-flex" alignItems="center" gap={1}>
+            Source verified on {PROVIDERS[record.imported.provider]} <ArrowUpRight size={13} />
+          </Link>
+        ) : (
         <DeploymentVerification record={record} getBuild={history.getBuild} hasUnsaved={history.hasUnsaved} saveProgress={history.saveVerification ? (provider,progress)=>history.saveVerification(record.id,provider,progress) : undefined} />
-        {!record.hash && record.status !== "rejected" && !waitingForWallet && (
+        )}
+        {!record.imported && !record.hash && record.status !== "rejected" && !waitingForWallet && (
           <Text color="warning.text">
             No transaction hash yet. Check your wallet before deploying again.
           </Text>
@@ -331,6 +325,7 @@ function Row({
           >
             <Text as="span" isTruncated>Download Standard JSON</Text>
           </Button>
+          {!record.imported && (
           <Button
             size="xs"
             variant="ghost"
@@ -343,6 +338,7 @@ function Row({
           >
             Delete
           </Button>
+          )}
         </HStack>
         {record.status === "unknown" && record.hash && (
             <Button
@@ -411,11 +407,11 @@ export function DeploymentHistory({
           </Box>
         </Alert>
       )}
-      <VStack align="stretch" spacing={2} maxH="440px" overflowY="auto">
+      <DeploymentScrollArea>
         {records.map((record) => (
           <Row key={record.id} record={record} history={history} />
         ))}
-      </VStack>
+      </DeploymentScrollArea>
     </Box>
   );
 }

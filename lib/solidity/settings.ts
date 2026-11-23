@@ -83,6 +83,22 @@ export function normalizeCompilerSettings(
       "outputSelection",
     ];
     for (const [key, item] of Object.entries(value.extras)) {
+      if (key === "remappings") {
+        if (
+          !Array.isArray(item) ||
+          item.some(
+            (mapping) =>
+              typeof mapping !== "string" ||
+              !/^[^=\x00-\x1f]+=[^=\x00-\x1f]+\/$/.test(mapping) ||
+              mapping
+                .split("=")[1]
+                .split("/")
+                .some((part) => part === ".." || part === ".")
+          )
+        )
+          throw new Error("Invalid import remappings.");
+        continue;
+      }
       if (
         !allowed.includes(key) ||
         !item ||

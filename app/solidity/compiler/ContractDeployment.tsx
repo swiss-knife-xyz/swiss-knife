@@ -35,6 +35,7 @@ import {
 } from "viem";
 import type { JsonFragmentType } from "ethers";
 import { chainIdToChain, chainIdToImage } from "@/data/common";
+import { ReuseConstructorArguments } from "./ReuseConstructorArguments";
 import { NetworkSelect } from "@/components/NetworkSelect";
 import { useCustomChains } from "@/lib/customChains/store";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
@@ -207,6 +208,7 @@ export function ContractDeploymentForm({
   const networkOptions = getNetworkOptions();
   const [chainId, setChainId] = useState(11155111);
   const [values, setValues] = useState<Record<number, any>>({});
+  const [reuseVersion, setReuseVersion] = useState(0);
   const [invalid, setInvalid] = useState<Record<number, boolean>>({});
   const [value, setValue] = useState("0");
   const [valueInvalid, setValueInvalid] = useState(false);
@@ -369,14 +371,23 @@ export function ContractDeploymentForm({
               pb={3}
               minW={0}
             >
-              <Text as="legend" px={2} fontSize="sm" color="text.secondary">
-                Constructor parameters
-              </Text>
+              <Box as="legend" px={2} w="full">
+                <Flex align="center" gap={2} wrap="wrap">
+                  <Text fontSize="sm" color="text.secondary">Constructor parameters</Text>
+                  <Box aria-hidden="true" flex={1} minW={4} borderTopWidth="1px" borderColor="border.default" />
+                  {history && <ReuseConstructorArguments
+                    inputs={constructor.inputs}
+                    history={history}
+                    disabled={busy || isStale}
+                    onReuse={(next) => { setValues(next); setInvalid({}); setReuseVersion(version => version + 1); setError(""); }}
+                  />}
+                </Flex>
+              </Box>
               <VStack align="stretch" spacing={0}>
                 {constructor.inputs.map(
                   (input: JsonFragmentType, index: number) => (
                     <Box
-                      key={index}
+                      key={`${index}:${reuseVersion}`}
                       minW={0}
                       w="full"
                       pt={4}
