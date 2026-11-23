@@ -25,6 +25,7 @@ interface SearchPanelProps {
   sourceCode: Record<string, string>;
   onResultClick: (path: string, content: string, lineNumber: number) => void;
   isOpen: boolean;
+  showHeader?: boolean;
   onSearchQueryChange?: (query: string, options: SearchOptions) => void;
 }
 
@@ -187,6 +188,7 @@ export function SearchPanel({
   sourceCode,
   onResultClick,
   isOpen,
+  showHeader = true,
   onSearchQueryChange,
 }: SearchPanelProps) {
   const [query, setQuery] = useState("");
@@ -197,12 +199,13 @@ export function SearchPanel({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const debouncedQuery = useDebouncedValue(query, 200);
+  const debouncedSources = useDebouncedValue(sourceCode, 200);
 
   // Compute search results
   const results = useMemo(() => {
-    if (!debouncedQuery || !sourceCode) return [];
-    return searchAllFiles(sourceCode, debouncedQuery, options);
-  }, [sourceCode, debouncedQuery, options]);
+    if (!isOpen || !debouncedQuery || !debouncedSources) return [];
+    return searchAllFiles(debouncedSources, debouncedQuery, options);
+  }, [isOpen, debouncedSources, debouncedQuery, options]);
 
   const totalMatches = useMemo(() => getTotalMatchCount(results), [results]);
   const fileCount = results.length;
@@ -233,7 +236,7 @@ export function SearchPanel({
   return (
     <Box h="100%" display="flex" flexDirection="column">
       {/* Search Header */}
-      <Box px={3} py={2} borderBottom="1px solid" borderColor="whiteAlpha.100" flexShrink={0}>
+      {showHeader && <Box px={3} py={2} borderBottom="1px solid" borderColor="whiteAlpha.100" flexShrink={0}>
         <Text
           fontSize="xs"
           fontWeight="semibold"
@@ -243,7 +246,7 @@ export function SearchPanel({
         >
           Search
         </Text>
-      </Box>
+      </Box>}
 
       {/* Search Input */}
       <Box px={2} py={2} flexShrink={0}>
@@ -336,7 +339,7 @@ export function SearchPanel({
             <FileResult
               key={result.filePath}
               result={result}
-              sourceCode={sourceCode}
+              sourceCode={debouncedSources}
               onMatchClick={onResultClick}
               defaultOpen={true}
             />

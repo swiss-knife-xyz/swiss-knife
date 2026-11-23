@@ -5,7 +5,10 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Box, HStack, Text, VStack, IconButton, Tooltip, Button, Icon } from "@chakra-ui/react";
 import { Editor, type OnMount } from "@monaco-editor/react";
 import { Search, Files, Columns2, Rows2 } from "lucide-react";
-import { FileExplorerTree } from "./FileExplorerTree";
+import { resolveImport } from "@/lib/solidity/compilation";
+import { flashSourceLine } from "./flashSourceLine";
+import { registerSelectorLenses } from "./selectorLenses";
+import { FileExplorerPanel } from "./FileExplorerPanel";
 import { CodeEditorTabs } from "./CodeEditorTabs";
 import { SearchPanel } from "./SearchPanel";
 import { buildFileTree, findTargetFile, getLanguageForFile, detectLanguageFromContent } from "./utils";
@@ -62,6 +65,7 @@ export function SourceCodeExplorer({
 }: SourceCodeExplorerProps) {
   const [tabs, setTabs] = useState<TabData[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>("");
+  const [importReveal, setImportReveal] = useState<number>();
   const [sidebarTab, setSidebarTab] = useState<"explorer" | "search">("explorer");
   const [height, setHeight] = useState(initialHeight);
   const [sidebarWidth, setSidebarWidth] = useState(initialSidebarWidth);
@@ -80,6 +84,9 @@ export function SourceCodeExplorer({
   const editorRef = useRef<EditorInstance | null>(null);
   // Monaco namespace ref (for creating Range objects)
   const monacoRef = useRef<MonacoInstance | null>(null);
+  const selectorLensesRef = useRef<ReturnType<typeof registerSelectorLenses> | null>(null);
+  const importNavigationRef = useRef<{resolve:(path:string)=>{id:string;name:string}|null;open:(path:string)=>void}>({resolve:()=>null,open:()=>{}});
+  useEffect(() => () => selectorLensesRef.current?.dispose(), []);
   // Pending line to scroll to after file opens
   const pendingLineRef = useRef<number | null>(null);
   // Container ref for resize calculations
@@ -282,6 +289,25 @@ export function SourceCodeExplorer({
     return activeFileDiff.newCode;
   }, [activeTab, activeFileDiff, diffViewMode]);
 
+  const importContent = (path: string) => {
+    const diff = diffData?.[path];
+    if (diff) return diffViewMode === 2 ? (diff.newExists === false ? null : diff.newCode) : (diff.oldExists === false ? null : diff.oldCode);
+    return Object.hasOwn(sourceCode,path) ? sourceCode[path] : null;
+  };
+  importNavigationRef.current = {
+    resolve: imported => {
+      if (!activeTab) return null;
+      const path = resolveImport(activeTab.path, imported);
+      return importContent(path) !== null ? {id:path,name:path} : null;
+    },
+    open: path => {
+      const content = importContent(path);
+      if (content !== null) { setSidebarTab("explorer"); setImportReveal(current => (current ?? 0) + 1); handleFileSelect(path,content); }
+    },
+  };
+
+  useEffect(() => { selectorLensesRef.current?.refreshContext(); }, [sourceCode, diffData, diffViewMode, activeTabId]);
+
   // Get language for current file (falls back to content-based detection)
   const language = useMemo(() => {
     if (!activeTab) return "sol";
@@ -453,6 +479,11 @@ export function SourceCodeExplorer({
     (editor: EditorInstance, monaco: MonacoInstance) => {
       editorRef.current = editor;
       monacoRef.current = monaco;
+      selectorLensesRef.current?.dispose();
+      selectorLensesRef.current = registerSelectorLenses(editor, monaco, {
+        resolveSourceImport: path => importNavigationRef.current.resolve(path),
+        onOpenImport: path => importNavigationRef.current.open(path),
+      });
 
       // Patch Solidity single-quote string support
       patchSolidityLanguage(monaco);
@@ -461,6 +492,7 @@ export function SourceCodeExplorer({
       if (pendingLineRef.current !== null) {
         editor.revealLineInCenter(pendingLineRef.current);
         editor.setPosition({ lineNumber: pendingLineRef.current, column: 1 });
+        flashSourceLine(editor, pendingLineRef.current);
         pendingLineRef.current = null;
       }
 
@@ -478,6 +510,7 @@ export function SourceCodeExplorer({
         if (editorRef.current && pendingLineRef.current !== null) {
           editorRef.current.revealLineInCenter(pendingLineRef.current);
           editorRef.current.setPosition({ lineNumber: pendingLineRef.current, column: 1 });
+          flashSourceLine(editorRef.current, pendingLineRef.current);
           pendingLineRef.current = null;
         }
       }, 50);
@@ -579,6 +612,7 @@ export function SourceCodeExplorer({
         if (existingTab.id === activeTabId && editorRef.current) {
           editorRef.current.revealLineInCenter(lineNumber);
           editorRef.current.setPosition({ lineNumber, column: 1 });
+          flashSourceLine(editorRef.current, lineNumber);
           pendingLineRef.current = null;
         }
         return prevTabs;
@@ -664,37 +698,28 @@ export function SourceCodeExplorer({
         {/* Sidebar Content */}
         <Box flex={1} minW={0} bg="bg.muted" overflow="hidden" h="100%" display={sidebarOpen ? "block" : "none"}>
           {sidebarTab === "explorer" ? (
-            <Box h="100%" display="flex" flexDirection="column">
-              {/* Explorer Header */}
-              <HStack
-                px={3}
-                py={2}
-                borderBottom="1px solid"
-                borderColor="whiteAlpha.100"
-                flexShrink={0}
-              >
-                <Text
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  color="text.tertiary"
-                  textTransform="uppercase"
-                  letterSpacing="0.05em"
-                >
-                  Explorer
-                </Text>
-              </HStack>
-
-              {/* File Tree */}
-              <Box flex={1} overflow="auto">
-                <FileExplorerTree
-                  data={fileTree}
-                  onFileSelect={handleFileSelect}
-                  selectedPath={activeTabId}
-                  height="100%"
-                  changedFiles={changedFiles}
-                />
-              </Box>
-            </Box>
+            <FileExplorerPanel
+              data={fileTree}
+              revealSelection={importReveal}
+              onFileSelect={handleFileSelect}
+              selectedPath={activeTabId}
+              changedFiles={changedFiles}
+              outline={{
+                path: activeTab?.path ?? "",
+                content: activeFileDiff ? (diffViewMode === 2 || activeFileDiff.oldExists === false ? activeFileDiff.newCode : activeFileDiff.oldCode) : displayedContent,
+                onSelect: (line) => {
+                  if (activeFileDiff && diffViewMode === 1) {
+                    pendingLineRef.current = line;
+                    setDiffViewMode(activeFileDiff.oldExists === false ? 2 : 0);
+                  } else if (editorRef.current) {
+                    editorRef.current.revealLineInCenter(line);
+                    editorRef.current.setPosition({lineNumber:line,column:1});
+                    flashSourceLine(editorRef.current, line);
+                    editorRef.current.focus();
+                  } else pendingLineRef.current = line;
+                },
+              }}
+            />
           ) : (
             <SearchPanel
               sourceCode={sourceCode}

@@ -333,6 +333,7 @@ const AbiSourceCodeContent = ({
                 <SourceCodeExplorer
                   sourceCode={currentSourceCode}
                   contractName={currentAbi?.name}
+                  initialSidebarWidth={320}
                   isFullscreen={isFullscreen}
                 />
               </Box>

@@ -1,6 +1,10 @@
 export interface CompilerError {
+  type?: string;
   severity: string;
   formattedMessage: string;
+  message?: string;
+  errorCode?: string;
+  sourceLocation?: { file: string; start: number; end: number };
 }
 
 export interface ContractOutput {
@@ -16,6 +20,8 @@ export interface ContractOutput {
 }
 
 export interface CompiledContract {
+  sourcePath: string;
+  name: string;
   abi: any[];
   bytecode: string;
   deployedBytecode: string;
@@ -36,10 +42,13 @@ export interface CompileResult {
     [contractName: string]: CompiledContract;
   };
   warnings?: CompilerError[];
+  diagnostics?: CompilerError[];
 }
 
 export interface WorkerMessage {
-  success: boolean;
+  id?: number;
+  type?: "ready" | "load-error";
+  success?: boolean;
   output?: CompileOutput;
   error?: string;
 }
