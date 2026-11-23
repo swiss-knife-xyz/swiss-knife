@@ -686,3 +686,32 @@ it.each([[1, "https://etherscan.io"], [8453, "https://basescan.org"]])("links a 
   fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), { target: { value: "0x123" } });
   await waitFor(() => expect(screen.queryByRole("link", { name: "View transaction on block explorer" })).toBeNull());
 });
+
+it.each([["etherscan.io", 1], ["basescan.org", 8453]])("pasted %s transaction URLs switch No ABI to From Tx and decode on the inferred chain", async (host, chainId) => {
+  const hash = `0x${"cd".repeat(32)}`;
+  const getTransaction = vi.fn(async () => ({ input: "0x12345678", to: address }));
+  mocks.getClient.mockReturnValue({ getTransaction, getTransactionReceipt: vi.fn(async () => ({ logs: [] })) });
+  render(page());
+  const input = screen.getByRole("textbox", { name: "Calldata" });
+  expect(input.getAttribute("placeholder")).toBe("0x calldata or tx url");
+  fireEvent.paste(input, { clipboardData: { getData: () => `https://${host}/tx/${hash}?foo=bar#details` } });
+  await waitFor(() => expect(getTransaction).toHaveBeenCalledExactlyOnceWith({ hash }));
+  expect(mocks.getClient).toHaveBeenCalledWith(chainId);
+  expect(screen.queryByRole("textbox", { name: "Calldata" })).toBeNull();
+  expect((screen.getByPlaceholderText("etherscan link / tx hash") as HTMLInputElement).value).toBe(`https://${host}/tx/${hash}?foo=bar#details`);
+  expect((screen.getByRole("combobox", { name: "Network" }) as HTMLSelectElement).value).toBe(String(chainId));
+  await waitFor(() => expect(mocks.decode).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ calldata: "0x12345678", address, chainId })));
+});
+
+it("recognizes only known explorer transaction URLs, not lookalike hosts or address links", async () => {
+  const { parseTransactionExplorerUrl } = await import("@/lib/contractExplorerInput");
+  const hash = `0x${"ab".repeat(32)}`;
+  expect(parseTransactionExplorerUrl(`basescan.org/tx/${hash}/`)).toEqual({ hash, chainId: 8453 });
+  for (const input of [
+    `https://basescan.org.evil.example/tx/${hash}`,
+    `https://evil.example/tx/${hash}`,
+    `https://user@basescan.org/tx/${hash}`,
+    `https://basescan.org/address/${address}`,
+    "https://basescan.org/tx/0x123",
+  ]) expect(parseTransactionExplorerUrl(input)).toBeNull();
+});

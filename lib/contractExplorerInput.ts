@@ -12,6 +12,25 @@ export function parseContractAddressInput(input: string) {
   return parseChainPrefixedAddress(input) ?? parseContractExplorerUrl(input);
 }
 
+export function parseTransactionExplorerUrl(input: string) {
+  try {
+    const value = input.trim();
+    const url = new URL(value.includes("://") ? value : `https://${value}`);
+    if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) return null;
+    const match = /^(.*)\/tx\/(0x[a-fA-F0-9]{64})\/?$/.exec(url.pathname);
+    if (!match) return null;
+    for (const chain of Object.values(chainIdToChain)) {
+      for (const explorer of Object.values(chain.blockExplorers ?? {})) {
+        const base = new URL(explorer.url);
+        if (url.host === base.host && match[1] === base.pathname.replace(/\/$/, "")) {
+          return { hash: match[2], chainId: chain.id };
+        }
+      }
+    }
+  } catch { /* Not a known explorer transaction URL. */ }
+  return null;
+}
+
 // Match configured explorer origins exactly, including testnet subdomains.
 const explorerChains = new Map<string, number>();
 for (const chain of Object.values(chainIdToChain)) {

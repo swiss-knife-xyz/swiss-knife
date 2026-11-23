@@ -54,7 +54,8 @@ import {
   FiArrowRight,
 } from "react-icons/fi";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
-import { Hex, Chain, stringify } from "viem";
+import { Hex, stringify } from "viem";
+import { parseTransactionExplorerUrl } from "@/lib/contractExplorerInput";
 import { getPublicClient } from "@/lib/publicClient";
 import {
   DecodeRecursiveResult,
@@ -62,7 +63,6 @@ import {
   DecodeEventResult,
 } from "@/types";
 import {
-  c,
   chainIdToChain,
   erc3770ShortNameToChain,
   networkOptions,
@@ -760,7 +760,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
 
     console.log({ __fromTxInput, _chainId, selectedNetworkOption });
 
-    let chain: Chain =
+    let chain =
       chainIdToChain[
         _chainId ?? parseInt(selectedNetworkOption!.value.toString())
       ];
@@ -778,34 +778,12 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
           }
         }
       } else {
-        txHash = __fromTxInput.split("/").pop()!;
-        const chainKey = Object.keys(c).filter((chainKey) => {
-          const chain = c[chainKey as keyof typeof c] as Chain;
-          let explorerDomainDefault = "null";
-          let explorerDomainEtherscan = "null";
-          if (chain.blockExplorers) {
-            explorerDomainDefault = chain.blockExplorers.default.url
-              .split("//")
-              .pop()!;
-            if (chain.blockExplorers.etherscan) {
-              explorerDomainEtherscan = chain.blockExplorers.etherscan.url
-                .split("//")
-                .pop()!;
-            }
-          }
-          return (
-            __fromTxInput
-              .split("/")
-              .filter(
-                (urlPart) =>
-                  urlPart.toLowerCase() ===
-                    explorerDomainDefault.toLowerCase() ||
-                  urlPart.toLowerCase() ===
-                    explorerDomainEtherscan.toLowerCase()
-              ).length > 0
-          );
-        })[0];
-        chain = c[chainKey as keyof typeof c];
+        const explorer = parseTransactionExplorerUrl(__fromTxInput);
+        if (!explorer) throw new Error("Enter a valid explorer transaction URL");
+        txHash = explorer.hash;
+        chain = chainIdToChain[explorer.chainId];
+        setSelectedNetworkOption(networkOptions.find(option => option.value === explorer.chainId) ?? null);
+        setTxShowSelectNetwork(true);
       }
 
       const publicClient = getPublicClient(chain.id);
@@ -1251,13 +1229,21 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                     aria-label="Calldata"
                     spellCheck={false}
                     autoFocus
-                    placeholder="0x..."
+                    placeholder={selectedTabIndex === 0 ? "0x calldata or tx url" : "0x..."}
                     value={calldata}
                     onChange={(e) => setCalldata(e.target.value)}
                     onPaste={(e) => {
                       e.preventDefault();
+                      const input = e.clipboardData.getData("text").trim();
+                      if (selectedTabIndex === 0 && parseTransactionExplorerUrl(input)) {
+                        setPasted(false);
+                        setSelectedTabIndex(3);
+                        setFromTxInput(input);
+                        void decodeFromTx(input);
+                        return;
+                      }
                       setPasted(true);
-                      setCalldata(e.clipboardData.getData("text"));
+                      setCalldata(input);
                     }}
                   />
                 </Box>
