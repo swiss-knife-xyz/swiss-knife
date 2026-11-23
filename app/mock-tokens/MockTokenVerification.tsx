@@ -31,7 +31,7 @@ export function MockTokenVerification({
       providerName:
         provider === "sourcify"
           ? "Sourcify"
-          : deployment.chain.blockExplorers.default.name,
+          : deployment.chain.blockExplorers?.default.name ?? "Explorer",
       submit: (retry) =>
         provider === "sourcify"
           ? submitMockVerification(deployment, address, hash)

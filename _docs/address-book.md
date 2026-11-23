@@ -70,7 +70,7 @@ interface StorageResponse {
 | File | Purpose |
 |------|---------|
 | `/types/addressBook.ts` | TypeScript interfaces for data model and messages |
-| `/app/_storage/page.tsx` | Hidden iframe hub page on main domain |
+| `/app/%5Fstorage/page.tsx` → `/app/_storage/page.tsx` | Routable hidden iframe hub on the main domain |
 | `/lib/addressBook/storageHub.ts` | Client library for iframe communication |
 | `/contexts/AddressBookContext.tsx` | React context for global state management |
 | `/hooks/useAddressBook.ts` | Hook for consuming the address book context |

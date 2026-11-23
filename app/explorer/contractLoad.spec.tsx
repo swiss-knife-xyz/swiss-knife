@@ -56,6 +56,7 @@ vi.mock("@shazow/whatsabi", () => ({ whatsabi: {} }));
 vi.mock("evmole", () => ({}));
 // Real component effects; only external ABI/source/router/RPC boundaries are mocked.
 vi.mock("@/utils", () => ({
+  resolveERC3770Address: (address: string) => ({ address }),
   fetchContractAbi: vi.fn(),
   fetchContractAbiRaw: fetchAbi,
   getImplementationFromBytecodeIfProxy: vi.fn(),
@@ -77,12 +78,12 @@ vi.mock("@/components/DarkSelect", () => ({
       value={selectedOption?.value ?? ""}
       onChange={(e) =>
         setSelectedOption(
-          options.find((o: any) => String(o.value) === e.target.value)
+          options.flatMap((entry: any) => entry.options ?? [entry]).find((o: any) => String(o.value) === e.target.value)
         )
       }
     >
       <option value="">Select network</option>
-      {options.map((o: any) => (
+      {options.flatMap((entry: any) => entry.options ?? [entry]).map((o: any) => (
         <option key={o.value} value={o.value}>
           {o.label}
         </option>
@@ -90,6 +91,9 @@ vi.mock("@/components/DarkSelect", () => ({
     </select>
   ),
 }));
+
+import ContractStart from "@/components/ContractStart";
+import { parseContractExplorerUrl } from "@/lib/contractExplorerInput";
 
 const address = "0x0000000000000000000000000000000000000001";
 const draft = "0x0000000000000000000000000000000000000002";
@@ -118,7 +122,7 @@ function stage() {
 }
 beforeEach(() => {
   vi.clearAllMocks();
-  getClient.mockReturnValue({});
+  getClient.mockReturnValue({ getCode: vi.fn(async () => "0x6000") });
   fetchAbi.mockResolvedValue({ abi: [], name: "Loaded contract" });
   source.mockResolvedValue(undefined);
   vi.stubGlobal("matchMedia", () => ({
@@ -178,7 +182,7 @@ it.each(["Load", "Enter"])(
     );
     expect(push).toHaveBeenCalledTimes(1);
     expect(source).toHaveBeenCalledExactlyOnceWith(8453, draft);
-    expect(getClient).toHaveBeenCalledExactlyOnceWith(8453);
+    expect(getClient.mock.calls.every(([chainId]) => chainId === 8453)).toBe(true);
     expect(
       (screen.getByRole("combobox", { name: "Network" }) as HTMLSelectElement)
         .value
@@ -311,4 +315,73 @@ it("does not submit an IME composition or a repeating Enter key", async () => {
   expect(fetchAbi).not.toHaveBeenCalled();
   fireEvent.keyDown(input, { key: "Enter" });
   expect(push).toHaveBeenCalledExactlyOnceWith(`/explorer/8453/${draft}`);
+});
+
+
+it.each([
+  ["etherscan.io", 1],
+  ["sepolia.etherscan.io", 11155111],
+  ["basescan.org", 8453],
+  ["arbiscan.io", 42161],
+  ["optimistic.etherscan.io", 10],
+])("loads a pasted %s URL using its inferred network", async (host, expectedChain) => {
+  render(page());
+  await loaded();
+  const input = screen.getByRole("textbox", { name: "Contract Address" });
+  fireEvent.paste(input, { clipboardData: { getData: () => `https://${host}/address/${draft}?foo=bar#code` } });
+  expect((input as HTMLInputElement).value).toBe(draft);
+  expect((screen.getByRole("combobox", { name: "Network" }) as HTMLSelectElement).value).toBe(String(expectedChain));
+  expect(fetchAbi).not.toHaveBeenCalled();
+  expect(push).toHaveBeenCalledExactlyOnceWith(`/explorer/${expectedChain}/${draft}`);
+  fireEvent.click(screen.getByRole("button", { name: "Load" }));
+  expect(push).toHaveBeenCalledTimes(1);
+});
+
+it("opens a pasted token explorer link from the start screen", () => {
+  const onOpen = vi.fn();
+  render(<ChakraProvider><ContractStart onOpen={onOpen} /></ChakraProvider>);
+  fireEvent.paste(screen.getByRole("textbox", { name: "Contract Address" }), {
+    clipboardData: { getData: () => `  basescan.org/token/${draft}#balances  ` },
+  });
+  expect(onOpen).toHaveBeenCalledExactlyOnceWith(draft, 8453);
+});
+
+it("shows directory and verification links only on the standalone explorer start screen", () => {
+  const view = render(<ChakraProvider><ContractStart /></ChakraProvider>);
+  expect(screen.getByRole("link", { name: "Explorer Directory" }).getAttribute("href")).toBe("/explorers/");
+  expect(screen.getByRole("link", { name: "Cross-explorer Verification" })).toBeTruthy();
+  view.rerender(<ChakraProvider><ContractStart embedded /></ChakraProvider>);
+  expect(screen.queryByRole("link", { name: "Explorer Directory" })).toBeNull();
+  expect(screen.queryByRole("link", { name: "Cross-explorer Verification" })).toBeNull();
+});
+
+it.each([
+  `https://etherscan.io.evil.example/address/${draft}`,
+  `https://evil.example/address/${draft}`,
+  `https://etherscan.io/tx/${draft}`,
+  `https://etherscan.io/address/0x1234`,
+  `https://etherscan.io/address/${draft}/extra`,
+  `https://user@etherscan.io/address/${draft}`,
+  `ftp://etherscan.io/address/${draft}`,
+])("rejects unsupported or malformed explorer URL %s", (url) => {
+  expect(parseContractExplorerUrl(url)).toBeNull();
+});
+
+it.each([["eth", 1], ["base", 8453], ["arb1", 42161]])("pasting %s-prefixed addresses selects the chain and loads immediately", async (prefix, chainId) => {
+  render(page());
+  await loaded();
+  const input = screen.getByRole("textbox", { name: "Contract Address" });
+  fireEvent.paste(input, { clipboardData: { getData: () => `${prefix}:${draft}` } });
+  expect((input as HTMLInputElement).value).toBe(draft);
+  expect((screen.getByRole("combobox", { name: "Network" }) as HTMLSelectElement).value).toBe(String(chainId));
+  expect(push).toHaveBeenCalledExactlyOnceWith(`/explorer/${chainId}/${draft}`);
+});
+
+it("pasting a chain-prefixed address opens it from the explorer homepage", () => {
+  const onOpen = vi.fn();
+  render(<ChakraProvider><ContractStart onOpen={onOpen} /></ChakraProvider>);
+  fireEvent.paste(screen.getByRole("textbox", { name: "Contract Address" }), {
+    clipboardData: { getData: () => `base:${draft}` },
+  });
+  expect(onOpen).toHaveBeenCalledExactlyOnceWith(draft, 8453);
 });

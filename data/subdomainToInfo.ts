@@ -89,8 +89,8 @@ export const subdomainToInfo = {
   },
   [subdomains.SOLIDITY.base]: {
     emoji: "📜",
-    label: "Solidity",
-    description: "Compile Solidity contracts directly in your browser",
+    label: "Solidity Compiler",
+    description: "Write & deploy contracts from your browser",
   },
   [subdomains.ENS.base]: {
     emoji: "🔗",

@@ -78,6 +78,8 @@ const WriteButtonComponent = ({
           size={"sm"}
           title={"write"}
           variant="ghost"
+          borderLeftRadius="lg"
+          borderRightRadius={0}
           color={!isError ? "text.primary" : "red.300"}
           _hover={{ bg: "whiteAlpha.100" }}
         >
@@ -97,6 +99,7 @@ const WriteButtonComponent = ({
           borderLeftWidth="1px"
           borderLeftColor="border.strong"
           borderLeftRadius={0}
+          borderRightRadius="lg"
           _hover={{ bg: "whiteAlpha.100" }}
           _active={{ bg: "whiteAlpha.200" }}
         />

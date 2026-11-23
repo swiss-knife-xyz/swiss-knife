@@ -1,5 +1,7 @@
 "use client";
 
+import { waitForCustomChains, useCustomChains } from "@/lib/customChains/store";
+import { NetworkSelect } from "@/components/NetworkSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
@@ -16,8 +18,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { formatUnits } from "viem";
-import { DarkSelect } from "@/components/DarkSelect";
-import { chainIdToImage } from "@/data/common";
+import { getRpcUrlsForChain, getNetworkOptions, chainIdToImage } from "@/data/networks";
 import type {
   GasCostChain,
   GasCostInput,
@@ -31,6 +32,7 @@ export function GasCostEstimator({
   chains: readonly GasCostChain[];
   loadEstimate: (input: GasCostInput) => Promise<GasCostResult>;
 }) {
+  const savedChains = useCustomChains();
   const [hash, setHash] = useState("");
   const [sourceId, setSourceId] = useState(chains[0]?.id);
   const [targetId, setTargetId] = useState(
@@ -55,6 +57,10 @@ export function GasCostEstimator({
     []
   );
 
+  const sourceRpcKey = getRpcUrlsForChain(sourceId ?? 0).join("|");
+  const targetRpcKey = getRpcUrlsForChain(targetId ?? 0).join("|");
+  useEffect(() => { invalidate(); }, [sourceRpcKey, targetRpcKey]);
+
   async function estimate(event: React.FormEvent) {
     event.preventDefault();
     const request = ++requestId.current;
@@ -62,6 +68,8 @@ export function GasCostEstimator({
     setError("");
     setLoading(true);
     try {
+      await waitForCustomChains();
+      if (request !== requestId.current) return;
       const source = chains.find((chain) => chain.id === sourceId);
       const target = chains.find((chain) => chain.id === targetId);
       if (!source || !target)
@@ -79,15 +87,10 @@ export function GasCostEstimator({
       if (request === requestId.current) setLoading(false);
     }
   }
-  const options = useMemo(
-    () =>
-      chains.map((chain) => ({
-        value: chain.id,
-        label: `${chain.name} (${chain.nativeCurrency.symbol})${chain.testnet ? " · testnet" : ""}`,
-        image: chainIdToImage[chain.id],
-      })),
-    [chains]
-  );
+  const options = useMemo(() => getNetworkOptions(chains).map(option => {
+    const chain = chains.find(chain => chain.id === option.value)!;
+    return { ...option, label: `${option.label} (${chain.nativeCurrency.symbol})${chain.testnet ? " · testnet" : ""}` };
+  }), [chains, savedChains.revision]);
   return (
     <Box w="full" maxW="900px" mx="auto" p={{ base: 4, md: 6 }}>
       <VStack spacing={6} align="stretch">
@@ -103,7 +106,7 @@ export function GasCostEstimator({
             <Stack direction={{ base: "column", md: "row" }} spacing={4}>
               <FormControl>
                 <FormLabel>Source chain</FormLabel>
-                <DarkSelect
+                <NetworkSelect
                   ariaLabel="Source chain"
                   options={options}
                   selectedOption={
@@ -119,7 +122,7 @@ export function GasCostEstimator({
               </FormControl>
               <FormControl>
                 <FormLabel>Destination chain</FormLabel>
-                <DarkSelect
+                <NetworkSelect
                   ariaLabel="Destination chain"
                   options={options}
                   selectedOption={

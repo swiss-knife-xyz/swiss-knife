@@ -9,6 +9,8 @@ import {
   readEnsTextRecord,
 } from "@/lib/ensUniversalResolver";
 import { getPublicClient } from "@/lib/publicClient";
+import { GNS_UNIVERSAL_RESOLVER_ADDRESS } from "@/lib/nameServiceContracts";
+export { GNS_UNIVERSAL_RESOLVER_ADDRESS } from "@/lib/nameServiceContracts";
 
 export const ENS_REGISTRY_ADDRESS =
   "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e" as const;
@@ -18,9 +20,6 @@ export const ENS_BASE_REGISTRAR_ADDRESS =
 
 export const GNS_NAME_NFT_ADDRESS =
   "0x9D51D507BC7264d4fE8Ad1cf7Fe191933A0a81d6" as const;
-
-export const GNS_UNIVERSAL_RESOLVER_ADDRESS =
-  "0xD658131FFB6D732335d37f199374289F1b31564F" as const;
 
 export const GNS_MAINNET_CHAIN_ID = mainnet.id;
 export const GNS_MIN_COMMITMENT_SECONDS = 60;

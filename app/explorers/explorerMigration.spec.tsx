@@ -60,11 +60,11 @@ vi.mock("@/components/DarkSelect", () => ({
       value={selectedOption.value}
       onChange={(e) =>
         setSelectedOption(
-          options.find((o: any) => String(o.value) === e.target.value)
+          options.flatMap((entry: any) => entry.options ?? [entry]).find((o: any) => String(o.value) === e.target.value)
         )
       }
     >
-      {options.map((o: any) => (
+      {options.flatMap((entry: any) => entry.options ?? [entry]).map((o: any) => (
         <option key={o.value} value={o.value}>
           {o.label}
         </option>
@@ -117,7 +117,7 @@ it("contract landing keeps the existing interactive form and opens chain/address
   expect(
     screen.getByRole("link", { name: /USDC/ }).getAttribute("href")
   ).toContain("https://explorer.eth.sh/1/");
-  fireEvent.change(screen.getByPlaceholderText("0x... or eth:0x..."), {
+  fireEvent.change(screen.getByPlaceholderText("0x... or eth:0x... or explorer URL"), {
     target: { value: address },
   });
   fireEvent.change(screen.getByRole("combobox", { name: "Network" }), {
@@ -229,4 +229,70 @@ it("directory keeps its real explorer dataset and name / contract-only filtering
   await waitFor(() =>
     expect(screen.getAllByText(included).length).toBeGreaterThan(0)
   );
+});
+
+it("pasting a chain-prefixed directory address strips its prefix, filters the chain and submits", async () => {
+  state.query = new URLSearchParams("forContracts=true&tag=kept");
+  render(wrap(<ExplorerLayout><div>Directory results</div></ExplorerLayout>));
+  const input = screen.getByRole("textbox", { name: "Blockchain address, ENS name, or transaction hash" });
+  fireEvent.paste(input, { clipboardData: { getData: () => `base:${other}` } });
+  expect((input as HTMLInputElement).value).toBe(other);
+  await waitFor(() => expect(state.push).toHaveBeenCalledExactlyOnceWith(
+    `https://eth.sh/explorers/address/${other}?forContracts=true&tag=kept&chainId=8453`
+  ));
+});
+
+it("directory chain query applies to result filters and updates for another pasted chain", async () => {
+  state.query = new URLSearchParams("chainId=8453");
+  const view = render(wrap(<ExplorerGridBase explorersData={addressExplorers} explorerType={ExplorerType.ADDRESS} addressOrTx={address} />));
+  expect(screen.getByRole("button", { name: "Chains (1)" })).toBeTruthy();
+  state.query = new URLSearchParams("chainId=1");
+  view.rerender(wrap(<ExplorerGridBase explorersData={addressExplorers} explorerType={ExplorerType.ADDRESS} addressOrTx={address} />));
+  fireEvent.click(screen.getByRole("button", { name: "Chains (1)" }));
+  expect((await screen.findByRole("button", { name: /^Ethereum/ })).getAttribute("aria-pressed")).toBe("true");
+});
+
+it("searches chain filters by name and ID without losing selected chains", async () => {
+  render(wrap(<ExplorerGridBase explorersData={addressExplorers} explorerType={ExplorerType.ADDRESS} addressOrTx={address} />));
+  fireEvent.click(screen.getByRole("button", { name: "Chains" }));
+  const search = await screen.findByRole("textbox", { name: "Search chains" });
+  await waitFor(() => expect(document.activeElement).toBe(search));
+  fireEvent.change(search, { target: { value: "bAsE" } });
+  const base = screen.getByRole("button", { name: /^Base/ });
+  expect(screen.queryByRole("button", { name: /^Ethereum/ })).toBeNull();
+  fireEvent.click(base);
+  expect(base.getAttribute("aria-pressed")).toBe("true");
+  fireEvent.change(search, { target: { value: "42161" } });
+  expect(screen.getByRole("button", { name: /^Arbitrum/ })).toBeTruthy();
+  fireEvent.change(search, { target: { value: "not-a-chain" } });
+  expect(screen.getByText("No chains found.")).toBeTruthy();
+  fireEvent.change(search, { target: { value: "" } });
+  expect(screen.getByRole("button", { name: /^Base/ }).getAttribute("aria-pressed")).toBe("true");
+});
+
+it("promotes the registry's native explorer for URL and manually selected chains", async () => {
+  state.query = new URLSearchParams("chainId=8453");
+  render(wrap(<ExplorerGridBase explorersData={addressExplorers} explorerType={ExplorerType.ADDRESS} addressOrTx={address} />));
+  const before = (first: string, second: string) => {
+    expect(screen.getByText(first).compareDocumentPosition(screen.getByText(second)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  };
+  before("Basescan", "ABINinja");
+  fireEvent.click(screen.getByRole("button", { name: "Chains (1)" }));
+  fireEvent.click(await screen.findByRole("button", { name: /^Base Base/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Ethereum Ethereum/ }));
+  before("Etherscan", "ABINinja");
+});
+
+it("orders native explorer entries by selected chains and retains the remaining order", async () => {
+  const { orderDirectoryExplorers } = await import("@/lib/explorerDirectory");
+  const { txExplorers } = await import("@/data/txExplorers");
+  for (const entries of [addressExplorers, txExplorers]) {
+    const names = Object.keys(entries);
+    expect(orderDirectoryExplorers(names, entries, [])).toEqual(names);
+    expect(orderDirectoryExplorers(names, entries, [8453])[0]).toBe("Basescan");
+    expect(orderDirectoryExplorers(names, entries, [42161, 8453]).slice(0, 2)).toEqual(["Arbitrum", "Basescan"]);
+    expect(orderDirectoryExplorers(names, entries, [999999999])).toEqual(names);
+    const sorted = orderDirectoryExplorers(names, entries, [8453]);
+    expect(sorted.slice(1)).toEqual(names.filter(name => name !== "Basescan"));
+  }
 });

@@ -1027,13 +1027,31 @@ export async function fetchFunctionInterfaces({
   selector: string;
 }): Promise<FunctionSignatureCandidate[]> {
   const sourcify = await fetchFunctionFromSourcify({ selector });
-  if (sourcify?.length) {
-    return sourcify
-      .filter((item) => !item.filtered)
-      .map((item) => ({
+  const usable = sourcify?.filter((item) => !item.filtered);
+  if (usable?.length) {
+    // Only pay for a second registry lookup when Sourcify has competing candidates.
+    const fourByte = usable.length > 1
+      ? await fetchFunctionFrom4Bytes({ selector })
+      : null;
+    const corroborated = new Set<string>();
+    for (const item of fourByte ?? []) {
+      try {
+        const fragment = FunctionFragment.from(`function ${item.text_signature}`);
+        if (fragment.selector.toLowerCase() === selector.toLowerCase()) {
+          corroborated.add(fragment.format("sighash"));
+        }
+      } catch { /* Ignore malformed registry entries. */ }
+    }
+    return usable.map((item) => {
+      let canonical: string | undefined;
+      try { canonical = FunctionFragment.from(`function ${item.name}`).format("sighash"); }
+      catch { /* The inference layer rejects invalid signatures. */ }
+      return {
         name: item.name,
         hasVerifiedContract: item.hasVerifiedContract,
-      }));
+        corroborated: canonical !== undefined && corroborated.has(canonical),
+      };
+    });
   }
   const fourByte = await fetchFunctionFrom4Bytes({ selector });
   return fourByte?.map((item) => item.text_signature) ?? [];

@@ -116,7 +116,7 @@ export const Footer = () => {
                   Discord <ExternalLink size={12} />
                 </ChakraLink>
                 <ChakraLink
-                  href="https://twitter.com/swissknifexyz"
+                  href="https://x.com/ethdotsh"
                   isExternal
                   color="text.secondary"
                   fontSize="sm"

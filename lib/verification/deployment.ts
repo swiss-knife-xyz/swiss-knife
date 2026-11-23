@@ -85,7 +85,7 @@ export class EtherscanDeploymentVerification {
         )
       );
       const chain = chainIdToChain[body.chainId];
-      if (!chain) throw new VerificationError("INVALID_INPUT");
+      if (!chain?.blockExplorers) throw new VerificationError("INVALID_INPUT");
       if (!VERIFICATION_CHAINS[String(chain.id)]?.etherscan)
         throw new VerificationError("UNSUPPORTED_ROUTE");
       const key = this.dependencies.key();

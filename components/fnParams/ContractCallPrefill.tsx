@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
+  HStack,
+  FormControl,
+  FormLabel,
   Button,
   Text,
   Textarea,
@@ -13,8 +16,9 @@ import {
   ModalBody,
   ModalFooter,
 } from "@chakra-ui/react";
-import { ClipboardPaste } from "lucide-react";
+import { ClipboardPaste, ArrowRight } from "lucide-react";
 import type { JsonFragment } from "ethers";
+import { chainIdToChain } from "@/data/common";
 import {
   contractFunctionSignature,
   decodeContractCall,
@@ -40,6 +44,8 @@ type Props = {
 };
 
 export function ContractCallPrefill({
+  chainId,
+  address,
   selectedAbi,
   contractAbi,
   implementationAbi,
@@ -47,6 +53,8 @@ export function ContractCallPrefill({
   onPrefill,
   restoreFromUrl = true,
 }: Props) {
+  const inputId = useId();
+  const errorId = `${inputId}-error`;
   const [data, setData] = useState("");
   const [error, setError] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -67,7 +75,12 @@ export function ContractCallPrefill({
     ): PrefilledCall => {
       if (!abi) throw new Error("Load a contract ABI before decoding.");
       const decoded = Array.isArray(data)
-        ? restoreSharedFunctionForm(abi, { args: data, signature: signature ?? "", value, abiMode: mode })
+        ? restoreSharedFunctionForm(abi, {
+            args: data,
+            signature: signature ?? "",
+            value,
+            abiMode: mode,
+          })
         : decodeContractCall(abi, data);
       if (signature && decoded.signature !== signature) {
         throw new Error(
@@ -112,7 +125,8 @@ export function ContractCallPrefill({
     if (!restoreFromUrl) return;
     const restore = (event?: Event) => {
       // Workspace history restores the mounted form, including its edited params.
-      if (event instanceof PopStateEvent && event.state?.contractWorkspaceTab) return;
+      if (event instanceof PopStateEvent && event.state?.contractWorkspaceTab)
+        return;
       pendingPrefill.current = null;
       try {
         const shared = parseContractCallFragment(window.location.hash);
@@ -170,6 +184,16 @@ export function ContractCallPrefill({
     return () => cancelAnimationFrame(frame);
   }, [isDecoding, data, selectedAbi, abiMode, decode, onPrefill, fail]);
 
+  const close = () => {
+    if (isDecoding) return;
+    pendingPrefill.current = null;
+    setIsOpen(false);
+  };
+  const trimmedData = data.trim();
+  const byteCount = /^0x(?:[a-fA-F0-9]{2})*$/.test(trimmedData)
+    ? (trimmedData.length - 2) / 2
+    : null;
+
   const fadeMotion = {
     initial: { opacity: 0 },
     animate: { opacity: 1 },
@@ -197,15 +221,11 @@ export function ContractCallPrefill({
         aria-haspopup="dialog"
         onClick={() => setIsOpen(true)}
       >
-        Enter raw calldata
+        Fill from calldata
       </Button>
       <Modal
         isOpen={isOpen}
-        onClose={() => {
-          if (isDecoding) return;
-          pendingPrefill.current = null;
-          setIsOpen(false);
-        }}
+        onClose={close}
         initialFocusRef={inputRef}
         returnFocusOnClose={pendingPrefill.current === null}
         onCloseComplete={() => {
@@ -213,63 +233,173 @@ export function ContractCallPrefill({
           setIsDecoding(false);
         }}
         isCentered
-        size={{ base: "full", sm: "xl" }}
+        size="xl"
         scrollBehavior="inside"
       >
-        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" motionProps={fadeMotion} />
+        <ModalOverlay
+          bg="blackAlpha.600"
+          backdropFilter="blur(8px)"
+          motionProps={fadeMotion}
+        />
         <ModalContent
           motionProps={fadeMotion}
           as="form"
-          bg="bg.muted"
-          borderWidth={{ base: 0, sm: "1px" }}
+          bg="bg.base"
+          mx={{ base: 3, sm: 6 }}
+          my={6}
+          maxW="640px"
+          maxH="calc(100dvh - 3rem)"
+          border="1px solid"
           borderColor="border.default"
-          borderRadius={{ base: 0, sm: "lg" }}
+          borderRadius="lg"
+          overflow="hidden"
           onSubmit={(event) => {
             event.preventDefault();
             if (!isDecoding) setIsDecoding(true);
           }}
         >
           <ModalHeader
-            fontSize="md"
-            fontWeight="semibold"
-            pt={5}
-            pb={1}
+            px={{ base: 4, md: 6 }}
+            py={5}
             pr={12}
+            borderBottom="1px solid"
+            borderColor="border.subtle"
           >
-            Enter raw calldata
+            <HStack spacing={2.5} color="text.primary">
+              <ClipboardPaste size={18} aria-hidden="true" />
+              <Text fontSize="lg" fontWeight="semibold">
+                Fill from calldata
+              </Text>
+            </HStack>
           </ModalHeader>
-          <ModalCloseButton isDisabled={isDecoding} />
-          <ModalBody pt={0}>
-            <Text fontSize="sm" color="text.secondary" mb={3}>
-              Decode calldata into editable function parameters.
+          <ModalCloseButton
+            top={4}
+            right={4}
+            size="sm"
+            color="text.tertiary"
+            isDisabled={isDecoding}
+          />
+          <ModalBody px={{ base: 4, md: 6 }} py={5}>
+            <Text fontSize="sm" color="text.secondary" mb={4}>
+              Paste an encoded call to fill its matching function’s parameters.
             </Text>
-            <Textarea
-              isReadOnly={isDecoding}
-              ref={inputRef}
-              aria-label="Calldata to decode"
-              placeholder="0x…"
-              value={data}
-              rows={5}
-              resize="vertical"
-              maxLength={2 + MAX_CALLDATA_BYTES * 2}
-              fontFamily="mono"
-              fontSize="sm"
+            <HStack
+              justify="space-between"
+              spacing={3}
+              px={3}
+              py={2.5}
+              mb={5}
               bg="bg.subtle"
-              spellCheck={false}
-              onChange={(event) => {
-                setData(event.target.value);
-                setError("");
-                onPrefill(null);
-              }}
-            />
+              border="1px solid"
+              borderColor="border.subtle"
+              borderRadius="md"
+              flexWrap="wrap"
+            >
+              <HStack spacing={2} minW={0}>
+                <Text fontSize="xs" color="text.tertiary">
+                  Contract
+                </Text>
+                <Text
+                  fontFamily="mono"
+                  fontSize="xs"
+                  color="text.secondary"
+                  title={address}
+                >
+                  {address.slice(0, 6)}…{address.slice(-4)}
+                </Text>
+              </HStack>
+              <Text fontSize="xs" color="text.secondary">
+                {chainIdToChain[chainId]?.name ?? `Chain ${chainId}`}
+              </Text>
+            </HStack>
+            <FormControl>
+              <HStack mb={2.5} justify="space-between">
+                <FormLabel
+                  htmlFor={inputId}
+                  mb={0}
+                  fontSize="sm"
+                  fontWeight="medium"
+                  color="text.secondary"
+                >
+                  Calldata
+                </FormLabel>
+                {byteCount !== null && (
+                  <Text fontSize="xs" color="text.tertiary">
+                    {byteCount.toLocaleString()} bytes
+                  </Text>
+                )}
+              </HStack>
+              <Textarea
+                id={inputId}
+                isReadOnly={isDecoding}
+                ref={inputRef}
+                aria-label="Calldata to decode"
+                aria-describedby={error ? errorId : undefined}
+                isInvalid={Boolean(error)}
+                placeholder="Paste hex calldata, starting with 0x"
+                value={data}
+                rows={5}
+                minH="140px"
+                maxH="40dvh"
+                resize="vertical"
+                maxLength={2 + MAX_CALLDATA_BYTES * 2}
+                fontFamily="mono"
+                fontSize="sm"
+                lineHeight="tall"
+                bg="bg.subtle"
+                borderColor="border.default"
+                borderRadius="md"
+                _focus={{
+                  borderColor: "primary.400",
+                  boxShadow: "0 0 0 1px var(--chakra-colors-primary-400)",
+                }}
+                p={3}
+                spellCheck={false}
+                onChange={(event) => {
+                  setData(event.target.value);
+                  setError("");
+                  onPrefill(null);
+                }}
+              />
+            </FormControl>
             {error && (
-              <Text role="alert" color="red.300" fontSize="sm" mt={3}>
+              <Text
+                id={errorId}
+                role="alert"
+                color="red.300"
+                fontSize="sm"
+                mt={3}
+              >
                 {error}
               </Text>
             )}
           </ModalBody>
-          <ModalFooter pt={3} pb={4}>
-            <Button type="submit" size="sm" isLoading={isDecoding} loadingText="Decoding…">
+          <ModalFooter
+            px={{ base: 4, md: 6 }}
+            py={4}
+            gap={2}
+            borderTop="1px solid"
+            borderColor="border.subtle"
+            bg="bg.subtle"
+            flexShrink={0}
+          >
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={close}
+              isDisabled={isDecoding}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              rightIcon={<ArrowRight size={14} />}
+              isLoading={isDecoding}
+              loadingText="Decoding…"
+            >
               Fill parameters
             </Button>
           </ModalFooter>

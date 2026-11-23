@@ -68,6 +68,7 @@ import {
   getPublicClient,
   createPublicClientForRpcUrl,
 } from "@/lib/publicClient";
+import { DELEGATION_PREFIX, getDelegatedImplementation } from "@/lib/eip7702";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import { ConnectButton } from "@/components/ConnectButton";
 import { chainIdToImage } from "@/data/common";
@@ -82,7 +83,6 @@ const SEPOLIA_PECTRA_START_EPOCH = 1741159740;
 const skeletonAddress = "0x1111222233334444000000000000000000000000";
 
 // 7702 Chain Check Constants and Function
-const DELEGATION_PREFIX = "0xef0100";
 const DUMMY_DELEGATE_CODE =
   "0x6080604052348015600e575f5ffd5b50600436106026575f3560e01c8063c1cd785614602a575b5f5ffd5b60306044565b604051603b91906064565b60405180910390f35b5f6001905090565b5f8115159050919050565b605e81604c565b82525050565b5f60208201905060755f8301846057565b9291505056fea2646970667358221220265103185dec648e9bcac4dd322c8482f2923aa8ab542d2233f257916b73cd6a64736f6c634300081c0033" as `0x${string}`;
 const DUMMY_DELEGATE_ADDRESS =
@@ -732,17 +732,7 @@ const SevenSevenZeroTwoBeat = () => {
       const addressCode = await client.getCode({
         address,
       });
-      if (addressCode) {
-        const is7702Enabled = addressCode.startsWith("0xef0100");
-        if (is7702Enabled) {
-          const auth = `0x${addressCode.split("0xef0100")[1]}`;
-          setAuthAddress(auth);
-        } else {
-          setAuthAddress(null);
-        }
-      } else {
-        setAuthAddress(null);
-      }
+      setAuthAddress(getDelegatedImplementation(addressCode));
     } catch (error) {
       console.error("Error fetching auth address:", error);
       setAuthAddress(null);

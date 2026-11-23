@@ -326,7 +326,7 @@ export function SourceCodeExplorer({
       searchDecorationsRef.current = null;
     }
 
-    if (!searchQuery || !displayedContent) return;
+    if (sidebarTab !== "search" || !sidebarOpen || !searchQuery || !displayedContent) return;
 
     try {
       let regex: RegExp;
@@ -369,7 +369,7 @@ export function SourceCodeExplorer({
     } catch {
       // Invalid regex - ignore
     }
-  }, [searchQuery, searchOptions, displayedContent]);
+  }, [searchQuery, searchOptions, displayedContent, sidebarTab, sidebarOpen]);
 
   // Patch Solidity language to support single-quote strings
   const patchSolidityLanguage = useCallback((monaco: MonacoInstance) => {
@@ -523,13 +523,10 @@ export function SourceCodeExplorer({
     setSearchOptions(options);
   }, []);
 
-  // Handle sidebar tab switch - clear search highlights when leaving search
+  // Retain the search draft when switching sidebar views.
   const handleSidebarTabChange = useCallback((tab: "explorer" | "search") => {
     setSidebarOverride(sidebarTab === tab ? !sidebarOpen : true);
     setSidebarTab(tab);
-    if (tab !== "search") {
-      setSearchQuery("");
-    }
   }, [sidebarTab, sidebarOpen]);
 
   // Apply search highlight decorations when query/content changes
@@ -697,7 +694,7 @@ export function SourceCodeExplorer({
 
         {/* Sidebar Content */}
         <Box flex={1} minW={0} bg="bg.muted" overflow="hidden" h="100%" display={sidebarOpen ? "block" : "none"}>
-          {sidebarTab === "explorer" ? (
+          {sidebarTab === "explorer" && (
             <FileExplorerPanel
               data={fileTree}
               revealSelection={importReveal}
@@ -720,14 +717,13 @@ export function SourceCodeExplorer({
                 },
               }}
             />
-          ) : (
-            <SearchPanel
-              sourceCode={sourceCode}
-              onResultClick={handleSearchResultClick}
-              isOpen={true}
-              onSearchQueryChange={handleSearchQueryChange}
-            />
           )}
+          <SearchPanel
+            sourceCode={sourceCode}
+            onResultClick={handleSearchResultClick}
+            isOpen={sidebarTab === "search" && sidebarOpen}
+            onSearchQueryChange={handleSearchQueryChange}
+          />
         </Box>
       </HStack>
 

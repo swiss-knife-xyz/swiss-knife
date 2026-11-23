@@ -199,5 +199,77 @@ it.each([false, true])("uses the unique verified-contract match from the full So
   });
   expect(func.name).toBe("mint");
   expect(func.inputs.map((input: any) => input.type)).toEqual(["address", "uint256"]);
-  expect(func.inputInference.source).toBe("bytecode");
+  expect(func.inputInference.source).toBe("signature");
+});
+
+it("uses resolved bytes32 inputs through the actual form and encodes the original selector", async () => {
+  const signature = "cancelAuthorization(address,bytes32,bytes)";
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+    ok: true, result: { function: { "0xb7b72899": [{ name: signature, filtered: false, hasVerifiedContract: true }] }, event: {} },
+  }))));
+  const [func] = await processContractBytecode({
+    contractCode: "0x00",
+    evmole: { contractInfo: () => ({ functions: [{ selector: "b7b72899", arguments: "address,uint256,bytes", stateMutability: "nonpayable" }] }) },
+  });
+  show(func, true, "write");
+  const fields = screen.getAllByRole("textbox");
+  expect(fields).toHaveLength(3);
+  const owner = "0x0000000000000000000000000000000000000002";
+  const nonce = `0x${"ab".repeat(32)}` as `0x${string}`;
+  [owner, nonce, "0x1234"].forEach((value, index) => {
+    fireEvent.change(fields[index], { target: { value } });
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Options" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Encode Calldata" }));
+  fireEvent.click(screen.getByRole("button", { name: "Encode Calldata" }));
+  const expected = encodeFunctionData({
+    abi: parseAbi([`function ${signature}`]),
+    functionName: "cancelAuthorization",
+    args: [owner, nonce, "0x1234"],
+  });
+  await waitFor(() => expect(screen.getByRole("dialog").textContent).toContain(expected));
+  expect(expected.startsWith("0xb7b72899")).toBe(true);
+  expect(call).not.toHaveBeenCalled();
+});
+
+it("falls back to 4byte when every Sourcify entry is filtered", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (url: URL | string) => {
+    if (String(url).startsWith("https://api.4byte.sourcify.dev/")) {
+      return new Response(JSON.stringify({ ok: true, result: {
+        function: { [selector]: [{ name: "spam()", filtered: true }] }, event: {},
+      } }));
+    }
+    if (String(url).startsWith("https://www.4byte.directory/api/v1/signatures/")) {
+      return new Response(JSON.stringify({ count: 1, results: [{ id: 1, created_at: "2018-01-01T00:00:00Z", hex_signature: selector, text_signature: "transfer(address,uint256)" }] }));
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  }));
+  const func = await inferred("uint256,uint256");
+  expect(func.name).toBe("transfer");
+  expect(func.inputs.map((input: any) => input.type)).toEqual(["address", "uint256"]);
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+
+it.each(["permit", "both", "unavailable"])("handles USDC permit registry collisions when 4byte confirms %s", async (confirmation) => {
+  const permit = "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)";
+  const collision = "$____$$_$$___$$$_$$$$__$$$__$$$$$$$$$(address,address,uint256,uint256,uint8,bytes32,bytes32)";
+  vi.stubGlobal("fetch", vi.fn(async (url: URL | string) => {
+    if (String(url).startsWith("https://api.4byte.sourcify.dev/")) {
+      return new Response(JSON.stringify({ ok: true, result: { function: {
+        "0xd505accf": [collision, permit].map(name => ({ name, filtered: false, hasVerifiedContract: true })),
+      }, event: {} } }));
+    }
+    if (confirmation === "unavailable") throw new Error("4byte unavailable");
+    const names = confirmation === "both" ? [permit, collision] : [permit];
+    return new Response(JSON.stringify({ count: names.length, results: names.map((text_signature, id) => ({
+      id, created_at: "2020-01-01T00:00:00Z", hex_signature: "0xd505accf", text_signature,
+    })) }));
+  }));
+  const [func] = await processContractBytecode({
+    contractCode: "0x00",
+    evmole: { contractInfo: () => ({ functions: [{ selector: "d505accf", arguments: "address,address,uint256,uint256,uint8,uint256,uint256", stateMutability: "nonpayable" }] }) },
+  });
+  expect(func.name).toBe(confirmation === "permit" ? "permit" : "selector: 0xd505accf");
+  expect(func.inputs.slice(-2).map((input: any) => input.type)).toEqual(confirmation === "permit" ? ["bytes32", "bytes32"] : ["uint256", "uint256"]);
+  expect(fetch).toHaveBeenCalledTimes(2);
 });

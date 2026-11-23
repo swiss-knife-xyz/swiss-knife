@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { networkOptions } from "@/data/networks";
+import { NetworkSelect } from "@/components/NetworkSelect";
+import { getEthersProvider } from "@/lib/ethersProvider";
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { parseUnixTimestamp } from "@/lib/unixTimestamp";
+import { ToolLoading } from "@/components/ToolLoading";
 import {
   HStack,
   Heading,
@@ -15,25 +21,19 @@ import {
   Icon,
 } from "@chakra-ui/react";
 import { FiClock } from "react-icons/fi";
-import { ethers } from "ethers";
 import EthDater from "ethereum-block-by-date";
 import { Layout } from "@/components/Layout";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { DarkSelect } from "@/components/DarkSelect";
 import { SelectedOptionState } from "@/types";
 import { DarkButton } from "@/components/DarkButton";
-import { c, chainIdToChain, chainIdToImage } from "@/data/common";
 
 const timeOptions = ["minutes", "hours", "days"];
 
-const networkOptions: { label: string; value: number; image: string }[] =
-  Object.keys(c).map((k, i) => ({
-    label: c[k].name,
-    value: c[k].id,
-    image: chainIdToImage[c[k].id],
-  }));
-
-const Epoch = () => {
+const EpochContent = () => {
+  const searchParams = useSearchParams();
+  const initialTimestamp = parseUnixTimestamp(searchParams.get("timestamp"));
+  const initialDate = initialTimestamp === undefined ? undefined : new Date(initialTimestamp * 1000);
   const [timestamp, setTimestamp] = useState<number>(
     Math.floor(Date.now() / 1000)
   );
@@ -44,9 +44,14 @@ const Epoch = () => {
     });
   const [futureTimeInput, setFutureTimeInput] = useState<number>();
   const [futureTimestamp, setFutureTimestamp] = useState<number>();
-  const [toHumanDateInput, setToHumanDateInput] = useState<number>();
-  const [humanDateUTC, setHumanDateUTC] = useState<string>();
+  const [toHumanDateInput, setToHumanDateInput] = useState<number | undefined>(initialTimestamp);
+  const [humanDateUTC, setHumanDateUTC] = useState<string | undefined>(initialDate?.toUTCString());
   const [humanDateLocal, setHumanDateLocal] = useState<string>();
+
+  useEffect(() => {
+    // The local timezone belongs to the browser, not the rendering server.
+    if (initialDate) setHumanDateLocal(initialDate.toString());
+  }, []);
 
   // dateTime to block
   const [dateTime, setDateTime] = useState<string>();
@@ -57,9 +62,10 @@ const Epoch = () => {
   const [blockDate, setBlockDate] = useState<string>();
 
   useEffect(() => {
-    setInterval(() => {
+    const timer = setInterval(() => {
       setTimestamp(Math.floor(Date.now() / 1000));
     }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
   return (
@@ -190,7 +196,7 @@ const Epoch = () => {
                 type="number"
                 flex={1}
                 placeholder="Timestamp in seconds"
-                value={toHumanDateInput}
+                value={toHumanDateInput ?? ""}
                 onChange={(e) => setToHumanDateInput(parseFloat(e.target.value))}
                 bg="whiteAlpha.100"
                 border="1px solid"
@@ -203,7 +209,7 @@ const Epoch = () => {
               <Button
                 colorScheme="blue"
                 onClick={() => {
-                  if (!toHumanDateInput) return;
+                  if (toHumanDateInput === undefined || !Number.isFinite(toHumanDateInput)) return;
 
                   const d = new Date(toHumanDateInput * 1_000);
                   setHumanDateUTC(d.toUTCString());
@@ -260,7 +266,7 @@ const Epoch = () => {
               </FormControl>
               <FormControl>
                 <FormLabel color="gray.500" fontSize="xs">Network</FormLabel>
-                <DarkSelect
+                <NetworkSelect
                   boxProps={{ w: "100%" }}
                   selectedOption={selectedNetworkOption}
                   setSelectedOption={setSelectedNetworkOption}
@@ -274,11 +280,7 @@ const Epoch = () => {
 
                     setGetBlockIsLoading(true);
                     try {
-                      const provider = new ethers.JsonRpcProvider(
-                        chainIdToChain[
-                          parseInt(selectedNetworkOption!.value.toString())
-                        ]?.rpcUrls.default.http[0]
-                      );
+                      const provider = getEthersProvider(parseInt(selectedNetworkOption!.value.toString()));
 
                       const dater = new EthDater(
                         // @ts-ignore
@@ -326,4 +328,8 @@ const Epoch = () => {
   );
 };
 
-export default Epoch;
+export default function Epoch() {
+  return <Suspense fallback={<ToolLoading title="Epoch Converter" description="Convert Unix timestamps to dates." />}>
+    <EpochContent />
+  </Suspense>;
+}

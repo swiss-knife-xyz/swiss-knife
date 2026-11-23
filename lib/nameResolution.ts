@@ -4,11 +4,16 @@ import {
   encodePacked,
   keccak256,
   namehash,
+  parseAbi,
+  zeroAddress,
 } from "viem";
 import { mainnet, base } from "viem/chains";
 import { normalize } from "viem/ens";
 import { L2ResolverAbi } from "./abis/L2ResolverAbi";
 import { getPublicClient } from "./publicClient";
+import { GNS_UNIVERSAL_RESOLVER_ADDRESS, WNS_NAME_NFT_ADDRESS } from "./nameServiceContracts";
+
+const wnsAddressAbi = parseAbi(["function addr(bytes32 node) view returns (address)"]);
 
 // ============================================================================
 // Constants
@@ -88,17 +93,27 @@ export const convertReverseNodeToBytes = (
 // ============================================================================
 
 /**
- * Resolve a name (ENS or Basename) to an address
- * Uses mainnet ENS with CCIP-read which handles .base.eth automatically
+ * Resolve ENS (including CCIP-read subdomains), GNS and WNS on mainnet.
  */
 export const resolveNameToAddress = async (
   name: string
 ): Promise<Address | null> => {
   try {
-    const address = await mainnetClient.getEnsAddress({
-      name: normalize(name),
-    });
-    return address;
+    const normalizedName = normalize(name.trim());
+    const address = normalizedName.endsWith(".wei")
+      ? await mainnetClient.readContract({
+          address: WNS_NAME_NFT_ADDRESS,
+          abi: wnsAddressAbi,
+          functionName: "addr",
+          args: [namehash(normalizedName)],
+        })
+      : await mainnetClient.getEnsAddress({
+          name: normalizedName,
+          ...(normalizedName.endsWith(".gwei")
+            ? { universalResolverAddress: GNS_UNIVERSAL_RESOLVER_ADDRESS }
+            : {}),
+        });
+    return address && address !== zeroAddress ? address : null;
   } catch {
     return null;
   }

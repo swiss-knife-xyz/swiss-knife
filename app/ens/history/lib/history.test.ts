@@ -23,6 +23,21 @@ test("emoji and Unicode route segments normalize to the same ENS node", () => {
   assert.equal(normalizeEnsInput("  VITALIK.ETH "), "vitalik.eth");
 });
 
+test("eth.limo gateway links resolve to the ENS name used for history", () => {
+  for (const input of [
+    "vitalik.eth.limo",
+    "https://vitalik.eth.limo",
+    "  HTTPS://VITALIK.ETH.LIMO/  ",
+    "http://vitalik.eth.limo/path?query=1#section",
+  ]) {
+    assert.equal(normalizeEnsInput(input), "vitalik.eth");
+  }
+  assert.equal(normalizeEnsInput("https://docs.ipfs.eth.limo/"), "docs.ipfs.eth");
+  assert.equal(normalizeEnsInput("https://🐙puppy.eth.limo/"), "🐙puppy.eth");
+  assert.equal(normalizeEnsInput("vitalik.eth.limo.example"), "vitalik.eth.limo.example");
+  assert.equal(normalizeEnsInput("other.limo"), "other.limo");
+});
+
 test("malformed escapes stay readable and invalid names are rejected", () => {
   assert.equal(decodeEnsRouteName("%ZZ.eth"), "%ZZ.eth");
   assert.equal(decodeEnsRouteName("%25F0.eth"), "%F0.eth");

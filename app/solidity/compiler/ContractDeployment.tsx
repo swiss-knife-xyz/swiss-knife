@@ -35,7 +35,8 @@ import {
 } from "viem";
 import type { JsonFragmentType } from "ethers";
 import { chainIdToChain, chainIdToImage } from "@/data/common";
-import { DarkSelect } from "@/components/DarkSelect";
+import { NetworkSelect } from "@/components/NetworkSelect";
+import { useCustomChains } from "@/lib/customChains/store";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { renderInputFields } from "@/components/fnParams/Renderer";
 import { IntInput } from "@/components/fnParams/inputs/IntInput";
@@ -48,20 +49,22 @@ import type { DeploymentHistoryController } from "./useDeploymentHistory";
 import type { DeploymentRecord } from "@/lib/solidity/deployments";
 import type { CompiledContract } from "./types";
 
-const chains = Object.values(chainIdToChain).filter(
-  (chain) =>
-    chain.blockExplorers?.default.url && chain.rpcUrls.default.http.length
-);
-const networkOptions = [true, false].map((testnet) => ({
-  label: testnet ? "Testnets" : "Mainnets",
-  options: chains
-    .filter((chain) => !!chain.testnet === testnet)
-    .map((chain) => ({
-      value: String(chain.id),
-      label: chain.name,
-      image: chainIdToImage[chain.id],
-    })),
-}));
+function getNetworkOptions() {
+  const chains = Object.values(chainIdToChain).filter(
+    (chain) =>
+      chain.blockExplorers?.default.url && chain.rpcUrls.default.http.length
+  );
+  return [true, false].map((testnet) => ({
+    label: testnet ? "Testnets" : "Mainnets",
+    options: chains
+      .filter((chain) => !!chain.testnet === testnet)
+      .map((chain) => ({
+        value: String(chain.id),
+        label: chain.name,
+        image: chainIdToImage[chain.id],
+      })),
+  }));
+}
 
 type DeploymentRequest = {
   chain: Chain;
@@ -92,7 +95,7 @@ type Props = {
 };
 type Submission = {
   chainId: number;
-  explorer: string;
+  explorer?: string;
   contractName: string;
   state: "wallet" | "pending" | "success" | "reverted" | "unknown";
   hash?: Hex;
@@ -200,6 +203,8 @@ export function ContractDeploymentForm({
   history,
   wallet,
 }: Props & { wallet: DeploymentWallet }) {
+  useCustomChains();
+  const networkOptions = getNetworkOptions();
   const [chainId, setChainId] = useState(11155111);
   const [values, setValues] = useState<Record<number, any>>({});
   const [invalid, setInvalid] = useState<Record<number, boolean>>({});
@@ -297,7 +302,7 @@ export function ContractDeploymentForm({
         throw new Error("Enter a valid transaction value.");
       const snapshot: Submission = {
         chainId,
-        explorer: chain.blockExplorers!.default.url,
+        explorer: chain.blockExplorers?.default.url,
         contractName,
         state: "wallet",
       };
@@ -395,17 +400,11 @@ export function ContractDeploymentForm({
           )}
           <FormControl>
             <FormLabel fontSize="sm">Deployment network</FormLabel>
-            <DarkSelect
+            <NetworkSelect
               ariaLabel="Deployment network"
               options={networkOptions}
-              selectedOption={
-                networkOptions
-                  .flatMap((group) => group.options)
-                  .find((option) => option.value === String(chainId)) ?? null
-              }
-              setSelectedOption={(option) =>
-                option && setChainId(Number(option.value))
-              }
+              chainId={chainId}
+              onChange={setChainId}
               isDisabled={busy}
               controlProps={{ h: 10, minH: 10, fontSize: "sm" }}
               boxProps={{ minW: 0, w: "full" }}
@@ -472,7 +471,7 @@ export function ContractDeploymentForm({
                       ? "Deployment reverted"
                       : "Confirmation unavailable"}
             </Text>
-            {submission.hash && (
+            {submission.hash && submission.explorer && (
               <IconButton
                 as={Link}
                 href={`${submission.explorer}/tx/${submission.hash}`}
@@ -520,16 +519,18 @@ export function ContractDeploymentForm({
                   size="xs"
                   flexShrink={0}
                 />
-                <IconButton
-                  as={Link}
-                  href={`${submission.explorer}/address/${submission.address}`}
-                  isExternal
-                  aria-label="Open deployed contract on block explorer"
-                  icon={<ArrowUpRight size={15} />}
-                  size="xs"
-                  variant="ghost"
-                  flexShrink={0}
-                />
+                {submission.explorer && (
+                  <IconButton
+                    as={Link}
+                    href={`${submission.explorer}/address/${submission.address}`}
+                    isExternal
+                    aria-label="Open deployed contract on block explorer"
+                    icon={<ArrowUpRight size={15} />}
+                    size="xs"
+                    variant="ghost"
+                    flexShrink={0}
+                  />
+                )}
               </HStack>
             </Box>
           )}

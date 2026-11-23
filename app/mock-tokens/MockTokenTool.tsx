@@ -1,4 +1,7 @@
 "use client";
+
+import { useCustomChains } from "@/lib/customChains/store";
+import { NetworkSelect } from "@/components/NetworkSelect";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Alert,
@@ -31,7 +34,7 @@ import { formatWithCommas } from "@/utils/formatWithCommas";
 import { parseUnits, formatUnits, type Address, type Hex } from "viem";
 import {
   buildMockDeployment,
-  MOCK_CHAINS,
+  getMockChains,
   type MockDeployment,
   type MockDraft,
 } from "@/lib/mockTokens";
@@ -48,23 +51,13 @@ import { MockTokenVerification } from "./MockTokenVerification";
 import { MockContractFiles } from "./MockContractFiles";
 import { AddressInput } from "@/components/fnParams/inputs/AddressInput";
 import { IntInput } from "@/components/fnParams/inputs/IntInput";
-import { DarkSelect } from "@/components/DarkSelect";
-import { chainIdToImage } from "@/data/common";
+import { getGroupedNetworkOptions } from "@/data/networks";
 import { VERIFICATION_CHAINS } from "@/lib/verification/source";
 const standardOptions = ["ERC20", "ERC721", "ERC1155"].map((value) => ({
   value,
   label: value,
 }));
-const networkOptions = [true, false].map((testnet) => ({
-  label: testnet ? "Testnets" : "Mainnets",
-  options: MOCK_CHAINS.filter(
-    (chain) => Boolean(chain.testnet) === testnet
-  ).map((chain) => ({
-    value: String(chain.id),
-    label: chain.name,
-    image: chainIdToImage[chain.id],
-  })),
-}));
+
 
 export type MockWallet = {
   account?: Address;
@@ -181,7 +174,11 @@ export function MockTokenTool({
       clearTimeout(timer);
     };
   }, [submission?.hash, submission?.chainId, submission?.state]);
-  const selected = MOCK_CHAINS.find((c) => String(c.id) === draft.chainId);
+  const savedChains = useCustomChains();
+  const networkOptions = getGroupedNetworkOptions(getMockChains(), true).map((group) => ({
+  ...group, options: group.options.map((option) => ({ ...option, value: String(option.value) })),
+}));
+  const selected = getMockChains().find((c) => String(c.id) === draft.chainId);
   const needsChainSwitch = Boolean(
     selected && wallet.account && wallet.chainId !== selected.id
   );
@@ -229,7 +226,7 @@ export function MockTokenTool({
     const record: Submission = {
       deployment,
       chainId: deployment.chain.id,
-      explorer: deployment.chain.blockExplorers.default.url,
+      explorer: deployment.chain.blockExplorers?.default.url ?? "",
       state: "unknown",
     };
     setSubmission({ ...record, state: "wallet" });
@@ -492,7 +489,7 @@ export function MockTokenTool({
           </Heading>
           <FormControl>
             <FormLabel fontSize="sm">Deployment network</FormLabel>
-            <DarkSelect
+            <NetworkSelect
               ariaLabel="Deployment network"
               options={networkOptions}
               placeholder="Select network"

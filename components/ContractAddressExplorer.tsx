@@ -1,12 +1,12 @@
 "use client";
 
+import { NetworkSelect } from "@/components/NetworkSelect";
 import React from "react";
 import { Box, HStack, IconButton, Link, Text } from "@chakra-ui/react";
-import { DarkSelect } from "./DarkSelect";
 import { ExternalLink } from "lucide-react";
 import { ExplorerGridBase } from "./explorer/ExplorerGridBase";
 import { addressExplorers } from "@/data/addressExplorers";
-import { chainIdToChain, networkOptions } from "@/data/common";
+import { chainIdToChain } from "@/data/common";
 import { ExplorerType } from "@/types";
 import { CopyToClipboard } from "./CopyToClipboard";
 
@@ -34,15 +34,11 @@ export default function ContractAddressExplorer({
           <Text fontSize="xs" fontWeight="medium" color="text.secondary">
             Address
           </Text>
-          <DarkSelect
+          <NetworkSelect
             ariaLabel="Address network"
-            options={networkOptions}
-            selectedOption={
-              networkOptions.find((option) => option.value === chainId) ?? null
-            }
-            setSelectedOption={(option) => {
-              if (option && Number(option.value) !== chainId)
-                onChainChange(Number(option.value));
+            chainId={chainId}
+            onChange={(nextChainId) => {
+              if (nextChainId !== chainId) onChainChange(nextChainId);
             }}
             size="sm"
             boxProps={{ w: { base: "160px", md: "200px" }, minW: 0 }}

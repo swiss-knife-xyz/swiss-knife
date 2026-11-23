@@ -294,7 +294,7 @@ it("opens the home screen in a new tab, preserves its draft, and reuses an alrea
     target: { value: "saved contract input" },
   });
   fireEvent.click(screen.getByRole("button", { name: "New address tab" }));
-  const input = await screen.findByPlaceholderText("0x... or eth:0x...");
+  const input = await screen.findByRole("textbox", { name: "Contract Address" });
   expect(screen.getByText("Try These Examples")).toBeTruthy();
   fireEvent.change(input, { target: { value: root } });
   fireEvent.click(screen.getByRole("tab", { name: /Original contract/ }));
@@ -392,7 +392,7 @@ it("updates the URL per tab and restores query, fragment and drafts with browser
 it("uses the home URL for blank tabs and updates it after an address is loaded", async () => {
   mount();
   fireEvent.click(screen.getByRole("button", { name: "New address tab" }));
-  const input = await screen.findByPlaceholderText("0x... or eth:0x...");
+  const input = await screen.findByRole("textbox", { name: "Contract Address" });
   expect(window.location.pathname).toBe("/explorer/");
   expect(window.location.hash).toBe("");
   fireEvent.change(input, { target: { value: account } });
@@ -421,7 +421,7 @@ it("persists multiple tabs, restores them on refresh and clears storage after cl
       .getAttribute("aria-selected")
   ).toBe("true");
   fireEvent.click(screen.getByRole("button", { name: "Close all tabs" }));
-  await screen.findByPlaceholderText("0x... or eth:0x...");
+  await screen.findByRole("textbox", { name: "Contract Address" });
   expect(screen.getAllByRole("tab")).toHaveLength(1);
   expect(localStorage.getItem(CONTRACT_TABS_STORAGE_KEY)).toBeNull();
   expect(screen.queryByRole("button", { name: "Close all tabs" })).toBeNull();

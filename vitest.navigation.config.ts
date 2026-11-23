@@ -5,7 +5,12 @@ export default defineConfig({
   esbuild: { jsx: "automatic" },
   test: {
     environment: "jsdom",
-    include: ["components/ToolsDrawer.spec.tsx"],
+    include: [
+      "components/ToolsDrawer.spec.tsx",
+      "lib/heroOmnibox.spec.ts",
+      "lib/nameResolution.spec.ts",
+      "components/HomePage/HeroSection/Omnibox.spec.tsx",
+    ],
     maxWorkers: 1,
   },
 });

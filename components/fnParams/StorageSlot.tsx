@@ -1,3 +1,4 @@
+import { getEthersProvider } from "@/lib/ethersProvider";
 import { useEffect, useState } from "react";
 import {
   Box,
@@ -14,7 +15,6 @@ import {
 } from "@chakra-ui/react";
 import { ethers } from "ethers";
 import { SelectedOptionState } from "@/types";
-import { chainIdToChain, networkOptions } from "@/data/common";
 import { DarkSelect } from "../DarkSelect";
 import TabsSelector from "../Tabs/TabsSelector";
 import { CalldataParam } from "../decodedParams/CalldataParam";
@@ -221,9 +221,7 @@ export const StorageSlot = ({
       return;
     }
 
-    const provider = new ethers.JsonRpcProvider(
-      chainIdToChain[chainId]?.rpcUrls.default.http[0]
-    );
+    const provider = getEthersProvider(chainId);
     let _storageSlot: string | bigint | undefined;
 
     if (selectedTabIndex === 0) {

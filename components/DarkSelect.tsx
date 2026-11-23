@@ -9,6 +9,7 @@ import {
   chakraComponents,
   OptionProps,
   SingleValueProps,
+  MenuProps,
 } from "chakra-react-select";
 import { SelectedOption, SelectedOptionState } from "@/types";
 
@@ -23,6 +24,10 @@ export interface DarkSelectProps {
   boxProps?: BoxProps;
   size?: "sm" | "md" | "lg";
   controlProps?: Pick<BoxProps, "h" | "minH" | "borderRadius" | "fontSize">;
+  // Widen only the portaled options menu, keeping the control's layout intact.
+  menuMinWidth?: number;
+  menuAlign?: "left" | "right";
+  menuFooter?: (closeMenu: () => void) => React.ReactNode;
   isCreatable?: boolean;
   disableMouseNavigation?: boolean;
   editableValue?: string;
@@ -49,6 +54,9 @@ export const DarkSelect = ({
   boxProps,
   size = "md",
   controlProps,
+  menuMinWidth,
+  menuAlign = "left",
+  menuFooter,
   isCreatable,
   disableMouseNavigation,
   editableValue,
@@ -142,23 +150,48 @@ export const DarkSelect = ({
       fontWeight: "600",
       textTransform: "uppercase",
       letterSpacing: "0.05em",
+      // Each heading sticks within its own group, so the next group pushes it out.
+      position: "sticky",
+      top: 0,
+      zIndex: 1,
+      bg: "#18181B",
+      margin: 0,
       px: 3,
       pt: 2,
       pb: 1,
     }),
     menuList: (provided: any) => ({
       ...provided,
+      ...(options.some((option) => "options" in option) ? { py: 0 } : {}),
       bg: "#18181B",
       border: "1px solid",
       borderColor: "whiteAlpha.200",
       borderRadius: controlProps?.borderRadius ?? "lg",
       ...(controlProps?.fontSize ? { fontSize: controlProps.fontSize } : {}),
       boxShadow: "lg",
+      ...(menuFooter
+        ? {
+            border: 0,
+            borderRadius: 0,
+            boxShadow: "none",
+            maxHeight: `calc(${typeof provided.maxHeight === "number" ? `${provided.maxHeight}px` : (provided.maxHeight ?? "300px")} - 52px)`,
+          }
+        : {}),
       zIndex: dropdownZIndex,
     }),
     menu: (provided: any) => ({
       ...provided,
       position: "absolute",
+      ...(menuFooter
+        ? {
+            bg: "#18181B",
+            border: "1px solid",
+            borderColor: "whiteAlpha.200",
+            borderRadius: controlProps?.borderRadius ?? "lg",
+            boxShadow: "lg",
+            overflow: "hidden",
+          }
+        : {}),
       zIndex: dropdownZIndex,
     }),
     option: (provided: any, state: any) => ({
@@ -211,6 +244,18 @@ export const DarkSelect = ({
   const SelectComponent = isCreatable ? CreatableSelect : RSelect;
 
   const customComponents = {
+    ...(menuFooter
+      ? {
+          Menu: (props: MenuProps<SelectedOption, false>) => (
+            <chakraComponents.Menu {...props}>
+              {props.children}
+              <Box borderTop="1px solid" borderColor="whiteAlpha.100">
+                {menuFooter(handleMenuClose)}
+              </Box>
+            </chakraComponents.Menu>
+          ),
+        }
+      : {}),
     Option: (props: OptionProps<SelectedOption, false>) => (
       <chakraComponents.Option {...props}>
         <HStack
@@ -349,10 +394,24 @@ export const DarkSelect = ({
         tagVariant="solid"
         chakraStyles={commonChakraStyles}
         styles={{
-          menuPortal: (provided: any) => ({
-            ...provided,
-            zIndex: dropdownZIndex,
-          }),
+          menuPortal: (provided: any) => {
+            const portalStyle = { ...provided, zIndex: dropdownZIndex };
+            if (menuMinWidth === undefined) return portalStyle;
+            const viewportWidth = document.documentElement.clientWidth;
+            const width = Math.min(
+              Math.max(provided.width ?? 0, menuMinWidth),
+              Math.max(0, viewportWidth - 16)
+            );
+            const left =
+              menuAlign === "right"
+                ? (provided.left ?? 0) + (provided.width ?? 0) - width
+                : (provided.left ?? 0);
+            return {
+              ...portalStyle,
+              width,
+              left: Math.max(8, Math.min(left, viewportWidth - width - 8)),
+            };
+          },
         }}
         closeMenuOnSelect
         useBasicStyles
@@ -364,6 +423,7 @@ export const DarkSelect = ({
             }
           : {})}
         menuPosition="fixed"
+        menuPlacement={menuFooter ? "auto" : "bottom"}
         onKeyDown={handleKeyDown}
         isDisabled={isDisabled || disableMouseNavigation}
         components={customComponents}

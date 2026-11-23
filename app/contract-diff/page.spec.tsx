@@ -1,0 +1,28 @@
+import React from "react";
+import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { ChakraProvider } from "@chakra-ui/react";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import ContractDiff from "./page";
+const { source } = vi.hoisted(() => ({ source: vi.fn() }));
+vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams() }));
+vi.mock("@/utils", () => ({ getSourceCodeWithMetadata: source }));
+vi.mock("@/components/Layout", () => ({ Layout: ({ children }: any) => children }));
+vi.mock("@/components/SourceCodeExplorer", () => ({ SourceCodeExplorer: () => <div>Compared sources</div> }));
+vi.mock("@/components/NetworkSelect", () => ({ NetworkSelect: () => null }));
+vi.mock("@/components/InputField", () => ({ InputField: (props: any) => <input {...props} /> }));
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); source.mockReset(); });
+it("titles the comparison with verified names and clears stale titles when inputs change", async () => {
+  Element.prototype.scrollIntoView = vi.fn();
+  vi.stubGlobal("matchMedia", () => ({ matches: false, addListener() {}, removeListener() {} }));
+  source.mockResolvedValueOnce({ contractName: "WrappedEther", sourceCode: { "WETH.sol": "contract WrappedEther {}" } });
+  source.mockResolvedValueOnce({ contractName: "WETH9", sourceCode: { "WETH.sol": "contract WETH9 {}" } });
+  render(<ChakraProvider><NuqsTestingAdapter hasMemory><ContractDiff /></NuqsTestingAdapter></ChakraProvider>);
+  expect(document.title).toBe("Contract Diff | ETH.sh");
+  fireEvent.click(screen.getByRole("button", { name: "Compare Contracts" }));
+  await screen.findByText("Compared sources");
+  await waitFor(() => expect(document.title).toBe("WrappedEther vs WETH9 - Contract Diff | ETH.sh"));
+  expect(source).toHaveBeenCalledTimes(2);
+  fireEvent.change(screen.getAllByPlaceholderText("Contract address")[0], { target: { value: "0x0000000000000000000000000000000000000001" } });
+  await waitFor(() => expect(document.title).toBe("Contract Diff | ETH.sh"));
+});

@@ -1,5 +1,8 @@
 "use client";
 
+import { getNetworkOptions } from "@/data/networks";
+import { NetworkSelect } from "@/components/NetworkSelect";
+
 import React, { useState } from "react";
 import {
   Box,
@@ -47,7 +50,6 @@ import {
   isHex,
 } from "viem";
 import { DarkButton } from "@/components/DarkButton";
-import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { SelectedOptionState } from "@/types";
 
@@ -65,18 +67,10 @@ const TWAP_DATA_PARAMS = parseAbiParameters([
   "(address sellToken, address buyToken, address receiver, uint256 partSellAmount, uint256 minPartLimit, uint256 t0, uint256 n, uint256 t, uint256 span, bytes32 appData) data",
 ]);
 
-type CowApiNetwork = {
-  label: string;
-  value: string;
+const cowApiNetworks: Record<number, string> = {
+  1: "mainnet", 100: "xdai", 42161: "arbitrum_one", 8453: "base", 11155111: "sepolia",
 };
-
-const cowApiNetworks: CowApiNetwork[] = [
-  { label: "Ethereum", value: "mainnet" },
-  { label: "Gnosis Chain", value: "xdai" },
-  { label: "Arbitrum One", value: "arbitrum_one" },
-  { label: "Base", value: "base" },
-  { label: "Sepolia", value: "sepolia" },
-];
+const cowNetworkOptions = getNetworkOptions(Object.keys(cowApiNetworks).map(Number));
 
 type Step1Result = {
   handler: `0x${string}`;
@@ -252,8 +246,8 @@ export const CoWSwapVerifyPage = () => {
   const toast = useToast();
   const [calldata, setCalldata] = useState("");
   const [selectedNetwork, setSelectedNetwork] = useState<SelectedOptionState>({
-    label: cowApiNetworks[0].label,
-    value: cowApiNetworks[0].value,
+    label: cowNetworkOptions[0].label,
+    value: cowNetworkOptions[0].value,
   });
 
   const [error, setError] = useState("");
@@ -335,7 +329,8 @@ export const CoWSwapVerifyPage = () => {
       };
       setStep2(s2);
 
-      const networkPath = selectedNetwork!.value as string;
+      const networkPath = cowApiNetworks[Number(selectedNetwork!.value)];
+      if (!networkPath) throw new Error("This chain is not supported by the CoW API.");
       const appDataHash = s2.appData;
       try {
         const resp = await fetch(
@@ -501,11 +496,11 @@ export const CoWSwapVerifyPage = () => {
             </Text>
           </Box>
           <Box flex={1}>
-            <DarkSelect
+            <NetworkSelect
               boxProps={{ w: "100%" }}
               selectedOption={selectedNetwork}
               setSelectedOption={setSelectedNetwork}
-              options={cowApiNetworks}
+              options={cowNetworkOptions}
             />
           </Box>
         </HStack>

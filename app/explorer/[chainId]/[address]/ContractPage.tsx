@@ -1,5 +1,8 @@
 "use client";
 
+import { useCustomChains } from "@/lib/customChains/store";
+import { getRpcUrlsForChain } from "@/data/networks";
+import { NetworkSelect } from "@/components/NetworkSelect";
 import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { DarkSelect } from "@/components/DarkSelect";
@@ -8,6 +11,8 @@ import {
   HighlightedContent,
   SelectedOptionState,
 } from "@/types";
+import { getDelegatedImplementation } from "@/lib/eip7702";
+import { parseContractAddressInput } from "@/lib/contractExplorerInput";
 import { chainIdToChain, networkOptions } from "@/data/common";
 import {
   Alert,
@@ -66,6 +71,9 @@ import { SourceCodeExplorer } from "@/components/SourceCodeExplorer";
 import { ContractCallPrefill, type PrefilledCall } from "@/components/fnParams/ContractCallPrefill";
 import { contractFunctionSignature } from "@/lib/contractCall";
 
+import { ContractAbiEditor, type ContractAbiEditorState } from "@/components/ContractAbiEditor";
+import { mergeContractAbi, contractAbiFunctionSelector, compareContractFunctions, contractFunctionStateKey } from "@/lib/contractAbi";
+
 import { ContractTabs, ContractAddressLink, useContractTab } from "@/components/ContractTabs";
 
 const useDebouncedValue = (value: any, delay: number) => {
@@ -89,6 +97,10 @@ type AbiType = {
   name: string;
   // Provenance belongs to this ABI, not the outer proxy/address.
   isDecoded?: boolean;
+  isCustom?: boolean;
+  customFunctionSelectors?: string[];
+  addedFunctionSelectors?: string[];
+  functionEdits?: { base: AbiType; declarations: string };
 };
 
 type SourceCodeType = Record<string, string> | undefined;
@@ -116,7 +128,7 @@ const AbiExpandedProvider = ({ children }: { children: React.ReactNode }) => {
  * Toggle button for ABI & Source Code section.
  * Must be used inside AbiExpandedProvider.
  */
-const AbiSourceCodeToggle = () => {
+const AbiSourceCodeToggle = ({ isCustom }: { isCustom?: boolean }) => {
   const context = useContext(AbiExpandedContext);
   if (!context) return null;
   const { isExpanded, setIsExpanded } = context;
@@ -126,6 +138,7 @@ const AbiSourceCodeToggle = () => {
       size="sm"
       variant="outline"
       onClick={() => setIsExpanded(!isExpanded)}
+      aria-expanded={isExpanded}
       color="text.secondary"
       borderColor="whiteAlpha.300"
       bg="whiteAlpha.50"
@@ -135,8 +148,12 @@ const AbiSourceCodeToggle = () => {
       px={3}
       h={{ base: 9, md: 7 }}
       fontSize="xs"
+      position="relative"
+      aria-description={isCustom ? "Custom ABI applied" : undefined}
+      data-custom-abi={Boolean(isCustom)}
     >
       ABI & Source Code
+      {isCustom && <Box position="absolute" top="-3px" right="2px" boxSize="6px" bg="blue.400" borderRadius="full" aria-hidden="true" />}
     </Button>
   );
 };
@@ -154,7 +171,9 @@ const AbiSourceCodeContent = ({
   proxySourceCode,
   implementationSourceCode,
   implementationAddress,
+  isDelegated = false,
   isLoadingSourceCode,
+  renderAbiEditor,
 }: {
   abi: AbiType | null;
   proxyAbi: AbiType | null;
@@ -163,7 +182,9 @@ const AbiSourceCodeContent = ({
   proxySourceCode: SourceCodeType;
   implementationSourceCode: SourceCodeType;
   implementationAddress: string | null;
+  isDelegated?: boolean;
   isLoadingSourceCode: boolean;
+  renderAbiEditor: (mode: "contract" | "implementation", onOpen?: () => void, onSubmitted?: () => void) => React.ReactNode;
 }) => {
   const context = useContext(AbiExpandedContext);
   const isExpanded = context?.isExpanded ?? false;
@@ -233,8 +254,6 @@ const AbiSourceCodeContent = ({
     URL.revokeObjectURL(url);
   }, [sourceFileEntries, currentAbi?.name]);
 
-  if (!abi) return null;
-
   return (
     <Box
       display={isExpanded ? "flex" : "none"}
@@ -257,7 +276,7 @@ const AbiSourceCodeContent = ({
         {/* Contract tabs for proxy */}
         {isProxy && (
           <TabsSelector
-            tabs={["Implementation", "Proxy"]}
+            tabs={["Implementation", isDelegated ? "EOA" : "Proxy"]}
             selectedTabIndex={contractTabIndex}
             setSelectedTabIndex={setContractTabIndex}
             mt={0}
@@ -273,6 +292,12 @@ const AbiSourceCodeContent = ({
         />
 
         <Spacer />
+
+        {renderAbiEditor(
+          isProxy && contractTabIndex === 0 ? "implementation" : "contract",
+          () => setIsFullscreen(false),
+          () => context?.setIsExpanded(false)
+        )}
 
         {/* Copy / Download action buttons */}
         {abiContent && (
@@ -400,6 +425,7 @@ const ReadWriteSection = ({
   onPrefillScrollStart,
   mobileActive,
   abiMode,
+  addedFunctionFocus,
 }: {
   type: "read" | "write";
   abi: AbiType;
@@ -413,6 +439,7 @@ const ReadWriteSection = ({
   onPrefillScrollStart?: () => void;
   mobileActive: boolean;
   abiMode: "contract" | "implementation";
+  addedFunctionFocus: { selector: string; revision: number } | null;
 }) => {
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
 
@@ -446,6 +473,23 @@ const ReadWriteSection = ({
     });
     return () => cancelAnimationFrame(frame);
   }, [prefilledCall, prefillRevision, functions, client, onPrefillScrollStart, mobileActive]);
+
+  const scrolledAddedRevision = useRef<number | null>(null);
+  useEffect(() => {
+    if (!addedFunctionFocus || !client || !mobileActive || scrolledAddedRevision.current === addedFunctionFocus.revision) return;
+    const index = functions.findIndex(func => contractAbiFunctionSelector(func) === addedFunctionFocus.selector);
+    if (index < 0) return;
+    const frame = requestAnimationFrame(() => {
+      const target = functionRefs.current[index];
+      if (!target) return;
+      scrolledAddedRevision.current = addedFunctionFocus.revision;
+      target.scrollIntoView?.({
+        behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+        block: "start",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [addedFunctionFocus, functions, client, mobileActive]);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -764,14 +808,19 @@ const ReadWriteSection = ({
         )}
         {client &&
           functions?.map((func, index) => {
+            const selector = contractAbiFunctionSelector(func) ?? "";
+            const inferred = Boolean(isAbiDecoded && !abi.customFunctionSelectors?.includes(selector));
+            const customAdded = abi.addedFunctionSelectors?.includes(selector);
             let initialCall: PrefilledCall | undefined;
             try {
               if (prefilledCall?.signature === contractFunctionSignature(func)) initialCall = prefilledCall;
             } catch { /* Unknown inferred shapes cannot be prefilled. */ }
             return (
             <Box
-              key={`${index}:${initialCall ? prefillRevision : "ordinary"}`}
+              key={`${contractFunctionStateKey(func, inferred)}:${initialCall ? prefillRevision : "ordinary"}`}
               data-prefilled={initialCall ? "true" : undefined}
+              data-function-selector={selector || undefined}
+              data-custom-added={customAdded ? "true" : undefined}
               scrollMarginTop="8rem"
               ref={(el) => { functionRefs.current[index] = el; }}
             >
@@ -782,7 +831,8 @@ const ReadWriteSection = ({
                 func={highlightedFunctions[index]}
                 address={address}
                 chainId={chainId}
-                isAbiDecoded={isAbiDecoded || false}
+                isAbiDecoded={inferred}
+                isCustomAdded={customAdded}
                 readAllCollapsed={allCollapsed}
                 initialCall={initialCall}
                 abiMode={abiMode}
@@ -825,16 +875,18 @@ const LoadedContractPage = ({
   // Find network option, default to first option (mainnet) if not found
   const getNetworkOption = useCallback(() => {
     const index = networkOptions.findIndex((option) => option.value === chainId);
-    return index >= 0 ? networkOptions[index] : networkOptions[0];
+    return index >= 0 ? networkOptions[index] : { value: chainId, label: `Chain ${chainId}` };
   }, [chainId]);
 
   // dynamic imports
   const [evmole, setEvmole] = useState<any>(null);
 
   useEffect(() => {
+    let active = true;
     import("evmole").then((module) => {
-      setEvmole(module);
+      if (active) setEvmole(module);
     });
+    return () => { active = false; };
   }, []);
 
   // state
@@ -848,7 +900,12 @@ const LoadedContractPage = ({
     return null;
   });
 
-  const [abi, setAbi] = useState<AbiType | null>(null);
+  const [loadedAbi, setAbi] = useState<AbiType | null>(null);
+  const [isInteractingAsProxy, setIsInteractingAsProxy] = useState(false);
+  const [customAbis, setCustomAbis] = useState<{ contract: AbiType | null; implementation: AbiType | null }>({ contract: null, implementation: null });
+  const [abiEditorStates, setAbiEditorStates] = useState<Partial<Record<"contract" | "implementation", ContractAbiEditorState>>>({});
+  const selectedAbiMode = isInteractingAsProxy ? "implementation" : "contract";
+  const abi = customAbis[selectedAbiMode] ?? loadedAbi;
   useEffect(() => {
     if (abi?.name) setTabName?.(abi.name);
   }, [abi?.name, setTabName]);
@@ -861,6 +918,7 @@ const LoadedContractPage = ({
   const [implementationAbi, setImplementationAbi] = useState<AbiType | null>(
     null
   );
+  const [isDelegated, setIsDelegated] = useState(false);
   const [proxyAbi, setProxyAbi] = useState<AbiType | null>(null);
   const [prefill, setPrefill] = useState<{ call: PrefilledCall | null; revision: number; onScrollStart?: () => void }>({ call: null, revision: 0 });
   const handlePrefill = useCallback((call: PrefilledCall | null, onScrollStart?: () => void) => {
@@ -871,10 +929,14 @@ const LoadedContractPage = ({
     }
     setPrefill(previous => ({ call, revision: previous.revision + 1, onScrollStart }));
   }, [proxyAbi, implementationAbi]);
-  const [isInteractingAsProxy, setIsInteractingAsProxy] =
-    useState<boolean>(false);
 
-  const [readFunctions, setReadFunctions] = useState<JsonFragment[]>([]);
+  const [addedFunctionFocus, setAddedFunctionFocus] = useState<{
+    selector: string; revision: number; mode: "contract" | "implementation"; type: "read" | "write";
+  } | null>(null);
+  const addedFocusRevision = useRef(0);
+  const orderedFunctions = useMemo(() => (abi?.abi ?? []).filter(item => item.type === "function").sort(compareContractFunctions), [abi]);
+  const readFunctions = useMemo(() => orderedFunctions.filter(item => item.stateMutability === "view" || item.stateMutability === "pure"), [orderedFunctions]);
+  const writeFunctions = useMemo(() => orderedFunctions.filter(item => item.stateMutability !== "view" && item.stateMutability !== "pure"), [orderedFunctions]);
 
   // Address Book integration
   const { getLabel, isReady: isAddressBookReady } = useAddressBook();
@@ -886,7 +948,6 @@ const LoadedContractPage = ({
     // If name contains "..." it's likely a truncated address (from slicedText)
     return !abi.name.includes("...");
   }, [abi?.name]);
-  const [writeFunctions, setWriteFunctions] = useState<JsonFragment[]>([]);
   const [mobileFunctionType, setMobileFunctionType] = useState<"read" | "write">("read");
 
   // Shared links and decoded calldata reveal their destination before scrolling.
@@ -910,9 +971,43 @@ const LoadedContractPage = ({
   const fetchSetAbi = useCallback(async () => {
     if (!evmole) return;
 
+    let resolvingDelegation = false;
     try {
       setIsFetchingAbi(true);
       setUnableToFetchAbi(false);
+
+      // Resolve the active authorization from on-chain code, as in 7702beat.
+      // Load the delegate ABI while calls still target the EOA (`address`).
+      const rpcClient = getPublicClient(chainId);
+      const code = await rpcClient.getCode({ address: address as Address }).catch(() => undefined);
+      const delegate = getDelegatedImplementation(code);
+      setIsDelegated(Boolean(delegate));
+      if (delegate) {
+        resolvingDelegation = true;
+        setImplementationAddress(delegate);
+        setProxyAbi({ abi: [], name: slicedText(address) });
+        setIsInteractingAsProxy(true);
+        let implementation: AbiType;
+        try {
+          const verified = await fetchContractAbiRaw({ address: delegate, chainId });
+          // Do not follow another delegation or a proxy stored at the target:
+          // the EVM executes that target's own code in the EOA's storage context.
+          implementation = { abi: verified.abi as JsonFragment[], name: verified.name };
+        } catch {
+          const implementationCode = await rpcClient.getCode({ address: delegate });
+          if (!implementationCode || implementationCode === "0x" || getDelegatedImplementation(implementationCode)) {
+            throw new Error("Delegated implementation has no executable contract code");
+          }
+          implementation = {
+            abi: await processContractBytecode({ contractCode: implementationCode, evmole }) as JsonFragment[],
+            name: slicedText(delegate),
+            isDecoded: true,
+          };
+        }
+        setImplementationAbi(implementation);
+        setAbi(implementation);
+        return;
+      }
 
       // try fetching if contract is verified
       const fetchedAbi = await fetchContractAbiRaw({ address, chainId });
@@ -941,6 +1036,10 @@ const LoadedContractPage = ({
       }
     } catch (e) {
       console.log("Error fetching verified ABI:", e);
+      if (resolvingDelegation) {
+        setUnableToFetchAbi(true);
+        return;
+      }
 
       try {
         // Create client for bytecode fetch
@@ -1089,45 +1188,28 @@ const LoadedContractPage = ({
     fetchSourceCodes();
   }, [address, chainId, implementationAddress]);
 
-  // Set functions from abi
   useEffect(() => {
-    if (abi) {
-      if (abi.name && abi.name.length > 0) {
-        document.title = `${abi.name} - ${address} | ETH.sh`;
-      }
-
-      const readFunctions = abi.abi.filter(
-        (item: JsonFragment) =>
-          item.stateMutability === "view" || item.stateMutability === "pure"
-      );
-      setReadFunctions(readFunctions);
-
-      const writeFunctions = abi.abi.filter(
-        (item: JsonFragment) =>
-          item.stateMutability !== "view" &&
-          item.stateMutability !== "pure" &&
-          item.type === "function"
-      );
-      setWriteFunctions(writeFunctions);
-    }
-  }, [abi, address]);
+    if (abi?.name) document.title = `${abi.name} - ${address} | ETH.sh`;
+  }, [abi?.name, address]);
 
   const renderFunctions = () => {
     return (
-      abi && (
         <Box w="full" maxW="70rem" mx="auto">
           {/* ABI & Source Code Content - above alerts */}
           <AbiSourceCodeContent
             abi={abi}
-            proxyAbi={proxyAbi}
-            implementationAbi={implementationAbi}
+            proxyAbi={customAbis.contract ?? proxyAbi}
+            implementationAbi={customAbis.implementation ?? implementationAbi}
             sourceCode={sourceCode}
             proxySourceCode={proxySourceCode}
             implementationSourceCode={implementationSourceCode}
             implementationAddress={implementationAddress}
+            isDelegated={isDelegated}
             isLoadingSourceCode={isLoadingSourceCode}
+            renderAbiEditor={renderAbiEditor}
           />
 
+          {abi && <>
           {/* Proxy and inferred ABI details */}
           <VStack spacing={3} align="stretch" mb={implementationAddress || isAbiDecoded ? 4 : 0}>
             {implementationAddress && (
@@ -1145,14 +1227,12 @@ const LoadedContractPage = ({
                 <AlertIcon color="primary.400" mr={0} mt={1} />
                 <Box minW={0}>
                   <Text color="text.secondary" fontSize="sm">
-                    Proxy implementation:
+                    {isDelegated ? "EIP-7702 delegated implementation:" : "Proxy implementation:"}
                   </Text>
                   <ContractAddressLink
                     address={implementationAddress}
                     chainId={chainId}
-                    href={`${getPath(
-                      subdomains.EXPLORER.base
-                    )}contract/${chainId}/${implementationAddress}`}
+                    href={`${getPath(subdomains.CONTRACT.base)}${chainId}/${implementationAddress}`}
                     fontWeight="semibold"
                     color="primary.400"
                     fontSize="sm"
@@ -1165,7 +1245,7 @@ const LoadedContractPage = ({
                     <Icon as={ExternalLink} boxSize={3} verticalAlign="middle" />
                   </ContractAddressLink>
                 </Box>
-                <HStack spacing={2} gridColumn={{ base: 2, lg: "auto" }} minW={0} flexWrap="wrap">
+                {!isDelegated && <HStack spacing={2} gridColumn={{ base: 2, lg: "auto" }} minW={0} flexWrap="wrap">
                   <Text color="text.primary" fontSize="sm">Interact as</Text>
                   <DarkSelect
                     boxProps={{
@@ -1186,7 +1266,7 @@ const LoadedContractPage = ({
                     }}
                     options={proxyOptions}
                   />
-                </HStack>
+                </HStack>}
               </Alert>
             )}
             {isAbiDecoded && (
@@ -1247,12 +1327,13 @@ const LoadedContractPage = ({
 
           <Grid templateColumns={{ base: "minmax(0, 1fr)", lg: "repeat(2, minmax(0, 1fr))" }} gap={6} w="full" minW={0}>
             <ReadWriteSection
-              key={`read:${isInteractingAsProxy}`}
+              key={`read:${chainId}:${address.toLowerCase()}:${isInteractingAsProxy}`}
               prefilledCall={prefill.call?.abiMode === (isInteractingAsProxy ? "implementation" : "contract") ? prefill.call : null}
               prefillRevision={prefill.revision}
               onPrefillScrollStart={prefill.onScrollStart}
               abiMode={isInteractingAsProxy ? "implementation" : "contract"}
               type="read"
+              addedFunctionFocus={addedFunctionFocus?.mode === selectedAbiMode && addedFunctionFocus.type === "read" ? addedFunctionFocus : null}
               mobileActive={mobileFunctionType === "read"}
               abi={abi}
               client={client}
@@ -1262,12 +1343,13 @@ const LoadedContractPage = ({
               isAbiDecoded={isAbiDecoded}
             />
             <ReadWriteSection
-              key={`write:${isInteractingAsProxy}`}
+              key={`write:${chainId}:${address.toLowerCase()}:${isInteractingAsProxy}`}
               prefilledCall={prefill.call?.abiMode === (isInteractingAsProxy ? "implementation" : "contract") ? prefill.call : null}
               prefillRevision={prefill.revision}
               onPrefillScrollStart={prefill.onScrollStart}
               abiMode={isInteractingAsProxy ? "implementation" : "contract"}
               type="write"
+              addedFunctionFocus={addedFunctionFocus?.mode === selectedAbiMode && addedFunctionFocus.type === "write" ? addedFunctionFocus : null}
               mobileActive={mobileFunctionType === "write"}
               abi={abi}
               client={client}
@@ -1277,8 +1359,8 @@ const LoadedContractPage = ({
               isAbiDecoded={isAbiDecoded}
             />
           </Grid>
+          </>}
         </Box>
-      )
     );
   };
 
@@ -1295,13 +1377,14 @@ const LoadedContractPage = ({
     pendingRouteRef.current = null;
   }, [address, chainId, getNetworkOption]);
 
-  const handleAddressSubmit = () => {
-    const trimmedAddress = addressInput.trim();
+  const submitAddress = (input: string, selectedChainId = Number(selectedNetworkOption?.value)) => {
+    const explorer = parseContractAddressInput(input);
+    const trimmedAddress = explorer?.address ?? input.trim();
     if (!/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) {
       setInputError("Please enter a valid contract address");
       return;
     }
-    const draftChainId = Number(selectedNetworkOption?.value);
+    const draftChainId = explorer?.chainId ?? selectedChainId;
     if (!chainIdToChain[draftChainId] || !networkOptions.some(option => option.value === draftChainId)) {
       setInputError("Please select a valid network");
       return;
@@ -1316,11 +1399,100 @@ const LoadedContractPage = ({
     router.push(route);
   };
 
+  const handleAddressSubmit = () => submitAddress(addressInput);
+
+  const handleAddressPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const explorer = parseContractAddressInput(event.clipboardData.getData("text"));
+    if (!explorer) return;
+    event.preventDefault();
+    setAddressInput(explorer.address);
+    setSelectedNetworkOption(networkOptions.find(option => option.value === explorer.chainId) ?? null);
+    submitAddress(explorer.address, explorer.chainId);
+  };
+
   const handleAddressKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.nativeEvent.isComposing && !e.repeat) {
       e.preventDefault();
       handleAddressSubmit();
     }
+  };
+
+  const renderAbiEditor = (mode: "contract" | "implementation", onOpen?: () => void, onSubmitted?: () => void) => {
+    const originalAbi = mode === "implementation" ? implementationAbi : proxyAbi ?? loadedAbi;
+    const editedAbi = customAbis[mode] ?? originalAbi;
+    return <ContractAbiEditor
+      editorState={abiEditorStates[mode]}
+      onEditorStateChange={state => setAbiEditorStates(previous => ({ ...previous, [mode]: state }))}
+      abi={editedAbi?.abi ?? []}
+      chainId={chainId}
+      isCustom={editedAbi?.isCustom === true}
+      disabled={isFetchingAbi}
+      onOpen={onOpen}
+      onSubmitted={onSubmitted}
+      baseAbi={editedAbi?.functionEdits?.base.abi ?? editedAbi?.abi ?? []}
+      functionDeclarations={editedAbi?.functionEdits?.declarations}
+      onApplyFunctions={(incoming, declarations) => {
+        const base = editedAbi?.functionEdits?.base ?? editedAbi ?? {
+          abi: [], name: slicedText(address),
+        };
+        const selectors = incoming.map(contractAbiFunctionSelector).filter((selector): selector is string => selector !== null);
+        setAddedFunctionFocus(null);
+        setCustomAbis(previous => ({ ...previous, [mode]: {
+          ...base,
+          abi: mergeContractAbi(base.abi, incoming),
+          isCustom: incoming.length > 0 || base.isCustom === true,
+          customFunctionSelectors: [...new Set([...(base.customFunctionSelectors ?? []), ...selectors])],
+          addedFunctionSelectors: selectors,
+          functionEdits: { base, declarations },
+        } }));
+        setUnableToFetchAbi(false);
+      }}
+      onApply={(incoming, merge) => {
+        setAddedFunctionFocus(null);
+        const updated: AbiType = {
+          name: editedAbi?.name ?? slicedText(address),
+          abi: merge ? mergeContractAbi(editedAbi?.abi ?? [], incoming) : incoming,
+          isDecoded: merge && editedAbi?.isDecoded === true,
+          isCustom: true,
+          functionEdits: merge && editedAbi?.functionEdits ? {
+            declarations: editedAbi.functionEdits.declarations,
+            base: {
+              ...editedAbi.functionEdits.base,
+              abi: mergeContractAbi(editedAbi.functionEdits.base.abi, incoming),
+              isCustom: true,
+              customFunctionSelectors: [...new Set([
+                ...(editedAbi.functionEdits.base.customFunctionSelectors ?? []),
+                ...incoming.map(contractAbiFunctionSelector).filter((selector): selector is string => selector !== null),
+              ])],
+            },
+          } : undefined,
+          addedFunctionSelectors: merge ? editedAbi?.addedFunctionSelectors : [],
+          customFunctionSelectors: [...new Set([
+            ...(merge ? editedAbi?.customFunctionSelectors ?? [] : []),
+            ...incoming.map(contractAbiFunctionSelector).filter((selector): selector is string => selector !== null),
+          ])],
+        };
+        setCustomAbis(previous => ({ ...previous, [mode]: updated }));
+        setUnableToFetchAbi(false);
+      }}
+      onFunctionsAdded={added => {
+        const first = [...added].sort(compareContractFunctions)[0];
+        const selector = first && contractAbiFunctionSelector(first);
+        if (!selector) return;
+        if (mode !== selectedAbiMode) {
+          setAbi(originalAbi);
+          setIsInteractingAsProxy(mode === "implementation");
+        }
+        const type = first.stateMutability === "view" || first.stateMutability === "pure" ? "read" : "write";
+        setMobileFunctionType(type);
+        setAddedFunctionFocus({ selector, mode, type, revision: ++addedFocusRevision.current });
+      }}
+      onReset={() => {
+        setAddedFunctionFocus(null);
+        setUnableToFetchAbi(!loadedAbi);
+        setCustomAbis(previous => ({ ...previous, [mode]: null }));
+      }}
+    />;
   };
 
   return (
@@ -1371,15 +1543,21 @@ const LoadedContractPage = ({
               <InputGroup>
                 <Input
                   placeholder="0x..."
+                  title="Contract address or explorer URL"
                   value={addressInput}
                   aria-label="Contract Address"
                   h={10}
                   isInvalid={Boolean(inputError)}
                   aria-describedby={inputError ? "contract-load-error" : undefined}
                   onChange={(e) => {
-                    setAddressInput(e.target.value);
+                    const explorer = parseContractAddressInput(e.target.value);
+                    setAddressInput(explorer?.address ?? e.target.value);
+                    if (explorer) {
+                      setSelectedNetworkOption(networkOptions.find(option => option.value === explorer.chainId) ?? null);
+                    }
                     setInputError(null);
                   }}
+                  onPaste={handleAddressPaste}
                   onKeyDown={handleAddressKeyDown}
                   fontFamily="mono"
                   fontSize="sm"
@@ -1395,7 +1573,7 @@ const LoadedContractPage = ({
               <Text color="text.tertiary" fontSize="xs" fontWeight="medium" mb={1.5} textTransform="uppercase" letterSpacing="0.05em">
                 Network
               </Text>
-              <DarkSelect
+              <NetworkSelect
                 ariaLabel="Network"
                 controlProps={{ h: 10, minH: 10 }}
                 selectedOption={selectedNetworkOption}
@@ -1416,8 +1594,7 @@ const LoadedContractPage = ({
             </Text>
           )}
 
-          {/* Contract Info Row - Only show when ABI is loaded */}
-          {abi && (
+          {/* Contract tools remain available when no ABI was found. */}
             <>
               <Box h="1px" bg="border.default" mb={4} />
               <Flex
@@ -1426,36 +1603,35 @@ const LoadedContractPage = ({
                 alignItems="center"
               >
                 {/* Left side: Contract name + proxy selector */}
-                <HStack spacing={3} minW="min(100%, 12rem)" maxW="full" flex="0 1 auto">
+                {abi && <HStack spacing={3} minW="min(100%, 12rem)" maxW="full" flex="0 1 auto">
                   <HStack spacing={2} minW={0}>
                     <Text color="text.secondary" fontSize="sm" flexShrink={0}>Contract:</Text>
                     <Text color="text.primary" fontWeight="semibold" fontSize="sm" isTruncated minW={0}>{abi.name || slicedText(address)}</Text>
                   </HStack>
-                </HStack>
+                </HStack>}
 
                 {/* Contract tools */}
                 <HStack spacing={2} flexWrap="wrap" minW={0} flex="1 1 20rem" justify="flex-start" sx={{ "@container (min-width: 620px)": { justifyContent: "center" } }} rowGap={2}>
-                  <AbiSourceCodeToggle />
-                  <ContractCallPrefill
+                  <AbiSourceCodeToggle isCustom={abi?.isCustom} />
+                  {abi && <ContractCallPrefill
                     restoreFromUrl={contractTab?.initial ?? true}
                     address={address}
                     chainId={chainId}
                     selectedAbi={abi.abi}
-                    contractAbi={(proxyAbi ?? abi).abi}
-                    implementationAbi={implementationAbi?.abi ?? null}
+                    contractAbi={(customAbis.contract ?? proxyAbi ?? abi).abi}
+                    implementationAbi={(customAbis.implementation ?? implementationAbi)?.abi ?? null}
                     abiMode={isInteractingAsProxy ? "implementation" : "contract"}
                     onPrefill={handlePrefill}
                     hasActivePrefill={prefill.call !== null}
-                  />
+                  />}
                 </HStack>
 
                 {/* Right side: Connect button */}
-                <Box minW={0} maxW="full" flexShrink={0} sx={{ "@container (min-width: 620px)": { marginLeft: "auto" } }}>
+                {abi && <Box minW={0} maxW="full" flexShrink={0} sx={{ "@container (min-width: 620px)": { marginLeft: "auto" } }}>
                   <ConnectButton expectedChainId={chainId} />
-                </Box>
+                </Box>}
               </Flex>
             </>
-          )}
         </Box>
         {isFetchingAbi && (
           <Box w="full" maxW="70rem" mt={4}>
@@ -1510,7 +1686,7 @@ const LoadedContractPage = ({
             </Grid>
           </Box>
         )}
-        {unableToFetchAbi && (
+        {unableToFetchAbi && !abi?.isCustom && (
           <Box
             mt={4}
             p={4}
@@ -1532,10 +1708,15 @@ const LoadedContractPage = ({
 };
 
 // Never pair a new route with the previous route's ABI, prefill or pending preview.
+function SavedRpcContract(props: { params: { address: string; chainId: number } }) {
+  const saved = useCustomChains();
+  const endpointKey = getRpcUrlsForChain(props.params.chainId).join("|");
+  if (!saved.ready && !chainIdToChain[props.params.chainId]) return <Text color="text.secondary">Loading saved network…</Text>;
+  return <LoadedContractPage key={`${props.params.chainId}:${endpointKey}`} {...props} />;
+}
 export const ContractPage = (props: { params: { address: string; chainId: number } }) =>
-  <ContractTabs key={`${props.params.chainId}:${props.params.address.toLowerCase()}`} initial={props.params} renderContract={params => <LoadedContractPage params={params} />} />;
-
+  <ContractTabs key={`${props.params.chainId}:${props.params.address.toLowerCase()}`} initial={props.params} renderContract={params => <SavedRpcContract params={params} />} />;
 
 export const ContractWorkspace = () => (
-  <ContractTabs renderContract={params => <LoadedContractPage params={params} />} />
+  <ContractTabs renderContract={params => <SavedRpcContract params={params} />} />
 );

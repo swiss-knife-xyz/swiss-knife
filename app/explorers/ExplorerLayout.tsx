@@ -1,5 +1,7 @@
 "use client";
 
+import { parseChainPrefixedAddress } from "@/lib/contractExplorerInput";
+
 import { ToolLoading } from "@/components/ToolLoading";
 
 import {
@@ -101,8 +103,10 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
   };
 
   // Preserve directory filters when resolving a bookmarked ENS/raw-address search.
-  const navigateToSearch = (url: string) => {
-    const query = searchParams.toString();
+  const navigateToSearch = (url: string, chainId?: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (chainId !== undefined) params.set("chainId", String(chainId));
+    const query = params.toString();
     router.push(`${url}${query ? `?${query}` : ""}`);
   };
 
@@ -111,7 +115,10 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
     setResolvedEnsName(null);
     setResolvedEnsAvatar(null);
 
-    const __userInput = _userInput ?? userInput;
+    const rawInput = (_userInput ?? userInput).trim();
+    const prefixed = parseChainPrefixedAddress(rawInput);
+    const __userInput = prefixed?.address ?? rawInput;
+    if (prefixed) setUserInput(prefixed.address);
 
     if (__userInput) {
       if (isValidTransaction(__userInput)) {
@@ -131,8 +138,8 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
       } else if (isAddress(__userInput)) {
         addRecentSearch(__userInput, "address");
         const newUrl = `${getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}address/${__userInput}`;
-        if (new URL(newUrl, "https://eth.sh").pathname.toLowerCase() !== pathname.toLowerCase()) {
-          navigateToSearch(newUrl);
+        if (prefixed || new URL(newUrl, "https://eth.sh").pathname.toLowerCase() !== pathname.toLowerCase()) {
+          navigateToSearch(newUrl, prefixed?.chainId);
         } else {
           // Have a delay so the loading spinner shows up
           setTimeout(() => {

@@ -1,7 +1,8 @@
 "use client";
 
+import { useCustomChains } from "@/lib/customChains/store";
+import { NetworkSelect } from "@/components/NetworkSelect";
 import { ToolLoading } from "@/components/ToolLoading";
-
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
@@ -29,11 +30,20 @@ import {
   IconButton,
   SimpleGrid,
   Skeleton,
+  Input,
+  Center,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
 } from "@chakra-ui/react";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
   ExternalLinkIcon,
+  LinkIcon,
 } from "@chakra-ui/icons";
 import {
   FiCode,
@@ -44,7 +54,8 @@ import {
   FiArrowRight,
 } from "react-icons/fi";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
-import { Hex, Chain, stringify } from "viem";
+import { Hex, stringify } from "viem";
+import { parseTransactionExplorerUrl } from "@/lib/contractExplorerInput";
 import { getPublicClient } from "@/lib/publicClient";
 import {
   DecodeRecursiveResult,
@@ -52,7 +63,6 @@ import {
   DecodeEventResult,
 } from "@/types";
 import {
-  c,
   chainIdToChain,
   erc3770ShortNameToChain,
   networkOptions,
@@ -67,8 +77,8 @@ import { SignatureRegistryForm } from "@/components/SignatureRegistryForm";
 import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 
-import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { createDecoderShareLink, parseDecoderShareFragment } from "@/lib/decoderShare";
 import { decodeEvents, decodeRecursive } from "@/lib/decoder";
 import { getDisplayFunctionName } from "@/utils/functionNames";
 import { decoderSamples } from "./samples";
@@ -349,7 +359,7 @@ function MetadataNetworkSettings({
           <Text fontSize="xs" color="whiteAlpha.700" mb={2}>
             Optional: shows token and contract names. Decoding works without it.
           </Text>
-          <DarkSelect
+          <NetworkSelect
             ariaLabel="Network lookup"
             size="sm"
             options={[noMetadataNetwork, ...networkOptions]}
@@ -407,6 +417,7 @@ function DecoderTabs({
 }
 
 function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
+  const savedChains = useCustomChains();
   const toast = useToast();
   const searchParams = useSearchParams();
   const beforeFooterSlot = useBeforeFooterSlot();
@@ -430,6 +441,8 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   // can be function calldata or abi.encode bytes
   const [liveResult, setResult] = useState<DecodeRecursiveResult>();
   const [isLoading, setIsLoading] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [shareModalLink, setShareModalLink] = useState<string | null>(null);
   const [pasted, setPasted] = useState(false);
   const [liveEvents, setDecodedEvents] = useState<
     DecodeEventResult[] | null
@@ -461,6 +474,12 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     : undefined;
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>(networkOptions[networkOptionsIndex]);
+
+  useEffect(() => {
+    if (!savedChains.ready || !chainIdFromURL) return;
+    const option = networkOptions.find(option => option.value === Number(chainIdFromURL));
+    if (option) { setSelectedNetworkOption(option); setMetadataNetwork(option); }
+  }, [savedChains.ready]);
 
   const [fromTxInput, setFromTxInput] = useQueryState<string>(
     "tx",
@@ -530,6 +549,19 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   };
 
   useEffect(() => {
+    try {
+      const functions = parseDecoderShareFragment(window.location.hash);
+      if (functions) {
+        if (!calldataFromURL) throw new Error("Shared decode link is missing calldata.");
+        setSelectedTabIndex(1);
+        setAbi(JSON.stringify(functions, null, 2));
+        decode({ _calldata: calldataFromURL, _abi: functions });
+        return;
+      }
+    } catch (error) {
+      toast({ title: "Invalid shared decode link", description: error instanceof Error ? error.message : "Unable to restore function definitions.", status: "error", isClosable: true });
+      return;
+    }
     if (calldataFromURL && addressFromURL) {
       setSelectedTabIndex(2);
       decode({
@@ -662,6 +694,8 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     }
     const __calldata = _calldata || calldata;
 
+    setShareLink(null);
+    setShareModalLink(null);
     setResult(undefined);
     setIsLoading(true);
     console.log("DECODING...");
@@ -675,6 +709,13 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       if (id !== requestId.current) return;
       console.log({ DECODED_RESULT: res });
       setResult(res);
+      try {
+        const baseUrl = new URL(`${getPath(subdomains.CALLDATA.base)}decoder`, window.location.origin);
+        setShareLink(createDecoderShareLink(baseUrl.toString(), startHexWith0x(__calldata), res, _abi));
+      } catch {
+        // A synthetic or oversized decode can still be viewed and copied as JSON.
+        setShareLink(null);
+      }
 
       if (res !== null) {
         toast({
@@ -719,7 +760,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
 
     console.log({ __fromTxInput, _chainId, selectedNetworkOption });
 
-    let chain: Chain =
+    let chain =
       chainIdToChain[
         _chainId ?? parseInt(selectedNetworkOption!.value.toString())
       ];
@@ -737,34 +778,12 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
           }
         }
       } else {
-        txHash = __fromTxInput.split("/").pop()!;
-        const chainKey = Object.keys(c).filter((chainKey) => {
-          const chain = c[chainKey as keyof typeof c] as Chain;
-          let explorerDomainDefault = "null";
-          let explorerDomainEtherscan = "null";
-          if (chain.blockExplorers) {
-            explorerDomainDefault = chain.blockExplorers.default.url
-              .split("//")
-              .pop()!;
-            if (chain.blockExplorers.etherscan) {
-              explorerDomainEtherscan = chain.blockExplorers.etherscan.url
-                .split("//")
-                .pop()!;
-            }
-          }
-          return (
-            __fromTxInput
-              .split("/")
-              .filter(
-                (urlPart) =>
-                  urlPart.toLowerCase() ===
-                    explorerDomainDefault.toLowerCase() ||
-                  urlPart.toLowerCase() ===
-                    explorerDomainEtherscan.toLowerCase()
-              ).length > 0
-          );
-        })[0];
-        chain = c[chainKey as keyof typeof c];
+        const explorer = parseTransactionExplorerUrl(__fromTxInput);
+        if (!explorer) throw new Error("Enter a valid explorer transaction URL");
+        txHash = explorer.hash;
+        chain = chainIdToChain[explorer.chainId];
+        setSelectedNetworkOption(networkOptions.find(option => option.value === explorer.chainId) ?? null);
+        setTxShowSelectNetwork(true);
       }
 
       const publicClient = getPublicClient(chain.id);
@@ -942,7 +961,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
             </HStack>
           </Box>
           <Box flex={1} minW="200px">
-            <DarkSelect
+            <NetworkSelect
               boxProps={{
                 w: "100%",
               }}
@@ -1008,6 +1027,11 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   };
 
   const FromTxBody = () => {
+    const value = fromTxInput.trim();
+    const explorerBase = chainIdToChain[Number(selectedNetworkOption?.value)]?.blockExplorers?.default?.url;
+    const explorerHref = /^0x[\da-f]{64}$/i.test(value)
+      ? explorerBase ? `${explorerBase.replace(/\/$/, "")}/tx/${value}` : undefined
+      : /^https?:\/\//i.test(value) ? value : undefined;
     return (
       <VStack spacing={4} w="full" align="stretch">
         <HStack
@@ -1044,8 +1068,8 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                   decodeFromTx(_fromTxInput);
                 }}
               />
-              {fromTxInput.includes("http") && (
-                <Link href={fromTxInput} title="View on explorer" isExternal>
+              {explorerHref && (
+                <Link href={explorerHref} title="View on explorer" aria-label="View transaction on block explorer" isExternal>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -1079,7 +1103,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
               </HStack>
             </Box>
             <Box flex={1} minW="200px">
-              <DarkSelect
+              <NetworkSelect
                 boxProps={{
                   w: "100%",
                 }}
@@ -1205,13 +1229,21 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                     aria-label="Calldata"
                     spellCheck={false}
                     autoFocus
-                    placeholder="0x..."
+                    placeholder={selectedTabIndex === 0 ? "0x calldata or tx url" : "0x..."}
                     value={calldata}
                     onChange={(e) => setCalldata(e.target.value)}
                     onPaste={(e) => {
                       e.preventDefault();
+                      const input = e.clipboardData.getData("text").trim();
+                      if (selectedTabIndex === 0 && parseTransactionExplorerUrl(input)) {
+                        setPasted(false);
+                        setSelectedTabIndex(3);
+                        setFromTxInput(input);
+                        void decodeFromTx(input);
+                        return;
+                      }
                       setPasted(true);
-                      setCalldata(e.clipboardData.getData("text"));
+                      setCalldata(input);
                     }}
                   />
                 </Box>
@@ -1408,6 +1440,18 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                 Decoded calldata
               </Text>
               <HStack spacing={1} flexWrap="wrap">
+                {shareLink && !snapshot && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    color="whiteAlpha.700"
+                    _hover={{ color: "white", bg: "whiteAlpha.200" }}
+                    leftIcon={<LinkIcon boxSize={4} />}
+                    onClick={() => setShareModalLink(shareLink)}
+                  >
+                    Share decode
+                  </Button>
+                )}
                 <CopyToClipboard
                   textToCopy={JSON.stringify(
                     {
@@ -1473,6 +1517,44 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
         )}
         </Box>
       </ExampleSnapshotContext.Provider>
+
+      <Modal isOpen={shareModalLink !== null} onClose={() => setShareModalLink(null)} isCentered size="lg" scrollBehavior="inside">
+        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
+        <ModalContent mx={{ base: 3, sm: 4 }} maxW={{ base: "calc(100vw - 1.5rem)", sm: "lg" }} bg="bg.base" border="1px solid" borderColor="border.subtle">
+          <ModalHeader pb={2}>Share decode</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={5} px={{ base: 3, sm: 6 }}>
+            <Text fontSize="sm" color="text.secondary" mb={4}>
+              Share this calldata with the function definitions needed to decode it.
+            </Text>
+            <Box position="relative">
+              <Input aria-label="Decode link" value={shareModalLink ?? ""} isReadOnly pr={12} fontSize="sm" />
+              <IconButton
+                as="a"
+                href={shareModalLink ?? undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open decode link"
+                icon={<ExternalLinkIcon />}
+                variant="ghost"
+                size="sm"
+                position="absolute"
+                top={1}
+                right={1}
+                color="text.secondary"
+              />
+            </Box>
+            <Center mt={4}>
+              <CopyToClipboard
+                textToCopy={shareModalLink ?? ""}
+                labelText="Copy link"
+                aria-label="Copy decode link"
+                variant="outline"
+              />
+            </Center>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
 
       {/* Bottom-right, directly above the sitewide footer when the layout
           provides that slot; inline at the end of the tool otherwise. Also

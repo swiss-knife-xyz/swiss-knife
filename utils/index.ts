@@ -86,7 +86,7 @@ export const getMetadata = (_metadata: {
     alternates: _metadata.canonical ? { canonical: _metadata.canonical } : undefined,
     twitter: {
       card: "summary_large_image",
-      creator: "@swissknifexyz",
+      creator: "@ethdotsh",
       title: _metadata.title,
       description: _metadata.description,
       images: _metadata.images,
@@ -356,7 +356,13 @@ export const isValidJSON = (str: string): boolean => {
 export const getSourceCode = async (
   chainId: number,
   address: string
-): Promise<Record<string, string> | undefined> => {
+): Promise<Record<string, string> | undefined> =>
+  (await getSourceCodeWithMetadata(chainId, address))?.sourceCode;
+
+export const getSourceCodeWithMetadata = async (
+  chainId: number,
+  address: string
+): Promise<{ sourceCode: Record<string, string>; contractName: string } | undefined> => {
   const res = await fetch(
     `${apiBasePath}/api/source-code?address=${address}&chainId=${chainId}`
   );
@@ -369,12 +375,13 @@ export const getSourceCode = async (
       const { sources } = JSON.parse(
         SourceCode.substring(1, SourceCode.length - 1)
       ) as SourceCode;
-      return Object.keys(sources).reduce(
+      const sourceCode = Object.keys(sources).reduce<Record<string, string>>(
         (acc, key) => ({ ...acc, [key]: sources[key].content }),
         {}
       );
+      return { sourceCode, contractName: ContractName };
     } else {
-      return { [ContractName]: SourceCode };
+      return { sourceCode: { [ContractName]: SourceCode }, contractName: ContractName };
     }
   } catch {}
 };

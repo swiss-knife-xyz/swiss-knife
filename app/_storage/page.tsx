@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import {
+  CUSTOM_CHAINS_KEY,
+  CUSTOM_CHAINS_NAMESPACE,
+  handleCustomChainRequest,
+  isStorageOriginAllowed,
+} from "@/lib/customChains/model";
 import type {
   StorageRequest,
   StorageResponse,
@@ -11,7 +17,33 @@ const STORAGE_KEY = "global-address-book";
 
 export default function StorageHubPage() {
   useEffect(() => {
+    let parentOrigin: string | null = null;
+    const onStorage = (event: StorageEvent) => {
+      if (
+        (event.key === CUSTOM_CHAINS_KEY || event.key === null) &&
+        parentOrigin
+      )
+        window.parent.postMessage(
+          { namespace: CUSTOM_CHAINS_NAMESPACE, type: "CHANGED" },
+          parentOrigin
+        );
+    };
+    window.addEventListener("storage", onStorage);
     const handleMessage = (event: MessageEvent) => {
+      if (
+        event.source !== window.parent ||
+        !isStorageOriginAllowed(event.origin, window.location.hostname)
+      )
+        return;
+      if (
+        event.data?.namespace === CUSTOM_CHAINS_NAMESPACE &&
+        typeof event.data.id === "string"
+      ) {
+        parentOrigin = event.origin;
+        const result = handleCustomChainRequest(localStorage, event.data);
+        window.parent.postMessage(result, event.origin);
+        return;
+      }
       // Validate message structure
       if (!event.data || typeof event.data !== "object" || !event.data.id) {
         return;
@@ -37,7 +69,8 @@ export default function StorageHubPage() {
             const newAddress = request.payload as SavedAddressInfo;
             // Check for duplicate address
             const existingIndex = addresses.findIndex(
-              (a) => a.address.toLowerCase() === newAddress.address.toLowerCase()
+              (a) =>
+                a.address.toLowerCase() === newAddress.address.toLowerCase()
             );
             if (existingIndex >= 0) {
               // Update existing entry
@@ -117,7 +150,7 @@ export default function StorageHubPage() {
 
       // Send response back to parent
       if (event.source && typeof event.source.postMessage === "function") {
-        (event.source as WindowProxy).postMessage(response, "*");
+        (event.source as WindowProxy).postMessage(response, event.origin);
       }
     };
 
@@ -130,6 +163,7 @@ export default function StorageHubPage() {
 
     return () => {
       window.removeEventListener("message", handleMessage);
+      window.removeEventListener("storage", onStorage);
     };
   }, []);
 

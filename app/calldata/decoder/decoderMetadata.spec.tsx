@@ -11,6 +11,7 @@ import {
 import { ChakraProvider } from "@chakra-ui/react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { CalldataDecoderPage } from "./CalldataDecoderPage";
+import { Interface } from "ethers";
 import { AddressParam } from "@/components/decodedParams/AddressParam";
 
 const mocks = vi.hoisted(() => ({
@@ -75,12 +76,12 @@ vi.mock("@/components/DarkSelect", () => ({
       value={selectedOption?.value ?? ""}
       onChange={(e) =>
         setSelectedOption(
-          options.find((o: any) => String(o.value) === e.target.value) ?? null
+          options.flatMap((entry: any) => entry.options ?? [entry]).find((o: any) => String(o.value) === e.target.value) ?? null
         )
       }
     >
       <option value="">Select network</option>
-      {options.map((o: any) => (
+      {options.flatMap((entry: any) => entry.options ?? [entry]).map((o: any) => (
         <option key={o.value} value={o.value}>
           {o.label}
         </option>
@@ -150,6 +151,7 @@ function deferred<T>() {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.query = "";
+  window.history.replaceState(null, "", "/");
   mocks.decode.mockResolvedValue({
     args: [arg],
     rawArgs: [address],
@@ -439,7 +441,7 @@ it("keeps manual decoding, copy and explorer access when metadata is unavailable
     screen.getByRole("button", { name: "Copy" }).getAttribute("data-copy")
   ).toBe(address);
   expect(
-    document.querySelector(`a[href*="${address}?chainId=8453"]`)
+    document.querySelector(`a[href$="/8453/${address}"]`)
   ).toBeTruthy();
   expect(mocks.decode).toHaveBeenCalledTimes(1);
 });
@@ -628,4 +630,95 @@ it("ignores late avatars and failed ENS lookups after changing addresses", async
   await act(async () => avatar.resolve("https://example.test/old-avatar.png"));
   expect(screen.getByDisplayValue(second)).toBeTruthy();
   expect(document.querySelector('img[src="https://example.test/old-avatar.png"]')).toBeNull();
+});
+
+
+it("restores a shared ABI before automatically decoding", async () => {
+  const definitions = ["function customAction(uint256 amount)"];
+  const calldata = new Interface(definitions).encodeFunctionData("customAction", [42n]);
+  mocks.query = new URLSearchParams({ calldata }).toString();
+  window.history.replaceState(null, "", `/#${new URLSearchParams({ decode: "1", functions: JSON.stringify(definitions) })}`);
+  render(page(mocks.query));
+  await waitFor(() => expect(mocks.decode).toHaveBeenCalledWith(expect.objectContaining({
+    calldata, abi: definitions,
+  })));
+  expect(screen.getByText("Input ABI")).toBeTruthy();
+});
+
+it("reports malformed shared definitions without decoding with a different ABI", async () => {
+  mocks.query = "calldata=0x12345678";
+  window.history.replaceState(null, "", "/#decode=1&functions=invalid");
+  render(page(mocks.query));
+  await screen.findByText("Invalid shared decode link");
+  expect(mocks.decode).not.toHaveBeenCalled();
+});
+
+it("offers a share link for the completed result", async () => {
+  const calldata = new Interface(["function transfer(address)"]).encodeFunctionData("transfer", [address]);
+  mocks.query = new URLSearchParams({ calldata }).toString();
+  render(page(mocks.query));
+  const share = await screen.findByRole("button", { name: "Share decode" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.click(share);
+  expect(await screen.findByRole("dialog", { name: "Share decode" })).toBeTruthy();
+  const input = screen.getByRole("textbox", { name: "Decode link" }) as HTMLInputElement;
+  expect(input.readOnly).toBe(true);
+  const link = new URL(input.value);
+  expect(screen.getByRole("link", { name: "Open decode link" }).getAttribute("href")).toBe(link.toString());
+  expect(screen.getByRole("button", { name: "Copy link" }).getAttribute("data-copy")).toBe(link.toString());
+  expect(link.searchParams.get("calldata")).toBe(calldata);
+  expect(new URLSearchParams(link.hash.slice(1)).get("functions")).toContain("transfer(address)");
+});
+
+it.each([[1, "https://etherscan.io"], [8453, "https://basescan.org"]])("links a raw transaction hash to chain %s's block explorer", async (chain, explorer) => {
+  const hash = `0x${"ab".repeat(32)}`;
+  render(page(`?tx=${hash}&chainId=${chain}`));
+  const link = await screen.findByRole("link", { name: "View transaction on block explorer" });
+  expect(link.getAttribute("href")).toBe(`${explorer}/tx/${hash}`);
+  expect(link.getAttribute("target")).toBe("_blank");
+  await act(async () => {});
+  const nextChain = chain === 1 ? 8453 : 1;
+  fireEvent.change(screen.getByRole("combobox", { name: "Network" }), {
+    target: { value: String(nextChain) },
+  });
+  await waitFor(() => expect(screen.getByRole("link", { name: "View transaction on block explorer" }).getAttribute("href"))
+    .toBe(`${nextChain === 1 ? "https://etherscan.io" : "https://basescan.org"}/tx/${hash}`));
+  fireEvent.change(screen.getByPlaceholderText("etherscan link / tx hash"), { target: { value: "0x123" } });
+  await waitFor(() => expect(screen.queryByRole("link", { name: "View transaction on block explorer" })).toBeNull());
+});
+
+it.each([["etherscan.io", 1], ["basescan.org", 8453]])("pasted %s transaction URLs switch No ABI to From Tx and decode on the inferred chain", async (host, chainId) => {
+  const hash = `0x${"cd".repeat(32)}`;
+  const getTransaction = vi.fn(async () => ({ input: "0x12345678", to: address }));
+  mocks.getClient.mockReturnValue({ getTransaction, getTransactionReceipt: vi.fn(async () => ({ logs: [] })) });
+  render(page());
+  const input = screen.getByRole("textbox", { name: "Calldata" });
+  expect(input.getAttribute("placeholder")).toBe("0x calldata or tx url");
+  fireEvent.paste(input, { clipboardData: { getData: () => `https://${host}/tx/${hash}?foo=bar#details` } });
+  await waitFor(() => expect(getTransaction).toHaveBeenCalledExactlyOnceWith({ hash }));
+  expect(mocks.getClient).toHaveBeenCalledWith(chainId);
+  expect(screen.queryByRole("textbox", { name: "Calldata" })).toBeNull();
+  expect((screen.getByPlaceholderText("etherscan link / tx hash") as HTMLInputElement).value).toBe(`https://${host}/tx/${hash}?foo=bar#details`);
+  expect((screen.getByRole("combobox", { name: "Network" }) as HTMLSelectElement).value).toBe(String(chainId));
+  await waitFor(() => expect(mocks.decode).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ calldata: "0x12345678", address, chainId })));
+});
+
+it("recognizes only known explorer transaction URLs, not lookalike hosts or address links", async () => {
+  const { parseTransactionExplorerUrl } = await import("@/lib/contractExplorerInput");
+  const hash = `0x${"ab".repeat(32)}`;
+  expect(parseTransactionExplorerUrl(`basescan.org/tx/${hash}/`)).toEqual({ hash, chainId: 8453 });
+  for (const input of [
+    `https://basescan.org.evil.example/tx/${hash}`,
+    `https://evil.example/tx/${hash}`,
+    `https://user@basescan.org/tx/${hash}`,
+    `https://basescan.org/address/${address}`,
+    "https://basescan.org/tx/0x123",
+  ]) expect(parseTransactionExplorerUrl(input)).toBeNull();
+});
+
+it.each([undefined, 1, 8453])("shared address rendering links to Contract Explorer with network %s", async (chainId) => {
+  render(param(chainId));
+  const link = await screen.findByRole("link", { name: `Open address ${address}` });
+  expect(link.getAttribute("href")).toBe(`/${chainId ?? 1}/${address}`);
+  expect(link.getAttribute("target")).toBe("_blank");
 });

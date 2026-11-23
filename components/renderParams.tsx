@@ -79,7 +79,7 @@ export const renderParams = (
       as={ContractAddressLink}
       address={linkedAddress}
       chainId={chainId}
-      href={`${getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}address/${linkedAddress}`}
+      href={`${getPath(subdomains.CONTRACT.base)}${chainId ?? 1}/${linkedAddress}`}
       aria-label={`Open address ${linkedAddress}`}
       title="Open address"
       isExternal

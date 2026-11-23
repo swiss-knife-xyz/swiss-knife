@@ -1,19 +1,19 @@
 // Canonical viem PublicClient factory. Every public client in the app — ad-hoc
 // or module-scoped — must come from here so that env-configured custom RPC
-// URLs (see `chainIdToCustomRpcUrl` in `data/common.ts`) are always honored.
+// URLs (see `chainIdToCustomRpcUrl` in `data/networks.ts`) are always honored.
 //
 // Direct `createPublicClient`/bare `http()` usage is banned by ESLint outside
 // this file; if a new chain needs a custom RPC, add an entry to
 // `chainIdToCustomRpcUrl` rather than hand-rolling a client elsewhere.
 import {
   createPublicClient,
-  fallback,
   http,
   type Chain,
   type PublicClient,
   type Transport,
 } from "viem";
-import { chainIdToChain, getRpcUrlForChain } from "@/data/common";
+import { chainIdToChain, getRpcUrlsForChain } from "@/data/networks";
+import { getRpcTransport } from "./rpcTransport";
 
 type GetPublicClientOptions = {
   // Disable EIP-3668 CCIP-read so callers handle the OffchainLookup error themselves.
@@ -26,40 +26,28 @@ type GetPublicClientOptions = {
 // don't need to re-narrow the chain type at the call site.
 type ChainPublicClient = PublicClient<Transport, Chain>;
 
-const cache: Record<number, ChainPublicClient> = {};
+const cache: Record<number, { key: string; client: ChainPublicClient }> = {};
 
 export const getPublicClient = (
   chainId: number,
   options?: GetPublicClientOptions
 ): ChainPublicClient => {
   // Only the option-less form is cached; option variants build a fresh client.
-  if (!options && cache[chainId]) return cache[chainId];
+  const key = JSON.stringify([chainIdToChain[chainId], getRpcUrlsForChain(chainId)]);
+  if (!options && cache[chainId]?.key === key) return cache[chainId].client;
 
   const chain = chainIdToChain[chainId];
   if (!chain) {
     throw new Error(`getPublicClient: unsupported chainId ${chainId}`);
   }
 
-  const rpcUrls = getRpcUrlsForChain(chainId);
   const client = createPublicClient({
     chain,
-    transport:
-      rpcUrls.length > 1
-        ? fallback(
-            rpcUrls.map((rpcUrl) =>
-              http(rpcUrl, {
-                ...(options?.timeout ? { timeout: options.timeout } : {}),
-              })
-            ),
-            { retryCount: 0 }
-          )
-        : http(rpcUrls[0], {
-            ...(options?.timeout ? { timeout: options.timeout } : {}),
-          }),
+    transport: getRpcTransport(chainId, options?.timeout),
     ...(options?.ccipRead === false ? { ccipRead: false } : {}),
   }) as ChainPublicClient;
 
-  if (!options) cache[chainId] = client;
+  if (!options) cache[chainId] = { key, client };
   return client;
 };
 
@@ -68,12 +56,3 @@ export const getPublicClient = (
 // `getPublicClient(chainId)` for normal flows so env-configured RPCs apply.
 export const createPublicClientForRpcUrl = (rpcUrl: string): PublicClient =>
   createPublicClient({ transport: http(rpcUrl) }) as PublicClient;
-
-const getRpcUrlsForChain = (chainId: number) => {
-  const primaryRpcUrl = getRpcUrlForChain(chainId);
-  const configuredUrls =
-    chainIdToChain[chainId]?.rpcUrls.default?.http?.filter(Boolean) ?? [];
-  return Array.from(
-    new Set([primaryRpcUrl, ...configuredUrls].filter(Boolean) as string[])
-  );
-};

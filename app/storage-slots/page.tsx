@@ -1,5 +1,8 @@
 "use client";
 
+import { networkOptions } from "@/data/networks";
+import { NetworkSelect } from "@/components/NetworkSelect";
+import { getEthersProvider } from "@/lib/ethersProvider";
 import { useState, useEffect, useCallback } from "react";
 import {
   Heading,
@@ -29,11 +32,11 @@ import { InputField } from "@/components/InputField";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { SelectedOptionState } from "@/types";
 import TabsSelector from "@/components/Tabs/TabsSelector";
-import { c, chainIdToChain, chainIdToImage } from "@/data/common";
 import { Address, encodePacked, keccak256, erc20Abi } from "viem";
 import { resolveAddressToName, getNameAvatar } from "@/lib/nameResolution";
 import { getPublicClient } from "@/lib/publicClient";
-import { fetchContractAbi } from "@/utils";
+import { fetchContractAbi, getPath } from "@/utils";
+import subdomains from "@/subdomains";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import {
   EIP1967Options,
@@ -41,13 +44,6 @@ import {
   getERC7201StorageSlot,
   normalizeStorageSlot,
 } from "@/lib/storageSlots";
-
-const networkOptions: { label: string; value: number; image: string }[] =
-  Object.keys(c).map((k, i) => ({
-    label: c[k].name,
-    value: c[k].id,
-    image: chainIdToImage[c[k].id],
-  }));
 
 const Txt = ({ str, colorScheme }: { str: string; colorScheme: string }) => (
   <Text
@@ -463,8 +459,6 @@ const AddressValue = ({
   const [labels, setLabels] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const explorerUrl = chainIdToChain[chainId]?.blockExplorers?.default?.url;
-
   const fetchAndSetLabels = useCallback(async () => {
     try {
       const client = getPublicClient(chainId);
@@ -543,20 +537,18 @@ const AddressValue = ({
       <Text fontFamily="mono" fontSize="sm">
         {address}
       </Text>
-      {explorerUrl && (
-        <Tooltip label="View on explorer" placement="top">
-          <IconButton
-            as={Link}
-            href={`${explorerUrl}/address/${address}`}
-            isExternal
-            aria-label="View on explorer"
-            icon={<ExternalLinkIcon />}
-            size="xs"
-            variant="ghost"
-            colorScheme="blue"
-          />
-        </Tooltip>
-      )}
+      <Tooltip label="View on explorer" placement="top">
+        <IconButton
+          as={Link}
+          href={`${getPath(subdomains.CONTRACT.base)}${chainId}/${address}`}
+          isExternal
+          aria-label="View on explorer"
+          icon={<ExternalLinkIcon />}
+          size="xs"
+          variant="ghost"
+          colorScheme="blue"
+        />
+      </Tooltip>
     </HStack>
   );
 };
@@ -923,11 +915,7 @@ const StorageSlots = () => {
       return;
     }
 
-    const provider = new ethers.JsonRpcProvider(
-      chainIdToChain[
-        parseInt(selectedNetworkOption!.value.toString())
-      ]?.rpcUrls.default.http[0]
-    );
+    const provider = getEthersProvider(parseInt(selectedNetworkOption!.value.toString()));
 
     // Handle range query
     if (slotRange) {
@@ -1068,7 +1056,7 @@ const StorageSlots = () => {
               <FormLabel color="gray.300" fontSize="sm" fontWeight="medium">
                 Network
               </FormLabel>
-              <DarkSelect
+              <NetworkSelect
                 boxProps={{
                   w: "100%",
                 }}

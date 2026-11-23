@@ -112,12 +112,12 @@ function validParams(method: string, p: unknown[]) {
       return false;
   }
 }
-/** Shared positive allowlist; server validates independently of the UI. No notifications or overrides. */
-export function parseRpcInput(value: unknown): RpcInput {
+/** Server callers use the fixed catalog. Only direct browser reads pass saved custom IDs. */
+export function parseRpcInput(value: unknown, allowedChains: readonly string[] = RPC_CHAINS.map(chain => chain.id)): RpcInput {
   if (
     !record(value) ||
     !keys(value, ["chain", "request"]) ||
-    !RPC_CHAINS.some((c) => c.id === value.chain)
+    !allowedChains.includes(value.chain as string)
   )
     throw new RpcError("INVALID");
   const requests = Array.isArray(value.request)
@@ -178,3 +178,35 @@ export const RPC_EXAMPLES = {
     { jsonrpc: "2.0", id: 2, method: "eth_blockNumber", params: [] },
   ],
 };
+
+export function checkedResponse(raw: unknown, request: RpcRequest | RpcRequest[]) {
+  const batch = Array.isArray(request);
+  const requests = batch ? request : [request];
+  if (batch !== Array.isArray(raw)) throw new RpcError("UNAVAILABLE");
+  const rows = Array.isArray(raw) ? raw : [raw];
+  if (rows.length !== requests.length) throw new RpcError("UNAVAILABLE");
+  const remaining = new Set(requests.map((r) => r.id));
+  return rows.map((row) => {
+    if (
+      !record(row) ||
+      row.jsonrpc !== "2.0" ||
+      !remaining.delete(row.id as string | number) ||
+      Object.hasOwn(row, "result") === Object.hasOwn(row, "error")
+    )
+      throw new RpcError("UNAVAILABLE");
+    if (Object.hasOwn(row, "result"))
+      return { jsonrpc: "2.0", id: row.id, result: row.result };
+    if (!record(row.error) || !Number.isSafeInteger(row.error.code))
+      throw new RpcError("UNAVAILABLE");
+    // Provider diagnostic text/data can contain infrastructure details. Only the code crosses the boundary.
+    return {
+      jsonrpc: "2.0",
+      id: row.id,
+      error: {
+        code: row.error.code,
+        message:
+          "Provider rejected this read query. Check parameters, historical state and method availability.",
+      },
+    };
+  });
+}

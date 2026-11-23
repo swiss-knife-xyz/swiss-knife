@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: [
+      "lib/decoderShare.spec.ts",
       "app/calldata/decoder/decoderMetadata.spec.tsx",
       "app/calldata/decoder/universalRouter.spec.tsx",
       "components/decodedParams/parameterState.spec.tsx",

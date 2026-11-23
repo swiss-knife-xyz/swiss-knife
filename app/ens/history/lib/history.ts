@@ -12,7 +12,11 @@ export function decodeEnsRouteName(value: string): string {
 export function normalizeEnsInput(value: string): string {
   const input = decodeEnsRouteName(value.trim());
   if (!input) throw new Error("Please enter an ENS name");
-  return normalize(input);
+  // Accept ENS gateway links while keeping Unicode labels intact for ENS normalization.
+  const gateway = input.match(
+    /^(?:https?:\/\/)?([^\s/@?#:]+\.eth)\.limo(?::\d+)?(?:[/?#].*)?$/iu
+  );
+  return normalize(gateway?.[1] ?? input);
 }
 
 export interface IndexedEvent {
