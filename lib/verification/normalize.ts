@@ -1,4 +1,5 @@
 import { VerificationError, type ImportedSource } from "./source";
+import { readConstructorAbi } from "./constructorAbi";
 export function record(v: unknown): v is Record<string, any> {
   return !!v && typeof v === "object" && !Array.isArray(v);
 }
@@ -202,8 +203,10 @@ export function importEtherscanSource(raw: unknown): ImportedSource {
     row.ConstructorArguments ?? "",
     license
   );
+  const constructorAbi = readConstructorAbi(row.ABI);
   return {
     ...imported,
+    ...(constructorAbi ? { constructorAbi } : {}),
     ...(typeof row.Implementation === "string" &&
     /^0x[a-fA-F0-9]{40}$/.test(row.Implementation)
       ? { implementationAddress: row.Implementation }
@@ -286,8 +289,10 @@ export function importSourcifySource(raw: unknown): ImportedSource {
     raw.match !== "exact_match"
   );
   const implementations = raw.proxyResolution?.implementations;
+  const constructorAbi = readConstructorAbi(raw.abi ?? raw.metadata?.output?.abi);
   return {
     ...imported,
+    ...(constructorAbi ? { constructorAbi } : {}),
     ...(Array.isArray(implementations) &&
     implementations.length === 1 &&
     typeof implementations[0]?.address === "string" &&

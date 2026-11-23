@@ -1,417 +1,1071 @@
 "use client";
+import dynamic from "next/dynamic";
+import { ImportedWorkspaceStatus } from "./ImportedWorkspaceStatus";
+import { LibraryLinks } from "./LibraryLinks";
+import { checkLibraryAddresses } from "@/lib/solidity/libraryCode";
+import { deploymentChain, deploymentFormKey, libraryDrafts, libraryAddress, updateLibraryAddress } from "@/lib/solidity/libraries";
+import { useCustomChains } from "@/lib/customChains/store";
+import { ContractSize } from "./ContractSize";
+import { flashSourceLine } from "@/components/SourceCodeExplorer/flashSourceLine";
+import { CompilationErrors } from "./CompilationErrors";
+import { WorkspaceDependencies } from "./WorkspaceDependencies";
+import { bindWorkspaceEditor, updateEditorFile, workspaceModelPath, type WorkspaceEditorContext } from "./workspaceEditorBinding";
+import { lockedPath } from "@/lib/solidity/dependencies";
+import { registerSelectorLenses } from "@/components/SourceCodeExplorer/selectorLenses";
 
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Editor from "@monaco-editor/react";
 import {
   Box,
-  VStack,
-  HStack,
+  Checkbox,
   Button,
-  Text,
+  Flex,
   Heading,
-  useToast,
+  HStack,
+  IconButton,
+  Text,
+  Tabs,
+  TabList,
+  Tab,
   Spinner,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
 } from "@chakra-ui/react";
 import {
-  CompiledContract,
-  CompileOutput,
-  CompileResult,
-  WorkerMessage,
-} from "./types";
+  Braces,
+  CheckCircle2,
+  CircleAlert,
+  Download,
+  History,
+  PanelLeftOpen,
+  Play,
+} from "lucide-react";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { DarkSelect } from "@/components/DarkSelect";
+import { ConnectButton } from "@/components/ConnectButton";
+import { PaneResizeHandle } from "./PaneResizeHandle";
+import { OutputResizeHandle } from "./OutputResizeHandle";
+import { DeploymentHistory } from "./DeploymentHistory";
+import { useDeploymentHistory } from "./useDeploymentHistory";
+import { ContractDeployment } from "./ContractDeployment";
+import { useLocalWorkspace } from "./useLocalWorkspace";
+import { BuildDownloads } from "./BuildDownloads";
+import { CompilerConfiguration } from "./CompilerConfiguration";
+import { normalizeCompilerSettings } from "@/lib/solidity/settings";
+import { useSolidityCompiler } from "./useSolidityCompiler";
+import { registerInlineErrors } from "./inlineErrors";
+import { syncDiagnosticMarkers } from "./diagnosticMarkers";
+import { registerSolidityIntellisense } from "./intellisense";
+import { useWorkspaceUrl } from "./useWorkspaceUrl";
+import { ImportVerifiedContract } from "./ImportVerifiedContract";
+import { WorkspaceBackupActions } from "./WorkspaceBackup";
+import { WorkspaceSelector } from "./WorkspaceSelector";
+import {
+  WorkspaceFiles,
+  selectWorkspaceFile,
+  closeWorkspaceFile,
+} from "./WorkspaceFiles";
+import { CodeEditorTabs } from "@/components/SourceCodeExplorer/CodeEditorTabs";
+import { diagnosticPosition } from "@/lib/solidity/compilation";
+import type { CompilerError } from "./types";
+import type { OnMount } from "@monaco-editor/react";
+
+const INITIAL_CODE = `// SPDX-License-Identifier: MIT
+pragma solidity 0.8.30;
+
+contract Counter {
+    uint256 public number;
+
+    function increment() public {
+        ++number;
+    }
+}`;
+const LocalHistory = dynamic(() => import("./LocalHistory").then(module => module.LocalHistory), {ssr:false});
+const ARTIFACTS = ["ABI", "Bytecode", "Runtime"] as const;
+
+function downloadFile(name: string, content: string, type = "text/plain") {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export default function SolidityIDE() {
-  const [code, setCode] = useState<string>(
-    "// SPDX-License-Identifier: MIT\npragma solidity 0.8.30;\n\ncontract Counter {\n    uint256 public number;\n    \n    function increment() public {\n        ++number;\n    }\n}"
+  const local = useLocalWorkspace(INITIAL_CODE);
+  const deploymentHistory = useDeploymentHistory(local.activeWorkspace?.id);
+  const customChains=useCustomChains();
+  const linkingChainId=deploymentChain(local.workspace?.deploymentChainId);
+  const activeFile = local.workspace?.files.find(
+    (file) => file.id === local.workspace?.activeFileId
   );
-  const [compileResult, setCompileResult] = useState<CompileResult | null>(
-    null
+  const [dependencyRequest, setDependencyRequest] = useState<{name: string; nonce: number; workspaceId?: string; remove?: boolean; source?: "npm" | "github"} | undefined>();
+  const openDependencyRef = useRef<(name: string, remove?: boolean, source?: "npm" | "github") => void>(() => {});
+  const [explorerReveal, setExplorerReveal] = useState<{id:string;nonce:number}>();
+  const code = activeFile?.content ?? "";
+  const filesPaneRef = useRef<HTMLDivElement>(null);
+  const panesRef = useRef<HTMLDivElement>(null);
+  const editorPaneRef = useRef<HTMLDivElement>(null);
+  const outputPaneRef = useRef<HTMLDivElement>(null);
+  const filesDrawer = useDisclosure();
+  const reloadDialog = useDisclosure();
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
+  const [jump, setJump] = useState<{
+    id: string;
+    lineNumber: number;
+    column: number;
+  } | null>(null);
+  const languageRef = useRef<ReturnType<
+    typeof registerSolidityIntellisense
+  > | null>(null);
+  const workspaceRef = useRef(local.workspace);
+  workspaceRef.current = local.workspace;
+  const openSourceRef = useRef(
+    (id: string, point: { lineNumber: number; column: number }) => {}
   );
-  const [isCompiling, setIsCompiling] = useState<boolean>(false);
-  const [workerReady, setWorkerReady] = useState<boolean>(false);
-  const workerRef = useRef<Worker | null>(null);
-  const toast = useToast();
+  openSourceRef.current = (id, point) => {
+    if (local.isChanging || deploymentBusy) return;
+    local.update((current) => selectWorkspaceFile(current, id));
+    setJump({ id, ...point });
+  };
+  const monacoRef = useRef<Parameters<OnMount>[1] | null>(null);
+  const selectorLensesRef = useRef<ReturnType<typeof registerSelectorLenses> | null>(null);
+  const [contractChoice, setContractName] = useState("");
+  const [historyRequest,setHistoryRequest] = useState<{workspaceId:string;fileId?:string}|null>(null);
+  const [artifact, setArtifact] = useState(0);
+  const [artifactOpen, setArtifactOpen] = useState(false);
+  const [deploymentBusy, setDeploymentBusy] = useState(false);
+  const [autoCompile, setAutoCompile] = useState(true);
+  const [editorMount, setEditorMount] = useState(0);
+  const compiler = useSolidityCompiler({
+    workspaceId: local.activeWorkspace?.id,
+    workspace: local.workspace,
+    paused: deploymentBusy || (deploymentHistory.hasUnsaved && !!deploymentHistory.error) || local.isChanging || local.status === "loading",
+    autoCompile,
+  });
+  const {
+    state: compilerState,
+    error: compilerError,
+    isCompiling,
+    result,
+    compiledSource,
+    compiledFileName,
+    stale,
+  } = compiler;
+  const compile = () => {
+    setArtifactOpen(false);
+    compiler.compile();
+  };
+  const contracts = useMemo(() => {
+    const outputs = result?.contracts ?? {};
+    const names = Object.keys(outputs);
+    const workspace = local.workspace;
+    if (!workspace) return names;
+    return names.sort((a, b) =>
+      Number(lockedPath(workspace, outputs[a].sourcePath)) -
+      Number(lockedPath(workspace, outputs[b].sourcePath))
+    );
+  }, [result?.contracts, local.workspace?.dependencies]);
+  const contractName = contracts.includes(contractChoice)
+    ? contractChoice
+    : (contracts.find(
+        (key) => result!.contracts![key].sourcePath === compiledFileName
+      ) ??
+      contracts[0] ??
+      "");
+  const selectedContract = result?.contracts?.[contractName];
+  const libraryRefs=selectedContract?.requiredLibraries ?? [];
+  const libraryAddresses=libraryDrafts(local.workspace,linkingChainId);
+  const libraryScope=JSON.stringify([local.activeWorkspace?.id,linkingChainId,customChains.revision,customChains.ready,libraryRefs,libraryAddresses]);
+  const [libraryValidation,setLibraryValidation]=useState<{scope:string;ready:boolean}>({scope:"",ready:false});
+  const onLibrariesReady=useCallback((ready:boolean)=>setLibraryValidation(current=>current.scope===libraryScope && current.ready===ready ? current : {scope:libraryScope,ready}),[libraryScope]);
+  const linkingReady=!libraryRefs.length || (libraryValidation.scope===libraryScope && libraryValidation.ready);
+  useEffect(() => {
+    if (monacoRef.current)
+      syncDiagnosticMarkers(
+        monacoRef.current,
+        local.workspace,
+        compiler.diagnosticBuild
+      );
+  }, [compiler.diagnosticBuild, local.workspace?.activeFileId, editorMount]);
+  const output = useMemo(
+    () =>
+      selectedContract
+        ? artifact === 0
+          ? JSON.stringify(selectedContract.abi, null, 2)
+          : `0x${artifact === 1 ? selectedContract.bytecode : selectedContract.deployedBytecode}`
+        : "",
+    [selectedContract, artifact]
+  );
+  const outputName =
+    artifact === 0
+      ? `${selectedContract?.name}.abi.json`
+      : `${selectedContract?.name}.${artifact === 1 ? "bytecode" : "runtime"}.txt`;
+
+  const filesLocked =
+    deploymentBusy || (deploymentHistory.hasUnsaved && !!deploymentHistory.error) || local.isChanging || local.status === "loading";
+  const workspaceUrl = useWorkspaceUrl({
+    ready: !!local.activeWorkspace && local.status !== "loading" && deploymentHistory.ready,
+    disabled: filesLocked,
+    activeId: local.activeWorkspace?.id,
+    identity: local.workspace?.importedContract ?? (() => {
+      const imported = deploymentHistory.records.find(record => record.workspaceId === local.activeWorkspace?.id && record.imported && record.address);
+      return imported?.address ? { address: imported.address, chainId: imported.chainId } : undefined;
+    })(),
+    workspaces: local.workspaces,
+    onSwitch: local.switchWorkspace,
+  });
+  const editorContext = useRef<WorkspaceEditorContext>({workspace:null, blocked:true});
+  editorContext.current = {workspace:local.workspace, workspaceId:local.activeWorkspace?.id, blocked:filesLocked};
+  const editorBinding = useRef<ReturnType<typeof bindWorkspaceEditor> | null>(null);
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const binding = bindWorkspaceEditor(editorRef.current, () => editorContext.current,
+      (workspaceId, fileId, content) => local.update(
+        current => updateEditorFile(current, fileId, content), workspaceId));
+    editorBinding.current = binding;
+    binding.sync();
+  return () => { binding.dispose(); if (editorBinding.current === binding) editorBinding.current = null; };
+  }, [editorMount, local.update]);
+  useEffect(() => { editorBinding.current?.sync(); }, [local.workspace, editorMount]);
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+    const registration = registerInlineErrors(editorRef.current, monacoRef.current);
+    return () => registration.dispose();
+  }, [editorMount]);
+  useEffect(() => {
+    if (!monacoRef.current) return;
+    const registration = registerSolidityIntellisense(monacoRef.current,
+      () => workspaceRef.current, (id, point) => openSourceRef.current(id, point));
+    languageRef.current = registration;
+    return () => { registration.dispose(); if (languageRef.current === registration) languageRef.current = null; };
+  }, [editorMount]);
+  openDependencyRef.current = (name, remove = false, source) => {
+    if (filesLocked) return;
+    filesDrawer.onClose();
+    setDependencyRequest({name, remove, source, nonce: Date.now(), workspaceId: local.activeWorkspace?.id});
+  };
+  useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editor || !monaco) return;
+    const registration = registerSelectorLenses(editor, monaco, {
+      getWorkspace: () => workspaceRef.current,
+      onInstall: (name, source) => openDependencyRef.current(name, false, source),
+      onOpenImport: id => {
+        setExplorerReveal(previous => ({id,nonce:(previous?.nonce ?? 0)+1}));
+        openSourceRef.current(id, {lineNumber:1,column:1});
+      },
+    });
+    selectorLensesRef.current = registration;
+    return () => {
+      registration.dispose();
+      if (selectorLensesRef.current === registration) selectorLensesRef.current = null;
+    };
+  }, [editorMount, registerSelectorLenses]);
+  useEffect(() => {
+    selectorLensesRef.current?.refreshContext();
+  }, [local.workspace]);
+  useEffect(() => {
+    const openIds = new Set(local.workspace?.openFileIds ?? []);
+    for (const model of monacoRef.current?.editor.getModels() ?? []) {
+      if (
+        model.uri.scheme === "ethsh-solidity" &&
+        !openIds.has(model.uri.path.slice(1))
+      )
+        model.dispose();
+    }
+  }, [local.workspace?.openFileIds]);
+  // Fast Refresh can replay effects without unmounting Monaco. Defer model cleanup
+  // so a matching setup can cancel it; real page unmount still releases models.
+  const modelCleanup = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    clearTimeout(modelCleanup.current);
+    return () => {
+      const monaco = monacoRef.current;
+      modelCleanup.current = setTimeout(() => {
+        for (const model of monaco?.editor.getModels() ?? [])
+          if (model.uri.scheme === "ethsh-solidity") model.dispose();
+      }, 0);
+    };
+  }, []);
 
   useEffect(() => {
-    const initWorker = (): void => {
-      try {
-        const worker = new Worker("/worker/solc.worker.js");
-        workerRef.current = worker;
-
-        worker.postMessage({ type: "init" });
-
-        setTimeout(() => {
-          setWorkerReady(true);
-        }, 1000);
-      } catch (error) {
-        console.error("Failed to initialize worker:", error);
-      }
-    };
-
-    initWorker();
-
-    return () => {
-      if (workerRef.current) {
-        workerRef.current.terminate();
-        workerRef.current = null;
-      }
-    };
-  }, [toast]);
-
-  const compileCode = async (): Promise<void> => {
-    if (!workerRef.current) {
-      toast({
-        title: "Compiler Not Ready",
-        description: "Please wait a moment and try again",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    setIsCompiling(true);
-    setCompileResult(null);
-
-    try {
-      const worker = workerRef.current;
-
-      const compilePromise = new Promise<CompileOutput>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error("Compilation timeout"));
-        }, 30000);
-
-        worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
-          clearTimeout(timeout);
-          if (e.data.success && e.data.output) {
-            resolve(e.data.output);
-          } else {
-            reject(new Error(e.data.error || "Unknown error"));
-          }
-        };
-
-        worker.onerror = (error: ErrorEvent) => {
-          clearTimeout(timeout);
-          reject(error);
-        };
-      });
-
-      worker.postMessage({ code });
-
-      const output = await compilePromise;
-
-      if (output.errors) {
-        const errors = output.errors.filter(
-          (error) => error.severity === "error"
-        );
-        const warnings = output.errors.filter(
-          (error) => error.severity === "warning"
-        );
-
-        if (errors.length > 0) {
-          setCompileResult({
-            error: errors.map((e) => e.formattedMessage).join("\n\n"),
-          });
-          toast({
-            title: "Compilation Failed",
-            description: "Check the errors in the sidebar",
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-          });
-          return;
+    if (!jump || activeFile?.id !== jump.id || !editorRef.current) return;
+    const editor = editorRef.current;
+    let frame = 0;
+    const timer = setTimeout(() => {
+      editor.setPosition(jump);
+      // Reveal immediately so the subsequent page-scroll measurement uses the new viewport.
+      editor.revealPositionInCenter(jump, 1);
+      flashSourceLine(editor, jump.lineNumber);
+      editor.focus();
+      frame = requestAnimationFrame(() => {
+        const node = editor.getDomNode();
+        if (node) {
+          const lineTop = node.getBoundingClientRect().top + editor.getTopForLineNumber(jump.lineNumber) - editor.getScrollTop();
+          if (lineTop < 48 || lineTop > window.innerHeight - 48)
+            window.scrollBy({top: lineTop - window.innerHeight * 0.4,
+              behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
         }
-
-        if (warnings.length > 0) {
-          const contracts: { [contractName: string]: CompiledContract } = {};
-          Object.keys(output.contracts?.["contract.sol"] || {}).forEach(
-            (contractName) => {
-              const contract = output.contracts!["contract.sol"][contractName];
-              contracts[contractName] = {
-                abi: contract.abi,
-                bytecode: contract.evm.bytecode.object,
-                deployedBytecode: contract.evm.deployedBytecode.object,
-              };
-            }
-          );
-
-          setCompileResult({
-            contracts,
-            warnings,
-          });
-          return;
-        }
-      }
-
-      const contracts: { [contractName: string]: CompiledContract } = {};
-      Object.keys(output.contracts?.["contract.sol"] || {}).forEach(
-        (contractName) => {
-          const contract = output.contracts!["contract.sol"][contractName];
-          contracts[contractName] = {
-            abi: contract.abi,
-            bytecode: contract.evm.bytecode.object,
-            deployedBytecode: contract.evm.deployedBytecode.object,
-          };
-        }
-      );
-
-      setCompileResult({
-        contracts,
+        setJump(null);
       });
-
-      toast({
-        title: "Compilation Successful",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown compilation error";
-      setCompileResult({
-        error: errorMessage,
-      });
-      toast({
-        title: "Compilation Error",
-        description: errorMessage,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsCompiling(false);
-    }
-  };
-
-  const copyToClipboard = (text: string, label: string): void => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: `${label} Copied!`,
-      status: "success",
-      duration: 2000,
-      isClosable: true,
+    }, 50);
+    return () => {clearTimeout(timer); cancelAnimationFrame(frame);};
+  }, [jump, activeFile?.id]);
+  const jumpToDiagnostic = (diagnostic: CompilerError) => {
+    const location = diagnostic.sourceLocation;
+    const file = local.workspace?.files.find(
+      (file) => file.name === location?.file
+    );
+    if (!location || !file || filesLocked) return;
+    local.update((current) => selectWorkspaceFile(current, file.id));
+    setJump({
+      id: file.id,
+      ...diagnosticPosition(file.content, Math.max(0, location.start)),
     });
   };
 
+  useEffect(() => setHistoryRequest(null), [local.activeWorkspace?.id]);
+  const openLocalHistory = async (fileId?:string) => {
+    const workspaceId=local.activeWorkspace?.id;
+    if(!workspaceId)return;
+    filesDrawer.onClose();
+    await local.flush();
+    if(editorContext.current.workspaceId !== workspaceId)return;
+    setHistoryRequest({workspaceId,fileId});
+  };
+
+  const compilationWarnings = !!result?.warnings?.length && (
+    <Box
+      mb={4}
+      as="details"
+      color="warning.text"
+      fontSize="sm"
+    >
+      <Box as="summary" cursor="pointer" py={2}>
+        {result.warnings.length}{" "}
+        {result.warnings.length === 1 ? "warning" : "warnings"}
+      </Box>
+      <CompilationErrors
+        diagnostics={result.warnings}
+        fallback=""
+        severity="warning"
+        hideCount
+        files={local.workspace?.files ?? []}
+        disabled={filesLocked}
+        onSelect={jumpToDiagnostic}
+      />
+    </Box>
+  );
+
   return (
-    <HStack spacing={0} alignItems="stretch" h="calc(100vh - 67px)">
-      <Box
-        w="320px"
-        bg="gray.900"
-        color="white"
-        p={6}
-        overflowY="auto"
-        borderRight="1px solid"
-        borderColor="whiteAlpha.200"
-        flexShrink={0}
+    <Box
+      as="main"
+      sx={{
+        ".monaco-editor .ethsh-compiler-error-line": {
+          color: "var(--chakra-colors-red-300) !important", fontSize: "0 !important",
+          "&::before": { fontSize: "16px" },
+        },
+      }}
+      w="full"
+      maxW="1600px"
+      mx="auto"
+      px={{ base: 4, md: 6, xl: 10 }}
+      py={{ base: 6, md: 8 }}
+      minW={0}
+    >
+      {historyRequest && <LocalHistory request={historyRequest && historyRequest.workspaceId === local.activeWorkspace?.id ? historyRequest : null}
+        workspace={local.workspace} disabled={filesLocked} warning={local.historyWarning}
+        onClose={() => setHistoryRequest(null)} onRestore={local.restoreRevision} />}
+      <Flex
+        mb={6}
+        gap={4}
+        justify="space-between"
+        align={{ base: "start", sm: "center" }}
+        wrap="wrap"
       >
-        <VStack spacing={6} align="stretch">
-          <Heading as="h1"
-            size="md"
-            color="white"
-            display="flex"
-            alignItems="center"
-            gap={2}
+        <Box>
+          <Heading
+            as="h1"
+            fontSize={{ base: "24px", md: "32px" }}
+            fontWeight="600"
+            letterSpacing="tight"
           >
-            Solidity Compiler{" "}
-            <Box
-              as="span"
-              bg="blue.700"
-              color="white"
-              px={2}
-              py={0.5}
-              borderRadius="md"
-              fontSize="xs"
-              fontWeight="semibold"
-            >
-              v0.8.30
-            </Box>
+            Solidity Compiler
           </Heading>
+          <Text mt={2} color="text.secondary" fontSize="md">
+            Compile Solidity to ABI and bytecode in your browser.
+          </Text>
+        </Box>
+        <Box
+          display="flex"
+          flexDirection="column"
+          gap={3}
+          alignItems={{ base: "flex-start", sm: "flex-end" }}
+          maxW="full"
+        >
+          <ConnectButton />
+        </Box>
+      </Flex>
 
-          <Button
-            onClick={compileCode}
-            isLoading={isCompiling}
-            loadingText="Compiling"
-            colorScheme="blue"
-            size="md"
-            w="full"
-            isDisabled={!workerReady}
-          >
-            {workerReady ? (
-              "Compile"
-            ) : (
-              <HStack spacing={2}>
-                <Spinner size="sm" />
-                <Text>Loading Compiler...</Text>
-              </HStack>
-            )}
+      {local.historyWarning && <Text role="alert" mb={4} fontSize="sm" color="warning.text">{local.historyWarning}</Text>}
+      {local.error && (
+        <Flex
+          role="alert"
+          mb={4}
+          p={3}
+          gap={3}
+          align="center"
+          wrap="wrap"
+          bg="error.bg"
+          rounded="lg"
+        >
+          <CircleAlert size={18} />
+          <Text flex="1" minW="180px" fontSize="sm">
+            {local.error} Your open file can still be downloaded.
+          </Text>
+          {local.workspace && (
+            <>
+
+              <Button
+                size="sm"
+                onClick={() =>
+                  downloadFile(
+                    "solidity-workspace.json",
+                    JSON.stringify(local.workspace, null, 2),
+                    "application/json"
+                  )
+                }
+              >
+                Download unsaved files
+              </Button>
+              <Button
+                size="sm"
+                onClick={() =>
+                  local.hasConflict ? reloadDialog.onOpen() : void local.flush()
+                }
+              >
+                {local.hasConflict ? "Reload saved files" : "Retry save"}
+              </Button>
+            </>
+          )}
+          {!local.workspace && (
+            <Button size="sm" onClick={() => void local.reload()}>
+              Retry loading
+            </Button>
+          )}
+        </Flex>
+      )}
+      {compilerState === "failed" && (
+        <Flex
+          role="alert"
+          mb={4}
+          p={3}
+          gap={3}
+          align="center"
+          wrap="wrap"
+          bg="error.bg"
+          border="1px solid"
+          borderColor="error.border"
+          rounded="lg"
+        >
+          <CircleAlert size={18} />
+          <Text flex="1" minW="180px" fontSize="sm">
+            {compilerError}
+          </Text>
+          <Button size="sm" onClick={compiler.reload}>
+            Reload compiler
           </Button>
+        </Flex>
+      )}
 
-          {compileResult && (
-            <VStack spacing={4} align="stretch" mt={4}>
-              {compileResult.error ? (
-                <Box
-                  bg="red.900"
-                  p={4}
-                  borderRadius="md"
-                  border="1px solid"
-                  borderColor="red.700"
-                >
-                  <Text fontSize="sm" fontWeight="bold" mb={2} color="red.200">
-                    Compilation Error:
-                  </Text>
-                  <Box
-                    as="pre"
-                    fontSize="xs"
-                    whiteSpace="pre-wrap"
-                    color="red.100"
-                    maxH="300px"
-                    overflowY="auto"
-                  >
-                    {compileResult.error}
-                  </Box>
-                </Box>
+      <Modal
+        isOpen={reloadDialog.isOpen}
+        onClose={reloadDialog.onClose}
+        isCentered
+      >
+        <ModalOverlay />
+        <ModalContent mx={4} bg="bg.muted">
+          <ModalHeader fontSize="lg">Reload saved files?</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text fontSize="sm">
+              Unsaved changes in this tab will be discarded. You can download
+              them before reloading.
+            </Text>
+          </ModalBody>
+          <ModalFooter gap={2}>
+            <Button size="sm" onClick={reloadDialog.onClose}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                reloadDialog.onClose();
+                void local.reload();
+              }}
+            >
+              Reload saved files
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Box minW={0}>
+        <Flex
+          px={0}
+          py={3}
+          gap={3}
+          justify="space-between"
+          align="center"
+          borderBottom="1px solid"
+          borderColor="border.default"
+          wrap="wrap"
+        >
+          <HStack spacing={2} minW={0} flexWrap="wrap" rowGap={2}>
+            <IconButton
+              display={{ base: "inline-flex", xl: "none" }}
+              aria-label="Open workspace files"
+              title="Open files sidebar"
+              aria-expanded={filesDrawer.isOpen}
+              icon={<PanelLeftOpen size={18} />}
+              variant="ghost"
+              size="sm"
+              onClick={filesDrawer.onOpen}
+            />
+            <WorkspaceBackupActions
+              key={local.activeWorkspace?.id ?? "loading"}
+              workspace={local.workspace}
+              workspaceName={local.activeWorkspace?.name ?? "Workspace"}
+              workspaceNames={local.workspaces.map((entry) => entry.name)}
+              onCreate={local.importWorkspace}
+              update={(edit) => local.update(edit, local.activeWorkspace?.id, "Before import")}
+              disabled={
+                deploymentBusy || (deploymentHistory.hasUnsaved && !!deploymentHistory.error) || local.isChanging || local.status === "loading"
+              }
+              onOpen={filesDrawer.onClose}
+            >
+              {(importExportActions) => (
+                <WorkspaceSelector
+                  importExportActions={importExportActions}
+                  workspaces={local.workspaces}
+                  active={local.activeWorkspace}
+                  fileCount={local.workspace?.files.length ?? 0}
+                  disabled={deploymentBusy || (deploymentHistory.hasUnsaved && !!deploymentHistory.error) || local.status === "loading"}
+                  busy={local.isChanging}
+                  onSwitch={local.switchWorkspace}
+                  onCreate={local.addWorkspace}
+                  onRename={local.changeName}
+                  onDelete={local.removeWorkspace}
+                />
+              )}
+            </WorkspaceBackupActions>
+            <ImportVerifiedContract
+              key={`import-${local.activeWorkspace?.id ?? "loading"}`}
+              request={workspaceUrl.request}
+              onRequestDone={workspaceUrl.done}
+              disabled={deploymentBusy || (deploymentHistory.hasUnsaved && !!deploymentHistory.error) || local.isChanging || local.status === "loading" || !local.workspace}
+              workspaceNames={local.workspaces.map((entry) => entry.name)}
+              onCreate={local.importVerifiedContract}
+              onOpen={filesDrawer.onClose}
+            />
+          </HStack>
+          <HStack spacing={3} flexWrap="wrap" rowGap={2}>
+            <Button size="sm" variant="outline" h={8} fontSize="sm" leftIcon={<History size={14} />}
+              color="text.secondary" borderColor="border.default" _hover={{ bg: "bg.emphasis", color: "text.primary" }}
+              isDisabled={filesLocked || !local.workspace} onClick={() => void openLocalHistory()}>
+              History
+            </Button>
+            <CompilerConfiguration
+              settings={
+                local.workspace?.compilerSettings ?? normalizeCompilerSettings()
+              }
+              disabled={deploymentBusy || (deploymentHistory.hasUnsaved && !!deploymentHistory.error) || local.isChanging || !local.workspace}
+              onChange={(compilerSettings) =>
+                local.update((current) => ({ ...current, compilerSettings }))
+              }
+            />
+            <Checkbox
+              size="sm"
+              isChecked={autoCompile}
+              onChange={(event) => setAutoCompile(event.target.checked)}
+              isDisabled={deploymentBusy}
+            >
+              <Text fontSize="xs" color="text.secondary">
+                Auto-compile
+              </Text>
+            </Checkbox>
+            <Button
+              size="sm"
+              variant="primary"
+              leftIcon={<Play size={14} fill="currentColor" />}
+              onClick={compile}
+              isLoading={isCompiling || compilerState === "loading"}
+              loadingText={isCompiling ? "Compiling…" : "Loading compiler…"}
+              isDisabled={
+                deploymentBusy ||
+                local.isChanging ||
+                local.status === "loading" ||
+                !activeFile ||
+                compilerState !== "ready" ||
+                !code.trim()
+              }
+            >
+              Compile
+            </Button>
+          </HStack>
+        </Flex>
+
+        {local.workspace?.importedContract && local.activeWorkspace && (
+          <ImportedWorkspaceStatus key={local.activeWorkspace.id}
+            workspace={local.workspace} workspaceId={local.activeWorkspace.id}
+            workspaceNames={local.workspaces.map(item => item.name)}
+            history={deploymentHistory} disabled={filesLocked}
+            onOpenOriginal={local.openOriginalWorkspace}
+            onRevertOriginal={local.revertImportedWorkspace}
+            onNavigate={(id, lineNumber) => {
+              setExplorerReveal(previous => ({id, nonce: (previous?.nonce ?? 0) + 1}));
+              openSourceRef.current(id, {lineNumber, column: 1});
+            }}
+          />
+        )}
+
+        <Flex
+          ref={panesRef}
+          direction={{ base: "column", lg: "row" }}
+          align="stretch"
+        >
+          <WorkspaceFiles
+            paneRef={filesPaneRef}
+            key={local.activeWorkspace?.id ?? "loading"}
+            workspace={local.workspace}
+            update={(edit, reason) => local.update(edit, local.activeWorkspace?.id, reason)}
+            onOpenHistory={(fileId) => void openLocalHistory(fileId)}
+            disabled={filesLocked}
+            isOpen={filesDrawer.isOpen}
+            onClose={filesDrawer.onClose}
+            onOpen={() => { if (!window.matchMedia("(min-width: 80em)").matches) filesDrawer.onOpen(); }}
+            revealFile={explorerReveal}
+            onOpenDependencies={(name = "", remove = false) => openDependencyRef.current(name, remove)}
+            onRevealFile={(id, lineNumber) =>
+              setJump({ id, lineNumber, column: 1 })
+            }
+          />
+          <PaneResizeHandle
+            container={panesRef}
+            editor={editorPaneRef}
+            pane={filesPaneRef}
+            property="--solidity-explorer-width"
+            label="Resize file explorer"
+            controls="solidity-files-panel"
+            edge="right"
+            minimum={220}
+            maximum={480}
+            initial={240}
+            breakpoint="xl"
+          />
+          <Box
+            ref={editorPaneRef}
+            flex={{ lg: "1 1 0%" }}
+            minW={0}
+            display="flex"
+            flexDirection="column"
+          >
+            <Box position={{ base: "relative", xl: "sticky" }} top={0} zIndex={2} flexShrink={0}>
+            <CodeEditorTabs
+              tabs={(local.workspace?.openFileIds ?? []).flatMap((id) => {
+                const file = local.workspace?.files.find(
+                  (item) => item.id === id
+                );
+                return file
+                  ? [
+                      {
+                        id,
+                        name: file.name.split("/").at(-1)!,
+                        path: file.name,
+                        content: file.content,
+                      },
+                    ]
+                  : [];
+              })}
+              activeTabId={activeFile?.id ?? ""}
+              onTabSelect={(id) => {
+                if (!filesLocked)
+                  local.update((current) => selectWorkspaceFile(current, id));
+              }}
+              onTabClose={(id) => {
+                if (!filesLocked)
+                  local.update((current) => closeWorkspaceFile(current, id));
+              }}
+            />
+            </Box>
+            <Box
+              h={{ base: "600px", md: "760px", lg: "min(95vh, 1200px)" }}
+              minH={{ lg: "680px" }}
+              flex={{ lg: 1 }}
+              bg="#1e1e1e"
+            >
+              {activeFile ? (
+                <Editor
+                  height="100%"
+                  path={workspaceModelPath(activeFile.id)}
+                  keepCurrentModel
+                  saveViewState
+                  onMount={(editor, monaco) => {
+                    editorRef.current = editor;
+                    monacoRef.current = monaco;
+                    setEditorMount((value) => value + 1);
+                  }}
+                  defaultLanguage="sol"
+                  theme="vs-dark"
+                  defaultValue={code}
+                  loading={
+                    <HStack h="full" justify="center" color="text.secondary">
+                      <Spinner size="sm" />
+                      <Text fontSize="sm">Loading editor…</Text>
+                    </HStack>
+                  }
+                  options={{
+                    readOnly: filesLocked || !!(local.workspace && activeFile && lockedPath(local.workspace, activeFile.name)),
+                    minimap: { enabled: true, side: "right", showSlider: "always" },
+                    fontSize: 13,
+                    lineHeight: 22,
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    padding: { top: 16, bottom: 16 },
+                    wordWrap: "on",
+                    tabSize: 4,
+                    quickSuggestions: {
+                      other: true,
+                      comments: false,
+                      strings: true,
+                    },
+                    suggestOnTriggerCharacters: true,
+                    parameterHints: { enabled: true },
+                    renderValidationDecorations: "on",
+                    wordBasedSuggestions: "off",
+                    tabCompletion: "on",
+                    lineNumbersMinChars: 3,
+                    glyphMargin: false,
+                    overviewRulerLanes: 0,
+                    hideCursorInOverviewRuler: true,
+                    ariaLabel: "Solidity source code",
+                  }}
+                />
               ) : (
-                <VStack spacing={4} align="stretch">
-                  <Box
-                    bg="green.900"
-                    p={3}
-                    borderRadius="md"
-                    border="1px solid"
-                    borderColor="green.700"
-                  >
-                    <Text fontSize="sm" fontWeight="bold" color="green.200">
-                      ✓ Compiled Successfully
-                    </Text>
-                  </Box>
+                <Flex h="full" align="center" justify="center">
+                  <Text color="text.secondary" fontSize="sm">
+                    {local.status === "loading"
+                      ? "Loading files…"
+                      : "Open a file to start editing."}
+                  </Text>
+                </Flex>
+              )}
+            </Box>
+          </Box>
 
-                  {Object.keys(compileResult.contracts || {}).map(
-                    (contractName) => (
-                      <Box
-                        key={contractName}
-                        bg="gray.800"
-                        p={4}
-                        borderRadius="md"
-                        border="1px solid"
-                        borderColor="gray.700"
-                      >
+          <OutputResizeHandle
+            container={panesRef}
+            editor={editorPaneRef}
+            output={outputPaneRef}
+          />
+          <Box
+            id="solidity-output-panel"
+            ref={outputPaneRef}
+            flex={{ lg: "0 0 auto" }}
+            w={{
+              lg: "var(--solidity-output-width, 300px)",
+              "2xl": "var(--solidity-output-width, 340px)",
+            }}
+            minW={0}
+            borderTopWidth={{ base: "1px", lg: 0 }}
+            borderColor="border.default"
+          >
+            <Flex
+              px={4}
+              py={3}
+              minH="53px"
+              borderBottom="1px solid"
+              borderColor="border.default"
+              align="center"
+              justify="space-between"
+              gap={3}
+              wrap="wrap"
+            >
+              <HStack spacing={2}>
+                <Heading as="h2" fontSize="md" fontWeight="600">
+                  Output
+                </Heading>
+                {compiler.build && <BuildDownloads build={compiler.build} />}
+              </HStack>
+              {result && (
+                <HStack
+                  spacing={1.5}
+                  fontSize="sm"
+                  color={
+                    stale
+                      ? "warning.text"
+                      : result.error
+                        ? "error.text"
+                        : "success.text"
+                  }
+                >
+                  {stale || result.error ? (
+                    <CircleAlert size={14} />
+                  ) : (
+                    <CheckCircle2 size={14} />
+                  )}
+                  <Text>
+                    {stale
+                      ? "Source changed"
+                      : result.error
+                        ? "Compilation failed"
+                        : "Compiled"}
+                  </Text>
+                </HStack>
+              )}
+            </Flex>
+
+            {!result ? (
+              <Flex
+                minH={{ base: "180px", lg: deploymentHistory.records.length ? "140px" : "420px" }}
+                direction="column"
+                align="center"
+                justify="center"
+                gap={3}
+                px={6}
+                color="text.secondary"
+              >
+                <Braces size={24} strokeWidth={1.5} />
+                <Text fontSize="sm" textAlign="center">
+                  Compile to view ABI and bytecode.
+                </Text>
+              </Flex>
+            ) : result.error ? (
+              <CompilationErrors
+                diagnostics={result.diagnostics}
+                fallback={result.error}
+                files={local.workspace?.files ?? []}
+                disabled={filesLocked}
+                onSelect={jumpToDiagnostic}
+              />
+            ) : (
+              <Box p={4}>
+                {contracts.length > 0 ? (
+                  <>
+                    <Box mb={4}>
+                      {contracts.length > 1 ? (
+                        <DarkSelect
+                          ariaLabel="Compiled contract"
+                          isDisabled={deploymentBusy}
+                          size="sm"
+                          options={contracts.map((name) => ({
+                            label: name,
+                            value: name,
+                          }))}
+                          selectedOption={{
+                            label: contractName,
+                            value: contractName,
+                          }}
+                          setSelectedOption={(option) =>
+                            option && setContractName(String(option.value))
+                          }
+                        />
+                      ) : (
                         <Text
-                          fontSize="sm"
-                          fontWeight="bold"
-                          mb={3}
-                          color="gray.200"
+                          fontSize="md"
+                          fontWeight="500"
+                          fontFamily="mono"
+                          overflowWrap="anywhere"
                         >
                           {contractName}
                         </Text>
-
-                        <VStack spacing={2}>
-                          <Button
-                            onClick={() =>
-                              copyToClipboard(
-                                JSON.stringify(
-                                  compileResult.contracts![contractName].abi,
-                                  null,
-                                  2
-                                ),
-                                "ABI"
-                              )
-                            }
-                            size="sm"
-                            w="full"
-                            bg="gray.700"
-                            _hover={{ bg: "gray.600" }}
-                            color="white"
-                          >
-                            Copy ABI
-                          </Button>
-
-                          <Button
-                            onClick={() =>
-                              copyToClipboard(
-                                compileResult.contracts![contractName].bytecode,
-                                "Bytecode"
-                              )
-                            }
-                            size="sm"
-                            w="full"
-                            bg="gray.700"
-                            _hover={{ bg: "gray.600" }}
-                            color="white"
-                          >
-                            Copy Bytecode
-                          </Button>
-
-                          {compileResult.contracts![contractName]
-                            .deployedBytecode && (
-                            <Button
-                              onClick={() =>
-                                copyToClipboard(
-                                  compileResult.contracts![contractName]
-                                    .deployedBytecode,
-                                  "Deployed Bytecode"
-                                )
-                              }
-                              size="sm"
-                              w="full"
-                              bg="gray.700"
-                              _hover={{ bg: "gray.600" }}
-                              color="white"
-                            >
-                              Copy Deployed Bytecode
-                            </Button>
-                          )}
-                        </VStack>
-                      </Box>
-                    )
-                  )}
-
-                  {compileResult.warnings &&
-                    compileResult.warnings.length > 0 && (
-                      <Box
-                        bg="yellow.900"
-                        p={3}
-                        borderRadius="md"
-                        border="1px solid"
-                        borderColor="yellow.700"
-                      >
-                        <Text
+                      )}
+                    </Box>
+                    {compilationWarnings}
+                    <ContractSize contract={selectedContract!} />
+                    <Accordion
+                      allowToggle
+                      index={artifactOpen ? 0 : -1}
+                      onChange={(index) => setArtifactOpen(index === 0)}
+                      reduceMotion
+                    >
+                      <AccordionItem border="0">
+                        <AccordionButton
+                          px={0}
+                          py={2}
+                          justifyContent="space-between"
                           fontSize="sm"
-                          fontWeight="bold"
-                          mb={2}
-                          color="yellow.200"
+                          color="text.secondary"
+                          _hover={{ color: "text.primary", bg: "transparent" }}
                         >
-                          Warnings:
-                        </Text>
-                        <VStack spacing={2} align="stretch">
-                          {compileResult.warnings.map((warning, idx) => (
-                            <Text key={idx} fontSize="xs" color="yellow.100">
-                              {warning.formattedMessage}
-                            </Text>
-                          ))}
-                        </VStack>
-                      </Box>
-                    )}
-                </VStack>
-              )}
-            </VStack>
-          )}
-        </VStack>
+                          <HStack spacing={2}>
+                            <Braces size={15} />
+                            <Text>ABI &amp; bytecode</Text>
+                          </HStack>
+                          <AccordionIcon />
+                        </AccordionButton>
+                        <AccordionPanel px={0} pt={3} pb={0}>
+                          {artifactOpen && (
+                            <>
+                              <Flex
+                                justify="space-between"
+                                align="center"
+                                gap={2}
+                                mb={3}
+                              >
+                                <Tabs
+                                  index={artifact}
+                                  onChange={setArtifact}
+                                  variant="line"
+                                  size="sm"
+                                  minW={0}
+                                >
+                                  <TabList>
+                                    {ARTIFACTS.map((label) => (
+                                      <Tab
+                                        key={label}
+                                        px={{ base: 2, sm: 3 }}
+                                        fontSize="sm"
+                                      >
+                                        {label}
+                                      </Tab>
+                                    ))}
+                                  </TabList>
+                                </Tabs>
+                                <HStack spacing={0} flexShrink={0}>
+                                  <CopyToClipboard
+                                    aria-label={`Copy ${ARTIFACTS[artifact]}`}
+                                    textToCopy={output}
+                                    size="sm"
+                                  />
+                                  <IconButton
+                                    aria-label={`Download ${ARTIFACTS[artifact]}`}
+                                    icon={<Download size={15} />}
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      downloadFile(
+                                        outputName,
+                                        output,
+                                        artifact === 0
+                                          ? "application/json"
+                                          : "text/plain"
+                                      )
+                                    }
+                                  />
+                                </HStack>
+                              </Flex>
+                              <Box
+                                border="1px solid"
+                                borderColor="border.default"
+                                rounded="md"
+                                overflow="hidden"
+                              >
+                                <Editor
+                                  height="260px"
+                                  language={
+                                    artifact === 0 ? "json" : "plaintext"
+                                  }
+                                  theme="vs-dark"
+                                  value={output}
+                                  options={{
+                                    readOnly: true,
+                                    domReadOnly: true,
+                                    minimap: { enabled: false },
+                                    automaticLayout: true,
+                                    fontSize: 12,
+                                    lineHeight: 20,
+                                    scrollBeyondLastLine: false,
+                                    wordWrap: "on",
+                                    lineNumbers: "off",
+                                    folding: artifact === 0,
+                                    padding: { top: 12, bottom: 12 },
+                                    overviewRulerLanes: 0,
+                                    ariaLabel: `Compiled ${ARTIFACTS[artifact]}`,
+                                  }}
+                                />
+                              </Box>
+                              {artifact !== 0 && (
+                                <Text
+                                  mt={2}
+                                  fontSize="xs"
+                                  color="text.secondary"
+                                >
+                                  {(output.length - 2) / 2} bytes
+                                  {artifact === 2
+                                    ? " · Deployed code"
+                                    : " · Creation code"}
+                                </Text>
+                              )}
+                            </>
+                          )}
+                        </AccordionPanel>
+                      </AccordionItem>
+                    </Accordion>
+                    <ContractDeployment
+                      key={deploymentFormKey(compiler.build,contractName)}
+                      contract={selectedContract!}
+                      deploymentChainId={linkingChainId}
+                      onDeploymentChainChange={chainId=>local.update(current=>({...current,deploymentChainId:chainId}))}
+                      linkingReady={linkingReady}
+                      validateLibraries={libraryRefs.length ? () => checkLibraryAddresses(linkingChainId,libraryRefs,compiler.build?.input.settings.extras?.libraries ?? {}) : undefined}
+                      libraryPanel={<LibraryLinks refs={libraryRefs} addresses={libraryAddresses} chainId={linkingChainId}
+                        build={compiler.build ?? undefined} history={deploymentHistory} disabled={filesLocked}
+                        rpcRevision={customChains.revision} rpcReady={customChains.ready}
+                        imported={!local.workspace?.importedContract || local.workspace.importedContract.chainId === linkingChainId ? local.workspace?.compilerSettings?.extras?.libraries : undefined}
+                        onImport={()=>local.update(current=> {
+                          let next=current;
+                          for(const ref of libraryRefs) {
+                            const address=libraryAddress(current.compilerSettings?.extras?.libraries?.[ref.sourcePath]?.[ref.name]);
+                            if(address && !libraryAddresses[ref.sourcePath]?.[ref.name]) next=updateLibraryAddress(next,linkingChainId,ref,address);
+                          }
+                          return next;
+                        })}
+                        onChange={(ref,value)=>local.update(current=>updateLibraryAddress(current,linkingChainId,ref,value))}
+                        onReady={onLibrariesReady}/>}
+                      build={compiler.build ?? undefined}
+                      history={deploymentHistory}
+                      contractName={selectedContract!.name}
+                      isStale={stale || isCompiling}
+                      onBusyChange={setDeploymentBusy}
+                    />
+                  </>
+                ) : (
+                  <Text fontSize="sm" color="text.secondary">
+                    No contracts in this source.
+                  </Text>
+                )}
+              </Box>
+            )}
+            {(result?.error || !contracts.length) && (
+              <Box mx={4}>{compilationWarnings}</Box>
+            )}
+            <DeploymentHistory history={deploymentHistory} />
+          </Box>
+        </Flex>
       </Box>
-
-      <Box flex={1} h="full" bg="gray.950">
-        <Editor
-          height="100%"
-          defaultLanguage="sol"
-          theme="vs-dark"
-          value={code}
-          onChange={(value) => setCode(value || "")}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-          }}
-        />
-      </Box>
-    </HStack>
+      <WorkspaceDependencies
+        key={local.activeWorkspace?.id ?? "dependencies-loading"}
+        workspace={local.workspace}
+        update={edit => local.update(edit, local.activeWorkspace?.id)}
+        disabled={filesLocked}
+        showTrigger={false}
+        onClose={() => setDependencyRequest(undefined)}
+        request={dependencyRequest?.workspaceId === local.activeWorkspace?.id ? dependencyRequest : undefined}
+      />
+    </Box>
   );
 }

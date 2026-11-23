@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Box, Button, Grid, Text } from "@chakra-ui/react";
+import { Box, Button, Grid, Text, Textarea } from "@chakra-ui/react";
 import { FileDiff } from "@pierre/diffs/react";
 import { getFiletypeFromFileName, parseDiffFromFile, preloadHighlighter, type FileContents } from "@pierre/diffs";
+import { currentDiffLine } from "./diffNavigation";
 import type { DiffFileData } from "./types";
 
-export default function PierreDiff({ path, diff, diffStyle, showAllLines }: {
+export default function PierreDiff({ path, diff, diffStyle, showAllLines, onNavigate }: {
   path: string;
   diff: DiffFileData;
   diffStyle: "split" | "unified";
   showAllLines: boolean;
+  onNavigate?(lineNumber: number): void;
 }) {
+  const previewOnly = diff.previewOnly || diff.oldCode.length + diff.newCode.length > 250_000;
   const files = useMemo(() => {
     // Explorer language detection also supports extensionless Solidity sources.
     const lang = /\.sol$/i.test(path) || /\bpragma\s+solidity\b/.test(diff.oldCode + diff.newCode)
@@ -22,10 +25,11 @@ export default function PierreDiff({ path, diff, diffStyle, showAllLines }: {
     };
   }, [path, diff]);
   const fileDiff = useMemo(() => {
+    if (previewOnly) return null;
     if (files.oldFile === null && files.newFile === null) return null;
     if (files.oldFile === null) return parseDiffFromFile(null, files.newFile!);
     return parseDiffFromFile(files.oldFile, files.newFile);
-  }, [files]);
+  }, [files, previewOnly]);
   const language = fileDiff?.lang ?? getFiletypeFromFileName(path);
   const [highlighterState, setHighlighterState] = useState<{
     language: string;
@@ -36,6 +40,7 @@ export default function PierreDiff({ path, diff, diffStyle, showAllLines }: {
   useEffect(() => {
     let cancelled = false;
     setHighlighterState(null);
+    if (previewOnly) return;
     // Mount only after the theme and grammar are loaded. A cold FileDiff mount
     // can otherwise leave an empty body until an options change forces a render.
     preloadHighlighter({ themes: ["pierre-dark"], langs: [language] }).then(
@@ -43,7 +48,7 @@ export default function PierreDiff({ path, diff, diffStyle, showAllLines }: {
       () => { if (!cancelled) setHighlighterState({ language, error: "Could not load the diff renderer." }); }
     );
     return () => { cancelled = true; };
-  }, [language, loadAttempt]);
+  }, [language, loadAttempt, previewOnly]);
 
   const options = useMemo(() => ({
     theme: "pierre-dark",
@@ -53,7 +58,12 @@ export default function PierreDiff({ path, diff, diffStyle, showAllLines }: {
     overflow: "wrap" as const,
     disableFileHeader: true,
     expandUnchanged: showAllLines,
-  }), [diffStyle, showAllLines]);
+    ...(onNavigate && fileDiff ? {
+      lineHoverHighlight: "both" as const,
+      onLineClick: (event: import("@pierre/diffs").OnDiffLineClickProps) => onNavigate(currentDiffLine(fileDiff, event.lineNumber, event.annotationSide)),
+      onLineNumberClick: (event: import("@pierre/diffs").OnDiffLineClickProps) => onNavigate(currentDiffLine(fileDiff, event.lineNumber, event.annotationSide)),
+    } : {}),
+  }), [diffStyle, showAllLines, onNavigate, fileDiff]);
 
   return (
     <Box h="100%" display="flex" flexDirection="column" minW={0}>
@@ -67,7 +77,11 @@ export default function PierreDiff({ path, diff, diffStyle, showAllLines }: {
       {diff.changesCount === 0 && <Text px={3} py={2} fontSize="sm" color="text.secondary" role="status">No differences in this file.</Text>}
       <Box flex={1} minW={0} w="full" overflowY="auto" overflowX="hidden" minH={0} fontSize="13px"
         sx={{ "diffs-container": { display: "block", width: "100%", minWidth: 0 } }}>
-        {highlighterState?.language !== language ? (
+        {previewOnly ? <Box p={3}>
+          <Text fontSize="xs" color="text.secondary" mb={2}>Large diff · source preview</Text>
+          <Text fontSize="xs" mb={1}>Old source</Text><Textarea aria-label="Original source" isReadOnly value={diff.oldCode} fontFamily="mono" fontSize="xs" h={48}/>
+          <Text fontSize="xs" my={1}>New source</Text><Textarea aria-label="Local source" isReadOnly value={diff.newCode} fontFamily="mono" fontSize="xs" h={48}/>
+        </Box> : highlighterState?.language !== language ? (
           <Text p={4} color="text.secondary" role="status">Loading diff…</Text>
         ) : highlighterState.error ? (
           <Box p={4}>

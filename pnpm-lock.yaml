@@ -71,6 +71,9 @@ importers:
       '@shazow/whatsabi':
         specifier: ^0.15.4
         version: 0.15.4(@noble/hashes@1.8.0)(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@solidity-parser/parser':
+        specifier: 0.20.2
+        version: 0.20.2
       '@tanstack/react-query':
         specifier: ^5.59.16
         version: 5.59.16(react@19.2.3)
@@ -212,6 +215,9 @@ importers:
       react-simple-code-editor:
         specifier: ^0.11.3
         version: 0.11.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      semver:
+        specifier: 7.8.6
+        version: 7.8.6
       styled-components:
         specifier: ^6.3.8
         version: 6.3.8(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -267,6 +273,12 @@ importers:
       '@types/lodash':
         specifier: ^4.17.13
         version: 4.17.13
+      '@types/semver':
+        specifier: 7.8.0
+        version: 7.8.0
+      fake-indexeddb:
+        specifier: ^6.2.8
+        version: 6.2.8
       isEqual:
         specifier: link:@types/lodash/isEqual
         version: link:@types/lodash/isEqual
@@ -8483,6 +8495,21 @@ packages:
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
+
+  '@solidity-parser/parser@0.20.2':
+    resolution: {integrity: sha512-rbu0bzwNvMcwAjH86hiEAcOeRI2EeK8zCkHDrFykh/Al8mvJeFmjy3UrE7GYQjNwOgbGUUtCn5/k8CB8zIu7QA==}
+
+  '@types/semver@7.8.0':
+    resolution: {integrity: sha512-1mAINjtQCXXeLkJ9ehXkwOcBpqtLxiVtKhpUf83DdRNdQKV0iXZpaHYqRr7nj+wvxuJzoAmAwXI+sCNMv1CzLQ==}
+
+  fake-indexeddb@6.2.8:
+    resolution: {integrity: sha512-mpVW/HLUqwKXJ6F/s0hMgdK1eQfM4ncTHDioNGHWL0WKV3VcZCoZq1NKgboBbAge07aRCO7L48yziKssL59XEQ==}
+    engines: {node: '>=18'}
+
+  semver@7.8.6:
+    resolution: {integrity: sha512-9lpSSU4Mly3mrtruwLs1eLK6+gzbzqeBFwRNjIjE+9LuDpWdYctrQlQ3ej1Ilgi7gknpsTRnPoLP8DpCHqHIJw==}
+    engines: {node: '>=10'}
+    hasBin: true
 snapshots:
 
   tar@7.5.23:
@@ -20097,3 +20124,11 @@ snapshots:
       - ws
 
   zwitch@2.0.4: {}
+
+  '@solidity-parser/parser@0.20.2': {}
+
+  '@types/semver@7.8.0': {}
+
+  fake-indexeddb@6.2.8: {}
+
+  semver@7.8.6: {}

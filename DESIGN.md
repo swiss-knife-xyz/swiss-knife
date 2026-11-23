@@ -224,6 +224,196 @@
 - Use spacing and text hierarchy, without tool cards, emoji decoration, gradients, or extra explanatory copy. Preserve keyboard focus, labeled navigation, and real anchors.
 - Audit: links and expansion are independent; no nested interactive controls; active state uses `aria-current`; search has a label and an empty state; no extra animation or font loading.
 
+## Solidity compiler
+
+- Scope: `/solidity/compiler`, a browser-based developer workspace.
+- Direction: precise, compact, familiar; aesthetic essence: edit, compile, inspect.
+- Reuse ETH.sh's Inter headings/body and JetBrains Mono code, 32/24px page title,
+  16px section titles, 14px body, 12–13px code and captions. Keep existing
+  `bg.base`, `bg.subtle`, `text.*`, `border.default`, `primary.*` and semantic
+  status tokens; 4px spacing scale, `md` controls and `lg` workspace corners.
+- Signature layout: a shared file/action toolbar above the dominant source editor
+  and adjacent artifact panel. At narrow widths the output follows the editor in
+  normal page flow. No empty control sidebar, decorative cards or new fonts.
+- Output: contract selection, ABI/creation/runtime tabs, contextual copy/download,
+  inline errors, collapsible warnings and an explicit stale-source state.
+- Accessibility: labelled editor/dropdown/icon controls, keyboard-accessible tabs,
+  named status text alongside icons, and no additional animation.
+- Changelog (2026-11-22): replaced the fixed-width sidebar with a responsive
+  workspace; compiler readiness now comes from its worker rather than a timer.
+- Audit (2026-11-22): verified compilation, syntax errors and recovery, warnings,
+  multiple-contract selection, all artifact tabs, copy and ABI download in the
+  browser. Checked 320px, 390px and 768px without horizontal page overflow, plus
+  the desktop layout. Retained the established ETH.sh typography and tokens.
+- Compiler deployment (2026-11-22): wallet control sits below the compiler
+  version outside the workspace. Compiled artifacts expose a shared network
+  selector (Sepolia by default), existing ABI constructor widgets and a deploy
+  action. Keep chain switching separate from submission; show transaction and
+  contract explorer links with automatic confirmation tracking. Source edits
+  require recompilation, and pending submissions lock recompilation/selection.
+- Local files, first slice (2026-11-22): a single IndexedDB workspace with
+  individual source records, file actions and open editor tabs. Saves run
+  quietly; unsaved edits trigger browser close/reload confirmation, while save
+  failures remain visible. Desktop gets a 200px file sidebar; smaller screens use a Files drawer.
+  Monaco models use stable file IDs so switching tabs preserves undo/view state.
+  Closing a tab retains its file. Atomic saves check revisions to prevent stale
+  tabs overwriting newer data; failed saves retain edits and expose recovery.
+  Compilation still targets one selected file; folders/import graphs and named
+  workspace switching are separate follow-up features.
+- Local-file audit: 15 storage/deployment tests passed, including transaction
+  rollback, stale-tab conflicts, failed-save recovery and overlapping edits.
+  Browser checks covered file creation/rename, tab close/reopen, undo across
+  file switches, reload recovery, active-file compilation and mobile drawer
+  navigation at 320px/390px without horizontal overflow.
+- Workspace backups (2026-11-22): the Files menu exposes ZIP export/import.
+  Imports preview additive file renaming versus explicit workspace replacement;
+  active/open tabs round-trip through a versioned manifest. Keep menu popovers
+  inside their drawer so focus/stacking remain correct on mobile. ZIP handling
+  stays client-side and validates paths, source hashes and decompression limits.
+- Named workspaces (2026-11-22): use a searchable selector in the workspace
+  toolbar with a compact actions menu. Each workspace retains files/open tabs
+  and the last selected workspace restores on reload. IndexedDB v2 migrates
+  existing data without resetting file IDs/content. Switching first drains
+  pending saves, and failures leave edits in place. Compilation/deployment lock
+  workspace changes; deletion is confirmed and never removes the last workspace.
+
+- Folders/multi-file slice (2026-11-22): a compact 240px desktop file tree
+  replaces the flat list; the same tree lives in the mobile drawer. Folder rows
+  use a chevron and folder icon, file rows retain existing selection/menu
+  treatment. New-file/folder actions use focused path inputs; rename/move keeps
+  stable file IDs and prompts users to update affected imports. Empty folders
+  persist in IndexedDB metadata and ZIP manifests. Existing ETH.sh typography,
+  semantic tokens and spacing remain unchanged.
+- Compilation uses the selected entry and local transitive imports, excluding
+  unrelated files. Output identities are source path + contract name. Each
+  build captures immutable contents; edits to source paths/content disable
+  deployment until recompilation. Errors/warnings navigate to the matching
+  source location using UTF-8 compiler offsets converted to editor positions.
+- Folder audit: no decorative cards/colors or extra prose; compact labelled
+  actions, keyboard folder toggles, focus-managed path dialogs and destructive
+  folder confirmation. Verified nested ZIP import, folder rename, dependent
+  source compilation, stale dependency edits and error-to-editor navigation.
+
+- Desktop pane sizing: output stays at 300px (340px on wide screens); the code
+  editor takes the remaining width after the file tree. Mobile remains stacked.
+
+- Solidity IntelliSense (2026-11-22): use Monaco's native suggestion, signature,
+  hover and definition UI inside the existing editor. No new panels or labels.
+  A separate parser worker supplies scoped variables, contract/struct members,
+  inherited/imported declarations and local import paths; static Solidity
+  types, snippets and builtin namespaces work before a successful compile.
+  Changed files sync incrementally. Providers are scoped to workspace source
+  models and disposed on teardown; stale/cancelled requests are discarded.
+  Compile and deployment behavior remains explicit.
+
+- Automatic checks (2026-11-22): a checked-by-default Auto-compile checkbox sits
+  beside Compile. Reuse Monaco's native red/yellow squiggles and diagnostic
+  hover UI, with no new error panels. Compiler work is debounced by 750ms,
+  single-flight and snapshot-checked; edit/navigation remains available.
+  Import scanning and source serialization happen after the debounce. Unchanged
+  graphs reuse a completed build. Pending deployments pause checks.
+  Error positions account for UTF-8 compiler ranges and UTF-16 editor columns.
+
+- Automatic-check audit: browser verified default-on compilation, red error
+  ranges and native hover messages, yellow unused-variable warnings, automatic
+  clearing after fixes, and off/manual/on behavior. Scheduling/marker tests
+  cover debouncing, single-flight queues, stale responses, workspace switches,
+  dependency edits, deployment pauses, retry/cleanup and Unicode source ranges.
+
+- Output sizing: desktop uses a thin draggable, focusable separator. Output is
+  bounded to 260–640px while reserving at least 320px for editing. Pointer
+  capture and animation-frame updates resize the pane without rerendering the
+  compiler page. Arrow keys adjust width (Shift for larger steps), Home/End
+  choose bounds, and double-click restores the responsive default. Mobile
+  remains stacked; a chosen width survives workspace changes in this session.
+
+- Resize audit: browser drag changed output from 300px to 440px; keyboard bounds
+  and double-click reset passed. Narrowing the desktop viewport clamps output
+  while leaving a 320px editor; at 320px the divider is hidden with no overflow.
+
+- Shared explorer (2026-11-22): compiler and contract source viewer now use
+  FileExplorerPanel/FileExplorerTree for the same folder/Solidity icons,
+  indentation, selection and disclosure styles. Optional sibling action slots
+  expose compiler file/folder menus without nesting buttons or changing the
+  current selection. Editable folders stay separate (no compact chains) so
+  empty folders and every folder's actions remain accessible. The compiler
+  also reuses SearchPanel with source updates debounced during editing.
+  File IDs, IndexedDB, open tabs, file Undo and ZIP backup logic are retained.
+- Shared-explorer audit: 64 tests, typecheck and production build passed. Browser
+  checks covered create/rename/move, empty folders, delete/undo, search line
+  navigation, mobile menus at 320px, and the original read-only source viewer.
+- Compiler Explorer refinement: darker `bg.subtle` background; desktop sidebar
+  has a draggable 220–480px divider using the shared pane resize control.
+  Both dividers reserve editor space, support keyboard controls and reset on
+  double-click. Browser drag/keyboard checks and all 64 tests passed.
+
+- Compiler settings: the solc version opens a compact modal using existing
+  searchable selectors. Version, EVM target, optimizer/runs and via IR save per
+  workspace on Apply; Cancel leaves the active build untouched. Unsupported EVM
+  targets reset to compiler default when changing versions. Binary downloads use
+  a separate three-version cache with classic script fallback. Settings changes
+  invalidate stale artifacts; version changes replace the worker. ZIP backups
+  carry configuration. Browser checks covered configured compilation, switching
+  0.8.30 to 0.8.29 diagnostics, reload persistence and a 320px modal layout.
+
+- Standard JSON portability: import joins the existing Explorer backup menu;
+  input/output download actions sit beside the Output heading. Import previews
+  file replacement/collisions, the entry file and compiler configuration before
+  applying changes. Nested compiler settings reuse the existing dialog. Advanced
+  metadata/library/optimizer settings remain attached to the workspace and ZIP.
+  Downloaded input always reflects the captured build, not current edits. Browser
+  checks covered real downloads, import preview modes, nested settings and 320px
+  layout. Real solc 0.8.30 reproduced identical ABI, bytecodes and metadata after
+  import; unit tests cover malformed/unsupported data and configuration fidelity.
+
+- Shared source outline: a collapsible section below Files lists the selected
+  Solidity file's declaration hierarchy, signatures and visibility/mutability
+  badges. Rows jump to source; chevrons toggle children separately. It uses the
+  existing dark Explorer styling, scrolls independently and is reused by the
+  compiler drawer and contract source viewer. Debounced worker parsing keeps
+  editing responsive and ignores stale results.
+
+- Function selectors: muted, native Monaco code lenses above public/external
+  functions, using a copy icon and click-to-copy feedback. Shared registration
+  serves compiler and read-only sources without changing the code or line
+  numbers. Selectors update through a debounced worker as the source changes.
+
+- Compiler dependencies: the Explorer package icon opens a compact modal with
+  installed version/source counts and npm package/exact-version inputs. Installs
+  are explicit, cancellable and show file-count progress. Library paths display
+  LIB instead of edit/delete actions; Monaco enforces read-only source viewing.
+  Package updates and removal live in the same modal.
+
+- Missing npm imports: an inline package-icon code lens above the import opens
+  the shared dependency installer, prefilled with the package and pinned version
+  when available. It disappears as soon as the source is present. Function
+  selector lenses remain unchanged alongside it.
+
+- Dependency sources: npm/GitHub tabs share the compact installer. GitHub uses
+  Repository and Git reference fields with a repository link and explicit Fetch
+  latest action. Installed cards link to the pinned GitHub tree and show a short
+  commit SHA with its full value on hover. Import annotations and folder deletion
+  open this same modal.
+
+- Verified-contract import: a labelled toolbar button next to workspace actions opens a compact two-stage modal.
+  Address/link and the shared network selector lead to a source review with
+  explorer attribution, pinned compiler, entry path and collapsed file list.
+  Create workspace is the primary action; existing workspaces are preserved.
+  Reuse existing dark tokens, small typography, rounded inputs and icon buttons.
+  Lookup can be cancelled; errors stay inline and failed saves remain retryable.
+  New imports also appear in Deployments as Imported, with the original address,
+  source attribution and existing Interact/download actions. Delete is only shown
+  for deployments made from the compiler.
+  Address-only deep links open network selection; address + chainId imports use
+  the same loading/error surface and create directly. Workspace-linked URL
+  identity survives editing and reload, with no extra controls or confirmation.
+  Imported constructor arguments stay collapsed initially and show compact typed,
+  named decoded values on expansion, with a copy action beside each parameter.
+  Constructor forms place a compact two-line reuse action at the top right; its
+  modal shows decoded deployment rows with right arrows and disables mismatches.
+  Only the deployment list scrolls; its scrollbar is hidden and edge shadows
+  appear when more content remains above or below.
+
 ## Homepage omnibox
 
 - Artifact: developer-tool launcher inside the existing homepage hero, centered below the logo/text columns and their Explore Tools / GitHub row. Adjectives: direct, compact, precise, restrained. Essence: paste to tool.
@@ -235,6 +425,49 @@
 
 - Text fallback in the homepage omnibox uses `lib/toolNavigation.ts`, shared with All Tools: the same catalog, related-page labels, matching, and ordering. Show up to six tool/page results in a bounded scrolling menu; keep data recognition and paste navigation ahead of text search.
 
+
+### Constructor reuse modal
+
+- Direction: compact inspection panel, precise and understated; retain existing
+  dark surfaces and typography. A divided deployment header gives contract name,
+  chain logo, imported provenance and shortened address a clear hierarchy.
+- An explicit blue Use arguments action with a right arrow anchors each header;
+  compatibility is communicated by both text and icon, and mismatches disable use.
+- A ruled two-column definition list pairs parameter names/types with readable
+  values and copy buttons. Narrow layouts stack labels above values. The modal
+  body owns scrolling; parameter values wrap without nested scroll areas.
+- Use existing semantic tokens and crisp borders; no glow, decorative gradients,
+  new fonts or explanatory filler. Preserve constructor checks and exact values.
+
+### Workspace search and replace
+
+- Extend the existing compact Explorer search view with a disclosure for the
+  replacement input and a per-file or workspace replacement action.
+- Review changes in a bounded modal: path headers, line numbers, paired red/green
+  source rows. Reuse dark surfaces, semantic colors, crisp borders and typography.
+- Keep dependency results searchable but read-only. Preserve search drafts while
+  switching views; apply edits together and offer a guarded Undo toast.
+
+### Local source history
+
+- Put the compact History action immediately before compiler settings; retain
+  file-specific Local history in each file action menu.
+- A dark modal pairs a compact revision timeline with the existing unified diff.
+  Narrow screens stack the timeline above the preview. Paths, times and action
+  labels provide hierarchy; no decorative surfaces or new typography.
+- Restore is an explicit primary action; stale/no-op previews disable it. Deleted
+  files stay discoverable through the workspace view and its Deleted files filter.
+
+
+### Compiler library linking
+
+- Only show Libraries when the selected artifact requires external addresses.
+  Match the constructor fieldset's border/legend and use shared address inputs.
+- Keep qualified source paths muted, reuse actions compact and checks inline.
+  Scope values to the selected deployment network; status says Code found rather
+  than claiming the deployed library implementation has been verified.
+- Keep constructor inputs visible and stable during address-only recompilation.
+  Inert deployment controls prevent changes during final validation/submission.
 
 ## Calldata clear-signing summary
 
@@ -305,3 +538,68 @@
   paste detects the chain and submits; hashes use explicit submission. Import
   calldata and native value into the loaded ABI without sending a transaction
   or switching the wallet; closing the modal discards late lookup responses.
+
+
+### Compiler scroll behavior
+
+- Keep the Explorer toolbar and source tabs at the top with native CSS sticky
+  positioning during main-page scrolling. Pin Outline to the visible bottom,
+  bounded by the full-height sidebar. The mobile drawer keeps its own layout.
+- Compiler layout ancestors use horizontal overflow clipping without creating
+  scroll containers. Avoid scroll-event transforms or per-frame height updates;
+  the browser owns positioning so fast scrolling stays in sync.
+
+
+### Inline compiler errors
+
+- Show complete, wrapped compiler error messages directly below their source
+  lines using Monaco view zones. Keep the existing squiggles and output cards.
+- Use compact mono text, semantic red and a quiet ruled surface. Resize zones
+  with the editor width; clear stale messages on edits or file switches.
+
+
+### Imported workspace provenance
+
+- Show a quiet amber Modified locally row between the workspace toolbar and
+  editor whenever source files or compiler settings differ from the immutable
+  imported snapshot. Do not wait for saving or compiling. Reverting all changes
+  clears the indicator; navigation and tab changes do not affect it.
+- Put Compare with original and Open original in new workspace alongside the
+  indicator. Use the existing unified diff in a bounded modal, with a changed-file
+  selector and lazy loading. Keep large-file previews bounded.
+- Fresh originals come from the saved import snapshot, retain their imported
+  deployment entry, and never replace the user's edited workspace.
+
+- In original-source comparisons, clicking code or a line number closes the modal
+  and opens that local file/line with the shared brief highlight. Original-side
+  deleted lines map to the nearest surviving local location; removed files stay
+  read-only in the comparison. Bring offscreen targets into the main viewport.
+
+
+### Responsive constructor header
+
+- Keep only the collapsible title in the fieldset legend. At narrow output widths,
+  place the compact blue reuse action inside the box on its own right-aligned row.
+  A container query moves it alongside the title when at least 480px is available.
+  The fieldset border stays continuous and inputs retain their full content width.
+
+
+### Revert imported workspace
+
+- Keep the comparison header concise: changed-file count and file selector only.
+- Put Revert to original in the comparison footer. A second confirmation names
+  the scope: every imported file and compiler setting, restoring deleted sources
+  and removing local additions. Do not modify deployment history.
+- Save a pre-revert source checkpoint through the existing local-history path.
+  Guard against changed workspaces and storage conflicts; failures keep the
+  comparison open with a concise error. Successful revert clears provenance.
+
+
+### Shared original-source comparison
+
+- Reuse Contract Diff's SourceCodeExplorer in the compiler comparison modal:
+  folder tree and outline on the left, changed tabs and Old/Diff/New controls
+  on the right. Include unchanged, added and removed sources in the tree.
+- Both entry points use the same bounded source-diff builder. Preserve compiler
+  line navigation and the confirmed Revert to original action. Keep large source
+  previews available without unbounded diff computation.

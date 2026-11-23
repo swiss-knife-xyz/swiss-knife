@@ -1,4 +1,5 @@
 import { getAddress } from "viem";
+import { readConstructorAbi, type ConstructorAbi } from "./constructorAbi";
 
 import networks from "./networks.json";
 import { isRetiredChain } from "../../data/retiredChains";
@@ -152,6 +153,7 @@ export function verificationInput(chain: unknown, address: unknown) {
   }
 }
 export type ImportedSource = {
+  constructorAbi?: ConstructorAbi;
   creationTransactionHash?: string;
   implementationAddress?: string;
   contractName: string;
@@ -302,7 +304,9 @@ export function importBlockscoutSource(raw: unknown): ImportedSource {
   if (new TextEncoder().encode(sourceCode).length > 1_000_000) unsupported();
   const license = licenses.indexOf(String(raw.license_type));
   if (license < 0) unsupported();
+  const constructorAbi = readConstructorAbi(raw.abi);
   return {
+    ...(constructorAbi ? { constructorAbi } : {}),
     contractName: `${raw.file_path}:${raw.name}`,
     compilerVersion: raw.compiler_version.startsWith("v")
       ? raw.compiler_version

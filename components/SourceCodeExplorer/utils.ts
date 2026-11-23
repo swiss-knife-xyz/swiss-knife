@@ -5,9 +5,10 @@ import { FileNode } from "./types";
  */
 export function buildFileTree(
   sources: Record<string, string>,
-  targetFileName?: string
+  targetFileName?: string,
+  options: { folders?: string[]; fileIds?: Record<string, string>; compactFolders?: boolean; sortLast?: (path: string) => boolean } = {}
 ): FileNode[] {
-  if (!sources || Object.keys(sources).length === 0) {
+  if (!sources || (Object.keys(sources).length === 0 && !options.folders?.length)) {
     return [];
   }
 
@@ -15,7 +16,7 @@ export function buildFileTree(
   const nodeMap = new Map<string, FileNode>();
 
   // Sort paths to ensure consistent ordering (folders first, then files)
-  const sortedPaths = Object.keys(sources).sort((a, b) => {
+  const sortedPaths = [...new Set([...Object.keys(sources), ...(options.folders ?? [])])].sort((a, b) => {
     const aDepth = a.split("/").length;
     const bDepth = b.split("/").length;
     if (aDepth !== bDepth) return aDepth - bDepth;
@@ -28,7 +29,7 @@ export function buildFileTree(
 
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
-      const isFile = i === parts.length - 1;
+      const isFile = i === parts.length - 1 && Object.hasOwn(sources, filePath);
       const parentPath = currentPath;
       currentPath = currentPath ? `${currentPath}/${part}` : part;
 
@@ -38,7 +39,7 @@ export function buildFileTree(
         // Create node - folders have children array, files don't
         const node: FileNode = isFile
           ? {
-              id: String(currentPath),
+              id: options.fileIds?.[filePath] ?? String(currentPath),
               name: part,
               path: currentPath,
               content: sources[filePath],
@@ -70,6 +71,9 @@ export function buildFileTree(
   const sortNodes = (nodes: FileNode[]): FileNode[] => {
     return nodes
       .sort((a, b) => {
+        const aLast = !!options.sortLast?.(a.path);
+        const bLast = !!options.sortLast?.(b.path);
+        if (aLast !== bLast) return aLast ? 1 : -1;
         const aIsFolder = Array.isArray(a.children);
         const bIsFolder = Array.isArray(b.children);
         if (aIsFolder && !bIsFolder) return -1;
@@ -99,7 +103,7 @@ export function buildFileTree(
         node.children = removeEmptyFolders(node.children);
 
         // Keep folder only if it has children after filtering
-        return node.children.length > 0;
+        return node.children.length > 0 || !!options.folders?.includes(node.path);
       });
   };
 
@@ -133,7 +137,8 @@ export function buildFileTree(
     });
   };
 
-  return collapseSingleChildFolders(removeEmptyFolders(sortNodes(root)));
+  const nodes = removeEmptyFolders(sortNodes(root));
+  return options.compactFolders === false ? nodes : collapseSingleChildFolders(nodes);
 }
 
 /**

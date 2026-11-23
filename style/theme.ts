@@ -623,6 +623,13 @@ const components = {
 
   // Menu Component
   Menu: {
+    sizes: {
+      compact: {
+        list: { py: 1 },
+        item: { fontSize: "13px", lineHeight: "20px", px: 3, py: 1.5 },
+        divider: { my: 1 },
+      },
+    },
     baseStyle: {
       list: {
         bg: "bg.subtle",

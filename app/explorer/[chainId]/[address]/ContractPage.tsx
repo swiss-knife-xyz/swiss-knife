@@ -164,6 +164,8 @@ const AbiSourceCodeToggle = ({ isCustom }: { isCustom?: boolean }) => {
  * Always mounted but hidden via CSS to avoid Monaco Editor re-initialization lag.
  */
 const AbiSourceCodeContent = ({
+  address,
+  chainId,
   abi,
   proxyAbi,
   implementationAbi,
@@ -175,6 +177,8 @@ const AbiSourceCodeContent = ({
   isLoadingSourceCode,
   renderAbiEditor,
 }: {
+  address: string;
+  chainId: number;
   abi: AbiType | null;
   proxyAbi: AbiType | null;
   implementationAbi: AbiType | null;
@@ -293,6 +297,27 @@ const AbiSourceCodeContent = ({
           mt={0}
         />
 
+        <Button
+          as={Link}
+          href={`${getPath(subdomains.SOLIDITY.base)}compiler?${new URLSearchParams({ address, chainId: String(chainId) })}`}
+          isExternal
+          variant="ghost"
+          size="sm"
+          h="auto"
+          py={2}
+          px={3}
+          color="text.primary"
+          _hover={{ bg: "whiteAlpha.100", textDecoration: "none" }}
+        >
+          <HStack spacing={2} align="center">
+            <VStack spacing={0.5} align="center">
+              <Text fontSize="sm" fontWeight="medium">Open in Compiler</Text>
+              <Text fontSize="xs" fontWeight="normal" color="text.secondary">to edit or deploy</Text>
+            </VStack>
+            <ExternalLink size={14} />
+          </HStack>
+        </Button>
+
         <Spacer />
 
         {renderAbiEditor(
@@ -360,6 +385,7 @@ const AbiSourceCodeContent = ({
                 <SourceCodeExplorer
                   sourceCode={currentSourceCode}
                   contractName={currentAbi?.name}
+                  initialSidebarWidth={320}
                   isFullscreen={isFullscreen}
                 />
               </Box>
@@ -1625,6 +1651,8 @@ const LoadedContractPage = ({
         <Box w="full" maxW="70rem" mx="auto">
           {/* ABI & Source Code Content - above alerts */}
           <AbiSourceCodeContent
+            address={address}
+            chainId={chainId}
             abi={abi}
             proxyAbi={customAbis.contract ?? proxyAbi}
             implementationAbi={customAbis.implementation ?? implementationAbi}

@@ -505,6 +505,8 @@ export const IntInput = ({
   // Main render
   return (
     <Box
+      minW={0}
+      sx={{ containerType: "inline-size", containerName: "integer-input" }}
       {...(selectedEthFormatOption?.value === "Unix Time"
         ? {
             bg: "blackAlpha.600",
@@ -514,12 +516,26 @@ export const IntInput = ({
         : {})}
     >
       <InputInfo input={input} />
-      <HStack flexDirection={{ base: "column", sm: "row" }} align="stretch" spacing={2}>
+      <HStack
+        align="stretch"
+        spacing={2}
+        sx={{
+          flexDirection: "column",
+          "@container integer-input (min-width: 380px)": {
+            flexDirection: "row",
+          },
+        }}
+      >
         {renderInputField()}
         <DarkSelect
           boxProps={{
             minW: 0,
-            w: { base: "full", sm: "9rem" },
+            w: "full",
+            sx: {
+              "@container integer-input (min-width: 380px)": {
+                width: "7rem",
+              },
+            },
             flexShrink: 0,
             fontSize: "small",
           }}
