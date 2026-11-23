@@ -23,6 +23,7 @@
     "lint": "next lint",
     "fetch-dapps": "tsx scripts/fetchSafeDapps.ts",
     "test:decoder-samples": "vitest run --config vitest.decoder-samples.config.ts && tsx --test app/calldata/decoder/samples.test.ts",
+    "test:reverts": "vitest run --config vitest.revert.config.ts",
     "test:decoder-metadata": "vitest run --config vitest.decoder-metadata.config.ts",
     "test:tx": "vitest run --config vitest.tx.config.ts",
     "test:clear-signing": "vitest run --config vitest.clear-signing.config.ts && tsx --test lib/clearSigningRegistry.test.ts"

@@ -37,6 +37,8 @@ interface Props {
   functionName?: string;
   isFunctionNameGuessed?: boolean;
   showControls?: boolean;
+  kind?: "revert";
+  decodeNote?: string;
 }
 const TreeState = createContext<{
   expanded: Set<string>;
@@ -351,6 +353,7 @@ function Parameter({
             <Text color="text.tertiary" fontSize="xs">
               →
             </Text>
+            {decoded?.kind === "revert" && <Badge colorScheme="red">Revert</Badge>}
             <Icon as={FiTerminal} boxSize={3.5} color="blue.400" aria-hidden />
             <Text
               fontFamily="mono"
@@ -406,6 +409,7 @@ function Parameter({
         borderLeft="1px solid"
         borderColor="whiteAlpha.100"
       >
+        {decoded?.decodeNote && <Text px={3} py={2} fontSize="sm" color="text.secondary">{decoded.decodeNote}</Text>}
         {children?.map((child, i) => (
           <Parameter
             key={`${id}.${i}`}
@@ -434,6 +438,8 @@ export function CalldataTree({
   functionName,
   isFunctionNameGuessed,
   showControls = true,
+  kind,
+  decodeNote,
 }: Props) {
   const hasRoot = !!functionName && functionName !== "__abi_decoded__";
   const ids = useMemo(() => {
@@ -562,17 +568,18 @@ export function CalldataTree({
                 <Icon
                   as={FiTerminal}
                   boxSize={3.5}
-                  color="green.400"
+                  color={kind === "revert" ? "red.300" : "green.400"}
                   aria-hidden
                 />
                 <Text
                   fontFamily="mono"
                   fontSize="16px"
                   fontWeight="600"
-                  color="green.300"
+                  color={kind === "revert" ? "red.300" : "green.300"}
                 >
                   {functionName}()
                 </Text>
+                {kind === "revert" && <Badge colorScheme="red">Revert</Badge>}
                 {isFunctionNameGuessed && (
                   <Badge fontSize="9px">inferred</Badge>
                 )}
@@ -589,6 +596,7 @@ export function CalldataTree({
               borderLeft={hasRoot ? "1px solid" : undefined}
               borderColor="whiteAlpha.100"
             >
+              {decodeNote && <Text px={3} py={2} fontSize="sm" color="text.secondary">{decodeNote}</Text>}
               {args.map((arg, i) => (
                 <Parameter
                   key={`args.${i}`}

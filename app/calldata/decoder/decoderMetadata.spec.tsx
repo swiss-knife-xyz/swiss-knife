@@ -1,3 +1,4 @@
+import { decoderRevertSample } from "./samples";
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
@@ -133,7 +134,7 @@ async function decode() {
   await screen.findByText("Decoded calldata");
 }
 const lookupName = "Network lookup";
-const gearName = "Network lookup settings";
+const gearName = "Decoder settings";
 // The optional metadata network is only reachable through the gear panel.
 async function openLookup() {
   if (!screen.queryByRole("combobox", { name: lookupName })) {
@@ -199,14 +200,14 @@ it("decodes manually without a network and keeps the raw address without chain R
 
 it("keeps calldata as the only inline field and hides network lookup behind an accessible gear", async () => {
   render(page());
-  expect(screen.queryByRole("combobox")).toBeNull();
+  expect(screen.queryByRole("combobox", { name: lookupName })).toBeNull();
   expect(screen.queryByText(/Optionally select a network/)).toBeNull();
   const gear = screen.getByRole("button", { name: gearName });
   expect(gear.getAttribute("aria-expanded")).toBe("false");
 
   fireEvent.click(gear);
   expect(gear.getAttribute("aria-expanded")).toBe("true");
-  const dialog = await screen.findByRole("dialog", { name: lookupName });
+  const dialog = await screen.findByRole("dialog", { name: gearName });
   expect(gear.getAttribute("aria-controls")).toBe(dialog.id);
   const select = (await screen.findByRole("combobox", {
     name: lookupName,
@@ -221,7 +222,7 @@ it("keeps calldata as the only inline field and hides network lookup behind an a
   await waitFor(() =>
     expect(screen.queryByRole("combobox", { name: lookupName })).toBeNull()
   );
-  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+  expect(screen.queryByRole("dialog", { name: gearName })).toBeNull();
   expect(gear.getAttribute("aria-expanded")).toBe("false");
   await waitFor(() => expect(document.activeElement).toBe(gear));
 
@@ -248,14 +249,14 @@ it("closes the network panel with Escape on the gear and returns focus to it", a
   await waitFor(() => expect(document.activeElement).toBe(select));
   gear.focus();
   fireEvent.keyDown(gear, { key: "Escape" });
-  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+  expect(screen.queryByRole("dialog", { name: gearName })).toBeNull();
   expect(gear.getAttribute("aria-expanded")).toBe("false");
   expect(document.activeElement).toBe(gear);
   // Clicking the gear again toggles it closed as well.
   fireEvent.click(gear);
-  await screen.findByRole("dialog", { name: lookupName });
+  await screen.findByRole("dialog", { name: gearName });
   fireEvent.click(gear);
-  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+  expect(screen.queryByRole("dialog", { name: gearName })).toBeNull();
 });
 
 it("lets an open nested select list consume Escape before the panel closes", async () => {
@@ -264,32 +265,32 @@ it("lets an open nested select list consume Escape before the panel closes", asy
   // react-select marks its input aria-expanded while its list is open.
   select.setAttribute("aria-expanded", "true");
   fireEvent.keyDown(select, { key: "Escape" });
-  expect(screen.getByRole("dialog", { name: lookupName })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: gearName })).toBeTruthy();
   select.setAttribute("aria-expanded", "false");
   fireEvent.keyDown(select, { key: "Escape" });
-  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+  expect(screen.queryByRole("dialog", { name: gearName })).toBeNull();
 });
 
 it("dismisses the network panel on an outside press or when focus leaves it", async () => {
   render(page());
   await openLookup();
-  fireEvent.mouseDown(screen.getByRole("dialog", { name: lookupName }));
-  expect(screen.getByRole("dialog", { name: lookupName })).toBeTruthy();
+  fireEvent.mouseDown(screen.getByRole("dialog", { name: gearName }));
+  expect(screen.getByRole("dialog", { name: gearName })).toBeTruthy();
   fireEvent.mouseDown(screen.getByRole("button", { name: "Decode" }));
-  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+  expect(screen.queryByRole("dialog", { name: gearName })).toBeNull();
 
   const select = await openLookup();
   // React's onBlur listens to the bubbling focusout event.
   fireEvent.focusOut(select, {
     relatedTarget: screen.getByRole("button", { name: "Decode" }),
   });
-  expect(screen.queryByRole("dialog", { name: lookupName })).toBeNull();
+  expect(screen.queryByRole("dialog", { name: gearName })).toBeNull();
 });
 
 it("keeps the required Chain selector inline for the address mode", () => {
   render(page());
   fireEvent.click(screen.getByText("from Address"));
-  expect(screen.queryByRole("button", { name: gearName })).toBeNull();
+  expect(screen.getByRole("button", { name: gearName })).toBeTruthy();
   expect(screen.getByRole("combobox", { name: "Network" })).toBeTruthy();
 });
 
@@ -542,7 +543,7 @@ it("preserves the address-and-network deep-link decoding path", async () => {
     expect.objectContaining({ address, chainId: 8453 })
   );
   expect(screen.queryByRole("combobox", { name: lookupName })).toBeNull();
-  expect(screen.queryByRole("button", { name: gearName })).toBeNull();
+  expect(screen.getByRole("button", { name: gearName })).toBeTruthy();
 });
 
 it("restores the optional metadata network when returning from manual ABI mode", async () => {
@@ -553,7 +554,7 @@ it("restores the optional metadata network when returning from manual ABI mode",
   fireEvent.click(screen.getByText("from ABI"));
   expect(screen.getByText("Input ABI")).toBeTruthy();
   expect(screen.queryByRole("combobox", { name: lookupName })).toBeNull();
-  expect(screen.queryByRole("button", { name: gearName })).toBeNull();
+  expect(screen.getByRole("button", { name: gearName })).toBeTruthy();
   fireEvent.click(screen.getByText("No ABI"));
   expect((await openLookup()).value).toBe("8453");
   await screen.findByText("BASE-TOKEN");
@@ -759,4 +760,70 @@ it("keeps the clear-signing result mounted across Calldata and Events tabs", asy
   fireEvent.click(screen.getByRole("tab", { name: "Calldata" }));
   expect(screen.getByRole("region", { name: "Clear signing test" })).toBe(summary);
   expect(mocks.clearMount).toHaveBeenCalledTimes(1);
+});
+
+it("restores explicit revert links and labels the shared tree without clear signing", async () => {
+  mocks.decode.mockResolvedValue({ kind: "revert", functionName: "Panic", signature: "Panic(uint256)", rawArgs: [17n], args: [{ name: "code", baseType: "uint256", type: "uint256", rawValue: 17n, value: "17" }], decodeNote: "Panic 0x11: Arithmetic overflow or underflow." });
+  render(page("mode=revert&calldata=0x4e487b71" + "0".repeat(62) + "11"));
+  expect(screen.queryByRole("combobox", { name: "Decode as" })).toBeNull();
+  await screen.findByText("Decoded revert");
+  expect(mocks.decode).toHaveBeenCalledWith(expect.objectContaining({ mode: "revert" }));
+  expect(screen.getByText("Revert")).toBeTruthy();
+  expect(screen.getByText("Panic 0x11: Arithmetic overflow or underflow.")).toBeTruthy();
+  expect(screen.queryByTestId("clear-summary")).toBeNull();
+});
+
+it("allows switching revert mode on and off even after decoding a revert", async () => {
+  render(page());
+  expect(screen.queryByText("Decode as")).toBeNull();
+  await decode();
+  fireEvent.click(screen.getByRole("button", { name: gearName }));
+  const toggle = screen.getByRole("checkbox", { name: "Interpret as revert data?" }) as HTMLInputElement;
+  expect(toggle.checked).toBe(false);
+  fireEvent.click(toggle);
+  expect(toggle.checked).toBe(true);
+  expect(toggle.disabled).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: gearName }));
+  mocks.decode.mockResolvedValueOnce({ kind: "revert", functionName: "Denied", signature: "Denied()", rawArgs: [], args: [] });
+  fireEvent.click(screen.getByRole("button", { name: "Decode" }));
+  await screen.findByText("Decoded revert");
+  expect(mocks.decode).toHaveBeenLastCalledWith(expect.objectContaining({ mode: "revert", calldata: "0x12345678" }));
+  fireEvent.click(screen.getByRole("button", { name: gearName }));
+  const checked = screen.getByRole("checkbox", { name: "Interpret as revert data?" }) as HTMLInputElement;
+  expect(checked.checked).toBe(true);
+  expect(checked.disabled).toBe(false);
+  fireEvent.click(checked);
+  expect(checked.checked).toBe(false);
+});
+it("resets revert mode when new calldata is typed or pasted", async () => {
+  render(page());
+  fireEvent.click(screen.getByRole("button", { name: gearName }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Interpret as revert data?" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Calldata" }), { target: { value: "0xdeadbeef" } });
+  expect((screen.getByRole("checkbox", { name: "Interpret as revert data?" }) as HTMLInputElement).checked).toBe(false);
+  fireEvent.click(screen.getByRole("checkbox", { name: "Interpret as revert data?" }));
+  fireEvent.paste(screen.getByRole("textbox", { name: "Calldata" }), { clipboardData: { getData: () => "0x12345678" } });
+  await waitFor(() => expect(mocks.decode).toHaveBeenLastCalledWith(expect.objectContaining({ calldata: "0x12345678", mode: "auto" })));
+  expect((screen.getByRole("checkbox", { name: "Interpret as revert data?" }) as HTMLInputElement).checked).toBe(false);
+});
+it("keeps the revert toggle enabled after automatic decoding fails", async () => {
+  mocks.decode.mockResolvedValueOnce(null);
+  render(page());
+  fireEvent.change(screen.getByRole("textbox", { name: "Calldata" }), { target: { value: "0xdeadbeef" } });
+  fireEvent.click(screen.getByRole("button", { name: "Decode" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Decode" }).hasAttribute("disabled")).toBe(false));
+  fireEvent.click(screen.getByRole("button", { name: gearName }));
+  expect((screen.getByRole("checkbox", { name: "Interpret as revert data?" }) as HTMLInputElement).disabled).toBe(false);
+});
+
+it("opens the Uniswap revert example with its ABI and decodes without a transaction lookup", async () => {
+  mocks.decode.mockResolvedValueOnce({ kind: "revert", functionName: "ExecutionFailed", signature: "ExecutionFailed(uint256,bytes)", rawArgs: [], args: [] });
+  render(page());
+  fireEvent.click(screen.getByRole("button", { name: decoderRevertSample.label }));
+  await screen.findByText("Decoded revert");
+  expect(mocks.decode).toHaveBeenCalledWith(expect.objectContaining({ calldata: decoderRevertSample.calldata, abi: decoderRevertSample.abi, mode: "revert" }));
+  expect(screen.getByText("Input ABI")).toBeTruthy();
+  expect((screen.getByRole("textbox", { name: "Calldata" }) as HTMLInputElement).value).toBe(decoderRevertSample.calldata);
+  expect(mocks.getClient).not.toHaveBeenCalled();
+  expect(screen.queryByTestId("clear-summary")).toBeNull();
 });

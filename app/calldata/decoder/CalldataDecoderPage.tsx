@@ -17,6 +17,8 @@ import {
   Stack,
   FormControl,
   FormLabel,
+  Switch,
+  Tooltip,
   Collapse,
   useDisclosure,
   HStack,
@@ -47,6 +49,7 @@ import {
   ChevronUpIcon,
   ExternalLinkIcon,
   LinkIcon,
+  InfoOutlineIcon,
 } from "@chakra-ui/icons";
 import {
   FiCode,
@@ -72,7 +75,7 @@ import {
 } from "@/data/common";
 import { getPath, resolveERC3770Address, startHexWith0x } from "@/utils";
 import subdomains from "@/subdomains";
-import { Editor } from "@monaco-editor/react";
+import { ContentSizedEditor } from "@/components/ContentSizedEditor";
 
 import { InputField } from "@/components/InputField";
 import { CalldataTree } from "@/components/decodedParams/CalldataTree";
@@ -84,14 +87,15 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { createDecoderShareLink, parseDecoderShareFragment } from "@/lib/decoderShare";
 import { decodeEvents, decodeRecursive } from "@/lib/decoder";
 import { getDisplayFunctionName } from "@/utils/functionNames";
-import { decoderSamples } from "./samples";
+import { decoderSamples, decoderRevertSample } from "./samples";
 import { findExampleDeepLink, getExampleSnapshot } from "./exampleSnapshots";
 import { ExampleSnapshotContext } from "@/components/decodedParams/ExampleSnapshotContext";
 
 const noMetadataNetwork = { label: "None", value: 0 };
 
 // Presentation only; the sample data and click behavior come from decoderSamples.
-type DecoderSamplePreview = (typeof decoderSamples)[number]["preview"];
+const decoderExamples = [...decoderSamples, decoderRevertSample];
+type DecoderSamplePreview = (typeof decoderExamples)[number]["preview"];
 
 // Purely visual pause before revealing a saved example; nothing is fetched.
 const EXAMPLE_PREPARE_DELAY_MS = 450;
@@ -219,14 +223,22 @@ function SampleCallPreview({
   );
 }
 
-function MetadataNetworkSettings({
+function DecoderSettings({
   selectedOption,
   setSelectedOption,
+  showNetwork,
+  revertMode,
+  onRevertModeChange,
+  isDecoding,
 }: {
+  showNetwork: boolean;
+  revertMode: boolean;
+  onRevertModeChange: (checked: boolean) => void;
+  isDecoding: boolean;
   selectedOption: SelectedOptionState;
   setSelectedOption: (value: SelectedOptionState) => void;
 }) {
-  const isActive = !!selectedOption?.value;
+  const isActive = showNetwork && !!selectedOption?.value;
   const [isOpen, setIsOpen] = useState(false);
   const panelId = React.useId();
   const wrapperRef = React.useRef<HTMLDivElement>(null);
@@ -299,7 +311,7 @@ function MetadataNetworkSettings({
     >
       <IconButton
         ref={triggerRef}
-        aria-label="Network lookup settings"
+        aria-label="Decoder settings"
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-controls={isOpen ? panelId : undefined}
@@ -307,7 +319,7 @@ function MetadataNetworkSettings({
         title={
           isActive
             ? `Network lookup: ${selectedOption!.label}`
-            : "Network lookup"
+            : "Decoder settings"
         }
         icon={<Icon as={FiSettings} boxSize={4} />}
         size="sm"
@@ -320,7 +332,7 @@ function MetadataNetworkSettings({
           boxShadow: "0 0 0 3px rgba(59,130,246,0.4)",
         }}
         _after={
-          isActive
+          revertMode || isActive
             ? {
                 content: '""',
                 position: "absolute",
@@ -329,7 +341,7 @@ function MetadataNetworkSettings({
                 w: "6px",
                 h: "6px",
                 borderRadius: "full",
-                bg: "blue.400",
+                bg: revertMode ? "red.400" : "blue.400",
               }
             : undefined
         }
@@ -339,7 +351,7 @@ function MetadataNetworkSettings({
           ref={panelRef}
           id={panelId}
           role="dialog"
-          aria-label="Network lookup"
+          aria-label="Decoder settings"
           tabIndex={-1}
           position="absolute"
           top="calc(100% + 8px)"
@@ -356,6 +368,7 @@ function MetadataNetworkSettings({
           textAlign="left"
           _focusVisible={{ outline: "none" }}
         >
+          {showNetwork && <Box mb={3} pb={3} borderBottom="1px solid" borderColor="whiteAlpha.100">
           <Text fontSize="sm" fontWeight="medium" color="white" mb={1}>
             Network lookup
           </Text>
@@ -369,6 +382,33 @@ function MetadataNetworkSettings({
             selectedOption={selectedOption}
             setSelectedOption={setSelectedOption}
           />
+          </Box>}
+          <FormControl display="flex" alignItems="center" justifyContent="space-between" gap={3}>
+            <HStack spacing={1}>
+              <FormLabel htmlFor={`${panelId}-revert`} mb={0} mr={0} fontSize="sm" color="text.secondary">
+                Interpret as revert data?
+              </FormLabel>
+              <Tooltip label="Decode a contract error instead of a function call. Resets for each new input." hasArrow>
+                <IconButton
+                  aria-label="About revert decoding"
+                  icon={<InfoOutlineIcon boxSize={3.5} />}
+                  size="xs"
+                  variant="ghost"
+                  color="text.tertiary"
+                  minW={5}
+                  h={5}
+                />
+              </Tooltip>
+            </HStack>
+            <Switch
+              id={`${panelId}-revert`}
+              aria-label="Interpret as revert data?"
+              isChecked={revertMode}
+              isDisabled={isDecoding}
+              onChange={event => onRevertModeChange(event.target.checked)}
+              colorScheme="blue"
+            />
+          </FormControl>
         </Box>
       )}
     </Box>
@@ -490,6 +530,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     "tx",
     parseAsString.withDefault("")
   );
+  const [decodeMode, setDecodeMode] = useQueryState("mode", parseAsString.withDefault("auto"));
   const requestId = React.useRef(0);
   const [clearSigningRequest, setClearSigningRequest] = useState<ClearSigningRequest>();
   const [example, setExample] = useState<{
@@ -687,6 +728,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     _abi,
     _from,
     _value,
+    _mode,
     id,
   }: {
     _calldata?: string;
@@ -695,6 +737,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
     _abi?: any;
     _from?: string;
     _value?: string;
+    _mode?: "auto" | "revert";
     id?: number;
   }) => {
     if (id === undefined) {
@@ -716,11 +759,12 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
         address: _address,
         chainId: _chainId,
         abi: _abi,
+        mode: _mode ?? (selectedTabIndex !== 3 && decodeMode === "revert" ? "revert" : "auto"),
       });
       if (id !== requestId.current) return;
       console.log({ DECODED_RESULT: res });
       setResult(res);
-      setClearSigningRequest({ calldata: startHexWith0x(__calldata), to: _address, chainId: _chainId, from: _from, value: _value });
+      setClearSigningRequest(res?.kind === "revert" ? undefined : { calldata: startHexWith0x(__calldata), to: _address, chainId: _chainId, from: _from, value: _value });
       try {
         const baseUrl = new URL(`${getPath(subdomains.CALLDATA.base)}decoder`, window.location.origin);
         setShareLink(createDecoderShareLink(baseUrl.toString(), startHexWith0x(__calldata), res, _abi));
@@ -807,6 +851,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       // Start decoding calldata first (priority)
       decode({
         _calldata: transaction.input,
+        _mode: "auto",
         _address: transaction.to ?? undefined,
         _from: transaction.from,
         _value: transaction.value?.toString(),
@@ -892,12 +937,11 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
             border="1px solid"
             borderColor="whiteAlpha.200"
           >
-            <Editor
+            <ContentSizedEditor
               theme="vs-dark"
               defaultLanguage="json"
               value={abi}
               onChange={handleAbiChange}
-              height={"250px"}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
@@ -1017,13 +1061,12 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                   border="1px solid"
                   borderColor="whiteAlpha.200"
                 >
-                  <Editor
+                  <ContentSizedEditor
                     theme="vs-dark"
                     defaultLanguage="json"
                     value={abi}
                     onChange={(value) => setAbi(value || "")}
-                    height={"250px"}
-                    options={{
+                          options={{
                       readOnly: true,
                       minimap: { enabled: false },
                       fontSize: 14,
@@ -1141,7 +1184,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
         // The optional metadata network lives behind the gear in the calldata row.
         return null;
       case 1:
-        return <FromABIBody />;
+        return FromABIBody();
       case 2:
         return <FromAddressBody />;
       case 3:
@@ -1232,7 +1275,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                     color="gray.300"
                     fontWeight="medium"
                   >
-                    Calldata
+                    {decodeMode === "revert" ? "Revert data" : "Calldata"}
                   </Text>
                 </HStack>
               </Box>
@@ -1245,10 +1288,11 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                     autoFocus
                     placeholder={selectedTabIndex === 0 ? "0x calldata or tx url" : "0x..."}
                     value={calldata}
-                    onChange={(e) => setCalldata(e.target.value)}
+                    onChange={(e) => { setDecodeMode("auto"); setCalldata(e.target.value); }}
                     onPaste={(e) => {
                       e.preventDefault();
                       const input = e.clipboardData.getData("text").trim();
+                      setDecodeMode("auto");
                       if (selectedTabIndex === 0 && parseTransactionExplorerUrl(input)) {
                         setPasted(false);
                         setSelectedTabIndex(3);
@@ -1261,12 +1305,14 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                     }}
                   />
                 </Box>
-                {selectedTabIndex === 0 && (
-                  <MetadataNetworkSettings
-                    selectedOption={metadataNetwork}
-                    setSelectedOption={setMetadataNetwork}
-                  />
-                )}
+                <DecoderSettings
+                  selectedOption={metadataNetwork}
+                  setSelectedOption={setMetadataNetwork}
+                  showNetwork={selectedTabIndex === 0}
+                  revertMode={decodeMode === "revert"}
+                  onRevertModeChange={checked => setDecodeMode(checked ? "revert" : "auto")}
+                  isDecoding={isLoading}
+                />
               </HStack>
             </HStack>
           )}
@@ -1320,7 +1366,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                   Try decoding these:
                 </Text>
                 <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
-                  {decoderSamples.map((sample) => {
+                  {decoderExamples.map((sample) => {
                     const [title] = sample.label.split(" · ");
                     const idBase = `decoder-sample-${sample.id}`;
                     return (
@@ -1364,7 +1410,21 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                             borderColor: "whiteAlpha.200",
                           },
                         }}
-                        onClick={() => showExample(sample, sample.explorerUrl)}
+                        onClick={() => {
+                          if ("calldata" in sample) {
+                            setExample(undefined);
+                            setSelectedTabIndex(1);
+                            setAbi(JSON.stringify(sample.abi, null, 2));
+                            setDecodeMode("revert");
+                            setPasted(false);
+                            setFromTxInput(null);
+                            setContractAddress(null);
+                            setCalldata(sample.calldata);
+                            void decode({ _calldata: sample.calldata, _abi: sample.abi, _mode: "revert" });
+                            return;
+                          }
+                          showExample(sample, sample.explorerUrl);
+                        }}
                       >
                         <Text
                           as="span"
@@ -1494,7 +1554,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                 {/* Copy controls - outside the box */}
                 <HStack minH={8} mb={3} justify="space-between" flexWrap="wrap">
                   <Text fontSize="sm" fontWeight="semibold" color="text.secondary">
-                    Decoded calldata
+                    {result.kind === "revert" ? "Decoded revert" : "Decoded calldata"}
                   </Text>
                   <HStack spacing={1} flexWrap="wrap">
                     {shareLink && !snapshot && (
@@ -1512,7 +1572,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                     <CopyToClipboard
                       textToCopy={JSON.stringify(
                         {
-                          function: result.signature,
+                          [result.kind === "revert" ? "error" : "function"]: result.signature,
                           params: JSON.parse(stringify(result.rawArgs)),
                         },
                         undefined,
@@ -1529,6 +1589,8 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                 <Box minW={0}>
                   <CalldataTree
                     args={result.args}
+                    kind={result.kind}
+                    decodeNote={result.decodeNote}
                     chainId={selectedTabIndex === 0 ? metadataChainId : chainId}
                     functionName={resolvedFunctionName.name ?? result.functionName}
                     isFunctionNameGuessed={resolvedFunctionName.isGuessed}

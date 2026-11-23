@@ -1,3 +1,4 @@
+import { parseRevert, errorAbiFromSignature } from "./revertDecoder";
 import { decodeUniversalRouter, type RouterVersion } from "./universalRouter";
 import type { FunctionSignatureCandidate } from "./inferredContract";
 /**
@@ -228,6 +229,8 @@ export async function decodeWithSelector({
   // bytes and cause:
   // 1. False positive decodes (random bytes interpreted as valid calldata)
   // 2. Infinite recursion (decoded "calldata" has more bytes that get decoded)
+  const builtinRevert = parseRevert(calldata);
+  if (builtinRevert) return builtinRevert;
   const isNestedDecode = _depth > 0;
 
   // Strategy 1: ERC-7821 Execute (requires specific selector 0xe9ae5c53)
@@ -1155,7 +1158,9 @@ export function decodeWithABI({
 }: {
   abi: InterfaceAbi;
   calldata: string;
-}): TransactionDescription | null {
+}): ParsedTransaction | null {
+  const revert = parseRevert(calldata, abi);
+  if (revert) return revert;
   const abiInterface = new Interface(abi);
   const parsedTransaction = abiInterface.parseTransaction({ data: calldata });
   return parsedTransaction;
@@ -1222,6 +1227,7 @@ export async function decodeRecursive({
   encodedAbi,
   _depth = 0,
   routerVersion = "auto",
+  mode = "auto",
 }: {
   calldata: string;
   address?: string;
@@ -1230,13 +1236,51 @@ export async function decodeRecursive({
   encodedAbi?: any;
   _depth?: number;
   routerVersion?: RouterVersion;
+  mode?: "auto" | "revert";
 }): Promise<DecodeRecursiveResult> {
   // Safety: cap recursion depth to prevent infinite loops
   if (_depth > MAX_DECODE_DEPTH) {
     return null;
   }
 
-  const router = await decodeUniversalRouter({
+  // Revert mode never falls back to function/packed-data heuristics.
+  // Empty revert data has no selector or recoverable reason.
+  if (mode === "revert" && calldata === "0x") {
+    return { kind: "revert", functionName: "Revert", signature: "revert()", rawArgs: [], args: [], decodeNote: "Reverted without error data; no reason was provided." };
+  }
+  let explicitRevert: ParsedTransaction | null = parseRevert(calldata, abi);
+  if (mode === "revert" && !explicitRevert) {
+    if (address && chainId && !abi) {
+      try {
+        const fetched = await fetchContractAbi({ address, chainId });
+        explicitRevert = parseRevert(calldata, fetched.abi);
+      } catch { /* An unavailable ABI does not prevent registry lookup. */ }
+    }
+    if (!explicitRevert) {
+      if (!/^0x(?:[0-9a-f]{2}){4,}$/i.test(calldata)) throw new Error("Revert data must be hexadecimal bytes with a four-byte selector, or 0x for an empty revert.");
+      const errorSelector = calldata.slice(0, 10).toLowerCase();
+      const [sourcify, fourByte] = await Promise.all([
+        fetchFunctionFromSourcify({ selector: errorSelector }),
+        fetchFunctionFrom4Bytes({ selector: errorSelector }),
+      ]);
+      const candidates = new Set([
+        ...(sourcify?.filter(item => !item.filtered).map(item => item.name) ?? []),
+        ...(fourByte?.map(item => item.text_signature) ?? []),
+      ]);
+      const matches: ParsedTransaction[] = [];
+      for (const candidate of candidates) {
+        try {
+          const match = parseRevert(calldata, [errorAbiFromSignature(candidate)]);
+          if (match && !matches.some(item => item.signature === match.signature)) matches.push(match);
+        } catch { /* Reject selector collisions and incompatible argument layouts. */ }
+      }
+      if (matches.length > 1) throw new Error("Multiple error signatures match this revert data. Supply the contract ABI to disambiguate.");
+      explicitRevert = matches[0] ?? null;
+    }
+    if (!explicitRevert) throw new Error("Unknown revert selector or malformed error arguments. Supply an ABI containing the error definition.");
+  }
+
+  const router = explicitRevert ? null : await decodeUniversalRouter({
     calldata,
     depth: _depth,
     version: routerVersion,
@@ -1254,7 +1298,9 @@ export async function decodeRecursive({
   // Step 1: Decode the function call using the best available method
   let parsedTransaction: ParsedTransaction | null;
 
-  if (encodedAbi) {
+  if (explicitRevert) {
+    parsedTransaction = explicitRevert;
+  } else if (encodedAbi) {
     // Use the provided encoded ABI (for special formats like SafeMultiSend)
     parsedTransaction = decodeWithABI({ abi: encodedAbi, calldata });
   } else if (abi) {
@@ -1432,13 +1478,14 @@ export async function decodeRecursive({
       };
     }
 
-    // Standard function call - recursively decode each parameter
+    // Standard function call or error - recursively decode each parameter
     else {
       return {
         functionName: parsedTransaction.fragment.name,
         signature: parsedTransaction.signature,
         rawArgs: parsedTransaction.args,
         guessedFunctionName,
+        ...(parsedTransaction.kind === "revert" ? { kind: "revert" as const, decodeNote: parsedTransaction.decodeNote } : {}),
         ...(parsedTransaction.signature === "abi.encode"
           ? { decoding: "heuristic" as const }
           : {}),
