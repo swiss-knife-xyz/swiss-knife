@@ -145,6 +145,10 @@ it("replays the Safe registry summary and nested cached calls without live looku
   expect(screen.getByText("Batched calls")).toBeTruthy();
   expect(screen.getByText("Approve token")).toBeTruthy();
   expect(screen.getByText("2,900,000 USDC")).toBeTruthy();
+  expect(screen.getByText("1 / 2")).toBeTruthy();
+  expect(screen.getByText("2 / 2")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Show supply calldata" })).toBeTruthy();
+  expect(screen.queryByText(/^0xf2b9fdb8/)).toBeNull();
   await act(async () => {});
   expect(mocks.resolve).not.toHaveBeenCalled();
   expect(mocks.name).not.toHaveBeenCalled();

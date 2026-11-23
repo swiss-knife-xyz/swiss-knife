@@ -280,3 +280,28 @@
 - A requested URL network stays pinned. A mismatch turns the primary action into
   Switch to {network}; switching is a separate click from sending. Recheck the
   live wallet chain before signing and pin receipt tracking to the submitted chain.
+
+- Tx desktop reviews start vertically centered in the initial viewport when short,
+  scroll with the page to a 24px sticky inset, and stay within the form's bounds.
+  Tall reviews cap their body to the viewport, keeping the Clear Signing heading
+  outside the scroll region and using the shared edge shadows. Expand the available body height as page scrolling brings the panel toward
+  its sticky inset. Recalculate on content/viewport resize; mobile retains natural document scrolling.
+
+- Nested clear-signing batches follow WalletChan's flat numbered sections: a
+  blue index/count pill, uppercase call label and rule; embedded summaries have
+  no repeated card border. Calls without a descriptor show To/Value rows and a
+  function-name disclosure, expanding the shared calldata tree. Unknown bytes
+  remain available on expansion. Cached examples use their existing nested
+  decoder snapshots and make no live fallback lookups.
+
+- Calldata trees use their container width, rather than the browser width, to
+  switch parameter rows to labels above full-width values. Narrow trees stack
+  integer format selectors below the input. Nested clear-signing disclosures
+  hide the global expand/collapse toolbar; the main decoder retains it.
+
+- Explorer parameter import uses underline Calldata / From transaction tabs in
+  one stable modal. The transaction form accepts a hash or configured explorer
+  URL and uses the shared NetworkSelect for its independent lookup chain. URL
+  paste detects the chain and submits; hashes use explicit submission. Import
+  calldata and native value into the loaded ABI without sending a transaction
+  or switching the wallet; closing the modal discards late lookup responses.

@@ -44,7 +44,7 @@ export const IntParam = ({ value: _value, formatSelectProps }: Params) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <HStack flexDirection={{ base: "column", sm: "row" }} align="stretch">
+      <HStack className="decoded-integer" flexDirection={{ base: "column", sm: "row" }} align="stretch">
         <InputField
           value={convertTo(selectedEthFormatOption, value)}
           placeholder=""
@@ -54,6 +54,7 @@ export const IntParam = ({ value: _value, formatSelectProps }: Params) => {
         <DarkSelect
           {...formatSelectProps}
           boxProps={{
+            className: "decoded-integer-format",
             w: { base: "full", sm: "9rem" },
             minW: 0,
             flexShrink: 0,

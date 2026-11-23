@@ -1,6 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { TransactionSummaryRail } from "@/components/ClearSigning/TransactionSummaryRail";
+import { createContractCallLink } from "@/lib/contractCall";
+import { transactionExamples } from "./examples";
 import type { ClearSigningRequest } from "@/lib/clearSigning/resolve";
 import { ToolLoading } from "@/components/ToolLoading";
 
@@ -38,7 +41,7 @@ import {
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { FiSend, FiUser, FiCode, FiDollarSign, FiGlobe, FiEdit2, FiX } from "react-icons/fi";
-import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import {
   parseEther,
   formatEther,
@@ -87,22 +90,16 @@ function SendTxContent() {
   const { switchChainAsync } = useSwitchChain();
   const searchParams = useSearchParams();
 
-  const [to, setTo] = useQueryState<string>(
-    "to",
-    parseAsString.withDefault("")
-  );
-  const [calldata, setCalldata] = useQueryState<string>(
-    "calldata",
-    parseAsString.withDefault("")
-  );
-  const [ethValue, setEthValue] = useQueryState<string>(
-    "eth",
-    parseAsString.withDefault("")
-  );
-  const [chainId, setChainId] = useQueryState<number>(
-    "chainId",
-    parseAsInteger.withDefault(1).withOptions({ clearOnDefault: false })
-  );
+  const [{ to, calldata, eth: ethValue, chainId }, setTransaction] = useQueryStates({
+    to: parseAsString.withDefault(""),
+    calldata: parseAsString.withDefault(""),
+    eth: parseAsString.withDefault(""),
+    chainId: parseAsInteger.withDefault(1).withOptions({ clearOnDefault: false }),
+  });
+  const setTo = useCallback((to: string) => setTransaction({ to }), [setTransaction]);
+  const setCalldata = useCallback((calldata: string) => setTransaction({ calldata }), [setTransaction]);
+  const setEthValue = useCallback((eth: string) => setTransaction({ eth }), [setTransaction]);
+  const setChainId = useCallback((chainId: number) => setTransaction({ chainId }), [setTransaction]);
   const [isEditingNetwork, setEditingNetwork] = useState(false);
   const networkEditRef = useRef<HTMLButtonElement>(null);
   const closeNetworkEditor = () => {
@@ -225,6 +222,23 @@ function SendTxContent() {
     : lastResolvedValue === to
       ? resolvedAddress
       : "";
+  const explorerHref = useMemo(() => {
+    const base = getPath(subdomains.CONTRACT.base);
+    if (!recipientAddress) return base;
+    const route = `${base}${chainId}/${recipientAddress}`;
+    try {
+      if (!calldata.trim()) return route;
+      const link = new URL(createContractCallLink(new URL(base, "https://eth.sh").href,
+        chainId, recipientAddress, {
+          data: startHexWith0x(calldata.trim()),
+          value: parseEther(ethValue || "0").toString(),
+        }));
+      return base.startsWith("/") ? `${link.pathname}${link.hash}` : link.href;
+    } catch {
+      // Incomplete edits can still open the contract without importing invalid data.
+      return route;
+    }
+  }, [recipientAddress, chainId, calldata, ethValue]);
   const summaryKey = JSON.stringify([
     calldata,
     recipientAddress,
@@ -494,11 +508,11 @@ function SendTxContent() {
       maxW="800px"
       mx="auto"
       sx={{
-        "&:has(> [data-tx-clear-signing] > section)": {
+        "&:has(> [data-tx-clear-signing] section)": {
           gridTemplateAreas: '"form" "summary"',
         },
         "@media (min-width: 1100px)": {
-          "&:has(> [data-tx-clear-signing] > section)": {
+          "&:has(> [data-tx-clear-signing] section)": {
             maxWidth: "1200px",
             gridTemplateColumns: "minmax(320px, 420px) minmax(0, 1fr)",
             gridTemplateAreas: '"summary form"',
@@ -507,19 +521,9 @@ function SendTxContent() {
       }}
     >
       {summaryRequest && (
-        <Box
-          data-tx-clear-signing
-          gridArea="summary"
-          minW={0}
-          sx={{ "&:not(:has(> section))": { display: "none" } }}
-        >
-          <HStack h={8} mb={4}>
-            <Text fontSize="sm" fontWeight="semibold" color="text.secondary">
-              Clear Signing
-            </Text>
-          </HStack>
+        <TransactionSummaryRail>
           <ClearSigningSummary {...summaryRequest} />
-        </Box>
+        </TransactionSummaryRail>
       )}
       <Box
         data-tx-send-form
@@ -535,32 +539,95 @@ function SendTxContent() {
       >
         {/* Page Header */}
         <Box mb={8} textAlign="center">
-          <HStack justify="center" spacing={3} mb={4}>
-            <Icon as={FiSend} color="blue.400" boxSize={8} />
+          <HStack justify="center" spacing={3} mb={3}>
+            <Icon as={FiSend} color="blue.400" boxSize={8} flexShrink={0} />
             <Heading
               as="h1"
               size="xl"
-              color="gray.100"
+              color="text.primary"
               fontWeight="bold"
               letterSpacing="tight"
             >
-              Send Transaction
+              <Button
+                variant="unstyled"
+                h="auto"
+                fontSize="inherit"
+                fontWeight="inherit"
+                lineHeight="inherit"
+                whiteSpace="normal"
+                aria-label="Reset transaction form"
+                title="Reset transaction form"
+                isDisabled={isLoading || isSwitching}
+                onClick={() => {
+                  adoptedWalletChain.current = true;
+                  initialChainInUrl.current = false;
+                  setTransaction({ to: null, calldata: null, eth: null, chainId: null });
+                  setSelectedEthFormatOption({ label: "ETH", value: "ETH" });
+                  setEditingNetwork(false);
+                  setLiveMismatch(null);
+                  setStatus(null);
+                  setSummaryPreview(null);
+                  decodeRequestId.current++;
+                  setIsDecodeModalOpen(false);
+                  setIsDecoding(false);
+                  setDecoded(undefined);
+                  setDecodeError(undefined);
+                }}
+              >
+                Send Transaction
+              </Button>
             </Heading>
           </HStack>
-          <Text color="gray.400" fontSize="lg" maxW="600px" mx="auto">
-            Send a transaction or deploy a contract with custom calldata
+          <Text color="text.secondary" fontSize="md">
+            Send calldata or deploy a contract.
           </Text>
-          <Text color="gray.500" fontSize="sm" maxW="600px" mx="auto" mt={2}>
-            A more human readable experience now at{" "}
-            <Link
-              href={getPath(subdomains.CONTRACT.base)}
-              color="gray.300"
-              textDecoration="underline"
-              textUnderlineOffset="3px"
-            >
-              Contract Explorer
-            </Link>
-          </Text>
+          <Link
+            href={explorerHref}
+            color="text.tertiary"
+            fontSize="xs"
+            display="inline-flex"
+            alignItems="center"
+            gap={1.5}
+            mt={2}
+            _hover={{ color: "text.primary" }}
+          >
+            Prefer contract functions? Open Explorer <ExternalLinkIcon boxSize={3} />
+          </Link>
+          <HStack justify="center" spacing={2} mt={5} flexWrap="wrap" rowGap={2}>
+            <Text fontSize="xs" color="text.tertiary">Example</Text>
+            {transactionExamples.map((example) => (
+              <Button
+                key={example.label}
+                size="sm"
+                variant="outline"
+                fontWeight="normal"
+                borderRadius="full"
+                borderColor="whiteAlpha.200"
+                isDisabled={isLoading || isSwitching}
+                onClick={() => {
+                  adoptedWalletChain.current = true;
+                  setLiveMismatch(null);
+                  setStatus(null);
+                  setEditingNetwork(false);
+                  setIsDecodeModalOpen(false);
+                  setDecoded(undefined);
+                  setDecodeError(undefined);
+                  setSelectedEthFormatOption({ label: "ETH", value: "ETH" });
+                  setTransaction({
+                    chainId: example.chainId,
+                    to: example.to,
+                    eth: example.eth,
+                    calldata: example.calldata,
+                  });
+                }}
+              >
+                {example.label}
+                <Text as="span" ml={2} color="text.tertiary" fontSize="xs">
+                  {example.network}
+                </Text>
+              </Button>
+            ))}
+          </HStack>
         </Box>
 
         <VStack spacing={6} align="stretch">
@@ -682,29 +749,34 @@ function SendTxContent() {
                       <CopyToClipboard textToCopy={resolvedAddress} size="xs" />
                     </HStack>
                   )}
-                {(resolvedAddress || isAddress(to ?? "")) &&
-                  chain?.blockExplorers?.default?.url && (
+              </HStack>
+              <HStack spacing={2} align="stretch">
+                <InputField
+                  aria-label="To Address"
+                  placeholder="Address or .eth, .gwei, .wei name.    Leave blank to deploy contract"
+                  value={to}
+                  onChange={(e) => {
+                    setTo(e.target.value.trim());
+                  }}
+                />
+                {recipientAddress && (
+                  <Tooltip label="Open in Contract Explorer">
                     <IconButton
                       as={Link}
-                      href={`${chain.blockExplorers.default.url}/address/${resolvedAddress || to}`}
+                      href={explorerHref}
                       isExternal
-                      aria-label="View on explorer"
-                      icon={<ExternalLinkIcon />}
-                      size="xs"
-                      variant="ghost"
-                      color="gray.400"
-                      _hover={{ color: "blue.400" }}
+                      aria-label="Open recipient in Contract Explorer"
+                      icon={<ExternalLinkIcon boxSize={4} />}
+                      variant="outline"
+                      borderColor="whiteAlpha.200"
+                      borderRadius="lg"
+                      color="text.secondary"
+                      flexShrink={0}
+                      _hover={{ color: "text.primary", bg: "whiteAlpha.100" }}
                     />
-                  )}
+                  </Tooltip>
+                )}
               </HStack>
-              <InputField
-                aria-label="To Address"
-                placeholder="Address or .eth, .gwei, .wei name.    Leave blank to deploy contract"
-                value={to}
-                onChange={(e) => {
-                  setTo(e.target.value.trim());
-                }}
-              />
             </VStack>
           </Box>
 

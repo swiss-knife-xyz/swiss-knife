@@ -4,7 +4,9 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Box } from "@chakra-ui/react";
 
 /** Desktop-only scrolling; the heading lives outside this viewport. */
-export function ClearSigningScrollArea({ children }: { children: ReactNode }) {
+export function ClearSigningScrollArea({ children, desktopBreakpoint = 1200,
+  maxHeight = "calc(100dvh - 92px)",
+}: { children: ReactNode; desktopBreakpoint?: number; maxHeight?: string }) {
   const viewport = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ top: false, bottom: false });
@@ -40,8 +42,8 @@ export function ClearSigningScrollArea({ children }: { children: ReactNode }) {
         onScroll={update}
         data-clear-signing-scroll
         sx={{
-          "@media (min-width: 1200px)": {
-            maxHeight: "calc(100dvh - 92px)",
+          [`@media (min-width: ${desktopBreakpoint}px)`]: {
+            maxHeight,
             overflowY: "auto",
             scrollbarWidth: "none",
             "&::-webkit-scrollbar": { display: "none" },
@@ -69,7 +71,7 @@ export function ClearSigningScrollArea({ children }: { children: ReactNode }) {
           bg={`linear-gradient(to ${edge === "top" ? "bottom" : "top"}, var(--chakra-colors-bg-base), transparent)`}
           sx={{
             display: "none",
-            "@media (min-width: 1200px)": { display: "block" },
+            [`@media (min-width: ${desktopBreakpoint}px)`]: { display: "block" },
           }}
         />
       ))}

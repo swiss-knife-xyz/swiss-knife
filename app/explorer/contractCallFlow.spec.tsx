@@ -159,14 +159,15 @@ async function waitForPrefill() {
 }
 
 async function openRawCalldata() {
-  if (!screen.queryByRole("dialog", { name: "Fill from calldata" })) {
-    fireEvent.click(await screen.findByRole("button", { name: "Fill from calldata" }));
+  if (!screen.queryByRole("dialog", { name: "Fill from tx or calldata" })) {
+    fireEvent.click(await screen.findByRole("button", { name: "Fill from tx or calldata" }));
   }
   return screen.findByRole("textbox", { name: "Calldata to decode" });
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
+  client.getCode.mockResolvedValue("0x");
   fetchAbi.mockResolvedValue({ abi, name: "Verified contract" });
   window.history.replaceState(null, "", `/explorer/1/${address}`);
   HTMLElement.prototype.scrollTo = vi.fn();
@@ -333,7 +334,7 @@ it("invalidating imported data discards a pending simulation without a second wa
   await act(async () => {
     resolve({ result: 42n });
   });
-  expect(screen.getByRole("dialog", { name: "Fill from calldata" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "Fill from tx or calldata" })).toBeTruthy();
   expect(
     screen.queryByRole("button", { name: "Continue to wallet" })
   ).toBeNull();
@@ -396,7 +397,7 @@ it("decodes pasted calldata only on explicit action and clears stale prefill on 
         .value
     ).toBe("42")
   );
-  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Fill from calldata" })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Fill from tx or calldata" })).toBeNull());
   input = await openRawCalldata();
   fireEvent.change(input, { target: { value: "0xdeadbeef" } });
   fireEvent.click(screen.getByRole("button", { name: "Fill parameters" }));

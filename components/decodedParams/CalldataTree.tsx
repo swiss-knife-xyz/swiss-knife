@@ -36,6 +36,7 @@ interface Props {
   chainId?: number;
   functionName?: string;
   isFunctionNameGuessed?: boolean;
+  showControls?: boolean;
 }
 const TreeState = createContext<{
   expanded: Set<string>;
@@ -432,6 +433,7 @@ export function CalldataTree({
   chainId,
   functionName,
   isFunctionNameGuessed,
+  showControls = true,
 }: Props) {
   const hasRoot = !!functionName && functionName !== "__abi_decoded__";
   const ids = useMemo(() => {
@@ -468,7 +470,7 @@ export function CalldataTree({
     }),
     [expanded]
   );
-  const treeControls = (
+  const treeControls = showControls ? (
     <HStack spacing={1}>
       <Button
         size="xs"
@@ -487,7 +489,7 @@ export function CalldataTree({
         Collapse all
       </Button>
     </HStack>
-  );
+  ) : null;
   return (
     <TreeState.Provider value={state}>
       <Box
@@ -496,8 +498,10 @@ export function CalldataTree({
         borderRadius="md"
         bg="bg.subtle"
         overflow="clip"
+        minW={0}
+        sx={{ containerType: "inline-size", containerName: "calldata" }}
       >
-        {!hasRoot && (
+        {!hasRoot && showControls && (
           <Flex px={3} py={1} justify="flex-end">
             {treeControls}
           </Flex>
@@ -510,8 +514,24 @@ export function CalldataTree({
             pb={3}
             sx={{
               "& .calldata-value": { position: "relative", zIndex: 0 },
-              "& .calldata-value div:has(> .uint-select-container)": {
+              "& .calldata-value .decoded-integer": {
                 flexDirection: "row",
+              },
+              "@container calldata (max-width: 560px)": {
+                "& .calldata-leaf": {
+                  flexDirection: "column", alignItems: "stretch", paddingLeft: "4px", gap: "6px",
+                },
+                "& .calldata-leaf > :first-child": {
+                  width: "100%", display: "flex", alignItems: "baseline", flexWrap: "wrap", columnGap: "8px",
+                  "&::before": { display: "none" },
+                },
+                "& .calldata-value": { width: "100%" },
+                "& .calldata-value .decoded-integer": {
+                  flexDirection: "column", alignItems: "stretch", gap: "6px",
+                },
+                "& .calldata-value .decoded-integer-format, & .calldata-value .decoded-integer-format > div": {
+                  width: "100%", minWidth: 0, maxWidth: "100%",
+                },
               },
               "& .calldata-value input.chakra-input": {
                 height: "32px",

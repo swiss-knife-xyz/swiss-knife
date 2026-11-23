@@ -107,6 +107,7 @@ export const UintParam = ({
     >
       <Box width="100%">
         <Flex
+          className="decoded-integer"
           direction={{ base: "column", md: "row" }}
           width="100%"
           gap={2}
@@ -183,6 +184,7 @@ export const UintParam = ({
             />
           </Box>
           <Box
+            className="decoded-integer-format"
             width={
               formatSelectProps?.boxProps?.w ?? { base: "100%", md: "auto" }
             }

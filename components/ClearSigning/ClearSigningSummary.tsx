@@ -14,6 +14,7 @@ import {
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { formatUnits, isAddress, parseAbi } from "viem";
 import { ExampleSnapshotContext } from "@/components/decodedParams/ExampleSnapshotContext";
+import { NestedCallData } from "./NestedCallData";
 import { clearSigningRequestKey } from "@/lib/clearSigning/requestKey";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { chainIdToChain, getNetworkName } from "@/data/networks";
@@ -54,8 +55,8 @@ function SummaryContent({
   ...request
 }: ClearSigningRequest & { depth?: number; ready: boolean }) {
   const example = useContext(ExampleSnapshotContext);
-  const [result, setResult] = useState<ClearSigningResult | null>(
-    () => example?.clearSigning?.[clearSigningRequestKey(request)] ?? null
+  const [result, setResult] = useState<ClearSigningResult | null | undefined>(
+    () => example ? example.clearSigning?.[clearSigningRequestKey(request)] ?? null : undefined
   );
   useEffect(() => {
     if (example || !ready || depth > 3) return;
@@ -64,13 +65,13 @@ function SummaryContent({
       .then((value) => {
         if (!cancelled) setResult(value);
       })
-      .catch(() => {});
+      .catch(() => { if (!cancelled) setResult(null); });
     return () => {
       cancelled = true;
     };
   }, [ready]); // The keyed parent binds this instance to exactly one request.
 
-  if (!result) return depth ? <RawCall request={request} /> : null;
+  if (!result) return depth && (result === null || depth > 3) ? <RawCall request={request} /> : null;
   const sourceHref = result.sourcePath
     ? `https://github.com/ethereum/clear-signing-erc7730-registry/blob/master/${result.sourcePath}`
     : undefined;
@@ -79,12 +80,12 @@ function SummaryContent({
       as="section"
       aria-label="Clear signing"
       mb={0}
-      p={4}
+      p={depth ? 0 : 4}
       w="full"
       maxW={depth ? "full" : "640px"}
       mx={depth ? 0 : "auto"}
-      bg="bg.subtle"
-      border="1px solid"
+      bg={depth ? "transparent" : "bg.subtle"}
+      border={depth ? "none" : "1px solid"}
       borderColor="border.default"
       borderRadius="lg"
       minW={0}
@@ -129,23 +130,24 @@ function Fields({
       {fields.map((field, index) => (
         <Box key={index} minW={0}>
           {field.groups?.length ? (
-            <>
-              <Text fontSize="sm" color="gray.400" mb={2}>
-                {field.label}
-              </Text>
-              <VStack align="stretch" spacing={3}>
-                {field.groups.map((group, i) => (
-                  <Box
-                    key={i}
-                    pl={3}
-                    borderLeft="1px solid"
-                    borderColor="border.default"
-                  >
-                    <Fields fields={group} chainId={chainId} depth={depth} />
-                  </Box>
-                ))}
-              </VStack>
-            </>
+            <VStack align="stretch" spacing={5}>
+              {field.groups.map((group, i) => (
+                <Box key={i} minW={0}>
+                  {field.groups!.length > 1 && <CallSectionHeading index={i} total={field.groups!.length} label={field.label || "Item"} />}
+                  <Fields fields={group} chainId={chainId} depth={depth} />
+                </Box>
+              ))}
+            </VStack>
+          ) : field.values.length > 0 && field.values.every(value => value.kind === "calldata") ? (
+            <VStack align="stretch" spacing={5}>
+              {field.values.length === 1 && <Text fontSize="xs" color="text.secondary" fontWeight="medium">{field.label}</Text>}
+              {field.values.map((value, i) => (
+                <Box key={i} minW={0}>
+                  {field.values.length > 1 && <CallSectionHeading index={i} total={field.values.length} label={field.label || "Call"} />}
+                  <Value value={value} chainId={chainId} depth={depth} />
+                </Box>
+              ))}
+            </VStack>
           ) : (
             <Box
               display="flex"
@@ -201,6 +203,18 @@ function Fields({
         </Box>
       ))}
     </VStack>
+  );
+}
+
+function CallSectionHeading({ index, total, label }: { index: number; total: number; label: string }) {
+  return (
+    <HStack spacing={2} mb={3}>
+      <Text fontSize="xs" fontWeight="bold" color="gray.900" bg="blue.300" px={2} py={0.5} borderRadius="full" flexShrink={0}>
+        {index + 1} / {total}
+      </Text>
+      <Text fontSize="xs" fontWeight="semibold" letterSpacing="0.08em" textTransform="uppercase" color="text.secondary">{label}</Text>
+      <Divider flex={1} borderColor="border.default" />
+    </HStack>
   );
 }
 
@@ -421,14 +435,18 @@ function RawCall({ request }: { request: ClearSigningRequest }) {
       minW={0}
     >
       {request.to && isAddress(request.to) && (
-        <AddressValue address={request.to} chainId={request.chainId} />
+        <HStack justify="space-between" spacing={3}>
+          <Text fontSize="xs" color="text.secondary" fontWeight="medium">To</Text>
+          <AddressValue address={request.to} chainId={request.chainId} />
+        </HStack>
       )}
       {request.value && request.value !== "0" && (
-        <Text fontSize="xs">Value (base units): {request.value}</Text>
+        <HStack justify="space-between" spacing={3}>
+          <Text fontSize="xs" color="text.secondary" fontWeight="medium">Value</Text>
+          <AmountValue value={{ kind: "amount", amountRaw: request.value }} chainId={request.chainId} />
+        </HStack>
       )}
-      <Text fontSize="xs" fontFamily="mono" overflowWrap="anywhere">
-        {request.calldata}
-      </Text>
+      <NestedCallData request={request} />
     </VStack>
   );
 }

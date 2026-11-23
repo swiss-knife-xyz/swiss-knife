@@ -12,6 +12,7 @@ import {
   within,
 } from "@testing-library/react";
 import SendTx from "./page";
+import { decodeFunctionData, erc20Abi } from "viem";
 const mocks = vi.hoisted(() => ({
   query: "",
   decode: vi.fn(),
@@ -350,4 +351,81 @@ it("cancels network editing without changing the target", () => {
   expect(screen.queryByLabelText("Target network")).toBeNull();
   expect(screen.getByText("Chain ID: 8453")).toBeTruthy();
   expect(mocks.urlUpdate).not.toHaveBeenCalled();
+});
+
+it("loads the Base USDC transfer and Ethereum WETH deposit examples without requesting a transaction", async () => {
+  connect(1);
+  render(page(`to=${address}&calldata=0x1234&eth=10&chainId=1`));
+  fireEvent.click(screen.getByRole("button", { name: /Transfer 5 USDC/ }));
+  await screen.findByRole("button", { name: "Switch to Base" });
+  expect((screen.getByLabelText("To Address") as HTMLInputElement).value).toBe("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913");
+  expect((screen.getByLabelText("Value") as HTMLInputElement).value).toBe("0");
+  const transfer = decodeFunctionData({ abi: erc20Abi,
+    data: (screen.getByLabelText("Calldata") as HTMLTextAreaElement).value as `0x${string}` });
+  expect(transfer.functionName).toBe("transfer");
+  expect(transfer.args).toEqual(["0x63A556c75443b176b5A4078e929e38bEb37a1ff2", 5_000_000n]);
+  await waitFor(() => expect(mocks.urlUpdate.mock.lastCall?.[0].searchParams.get("chainId")).toBe("8453"));
+  fireEvent.click(screen.getByRole("button", { name: /Deposit 0.01 ETH/ }));
+  await screen.findByRole("button", { name: "Send Transaction" });
+  expect((screen.getByLabelText("To Address") as HTMLInputElement).value).toBe("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+  expect((screen.getByLabelText("Value") as HTMLInputElement).value).toBe("0.01");
+  expect((screen.getByLabelText("Calldata") as HTMLTextAreaElement).value).toBe("0xd0e30db0");
+  await waitFor(() => {
+    const params = mocks.urlUpdate.mock.lastCall?.[0].searchParams;
+    expect(params?.get("chainId")).toBe("1");
+    expect(params?.get("eth")).toBe("0.01");
+  });
+  expect(mocks.send).not.toHaveBeenCalled();
+  expect(mocks.deploy).not.toHaveBeenCalled();
+  expect(mocks.switchNetwork).not.toHaveBeenCalled();
+});
+
+it("resets transaction fields, target chain, preview and URL parameters from the heading", async () => {
+  connect(8453);
+  render(page(`to=${address}&calldata=0xa9059cbb&eth=1.25&chainId=8453`));
+  await screen.findByRole("region", { name: "Clear signing" });
+  fireEvent.click(screen.getByRole("button", { name: "Reset transaction form" }));
+  expect((screen.getByLabelText("To Address") as HTMLInputElement).value).toBe("");
+  expect((screen.getByLabelText("Value") as HTMLInputElement).value).toBe("");
+  expect((screen.getByLabelText("Calldata") as HTMLTextAreaElement).value).toBe("");
+  expect(screen.getByText("Chain ID: 1")).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Clear signing" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Switch to Ethereum" })).toBeTruthy();
+  await waitFor(() => {
+    const params = mocks.urlUpdate.mock.lastCall?.[0].searchParams;
+    expect(params).toBeDefined();
+    for (const key of ["to", "calldata", "eth", "chainId"]) expect(params.has(key)).toBe(false);
+  });
+  expect(mocks.send).not.toHaveBeenCalled();
+  expect(mocks.switchNetwork).not.toHaveBeenCalled();
+});
+
+it("links the recipient beside the input to the selected-chain Contract Explorer and hides stale resolutions", async () => {
+  render(page(`to=${address}&chainId=8453`));
+  const link = screen.getByRole("link", { name: "Open recipient in Contract Explorer" });
+  expect(link.getAttribute("href")).toBe(`/explorer/8453/${address}`);
+  expect(link.getAttribute("target")).toBe("_blank");
+  fireEvent.change(screen.getByLabelText("To Address"), { target: { value: "alice.wei" } });
+  expect(screen.queryByRole("link", { name: "Open recipient in Contract Explorer" })).toBeNull();
+  await waitFor(() => expect(screen.getByRole("link", { name: "Open recipient in Contract Explorer" }).getAttribute("href")).toBe(`/explorer/8453/${address}`));
+  fireEvent.change(screen.getByLabelText("To Address"), { target: { value: "" } });
+  expect(screen.queryByRole("link", { name: "Open recipient in Contract Explorer" })).toBeNull();
+});
+
+it("passes the current envelope through both Explorer links and clears stale calldata when editing", async () => {
+  render(page(`to=${address}&calldata=0xa9059cbb&eth=1.25&chainId=8453`));
+  const recipient = screen.getByRole("link", { name: "Open recipient in Contract Explorer" });
+  const header = screen.getByRole("link", { name: /Prefer contract functions/ });
+  expect(header.getAttribute("href")).toBe(recipient.getAttribute("href"));
+  const url = new URL(recipient.getAttribute("href")!, "https://eth.sh");
+  expect(url.pathname).toBe(`/explorer/8453/${address}`);
+  const params = new URLSearchParams(url.hash.slice(1));
+  expect(params.get("call")).toBe("3");
+  expect(params.get("data")).toBe("0xa9059cbb");
+  expect(params.get("value")).toBe("1250000000000000000");
+  fireEvent.change(screen.getByLabelText("Calldata"), { target: { value: "0xd0e30db0" } });
+  expect(new URLSearchParams(new URL(recipient.getAttribute("href")!, "https://eth.sh").hash.slice(1)).get("data")).toBe("0xd0e30db0");
+  fireEvent.change(screen.getByLabelText("Calldata"), { target: { value: "0xnothex" } });
+  expect(recipient.getAttribute("href")).toBe(`/explorer/8453/${address}`);
+  expect(header.getAttribute("href")).toBe(recipient.getAttribute("href"));
 });

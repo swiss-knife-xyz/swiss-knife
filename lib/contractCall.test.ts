@@ -223,3 +223,13 @@ test("unfinished form links preserve blanks and validate the selected function s
     assert.throws(() => calls.restoreSharedFunctionForm(abi, { ...payload, args: [[], null] }));
   }
 });
+
+test("raw transaction links preserve bytes/value without preselecting an ABI or signature", () => {
+  const review = { data: "0xd0e30db0", value: "10000000000000000" };
+  const url = new URL(calls.createContractCallLink("https://explorer.eth.sh/", 1, address, review));
+  assert.equal(url.pathname, `/1/${address}`);
+  assert.deepEqual(calls.parseContractCallFragment(url.hash), review);
+  for (const hash of ["#call=3&data=0xzz&value=0", "#call=3&data=0xd0e30db0&value=-1", "#call=3&data=0xd0e30db0&value=0&value=1", "#call=3&data=0xd0e30db0&value=0&abi=implementation"]) {
+    assert.throws(() => calls.parseContractCallFragment(hash));
+  }
+});

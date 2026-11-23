@@ -3,6 +3,13 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   HStack,
+  VStack,
+  Input,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
   FormControl,
   FormLabel,
   Button,
@@ -18,7 +25,9 @@ import {
 } from "@chakra-ui/react";
 import { ClipboardPaste, ArrowRight } from "lucide-react";
 import type { JsonFragment } from "ethers";
-import { chainIdToChain } from "@/data/common";
+import { NetworkSelect } from "@/components/NetworkSelect";
+import { getPublicClient } from "@/lib/publicClient";
+import { parseTransactionExplorerUrl } from "@/lib/contractExplorerInput";
 import {
   contractFunctionSignature,
   decodeContractCall,
@@ -56,10 +65,15 @@ export function ContractCallPrefill({
   const inputId = useId();
   const errorId = `${inputId}-error`;
   const [data, setData] = useState("");
+  const [sourceTab, setSourceTab] = useState(0);
+  const [txInput, setTxInput] = useState("");
+  const [txChainId, setTxChainId] = useState(chainId);
+  const txInputRef = useRef<HTMLInputElement>(null!);
   const [error, setError] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isDecoding, setIsDecoding] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null!);
+  useEffect(() => { setTxChainId(chainId); }, [chainId]);
   const pendingPrefill = useRef<{
     call: PrefilledCall;
     abi: readonly JsonFragment[] | null;
@@ -136,8 +150,10 @@ export function ContractCallPrefill({
           return;
         }
         setData("data" in shared ? shared.data : "");
-        const abi =
-          shared.abiMode === "implementation" ? implementationAbi : contractAbi;
+        const mode = "abiMode" in shared
+          ? shared.abiMode
+          : implementationAbi ? "implementation" : "contract";
+        const abi = mode === "implementation" ? implementationAbi : contractAbi;
         if (!abi)
           throw new Error(
             "Shared ABI context is unavailable for this contract."
@@ -145,11 +161,12 @@ export function ContractCallPrefill({
         const call = decode(
           "data" in shared ? shared.data : shared.args,
           abi,
-          shared.abiMode,
+          mode,
           shared.value,
-          shared.signature
+          "signature" in shared ? shared.signature : undefined
         );
         setError("");
+        if (!("abiMode" in shared)) setIsOpen(false);
         onPrefill(call);
       } catch (error) {
         fail(error);
@@ -166,27 +183,59 @@ export function ContractCallPrefill({
   }, [contractAbi, implementationAbi, decode, fail, onPrefill, restoreFromUrl]);
 
   useEffect(() => {
-    if (!isDecoding) return;
-    // Paint the loading state before decoding and rendering the destination form.
+    if (!isDecoding || pendingPrefill.current) return;
+    let cancelled = false;
     let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(async () => {
         try {
-          const call = decode(data, selectedAbi, abiMode);
+          let encoded = data;
+          let value = "0";
+          if (sourceTab === 1) {
+            const input = txInput.trim();
+            const explorer = parseTransactionExplorerUrl(input);
+            const hash = explorer?.hash ?? input;
+            if (!/^0x[\da-f]{64}$/i.test(hash))
+              throw new Error("Enter a transaction hash or a supported explorer transaction URL.");
+            const transaction = await getPublicClient(explorer?.chainId ?? txChainId).getTransaction({ hash: hash as `0x${string}` });
+            if (cancelled) return;
+            encoded = transaction.input;
+            value = transaction.value.toString();
+          }
+          const call = decode(encoded, selectedAbi, abiMode, value);
+          if (cancelled) return;
           pendingPrefill.current = { call, abi: selectedAbi };
+          if (sourceTab === 1) setData(encoded);
           setError("");
           onPrefill(call, () => setIsOpen(false));
         } catch (error) {
+          if (cancelled) return;
           setIsDecoding(false);
           fail(error);
         }
       });
     });
-    return () => cancelAnimationFrame(frame);
-  }, [isDecoding, data, selectedAbi, abiMode, decode, onPrefill, fail]);
+    return () => { cancelled = true; cancelAnimationFrame(frame); };
+  }, [isDecoding, sourceTab, txInput, txChainId, data, selectedAbi, abiMode, decode, onPrefill, fail]);
+
+  const focusFrame = useRef<number | null>(null);
+  const focusInput = useCallback((tab: number) => {
+    if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
+    focusFrame.current = requestAnimationFrame(() => {
+      focusFrame.current = null;
+      (tab === 1 ? txInputRef.current : inputRef.current)?.focus({ preventScroll: true });
+    });
+  }, []);
+  useEffect(() => {
+    if (isOpen) focusInput(sourceTab);
+    return () => {
+      if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
+      focusFrame.current = null;
+    };
+  }, [isOpen, sourceTab, focusInput]);
 
   const close = () => {
-    if (isDecoding) return;
     pendingPrefill.current = null;
+    setIsDecoding(false);
     setIsOpen(false);
   };
   const trimmedData = data.trim();
@@ -219,14 +268,21 @@ export function ContractCallPrefill({
         h={{ base: 9, md: 7 }}
         fontSize="xs"
         aria-haspopup="dialog"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setTxChainId(chainId);
+          setTxInput(input => {
+            const explorer = parseTransactionExplorerUrl(input);
+            return explorer && explorer.chainId !== chainId ? explorer.hash : input;
+          });
+          setIsOpen(true);
+        }}
       >
-        Fill from calldata
+        Fill from tx or calldata
       </Button>
       <Modal
         isOpen={isOpen}
         onClose={close}
-        initialFocusRef={inputRef}
+        initialFocusRef={sourceTab === 1 ? txInputRef : inputRef}
         returnFocusOnClose={pendingPrefill.current === null}
         onCloseComplete={() => {
           pendingPrefill.current = null;
@@ -268,7 +324,7 @@ export function ContractCallPrefill({
             <HStack spacing={2.5} color="text.primary">
               <ClipboardPaste size={18} aria-hidden="true" />
               <Text fontSize="lg" fontWeight="semibold">
-                Fill from calldata
+                Fill from tx or calldata
               </Text>
             </HStack>
           </ModalHeader>
@@ -277,41 +333,22 @@ export function ContractCallPrefill({
             right={4}
             size="sm"
             color="text.tertiary"
-            isDisabled={isDecoding}
           />
           <ModalBody px={{ base: 4, md: 6 }} py={5}>
             <Text fontSize="sm" color="text.secondary" mb={4}>
-              Paste an encoded call to fill its matching function’s parameters.
+              Fills function parameters from calldata or an existing transaction.
             </Text>
-            <HStack
-              justify="space-between"
-              spacing={3}
-              px={3}
-              py={2.5}
-              mb={5}
-              bg="bg.subtle"
-              border="1px solid"
-              borderColor="border.subtle"
-              borderRadius="md"
-              flexWrap="wrap"
-            >
-              <HStack spacing={2} minW={0}>
-                <Text fontSize="xs" color="text.tertiary">
-                  Contract
-                </Text>
-                <Text
-                  fontFamily="mono"
-                  fontSize="xs"
-                  color="text.secondary"
-                  title={address}
-                >
-                  {address.slice(0, 6)}…{address.slice(-4)}
-                </Text>
-              </HStack>
-              <Text fontSize="xs" color="text.secondary">
-                {chainIdToChain[chainId]?.name ?? `Chain ${chainId}`}
-              </Text>
-            </HStack>
+            <Tabs index={sourceTab} onChange={(tab) => {
+              pendingPrefill.current = null;
+              setSourceTab(tab);
+              setError("");
+            }} colorScheme="blue" variant="line" size="sm">
+              <TabList borderColor="border.default" mb={4}>
+                <Tab onClick={() => focusInput(0)} isDisabled={isDecoding} color="text.secondary" _selected={{ color: "blue.300", borderColor: "blue.300" }}>Calldata</Tab>
+                <Tab onClick={() => focusInput(1)} isDisabled={isDecoding} color="text.secondary" _selected={{ color: "blue.300", borderColor: "blue.300" }}>From transaction</Tab>
+              </TabList>
+              <TabPanels minH="220px">
+                <TabPanel p={0}>
             <FormControl>
               <HStack mb={2.5} justify="space-between">
                 <FormLabel
@@ -362,6 +399,57 @@ export function ContractCallPrefill({
                 }}
               />
             </FormControl>
+                </TabPanel>
+                <TabPanel p={0}>
+                  <VStack align="stretch" spacing={5}>
+                    <FormControl>
+                      <FormLabel htmlFor={`${inputId}-transaction`} fontSize="sm" color="text.secondary">Transaction hash or explorer URL</FormLabel>
+                      <Input id={`${inputId}-transaction`} ref={txInputRef}
+                        aria-label="Transaction hash or explorer URL"
+                        aria-describedby={error ? errorId : undefined}
+                        placeholder="0x hash or explorer link"
+                        value={txInput} isReadOnly={isDecoding} isInvalid={Boolean(error)}
+                        bg="bg.subtle" borderColor="border.default" borderRadius="md"
+                        onChange={(event) => {
+                          const input = event.target.value;
+                          setTxInput(input);
+                          const explorer = parseTransactionExplorerUrl(input);
+                          if (explorer) setTxChainId(explorer.chainId);
+                          setError("");
+                          onPrefill(null);
+                        }}
+                        onPaste={(event) => {
+                          const input = event.clipboardData.getData("text").trim();
+                          const explorer = parseTransactionExplorerUrl(input);
+                          if (!explorer) return;
+                          event.preventDefault();
+                          pendingPrefill.current = null;
+                          setTxInput(input);
+                          setTxChainId(explorer.chainId);
+                          setError("");
+                          onPrefill(null);
+                          setIsDecoding(true);
+                        }}
+                      />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel fontSize="sm" color="text.secondary">Network</FormLabel>
+                      <NetworkSelect ariaLabel="Transaction network" chainId={txChainId}
+                        isDisabled={isDecoding} menuAlign="right"
+                        onChange={(id) => {
+                          setTxChainId(id);
+                          // A parsed URL pins its own chain; normalize it to a hash
+                          // when the user explicitly chooses another network.
+                          const explorer = parseTransactionExplorerUrl(txInput);
+                          if (explorer) setTxInput(explorer.hash);
+                          setError("");
+                          onPrefill(null);
+                        }} />
+                    </FormControl>
+                  </VStack>
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
             {error && (
               <Text
                 id={errorId}
@@ -388,7 +476,6 @@ export function ContractCallPrefill({
               variant="ghost"
               size="sm"
               onClick={close}
-              isDisabled={isDecoding}
             >
               Cancel
             </Button>
@@ -398,7 +485,7 @@ export function ContractCallPrefill({
               size="sm"
               rightIcon={<ArrowRight size={14} />}
               isLoading={isDecoding}
-              loadingText="Decoding…"
+              loadingText={sourceTab === 1 ? "Loading transaction…" : "Decoding…"}
             >
               Fill parameters
             </Button>

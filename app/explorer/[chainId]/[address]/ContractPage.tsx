@@ -139,10 +139,10 @@ const AbiSourceCodeToggle = ({ isCustom }: { isCustom?: boolean }) => {
       variant="outline"
       onClick={() => setIsExpanded(!isExpanded)}
       aria-expanded={isExpanded}
-      color="text.secondary"
-      borderColor="whiteAlpha.300"
-      bg="whiteAlpha.50"
-      _hover={{ color: "text.primary", bg: "whiteAlpha.100", borderColor: "whiteAlpha.400" }}
+      color="blue.200"
+      borderColor="rgba(96, 165, 250, 0.3)"
+      bg={isExpanded ? "rgba(59, 130, 246, 0.16)" : "rgba(59, 130, 246, 0.08)"}
+      _hover={{ color: "blue.100", bg: "rgba(59, 130, 246, 0.18)", borderColor: "blue.400" }}
       leftIcon={<Code size={14} />}
       rightIcon={isExpanded ? <ChevronUpIcon boxSize={4} /> : <ChevronDownIcon boxSize={4} />}
       px={3}
@@ -256,6 +256,8 @@ const AbiSourceCodeContent = ({
 
   return (
     <Box
+      role="region"
+      aria-label="ABI and source code"
       display={isExpanded ? "flex" : "none"}
       flexDirection="column"
       mb={isFullscreen ? 0 : 4}
@@ -1194,19 +1196,6 @@ const LoadedContractPage = ({
   const renderFunctions = () => {
     return (
         <Box w="full" maxW="70rem" mx="auto">
-          {/* ABI & Source Code Content - above alerts */}
-          <AbiSourceCodeContent
-            abi={abi}
-            proxyAbi={customAbis.contract ?? proxyAbi}
-            implementationAbi={customAbis.implementation ?? implementationAbi}
-            sourceCode={sourceCode}
-            proxySourceCode={proxySourceCode}
-            implementationSourceCode={implementationSourceCode}
-            implementationAddress={implementationAddress}
-            isDelegated={isDelegated}
-            isLoadingSourceCode={isLoadingSourceCode}
-            renderAbiEditor={renderAbiEditor}
-          />
 
           {abi && <>
           {/* Proxy and inferred ABI details */}
@@ -1610,7 +1599,7 @@ const LoadedContractPage = ({
                 </HStack>}
 
                 {/* Contract tools */}
-                <HStack spacing={2} flexWrap="wrap" minW={0} flex="1 1 20rem" justify="flex-start" sx={{ "@container (min-width: 620px)": { justifyContent: "center" } }} rowGap={2}>
+                <HStack spacing={3} flexWrap="wrap" minW={0} flex="1 1 20rem" justify="flex-start" sx={{ "@container (min-width: 620px)": { justifyContent: "center" } }} rowGap={2}>
                   <AbiSourceCodeToggle isCustom={abi?.isCustom} />
                   {abi && <ContractCallPrefill
                     restoreFromUrl={contractTab?.initial ?? true}
@@ -1632,8 +1621,25 @@ const LoadedContractPage = ({
               </Flex>
             </>
         </Box>
+        {/* Keep source/ABI disclosure in the same slot before loading or loaded functions. */}
+        <Box w="full" maxW="70rem" mx="auto">
+          {/* ABI & Source Code Content - above alerts */}
+          <AbiSourceCodeContent
+            abi={abi}
+            proxyAbi={customAbis.contract ?? proxyAbi}
+            implementationAbi={customAbis.implementation ?? implementationAbi}
+            sourceCode={sourceCode}
+            proxySourceCode={proxySourceCode}
+            implementationSourceCode={implementationSourceCode}
+            implementationAddress={implementationAddress}
+            isDelegated={isDelegated}
+            isLoadingSourceCode={isLoadingSourceCode}
+            renderAbiEditor={renderAbiEditor}
+          />
+
+        </Box>
         {isFetchingAbi && (
-          <Box w="full" maxW="70rem" mt={4}>
+          <Box role="status" aria-label="Loading contract functions" w="full" maxW="70rem" mt={4}>
             {/* Alerts skeleton */}
             <VStack spacing={3} align="stretch" mb={4}>
               <Skeleton height="48px" borderRadius="lg" />
