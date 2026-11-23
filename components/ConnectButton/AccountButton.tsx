@@ -9,7 +9,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import type { Address, Hex } from "viem";
 import { blo } from "blo";
-import { getGnsIdentityQueryKey, readGnsIdentity } from "@/lib/gns";
+import { getGnsIdentityQueryKey, readGnsIdentity } from "@/lib/nameServiceIdentity";
 import { AccountModal } from "./AccountModal";
 
 interface Props {

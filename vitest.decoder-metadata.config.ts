@@ -8,6 +8,9 @@ export default defineConfig({
     environment: "jsdom",
     include: [
       "lib/decoderShare.spec.ts",
+      "lib/revertDecoding.spec.ts",
+      "components/decodedParams/revertTree.spec.tsx",
+      "components/ContentSizedEditor.spec.tsx",
       "app/calldata/decoder/decoderMetadata.spec.tsx",
       "app/calldata/decoder/universalRouter.spec.tsx",
       "components/decodedParams/parameterState.spec.tsx",

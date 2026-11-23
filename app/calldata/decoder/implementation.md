@@ -1,6 +1,6 @@
 # Calldata decoder parameter tree
 
-The decoder page uses `components/CalldataTree.tsx`. The shared `TreeView` remains available to other tools.
+The decoder, Tx decode modal and wallet request modal use the shared `components/decodedParams/CalldataTree.tsx`. The obsolete TreeView/TreeNode/TreeContext implementation has been removed.
 
 ## Layout and interaction
 

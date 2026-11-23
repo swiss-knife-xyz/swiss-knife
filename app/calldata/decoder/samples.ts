@@ -38,3 +38,22 @@ export const decoderSamples = [
     },
   },
 ] as const;
+
+// Captured eth_call revert from the deployed Base Universal Router. This is a
+// read-only simulation of a sub-plan sweeping more USDC than the router holds,
+// not a failed transaction hash. The supplied ABI keeps the example offline.
+export const decoderRevertSample = {
+  id: "uniswap-revert",
+  label: "Uniswap revert · Base",
+  chainId: 8453,
+  address: "0x6ff5693b99212da76ad316178a184ab56d299b43",
+  calldata: "0x2c4029e9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000004675cae3800000000000000000000000000000000000000000000000000000000",
+  abi: [
+    "error ExecutionFailed(uint256 commandIndex,bytes message)",
+    "error InsufficientToken()",
+  ],
+  preview: {
+    calls: [{ name: "ExecutionFailed", args: ["commandIndex", "message"] }],
+    detail: { arg: "message", fields: ["InsufficientToken()"] },
+  },
+} as const;

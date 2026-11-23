@@ -11,9 +11,21 @@ import { mainnet, base } from "viem/chains";
 import { normalize } from "viem/ens";
 import { L2ResolverAbi } from "./abis/L2ResolverAbi";
 import { getPublicClient } from "./publicClient";
-import { GNS_UNIVERSAL_RESOLVER_ADDRESS, WNS_NAME_NFT_ADDRESS } from "./nameServiceContracts";
+import {
+  GNS_UNIVERSAL_RESOLVER_ADDRESS,
+  WNS_NAME_NFT_ADDRESS,
+} from "./nameServiceContracts";
 
-const wnsAddressAbi = parseAbi(["function addr(bytes32 node) view returns (address)"]);
+import {
+  readGnsPrimaryName,
+  readWnsPrimaryName,
+  readGnsAvatar,
+  readWnsAvatar,
+} from "./nameServiceIdentity";
+
+const wnsAddressAbi = parseAbi([
+  "function addr(bytes32 node) view returns (address)",
+]);
 
 // ============================================================================
 // Constants
@@ -43,7 +55,8 @@ export const baseClient = getPublicClient(base.id);
 export const isResolvableName = (value: string): boolean => {
   if (!value || value.length === 0) return false;
   // Must contain a dot and not start with 0x (address)
-  if (!value.includes(".") || value.toLowerCase().startsWith("0x")) return false;
+  if (!value.includes(".") || value.toLowerCase().startsWith("0x"))
+    return false;
   // Ensure no empty labels (leading/trailing dots, consecutive dots)
   const labels = value.split(".");
   return labels.every((label) => label.length > 0);
@@ -167,21 +180,25 @@ export const getEnsName = async (address: string): Promise<string | null> => {
 };
 
 /**
- * Resolve an address to a name, checking both ENS and Basename
- * Returns the first name found (ENS takes priority, then Basename)
+ * Resolve an address to a primary name across ENS, GNS, WNS and Basenames.
+ * Preserve ENS priority; independent registry lookups run in parallel.
  */
 export const resolveAddressToName = async (
   address: string
 ): Promise<string | null> => {
   try {
-    // Try both in parallel for speed
-    const [ensName, basename] = await Promise.all([
-      getEnsName(address),
-      getBasename(address as Address),
-    ]);
-
-    // Return ENS name if found, otherwise basename
-    return ensName || basename || null;
+    // Start independent registries together, but don't wait for lower-priority
+    // services after the preferred primary name has already resolved.
+    const gnsName = readGnsPrimaryName(address);
+    const wnsName = readWnsPrimaryName(address);
+    const basename = getBasename(address as Address);
+    return (
+      (await getEnsName(address)) ||
+      (await gnsName) ||
+      (await wnsName) ||
+      (await basename) ||
+      null
+    );
   } catch (error) {
     console.error("Error resolving address to name:", error);
     return null;
@@ -237,6 +254,8 @@ export const getBasenameAvatar = async (
  * Automatically detects the name type and uses appropriate resolver
  */
 export const getNameAvatar = async (name: string): Promise<string | null> => {
+  if (name.toLowerCase().endsWith(".gwei")) return readGnsAvatar(name);
+  if (name.toLowerCase().endsWith(".wei")) return readWnsAvatar(name);
   if (isBasename(name)) {
     // Try basename avatar first, fall back to ENS avatar
     const basenameAvatar = await getBasenameAvatar(name);

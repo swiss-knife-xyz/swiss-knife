@@ -25,8 +25,8 @@ const subdomains = {
     paths: [],
   },
   TRANSACT: {
-    base: "transact",
-    paths: ["send-tx"],
+    base: "tx",
+    paths: [],
   },
   STORAGE_SLOTS: {
     base: "storage-slots",

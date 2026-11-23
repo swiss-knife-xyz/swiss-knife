@@ -4,14 +4,14 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { AbiCoder, Interface } from "ethers";
 import { decodeUniversalRouter } from "@/lib/universalRouter";
-import { CalldataTree } from "./components/CalldataTree";
+import { CalldataTree } from "@/components/decodedParams/CalldataTree";
 vi.mock("@/components/decodedParams", () => ({
   AddressParam: ({ address }: any) => <span>{address}</span>,
   UintParam: ({ value }: any) => <span>{value}</span>,
   IntParam: ({ value }: any) => <span>{value}</span>,
   StringParam: ({ value }: any) => <span>{value}</span>,
 }));
-vi.mock("@/components/decodedParams/TreeView/TreeBytesParam", () => ({
+vi.mock("@/components/decodedParams/TreeBytesParam", () => ({
   TreeBytesParam: ({ arg }: any) => (
     <input aria-label="Raw bytes value" readOnly value={arg.rawValue} />
   ),

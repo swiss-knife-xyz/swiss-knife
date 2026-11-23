@@ -53,6 +53,8 @@ export type DecodeTupleParamResult =
 export type DecodeArrayParamResult = Arg[];
 
 export interface ParsedTransaction extends TransactionDescription {
+  kind?: "revert";
+  decodeNote?: string;
   txType?: "safeMultiSend";
 }
 
@@ -73,6 +75,7 @@ export type Arg = {
 
 export type DecodeRecursiveResult = {
   functionName: string;
+  kind?: "revert";
   signature: string;
   rawArgs: any;
   args: Arg[];

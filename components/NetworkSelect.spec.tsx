@@ -95,3 +95,15 @@ it("groups flat explorer-style options into mainnets and testnets", async () => 
   expect(screen.getByText("Testnets")).toBeTruthy();
   expect(screen.getAllByRole("option").map(option => option.textContent)).toEqual(["Ethereum1", "Sepolia11155111"]);
 });
+
+it("focuses and opens the shared dropdown when entering network edit mode", async () => {
+  render(
+    <ChakraProvider>
+      <NetworkSelect ariaLabel="Target network" chainId={1}
+        networks={[1, 8453]} onChange={() => {}} autoFocus openMenuOnFocus />
+    </ChakraProvider>
+  );
+  const input = await screen.findByRole("combobox", { name: "Target network" });
+  expect(document.activeElement).toBe(input);
+  expect(await screen.findByRole("option", { name: /Base/ })).toBeTruthy();
+});

@@ -468,3 +468,73 @@
   than claiming the deployed library implementation has been verified.
 - Keep constructor inputs visible and stable during address-only recompilation.
   Inert deployment controls prevent changes during final validation/submission.
+
+## Calldata clear-signing summary
+
+- Direction: compact, quiet, precise; transpose WalletChan's transaction-review
+  card into ETH.sh's existing Inter/JetBrains Mono and neutral semantic tokens.
+- Top-level card: horizontally centered, full width up to 640px, 16px padding, `lg` radius,
+  `bg.subtle` surface, `border.default` edge, no shadow or decorative accents.
+- Title and muted source attribution share a baseline, followed by a light rule.
+  Field labels use 12px secondary text; amounts use 18px semibold tabular figures.
+- Amount labels sit above a right-aligned amount/token identity group. Other
+  fields use compact label/value rows. Nested calls fill the available card width.
+- Visible amounts use grouped integer digits and at most eight decimal places;
+  hover and keyboard focus disclose the full precision and raw value.
+- Keep the calldata panel mounted while its Events sibling is active. Hide the
+  panel visually instead of discarding resolved descriptors and token metadata.
+
+- Result composition: at 1200px and wider, matched clear-signing summaries occupy
+  a sticky 340–440px left column; the decoded tree and its actions fill the right.
+  Below this breakpoint the centered summary stacks above the tree. Unmatched
+  summaries leave no empty column or gap. Long summaries can scroll within the
+  available viewport height; Events switching preserves the mounted result.
+
+- The Clear Signing heading stays outside the desktop scroll viewport. Hide
+  native scrollbars and show non-interactive top/bottom gradient shadows only
+  while content remains beyond that edge. ResizeObserver tracks async nested
+  content and viewport changes; smaller screens use normal document scrolling.
+
+## Tx calldata review
+
+- At wide desktop sizes, a matched clear-signing preview sits in a 320–420px
+  left column beside the complete Send Transaction form. To Address, Value and
+  the calldata editor stack in the right form. Mobile places the form first and
+  the preview below; unmatched calls and deployments keep one form column.
+- Clear signing remains outside the decode modal. Debounce live editing, bind
+  previews to the complete current envelope, and immediately suppress stale
+  recipient/value/chain results.
+- All decoded transaction modals use `components/decodedParams/CalldataTree.tsx`,
+  shared with the main decoder, including typed controls and raw-byte disclosures.
+
+- Tx progress uses a neutral inline status surface directly below the primary
+  action, with compact loading/success/error states and transaction links. Scroll
+  the new status into view (respect reduced motion). Do not use Tx-page toasts.
+- A requested URL network stays pinned. A mismatch turns the primary action into
+  Switch to {network}; switching is a separate click from sending. Recheck the
+  live wallet chain before signing and pin receipt tracking to the submitted chain.
+
+- Tx desktop reviews start vertically centered in the initial viewport when short,
+  scroll with the page to a 24px sticky inset, and stay within the form's bounds.
+  Tall reviews cap their body to the viewport, keeping the Clear Signing heading
+  outside the scroll region and using the shared edge shadows. Expand the available body height as page scrolling brings the panel toward
+  its sticky inset. Recalculate on content/viewport resize; mobile retains natural document scrolling.
+
+- Nested clear-signing batches follow WalletChan's flat numbered sections: a
+  blue index/count pill, uppercase call label and rule; embedded summaries have
+  no repeated card border. Calls without a descriptor show To/Value rows and a
+  function-name disclosure, expanding the shared calldata tree. Unknown bytes
+  remain available on expansion. Cached examples use their existing nested
+  decoder snapshots and make no live fallback lookups.
+
+- Calldata trees use their container width, rather than the browser width, to
+  switch parameter rows to labels above full-width values. Narrow trees stack
+  integer format selectors below the input. Nested clear-signing disclosures
+  hide the global expand/collapse toolbar; the main decoder retains it.
+
+- Explorer parameter import uses underline Calldata / From transaction tabs in
+  one stable modal. The transaction form accepts a hash or configured explorer
+  URL and uses the shared NetworkSelect for its independent lookup chain. URL
+  paste detects the chain and submits; hashes use explicit submission. Import
+  calldata and native value into the loaded ABI without sending a transaction
+  or switching the wallet; closing the modal discards late lookup responses.

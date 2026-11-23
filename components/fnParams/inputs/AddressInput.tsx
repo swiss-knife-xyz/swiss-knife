@@ -88,21 +88,29 @@ export const AddressInput = ({
   const chainIdRef = useRef(chainId);
   chainIdRef.current = chainId;
   const prevIsResolvingRef = useRef(isResolving);
+  const currentValueRef = useRef(value);
+  currentValueRef.current = value;
+  const mountedRef = useRef(true);
 
   const resolveEns = useMemo(
     () =>
       debounce(async (val: string) => {
+        const isCurrent = () =>
+          mountedRef.current && currentValueRef.current === val;
+        if (!isCurrent()) return;
         if (val === lastResolvedValueRef.current) return;
         setErrorResolving(false);
         try {
           if (isResolvableName(val)) {
             setIsResolving(true);
             const address = await resolveNameToAddress(val);
+            if (!isCurrent()) return;
             if (address) {
               setResolvedAddress(address);
               setEnsName(val);
               setEnsAvatar("");
               lastResolvedValueRef.current = address;
+              setIsResolving(false);
               onChangeRef.current({
                 target: { value: address },
               } as any);
@@ -115,6 +123,7 @@ export const AddressInput = ({
           } else if (val.length === 42) {
             try {
               const name = await resolveAddressToName(val);
+              if (!isCurrent()) return;
               if (name) {
                 setEnsName(name);
                 setResolvedAddress(val);
@@ -123,6 +132,7 @@ export const AddressInput = ({
               }
               lastResolvedValueRef.current = val;
             } catch {
+              if (!isCurrent()) return;
               setResolvedAddress(val);
               lastResolvedValueRef.current = val;
             }
@@ -132,12 +142,13 @@ export const AddressInput = ({
             lastResolvedValueRef.current = "";
           }
         } catch {
+          if (!isCurrent()) return;
           setErrorResolving(true);
           setEnsName("");
           setResolvedAddress("");
           lastResolvedValueRef.current = val;
         } finally {
-          setIsResolving(false);
+          if (isCurrent()) setIsResolving(false);
         }
       }, 500),
     []
@@ -176,10 +187,7 @@ export const AddressInput = ({
           }
         } catch {
           try {
-            const labels = await fetchAddressLabels(
-              val,
-              chainIdRef.current
-            );
+            const labels = await fetchAddressLabels(val, chainIdRef.current);
             if (labels.length > 0) {
               setAddressLabels(labels);
             }
@@ -192,6 +200,14 @@ export const AddressInput = ({
   );
 
   useEffect(() => {
+    resolveEns.cancel();
+    if (value && value === lastResolvedValueRef.current) return;
+    if (!value) lastResolvedValueRef.current = "";
+    setEnsName("");
+    setEnsAvatar("");
+    setResolvedAddress("");
+    setErrorResolving(false);
+    setIsResolving(false);
     if (value && value !== lastResolvedValueRef.current) {
       resolveEns(value);
     }
@@ -206,20 +222,28 @@ export const AddressInput = ({
 
   // Cancel debounced calls on unmount
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       resolveEns.cancel();
       fetchSetAddressLabels.cancel();
     };
   }, [resolveEns, fetchSetAddressLabels]);
 
   useEffect(() => {
+    let cancelled = false;
     if (ensName) {
-      getNameAvatar(ensName).then((avatar) => {
-        setEnsAvatar(avatar || "");
-      });
+      getNameAvatar(ensName)
+        .then((avatar) => {
+          if (!cancelled) setEnsAvatar(avatar || "");
+        })
+        .catch(() => {});
     } else {
       setEnsAvatar("");
     }
+    return () => {
+      cancelled = true;
+    };
   }, [ensName]);
 
   useEffect(() => {
@@ -272,7 +296,13 @@ export const AddressInput = ({
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <HStack px={2} bg="whiteAlpha.200" rounded="md" minW={0} maxW="full">
+              <HStack
+                px={2}
+                bg="whiteAlpha.200"
+                rounded="md"
+                minW={0}
+                maxW="full"
+              >
                 {ensAvatar && (
                   <Avatar
                     src={ensAvatar}
@@ -281,7 +311,9 @@ export const AddressInput = ({
                     ignoreFallback
                   />
                 )}
-                <Box overflowWrap="anywhere" fontSize="sm">{ensName}</Box>
+                <Box overflowWrap="anywhere" fontSize="sm">
+                  {ensName}
+                </Box>
               </HStack>
             </motion.div>
           )}

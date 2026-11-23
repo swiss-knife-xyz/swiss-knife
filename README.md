@@ -6,7 +6,7 @@ All your EVM tools in one place: https://eth.sh/
 
 1. [Explorer](https://explorer.eth.sh/): Quickly view any address/ens or transaction across a variety explorers, in just a click!
 2. [Calldata](https://calldata.eth.sh/decoder): Decode or encode calldata. View parameters in a human-readable format, even without the contract ABI.
-3. [Transact](https://transact.eth.sh/send-tx): Send custom bytes calldata to transact with any contract, or leave the address blank to deploy a new contract.
+3. [Transact](https://tx.eth.sh/): Send custom bytes calldata to transact with any contract, or leave the address blank to deploy a new contract.
 4. [Converter](https://converter.eth.sh/eth): All the essential unit converters on one-page. Convert between:
    1. Ether, wei & gwei
    2. Hexadecimal, decimal & binary

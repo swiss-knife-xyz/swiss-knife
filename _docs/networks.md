@@ -134,3 +134,12 @@ resolver, and `.wei` reads the WNS address record with the full namehash. Contra
 addresses live in `lib/nameServiceContracts.ts`; the Gwei tool re-exports its
 existing resolver constant for compatibility. Missing, expired, zero-address or
 failed lookups return `null`. Do not implement separate name resolvers in tools.
+
+`resolveAddressToName` shares the wallet's GNS primary-name reader from
+`lib/nameServiceIdentity.ts` and also queries WNS. Priority is ENS, GNS, WNS,
+then the existing Base-name fallback. Independent lookups start together;
+a result does not wait for lower-priority services. The registries' reverse
+functions validate primary-name ownership/forward resolution and expiry.
+`getNameAvatar` routes GNS avatars through its universal resolver and WNS through
+its avatar text record and the standard ENS avatar parser. `lib/gns.ts` keeps
+compatibility re-exports for the wallet identity reader and query key.

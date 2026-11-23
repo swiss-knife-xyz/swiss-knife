@@ -23,7 +23,10 @@
     "lint": "next lint",
     "fetch-dapps": "tsx scripts/fetchSafeDapps.ts",
     "test:decoder-samples": "vitest run --config vitest.decoder-samples.config.ts && tsx --test app/calldata/decoder/samples.test.ts",
-    "test:decoder-metadata": "vitest run --config vitest.decoder-metadata.config.ts"
+    "test:reverts": "vitest run --config vitest.revert.config.ts",
+    "test:decoder-metadata": "vitest run --config vitest.decoder-metadata.config.ts",
+    "test:tx": "vitest run --config vitest.tx.config.ts",
+    "test:clear-signing": "vitest run --config vitest.clear-signing.config.ts && tsx --test lib/clearSigningRegistry.test.ts"
   },
   "dependencies": {
     "@bprogress/next": "^3.2.12",
@@ -97,6 +100,7 @@
     "react-simple-code-editor": "^0.11.3",
     "semver": "7.8.6",
     "styled-components": "^6.3.8",
+    "tar": "^7.5.1",
     "typescript": "5.8.3",
     "usehooks-ts": "^3.1.1",
     "viem": "^2.48.11",

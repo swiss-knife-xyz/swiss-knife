@@ -1,4 +1,4 @@
-import { FunctionFragment, Interface, type InterfaceAbi } from "ethers";
+import { ErrorFragment, Fragment, FunctionFragment, Interface, type InterfaceAbi } from "ethers";
 import type { DecodeRecursiveResult } from "@/types";
 
 const MAX_FRAGMENT_LENGTH = 100_000;
@@ -26,7 +26,10 @@ export function parseDecoderShareFragment(hash: string): string[] | null {
     throw new Error("Invalid shared function definitions.");
   }
   // Parse each entry directly: Interface silently ignores invalid ABI entries.
-  for (const definition of functions) FunctionFragment.from(definition);
+  for (const definition of functions) {
+    const fragment = Fragment.from(definition);
+    if (fragment.type !== "function" && fragment.type !== "error") throw new Error("Expected function or error definition.");
+  }
   return functions;
 }
 
@@ -42,6 +45,11 @@ export function createDecoderShareLink(
   const add = (decoded: NonNullable<DecodeRecursiveResult>) => {
     if (decoded.decoding === "heuristic") return;
     try {
+      if (decoded.kind === "revert") {
+        const error = source?.getError(decoded.signature) ?? ErrorFragment.from(`error ${decoded.signature}`);
+        definitions.set(`error:${error.format("sighash")}`, error.format("full"));
+        return;
+      }
       const fragment =
         source?.getFunction(decoded.signature) ??
         FunctionFragment.from(`function ${decoded.signature}`);
@@ -72,14 +80,15 @@ export function createDecoderShareLink(
   };
   visit(result);
   const functions = [...definitions.values()];
-  const top = new Interface(functions).getFunction(result.signature);
+  const sharedAbi = new Interface(functions);
+  const top = result.kind === "revert" ? sharedAbi.getError(result.signature) : sharedAbi.getFunction(result.signature);
   if (
     !top ||
     top.selector.toLowerCase() !== calldata.slice(0, 10).toLowerCase()
   )
     return null;
   const url = new URL(baseUrl);
-  url.search = new URLSearchParams({ calldata }).toString();
+  url.search = new URLSearchParams({ calldata, ...(result.kind === "revert" ? { mode: "revert" } : {}) }).toString();
   url.hash = new URLSearchParams({
     decode: "1",
     functions: JSON.stringify(functions),

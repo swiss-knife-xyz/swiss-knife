@@ -7,7 +7,7 @@ import { FiTerminal, FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import {
   TypeIcon,
   getTypeColor,
-} from "@/components/decodedParams/TreeView/TypeIcon";
+} from "@/components/decodedParams/TypeIcon";
 import type { Arg, DecodeBytesParamResult } from "@/types";
 import {
   AddressParam,
@@ -15,7 +15,7 @@ import {
   StringParam,
   UintParam,
 } from "@/components/decodedParams";
-import { TreeBytesParam } from "@/components/decodedParams/TreeView/TreeBytesParam";
+import { TreeBytesParam } from "@/components/decodedParams/TreeBytesParam";
 import { getDisplayFunctionName } from "@/utils/functionNames";
 
 import type { FormatSelectProps } from "@/components/DarkSelect";
@@ -36,6 +36,9 @@ interface Props {
   chainId?: number;
   functionName?: string;
   isFunctionNameGuessed?: boolean;
+  showControls?: boolean;
+  kind?: "revert";
+  decodeNote?: string;
 }
 const TreeState = createContext<{
   expanded: Set<string>;
@@ -350,6 +353,7 @@ function Parameter({
             <Text color="text.tertiary" fontSize="xs">
               →
             </Text>
+            {decoded?.kind === "revert" && <Badge colorScheme="red">Revert</Badge>}
             <Icon as={FiTerminal} boxSize={3.5} color="blue.400" aria-hidden />
             <Text
               fontFamily="mono"
@@ -405,6 +409,7 @@ function Parameter({
         borderLeft="1px solid"
         borderColor="whiteAlpha.100"
       >
+        {decoded?.decodeNote && <Text px={3} py={2} fontSize="sm" color="text.secondary">{decoded.decodeNote}</Text>}
         {children?.map((child, i) => (
           <Parameter
             key={`${id}.${i}`}
@@ -432,6 +437,9 @@ export function CalldataTree({
   chainId,
   functionName,
   isFunctionNameGuessed,
+  showControls = true,
+  kind,
+  decodeNote,
 }: Props) {
   const hasRoot = !!functionName && functionName !== "__abi_decoded__";
   const ids = useMemo(() => {
@@ -468,7 +476,7 @@ export function CalldataTree({
     }),
     [expanded]
   );
-  const treeControls = (
+  const treeControls = showControls ? (
     <HStack spacing={1}>
       <Button
         size="xs"
@@ -487,7 +495,7 @@ export function CalldataTree({
         Collapse all
       </Button>
     </HStack>
-  );
+  ) : null;
   return (
     <TreeState.Provider value={state}>
       <Box
@@ -496,8 +504,10 @@ export function CalldataTree({
         borderRadius="md"
         bg="bg.subtle"
         overflow="clip"
+        minW={0}
+        sx={{ containerType: "inline-size", containerName: "calldata" }}
       >
-        {!hasRoot && (
+        {!hasRoot && showControls && (
           <Flex px={3} py={1} justify="flex-end">
             {treeControls}
           </Flex>
@@ -510,8 +520,24 @@ export function CalldataTree({
             pb={3}
             sx={{
               "& .calldata-value": { position: "relative", zIndex: 0 },
-              "& .calldata-value div:has(> .uint-select-container)": {
+              "& .calldata-value .decoded-integer": {
                 flexDirection: "row",
+              },
+              "@container calldata (max-width: 560px)": {
+                "& .calldata-leaf": {
+                  flexDirection: "column", alignItems: "stretch", paddingLeft: "4px", gap: "6px",
+                },
+                "& .calldata-leaf > :first-child": {
+                  width: "100%", display: "flex", alignItems: "baseline", flexWrap: "wrap", columnGap: "8px",
+                  "&::before": { display: "none" },
+                },
+                "& .calldata-value": { width: "100%" },
+                "& .calldata-value .decoded-integer": {
+                  flexDirection: "column", alignItems: "stretch", gap: "6px",
+                },
+                "& .calldata-value .decoded-integer-format, & .calldata-value .decoded-integer-format > div": {
+                  width: "100%", minWidth: 0, maxWidth: "100%",
+                },
               },
               "& .calldata-value input.chakra-input": {
                 height: "32px",
@@ -542,17 +568,18 @@ export function CalldataTree({
                 <Icon
                   as={FiTerminal}
                   boxSize={3.5}
-                  color="green.400"
+                  color={kind === "revert" ? "red.300" : "green.400"}
                   aria-hidden
                 />
                 <Text
                   fontFamily="mono"
                   fontSize="16px"
                   fontWeight="600"
-                  color="green.300"
+                  color={kind === "revert" ? "red.300" : "green.300"}
                 >
                   {functionName}()
                 </Text>
+                {kind === "revert" && <Badge colorScheme="red">Revert</Badge>}
                 {isFunctionNameGuessed && (
                   <Badge fontSize="9px">inferred</Badge>
                 )}
@@ -569,6 +596,7 @@ export function CalldataTree({
               borderLeft={hasRoot ? "1px solid" : undefined}
               borderColor="whiteAlpha.100"
             >
+              {decodeNote && <Text px={3} py={2} fontSize="sm" color="text.secondary">{decodeNote}</Text>}
               {args.map((arg, i) => (
                 <Parameter
                   key={`args.${i}`}

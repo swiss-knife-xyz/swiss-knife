@@ -75,6 +75,63 @@ const nextConfig = {
   },
   redirects() {
     return [
+      // Retired Send Tx subpaths point directly to the tool root.
+      {
+        source: "/send-tx",
+        has: [{ type: "host", value: "(?:transact|tx)\\.eth\\.sh" }],
+        destination: "https://tx.eth.sh/",
+        permanent: true,
+      },
+      {
+        source: "/:tool(transact|tx)/send-tx",
+        has: [{ type: "host", value: "(?:www\\.)?eth\\.sh" }],
+        destination: "https://tx.eth.sh/",
+        permanent: true,
+      },
+      {
+        source: "/:tool(transact|tx)/send-tx",
+        missing: [{ type: "host", value: "(?:.*\\.)?eth\\.sh" }],
+        destination: "/tx",
+        permanent: true,
+      },
+      // Transact moved to tx.eth.sh. Next preserves all incoming query params
+      // because these destinations consume only path parameters.
+      {
+        source: "/",
+        has: [{ type: "host", value: "transact\\.eth\\.sh" }],
+        destination: "https://tx.eth.sh/",
+        permanent: true,
+      },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "transact\\.eth\\.sh" }],
+        destination: "https://tx.eth.sh/:path*",
+        permanent: true,
+      },
+      {
+        source: "/transact",
+        has: [{ type: "host", value: "(?:www\\.)?eth\\.sh" }],
+        destination: "https://tx.eth.sh/",
+        permanent: true,
+      },
+      {
+        source: "/transact/:path*",
+        has: [{ type: "host", value: "(?:www\\.)?eth\\.sh" }],
+        destination: "https://tx.eth.sh/:path*",
+        permanent: true,
+      },
+      {
+        source: "/transact",
+        missing: [{ type: "host", value: "(?:.*\\.)?eth\\.sh" }],
+        destination: "/tx",
+        permanent: true,
+      },
+      {
+        source: "/transact/:path*",
+        missing: [{ type: "host", value: "(?:.*\\.)?eth\\.sh" }],
+        destination: "/tx/:path*",
+        permanent: true,
+      },
       {
         source: "/",
         has: [{ type: "host", value: "orgs.eth.sh" }],

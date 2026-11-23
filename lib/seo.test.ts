@@ -36,7 +36,7 @@ const headingPages = [
   "calldata/decoder/CalldataDecoderPage.tsx", "calldata/encoder/CalldataEncoderPage.tsx", "calldata/viem-error-simulate/page.tsx",
   "safe/eip-712-hash/page.tsx", "solidity/compiler/page.tsx", "foundry/forge-stack-tracer-ui/page.tsx", "ens/history/ENSHistoryLayout.tsx",
   "uniswap/swap/page.tsx", "uniswap/positions/page.tsx", "uniswap/initialize-pool/page.tsx", "uniswap/add-liquidity/page.tsx", "uniswap/pool-price-to-target/page.tsx",
-  "wallet/signatures/page.tsx", "wallet/bridge/page.tsx", "wallet/_smart-wallet-connect/SmartWalletConnect.tsx", "transact/send-tx/page.tsx", "apps/page.tsx", "gwei/GweiMigrationPage.tsx", "migrate/MigratePage.tsx",
+  "wallet/signatures/page.tsx", "wallet/bridge/page.tsx", "wallet/_smart-wallet-connect/SmartWalletConnect.tsx", "tx/page.tsx", "apps/page.tsx", "gwei/GweiMigrationPage.tsx", "migrate/MigratePage.tsx",
 ];
 test("tool title headings expose an H1 without promoting navigation headings", () => {
   for (const path of headingPages) {
@@ -47,7 +47,7 @@ test("tool title headings expose an H1 without promoting navigation headings", (
 });
 
 test("public tool leaves have page-specific canonical metadata and dedicated OG routes", () => {
-  for (const path of ["uniswap/tick-to-price", "uniswap/pool-price-to-target", "uniswap/swap", "uniswap/add-liquidity", "uniswap/initialize-pool", "uniswap/positions", "calldata/encoder", "transact/send-tx"]) {
+  for (const path of ["uniswap/tick-to-price", "uniswap/pool-price-to-target", "uniswap/swap", "uniswap/add-liquidity", "uniswap/initialize-pool", "uniswap/positions", "calldata/encoder"]) {
     const source = readFileSync(new URL(`../app/${path}/layout.tsx`, import.meta.url), "utf8");
     const slug = path.replaceAll("/", "-");
     assert.ok(source.includes(`https://${path.split("/")[0]}.eth.sh/${path.split("/")[1]}`), path);
@@ -95,7 +95,7 @@ test("USDC Pay uses its existing visible title as an H1", () => {
 });
 
 test("query-dependent tools expose a semantic crawlable loading shell before hydration", () => {
-  for (const path of ["apps/page.tsx", "calldata/encoder/CalldataEncoderPage.tsx", "explorers/ExplorerLayout.tsx", "contract-diff/page.tsx", "converter/eth/page.tsx", "transact/send-tx/page.tsx", "calldata/decoder/CalldataDecoderPage.tsx", "safe/eip-712-hash/page.tsx", "usdc-pay/page.tsx", "siwe/page.tsx"]) {
+  for (const path of ["apps/page.tsx", "calldata/encoder/CalldataEncoderPage.tsx", "explorers/ExplorerLayout.tsx", "contract-diff/page.tsx", "converter/eth/page.tsx", "tx/page.tsx", "calldata/decoder/CalldataDecoderPage.tsx", "safe/eip-712-hash/page.tsx", "usdc-pay/page.tsx", "siwe/page.tsx"]) {
     const source = readFileSync(new URL(`../app/${path}`, import.meta.url), "utf8");
     assert.match(source, /fallback=\{\s*<ToolLoading\b/, path);
   }
@@ -165,13 +165,13 @@ test("sitemap lists real public leaf pages, not parameter placeholders or redire
     const pathname = base === "faucet" && parsed.pathname !== "/" ? "/[chain]" : parsed.pathname;
     const path = `../app/${base}${pathname === "/" ? "" : pathname}/page.tsx`;
     assert.doesNotThrow(() => readFileSync(new URL(path, import.meta.url)), url);
-    assert.ok(!["calldata", "converter", "ens", "foundry", "safe", "solidity", "transact", "uniswap", "wallet"].includes(base) || parsed.pathname !== "/", url);
+    assert.ok(!["calldata", "converter", "ens", "foundry", "safe", "solidity", "uniswap", "wallet"].includes(base) || parsed.pathname !== "/", url);
     assert.ok(!url.includes("signatures/view") && !url.includes("/test") && !url.includes("skills/new"), url);
   }
 });
 
 test("category entrypoints issue server permanent redirects to their actual default tool", () => {
-  for (const [base, tool] of Object.entries({ calldata: "decoder", converter: "eth", ens: "history", foundry: "forge-stack-tracer-ui", safe: "eip-712-hash", solidity: "compiler", transact: "send-tx", uniswap: "tick-to-price", wallet: "bridge" })) {
+  for (const [base, tool] of Object.entries({ calldata: "decoder", converter: "eth", ens: "history", foundry: "forge-stack-tracer-ui", safe: "eip-712-hash", solidity: "compiler", uniswap: "tick-to-price", wallet: "bridge" })) {
     const source = readFileSync(new URL(`../app/${base}/page.tsx`, import.meta.url), "utf8");
     assert.match(source, /permanentRedirect\(/, base);
     assert.ok(!source.includes("useEffect"), base);
@@ -258,4 +258,13 @@ test("sitemap uses the orgs apex path, not an unsupported orgs host", () => {
   const urls = sitemap().map(({ url }) => url);
   assert.ok(urls.includes("https://eth.sh/orgs"));
   assert.ok(!urls.some((url) => url.startsWith("https://orgs.eth.sh")));
+});
+
+
+test("Transact is a standalone tool at the tx root", () => {
+  assert.ok(getPublicPageUrls().includes("https://tx.eth.sh/"));
+  assert.ok(!getPublicPageUrls().some(url => url.includes("tx.eth.sh/send-tx")));
+  const metadata = readFileSync(new URL("../app/tx/layout.tsx", import.meta.url), "utf8");
+  assert.ok(metadata.includes('canonical: "https://tx.eth.sh/"'));
+  assert.ok(metadata.includes('/api/og/tx'));
 });

@@ -1,6 +1,8 @@
 import { FunctionFragment, Interface, type JsonFragment, type JsonFragmentType } from "ethers";
 import type { InferredFunctionInfo } from "./inferredContract";
 
+export type RawContractCall = { data: string; value: string };
+
 export type FormCall = { signature: string; args: unknown[] };
 export type CallReview = {
   data: string;
@@ -11,10 +13,23 @@ export type CallReview = {
 
 export type SharedFunctionForm = Omit<CallReview, "data"> & { args: unknown[] };
 
-export function parseContractCallFragment(hash: string): CallReview | SharedFunctionForm | null {
+export function parseContractCallFragment(hash: string): CallReview | SharedFunctionForm | RawContractCall | null {
   if (hash.length > 100000) throw new Error("Shared call link is too large.");
   const params = new URLSearchParams(hash.replace(/^#/, ""));
   if (!params.has("call")) return null;
+  // Tx links do not know the destination's ABI or function signature yet.
+  if (params.get("call") === "3") {
+    const fields = ["call", "data", "value"];
+    if ([...params.keys()].some((key) => !fields.includes(key)) ||
+        fields.some((key) => params.getAll(key).length !== 1))
+      throw new Error("Invalid raw transaction link.");
+    const data = params.get("data")!;
+    validateCallData(data);
+    const value = params.get("value")!;
+    if (!/^(0|[1-9][0-9]{0,77})$/.test(value) || BigInt(value) >= 2n ** 256n)
+      throw new Error("Invalid shared value.");
+    return { data, value };
+  }
   const isForm = params.get("call") === "2";
   const fields = ["call", isForm ? "args" : "data", "value", "abi", "function"];
   if (
@@ -50,7 +65,7 @@ export function createContractCallLink(
   baseUrl: string,
   chainId: number,
   address: string,
-  review: CallReview | SharedFunctionForm
+  review: CallReview | SharedFunctionForm | RawContractCall
 ): string {
   if (
     !Number.isSafeInteger(chainId) ||
@@ -61,7 +76,9 @@ export function createContractCallLink(
   const url = new URL(baseUrl);
   url.pathname = `${url.pathname.replace(/\/$/, "")}/${chainId}/${address}`;
   url.search = "";
-  url.hash = new URLSearchParams({
+  url.hash = new URLSearchParams(!("abiMode" in review) ? {
+    call: "3", data: review.data, value: review.value,
+  } : {
     ...("args" in review
       ? { call: "2", args: JSON.stringify(review.args) }
       : { call: "1", data: review.data }),

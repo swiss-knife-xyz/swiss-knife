@@ -32,6 +32,7 @@ export interface DarkSelectProps {
   disableMouseNavigation?: boolean;
   editableValue?: string;
   onEditableValueChange?: (value: string) => void;
+  autoFocus?: boolean;
   openMenuOnFocus?: boolean;
   isInvalid?: boolean;
   isDisabled?: boolean;
@@ -61,6 +62,7 @@ export const DarkSelect = ({
   disableMouseNavigation,
   editableValue,
   onEditableValueChange,
+  autoFocus,
   openMenuOnFocus,
   isInvalid,
   isDisabled,
@@ -366,6 +368,7 @@ export const DarkSelect = ({
             onEditableValueChange?.(next);
           }
         }}
+        autoFocus={autoFocus}
         openMenuOnFocus={openMenuOnFocus}
         {...(editableValue !== undefined
           ? {

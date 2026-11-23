@@ -1,6 +1,7 @@
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -384,4 +385,19 @@ it("pasting a chain-prefixed address opens it from the explorer homepage", () =>
     clipboardData: { getData: () => `base:${draft}` },
   });
   expect(onOpen).toHaveBeenCalledExactlyOnceWith(draft, 8453);
+});
+
+it("keeps expanded ABI/source above the function skeleton and in place after loading", async () => {
+  let finish!: (value: any) => void;
+  fetchAbi.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  render(page());
+  const loading = await screen.findByRole("status", { name: "Loading contract functions" });
+  fireEvent.click(screen.getByRole("button", { name: "ABI & Source Code" }));
+  const panel = screen.getByRole("region", { name: "ABI and source code" });
+  expect(panel.compareDocumentPosition(loading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  await act(async () => { finish({ abi: [], name: "Loaded contract" }); });
+  await waitFor(() => expect(screen.queryByRole("status", { name: "Loading contract functions" })).toBeNull());
+  expect(screen.getByRole("region", { name: "ABI and source code" })).toBe(panel);
+  const readSection = screen.getByText(/Read.*Contract/);
+  expect(panel.compareDocumentPosition(readSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
