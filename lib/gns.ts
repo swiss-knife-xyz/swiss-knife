@@ -9,17 +9,25 @@ import {
   readEnsTextRecord,
 } from "@/lib/ensUniversalResolver";
 import { getPublicClient } from "@/lib/publicClient";
-import { GNS_UNIVERSAL_RESOLVER_ADDRESS } from "@/lib/nameServiceContracts";
-export { GNS_UNIVERSAL_RESOLVER_ADDRESS } from "@/lib/nameServiceContracts";
+import {
+  GNS_NAME_NFT_ADDRESS,
+  GNS_UNIVERSAL_RESOLVER_ADDRESS,
+} from "@/lib/nameServiceContracts";
+export {
+  GNS_NAME_NFT_ADDRESS,
+  GNS_UNIVERSAL_RESOLVER_ADDRESS,
+} from "@/lib/nameServiceContracts";
+export {
+  getGnsIdentityQueryKey,
+  readGnsIdentity,
+  type GnsIdentity,
+} from "@/lib/nameServiceIdentity";
 
 export const ENS_REGISTRY_ADDRESS =
   "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e" as const;
 
 export const ENS_BASE_REGISTRAR_ADDRESS =
   "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85" as const;
-
-export const GNS_NAME_NFT_ADDRESS =
-  "0x9D51D507BC7264d4fE8Ad1cf7Fe191933A0a81d6" as const;
 
 export const GNS_MAINNET_CHAIN_ID = mainnet.id;
 export const GNS_MIN_COMMITMENT_SECONDS = 60;
@@ -284,11 +292,6 @@ export type GnsNameSnapshot = {
   isPrimaryForConnectedAddress: boolean;
 };
 
-export type GnsIdentity = {
-  name: string;
-  avatar: string | null;
-};
-
 export type StoredGnsCommitment = {
   label: string;
   owner: Address;
@@ -368,35 +371,6 @@ export function getGnsTokenId(label: string) {
 
 export function getGnsGatewayUrl(label: string) {
   return `https://${label}.gwei.domains`;
-}
-
-export function getGnsIdentityQueryKey(address: Address | string) {
-  return ["gns", "identity", address.toLowerCase()] as const;
-}
-
-export async function readGnsIdentity(
-  address: Address
-): Promise<GnsIdentity | null> {
-  if (!isAddress(address)) return null;
-
-  const name = await mainnetClient.readContract({
-    address: GNS_NAME_NFT_ADDRESS,
-    abi: gnsNameNftAbi,
-    functionName: "reverseResolve",
-    args: [address],
-  });
-
-  if (!name || !name.toLowerCase().endsWith(".gwei")) return null;
-
-  const avatar = await nullable(
-    mainnetClient.getEnsAvatar({
-      name,
-      universalResolverAddress: GNS_UNIVERSAL_RESOLVER_ADDRESS,
-    }),
-    null
-  );
-
-  return { name, avatar };
 }
 
 export function getEnsGatewayUrl(name: string) {

@@ -722,3 +722,15 @@ it.each([undefined, 1, 8453])("shared address rendering links to Contract Explor
   expect(link.getAttribute("href")).toBe(`/${chainId ?? 1}/${address}`);
   expect(link.getAttribute("target")).toBe("_blank");
 });
+
+
+it.each(["alice.gwei", "alice.wei"])("displays the shared primary name %s for decoded and returned addresses", async name => {
+  mocks.resolve.mockResolvedValue(name);
+  mocks.avatar.mockResolvedValue(null);
+  render(param(1));
+  await waitFor(() => expect(screen.getByDisplayValue(name)).toBeTruthy());
+  expect(mocks.resolve).toHaveBeenCalledWith(address);
+  expect(mocks.avatar).toHaveBeenCalledWith(name);
+  fireEvent.click(screen.getByRole("button", { name: /^Address$/ }));
+  expect(screen.getByDisplayValue(address)).toBeTruthy();
+});
