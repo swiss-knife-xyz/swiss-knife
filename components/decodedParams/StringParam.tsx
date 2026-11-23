@@ -18,7 +18,7 @@ import {
 } from "@chakra-ui/react";
 import { ExternalLink, RotateCw } from "lucide-react";
 import axios from "axios";
-import { resolveIPFS } from "@/utils";
+import { getIPFSGatewayUrls, IPFS_GATEWAY_TIMEOUT_MS } from "@/lib/ipfs";
 import { PlainStringValue } from "./StringValue";
 import { CopyToClipboard } from "../CopyToClipboard";
 import { ResizableImage } from "../ResizableImage";
@@ -70,36 +70,44 @@ function StringParamContent({
   );
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState<"preview" | "raw" | "original">("preview");
-  const directImage =
-    content.image ?? (isImageUrl(value) ? resolveIPFS(value) : undefined);
+  const [resolvedUrl, setResolvedUrl] = useState<string>();
+  const sourceUrl = resolvedUrl ?? getIPFSGatewayUrls(value)[0];
+  const directImage = content.image ?? (isImageUrl(value) ? value : undefined);
 
   useEffect(() => {
     if (example || disableRich || !content.isUrl || directImage) return;
-    let cancelled = false;
+    const controller = new AbortController();
     setStatus("loading");
     setRemote(undefined);
-    axios
-      .get(resolveIPFS(value))
-      .then((response) => {
-        if (cancelled) return;
-        const json = parseJsonContent(response.data);
-        if (json !== undefined) setRemote({ json });
-        else if (
-          String(response.headers?.["content-type"] ?? "").startsWith("image/")
-        )
-          setRemote({ image: resolveIPFS(value) });
-        else {
-          setStatus("error");
+    setResolvedUrl(undefined);
+    async function loadPreview() {
+      for (const url of getIPFSGatewayUrls(value)) {
+        try {
+          const response = await axios.get(url, {
+            signal: controller.signal,
+            timeout: IPFS_GATEWAY_TIMEOUT_MS,
+          });
+          if (controller.signal.aborted) return;
+          const json = parseJsonContent(response.data);
+          if (json !== undefined) setRemote({ json });
+          else if (
+            String(response.headers?.["content-type"] ?? "").startsWith(
+              "image/"
+            )
+          )
+            setRemote({ image: url });
+          else continue;
+          setResolvedUrl(url);
+          setStatus("ready");
           return;
+        } catch {
+          if (controller.signal.aborted) return;
         }
-        setStatus("ready");
-      })
-      .catch(() => {
-        if (!cancelled) setStatus("error");
-      });
-    return () => {
-      cancelled = true;
-    };
+      }
+      if (!controller.signal.aborted) setStatus("error");
+    }
+    void loadPreview();
+    return () => controller.abort();
   }, [value, content.isUrl, directImage, example, disableRich, attempt]);
 
   const json =
@@ -126,7 +134,10 @@ function StringParamContent({
       <RichJsonContent value={json} chainId={chainId} />
     ) : image ? (
       <ResizableImage
-        src={image}
+        key={image}
+        src={getIPFSGatewayUrls(image)[0]}
+        fallbackSrcs={example ? undefined : getIPFSGatewayUrls(image).slice(1)}
+        onSourceLoad={example ? undefined : setResolvedUrl}
         maxInitialWidth={320}
         maxInitialHeight={280}
       />
@@ -165,7 +176,7 @@ function StringParamContent({
         {image && content.isUrl && (
           <HStack mt={1} justify="flex-end">
             <Link
-              href={resolveIPFS(value)}
+              href={sourceUrl}
               isExternal
               fontSize="xs"
               color="text.secondary"
@@ -253,7 +264,7 @@ function StringParamContent({
           {content.isUrl && (
             <Button
               as={Link}
-              href={resolveIPFS(value)}
+              href={sourceUrl}
               isExternal
               aria-label="Open source URL"
               title="Open source URL"

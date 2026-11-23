@@ -1,15 +1,24 @@
-import { useState } from "react";
+import { IPFS_GATEWAY_TIMEOUT_MS } from "@/lib/ipfs";
+import { useEffect, useState } from "react";
 import { Box, Image, Skeleton, Text, type BoxProps } from "@chakra-ui/react";
 
 interface ResizableImageProps extends Omit<BoxProps, "width" | "height"> {
   src: string;
+  fallbackSrcs?: string[];
+  onSourceLoad?: (src: string) => void;
   maxInitialWidth?: number;
   maxInitialHeight?: number;
 }
 
 // Native resizing stays bounded by the containing parameter column.
-export const ResizableImage = ({
+export const ResizableImage = (props: ResizableImageProps) => (
+  <ResizableImageContent key={props.src} {...props} />
+);
+
+const ResizableImageContent = ({
   src,
+  fallbackSrcs = [],
+  onSourceLoad,
   maxInitialWidth = 300,
   maxInitialHeight = 200,
   ...boxProps
@@ -20,6 +29,36 @@ export const ResizableImage = ({
   });
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const activeSrc = [src, ...fallbackSrcs][sourceIndex];
+  const hasFallbacks = fallbackSrcs.length > 0;
+  const advance = () => {
+    if (sourceIndex < fallbackSrcs.length) {
+      setLoaded(false);
+      setSourceIndex(sourceIndex + 1);
+    } else {
+      setFailed(true);
+      setLoaded(true);
+    }
+  };
+  useEffect(() => {
+    if (!hasFallbacks || loaded || failed) return;
+    const timer = window.setTimeout(() => {
+      if (sourceIndex < fallbackSrcs.length) setSourceIndex(sourceIndex + 1);
+      else {
+        setFailed(true);
+        setLoaded(true);
+      }
+    }, IPFS_GATEWAY_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeSrc,
+    sourceIndex,
+    fallbackSrcs.length,
+    hasFallbacks,
+    loaded,
+    failed,
+  ]);
   return (
     <Box
       position="relative"
@@ -48,7 +87,8 @@ export const ResizableImage = ({
           endColor="whiteAlpha.100"
         >
           <Image
-            src={src}
+            key={activeSrc}
+            src={activeSrc}
             alt="Image preview"
             w="full"
             h="full"
@@ -60,11 +100,9 @@ export const ResizableImage = ({
               const width = Math.min(maxInitialWidth, maxInitialHeight * ratio);
               setSize({ width, height: width / ratio });
               setLoaded(true);
+              onSourceLoad?.(activeSrc);
             }}
-            onError={() => {
-              setFailed(true);
-              setLoaded(true);
-            }}
+            onError={advance}
           />
         </Skeleton>
       )}

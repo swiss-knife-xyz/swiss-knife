@@ -145,3 +145,42 @@ it("does not retain a previous bytes conversion for invalid or empty bytes", () 
   view.rerender(param("0x10"));
   expect(screen.getByDisplayValue("16")).toBeTruthy();
 });
+
+it("automatically tries other IPFS gateways and links to the successful source", async () => {
+  mocks.get
+    .mockRejectedValueOnce(new Error("Pinata unavailable"))
+    .mockResolvedValueOnce({ data: "<html>Gateway error</html>", headers: {} })
+    .mockResolvedValueOnce({ data: { title: "Fallback metadata" }, headers: {} });
+  render(wrap(<StringParam value="ipfs://bafytest/metadata.json?x=1" />));
+  await screen.findByDisplayValue("Fallback metadata");
+  expect(mocks.get.mock.calls.map(([url]) => url)).toEqual([
+    "https://gateway.pinata.cloud/ipfs/bafytest/metadata.json?x=1",
+    "https://ipfs.filebase.io/ipfs/bafytest/metadata.json?x=1",
+    "https://ipfs.orbitor.dev/ipfs/bafytest/metadata.json?x=1",
+  ]);
+  expect(screen.getByRole("link", { name: "Open source URL" }).getAttribute("href"))
+    .toBe("https://ipfs.orbitor.dev/ipfs/bafytest/metadata.json?x=1");
+  expect(mocks.get.mock.calls[0][1].timeout).toBe(8000);
+});
+
+it("retries the gateway sequence after exhaustion", async () => {
+  mocks.get.mockRejectedValue(new Error("Unavailable"));
+  render(wrap(<StringParam value="ipfs://bafytest/metadata" />));
+  await screen.findByText("Preview unavailable");
+  expect(mocks.get).toHaveBeenCalledTimes(3);
+  mocks.get.mockResolvedValueOnce({ data: { title: "Recovered" }, headers: {} });
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  await screen.findByDisplayValue("Recovered");
+  expect(mocks.get).toHaveBeenCalledTimes(4);
+});
+
+it("aborts pending IPFS requests without starting fallbacks on unmount", async () => {
+  const response = deferred<any>();
+  mocks.get.mockReturnValueOnce(response.promise);
+  const view = render(wrap(<StringParam value="ipfs://bafytest/metadata" />));
+  const signal = mocks.get.mock.calls[0][1].signal;
+  view.unmount();
+  expect(signal.aborted).toBe(true);
+  await act(async () => response.reject(new Error("Cancelled")));
+  expect(mocks.get).toHaveBeenCalledTimes(1);
+});

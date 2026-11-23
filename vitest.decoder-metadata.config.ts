@@ -11,6 +11,7 @@ export default defineConfig({
       "lib/revertDecoding.spec.ts",
       "components/decodedParams/revertTree.spec.tsx",
       "components/ContentSizedEditor.spec.tsx",
+      "components/ResizableImage.spec.tsx",
       "app/calldata/decoder/decoderMetadata.spec.tsx",
       "app/calldata/decoder/universalRouter.spec.tsx",
       "components/decodedParams/parameterState.spec.tsx",

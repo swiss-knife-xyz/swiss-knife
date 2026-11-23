@@ -1,3 +1,4 @@
+import { getIPFSGatewayUrls } from "@/lib/ipfs";
 import { cachedContractMetadata } from "@/lib/contractMetadataCache";
 import { Metadata } from "next";
 import {
@@ -334,12 +335,7 @@ export const decodeBase64 = (
   }
 };
 
-export const resolveIPFS = (value: string) => {
-  if (value.startsWith("ipfs://")) {
-    return `https://gateway.pinata.cloud/ipfs/${value.slice(7)}`;
-  }
-  return value;
-};
+export const resolveIPFS = (value: string) => getIPFSGatewayUrls(value)[0];
 
 export const isValidJSON = (str: string): boolean => {
   try {
