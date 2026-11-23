@@ -17,6 +17,9 @@ import type { SelectedOption } from "@/types";
 import { ContractBytesInput } from "./ContractBytesInput";
 
 export interface RenderInputFieldsProps {
+  ariaLabel?: string;
+  onValidationChange?: (isInvalid: boolean) => void;
+  isInvalid?: boolean;
   chainId: number;
   input: JsonFragmentType;
   value: string;
@@ -32,6 +35,9 @@ export interface RenderInputFieldsProps {
 }
 
 export const renderInputFields = ({
+  ariaLabel,
+  onValidationChange,
+  isInvalid: explicitInvalid,
   chainId,
   input,
   value,
@@ -45,17 +51,18 @@ export const renderInputFields = ({
   immediateUpdates,
   rawValues,
 }: RenderInputFieldsProps) => {
-  const isInvalid =
+  const isInvalid = explicitInvalid ?? (
     isError &&
     (value === undefined ||
       value === null ||
-      value.toString().trim().length === 0);
+      value.toString().trim().length === 0));
 
   if (/\[\d*\]$/.test(input.type ?? "")) {
     return (
       <ArrayInput
         chainId={chainId}
         input={input}
+        aria-label={ariaLabel}
         value={value}
         onChange={onChange}
         setFunctionIsDisabled={setFunctionIsDisabled}
@@ -71,6 +78,7 @@ export const renderInputFields = ({
     return (
       <ContractBytesInput
         input={input}
+        aria-label={ariaLabel}
         value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}
@@ -82,6 +90,7 @@ export const renderInputFields = ({
       <BytesInput
         suggestions={suggestions}
         input={input}
+        aria-label={ariaLabel}
         value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}
@@ -96,6 +105,7 @@ export const renderInputFields = ({
     return (
       <StringInput
         input={input}
+        aria-label={ariaLabel}
         value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}
@@ -106,10 +116,12 @@ export const renderInputFields = ({
     return (
       <IntInput
         input={input}
+        aria-label={ariaLabel}
         value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}
         isInvalid={isInvalid}
+        onValidationChange={onValidationChange}
         functionIsError={isError}
         setFunctionIsDisabled={setFunctionIsDisabled}
       />
@@ -118,6 +130,7 @@ export const renderInputFields = ({
     return (
       <AddressInput
         input={input}
+        aria-label={ariaLabel}
         value={value}
         chainId={chainId}
         onChange={onChange}
@@ -130,6 +143,7 @@ export const renderInputFields = ({
     return (
       <BoolInput
         input={input}
+        aria-label={ariaLabel}
         value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}
@@ -141,6 +155,7 @@ export const renderInputFields = ({
       <TupleInput
         chainId={chainId}
         input={input}
+        aria-label={ariaLabel}
         value={value}
         onChange={onChange}
         setFunctionIsDisabled={setFunctionIsDisabled}
@@ -157,6 +172,7 @@ export const renderInputFields = ({
     return (
       <StringInput
         input={input}
+        aria-label={ariaLabel}
         value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}

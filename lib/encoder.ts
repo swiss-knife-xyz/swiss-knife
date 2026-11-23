@@ -169,7 +169,7 @@ export function encodeConstructorArgs(
 // =============================================================================
 
 /**
- * Encodes transactions in Safe MultiSend packed format.
+ * Encodes the transactions bytes in Safe MultiSend packed format.
  *
  * Each transaction is packed as:
  * - operation: uint8 (1 byte) - 0=CALL, 1=DELEGATECALL
@@ -178,14 +178,14 @@ export function encodeConstructorArgs(
  * - dataLength: uint256 (32 bytes)
  * - data: bytes (dataLength bytes)
  *
- * The packed transactions are then wrapped in multiSend(bytes) calldata.
+ * The outer multiSend(bytes) wrapper is added by encodeSafeMultiSend.
  *
  * @param txs - Array of transactions to encode
- * @returns Full multiSend calldata (selector + encoded packed bytes)
+ * @returns Packed transactions bytes (without an ABI selector or wrapper)
  *
  * @see https://github.com/safe-global/safe-contracts/blob/main/contracts/libraries/MultiSend.sol
  */
-export function encodeSafeMultiSend(txs: SafeMultiSendTx[]): Hex {
+export function encodeSafeMultiSendTransactions(txs: SafeMultiSendTx[]): Hex {
   // Pack each transaction
   const packedParts: Hex[] = [];
 
@@ -207,7 +207,14 @@ export function encodeSafeMultiSend(txs: SafeMultiSendTx[]): Hex {
     );
   }
 
-  const packedTransactions = concat(packedParts);
+  // viem's concat([]) returns a Uint8Array at runtime. Bytes ABI inputs need hex,
+  // including when editing removes the last transaction from a MultiSend.
+  return packedParts.length ? concat(packedParts) : "0x";
+}
+
+/** Wrap packed transactions in the standard multiSend(bytes) function call. */
+export function encodeSafeMultiSend(txs: SafeMultiSendTx[]): Hex {
+  const packedTransactions = encodeSafeMultiSendTransactions(txs);
 
   // Wrap in multiSend(bytes) call
   const multiSendAbi = [

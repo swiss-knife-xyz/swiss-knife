@@ -96,3 +96,28 @@ export function createDecoderShareLink(
   parseDecoderShareFragment(url.hash);
   return url.toString();
 }
+
+/** Encoded-result navigation shared by decoder and transaction previews. */
+export function createDecoderResultLink(
+  baseUrl: string,
+  calldata: string,
+  result: DecodeRecursiveResult,
+  abi?: InterfaceAbi,
+  context?: { address?: string; chainId?: number }
+): string {
+  const url = new URL(baseUrl);
+  url.search = "";
+  url.hash = "";
+  if (context?.address) {
+    url.searchParams.set("calldata", calldata);
+    url.searchParams.set("address", context.address);
+    if (context.chainId !== undefined) url.searchParams.set("chainId", String(context.chainId));
+    return url.toString();
+  }
+  try {
+    const shared = createDecoderShareLink(url.toString(), calldata, result, abi);
+    if (shared) return shared;
+  } catch { /* Oversized or synthetic results can still open as raw calldata. */ }
+  url.searchParams.set("calldata", calldata);
+  return url.toString();
+}

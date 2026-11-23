@@ -38,6 +38,7 @@ export const BoolInput = ({
     <Box>
       <InputInfo input={input} />
       <DarkSelect
+        ariaLabel={props["aria-label"]}
         boxProps={{
           w: "9rem",
         }}

@@ -73,6 +73,11 @@ test("standalone decoded tuple uses an accessible tree branch and retains child 
     assert.equal(button.getAttribute("aria-expanded"), "true");
     const input = ui.container.querySelector("input")!;
     assert.equal(input.value, "hello");
+    assert.equal(input.readOnly, true);
+    assert.equal(getComputedStyle(input).caretColor, "rgba(0, 0, 0, 0)");
+    input.focus();
+    input.setSelectionRange(0, input.value.length);
+    assert.equal(input.value.slice(input.selectionStart!, input.selectionEnd!), "hello");
     await act(async () => button.click());
     assert.equal(button.getAttribute("aria-expanded"), "false");
     assert.ok(ui.container.querySelector("input")!.closest("[hidden]"));

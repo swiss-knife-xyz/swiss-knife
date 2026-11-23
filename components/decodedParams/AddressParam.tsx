@@ -33,7 +33,7 @@ import { useAddressBook } from "@/hooks/useAddressBook";
 import { AddressLabelModal } from "@/components/AddressBook";
 import { getPublicClient } from "@/lib/publicClient";
 import { ContractAddressLink } from "@/components/ContractTabs";
-import { compactValueFieldProps } from "./paramStyles";
+import { decodedValueFieldProps } from "./paramStyles";
 
 interface Params {
   address: any;
@@ -323,7 +323,7 @@ const AddressParamContent = ({
               </InputLeftElement>
             ) : null}
             <Input
-              {...compactValueFieldProps}
+              {...decodedValueFieldProps}
               value={value}
               isReadOnly
               bg={isShowingLabel ? "purple.900" : "whiteAlpha.50"}

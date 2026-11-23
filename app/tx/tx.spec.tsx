@@ -12,10 +12,14 @@ import {
   within,
 } from "@testing-library/react";
 import SendTx from "./page";
-import { decodeFunctionData, erc20Abi } from "viem";
+import { decodeFunctionData, encodeFunctionData, erc20Abi } from "viem";
 const mocks = vi.hoisted(() => ({
   query: "",
+  rpcRevision: 0,
   decode: vi.fn(),
+  editorLoad: vi.fn(),
+  editorReady: vi.fn(),
+  copy: vi.fn(),
   resolve: vi.fn(),
   wallet: undefined as any,
   accountChain: undefined as number | undefined,
@@ -29,11 +33,23 @@ const mocks = vi.hoisted(() => ({
   scroll: vi.fn(),
   urlUpdate: vi.fn(),
 }));
+vi.mock("@/components/calldata/EditableCalldata", async (importOriginal) => {
+  mocks.editorLoad();
+  const module = await importOriginal<typeof import("@/components/calldata/EditableCalldata")>();
+  mocks.editorReady();
+  return module;
+});
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(mocks.query),
 }));
 vi.mock("next/dynamic", () => ({
-  default: (loader: any) => React.lazy(loader),
+  default: (loader: any, options?: { loading?: React.ComponentType }) => {
+    const Component = React.lazy(loader);
+    const Loading = options?.loading;
+    return (props: any) => <React.Suspense fallback={Loading ? <Loading /> : null}>
+      <Component {...props} />
+    </React.Suspense>;
+  },
 }));
 vi.mock("wagmi", () => ({
   useWalletClient: () => ({ data: mocks.wallet }),
@@ -45,9 +61,15 @@ vi.mock("wagmi", () => ({
 }));
 vi.mock("wagmi/actions", () => ({ waitForTransactionReceipt: mocks.receipt }));
 vi.mock("@/app/providers", () => ({ config: {} }));
+vi.mock("@/lib/customChains/store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/customChains/store")>()),
+  useCustomChains: () => ({ ready: true, revision: mocks.rpcRevision, chains: [], error: null }),
+}));
 vi.mock("@/lib/decoder", () => ({ decodeRecursive: mocks.decode }));
-vi.mock("@/utils", () => ({
-  getPath: () => "/explorer/",
+vi.mock("@/utils", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/utils")>()),
+  getPath: (base: string) => `/${base}/`,
+  fetchContractAbi: vi.fn().mockResolvedValue(undefined),
   ethFormatOptions: ["Wei", "ETH"],
   startHexWith0x: (s: string) => (s.startsWith("0x") ? s : `0x${s}`),
   resolveNameToAddress: mocks.resolve,
@@ -64,11 +86,15 @@ vi.mock("@/components/ClearSigning/ClearSigningSummary", () => ({
     </section>
   ),
 }));
-vi.mock("@/components/decodedParams/CalldataTree", () => ({
-  CalldataTree: (props: any) => (
-    <div data-testid="shared-calldata-tree">{props.functionName}</div>
-  ),
-}));
+vi.mock("@/components/decodedParams/CalldataTree", async (importOriginal) => {
+  const { CalldataTree } = await importOriginal<typeof import("@/components/decodedParams/CalldataTree")>();
+  return { CalldataTree: (props: any) => <div data-testid="shared-calldata-tree">
+    {props.editor ? <CalldataTree {...props} /> : props.functionName}
+  </div> };
+});
+vi.mock("@/components/AddressBook", () => ({ AddressBookButton: () => null }));
+vi.mock("@/lib/publicClient", () => ({ getPublicClient: () => ({}) }));
+vi.mock("@/utils/addressLabels", () => ({ fetchAddressLabels: async () => [] }));
 vi.mock("@/components/NetworkSelect", () => ({
   NetworkSelect: (props: any) => (
     <select aria-label={props.ariaLabel} autoFocus={props.autoFocus}
@@ -82,7 +108,9 @@ vi.mock("@/components/NetworkSelect", () => ({
 }));
 vi.mock("@/components/DarkSelect", () => ({ DarkSelect: () => null }));
 vi.mock("@/components/CopyToClipboard", () => ({
-  CopyToClipboard: () => null,
+  CopyToClipboard: ({ textToCopy, labelText }: any) => labelText ? (
+    <button onClick={() => mocks.copy(textToCopy)}>{labelText}</button>
+  ) : null,
 }));
 vi.mock("@/hooks/useAutoHideScrollbars", () => ({
   useAutoHideScrollbars: () => ({}),
@@ -100,6 +128,7 @@ function page(query: string) {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.rpcRevision = 0;
   mocks.decode.mockResolvedValue({
     functionName: "transfer",
     signature: "transfer(address,uint256)",
@@ -119,6 +148,62 @@ beforeEach(() => {
   HTMLElement.prototype.scrollIntoView = mocks.scroll;
 });
 afterEach(cleanup);
+it("starts loading the editor while decoding is still pending", async () => {
+  let finishDecode!: (value: unknown) => void;
+  mocks.decode.mockReturnValueOnce(new Promise(resolve => { finishDecode = resolve; }));
+  render(page(`to=${address}&calldata=0xa9059cbb`));
+  fireEvent.click(screen.getByRole("button", { name: /^Decode$/ }));
+  await waitFor(() => expect(mocks.editorLoad).toHaveBeenCalled());
+  expect(mocks.decode).toHaveBeenCalled();
+  expect(screen.queryByTestId("shared-calldata-tree")).toBeNull();
+  await waitFor(() => expect(mocks.editorReady).toHaveBeenCalled(), { timeout: 5000 });
+  await act(async () => finishDecode({ functionName: "transfer", signature: "transfer(address,uint256)", args: [], rawArgs: [] }));
+  expect(await screen.findByTestId("shared-calldata-tree")).toBeTruthy();
+});
+
+it("reopens an unchanged decode synchronously without a loader or another decoding request", async () => {
+  render(page(`to=${address}&calldata=0xa9059cbb&chainId=1`));
+  fireEvent.click(screen.getByRole("button", { name: /^Decode$/ }));
+  await screen.findByTestId("shared-calldata-tree", {}, { timeout: 5000 });
+  fireEvent.click(await screen.findByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  mocks.decode.mockClear();
+  fireEvent.click(screen.getByRole("button", { name: /^Decode$/ }));
+  const dialog = within(screen.getByRole("dialog"));
+  expect(dialog.getByTestId("shared-calldata-tree")).toBeTruthy();
+  expect(dialog.queryByRole("status")).toBeNull();
+  expect(mocks.decode).not.toHaveBeenCalled();
+});
+
+it.each(["calldata", "recipient", "network", "RPC settings"])("decodes again when %s changes", async (changed) => {
+  const query = `to=${address}&calldata=0xa9059cbb&chainId=1`;
+  const ui = render(page(query));
+  fireEvent.click(screen.getByRole("button", { name: /^Decode$/ }));
+  await screen.findByTestId("shared-calldata-tree");
+  fireEvent.click(await screen.findByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  if (changed === "calldata") fireEvent.change(screen.getByLabelText("Calldata"), { target: { value: "0x095ea7b3" } });
+  if (changed === "recipient") fireEvent.change(screen.getByLabelText("To Address"), { target: { value: "0x2222222222222222222222222222222222222222" } });
+  if (changed === "network") {
+    fireEvent.click(screen.getByRole("button", { name: "Change target network" }));
+    fireEvent.change(screen.getByLabelText("Target network"), { target: { value: "8453" } });
+  }
+  if (changed === "RPC settings") { mocks.rpcRevision++; ui.rerender(page(query)); }
+  fireEvent.click(screen.getByRole("button", { name: /^Decode$/ }));
+  await screen.findByTestId("shared-calldata-tree");
+  expect(mocks.decode).toHaveBeenCalledTimes(2);
+});
+
+it("does not cache failed decodes and permits retrying the same calldata", async () => {
+  mocks.decode.mockRejectedValueOnce(new Error("Decode failed"));
+  render(page(`to=${address}&calldata=0xa9059cbb`));
+  fireEvent.click(screen.getByRole("button", { name: /^Decode$/ }));
+  expect(await screen.findByRole("alert")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  await screen.findByTestId("shared-calldata-tree");
+  expect(mocks.decode).toHaveBeenCalledTimes(2);
+});
+
 it("places Value above Calldata and previews the full transaction envelope outside the decode modal", async () => {
   render(page(`to=${address}&calldata=0xa9059cbb&chainId=8453&eth=1.25`));
   const preview = await screen.findByRole("region", { name: "Clear signing" });
@@ -147,12 +232,78 @@ it("places Value above Calldata and previews the full transaction envelope outsi
   expect(
     within(dialog).queryByRole("region", { name: "Clear signing" })
   ).toBeNull();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Copy decoded JSON" }));
+  expect(JSON.parse(mocks.copy.mock.calls.at(-1)![0])).toEqual({
+    functionName: "transfer", signature: "transfer(address,uint256)", args: [], rawArgs: [],
+  });
   expect(mocks.decode).toHaveBeenCalledWith({
     calldata: "0xa9059cbb",
     address,
     chainId: 8453,
   });
 });
+it("reuses the decoder editor in the modal and retains the transaction context in its result link", async () => {
+  const recipient = "0x2222222222222222222222222222222222222222";
+  const original = encodeFunctionData({ abi: erc20Abi, functionName: "transfer", args: [recipient, 7n] });
+  mocks.decode.mockResolvedValueOnce({
+    functionName: "transfer", signature: "transfer(address,uint256)", rawArgs: [recipient, 7n], args: [
+      { name: "recipient", type: "address", baseType: "address", rawValue: recipient, value: recipient },
+      { name: "amount", type: "uint256", baseType: "uint256", rawValue: 7n, value: "7" },
+    ],
+  });
+  render(page(`to=${address}&calldata=${original}&chainId=8453`));
+  fireEvent.click(screen.getByRole("button", { name: /^Decode$/ }));
+  const dialog = within(await screen.findByRole("dialog"));
+  const edit = await dialog.findByRole("button", { name: "Edit calldata" });
+  const copy = dialog.getByRole("button", { name: "Copy params" });
+  expect(edit.compareDocumentPosition(copy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(edit.parentElement!.parentElement!.contains(copy)).toBe(true);
+  fireEvent.click(edit);
+  expect(dialog.queryByRole("button", { name: "Copy params" })).toBeNull();
+  expect(dialog.queryByRole("button", { name: "Copy decoded JSON" })).toBeNull();
+  fireEvent.change(dialog.getByRole("textbox", { name: "args.1 amount" }), { target: { value: "42" } });
+  fireEvent.click(dialog.getByRole("button", { name: "Encode new calldata" }));
+  const encoded = encodeFunctionData({ abi: erc20Abi, functionName: "transfer", args: [recipient, 42n] });
+  expect((dialog.getByRole("textbox", { name: "Encoded calldata" }) as HTMLTextAreaElement).value).toBe(encoded);
+  const link = dialog.getByRole("link", { name: "Decode result" });
+  const url = new URL(link.getAttribute("href")!);
+  expect(url.searchParams.get("address")).toBe(address);
+  expect(url.searchParams.get("chainId")).toBe("8453");
+  expect(url.searchParams.get("calldata")).toBe(encoded);
+  expect(link.getAttribute("target")).toBe("_blank");
+  expect((screen.getByLabelText("Calldata") as HTMLTextAreaElement).value).toBe(original);
+  fireEvent.click(dialog.getByRole("button", { name: "Use new calldata" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  const updatedInput = screen.getByLabelText("Calldata") as HTMLTextAreaElement;
+  expect(updatedInput.value).toBe(encoded);
+  await waitFor(() => expect(updatedInput.getAttribute("data-calldata-updated")).toBe("true"));
+  expect(mocks.scroll.mock.contexts).toContain(updatedInput);
+  expect(mocks.scroll).toHaveBeenCalledWith({ behavior: "smooth", block: "center" });
+  await waitFor(() => expect(updatedInput.getAttribute("data-calldata-updated")).toBeNull(), { timeout: 2500 });
+  expect((screen.getByLabelText("To Address") as HTMLInputElement).value).toBe(address);
+  await waitFor(() => expect(mocks.urlUpdate.mock.lastCall?.[0].searchParams.get("calldata")).toBe(encoded));
+  expect(mocks.urlUpdate.mock.lastCall?.[0].searchParams.get("chainId")).toBe("8453");
+  expect(mocks.send).not.toHaveBeenCalled();
+});
+
+it("reuses a matching resolved recipient and resolves again when the name changes", async () => {
+  const nextAddress = "0x2222222222222222222222222222222222222222";
+  render(page("to=alice.gwei&calldata=0xa9059cbb&chainId=8453"));
+  await screen.findByRole("link", { name: "Open recipient in Contract Explorer" });
+  mocks.resolve.mockClear();
+  fireEvent.click(screen.getByRole("button", { name: /^Decode$/ }));
+  expect(await screen.findByTestId("shared-calldata-tree")).toBeTruthy();
+  expect(mocks.resolve).not.toHaveBeenCalled();
+  expect(mocks.decode.mock.lastCall?.[0]).toMatchObject({ address, chainId: 8453 });
+  fireEvent.click(await screen.findByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  mocks.resolve.mockResolvedValue(nextAddress);
+  fireEvent.change(screen.getByLabelText("To Address"), { target: { value: "bob.gwei" } });
+  fireEvent.click(screen.getByRole("button", { name: /^Decode$/ }));
+  await waitFor(() => expect(mocks.decode.mock.lastCall?.[0]).toMatchObject({ address: nextAddress, chainId: 8453 }));
+  expect(mocks.resolve).toHaveBeenCalledWith("bob.gwei");
+});
+
 it("drops stale preview immediately on recipient changes, resolves names and refreshes the value", async () => {
   render(page(`to=${address}&calldata=0xa9059cbb`));
   await screen.findByRole("region", { name: "Clear signing" });
@@ -200,6 +351,10 @@ it("switches networks on a separate click and does not silently replace the URL 
   expect(mocks.send).not.toHaveBeenCalled();
   expect(mocks.deploy).not.toHaveBeenCalled();
   expect(mocks.scroll).toHaveBeenCalled();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Dismiss transaction status" })
+  );
+  expect(screen.queryByText("Switched to Base")).toBeNull();
   mocks.accountChain = 8453;
   mocks.liveChain = 8453;
   rendered.rerender(page(`to=${address}&chainId=8453`));
@@ -239,6 +394,10 @@ it("shows pending and reverted status inline with the correct chain explorer", a
   expect(
     screen.getByRole("link", { name: /View on explorer/ }).getAttribute("href")
   ).toBe(`https://basescan.org/tx/0x${"ab".repeat(32)}`);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Dismiss transaction status" })
+  );
+  expect(screen.queryByText("Waiting for confirmation")).toBeNull();
   await act(async () => {
     finish({ status: "reverted" });
   });
@@ -412,11 +571,12 @@ it("links the recipient beside the input to the selected-chain Contract Explorer
   expect(screen.queryByRole("link", { name: "Open recipient in Contract Explorer" })).toBeNull();
 });
 
-it("passes the current envelope through both Explorer links and clears stale calldata when editing", async () => {
+it("passes the current envelope through all Explorer links and clears stale calldata when editing", async () => {
   render(page(`to=${address}&calldata=0xa9059cbb&eth=1.25&chainId=8453`));
   const recipient = screen.getByRole("link", { name: "Open recipient in Contract Explorer" });
-  const header = screen.getByRole("link", { name: /Prefer contract functions/ });
-  expect(header.getAttribute("href")).toBe(recipient.getAttribute("href"));
+  const calldataEditor = screen.getByRole("link", { name: "Edit in Contract Explorer" });
+  expect(calldataEditor.getAttribute("href")).toBe(recipient.getAttribute("href"));
+  expect(calldataEditor.getAttribute("target")).toBe("_blank");
   const url = new URL(recipient.getAttribute("href")!, "https://eth.sh");
   expect(url.pathname).toBe(`/explorer/8453/${address}`);
   const params = new URLSearchParams(url.hash.slice(1));
@@ -425,7 +585,8 @@ it("passes the current envelope through both Explorer links and clears stale cal
   expect(params.get("value")).toBe("1250000000000000000");
   fireEvent.change(screen.getByLabelText("Calldata"), { target: { value: "0xd0e30db0" } });
   expect(new URLSearchParams(new URL(recipient.getAttribute("href")!, "https://eth.sh").hash.slice(1)).get("data")).toBe("0xd0e30db0");
+  expect(calldataEditor.getAttribute("href")).toBe(recipient.getAttribute("href"));
   fireEvent.change(screen.getByLabelText("Calldata"), { target: { value: "0xnothex" } });
   expect(recipient.getAttribute("href")).toBe(`/explorer/8453/${address}`);
-  expect(header.getAttribute("href")).toBe(recipient.getAttribute("href"));
+  expect(calldataEditor.getAttribute("href")).toBe(recipient.getAttribute("href"));
 });

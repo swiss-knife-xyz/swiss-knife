@@ -15,7 +15,16 @@ import { getDisplayFunctionName } from "@/utils/functionNames";
 
 import { compactFormatSelectProps as formatSelectProps } from "./paramStyles";
 
+export interface CalldataTreeEditor {
+  reveal?: { path: string; id: string };
+  value: (arg: Arg, path: string) => React.ReactNode;
+  actions: (arg: Arg, path: string) => React.ReactNode;
+  raw: (arg: Arg, path: string) => React.ReactNode;
+  hideChildren: (path: string) => boolean;
+}
+
 interface Props {
+  editor?: CalldataTreeEditor;
   args: Arg[];
   chainId?: number;
   functionName?: string;
@@ -26,6 +35,7 @@ interface Props {
 }
 const TreeState = createContext<{
   expanded: Set<string>;
+  editor?: CalldataTreeEditor;
   toggle: (id: string) => void;
 }>({ expanded: new Set(), toggle: () => {} });
 
@@ -144,7 +154,7 @@ function Parameter({
   indexed?: boolean;
   chainId?: number;
 }) {
-  const { expanded } = useContext(TreeState);
+  const { expanded, editor } = useContext(TreeState);
   const [showRaw, setShowRaw] = useState(false);
   const children = childrenOf(arg);
   const decoded = arg.baseType.includes("bytes")
@@ -162,6 +172,8 @@ function Parameter({
     return (
       <Flex
         className="calldata-leaf"
+        data-calldata-path={id}
+        scrollMarginTop={editor ? `${(level + 1) * 28 + 12}px` : undefined}
         role="group"
         aria-label={`${name}, ${type}`}
         gap={{ base: 1, md: 3 }}
@@ -220,7 +232,8 @@ function Parameter({
           )}
         </Box>
         <Box flex="1" minW={0} className="calldata-value">
-          <ParamValue arg={arg} chainId={chainId} />
+          {editor ? editor.value(arg, id) : <ParamValue arg={arg} chainId={chainId} />}
+          {editor?.actions(arg, id)}
         </Box>
       </Flex>
     );
@@ -228,13 +241,14 @@ function Parameter({
     decoded?.functionName === "tx" && /^tx #\d+$/.test(arg.name);
   const functionName = synthetic ? undefined : functionDisplay?.name;
   return (
-    <Box mb={1} data-calldata-branch={id}>
+    <Box mb={1} data-calldata-branch={id} data-calldata-path={id}
+      scrollMarginTop={editor ? `${(level + 1) * 28 + 12}px` : undefined}>
       <BranchHeader
         id={id}
         level={level}
         label={`${name}${functionName ? `, ${functionName}` : ""}`}
         extra={
-          decoded && (
+          editor ? editor.actions(arg, id) : decoded && (
             <Button
               size="xs"
               h="22px"
@@ -320,6 +334,7 @@ function Parameter({
                 : "params"}
         </Text>
       </BranchHeader>
+      {editor?.raw(arg, id)}
       {showRaw && (
         <Box id={`raw-${id}`} pl={5} py={2} className="calldata-value">
           <TreeBytesParam
@@ -333,7 +348,7 @@ function Parameter({
         </Box>
       )}
       <Box
-        hidden={!expanded.has(id)}
+        hidden={!expanded.has(id) || editor?.hideChildren(id)}
         ml={{ base: 1, md: 2 }}
         pl={{ base: 2, md: 3 }}
         borderLeft="1px solid"
@@ -370,6 +385,7 @@ export function CalldataTree({
   showControls = true,
   kind,
   decodeNote,
+  editor,
 }: Props) {
   const hasRoot = !!functionName && functionName !== "__abi_decoded__";
   const ids = useMemo(() => {
@@ -391,6 +407,13 @@ export function CalldataTree({
     return result;
   }, [args, hasRoot]);
   const [collapsed, setCollapsed] = useState(() => new Set<string>());
+  const reveal = editor?.reveal;
+  useEffect(() => {
+    if (!reveal) return;
+    setCollapsed(previous => new Set([...previous].filter(path =>
+      path !== "root" && path !== reveal.path && !reveal.path.startsWith(`${path}.`)
+    )));
+  }, [reveal]);
   const expanded = useMemo(() => new Set(ids.filter(id => !collapsed.has(id))), [ids, collapsed]);
   useEffect(() => {
     // Drop obsolete disclosures; new branches are expanded in their first render.
@@ -401,12 +424,13 @@ export function CalldataTree({
   }, [ids]);
   const state = useMemo(() => ({
     expanded,
+    editor,
     toggle: (id: string) => setCollapsed(previous => {
       const next = new Set(previous);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     }),
-  }), [expanded]);
+  }), [expanded, editor]);
   const treeControls = showControls ? (
     <HStack spacing={1}>
       <Button

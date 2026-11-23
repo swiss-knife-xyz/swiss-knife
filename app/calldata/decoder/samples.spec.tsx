@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   tx: vi.fn(),
   receipt: vi.fn(),
   decode: vi.fn(),
+  summary: vi.fn(),
+  savedReady: false,
   events: vi.fn(),
   client: vi.fn(),
   query: "",
@@ -24,6 +26,7 @@ const mocks = vi.hoisted(() => ({
     throw new Error("Unexpected enrichment");
   }),
 }));
+vi.mock("wagmi", () => ({ useAccount: () => ({}) }));
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(mocks.query),
 }));
@@ -67,6 +70,14 @@ vi.mock("@/data/common", () => {
   };
 });
 vi.mock("@/lib/publicClient", () => ({ getPublicClient: mocks.client }));
+vi.mock("@/lib/customChains/store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/customChains/store")>()),
+  useCustomChains: () => ({ ready: mocks.savedReady, revision: 0, chains: [], error: null }),
+}));
+vi.mock("@/lib/clearSigning/resolve", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/clearSigning/resolve")>()),
+  resolveClearSigning: mocks.summary,
+}));
 vi.mock("@/lib/decoder", () => ({
   decodeRecursive: mocks.decode,
   decodeEvents: mocks.events,
@@ -80,7 +91,7 @@ vi.mock("@/utils", async (importOriginal) => ({
 vi.mock("@/utils/addressLabels", () => ({ fetchAddressLabels: mocks.lookup }));
 vi.mock("axios", () => ({ default: { get: mocks.lookup } }));
 vi.mock("@/hooks/useAddressBook", () => ({
-  useAddressBook: () => ({ getLabel: () => null, isReady: true }),
+  useAddressBook: () => ({ getLabel: () => null, isReady: true, addresses: [] }),
 }));
 vi.mock("@monaco-editor/react", () => ({ Editor: ({ value, options }: any) => <textarea aria-label={options?.ariaLabel ?? "Editor"} value={value ?? ""} readOnly={options?.readOnly} /> }));
 vi.mock("@/components/CopyToClipboard", () => ({
@@ -141,6 +152,9 @@ vi.mock("@/components/decodedParams/CalldataTree", async (importOriginal) => {
   };
 });
 import { decoderSamples } from "./samples";
+import { getExampleSnapshot } from "./exampleSnapshots";
+import { Interface } from "ethers";
+import { parseDecoderShareFragment } from "@/lib/decoderShare";
 import { CalldataDecoderPage } from "./CalldataDecoderPage";
 
 function mount() {
@@ -153,6 +167,8 @@ function mount() {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.query = "";
+  mocks.summary.mockResolvedValue(null);
+  mocks.savedReady = false;
   mocks.client.mockReturnValue({
     getTransaction: mocks.tx,
     getTransactionReceipt: mocks.receipt,
@@ -226,6 +242,110 @@ function stubReducedMotion(reduce: boolean) {
 }
 
 describe("decoder transaction examples", () => {
+  it("updates clear signing live from nested drafts and restores the saved summary on reset/cancel", async () => {
+    mocks.savedReady = true;
+    const snapshot = getExampleSnapshot(decoderSamples[1]);
+    const outer = new Interface([`function ${snapshot.result.signature}`]);
+    const multi = new Interface(["function multiSend(bytes transactions)"]);
+    mocks.summary.mockImplementation(async (request) => {
+      const data = outer.decodeFunctionData("execTransaction", request.calldata)[2];
+      const packed = multi.decodeFunctionData("multiSend", data)[0] as string;
+      return { intent: "Live draft summary", source: "builtin", fields: [
+        { label: "Supply amount", values: [{ kind: "raw", text: BigInt(`0x${packed.slice(-64)}`).toString() }] },
+      ] };
+    });
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: decoderSamples[1].label }));
+    fireEvent.click(await screen.findByRole("button", { name: "Edit calldata" }));
+    expect(mocks.summary).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Copy params" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Copy decoded JSON" })).toBeNull();
+    const amount = () => screen.getByRole("textbox", { name: "args.2.0.0.1.3.1 amount" });
+    fireEvent.change(amount(), { target: { value: "2900000000001" } });
+    expect(await screen.findByText("2900000000001")).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: "Encoded calldata" })).toBeNull();
+    const request = mocks.summary.mock.calls.at(-1)![0];
+    expect(request).toMatchObject({ ...snapshot.clearSigningRequest, calldata: expect.any(String) });
+    expect(request.calldata).not.toBe(snapshot.clearSigningRequest.calldata);
+    fireEvent.change(amount(), { target: { value: "invalid" } });
+    expect(await screen.findByText("Enter valid parameters to update the clear-signing summary.")).toBeTruthy();
+    expect(screen.queryByText("Live draft summary")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Reset changes" }));
+    expect(await screen.findByText("sign multisig operation")).toBeTruthy();
+    expect(screen.queryByText("Enter valid parameters to update the clear-signing summary.")).toBeNull();
+    fireEvent.change(amount(), { target: { value: "2900000000002" } });
+    expect(await screen.findByText("2900000000002")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel editing" }));
+    expect(await screen.findByText("sign multisig operation")).toBeTruthy();
+    expect(screen.queryByText("Live draft summary")).toBeNull();
+    expect(screen.getByRole("button", { name: "Copy params" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Copy decoded JSON" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Events (1)" })).toBeTruthy();
+  });
+
+  it("links edited Safe calldata into a new tab with its original contract and network and preserves the draft", async () => {
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: decoderSamples[1].label }));
+    fireEvent.click(await screen.findByRole("button", { name: "Edit calldata" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "args.2.0.0.1.3.1 amount" }), { target: { value: "2900000000001" } });
+    fireEvent.click(screen.getByRole("button", { name: "Encode new calldata" }));
+    const encoded = (screen.getByRole("textbox", { name: "Encoded calldata" }) as HTMLTextAreaElement).value;
+    expect(encoded).not.toBe("");
+    const link = screen.getByRole("link", { name: "Decode result" });
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toContain("noopener");
+    const url = new URL(link.getAttribute("href")!);
+    expect(url.searchParams.get("calldata")).toBe(encoded);
+    const originalRequest = getExampleSnapshot(decoderSamples[1]).clearSigningRequest;
+    expect(url.searchParams.get("address")).toBe(originalRequest.to);
+    expect(url.searchParams.get("chainId")).toBe(String(originalRequest.chainId));
+    expect(url.hash).toBe("");
+    const sendLink = screen.getByRole("link", { name: "Send Transaction" });
+    const txUrl = new URL(sendLink.getAttribute("href")!);
+    expect(txUrl.href).toContain(process.env.NEXT_PUBLIC_DEVELOPMENT === "true" ? "/tx/" : "https://tx.eth.sh/");
+    expect(txUrl.searchParams.get("to")).toBe(originalRequest.to);
+    expect(txUrl.searchParams.get("chainId")).toBe(String(originalRequest.chainId));
+    expect(txUrl.searchParams.get("calldata")).toBe(encoded);
+    expect(sendLink.getAttribute("target")).toBe("_blank");
+    expect(screen.getByRole("tab", { name: "Events (1)" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Cancel editing" })).toBeTruthy();
+    expect(mocks.decode).not.toHaveBeenCalled();
+    expect(mocks.tx).not.toHaveBeenCalled();
+    expect(mocks.receipt).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, "0x0000000000000000000000000000000000001234"])("keeps the decode source when opening edited calldata (address: %s)", async (address) => {
+    const iface = new Interface(["function set(uint256 amount)"]);
+    const calldata = iface.encodeFunctionData("set", [7]);
+    const params = new URLSearchParams({ calldata, chainId: "8453" });
+    if (address) params.set("address", address);
+    mocks.query = params.toString();
+    mocks.decode.mockResolvedValue({
+      functionName: "set", signature: "set(uint256)", rawArgs: [7n],
+      args: [{ name: "amount", type: "uint256", baseType: "uint256", rawValue: 7n, value: "7" }],
+    });
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: "Edit calldata" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "args.0 amount" }), { target: { value: "8" } });
+    fireEvent.click(screen.getByRole("button", { name: "Encode new calldata" }));
+    const link = screen.getByRole("link", { name: "Decode result" });
+    const url = new URL(link.getAttribute("href")!);
+    expect(url.searchParams.get("calldata")).toBe(iface.encodeFunctionData("set", [8]));
+    if (address) {
+      expect(url.searchParams.get("address")).toBe(address);
+      expect(url.searchParams.get("chainId")).toBe("8453");
+      expect(url.hash).toBe("");
+      const txUrl = new URL(screen.getByRole("link", { name: "Send Transaction" }).getAttribute("href")!);
+      expect(txUrl.searchParams.get("to")).toBe(address);
+      expect(txUrl.searchParams.get("chainId")).toBe("8453");
+      expect(txUrl.searchParams.get("calldata")).toBe(iface.encodeFunctionData("set", [8]));
+    } else {
+      expect(screen.queryByRole("link", { name: "Send Transaction" })).toBeNull();
+      expect(url.searchParams.has("address")).toBe(false);
+      expect(parseDecoderShareFragment(url.hash)).toEqual([expect.stringContaining("function set")]);
+    }
+  });
+
   it("scrolls a revealed saved transaction result into view with its tabs at the top, once per reveal", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const frames = stubFrames();

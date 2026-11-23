@@ -1,7 +1,7 @@
 import { Box, HStack, Textarea } from "@chakra-ui/react";
 import { InputField } from "../InputField";
 import { CopyToClipboard } from "../CopyToClipboard";
-import { compactValueFieldProps } from "./paramStyles";
+import { decodedValueFieldProps } from "./paramStyles";
 
 export function PlainStringValue({ value }: { value: string }) {
   return (
@@ -16,7 +16,7 @@ export function PlainStringValue({ value }: { value: string }) {
             />
           </HStack>
           <Textarea
-            {...compactValueFieldProps}
+            {...decodedValueFieldProps}
             h="auto"
             minH="64px"
             rows={3}
@@ -30,7 +30,7 @@ export function PlainStringValue({ value }: { value: string }) {
         </Box>
       ) : (
         <InputField
-          {...compactValueFieldProps}
+          {...decodedValueFieldProps}
           value={value}
           placeholder=""
           isReadOnly

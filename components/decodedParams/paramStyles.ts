@@ -17,3 +17,9 @@ export const compactValueFieldProps = {
   fontSize: "12px",
   fontFamily: "mono",
 } as const;
+
+export const decodedValueFieldProps = {
+  ...compactValueFieldProps,
+  // Keep native text selection and keyboard access without an editing caret.
+  style: { caretColor: "transparent" },
+} as const;

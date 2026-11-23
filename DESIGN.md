@@ -637,3 +637,66 @@
 - Raw-call loading and errors hide the existing viewer without unmounting it.
   Repeated calls preserve units, raw-byte formats and disclosure state. New tree
   branches expand immediately; existing collapsed branches retain their state.
+
+## Calldata draft editing
+
+- Scope: the existing decoder's ABI calls, recursive tuples/arrays and nested
+  calldata, including packed Safe MultiSend transactions.
+- Direction: compact, precise, familiar; essence: inspect, edit, encode.
+- Reuse the current Inter/body and mono data fonts, semantic `bg.*`, `text.*`,
+  `primary.*` and error colors, 4px spacing rhythm and Chakra control radii.
+- Signature: the same parameter tree becomes the editing surface, preserving
+  branch disclosure and ancestry. Array actions and raw-byte editing sit beside
+  their branch; one primary Encode changes action follows the tree.
+- Drafts, reset/cancel and generated output are explicit. Transaction events stay tied to the original transaction. Clear signing
+  follows valid draft calldata while retaining the transaction’s destination,
+  sender, network and native value. Invalid drafts show a status instead of an
+  outdated summary.
+- Accessibility: labelled fields and array actions, keyboard disclosure, visible
+  errors and status copy. Narrow layouts stack labels and values using the
+  existing tree's container rules; no added animation, fonts or decorative cards.
+- Audit (2026-11-23): desktop and 390px browser checks passed for nested Safe
+  editing, encoding and decoding again. Shared labels stay in the tree, with no
+  duplicate labels above inputs. Existing typography/palette retained; field
+  errors and byte-replacement behavior have UI coverage.
+
+- Draft toolbar: yellow Editing draft label inside a softly tinted yellow bordered
+  box. The blue primary Encode new calldata button sits in the center, with reset and close icons beside the
+  Reset changes / Cancel editing labels on the right. The controls stack on phones.
+
+- Encoded calldata and its copy/decode actions appear immediately below the draft
+  toolbar and above the editable parameter tree; encoding errors share that position.
+
+- Decode result uses a top-right arrow and opens a new decoder tab with the
+  generated calldata, preserving the current draft. Known contract addresses and
+  chain IDs are carried into that tab; other sources retain their ABI definitions.
+
+- Encoded results with a known contract include a centered Send Transaction ↗
+  link beneath the bytes, opening Tx with the destination, chain and calldata prefilled.
+
+- Tx decode modal reuses EditableCalldata, with Edit calldata at the far left
+  of the copy toolbar. Drafts remain isolated until Use new calldata applies the encoded bytes and
+  closes the modal; nested editing,
+  reset/cancel, encoding and new-tab result links follow the decoder’s shared UI.
+
+- Copy params and Copy decoded JSON are hidden during editing on the decoder
+  and in the Tx modal, then restored when editing ends.
+
+- Applying modal calldata waits for the modal to close, then scrolls to the Tx
+  calldata input and briefly highlights it in blue. Reduced motion uses immediate
+  scrolling and no color transition; timers are cleaned up on unmount.
+
+- Tx Decode starts loading the modal editor in parallel with decoding and reuses
+  a resolved recipient only when it still matches the current address input.
+
+- Add item reveals a new array entry after rendering, expanding collapsed
+  ancestors and keeping its header below sticky context. The shared behavior
+  applies to scalar entries and tuple rows in both decoder and Tx modal.
+
+- Tx reopens the last successful decode immediately for unchanged calldata,
+  recipient, chain and RPC settings. Changed inputs and failed decodes take the
+  normal decode path; resetting the form clears the saved result.
+
+- Tx calldata controls include Edit in Contract Explorer ↗ for a known recipient,
+  sharing the address-field link and its calldata/value import. Controls wrap on
+  narrow screens; the link opens a new tab.

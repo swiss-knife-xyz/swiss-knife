@@ -35,7 +35,12 @@ import type {
 } from "@/lib/clearSigning/applyFormat";
 
 export default function ClearSigningSummary(
-  props: ClearSigningRequest & { depth?: number }
+  props: ClearSigningRequest & {
+    depth?: number;
+    showPending?: boolean;
+    debounceMs?: number;
+    onAvailabilityChange?: (visible: boolean) => void;
+  }
 ) {
   const saved = useCustomChains();
   // Remount before painting a different payload or RPC configuration. A late
@@ -52,8 +57,17 @@ export default function ClearSigningSummary(
 function SummaryContent({
   depth = 0,
   ready,
+  showPending = false,
+  debounceMs = 0,
+  onAvailabilityChange,
   ...request
-}: ClearSigningRequest & { depth?: number; ready: boolean }) {
+}: ClearSigningRequest & {
+  depth?: number;
+  ready: boolean;
+  showPending?: boolean;
+  debounceMs?: number;
+  onAvailabilityChange?: (visible: boolean) => void;
+}) {
   const example = useContext(ExampleSnapshotContext);
   const [result, setResult] = useState<ClearSigningResult | null | undefined>(
     () => example ? example.clearSigning?.[clearSigningRequestKey(request)] ?? null : undefined
@@ -61,16 +75,30 @@ function SummaryContent({
   useEffect(() => {
     if (example || !ready || depth > 3) return;
     let cancelled = false;
-    resolveClearSigning(request)
+    const resolve = () => resolveClearSigning(request)
       .then((value) => {
         if (!cancelled) setResult(value);
       })
       .catch(() => { if (!cancelled) setResult(null); });
+    const timer = debounceMs > 0 ? setTimeout(resolve, debounceMs) : undefined;
+    if (timer === undefined) void resolve();
     return () => {
       cancelled = true;
+      if (timer !== undefined) clearTimeout(timer);
     };
   }, [ready]); // The keyed parent binds this instance to exactly one request.
 
+  useEffect(() => {
+    if (result !== undefined) onAvailabilityChange?.(!!result);
+  }, [result, onAvailabilityChange]);
+
+  if (!result && showPending && depth === 0) return (
+    <Box as="section" aria-label="Clear signing" p={4} bg="bg.subtle" border="1px solid" borderColor="border.default" borderRadius="lg" minW={0}>
+      <Text role="status" fontSize="sm" color="text.secondary">
+        {result === undefined ? "Updating clear-signing summary…" : "No clear-signing summary available for these parameters."}
+      </Text>
+    </Box>
+  );
   if (!result) return depth && (result === null || depth > 3) ? <RawCall request={request} /> : null;
   const sourceHref = result.sourcePath
     ? `https://github.com/ethereum/clear-signing-erc7730-registry/blob/master/${result.sourcePath}`

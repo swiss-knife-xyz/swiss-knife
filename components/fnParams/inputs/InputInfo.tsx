@@ -9,7 +9,7 @@ export const InputInfo = ({
   prefix?: string;
 }) => {
   return (
-    <HStack minW={0} flexWrap="wrap" columnGap={2} rowGap={0} fontSize={{ base: "sm", md: "md" }}>
+    <HStack className="fn-input-info" minW={0} flexWrap="wrap" columnGap={2} rowGap={0} fontSize={{ base: "sm", md: "md" }}>
       {prefix && <Box color="whiteAlpha.600">{prefix}</Box>}
       {input.name ? (
         <>

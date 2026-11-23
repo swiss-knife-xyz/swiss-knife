@@ -79,12 +79,13 @@ import { ContentSizedEditor } from "@/components/ContentSizedEditor";
 
 import { InputField } from "@/components/InputField";
 import { CalldataTree } from "@/components/decodedParams/CalldataTree";
+import { EditableCalldata } from "@/components/calldata/EditableCalldata";
 import { SignatureRegistryForm } from "@/components/SignatureRegistryForm";
 import { DarkButton } from "@/components/DarkButton";
 import TabsSelector from "@/components/Tabs/TabsSelector";
 
 import { CopyToClipboard } from "@/components/CopyToClipboard";
-import { createDecoderShareLink, parseDecoderShareFragment } from "@/lib/decoderShare";
+import { createDecoderResultLink, createDecoderShareLink, parseDecoderShareFragment } from "@/lib/decoderShare";
 import { decodeEvents, decodeRecursive } from "@/lib/decoder";
 import { getDisplayFunctionName } from "@/utils/functionNames";
 import { decoderSamples, decoderRevertSample } from "./samples";
@@ -533,6 +534,14 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const [decodeMode, setDecodeMode] = useQueryState("mode", parseAsString.withDefault("auto"));
   const requestId = React.useRef(0);
   const [clearSigningRequest, setClearSigningRequest] = useState<ClearSigningRequest>();
+  const [draftSummary, setDraftSummary] = useState<{
+    source: NonNullable<DecodeRecursiveResult>;
+    calldata: string | null | undefined;
+  }>();
+  const [clearSigningVisibleFor, setClearSigningVisibleFor] = useState<DecodeRecursiveResult>();
+  const updateDraftSummary = React.useCallback((source: NonNullable<DecodeRecursiveResult>, calldata: string | null | undefined) => {
+    setDraftSummary(previous => previous?.source === source && previous.calldata === calldata ? previous : { source, calldata });
+  }, []);
   const [example, setExample] = useState<{
     sample: (typeof decoderSamples)[number];
     input: string;
@@ -568,6 +577,14 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const snapshot = isPreparingExample ? undefined : selectedSnapshot;
   const result = isPreparingExample ? undefined : snapshot?.result ?? liveResult;
   const summaryRequest = snapshot?.clearSigningRequest ?? clearSigningRequest;
+  const draftCalldata = draftSummary && draftSummary.source === result ? draftSummary.calldata : undefined;
+  const hasDynamicSummary = draftCalldata !== undefined && draftCalldata !== summaryRequest?.calldata;
+  const previewSummaryRequest = summaryRequest && typeof draftCalldata === "string"
+    ? { ...summaryRequest, calldata: draftCalldata }
+    : summaryRequest;
+  const rememberSummaryVisibility = React.useCallback((visible: boolean) => {
+    if (visible) setClearSigningVisibleFor(result);
+  }, [result]);
   const decodedEvents = isPreparingExample
     ? null
     : snapshot?.events ?? liveEvents;
@@ -994,9 +1011,6 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                   Contract Address
                 </Text>
               </HStack>
-              <Text fontSize="xs" color="gray.500">
-                (accepts eth:0xabc...)
-              </Text>
             </VStack>
           </Box>
           <Box flex={1} minW="200px">
@@ -1559,57 +1573,88 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                     </Text>
                   </HStack>
                   <ClearSigningScrollArea>
-                  <ClearSigningSummary
-                    {...summaryRequest}
-                    chainId={selectedTabIndex === 0 ? metadataChainId : summaryRequest.chainId}
-                  />
+                  {draftCalldata === null ? (
+                    clearSigningVisibleFor === result && (
+                      <Box as="section" aria-label="Clear signing" p={4} bg="bg.subtle" border="1px solid" borderColor="border.default" borderRadius="lg">
+                        <Text role="status" fontSize="sm" color="text.secondary">Enter valid parameters to update the clear-signing summary.</Text>
+                      </Box>
+                    )
+                  ) : (
+                    <ExampleSnapshotContext.Provider value={hasDynamicSummary ? null : snapshot ?? null}>
+                      <ClearSigningSummary
+                        {...previewSummaryRequest!}
+                        chainId={selectedTabIndex === 0 ? metadataChainId : previewSummaryRequest!.chainId}
+                        showPending={hasDynamicSummary && clearSigningVisibleFor === result}
+                        debounceMs={hasDynamicSummary ? 150 : 0}
+                        onAvailabilityChange={rememberSummaryVisibility}
+                      />
+                    </ExampleSnapshotContext.Provider>
+                  )}
                   </ClearSigningScrollArea>
                 </Box>
               )}
               <Box minW={0}>
-                {/* Copy controls - outside the box */}
-                <HStack minH={8} mb={3} justify="space-between" flexWrap="wrap">
-                  <Text fontSize="sm" fontWeight="semibold" color="text.secondary">
-                    {result.kind === "revert" ? "Decoded revert" : "Decoded calldata"}
-                  </Text>
-                  <HStack spacing={1} flexWrap="wrap">
-                    {shareLink && !snapshot && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        color="whiteAlpha.700"
-                        _hover={{ color: "white", bg: "whiteAlpha.200" }}
-                        leftIcon={<LinkIcon boxSize={4} />}
-                        onClick={() => setShareModalLink(shareLink)}
-                      >
-                        Share decode
-                      </Button>
-                    )}
-                    <CopyToClipboard
-                      textToCopy={JSON.stringify(
-                        {
-                          [result.kind === "revert" ? "error" : "function"]: result.signature,
-                          params: JSON.parse(stringify(result.rawArgs)),
-                        },
-                        undefined,
-                        2
-                      )}
-                      labelText="Copy params"
-                    />
-                    <CopyToClipboard
-                      textToCopy={decodedJson}
-                      labelText="Copy decoded JSON"
-                    />
-                  </HStack>
-                </HStack>
                 <Box minW={0}>
-                  <CalldataTree
-                    args={result.args}
-                    kind={result.kind}
-                    decodeNote={result.decodeNote}
+                  <EditableCalldata
+                    onDraftChange={updateDraftSummary}
+                    renderToolbar={(editButton, isEditing) => (
+                      <HStack minH={8} mb={3} justify="space-between" flexWrap="wrap">
+                        <Text fontSize="sm" fontWeight="semibold" color="text.secondary">
+                          {result.kind === "revert" ? "Decoded revert" : "Decoded calldata"}
+                        </Text>
+                        <HStack spacing={1} flexWrap="wrap">
+                          {editButton}
+                          {!isEditing && shareLink && !snapshot && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              color="whiteAlpha.700"
+                              _hover={{ color: "white", bg: "whiteAlpha.200" }}
+                              leftIcon={<LinkIcon boxSize={4} />}
+                              onClick={() => setShareModalLink(shareLink)}
+                            >
+                              Share result
+                            </Button>
+                          )}
+                          {!isEditing && (
+                            <>
+                              <CopyToClipboard
+                                textToCopy={JSON.stringify(
+                                  {
+                                    [result.kind === "revert" ? "error" : "function"]: result.signature,
+                                    params: JSON.parse(stringify(result.rawArgs)),
+                                  },
+                                  undefined,
+                                  2
+                                )}
+                                labelText="Copy params"
+                              />
+                              <CopyToClipboard
+                                textToCopy={decodedJson}
+                                labelText="Copy decoded JSON"
+                              />
+                            </>
+                          )}
+                        </HStack>
+                      </HStack>
+                    )}
+                    result={result}
+                    calldata={summaryRequest?.calldata}
                     chainId={selectedTabIndex === 0 ? metadataChainId : chainId}
                     functionName={resolvedFunctionName.name ?? result.functionName}
                     isFunctionNameGuessed={resolvedFunctionName.isGuessed}
+                    getTransactionHref={summaryRequest?.to ? (encoded) => {
+                      const url = new URL(getPath(subdomains.TRANSACT.base), window.location.origin);
+                      url.searchParams.set("to", summaryRequest.to!);
+                      url.searchParams.set("chainId", String(summaryRequest.chainId ?? chainId));
+                      url.searchParams.set("calldata", encoded);
+                      return url.toString();
+                    } : undefined}
+                    getDecodeHref={(encoded, definitions) => createDecoderResultLink(
+                      new URL(`${getPath(subdomains.CALLDATA.base)}decoder`, window.location.origin).toString(),
+                      encoded, result, definitions,
+                      { address: summaryRequest?.to, chainId: summaryRequest?.chainId }
+                    )}
                   />
                 </Box>
               </Box>
@@ -1658,7 +1703,7 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
       <Modal isOpen={shareModalLink !== null} onClose={() => setShareModalLink(null)} isCentered size="lg" scrollBehavior="inside">
         <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
         <ModalContent mx={{ base: 3, sm: 4 }} maxW={{ base: "calc(100vw - 1.5rem)", sm: "lg" }} bg="bg.base" border="1px solid" borderColor="border.subtle">
-          <ModalHeader pb={2}>Share decode</ModalHeader>
+          <ModalHeader pb={2}>Share result</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={5} px={{ base: 3, sm: 6 }}>
             <Text fontSize="sm" color="text.secondary" mb={4}>

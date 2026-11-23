@@ -2,7 +2,7 @@
 
 import {
   compactFormatSelectProps,
-  compactValueFieldProps,
+  decodedValueFieldProps,
 } from "./paramStyles";
 
 import React, { useState, useMemo } from "react";
@@ -95,7 +95,7 @@ export const TreeBytesParam = ({
     <Flex gap={2} align="flex-start" width="100%">
       <Box flex="1" minW="0">
         <InputField
-          {...compactValueFieldProps}
+          {...decodedValueFieldProps}
           value={getDisplayValue()}
           placeholder=""
           isReadOnly

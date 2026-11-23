@@ -1,6 +1,6 @@
 import {
   compactFormatSelectProps,
-  compactValueFieldProps,
+  decodedValueFieldProps,
 } from "./paramStyles";
 import React, { useState } from "react";
 import {
@@ -150,7 +150,7 @@ export const UintParam = ({
               placeholder=""
               isReadOnly
               onChange={() => {}}
-              {...compactValueFieldProps}
+              {...decodedValueFieldProps}
               width="100%"
             />
           </Box>

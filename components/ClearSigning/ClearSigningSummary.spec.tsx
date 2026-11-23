@@ -187,3 +187,29 @@ it("does not reuse a cached example summary for modified calldata", async () => 
   expect(screen.queryByRole("region", { name: "Clear signing" })).toBeNull();
   expect(mocks.resolve).not.toHaveBeenCalled();
 });
+
+it("shows preview status while resolving and reports availability without retaining an older summary", async () => {
+  let finish!: (value: unknown) => void;
+  mocks.resolve.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  const availability = vi.fn();
+  render(<ChakraProvider><ClearSigningSummary calldata="0xa9059cbb" showPending onAvailabilityChange={availability} /></ChakraProvider>);
+  expect(screen.getByRole("status").textContent).toContain("Updating clear-signing summary");
+  expect(availability).not.toHaveBeenCalled();
+  await act(async () => finish(null));
+  expect(screen.getByRole("status").textContent).toBe("No clear-signing summary available for these parameters.");
+  expect(availability).toHaveBeenCalledWith(false);
+});
+
+it("coalesces rapid draft updates before resolving the latest calldata", async () => {
+  vi.useFakeTimers();
+  try {
+    const preview = (calldata: string) => <ChakraProvider><ClearSigningSummary calldata={calldata} showPending debounceMs={150} /></ChakraProvider>;
+    const ui = render(preview("0xa9059cbb"));
+    ui.rerender(preview("0x095ea7b3"));
+    expect(mocks.resolve).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(150); });
+    expect(mocks.resolve).toHaveBeenCalledTimes(1);
+    expect(mocks.resolve).toHaveBeenCalledWith({ calldata: "0x095ea7b3" });
+    expect(screen.getByText("Send tokens")).toBeTruthy();
+  } finally { vi.useRealTimers(); }
+});

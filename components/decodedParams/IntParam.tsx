@@ -6,7 +6,7 @@ import { DarkSelect, type FormatSelectProps } from "../DarkSelect";
 import { motion } from "framer-motion";
 import {
   compactFormatSelectProps,
-  compactValueFieldProps,
+  decodedValueFieldProps,
 } from "./paramStyles";
 
 interface Params {
@@ -54,7 +54,7 @@ export const IntParam = ({
     >
       <HStack className="decoded-integer" flexDirection="row" align="stretch">
         <InputField
-          {...compactValueFieldProps}
+          {...decodedValueFieldProps}
           value={convertTo(selectedEthFormatOption, value)}
           placeholder=""
           isReadOnly

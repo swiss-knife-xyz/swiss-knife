@@ -1304,8 +1304,16 @@ export async function decodeRecursive({
     // Use the provided encoded ABI (for special formats like SafeMultiSend)
     parsedTransaction = decodeWithABI({ abi: encodedAbi, calldata });
   } else if (abi) {
-    // Use the provided ABI directly
+    // Use the provided ABI directly. Nested Safe MultiSend transaction bytes
+    // have no ABI selector, even when all surrounding function ABIs are known.
     parsedTransaction = decodeWithABI({ abi, calldata });
+    if (!parsedTransaction && _depth > 0) {
+      try {
+        parsedTransaction = decodeSafeMultiSendTransactionsParam(calldata) as unknown as ParsedTransaction;
+      } catch {
+        // Keep unrecognized bytes opaque when an explicit ABI was supplied.
+      }
+    }
   } else if (address && chainId) {
     // Fetch ABI from explorers and decode
     parsedTransaction = await decodeWithAddress({
@@ -1408,6 +1416,7 @@ export async function decodeRecursive({
                 value: encodedCalldata,
                 address: to,
                 chainId,
+                abi,
                 encodedAbi,
                 _depth,
               }),
@@ -1469,6 +1478,7 @@ export async function decodeRecursive({
                 value: encodedCalldata,
                 address: to,
                 chainId,
+                abi,
                 encodedAbi,
                 _depth,
               }),

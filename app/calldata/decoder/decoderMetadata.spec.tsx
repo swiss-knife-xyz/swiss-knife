@@ -665,10 +665,10 @@ it("offers a share link for the completed result", async () => {
   const calldata = new Interface(["function transfer(address)"]).encodeFunctionData("transfer", [address]);
   mocks.query = new URLSearchParams({ calldata }).toString();
   render(page(mocks.query));
-  const share = await screen.findByRole("button", { name: "Share decode" });
+  const share = await screen.findByRole("button", { name: "Share result" });
   expect(screen.queryByRole("dialog")).toBeNull();
   fireEvent.click(share);
-  expect(await screen.findByRole("dialog", { name: "Share decode" })).toBeTruthy();
+  expect(await screen.findByRole("dialog", { name: "Share result" })).toBeTruthy();
   const input = screen.getByRole("textbox", { name: "Decode link" }) as HTMLInputElement;
   expect(input.readOnly).toBe(true);
   const link = new URL(input.value);

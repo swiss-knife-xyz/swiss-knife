@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { TransactionSummaryRail } from "@/components/ClearSigning/TransactionSummaryRail";
 import { createContractCallLink } from "@/lib/contractCall";
 import { transactionExamples } from "./examples";
+import type { DecodeRecursiveResult } from "@/types";
 import type { ClearSigningRequest } from "@/lib/clearSigning/resolve";
 import { ToolLoading } from "@/components/ToolLoading";
 
@@ -40,7 +41,7 @@ import {
   Icon,
 } from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { FiSend, FiUser, FiCode, FiDollarSign, FiGlobe, FiEdit2, FiX } from "react-icons/fi";
+import { FiSend, FiUser, FiCode, FiDollarSign, FiGlobe, FiEdit2, FiX, FiArrowUpRight } from "react-icons/fi";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import {
   parseEther,
@@ -73,9 +74,16 @@ import { useCustomChains } from "@/lib/customChains/store";
 import { decodeRecursive } from "@/lib/decoder";
 import { useAutoHideScrollbars } from "@/hooks/useAutoHideScrollbars";
 import { DecodedCalldataSkeleton } from "@/components/decodedParams/DecodedCalldataSkeleton";
-import { CalldataTree } from "@/components/decodedParams/CalldataTree";
+import { createDecoderResultLink } from "@/lib/decoderShare";
 import { config } from "@/app/providers";
 import { getDisplayFunctionName } from "@/utils/functionNames";
+
+const loadEditableCalldata = () => import("@/components/calldata/EditableCalldata")
+  .then(module => ({ default: module.EditableCalldata }));
+const EditableCalldata = dynamic(
+  loadEditableCalldata,
+  { ssr: false, loading: () => <DecodedCalldataSkeleton /> }
+);
 
 const ClearSigningSummary = dynamic(
   () => import("@/components/ClearSigning/ClearSigningSummary"),
@@ -83,7 +91,7 @@ const ClearSigningSummary = dynamic(
 );
 
 function SendTxContent() {
-  useCustomChains();
+  const savedChains = useCustomChains();
   const scrollbars = useAutoHideScrollbars();
   const { data: walletClient } = useWalletClient();
   const { chain, address: connectedAddress } = useAccount();
@@ -153,9 +161,32 @@ function SendTxContent() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [isDecodeModalOpen, setIsDecodeModalOpen] = useState(false);
+  const calldataInputRef = useRef<HTMLTextAreaElement>(null);
+  const pendingCalldataReveal = useRef(false);
+  const calldataRevealFrame = useRef<number | undefined>(undefined);
+  const calldataHighlightTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [isCalldataHighlighted, setCalldataHighlighted] = useState(false);
+  useEffect(() => () => {
+    if (calldataRevealFrame.current !== undefined) cancelAnimationFrame(calldataRevealFrame.current);
+    if (calldataHighlightTimer.current !== undefined) clearTimeout(calldataHighlightTimer.current);
+  }, []);
+  const revealUpdatedCalldata = () => {
+    if (!pendingCalldataReveal.current) return;
+    pendingCalldataReveal.current = false;
+    calldataRevealFrame.current = requestAnimationFrame(() => {
+      const input = calldataInputRef.current;
+      if (!input) return;
+      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      input.scrollIntoView?.({ behavior: reduced ? "auto" : "smooth", block: "center" });
+      setCalldataHighlighted(true);
+      if (calldataHighlightTimer.current !== undefined) clearTimeout(calldataHighlightTimer.current);
+      calldataHighlightTimer.current = setTimeout(() => setCalldataHighlighted(false), 1400);
+    });
+  };
   const [isDecoding, setIsDecoding] = useState(false);
   const [decodeError, setDecodeError] = useState<string>();
   const [decoded, setDecoded] = useState<any>();
+  const [decodedRequest, setDecodedRequest] = useState<ClearSigningRequest>();
   const decodedFunctionName = useMemo(
     () =>
       getDisplayFunctionName(
@@ -283,6 +314,11 @@ function SendTxContent() {
   }, [calldata, recipientAddress, chainId, connectedAddress, ethValue]);
 
   const decodeRequestId = useRef(0);
+  const lastSuccessfulDecode = useRef<{
+    key: string;
+    result: NonNullable<DecodeRecursiveResult>;
+    request: ClearSigningRequest;
+  } | undefined>(undefined);
   useEffect(() => {
     decodeRequestId.current++;
     setDecoded(undefined);
@@ -459,18 +495,26 @@ function SendTxContent() {
   };
 
   const decode = useCallback(async () => {
+    // Start the editor chunk while recipient/ABI/nested decoding is in flight.
+    void loadEditableCalldata().catch(() => {});
     const requestId = ++decodeRequestId.current;
+    const key = JSON.stringify([calldata, to, chainId, savedChains.ready, savedChains.revision]);
+    const cached = lastSuccessfulDecode.current;
     setIsDecodeModalOpen(true);
+    if (cached?.key === key && (!recipientAddress || cached.request.to?.toLowerCase() === recipientAddress.toLowerCase())) {
+      setDecodedRequest(cached.request);
+      setDecoded(cached.result);
+      setDecodeError(undefined);
+      setIsDecoding(false);
+      return;
+    }
     setIsDecoding(true);
     setDecoded(undefined);
     setDecodeError(undefined);
     console.log("DECODING...");
     try {
-      const address = to
-        ? isAddress(to)
-          ? to
-          : await resolveNameToAddress(to)
-        : undefined;
+      // recipientAddress already rejects resolutions belonging to an older input.
+      const address = recipientAddress || (to ? await resolveNameToAddress(to) : undefined);
       if (requestId !== decodeRequestId.current) return;
       if (to && !address)
         throw new Error("Unable to resolve the recipient address");
@@ -481,11 +525,13 @@ function SendTxContent() {
       });
       if (requestId !== decodeRequestId.current) return;
       console.log({ DECODED_RESULT: res });
-      setDecoded(res);
-
       if (res === null) {
         throw new Error("Unable to decode this calldata");
       }
+      const request = { calldata: startHexWith0x(calldata), to: address || undefined, chainId };
+      lastSuccessfulDecode.current = { key, result: res, request };
+      setDecodedRequest(request);
+      setDecoded(res);
     } catch (e: any) {
       if (requestId !== decodeRequestId.current) return;
       console.log("Error Decoding");
@@ -493,7 +539,7 @@ function SendTxContent() {
     } finally {
       if (requestId === decodeRequestId.current) setIsDecoding(false);
     }
-  }, [calldata, to, chainId]);
+  }, [calldata, to, chainId, recipientAddress, savedChains.ready, savedChains.revision]);
 
   return (
     <Box
@@ -568,6 +614,7 @@ function SendTxContent() {
                   setStatus(null);
                   setSummaryPreview(null);
                   decodeRequestId.current++;
+                  lastSuccessfulDecode.current = undefined;
                   setIsDecodeModalOpen(false);
                   setIsDecoding(false);
                   setDecoded(undefined);
@@ -581,18 +628,6 @@ function SendTxContent() {
           <Text color="text.secondary" fontSize="md">
             Send calldata or deploy a contract.
           </Text>
-          <Link
-            href={explorerHref}
-            color="text.tertiary"
-            fontSize="xs"
-            display="inline-flex"
-            alignItems="center"
-            gap={1.5}
-            mt={2}
-            _hover={{ color: "text.primary" }}
-          >
-            Prefer contract functions? Open Explorer <ExternalLinkIcon boxSize={3} />
-          </Link>
           <HStack justify="center" spacing={2} mt={5} flexWrap="wrap" rowGap={2}>
             <Text fontSize="xs" color="text.tertiary">Example</Text>
             {transactionExamples.map((example) => (
@@ -837,13 +872,29 @@ function SendTxContent() {
           {/* Calldata Section */}
           <Box w="full" minW={0}>
             <VStack spacing={4} align="stretch" minW={0}>
-              <HStack spacing={2} align="center" minH={8}>
+              <HStack spacing={2} align="center" minH={8} flexWrap="wrap">
                 <Icon as={FiCode} color="blue.400" boxSize={5} />
                 <Text color="gray.300" fontWeight="medium">
                   Calldata
                 </Text>
                 <Spacer />
-                <HStack spacing={2}>
+                <HStack spacing={2} flexWrap="wrap" justify="flex-end" minW={0} flex={{ base: "1 1 100%", md: "0 1 auto" }}>
+                  {recipientAddress && (
+                    <Tooltip label="Open Contract Explorer with this calldata decoded into editable parameters.">
+                      <Button
+                        as="a"
+                        href={explorerHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        size="sm"
+                        variant="ghost"
+                        color="primary.300"
+                        rightIcon={<Icon as={FiArrowUpRight} boxSize={4} aria-hidden="true" />}
+                      >
+                        Edit in Contract Explorer
+                      </Button>
+                    </Tooltip>
+                  )}
                   <Button
                     size="sm"
                     colorScheme="blue"
@@ -857,6 +908,8 @@ function SendTxContent() {
                 </HStack>
               </HStack>
               <Textarea
+                ref={calldataInputRef}
+                data-calldata-updated={isCalldataHighlighted ? "true" : undefined}
                 aria-label="Calldata"
                 placeholder="Enter calldata (hex)"
                 value={calldata}
@@ -865,13 +918,16 @@ function SendTxContent() {
                 }}
                 spellCheck={false}
                 data-gramm="false"
-                minH="280px"
+                minH="100px"
                 borderRadius="lg"
                 resize="vertical"
-                bg="whiteAlpha.50"
+                bg={isCalldataHighlighted ? "blue.900" : "whiteAlpha.50"}
                 border="1px solid"
-                borderColor="whiteAlpha.200"
-                _hover={{ borderColor: "whiteAlpha.300" }}
+                borderColor={isCalldataHighlighted ? "blue.400" : "whiteAlpha.200"}
+                _hover={{ borderColor: isCalldataHighlighted ? "blue.300" : "whiteAlpha.300" }}
+                boxShadow={isCalldataHighlighted ? "0 0 0 2px var(--chakra-colors-blue-400)" : "none"}
+                transition="background-color 0.2s, border-color 0.2s, box-shadow 0.2s"
+                sx={{ "@media (prefers-reduced-motion: reduce)": { transition: "none" } }}
                 _focus={{
                   borderColor: "blue.400",
                   boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)",
@@ -888,6 +944,7 @@ function SendTxContent() {
           <Modal
             isOpen={isDecodeModalOpen}
             onClose={() => setIsDecodeModalOpen(false)}
+            onCloseComplete={revealUpdatedCalldata}
             isCentered
             scrollBehavior="inside"
           >
@@ -920,31 +977,37 @@ function SendTxContent() {
                     </Button>
                   </VStack>
                 ) : decoded ? (
-                  <Box>
-                    <HStack mb={2} justify="flex-end">
-                      <CopyToClipboard
-                        textToCopy={JSON.stringify(
-                          {
-                            function: decoded.signature,
-                            params: JSON.parse(stringify(decoded.rawArgs)),
-                          },
-                          undefined,
-                          2
-                        )}
-                        labelText="Copy params"
-                      />
-                    </HStack>
-                    <Box minW={0}>
-                      <CalldataTree
-                        args={decoded.args}
-                        chainId={chainId}
-                        functionName={
-                          decodedFunctionName.name ?? decoded.functionName
-                        }
-                        isFunctionNameGuessed={decodedFunctionName.isGuessed}
-                      />
-                    </Box>
-                  </Box>
+                  <Suspense fallback={<DecodedCalldataSkeleton />}>
+                    <EditableCalldata
+                      result={decoded}
+                      onUseCalldata={(encoded) => {
+                        pendingCalldataReveal.current = true;
+                        setCalldata(encoded);
+                        setIsDecodeModalOpen(false);
+                      }}
+                      calldata={decodedRequest?.calldata}
+                      chainId={decodedRequest?.chainId ?? chainId}
+                      functionName={decodedFunctionName.name ?? decoded.functionName}
+                      isFunctionNameGuessed={decodedFunctionName.isGuessed}
+                      renderToolbar={(editButton, isEditing) => isEditing ? null : (
+                        <HStack mb={2} justify="space-between" flexWrap="wrap">
+                          <Box>{editButton}</Box>
+                          <HStack flexWrap="wrap">
+                            <CopyToClipboard
+                              textToCopy={JSON.stringify({ function: decoded.signature, params: JSON.parse(stringify(decoded.rawArgs)) }, undefined, 2)}
+                              labelText="Copy params"
+                            />
+                            <CopyToClipboard textToCopy={stringify(decoded, undefined, 2)} labelText="Copy decoded JSON" />
+                          </HStack>
+                        </HStack>
+                      )}
+                      getDecodeHref={(encoded, definitions) => createDecoderResultLink(
+                        new URL(`${getPath(subdomains.CALLDATA.base)}decoder`, window.location.origin).toString(),
+                        encoded, decoded, definitions,
+                        { address: decodedRequest?.to, chainId: decodedRequest?.chainId }
+                      )}
+                    />
+                  </Suspense>
                 ) : null}
               </ModalBody>
             </ModalContent>
@@ -1012,6 +1075,7 @@ function SendTxContent() {
               ref={statusRef}
               role="status"
               aria-live="polite"
+              position="relative"
               w="full"
               p={4}
               bg="bg.subtle"
@@ -1020,7 +1084,17 @@ function SendTxContent() {
               borderRadius="lg"
               scrollMarginBottom={6}
             >
-              <HStack align="start" spacing={3}>
+              <IconButton
+                aria-label="Dismiss transaction status"
+                icon={<FiX />}
+                variant="ghost"
+                size="sm"
+                position="absolute"
+                top={2}
+                right={2}
+                onClick={() => setStatus(null)}
+              />
+              <HStack align="start" spacing={3} pr={8}>
                 {["wallet", "pending", "network"].includes(status.phase) && (
                   <Spinner size="sm" mt={1} color="text.secondary" />
                 )}
