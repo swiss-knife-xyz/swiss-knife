@@ -1,3 +1,4 @@
+import { browserDatabase } from "@/lib/browser/database";
 import {
   mergeVerificationProgress,
   type DeploymentVerifications,
@@ -67,47 +68,16 @@ export type DeploymentPatch = Pick<DeploymentRecord, "status"> &
   Partial<
     Pick<DeploymentRecord, "hash" | "address" | "error" | "verification">
   >;
-let database: Promise<IDBDatabase> | undefined;
-function openDatabase() {
-  if (!database) {
-    database = new Promise((resolve, reject) => {
-      const request = indexedDB.open("ethsh-solidity-deployments", 1);
-      let blocked = false;
-      request.onupgradeneeded = () => {
-        request.result.createObjectStore("builds", { keyPath: "id" });
-        request.result
-          .createObjectStore("deployments", { keyPath: "id" })
-          .createIndex("workspaceId", "workspaceId");
-      };
-      request.onerror = () => {
-        database = undefined;
-        reject(request.error);
-      };
-      request.onblocked = () => {
-        blocked = true;
-        database = undefined;
-        reject(
-          new Error(
-            "Close other Solidity tabs and retry saving deployment history."
-          )
-        );
-      };
-      request.onsuccess = () => {
-        const db = request.result;
-        if (blocked) {
-          db.close();
-          return;
-        }
-        db.onversionchange = () => {
-          db.close();
-          database = undefined;
-        };
-        resolve(db);
-      };
-    });
-  }
-  return database;
-}
+const openDatabase = browserDatabase(
+  "ethsh-solidity-deployments",
+  1,
+  (db) => {
+    db.createObjectStore("builds", { keyPath: "id" });
+    db.createObjectStore("deployments", { keyPath: "id" })
+      .createIndex("workspaceId", "workspaceId");
+  },
+  "Close other Solidity tabs and retry saving deployment history."
+);
 export async function prepareDeployment(
   draft: DeploymentDraft
 ): Promise<DeploymentRecord> {

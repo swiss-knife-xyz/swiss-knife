@@ -2,6 +2,8 @@
 
 import React, {
   createContext,
+  memo,
+  startTransition,
   forwardRef,
   useCallback,
   useContext,
@@ -69,6 +71,8 @@ type Tab = AddressTab | StartTab;
 type TabContext = {
   chainId: number;
   initial: boolean;
+  isResolvingAddress?: boolean;
+  onCacheReady?: () => void;
   openAddress: (address: string, chainId: number, displayName?: string) => void;
   setName: (name: string) => void;
 };
@@ -131,6 +135,7 @@ function AddressPanel({
   onChainChange: (chainId: number) => void;
 }) {
   useCustomChains();
+  const context = useContractTab();
   const rpcKey = getRpcUrlsForChain(tab.chainId).join("|");
   const [kind, setKind] = useState<
     "loading" | "contract" | "address" | "error"
@@ -154,15 +159,9 @@ function AddressPanel({
       active = false;
     };
   }, [tab.address, tab.chainId, tab.initial, tab.checkCode, revision, rpcKey]);
-  if (kind === "loading")
-    return (
-      <HStack role="status" py={6}>
-        <Spinner size="sm" />
-        <Text fontSize="sm" color="text.secondary">
-          Loading address…
-        </Text>
-      </HStack>
-    );
+  useEffect(() => {
+    if (kind === "address" || kind === "error") context?.onCacheReady?.();
+  }, [kind, context?.onCacheReady]);
   if (kind === "error")
     return (
       <VStack align="start" py={6} spacing={3}>
@@ -174,8 +173,13 @@ function AddressPanel({
         </Button>
       </VStack>
     );
-  return kind === "contract" ? (
-    renderContract(tab)
+  return kind === "contract" || kind === "loading" ? (
+    <ContractTabContext.Provider value={context ? {
+      ...context,
+      isResolvingAddress: kind === "loading",
+    } : null}>
+      {renderContract(tab)}
+    </ContractTabContext.Provider>
   ) : (
     <AddressExplorer
       address={tab.address}
@@ -185,9 +189,11 @@ function AddressPanel({
   );
 }
 
-function TabPanel({
+const TabPanel = memo(function TabPanel({
   tab,
   active,
+  preload,
+  onReady,
   openAddress,
   onName,
   onStartOpen,
@@ -195,11 +201,23 @@ function TabPanel({
 }: {
   tab: Tab;
   active: boolean;
+  preload: boolean;
+  onReady: (id: string, ready: boolean) => void;
   openAddress: TabContext["openAddress"];
   onName: (id: string, name: string) => void;
   onStartOpen: (id: string, address: string, chainId: number) => void;
   renderContract: (params: ContractTabAddress) => ReactNode;
 }) {
+  // Mount background panels incrementally, and preserve them after loading.
+  const [hasOpened, setHasOpened] = useState(active);
+  useEffect(() => {
+    if (active || preload) setHasOpened(true);
+  }, [active, preload]);
+  const onCacheReady = useCallback(() => onReady(tab.id, true), [onReady, tab.id]);
+  useEffect(() => {
+    if (tab.kind === "new" && (active || preload || hasOpened)) onCacheReady();
+  }, [tab.kind, active, preload, hasOpened, onCacheReady]);
+  useEffect(() => () => onReady(tab.id, false), [onReady, tab.id]);
   const setName = useCallback(
     (name: string) => onName(tab.id, name),
     [onName, tab.id]
@@ -210,8 +228,9 @@ function TabPanel({
       initial: Boolean(tab.initial),
       openAddress,
       setName,
+      onCacheReady,
     }),
-    [tab.chainId, tab.initial, openAddress, setName]
+    [tab.chainId, tab.initial, openAddress, setName, onCacheReady]
   );
   return (
     <Box
@@ -222,7 +241,7 @@ function TabPanel({
       hidden={!active}
       minW={0}
     >
-      <ContractTabContext.Provider value={context}>
+      {(active || preload || hasOpened) && <ContractTabContext.Provider value={context}>
         {tab.kind === "new" ? (
           <ContractStart
             embedded
@@ -238,10 +257,10 @@ function TabPanel({
             }
           />
         )}
-      </ContractTabContext.Provider>
+      </ContractTabContext.Provider>}
     </Box>
   );
-}
+});
 
 export function ContractTabs({
   initial,
@@ -259,6 +278,34 @@ export function ContractTabs({
   const [tabs, setTabs] = useState<Tab[]>(() => [initialTab]);
   const [active, setActive] = useState(initialTab.id);
   const [storageReady, setStorageReady] = useState(false);
+  const [readyTabs, setReadyTabs] = useState<Set<string>>(() => new Set());
+  const [backgroundTabs, setBackgroundTabs] = useState<Set<string>>(() => new Set());
+  const onPanelReady = useCallback((id: string, ready: boolean) => {
+    setReadyTabs(previous => {
+      if (previous.has(id) === ready) return previous;
+      const next = new Set(previous);
+      if (ready) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+  useEffect(() => {
+    // Give the selected contract's cache restoration and paint priority.
+    if (!storageReady || !readyTabs.has(active)) return;
+    // Wait for each background cache lookup before starting another panel.
+    if (tabs.some(tab => backgroundTabs.has(tab.id) && !readyTabs.has(tab.id))) return;
+    const next = tabs.find(tab => tab.kind !== "new" && tab.id !== active && !readyTabs.has(tab.id) && !backgroundTabs.has(tab.id));
+    if (!next) return;
+    const preload = () => startTransition(() => {
+      setBackgroundTabs(previous => new Set(previous).add(next.id));
+    });
+    if (typeof window.requestIdleCallback === "function") {
+      const idle = window.requestIdleCallback(preload, { timeout: 1000 });
+      return () => window.cancelIdleCallback(idle);
+    }
+    const timer = window.setTimeout(preload, 0);
+    return () => window.clearTimeout(timer);
+  }, [active, tabs, storageReady, readyTabs, backgroundTabs]);
   const replaceNextUrl = useRef(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const nextTab = useRef(initial ? 0 : 1);
@@ -332,10 +379,14 @@ export function ContractTabs({
         }
         if (restored.length > 1) {
           if (initial && !seen.has(initialTab.id)) restored.push(initialTab);
-          const selected = initial
-            ? initialTab.id
-            : (restored.find((tab) => tab.id === saved.active)?.id ??
-              restored[0].id);
+          // Visiting the explorer home means starting another lookup. Keep the
+          // saved contracts, but select an existing blank tab or create one.
+          const blank = !initial
+            ? (restored.find((tab) => tab.kind === "new" && tab.id === saved.active) ??
+              restored.find((tab) => tab.kind === "new"))
+            : undefined;
+          if (!initial && !blank) restored.push(initialTab);
+          const selected = initial ? initialTab.id : (blank?.id ?? initialTab.id);
           replaceNextUrl.current = selected !== initialTab.id;
           activeRef.current = selected;
           setTabs(restored);
@@ -770,6 +821,8 @@ export function ContractTabs({
             key={tab.id}
             tab={tab}
             active={tab.id === active}
+            preload={backgroundTabs.has(tab.id)}
+            onReady={onPanelReady}
             openAddress={openAddress}
             onName={onName}
             onStartOpen={onStartOpen}

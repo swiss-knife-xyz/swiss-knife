@@ -1,6 +1,7 @@
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -10,12 +11,22 @@ import {
 import { ChakraProvider } from "@chakra-ui/react";
 import { ContractPage } from "./[chainId]/[address]/ContractPage";
 
-const { fetchAbi, detectProxy, processCode, sourceCode, client } = vi.hoisted(() => ({
+const { readVerifiedCache, readCache, writeCache, clearCache, fetchAbi, detectProxy, processCode, sourceCode, client } = vi.hoisted(() => ({
+  readVerifiedCache: vi.fn(),
+  readCache: vi.fn(),
+  writeCache: vi.fn(),
+  clearCache: vi.fn(),
   fetchAbi: vi.fn(),
   sourceCode: vi.fn(async () => undefined),
   detectProxy: vi.fn(),
   processCode: vi.fn(),
   client: { getCode: vi.fn() },
+}));
+vi.mock("@/lib/contractMetadataCache", () => ({
+  readVerifiedContractMetadata: readVerifiedCache,
+  readDecompiledContractAbi: readCache,
+  cacheDecompiledContractAbi: writeCache,
+  clearDecompiledContractAbi: clearCache,
 }));
 const router = { push: vi.fn() };
 vi.mock("@/hooks/useTopLoaderRouter", () => ({
@@ -119,6 +130,10 @@ async function inferred(value: boolean) {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  readVerifiedCache.mockReset().mockResolvedValue(undefined);
+  readCache.mockReset().mockResolvedValue(undefined);
+  writeCache.mockReset().mockResolvedValue(undefined);
+  clearCache.mockReset().mockResolvedValue(undefined);
   fetchAbi.mockReset();
   detectProxy.mockReset();
   processCode.mockReset();
@@ -428,4 +443,115 @@ it("does not infer functions from an empty or chained delegation target", async 
   await screen.findByText(/Unable to fetch ABI for this address/);
   expect(processCode).not.toHaveBeenCalled();
   expect(detectProxy).not.toHaveBeenCalled();
+});
+
+it("renders cached inferred functions while RPC and verification are pending, then replaces them with verified functions", async () => {
+  readCache.mockResolvedValue({ abi, name: "Cached", isDecoded: true });
+  let resolveCode!: (code: string) => void;
+  client.getCode.mockImplementationOnce(() => new Promise(resolve => { resolveCode = resolve; }));
+  let resolveVerified!: (value: unknown) => void;
+  fetchAbi.mockImplementationOnce(() => new Promise(resolve => { resolveVerified = resolve; }));
+  render(page());
+  await inferred(true);
+  expect(fetchAbi).not.toHaveBeenCalled();
+  expect(screen.queryByRole("status", { name: "Loading contract functions" })).toBeNull();
+  await act(async () => resolveCode("0x6000"));
+  await waitFor(() => expect(fetchAbi).toHaveBeenCalledTimes(1));
+  await inferred(true);
+  await act(async () => resolveVerified({ abi: [{ ...abi[0], name: "verifiedFunction" }], name: "Verified" }));
+  await inferred(false);
+  expect(screen.getByTestId("function-provenance").textContent).toBe("verifiedFunction");
+  expect(screen.queryByText(/This contract isn’t verified/i)).toBeNull();
+  expect(processCode).not.toHaveBeenCalled();
+});
+
+it("rechecks verification but reuses an inferred regular ABI without decompiling again", async () => {
+  readCache.mockResolvedValue({ abi, name: "Cached", isDecoded: true });
+  fetchAbi.mockRejectedValue(new Error("Not verified"));
+  render(page());
+  await inferred(true);
+  await waitFor(() => expect(detectProxy).toHaveBeenCalled());
+  expect(fetchAbi).toHaveBeenCalledTimes(1);
+  expect(processCode).not.toHaveBeenCalled();
+  expect(writeCache).not.toHaveBeenCalled();
+});
+
+it("persists a newly reconstructed regular ABI with inferred provenance", async () => {
+  fetchAbi.mockRejectedValue(new Error("Not verified"));
+  render(page());
+  await inferred(true);
+  await waitFor(() => expect(writeCache).toHaveBeenCalledWith(1, address, { abi, name: address, isDecoded: true }));
+});
+
+it("does not persist reconstructed proxies or delegated accounts", async () => {
+  fetchAbi.mockRejectedValue(new Error("Not verified"));
+  detectProxy.mockResolvedValue({ implementationAddress, proxyName: "Proxy" });
+  render(page());
+  await inferred(true);
+  expect(writeCache).not.toHaveBeenCalled();
+  expect(clearCache).toHaveBeenCalledWith(1, address);
+});
+
+it("prefers the current on-chain implementation over lagging explorer metadata", async () => {
+  const latestAddress = "0x0000000000000000000000000000000000000003";
+  fetchAbi.mockResolvedValueOnce({ abi, name: "Proxy", implementation: { address: implementationAddress, abi, name: "Old" } })
+    .mockResolvedValueOnce({ abi: [{ ...abi[0], name: "latestFunction" }], name: "Latest" });
+  detectProxy.mockResolvedValue({ implementationAddress: latestAddress, proxyName: "Proxy" });
+  render(page());
+  await inferred(false);
+  expect(screen.getByTestId("function-provenance").textContent).toBe("latestFunction");
+  expect(fetchAbi).toHaveBeenLastCalledWith({ chainId: 1, address: latestAddress });
+  expect(writeCache).not.toHaveBeenCalled();
+});
+
+it("renders permanently cached verified functions before RPC responds", async () => {
+  readVerifiedCache.mockResolvedValue({ status: "1", result: [{ ABI: JSON.stringify(abi), ContractName: "Verified", SourceCode: "contract Verified {}", Implementation: "" }] });
+  client.getCode.mockImplementationOnce(() => new Promise(() => {}));
+  render(page());
+  await inferred(false);
+  expect(fetchAbi).not.toHaveBeenCalled();
+  expect(screen.queryByRole("status", { name: "Loading contract functions" })).toBeNull();
+});
+
+it("keeps cached inferred functions available if the refresh fails", async () => {
+  readCache.mockResolvedValue({ abi, name: "Cached", isDecoded: true });
+  fetchAbi.mockRejectedValue(new Error("Offline"));
+  detectProxy.mockRejectedValue(new Error("RPC unavailable"));
+  render(page());
+  await inferred(true);
+  await waitFor(() => expect(detectProxy).toHaveBeenCalled());
+  expect(processCode).not.toHaveBeenCalled();
+  expect(screen.queryByRole("status", { name: "Loading contract functions" })).toBeNull();
+});
+
+it("does not cache a delegated account's reconstructed functions", async () => {
+  client.getCode.mockResolvedValueOnce(`0xef0100${implementationAddress.slice(2)}`);
+  fetchAbi.mockRejectedValue(new Error("Not verified"));
+  render(page());
+  await inferred(true);
+  expect(writeCache).not.toHaveBeenCalled();
+  expect(clearCache).toHaveBeenCalledWith(1, address);
+});
+
+it("does not flash the function skeleton before a verified cache hit is restored", async () => {
+  let finishCache!: (value: unknown) => void;
+  readVerifiedCache.mockImplementationOnce(() => new Promise(resolve => { finishCache = resolve; }));
+  client.getCode.mockImplementationOnce(() => new Promise(() => {}));
+  render(page());
+  expect(screen.getByRole("textbox", { name: "Contract Address" })).toBeTruthy();
+  expect(screen.queryByRole("status", { name: "Loading contract functions" })).toBeNull();
+  await act(async () => finishCache({ status: "1", result: [{ ABI: JSON.stringify(abi), ContractName: "Cached", SourceCode: "contract Cached {}", Implementation: "" }] }));
+  await inferred(false);
+  expect(screen.queryByRole("status", { name: "Loading contract functions" })).toBeNull();
+});
+
+it("shows the existing function skeleton after a cache miss while RPC is pending", async () => {
+  let finishCache!: (value: unknown) => void;
+  readVerifiedCache.mockImplementationOnce(() => new Promise(resolve => { finishCache = resolve; }));
+  client.getCode.mockImplementationOnce(() => new Promise(() => {}));
+  render(page());
+  expect(screen.queryByRole("status", { name: "Loading contract functions" })).toBeNull();
+  await act(async () => finishCache(undefined));
+  expect(await screen.findByRole("status", { name: "Loading contract functions" })).toBeTruthy();
+  expect(screen.getByRole("textbox", { name: "Contract Address" })).toBeTruthy();
 });

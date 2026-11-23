@@ -18,6 +18,7 @@
     "test:contract-abi": "vitest run --config vitest.contract-abi.config.ts",
     "test:contract": "vitest run --config vitest.contract.config.ts",
     "test:contract-explorer": "vitest run --config vitest.contract-explorer.config.ts",
+    "test:contract-cache": "vitest run --config vitest.contract-cache.config.ts",
     "test:contract-load": "vitest run --config vitest.contract-load.config.ts",
     "start": "next start",
     "lint": "next lint",

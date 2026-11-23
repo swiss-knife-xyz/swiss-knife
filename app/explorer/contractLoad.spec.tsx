@@ -417,3 +417,32 @@ it("keeps known implementation details above the function skeleton while its ABI
   await waitFor(() => expect(screen.queryByRole("status", { name: "Loading contract functions" })).toBeNull());
   expect(screen.getByText("EIP-7702 delegated implementation:")).toBeTruthy();
 });
+
+
+it("keeps the address form mounted through restored-tab code classification and ABI loading", async () => {
+  localStorage.setItem("contract-explorer-tabs", JSON.stringify({
+    version: 1, active: `1:${address}`,
+    tabs: [{ address, chainId: 1 }, { id: "new:2", kind: "new", chainId: 1 }],
+  }));
+  let finishCode!: (value: string) => void;
+  const code = new Promise<string>(resolve => { finishCode = resolve; });
+  getClient.mockReturnValue({ getCode: vi.fn(() => code) });
+  let finishAbi!: (value: any) => void;
+  fetchAbi.mockImplementationOnce(() => new Promise(resolve => { finishAbi = resolve; }));
+  render(page());
+  const input = screen.getByRole("textbox", { name: "Contract Address" });
+  expect((input as HTMLInputElement).value).toBe(address);
+  await screen.findByRole("status", { name: "Loading contract functions" });
+  expect(screen.queryByText("Loading address…")).toBeNull();
+  expect(screen.getByRole("textbox", { name: "Contract Address" })).toBe(input);
+  fireEvent.change(input, { target: { value: draft } });
+  await act(async () => finishCode("0x6000"));
+  await waitFor(() => expect(fetchAbi).toHaveBeenCalledTimes(1));
+  expect(screen.getByRole("textbox", { name: "Contract Address" })).toBe(input);
+  expect((input as HTMLInputElement).value).toBe(draft);
+  expect(screen.getByRole("status", { name: "Loading contract functions" })).toBeTruthy();
+  await act(async () => finishAbi({ abi: [], name: "Loaded contract" }));
+  await waitFor(() => expect(screen.queryByRole("status", { name: "Loading contract functions" })).toBeNull());
+  expect(screen.getByRole("textbox", { name: "Contract Address" })).toBe(input);
+  expect((input as HTMLInputElement).value).toBe(draft);
+});

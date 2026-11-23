@@ -1,5 +1,7 @@
 "use client";
 
+import { readVerifiedContractMetadata, readDecompiledContractAbi, cacheDecompiledContractAbi, clearDecompiledContractAbi, type DecompiledContractAbi } from "@/lib/contractMetadataCache";
+
 import { useCustomChains } from "@/lib/customChains/store";
 import { getRpcUrlsForChain } from "@/data/networks";
 import { NetworkSelect } from "@/components/NetworkSelect";
@@ -1046,17 +1048,6 @@ const LoadedContractPage = ({
     return index >= 0 ? networkOptions[index] : { value: chainId, label: `Chain ${chainId}` };
   }, [chainId]);
 
-  // dynamic imports
-  const [evmole, setEvmole] = useState<any>(null);
-
-  useEffect(() => {
-    let active = true;
-    import("evmole").then((module) => {
-      if (active) setEvmole(module);
-    });
-    return () => { active = false; };
-  }, []);
-
   // state
   const [selectedNetworkOption, setSelectedNetworkOption] =
     useState<SelectedOptionState>(() => getNetworkOption());
@@ -1079,6 +1070,12 @@ const LoadedContractPage = ({
   }, [abi?.name, setTabName]);
   const isAbiDecoded = abi?.isDecoded === true;
   const [isFetchingAbi, setIsFetchingAbi] = useState<boolean>(false);
+  // A local cache hit should paint functions directly, without a skeleton flash.
+  const [isRestoringAbi, setIsRestoringAbi] = useState(true);
+  const isLoadingFunctions = !isRestoringAbi && (isFetchingAbi || Boolean(contractTab?.isResolvingAddress && !abi));
+  useEffect(() => {
+    if (!isRestoringAbi) contractTab?.onCacheReady?.();
+  }, [isRestoringAbi, contractTab?.onCacheReady]);
   const [unableToFetchAbi, setUnableToFetchAbi] = useState<boolean>(false);
   const [implementationAddress, setImplementationAddress] = useState<
     string | null
@@ -1136,10 +1133,25 @@ const LoadedContractPage = ({
   const [implementationSourceCode, setImplementationSourceCode] = useState<SourceCodeType>(undefined);
   const [isLoadingSourceCode, setIsLoadingSourceCode] = useState<boolean>(false);
 
-  const fetchSetAbi = useCallback(async () => {
-    if (!evmole) return;
-
+  const fetchSetAbi = useCallback(async (isCurrent: () => boolean) => {
     let resolvingDelegation = false;
+    let finished = false;
+    let cachedAbi: DecompiledContractAbi | undefined;
+    // Restore functions independently of RPC and verification latency.
+    const restored = Promise.all([
+      readVerifiedContractMetadata(chainId, address),
+      readDecompiledContractAbi(chainId, address),
+    ]).then(([verified, cached]) => {
+      cachedAbi = cached;
+      const restoredAbi: AbiType | undefined = verified ? {
+        abi: JSON.parse(verified.result[0].ABI), name: verified.result[0].ContractName,
+      } : cached;
+      if (restoredAbi && !finished && isCurrent()) {
+        setAbi(restoredAbi);
+        setIsFetchingAbi(false);
+      }
+      if (isCurrent()) setIsRestoringAbi(false);
+    });
     try {
       setIsFetchingAbi(true);
       setUnableToFetchAbi(false);
@@ -1148,9 +1160,14 @@ const LoadedContractPage = ({
       // Load the delegate ABI while calls still target the EOA (`address`).
       const rpcClient = getPublicClient(chainId);
       const code = await rpcClient.getCode({ address: address as Address }).catch(() => undefined);
+      if (!isCurrent()) return;
       const delegate = getDelegatedImplementation(code);
       setIsDelegated(Boolean(delegate));
       if (delegate) {
+        finished = true;
+        setAbi(null);
+        setIsFetchingAbi(true);
+        void clearDecompiledContractAbi(chainId, address);
         resolvingDelegation = true;
         setImplementationAddress(delegate);
         setProxyAbi({ abi: [], name: slicedText(address) });
@@ -1167,11 +1184,12 @@ const LoadedContractPage = ({
             throw new Error("Delegated implementation has no executable contract code");
           }
           implementation = {
-            abi: await processContractBytecode({ contractCode: implementationCode, evmole }) as JsonFragment[],
+            abi: await processContractBytecode({ contractCode: implementationCode, evmole: await import("evmole") }) as JsonFragment[],
             name: slicedText(delegate),
             isDecoded: true,
           };
         }
+        if (!isCurrent()) return;
         setImplementationAbi(implementation);
         setAbi(implementation);
         return;
@@ -1179,8 +1197,20 @@ const LoadedContractPage = ({
 
       // try fetching if contract is verified
       const fetchedAbi = await fetchContractAbiRaw({ address, chainId });
+      if (!isCurrent()) return;
       console.log("Verified contract ABI:", fetchedAbi);
       if (fetchedAbi.implementation) {
+        finished = true;
+        setAbi(null);
+        setIsFetchingAbi(true);
+        void clearDecompiledContractAbi(chainId, address);
+        // Explorer indexing can lag an upgrade; prefer the current on-chain target.
+        const liveProxy = await getImplementationFromBytecodeIfProxy({ client: rpcClient, address });
+        if (liveProxy && liveProxy.implementationAddress.toLowerCase() !== fetchedAbi.implementation.address.toLowerCase()) {
+          const latest = await fetchContractAbiRaw({ chainId, address: liveProxy.implementationAddress });
+          fetchedAbi.implementation = { address: liveProxy.implementationAddress, abi: latest.abi, name: latest.name };
+        }
+        if (!isCurrent()) return;
         setImplementationAddress(fetchedAbi.implementation.address);
         setImplementationAbi({
           abi: fetchedAbi.implementation.abi as JsonFragment[],
@@ -1197,6 +1227,7 @@ const LoadedContractPage = ({
           name: fetchedAbi.implementation.name,
         });
       } else {
+        void clearDecompiledContractAbi(chainId, address);
         setAbi({
           abi: fetchedAbi.abi as JsonFragment[],
           name: fetchedAbi.name,
@@ -1218,7 +1249,7 @@ const LoadedContractPage = ({
           address: address as Address,
         });
 
-        if (contractCode === "0x") {
+        if (!contractCode || contractCode === "0x") {
           throw new Error("No contract code found at address");
         }
 
@@ -1230,7 +1261,12 @@ const LoadedContractPage = ({
           }
         );
 
+        if (!isCurrent()) return;
         if (resGetImplementation) {
+          finished = true;
+          setAbi(null);
+          setIsFetchingAbi(true);
+          void clearDecompiledContractAbi(chainId, address);
           const { implementationAddress, proxyName } = resGetImplementation;
 
           let implementation: AbiType = {
@@ -1259,7 +1295,7 @@ const LoadedContractPage = ({
             // get implementation abi
             const processedImplementation = await processContractBytecode({
               contractCode: implementationCode as string,
-              evmole,
+              evmole: await import("evmole"),
             });
             console.log(
               "Processed implementation ABI:",
@@ -1274,10 +1310,11 @@ const LoadedContractPage = ({
           // get proxy abi
           const proxyAbi = await processContractBytecode({
             contractCode: contractCode as string,
-            evmole,
+            evmole: await import("evmole"),
           });
           console.log("Proxy ABI:", proxyAbi);
 
+          if (!isCurrent()) return;
           setImplementationAddress(implementationAddress);
           setImplementationAbi(implementation);
           setProxyAbi({
@@ -1289,27 +1326,35 @@ const LoadedContractPage = ({
           setIsInteractingAsProxy(true);
           setAbi(implementation);
         } else {
+          await restored;
+          if (cachedAbi || !isCurrent()) return;
           const sortedAbi = await processContractBytecode({
             contractCode: contractCode as string,
-            evmole,
+            evmole: await import("evmole"),
           });
 
           console.log("Processed ABI:", sortedAbi);
 
-          setAbi({
+          if (!isCurrent()) return;
+          const inferred: DecompiledContractAbi = {
             abi: sortedAbi as JsonFragment[],
             name: slicedText(address),
             isDecoded: true,
-          });
+          };
+          setAbi(inferred);
+          setIsFetchingAbi(false);
+          await cacheDecompiledContractAbi(chainId, address, inferred);
         }
       } catch (evmoleError) {
         console.error("Error using evmole:", evmoleError);
-        setUnableToFetchAbi(true);
+        await restored;
+        if (!cachedAbi || finished) setUnableToFetchAbi(true);
       }
     } finally {
-      setIsFetchingAbi(false);
+      finished = true;
+      if (isCurrent()) setIsFetchingAbi(false);
     }
-  }, [address, chainId, evmole]);
+  }, [address, chainId]);
 
   // Track the current chainId to avoid unnecessary client updates
   const currentChainIdRef = useRef<number>(chainId);
@@ -1324,7 +1369,9 @@ const LoadedContractPage = ({
 
   // Fetch ABI when address or chainId changes
   useEffect(() => {
-    fetchSetAbi();
+    let active = true;
+    void fetchSetAbi(() => active);
+    return () => { active = false; };
   }, [address, chainId, fetchSetAbi]);
 
   // Fetch source code when address, chainId, or implementationAddress changes
@@ -1475,7 +1522,7 @@ const LoadedContractPage = ({
             )}
           </VStack>}
 
-        {isFetchingAbi && (
+        {isLoadingFunctions && (
           <Box role="status" aria-label="Loading contract functions" w="full" maxW="70rem" mt={implementationAddress || isAbiDecoded ? 0 : 4}>
             {/* Reserve banner space only until contract details are known. */}
             {!implementationAddress && !isAbiDecoded && (
@@ -1530,7 +1577,7 @@ const LoadedContractPage = ({
             </Grid>
           </Box>
         )}
-          {abi && !isFetchingAbi && <>
+          {abi && !isLoadingFunctions && <>
           <HStack
             role="tablist"
             aria-label="Contract functions"

@@ -1,3 +1,4 @@
+import { cachedContractMetadata } from "@/lib/contractMetadataCache";
 import { Metadata } from "next";
 import {
   Hex,
@@ -353,6 +354,18 @@ export const isValidJSON = (str: string): boolean => {
   }
 };
 
+const loadContractMetadata = (
+  chainId: number,
+  address: string
+): Promise<ContractResponse> =>
+  cachedContractMetadata(chainId, address, async () => {
+    const res = await fetch(
+      `${apiBasePath}/api/source-code?address=${address}&chainId=${chainId}`
+    );
+    if (!res.ok) throw new Error("Unable to fetch contract metadata");
+    return res.json();
+  });
+
 export const getSourceCode = async (
   chainId: number,
   address: string
@@ -363,12 +376,8 @@ export const getSourceCodeWithMetadata = async (
   chainId: number,
   address: string
 ): Promise<{ sourceCode: Record<string, string>; contractName: string } | undefined> => {
-  const res = await fetch(
-    `${apiBasePath}/api/source-code?address=${address}&chainId=${chainId}`
-  );
-
   try {
-    const data: ContractResponse = await res.json();
+    const data = await loadContractMetadata(chainId, address);
     const { SourceCode, ContractName } = data.result[0];
     const isMultiple = SourceCode.startsWith("{");
     if (isMultiple) {
@@ -401,11 +410,7 @@ export const fetchContractAbiRaw = async ({
     name: string;
   };
 }> => {
-  const res = await fetch(
-    `${apiBasePath}/api/source-code?address=${address}&chainId=${chainId}`
-  );
-
-  const data: ContractResponse = await res.json();
+  const data = await loadContractMetadata(chainId, address);
   const { ABI, ContractName, Implementation } = data.result[0];
 
   const parseAbi = (abiStr: string): InterfaceAbi => {
@@ -416,11 +421,7 @@ export const fetchContractAbiRaw = async ({
   };
 
   if (Implementation.length > 0) {
-    const res = await fetch(
-      `${apiBasePath}/api/source-code?address=${Implementation}&chainId=${chainId}`
-    );
-
-    const implData: ContractResponse = await res.json();
+    const implData = await loadContractMetadata(chainId, Implementation);
     const { ABI: implAbi, ContractName: implName } = implData.result[0];
 
     return {

@@ -49,18 +49,21 @@ function Contract({ address, chainId }: { address: string; chainId: number }) {
   const [draft, setDraft] = useState("");
   const [expanded, setExpanded] = useState(false);
   const tab = useContractTab();
+  useEffect(() => { mounts(address); }, [address]);
   useEffect(() => {
-    mounts(address);
-    tab?.setName(address === root ? "Original contract" : "Linked contract");
-  }, [address, tab?.setName]);
+    if (!tab?.isResolvingAddress)
+      tab?.setName(address === root ? "Original contract" : "Linked contract");
+  }, [address, tab?.setName, tab?.isResolvingAddress]);
   return (
     <div>
+      {tab?.isResolvingAddress && <div role="status" aria-label="Loading contract functions">Function skeleton</div>}
       <input
         aria-label="Draft"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
       />
       <button onClick={() => setExpanded((v) => !v)}>Toggle result</button>
+      <button onClick={() => tab?.onCacheReady?.()}>Finish cache restore</button>
       {expanded && <p>Saved read result</p>}
       <ContractAddressLink
         address={contract}
@@ -80,12 +83,12 @@ function Contract({ address, chainId }: { address: string; chainId: number }) {
     </div>
   );
 }
-function mount() {
+function mount(start = false) {
   const result = render(
     <ChakraProvider>
       <Suspense fallback="Loading grid">
         <ContractTabs
-          initial={{ address: root, chainId: 1 }}
+          initial={start ? undefined : { address: root, chainId: 1 }}
           renderContract={(params) => <Contract {...params} />}
         />
       </Suspense>
@@ -120,6 +123,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 it("keeps drafts and expanded results mounted while selecting and deduplicating linked contracts", async () => {
@@ -470,4 +474,160 @@ it("uses the known address tag while loading, then replaces it with the fetched 
   });
   await screen.findByRole("tab", { name: /Linked contract/ });
   expect(screen.queryByRole("tab", { name: /Known contract tag/ })).toBeNull();
+});
+
+it("creates a blank tab on the explorer home while keeping saved contract tabs", async () => {
+  window.history.replaceState({}, "", "/explorer/");
+  localStorage.setItem(CONTRACT_TABS_STORAGE_KEY, JSON.stringify({
+    version: 1,
+    active: `1:${contract}`,
+    tabs: [{ address: root, chainId: 1 }, { address: contract, chainId: 1 }],
+  }));
+  const first = mount(true);
+  await screen.findByRole("textbox", { name: "Contract Address" });
+  expect(screen.getAllByRole("tab")).toHaveLength(3);
+  expect(screen.getByRole("tab", { name: /New tab/ }).getAttribute("aria-selected")).toBe("true");
+  expect(window.location.pathname).toBe("/explorer/");
+  const saved = JSON.parse(localStorage.getItem(CONTRACT_TABS_STORAGE_KEY)!);
+  expect(saved.tabs.filter((tab: any) => tab.kind === "new")).toHaveLength(1);
+  first.unmount();
+  mount(true);
+  await screen.findByRole("textbox", { name: "Contract Address" });
+  expect(screen.getAllByRole("tab")).toHaveLength(3);
+});
+
+it("selects an existing blank tab on the explorer home instead of the last contract", async () => {
+  window.history.replaceState({}, "", "/explorer/");
+  localStorage.setItem(CONTRACT_TABS_STORAGE_KEY, JSON.stringify({
+    version: 1,
+    active: `1:${root}`,
+    tabs: [{ address: root, chainId: 1 }, { id: "new:7", kind: "new", chainId: 137 }],
+  }));
+  mount(true);
+  await screen.findByRole("textbox", { name: "Contract Address" });
+  expect(screen.getAllByRole("tab")).toHaveLength(2);
+  expect(screen.getByRole("tabpanel").id).toBe("address-panel-new:7");
+  expect(window.location.pathname).toBe("/explorer/");
+  expect(JSON.parse(localStorage.getItem(CONTRACT_TABS_STORAGE_KEY)!).active).toBe("new:7");
+});
+
+it("keeps the selected blank tab when the saved workspace has several blank tabs", async () => {
+  window.history.replaceState({}, "", "/explorer/");
+  localStorage.setItem(CONTRACT_TABS_STORAGE_KEY, JSON.stringify({
+    version: 1,
+    active: "new:9",
+    tabs: [{ address: root, chainId: 1 }, { id: "new:4", kind: "new", chainId: 1 }, { id: "new:9", kind: "new", chainId: 1 }],
+  }));
+  mount(true);
+  await screen.findByRole("textbox", { name: "Contract Address" });
+  expect(screen.getAllByRole("tab")).toHaveLength(3);
+  expect(screen.getByRole("tabpanel").id).toBe("address-panel-new:9");
+  expect(window.location.pathname).toBe("/explorer/");
+});
+
+it("loads restored address panels only when selected and keeps visited panels mounted", async () => {
+  localStorage.setItem(CONTRACT_TABS_STORAGE_KEY, JSON.stringify({
+    version: 1, active: `1:${root}`,
+    tabs: [
+      { address: root, chainId: 1, name: "Original contract" },
+      { address: contract, chainId: 1, name: "Saved linked" },
+      { address: account, chainId: 1, name: "Saved account" },
+    ],
+  }));
+  mount();
+  await waitFor(() => expect(code).toHaveBeenCalledTimes(1));
+  expect(code).toHaveBeenCalledWith({ address: root });
+  expect(mounts.mock.calls.map(([address]) => address)).toEqual([root]);
+  fireEvent.click(screen.getByRole("tab", { name: /Saved linked/ }));
+  await screen.findByRole("tab", { name: /Linked contract/ });
+  expect(code).toHaveBeenCalledTimes(2);
+  expect(code).toHaveBeenLastCalledWith({ address: contract });
+  fireEvent.change(screen.getByRole("textbox", { name: "Draft" }), { target: { value: "kept draft" } });
+  fireEvent.click(screen.getByRole("tab", { name: /Original contract/ }));
+  fireEvent.click(screen.getByRole("tab", { name: /Linked contract/ }));
+  expect(screen.getByDisplayValue("kept draft")).toBeTruthy();
+  expect(code).toHaveBeenCalledTimes(2);
+  expect(mounts.mock.calls.map(([address]) => address)).toEqual([root, contract]);
+});
+
+
+it("restores the URL tab first, then warms saved panels one at a time during idle time", async () => {
+  let nextIdle = 0;
+  const idle = new Map<number, () => void>();
+  vi.stubGlobal("requestIdleCallback", (callback: () => void) => {
+    idle.set(++nextIdle, callback);
+    return nextIdle;
+  });
+  vi.stubGlobal("cancelIdleCallback", (id: number) => idle.delete(id));
+  const runIdle = async () => {
+    expect(idle.size).toBe(1);
+    const [id, callback] = [...idle][0];
+    idle.delete(id);
+    await act(async () => callback());
+  };
+  localStorage.setItem(CONTRACT_TABS_STORAGE_KEY, JSON.stringify({
+    version: 1, active: `1:${account}`,
+    tabs: [
+      { address: contract, chainId: 1, name: "Saved linked" },
+      { address: account, chainId: 1, name: "Saved account" },
+      { address: root, chainId: 1, name: "Original contract" },
+    ],
+  }));
+  mount();
+  await waitFor(() => expect(code).toHaveBeenCalledTimes(1));
+  expect(mounts.mock.calls.map(([address]) => address)).toEqual([root]);
+  expect(idle.size).toBe(0);
+  fireEvent.click(screen.getByRole("button", { name: "Finish cache restore" }));
+  await waitFor(() => expect(idle.size).toBe(1));
+  expect(mounts.mock.calls.map(([address]) => address)).toEqual([root]);
+  await runIdle();
+  await waitFor(() => expect(code).toHaveBeenCalledTimes(2));
+  expect(code).toHaveBeenLastCalledWith({ address: contract });
+  expect(mounts.mock.calls.map(([address]) => address)).toEqual([root, contract]);
+  expect(idle.size).toBe(0);
+  expect(window.location.pathname).toBe(`/explorer/1/${root}`);
+  fireEvent.click(within(document.getElementById(`address-panel-1:${contract}`)!).getByText("Finish cache restore"));
+  await waitFor(() => expect(idle.size).toBe(1));
+  await runIdle();
+  await waitFor(() => expect(code).toHaveBeenCalledTimes(3));
+  expect(code).toHaveBeenLastCalledWith({ address: account });
+  expect(mounts.mock.calls.map(([address]) => address)).toEqual([root, contract, account]);
+  fireEvent.click(document.getElementById(`address-tab-1:${contract}`)!);
+  expect(screen.getByRole("textbox", { name: "Draft" })).toBeTruthy();
+  expect(mounts).toHaveBeenCalledTimes(3);
+  expect(code).toHaveBeenCalledTimes(3);
+});
+
+it("continues background warming past accounts and failed RPC lookups", async () => {
+  vi.stubGlobal("requestIdleCallback", undefined);
+  code.mockImplementation(async ({ address }) => {
+    if (address === account) throw new Error("RPC down");
+    return address === contract ? "0x" : "0x6000";
+  });
+  localStorage.setItem(CONTRACT_TABS_STORAGE_KEY, JSON.stringify({
+    version: 1, active: `1:${root}`,
+    tabs: [{ address: root, chainId: 1 }, { address: contract, chainId: 1 }, { address: account, chainId: 1 }],
+  }));
+  mount();
+  fireEvent.click(screen.getByRole("button", { name: "Finish cache restore" }));
+  await waitFor(() => expect(code).toHaveBeenCalledTimes(3));
+  expect(code.mock.calls.map(([input]) => input.address)).toEqual([root, contract, account]);
+  expect(window.location.pathname).toBe(`/explorer/1/${root}`);
+});
+
+it("cancels scheduled background loading when the workspace unmounts", async () => {
+  const idle = vi.fn(() => 42);
+  const cancel = vi.fn();
+  vi.stubGlobal("requestIdleCallback", idle);
+  vi.stubGlobal("cancelIdleCallback", cancel);
+  localStorage.setItem(CONTRACT_TABS_STORAGE_KEY, JSON.stringify({
+    version: 1, active: `1:${root}`,
+    tabs: [{ address: root, chainId: 1 }, { address: contract, chainId: 1 }],
+  }));
+  const workspace = mount();
+  fireEvent.click(screen.getByRole("button", { name: "Finish cache restore" }));
+  await waitFor(() => expect(idle).toHaveBeenCalled());
+  workspace.unmount();
+  expect(cancel).toHaveBeenCalledWith(42);
+  expect(code).toHaveBeenCalledTimes(1);
 });
