@@ -1,3 +1,4 @@
+import { normalizeLibraryAddresses } from "./libraries";
 export type CompilerSettings = {
   version: string;
   optimizer: boolean;
@@ -75,6 +76,7 @@ export function normalizeCompilerSettings(
   )
     throw new Error("Invalid additional compiler settings.");
   if (value?.extras) {
+    if(value.extras.libraries !== undefined) normalizeLibraryAddresses(value.extras.libraries);
     const allowed = [
       "metadata",
       "libraries",

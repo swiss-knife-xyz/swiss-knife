@@ -100,8 +100,8 @@ account/cloud requirement.
 - [x] ZIP backups retain folder structure and isolate colliding imports together.
 
 Renaming/moving files or folders does not rewrite source imports; the dialog
-reminds users to update affected imports. External package/URL retrieval and
-library linking are deferred. Compiler settings remain feature 5.
+reminds users to update affected imports. External dependencies and library
+linking are covered in the implemented features below.
 
 ### Editor language support — implemented, under user review
 
@@ -577,3 +577,24 @@ input. All 204 compiler tests and the production build passed.
 - If checkpoint storage hits quota or optional history preparation fails, prioritize
   saving current source and display a history warning. Hashing preserves exact
   source strings, including unpaired Unicode surrogates.
+
+
+### External library linking — implemented, under user review
+
+- Detect required external libraries from creation/runtime link references and keep
+  those requirements after solc resolves their placeholders.
+- Show a conditional Libraries fieldset below Deployment network. Use the shared
+  address/name-resolution input and offer matching previous library deployments.
+- Store address drafts per workspace and chain, including workspace ZIP backups.
+  Known-chain verified imports use their original mappings only on that chain;
+  unscoped Standard JSON mappings require explicit adoption.
+- Compile with `settings.libraries` so linked bytecode, metadata, Standard JSON
+  export and immutable deployment/verification snapshots agree. Reuse cached
+  requirement discovery for address-only changes.
+- Check contract code through the shared client/custom RPC, reject missing code,
+  ignore stale checks, and recheck immediately before wallet submission. This
+  checks code presence, not library bytecode identity.
+- Keep constructor values and expansion state while relinking or changing network.
+  Source, artifact or compiler-option changes still reset the deployment form.
+- Deploy libraries themselves through the existing compiled-contract selector.
+  No automatic library deployment or wallet transaction is performed.

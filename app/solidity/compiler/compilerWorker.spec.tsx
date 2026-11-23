@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
+import { createRequire } from "node:module";
 import { expect, it, vi } from "vitest";
 const source = readFileSync(
   new URL("../../../public/worker/solc.worker.js", import.meta.url),
@@ -12,7 +13,7 @@ async function load(cacheFails = false) {
   const loaded = new Promise((resolve) => {
     finish = resolve;
   });
-  const compile = vi.fn(() => JSON.stringify({ contracts: {} }));
+  const compile = vi.fn((_input:string, _callback?:number) => JSON.stringify({ contracts: {} }));
   const scripts = vi.fn();
   const post = vi.fn((message) => finish(message));
   const put = vi.fn();
@@ -83,4 +84,19 @@ it("keeps compiling through classic script loading if optional caching/fetch fai
   expect(scripts).toHaveBeenCalledWith(
     "https://binaries.soliditylang.org/bin/soljson-v0.8.29+commit.ab55807c.js"
   );
+});
+
+it("keeps library requirements after linking and caches discovery for address-only changes",async()=> {
+  const {compile,send,post}=await load();
+  const solc=createRequire(import.meta.url)("solc");
+  compile.mockImplementation((input:string)=>solc.compile(input));
+  const input={language:"Solidity",sources:{"C.sol":{content:"pragma solidity ^0.8.0; library Math {function n() external pure returns(uint){return 1;}} contract C {function n() external pure returns(uint){return Math.n();}}"}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode","evm.deployedBytecode"]}}}};
+  send({id:1,input});expect(compile).toHaveBeenCalledTimes(1);
+  const linked={...input,settings:{...input.settings,libraries:{"C.sol":{Math:`0x${"11".repeat(20)}`}}}};
+  send({id:2,input:linked});expect(compile).toHaveBeenCalledTimes(2);
+  const result=post.mock.calls.at(-1)![0] as any;
+  expect(result.libraryReferences["C.sol"].C).toEqual([{sourcePath:"C.sol",name:"Math"}]);
+  expect(result.output.contracts["C.sol"].C.evm.bytecode.linkReferences).toEqual({});
+  send({id:3,input:{...linked,settings:{...linked.settings,libraries:{"C.sol":{Math:`0x${"22".repeat(20)}`}}}}});
+  expect(compile).toHaveBeenCalledTimes(3);
 });

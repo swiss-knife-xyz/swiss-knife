@@ -46,17 +46,61 @@ async function loadCompiler() {
 loadCompiler().catch((error) =>
   self.postMessage({ type: "load-error", error: error.message })
 );
+// Keep only discovery references, bounded by the serialized source/settings key.
+const referenceCache = new Map();
+let referenceBytes = 0;
+function libraryReferences(output) {
+  const result = {};
+  for (const [path, contracts] of Object.entries(output.contracts || {})) {
+    result[path] = {};
+    for (const [name, artifact] of Object.entries(contracts)) {
+      const refs = new Map();
+      for (const links of [artifact.evm?.bytecode?.linkReferences, artifact.evm?.deployedBytecode?.linkReferences]) {
+        for (const [sourcePath, names] of Object.entries(links || {})) {
+          for (const library of Object.keys(names)) {
+            refs.set(JSON.stringify([sourcePath,library]), {sourcePath,name:library});
+          }
+        }
+      }
+      result[path][name] = [...refs.values()];
+    }
+  }
+  return result;
+}
+function rememberReferences(key, refs) {
+  if (key.length > 16 * 1024 * 1024) return;
+  if (referenceCache.has(key)) referenceBytes -= key.length;
+  referenceCache.delete(key);
+  referenceCache.set(key, refs); referenceBytes += key.length;
+  while (referenceCache.size > 10 || referenceBytes > 16 * 1024 * 1024) {
+    const first = referenceCache.keys().next().value;
+    referenceBytes -= first.length; referenceCache.delete(first);
+  }
+}
 self.addEventListener("message", function (e) {
   const { input, id } = e.data;
   try {
     if (!compilerReady) throw new Error("Compiler is still loading.");
-    const output = JSON.parse(
-      Module.cwrap("solidity_compile", "string", ["string", "number"])(
-        JSON.stringify(input),
-        0
-      )
-    );
-    self.postMessage({ id, success: true, output });
+    const compile = (value) => JSON.parse(Module.cwrap("solidity_compile", "string", ["string", "number"])(JSON.stringify(value),0));
+    const hasLibraries = Object.values(input.settings?.libraries || {}).some(names => Object.keys(names).length);
+    const {libraries: _libraries, ...baseSettings} = input.settings || {};
+    const baseInput = {...input,settings:baseSettings};
+    const key = JSON.stringify(baseInput);
+    let refs = referenceCache.get(key);
+    let output;
+    if (hasLibraries && !refs) {
+      const discovery = compile(baseInput);
+      refs = libraryReferences(discovery);
+      rememberReferences(key,refs);
+    }
+    output = compile(input);
+    if (!hasLibraries) {
+      refs = libraryReferences(output); rememberReferences(key,refs);
+    }
+    // Actual linked output remains unmodified for verification/downloads.
+    const response = {id,success:true,output};
+    if (Object.keys(refs || {}).length) response.libraryReferences = refs;
+    self.postMessage(response);
   } catch (error) {
     self.postMessage({ id, success: false, error: error.message });
   }

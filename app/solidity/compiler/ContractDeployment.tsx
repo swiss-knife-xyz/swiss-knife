@@ -6,6 +6,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type ReactNode,
   type Dispatch,
   type SetStateAction,
 } from "react";
@@ -97,6 +98,11 @@ type Props = {
   contractName: string;
   isStale: boolean;
   onBusyChange: (busy: boolean) => void;
+  deploymentChainId?: number;
+  onDeploymentChainChange?(chainId:number):void;
+  libraryPanel?: ReactNode;
+  linkingReady?: boolean;
+  validateLibraries?():Promise<void>;
 };
 type Submission = {
   chainId: number;
@@ -207,10 +213,18 @@ export function ContractDeploymentForm({
   build,
   history,
   wallet,
+  deploymentChainId,
+  onDeploymentChainChange,
+  libraryPanel,
+  linkingReady = true,
+  validateLibraries,
 }: Props & { wallet: DeploymentWallet }) {
   useCustomChains();
   const networkOptions = getNetworkOptions();
-  const [chainId, setChainId] = useState(11155111);
+  const [fallbackChainId, setFallbackChainId] = useState(11155111);
+  const chainId=deploymentChainId ?? fallbackChainId;
+  const setChainId=onDeploymentChainChange ?? setFallbackChainId;
+  const [preparing,setPreparing]=useState(false);
   const [values, setValues] = useState<Record<number, any>>({});
   const [reuseVersion, setReuseVersion] = useState(0);
   const [constructorOpen, setConstructorOpen] = useState(true);
@@ -257,7 +271,7 @@ export function ContractDeploymentForm({
   const chain = chainIdToChain[chainId];
   const needsSwitch = !!wallet.account && wallet.chainId !== chainId;
   const busy =
-    switching ||
+    preparing || switching ||
     submission?.state === "wallet" ||
     submission?.state === "pending";
   useEffect(() => {
@@ -308,7 +322,7 @@ export function ContractDeploymentForm({
   }, [submission, history]);
 
   const deploy = async () => {
-    if (lock.current || busy || !wallet.account || !chain || isStale) return;
+    if (lock.current || busy || !wallet.account || !chain || isStale || (!needsSwitch && !linkingReady)) return;
     lock.current = true;
     setError("");
     let journal: DeploymentRecord | undefined;
@@ -324,6 +338,11 @@ export function ContractDeploymentForm({
         constructor?.stateMutability === "payable" ? BigInt(value) : 0n;
       if (amount < 0n || amount >= 2n ** 256n)
         throw new Error("Enter a valid transaction value.");
+      if(validateLibraries) {
+        setPreparing(true);
+        await validateLibraries();
+        if(!mounted.current) return;
+      }
       const snapshot: Submission = {
         chainId,
         explorer: chain.blockExplorers?.default.url,
@@ -367,7 +386,7 @@ export function ContractDeploymentForm({
       }
     } finally {
       lock.current = false;
-      if (mounted.current) setSwitching(false);
+      if (mounted.current) {setSwitching(false);setPreparing(false);}
     }
   };
 
@@ -382,7 +401,7 @@ export function ContractDeploymentForm({
       pt={historyOwnsSubmission ? 0 : 4}
     >
       {!submission && (
-        <VStack align="stretch" spacing={4}>
+        <VStack inert={busy ? true : undefined} minW={0} align="stretch" spacing={4}>
           {!!constructor?.inputs?.length && (
             <Box
               borderWidth="1px"
@@ -460,6 +479,7 @@ export function ContractDeploymentForm({
               boxProps={{ minW: 0, w: "full" }}
             />
           </FormControl>
+          {libraryPanel}
           {constructor?.stateMutability === "payable" && (
             <IntInput
               input={{
@@ -477,12 +497,13 @@ export function ContractDeploymentForm({
             w="full"
             h={10}
             onClick={deploy}
-            isLoading={switching}
-            loadingText="Switching…"
+            isLoading={switching || preparing}
+            loadingText={preparing ? "Checking libraries…" : "Switching…"}
             isDisabled={
               !wallet.account ||
               !!(history && !history.ready) ||
               !contract.bytecode ||
+              (!needsSwitch && !linkingReady) ||
               isStale ||
               (!needsSwitch &&
                 (Object.values(invalid).some(Boolean) || valueInvalid))

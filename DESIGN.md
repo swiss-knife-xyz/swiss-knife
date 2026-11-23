@@ -457,3 +457,14 @@
   labels provide hierarchy; no decorative surfaces or new typography.
 - Restore is an explicit primary action; stale/no-op previews disable it. Deleted
   files stay discoverable through the workspace view and its Deleted files filter.
+
+
+### Compiler library linking
+
+- Only show Libraries when the selected artifact requires external addresses.
+  Match the constructor fieldset's border/legend and use shared address inputs.
+- Keep qualified source paths muted, reuse actions compact and checks inline.
+  Scope values to the selected deployment network; status says Code found rather
+  than claiming the deployed library implementation has been verified.
+- Keep constructor inputs visible and stable during address-only recompilation.
+  Inert deployment controls prevent changes during final validation/submission.

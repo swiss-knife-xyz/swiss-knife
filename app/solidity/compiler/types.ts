@@ -1,3 +1,4 @@
+import type { LibraryReference } from "@/lib/solidity/libraries";
 export interface CompilerError {
   type?: string;
   severity: string;
@@ -12,14 +13,17 @@ export interface ContractOutput {
   evm: {
     bytecode: {
       object: string;
+      linkReferences?: Record<string, Record<string, {start:number;length:number}[]>>;
     };
     deployedBytecode: {
       object: string;
+      linkReferences?: Record<string, Record<string, {start:number;length:number}[]>>;
     };
   };
 }
 
 export interface CompiledContract {
+  requiredLibraries?: LibraryReference[];
   sourcePath: string;
   name: string;
   abi: any[];
@@ -46,6 +50,7 @@ export interface CompileResult {
 }
 
 export interface WorkerMessage {
+  libraryReferences?: Record<string, Record<string, LibraryReference[]>>;
   id?: number;
   type?: "ready" | "load-error";
   success?: boolean;

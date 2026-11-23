@@ -1,5 +1,9 @@
 "use client";
 import dynamic from "next/dynamic";
+import { LibraryLinks } from "./LibraryLinks";
+import { checkLibraryAddresses } from "@/lib/solidity/libraryCode";
+import { deploymentChain, deploymentFormKey, libraryDrafts, libraryAddress, updateLibraryAddress } from "@/lib/solidity/libraries";
+import { useCustomChains } from "@/lib/customChains/store";
 import { ContractSize } from "./ContractSize";
 import { flashSourceLine } from "@/components/SourceCodeExplorer/flashSourceLine";
 import { CompilationErrors } from "./CompilationErrors";
@@ -8,7 +12,7 @@ import { bindWorkspaceEditor, updateEditorFile, workspaceModelPath, type Workspa
 import { lockedPath } from "@/lib/solidity/dependencies";
 import { registerSelectorLenses } from "@/components/SourceCodeExplorer/selectorLenses";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Editor from "@monaco-editor/react";
 import {
   Box,
@@ -100,6 +104,8 @@ function downloadFile(name: string, content: string, type = "text/plain") {
 export default function SolidityIDE() {
   const local = useLocalWorkspace(INITIAL_CODE);
   const deploymentHistory = useDeploymentHistory(local.activeWorkspace?.id);
+  const customChains=useCustomChains();
+  const linkingChainId=deploymentChain(local.workspace?.deploymentChainId);
   const activeFile = local.workspace?.files.find(
     (file) => file.id === local.workspace?.activeFileId
   );
@@ -178,6 +184,12 @@ export default function SolidityIDE() {
       contracts[0] ??
       "");
   const selectedContract = result?.contracts?.[contractName];
+  const libraryRefs=selectedContract?.requiredLibraries ?? [];
+  const libraryAddresses=libraryDrafts(local.workspace,linkingChainId);
+  const libraryScope=JSON.stringify([local.activeWorkspace?.id,linkingChainId,customChains.revision,customChains.ready,libraryRefs,libraryAddresses]);
+  const [libraryValidation,setLibraryValidation]=useState<{scope:string;ready:boolean}>({scope:"",ready:false});
+  const onLibrariesReady=useCallback((ready:boolean)=>setLibraryValidation(current=>current.scope===libraryScope && current.ready===ready ? current : {scope:libraryScope,ready}),[libraryScope]);
+  const linkingReady=!libraryRefs.length || (libraryValidation.scope===libraryScope && libraryValidation.ready);
   useEffect(() => {
     if (monacoRef.current)
       syncDiagnosticMarkers(
@@ -939,8 +951,26 @@ export default function SolidityIDE() {
                       </AccordionItem>
                     </Accordion>
                     <ContractDeployment
-                      key={`${compiledFileName}:${compiledSource}:${contractName}`}
+                      key={deploymentFormKey(compiler.build,contractName)}
                       contract={selectedContract!}
+                      deploymentChainId={linkingChainId}
+                      onDeploymentChainChange={chainId=>local.update(current=>({...current,deploymentChainId:chainId}))}
+                      linkingReady={linkingReady}
+                      validateLibraries={libraryRefs.length ? () => checkLibraryAddresses(linkingChainId,libraryRefs,compiler.build?.input.settings.extras?.libraries ?? {}) : undefined}
+                      libraryPanel={<LibraryLinks refs={libraryRefs} addresses={libraryAddresses} chainId={linkingChainId}
+                        build={compiler.build ?? undefined} history={deploymentHistory} disabled={filesLocked}
+                        rpcRevision={customChains.revision} rpcReady={customChains.ready}
+                        imported={!local.workspace?.importedContract || local.workspace.importedContract.chainId === linkingChainId ? local.workspace?.compilerSettings?.extras?.libraries : undefined}
+                        onImport={()=>local.update(current=> {
+                          let next=current;
+                          for(const ref of libraryRefs) {
+                            const address=libraryAddress(current.compilerSettings?.extras?.libraries?.[ref.sourcePath]?.[ref.name]);
+                            if(address && !libraryAddresses[ref.sourcePath]?.[ref.name]) next=updateLibraryAddress(next,linkingChainId,ref,address);
+                          }
+                          return next;
+                        })}
+                        onChange={(ref,value)=>local.update(current=>updateLibraryAddress(current,linkingChainId,ref,value))}
+                        onReady={onLibrariesReady}/>}
                       build={compiler.build ?? undefined}
                       history={deploymentHistory}
                       contractName={selectedContract!.name}

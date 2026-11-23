@@ -359,3 +359,14 @@ it("scrolls the constructor box into view after reopening, but not on initial re
     else delete (HTMLElement.prototype as any).scrollIntoView;
   }
 });
+
+it("blocks unresolved library configurations and rechecks code before requesting the wallet",async()=> {
+  const validation=vi.fn().mockRejectedValue(new Error("Library code disappeared. Check the selected network."));
+  const history=historyFixture();const wallet=walletFixture();
+  const view=mount(wallet,{history,build:savedBuild(),linkingReady:false,validateLibraries:validation});
+  expect((screen.getByRole("button",{name:"Deploy"}) as HTMLButtonElement).disabled).toBe(true);
+  view.rerender(<ChakraProvider><ContractDeploymentForm contract={emptyContract} contractName="Counter" isStale={false} onBusyChange={()=>{}} wallet={wallet} history={history} build={savedBuild() as any} linkingReady validateLibraries={validation}/></ChakraProvider>);
+  fireEvent.click(screen.getByRole("button",{name:"Deploy"}));
+  await screen.findByText("Library code disappeared. Check the selected network.");
+  expect(history.prepare).not.toHaveBeenCalled();expect(wallet.submit).not.toHaveBeenCalled();
+});

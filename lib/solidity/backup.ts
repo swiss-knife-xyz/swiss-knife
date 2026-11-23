@@ -1,3 +1,4 @@
+import { normalizeLibraryLinks, deploymentChain, type LibraryLinks } from "./libraries";
 import {
   validateDependencyLocks,
   lockedPath,
@@ -18,6 +19,8 @@ export const BACKUP_LIMITS = {
   files: 500,
 };
 export type WorkspaceBackup = {
+  libraryLinks?: LibraryLinks;
+  deploymentChainId?: number;
   files: { name: string; content: string }[];
   folders?: string[];
   compilerSettings?: CompilerSettings;
@@ -122,6 +125,8 @@ export async function exportWorkspaceZip(
         dependencies: workspace.dependencies ?? [],
         folders,
         compilerSettings: normalizeCompilerSettings(workspace.compilerSettings),
+        ...(workspace.libraryLinks ? {libraryLinks:normalizeLibraryLinks(workspace.libraryLinks)} : {}),
+        ...(workspace.deploymentChainId !== undefined ? {deploymentChainId:deploymentChain(workspace.deploymentChainId)} : {}),
         files,
         openFiles: workspace.openFileIds
           .map((id) => names.get(id))
@@ -268,6 +273,8 @@ export async function importWorkspaceZip(
     folders,
     dependencies: await validateDependencyLocks(manifest.dependencies, files),
     compilerSettings: normalizeCompilerSettings(manifest.compilerSettings),
+    ...(manifest.libraryLinks ? {libraryLinks:normalizeLibraryLinks(manifest.libraryLinks)} : {}),
+    ...(manifest.deploymentChainId !== undefined ? {deploymentChainId:deploymentChain(manifest.deploymentChainId)} : {}),
     openFiles: manifest.openFiles,
     activeFile: manifest.activeFile,
   };
@@ -361,6 +368,7 @@ export function applyWorkspaceImport(
       : "";
   const result = {
     ...workspace,
+    ...(mode === "restore" ? {libraryLinks:backup.libraryLinks, deploymentChainId:backup.deploymentChainId} : {}),
     dependencies:
       mode === "restore" ? (backup.dependencies ?? []) : workspace.dependencies,
     compilerSettings:

@@ -1,4 +1,5 @@
 "use client";
+import { deploymentChain, linkedCompilerSettings, libraryDrafts, libraryAddress, referencesFromSolc } from "@/lib/solidity/libraries";
 import { CompilationCache } from "./compilationCache";
 import { dependencyCompilerSettings } from "@/lib/solidity/dependencySettings";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -51,6 +52,7 @@ export function compileResult(data: WorkerMessage): CompileResult {
       contracts[`${sourcePath}:${name}`] = {
         sourcePath,
         name,
+        requiredLibraries: data.libraryReferences?.[sourcePath]?.[name] ?? referencesFromSolc(contract.evm.bytecode.linkReferences,contract.evm.deployedBytecode.linkReferences),
         abi: contract.abi,
         bytecode: contract.evm.bytecode.object,
         deployedBytecode: contract.evm.deployedBytecode.object,
@@ -70,13 +72,15 @@ export function useSolidityCompiler({
   autoCompile?: boolean;
 }) {
   const generation = useRef(0);
+  const chainId=deploymentChain(workspace?.deploymentChainId);
+  const linkingKey=JSON.stringify(Object.entries(libraryDrafts(workspace,chainId)).map(([path,names])=>[path,Object.entries(names).filter(([,address])=>libraryAddress(address))]));
   const settings = useMemo(
     () =>
-      dependencyCompilerSettings(
+      linkedCompilerSettings(dependencyCompilerSettings(
         workspace?.compilerSettings,
         workspace?.dependencies
-      ),
-    [workspace?.compilerSettings, workspace?.dependencies]
+      ),workspace,chainId),
+    [workspace?.compilerSettings, workspace?.dependencies, chainId, linkingKey]
   );
   const input = useMemo<Target | null>(() => {
     const entry = workspace?.files.find(

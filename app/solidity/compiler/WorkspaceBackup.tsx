@@ -1,4 +1,6 @@
 "use client";
+import { deploymentChain, linkedCompilerSettings } from "@/lib/solidity/libraries";
+
 import { dependencyCompilerSettings } from "@/lib/solidity/dependencySettings";
 import { useRef, useState } from "react";
 import {
@@ -144,10 +146,10 @@ export function WorkspaceBackupActions({
   const downloadStandardJson = () => {
     if (disabled || !workspace?.files.length || exporting) return;
     try {
-      const settings = dependencyCompilerSettings(
+      const settings = linkedCompilerSettings(dependencyCompilerSettings(
         workspace.compilerSettings,
         workspace.dependencies
-      );
+      ),workspace,deploymentChain(workspace.deploymentChainId));
       const input = standardJsonInput(
         Object.fromEntries(
           workspace.files.map((file) => [file.name, { content: file.content }])

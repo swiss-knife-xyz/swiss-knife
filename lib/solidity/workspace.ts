@@ -1,3 +1,4 @@
+import { normalizeLibraryLinks, deploymentChain, type LibraryLinks } from "./libraries";
 import { HISTORY_STORES, upgradeRevisionHistory, prepareRevisions, queueRevisions, clearWorkspaceHistory, type SourceCheckpoint, type SourceRevision } from "./revisionHistory";
 import { lockedPath } from "./dependencies";
 import type { DependencyLock } from "./dependencies";
@@ -6,6 +7,8 @@ import { validatePath, assertPaths } from "./paths";
 export type SolidityFile = { id: string; name: string; content: string };
 export type ImportedContractIdentity = { address: string; chainId: number };
 export type SolidityWorkspace = {
+  libraryLinks?: LibraryLinks;
+  deploymentChainId?: number;
   importedContract?: ImportedContractIdentity;
   files: SolidityFile[];
   folders?: string[];
@@ -21,6 +24,8 @@ export type SavedWorkspace = WorkspaceSummary & {
   historyWarning?: string;
 };
 type WorkspaceRecord = WorkspaceSummary & {
+  libraryLinks?: LibraryLinks;
+  deploymentChainId?: number;
   nameKey: string;
   folders?: string[];
   compilerSettings?: CompilerSettings;
@@ -240,6 +245,8 @@ export async function loadWorkspace(
               workspace: {
                 ...(record.importedContract ? { importedContract: record.importedContract } : {}),
                 files: savedFiles,
+                ...(record.libraryLinks ? {libraryLinks:normalizeLibraryLinks(record.libraryLinks)} : {}),
+                ...(record.deploymentChainId ? {deploymentChainId:deploymentChain(record.deploymentChainId)} : {}),
                 folders: record.folders ?? [],
                 ...(record.dependencies?.length
                   ? { dependencies: record.dependencies }
@@ -312,6 +319,8 @@ async function saveWorkspaceOnce(
           revision,
           folders: workspace.folders ?? [],
           dependencies: workspace.dependencies ?? [],
+          libraryLinks: workspace.libraryLinks ? normalizeLibraryLinks(workspace.libraryLinks) : undefined,
+          deploymentChainId: workspace.deploymentChainId !== undefined ? deploymentChain(workspace.deploymentChainId) : undefined,
           ...(workspace.compilerSettings
             ? {
                 compilerSettings: normalizeCompilerSettings(
@@ -364,6 +373,8 @@ export async function createWorkspace(
       revision: 1,
       folders: workspace.folders ?? [],
       dependencies: workspace.dependencies ?? [],
+      ...(workspace.libraryLinks ? {libraryLinks:normalizeLibraryLinks(workspace.libraryLinks)} : {}),
+      ...(workspace.deploymentChainId !== undefined ? {deploymentChainId:deploymentChain(workspace.deploymentChainId)} : {}),
       ...(compilerSettings ? { compilerSettings } : {}),
       activeFileId: workspace.activeFileId,
       openFileIds: workspace.openFileIds,
