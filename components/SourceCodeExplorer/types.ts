@@ -23,6 +23,8 @@ export interface TabData {
 }
 
 export interface DiffFileData {
+  /** Fall back to bounded source previews when diff computation exceeds its budget. */
+  previewOnly?: boolean;
   oldCode: string;
   oldExists?: boolean;
   newExists?: boolean;
@@ -39,6 +41,7 @@ export interface SourceCodeExplorerProps {
   contractName?: string;
   /** When provided, enables diff mode with Old/Diff/New view switching */
   diffData?: Record<string, DiffFileData>;
+  onDiffNavigate?(path: string, lineNumber: number): void;
   /** Initial height in pixels (default: 400) */
   initialHeight?: number;
   /** Initial file sidebar width in pixels (default: 180). */

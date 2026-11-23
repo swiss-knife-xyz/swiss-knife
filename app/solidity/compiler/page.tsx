@@ -1,5 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
+import { ImportedWorkspaceStatus } from "./ImportedWorkspaceStatus";
 import { LibraryLinks } from "./LibraryLinks";
 import { checkLibraryAddresses } from "@/lib/solidity/libraryCode";
 import { deploymentChain, deploymentFormKey, libraryDrafts, libraryAddress, updateLibraryAddress } from "@/lib/solidity/libraries";
@@ -63,6 +64,7 @@ import { BuildDownloads } from "./BuildDownloads";
 import { CompilerConfiguration } from "./CompilerConfiguration";
 import { normalizeCompilerSettings } from "@/lib/solidity/settings";
 import { useSolidityCompiler } from "./useSolidityCompiler";
+import { registerInlineErrors } from "./inlineErrors";
 import { syncDiagnosticMarkers } from "./diagnosticMarkers";
 import { registerSolidityIntellisense } from "./intellisense";
 import { useWorkspaceUrl } from "./useWorkspaceUrl";
@@ -239,6 +241,11 @@ export default function SolidityIDE() {
   }, [editorMount, local.update]);
   useEffect(() => { editorBinding.current?.sync(); }, [local.workspace, editorMount]);
   useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+    const registration = registerInlineErrors(editorRef.current, monacoRef.current);
+    return () => registration.dispose();
+  }, [editorMount]);
+  useEffect(() => {
     if (!monacoRef.current) return;
     const registration = registerSolidityIntellisense(monacoRef.current,
       () => workspaceRef.current, (id, point) => openSourceRef.current(id, point));
@@ -298,14 +305,25 @@ export default function SolidityIDE() {
   useEffect(() => {
     if (!jump || activeFile?.id !== jump.id || !editorRef.current) return;
     const editor = editorRef.current;
+    let frame = 0;
     const timer = setTimeout(() => {
       editor.setPosition(jump);
-      editor.revealPositionInCenter(jump);
+      // Reveal immediately so the subsequent page-scroll measurement uses the new viewport.
+      editor.revealPositionInCenter(jump, 1);
       flashSourceLine(editor, jump.lineNumber);
       editor.focus();
-      setJump(null);
+      frame = requestAnimationFrame(() => {
+        const node = editor.getDomNode();
+        if (node) {
+          const lineTop = node.getBoundingClientRect().top + editor.getTopForLineNumber(jump.lineNumber) - editor.getScrollTop();
+          if (lineTop < 48 || lineTop > window.innerHeight - 48)
+            window.scrollBy({top: lineTop - window.innerHeight * 0.4,
+              behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
+        }
+        setJump(null);
+      });
     }, 50);
-    return () => clearTimeout(timer);
+    return () => {clearTimeout(timer); cancelAnimationFrame(frame);};
   }, [jump, activeFile?.id]);
   const jumpToDiagnostic = (diagnostic: CompilerError) => {
     const location = diagnostic.sourceLocation;
@@ -330,9 +348,38 @@ export default function SolidityIDE() {
     setHistoryRequest({workspaceId,fileId});
   };
 
+  const compilationWarnings = !!result?.warnings?.length && (
+    <Box
+      mb={4}
+      as="details"
+      color="warning.text"
+      fontSize="sm"
+    >
+      <Box as="summary" cursor="pointer" py={2}>
+        {result.warnings.length}{" "}
+        {result.warnings.length === 1 ? "warning" : "warnings"}
+      </Box>
+      <CompilationErrors
+        diagnostics={result.warnings}
+        fallback=""
+        severity="warning"
+        hideCount
+        files={local.workspace?.files ?? []}
+        disabled={filesLocked}
+        onSelect={jumpToDiagnostic}
+      />
+    </Box>
+  );
+
   return (
     <Box
       as="main"
+      sx={{
+        ".monaco-editor .ethsh-compiler-error-line": {
+          color: "var(--chakra-colors-red-300) !important", fontSize: "0 !important",
+          "&::before": { fontSize: "16px" },
+        },
+      }}
       w="full"
       maxW="1600px"
       mx="auto"
@@ -581,6 +628,20 @@ export default function SolidityIDE() {
           </HStack>
         </Flex>
 
+        {local.workspace?.importedContract && local.activeWorkspace && (
+          <ImportedWorkspaceStatus key={local.activeWorkspace.id}
+            workspace={local.workspace} workspaceId={local.activeWorkspace.id}
+            workspaceNames={local.workspaces.map(item => item.name)}
+            history={deploymentHistory} disabled={filesLocked}
+            onOpenOriginal={local.openOriginalWorkspace}
+            onRevertOriginal={local.revertImportedWorkspace}
+            onNavigate={(id, lineNumber) => {
+              setExplorerReveal(previous => ({id, nonce: (previous?.nonce ?? 0) + 1}));
+              openSourceRef.current(id, {lineNumber, column: 1});
+            }}
+          />
+        )}
+
         <Flex
           ref={panesRef}
           direction={{ base: "column", lg: "row" }}
@@ -622,6 +683,7 @@ export default function SolidityIDE() {
             display="flex"
             flexDirection="column"
           >
+            <Box position={{ base: "relative", xl: "sticky" }} top={0} zIndex={2} flexShrink={0}>
             <CodeEditorTabs
               tabs={(local.workspace?.openFileIds ?? []).flatMap((id) => {
                 const file = local.workspace?.files.find(
@@ -648,6 +710,7 @@ export default function SolidityIDE() {
                   local.update((current) => closeWorkspaceFile(current, id));
               }}
             />
+            </Box>
             <Box
               h={{ base: "600px", md: "760px", lg: "min(95vh, 1200px)" }}
               minH={{ lg: "680px" }}
@@ -676,7 +739,7 @@ export default function SolidityIDE() {
                   }
                   options={{
                     readOnly: filesLocked || !!(local.workspace && activeFile && lockedPath(local.workspace, activeFile.name)),
-                    minimap: { enabled: false },
+                    minimap: { enabled: true, side: "right", showSlider: "always" },
                     fontSize: 13,
                     lineHeight: 22,
                     scrollBeyondLastLine: false,
@@ -695,6 +758,7 @@ export default function SolidityIDE() {
                     wordBasedSuggestions: "off",
                     tabCompletion: "on",
                     lineNumbersMinChars: 3,
+                    glyphMargin: false,
                     overviewRulerLanes: 0,
                     hideCursorInOverviewRuler: true,
                     ariaLabel: "Solidity source code",
@@ -830,6 +894,7 @@ export default function SolidityIDE() {
                         </Text>
                       )}
                     </Box>
+                    {compilationWarnings}
                     <ContractSize contract={selectedContract!} />
                     <Accordion
                       allowToggle
@@ -985,50 +1050,10 @@ export default function SolidityIDE() {
                 )}
               </Box>
             )}
-            <DeploymentHistory history={deploymentHistory} />
-            {!!result?.warnings?.length && (
-              <Box
-                mx={4}
-                mb={4}
-                as="details"
-                color="warning.text"
-                fontSize="sm"
-              >
-                <Box as="summary" cursor="pointer" py={2}>
-                  {result.warnings.length}{" "}
-                  {result.warnings.length === 1 ? "warning" : "warnings"}
-                </Box>
-                {result.warnings.map((warning, index) => (
-                  <Box
-                    key={index}
-                    as="pre"
-                    mt={2}
-                    fontFamily="mono"
-                    fontSize="xs"
-                    whiteSpace="pre-wrap"
-                    overflowWrap="anywhere"
-                  >
-                    {warning.formattedMessage}
-                    {warning.sourceLocation && (
-                      <Button
-                        display="block"
-                        mt={1}
-                        size="xs"
-                        variant="ghost"
-                        whiteSpace="normal"
-                        h="auto"
-                        py={2}
-                        maxW="full"
-                        isDisabled={filesLocked}
-                        onClick={() => jumpToDiagnostic(warning)}
-                      >
-                        Open {warning.sourceLocation.file}
-                      </Button>
-                    )}
-                  </Box>
-                ))}
-              </Box>
+            {(result?.error || !contracts.length) && (
+              <Box mx={4}>{compilationWarnings}</Box>
             )}
+            <DeploymentHistory history={deploymentHistory} />
           </Box>
         </Flex>
       </Box>

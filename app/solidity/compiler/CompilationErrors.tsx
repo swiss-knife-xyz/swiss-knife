@@ -11,7 +11,11 @@ export function CompilationErrors({
   files,
   disabled,
   onSelect,
+  severity = "error",
+  hideCount = false,
 }: {
+  severity?: "error" | "warning";
+  hideCount?: boolean;
   diagnostics?: CompilerError[];
   fallback: string;
   files: SolidityFile[];
@@ -21,19 +25,22 @@ export function CompilationErrors({
   const errors = diagnostics?.length
     ? diagnostics
     : [{ severity: "error", formattedMessage: fallback, message: fallback }];
+  const tone = severity === "warning" ? "warning.text" : "error.text";
   const sources = new Map(files.map((file) => [file.name, file]));
   return (
     <Box
-      role="alert"
-      aria-label="Compilation errors"
+      as={hideCount ? "div" : "details"}
+      {...(hideCount ? {} : { open: true })}
+      role={severity === "error" ? "alert" : "region"}
+      aria-label={`Compilation ${severity === "error" ? "errors" : "warnings"}`}
       p={3}
       maxH="min(60vh, 480px)"
       overflowY="auto"
       tabIndex={0}
     >
-      <Text fontSize="xs" color="text.tertiary" mb={2}>
+      {!hideCount && <Box as="summary" fontSize="sm" color={tone} mb={2} cursor="pointer">
         {errors.length} {errors.length === 1 ? "error" : "errors"}
-      </Text>
+      </Box>}
       <Stack spacing={2}>
         {errors.map((error, index) => {
           const location = error.sourceLocation;
@@ -48,11 +55,11 @@ export function CompilationErrors({
           const category =
             error.type ??
             error.formattedMessage.match(/^([A-Za-z]+Error):/)?.[1] ??
-            "Error";
+            (severity === "warning" ? "Warning" : "Error");
           const message = (
             error.message ?? error.formattedMessage.split(/\n\s*-->/)[0]
           )
-            .replace(/^[A-Za-z]+Error:\s*/, "")
+            .replace(/^(?:[A-Za-z]+Error|Warning):\s*/, "")
             .trim();
           return (
             <Box
@@ -73,7 +80,7 @@ export function CompilationErrors({
               cursor={file && !disabled ? "pointer" : undefined}
               _hover={
                 file && !disabled
-                  ? { bg: "bg.muted", borderColor: "error.text" }
+                  ? { bg: "bg.muted", borderColor: tone }
                   : undefined
               }
               _focusVisible={{
@@ -83,7 +90,7 @@ export function CompilationErrors({
               }}
               _disabled={{ opacity: 0.5, cursor: "not-allowed" }}
             >
-              <HStack spacing={1.5} color="error.text" mb={1.5}>
+              <HStack spacing={1.5} color={tone} mb={1.5}>
                 <CircleAlert size={13} style={{ flexShrink: 0 }} />
                 <Text fontSize="xs" fontWeight="semibold">
                   {category}

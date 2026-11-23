@@ -570,6 +570,8 @@ export function WorkspaceFiles({
   const list = (inDrawer = false) => (
     <FileExplorerPanel
       background="bg.subtle"
+      outlineMaxHeight={inDrawer ? undefined : "calc(45dvh - 16px)"}
+      stickySections={!inDrawer}
       data={fileTree}
       title={searchOpen ? "Search" : "Explorer"}
       titleIcon={searchOpen ? <ArrowLeft size={14} /> : undefined}
@@ -755,6 +757,7 @@ export function WorkspaceFiles({
       <Box
         ref={paneRef}
         id="solidity-files-panel"
+        bg="bg.subtle"
         w="var(--solidity-explorer-width, 240px)"
         flexShrink={0}
         display={{ base: "none", xl: "block" }}

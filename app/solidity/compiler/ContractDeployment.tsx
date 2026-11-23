@@ -403,6 +403,7 @@ export function ContractDeploymentForm({
       {!submission && (
         <VStack inert={busy ? true : undefined} minW={0} align="stretch" spacing={4}>
           {!!constructor?.inputs?.length && (
+            <Box position="relative" minW={0} sx={{containerType: "inline-size", containerName: "constructor-header"}}>
             <Box
               borderWidth="1px"
               borderColor="border.default"
@@ -413,24 +414,29 @@ export function ContractDeploymentForm({
               pb={constructorOpen ? 3 : 2}
               minW={0}
             >
-              <Box as="legend" px={2} w="full">
-                <Flex align="center" gap={2} wrap="wrap">
+              <Box as="legend" px={2} maxW="full">
                   <Button variant="unstyled" display="inline-flex" alignItems="center" gap={1.5}
                     h="auto" minW={0} fontWeight="normal" fontSize="sm" color="text.secondary"
+                    whiteSpace="normal" textAlign="left"
                     aria-expanded={constructorOpen} aria-controls={constructorPanelId}
                     onClick={() => { revealConstructor.current = !constructorOpen; setConstructorOpen(open => !open); }}>
-                    {constructorOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    {constructorOpen ? <ChevronDown size={14} style={{flexShrink: 0}} /> : <ChevronRight size={14} style={{flexShrink: 0}} />}
                     Constructor parameters
                   </Button>
-                  <Box aria-hidden="true" flex={1} minW={4} borderTopWidth="1px" borderColor="border.default" />
-                  {history && <ReuseConstructorArguments
+              </Box>
+              {history && history.records.some(record => !record.deletedAt && record.status !== "rejected") && <Box
+                display="flex" justifyContent="flex-end" pt={2} minW={0}
+                sx={{"@container constructor-header (min-width: 480px)": {
+                  position: "absolute", top: "2px", right: "12px", paddingTop: 0,
+                  bg: "bg.base", paddingInline: "4px",
+                }}}>
+                <ReuseConstructorArguments
                     inputs={constructor.inputs}
                     history={history}
                     disabled={busy || isStale}
                     onReuse={(next) => { revealConstructor.current = !constructorOpen; setConstructorOpen(true); setValues(next); setInvalid({}); setReuseVersion(version => version + 1); setError(""); }}
-                  />}
-                </Flex>
-              </Box>
+                  />
+              </Box>}
               <Collapse in={constructorOpen} animateOpacity onAnimationComplete={() => {
                 if (!constructorOpen || !revealConstructor.current) return;
                 revealConstructor.current = false;
@@ -464,6 +470,7 @@ export function ContractDeploymentForm({
                 )}
               </VStack>
               </Collapse>
+            </Box>
             </Box>
           )}
           {hasConstructorArgs && <InitcodeSize bytes={initcode?.bytes ?? null} pending={initcode?.values !== values || initcode?.bytecode !== contract.bytecode} />}

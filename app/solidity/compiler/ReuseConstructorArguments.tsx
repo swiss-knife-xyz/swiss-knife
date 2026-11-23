@@ -118,20 +118,16 @@ export function ReuseConstructorArguments({
         variant="ghost"
         color="primary.300"
         ml="auto"
+        maxW="full"
         isDisabled={disabled}
         onClick={() => setOpen(true)}
       >
-        <VStack as="span" spacing={0} color="inherit" lineHeight="short">
-          <HStack as="span" spacing={1} justify="center">
-            <History size={13} />
-            <Text as="span" color="inherit">
-              Reuse from
-            </Text>
-          </HStack>
-          <Text as="span" color="inherit">
-            prev deployments
+        <HStack as="span" spacing={1} color="inherit" minW={0}>
+          <History size={13} style={{flexShrink: 0}} />
+          <Text as="span" color="inherit" whiteSpace="normal" textAlign="center">
+            Reuse from prev deployments
           </Text>
-        </VStack>
+        </HStack>
       </Button>
       <Modal
         isOpen={open}

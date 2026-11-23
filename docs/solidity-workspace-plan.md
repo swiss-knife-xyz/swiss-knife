@@ -598,3 +598,27 @@ input. All 204 compiler tests and the production build passed.
   Source, artifact or compiler-option changes still reset the deployment form.
 - Deploy libraries themselves through the existing compiled-contract selector.
   No automatic library deployment or wallet transaction is performed.
+
+
+### Imported workspace provenance — implemented, under user review
+
+- Compare live source paths/content and compiler settings against the immutable
+  imported deployment snapshot. Show Modified locally immediately, including
+  unsaved edits and changes made outside the entry source. Reverts clear it.
+- Compare with original opens the shared unified diff, including added/deleted
+  files and bounded previews for large inputs. Settings changes remain visible.
+- Open original in new workspace saves existing edits, creates a uniquely named
+  pristine workspace and copies the original imported deployment snapshot. It
+  neither refetches source nor overwrites modified workspaces. Matching address
+  URLs continue to reopen existing workspaces with provenance visible.
+
+
+### Revert imported source — implemented, under user review
+
+- Comparison footer offers Revert to original with a separate confirmation.
+- Restore every original source and compiler setting from the saved import,
+  preserving IDs for surviving paths, restoring deleted files and removing local
+  additions/dependency locks. Preserve workspace identity and deployments.
+- Save pending edits first and checkpoint editable sources before the revert;
+  reject stale-workspace or concurrent-storage changes. Clear Modified locally
+  after the complete original state is restored.

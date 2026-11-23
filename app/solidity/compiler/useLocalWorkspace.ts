@@ -1,5 +1,7 @@
 "use client";
-import { importVerifiedWorkspace } from "@/lib/solidity/importVerifiedWorkspace";
+import { restoreImportedOriginal } from "@/lib/solidity/importedOriginal";
+import type { DeploymentBuild, DeploymentRecord } from "@/lib/solidity/deployments";
+import { openOriginalImportedWorkspace, importVerifiedWorkspace } from "@/lib/solidity/importVerifiedWorkspace";
 import { lockedPath } from "@/lib/solidity/dependencies";
 import type { SourceCheckpoint } from "@/lib/solidity/revisionHistory";
 import type { VerifiedContract } from "@/lib/solidity/verifiedContract";
@@ -195,6 +197,25 @@ export function useLocalWorkspace(initialCode: string) {
       ),
     [action, initialCode]
   );
+  const openOriginalWorkspace = useCallback(
+    (name: string, record: DeploymentRecord, snapshot: DeploymentBuild) =>
+      action(current => {
+        if (current.id !== record.workspaceId) throw new Error("The workspace changed. Try again.");
+        return openOriginalImportedWorkspace(name, initialCode, record, snapshot);
+      }),
+    [action, initialCode]
+  );
+  const revertImportedWorkspace = useCallback(
+    (expected: SolidityWorkspace, snapshot: DeploymentBuild) => action(current => {
+      if (snapshot.workspaceId !== current.id || current.workspace !== expected)
+        throw new Error("The workspace changed. Review the latest changes before reverting.");
+      const restored = restoreImportedOriginal(current.workspace, snapshot);
+      return saveWorkspace(restored, current, [{
+        files: current.workspace.files.filter(file => !lockedPath(current.workspace, file.name)),
+        reason: "Before revert to original",
+      }]);
+    }), [action]
+  );
   const changeName = useCallback(
     (name: string) => action((current) => renameWorkspace(current, name)),
     [action]
@@ -284,6 +305,8 @@ export function useLocalWorkspace(initialCode: string) {
     addWorkspace,
     importWorkspace,
     importVerifiedContract,
+    openOriginalWorkspace,
+    revertImportedWorkspace,
     changeName,
     removeWorkspace,
     update,

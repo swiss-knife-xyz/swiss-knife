@@ -431,3 +431,21 @@ export const deploymentStore = {
   restore: restoreDeployment,
 };
 export type DeploymentStore = typeof deploymentStore;
+
+/** Copy an immutable imported snapshot, never the edited workspace or a newer local build. */
+export async function copyImportedDeployment(workspaceId: string, original: DeploymentRecord, snapshot: DeploymentBuild) {
+  if (!original.imported || !original.address || original.buildId !== snapshot.id || original.workspaceId !== snapshot.workspaceId || original.sourcePath !== snapshot.contract.sourcePath || original.contractName !== snapshot.contract.name)
+    throw new Error("The original imported snapshot is unavailable.");
+  const id = `imported-${workspaceId}`;
+  const now = Date.now();
+  const record: DeploymentRecord = {...original, id, buildId: id, workspaceId, createdAt: now, updatedAt: now, revision: 1};
+  const build: DeploymentBuild = {...snapshot, id, workspaceId};
+  const db = await openDatabase();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(["builds", "deployments"], "readwrite");
+    tx.oncomplete = () => resolve();
+    tx.onabort = tx.onerror = () => reject(tx.error ?? new Error("Couldn't copy the original snapshot."));
+    tx.objectStore("builds").add(build);
+    tx.objectStore("deployments").add(record);
+  });
+}

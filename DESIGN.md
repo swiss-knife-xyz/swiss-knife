@@ -538,3 +538,68 @@
   paste detects the chain and submits; hashes use explicit submission. Import
   calldata and native value into the loaded ABI without sending a transaction
   or switching the wallet; closing the modal discards late lookup responses.
+
+
+### Compiler scroll behavior
+
+- Keep the Explorer toolbar and source tabs at the top with native CSS sticky
+  positioning during main-page scrolling. Pin Outline to the visible bottom,
+  bounded by the full-height sidebar. The mobile drawer keeps its own layout.
+- Compiler layout ancestors use horizontal overflow clipping without creating
+  scroll containers. Avoid scroll-event transforms or per-frame height updates;
+  the browser owns positioning so fast scrolling stays in sync.
+
+
+### Inline compiler errors
+
+- Show complete, wrapped compiler error messages directly below their source
+  lines using Monaco view zones. Keep the existing squiggles and output cards.
+- Use compact mono text, semantic red and a quiet ruled surface. Resize zones
+  with the editor width; clear stale messages on edits or file switches.
+
+
+### Imported workspace provenance
+
+- Show a quiet amber Modified locally row between the workspace toolbar and
+  editor whenever source files or compiler settings differ from the immutable
+  imported snapshot. Do not wait for saving or compiling. Reverting all changes
+  clears the indicator; navigation and tab changes do not affect it.
+- Put Compare with original and Open original in new workspace alongside the
+  indicator. Use the existing unified diff in a bounded modal, with a changed-file
+  selector and lazy loading. Keep large-file previews bounded.
+- Fresh originals come from the saved import snapshot, retain their imported
+  deployment entry, and never replace the user's edited workspace.
+
+- In original-source comparisons, clicking code or a line number closes the modal
+  and opens that local file/line with the shared brief highlight. Original-side
+  deleted lines map to the nearest surviving local location; removed files stay
+  read-only in the comparison. Bring offscreen targets into the main viewport.
+
+
+### Responsive constructor header
+
+- Keep only the collapsible title in the fieldset legend. At narrow output widths,
+  place the compact blue reuse action inside the box on its own right-aligned row.
+  A container query moves it alongside the title when at least 480px is available.
+  The fieldset border stays continuous and inputs retain their full content width.
+
+
+### Revert imported workspace
+
+- Keep the comparison header concise: changed-file count and file selector only.
+- Put Revert to original in the comparison footer. A second confirmation names
+  the scope: every imported file and compiler setting, restoring deleted sources
+  and removing local additions. Do not modify deployment history.
+- Save a pre-revert source checkpoint through the existing local-history path.
+  Guard against changed workspaces and storage conflicts; failures keep the
+  comparison open with a concise error. Successful revert clears provenance.
+
+
+### Shared original-source comparison
+
+- Reuse Contract Diff's SourceCodeExplorer in the compiler comparison modal:
+  folder tree and outline on the left, changed tabs and Old/Diff/New controls
+  on the right. Include unchanged, added and removed sources in the tree.
+- Both entry points use the same bounded source-diff builder. Preserve compiler
+  line navigation and the confirmed Revert to original action. Keep large source
+  previews available without unbounded diff computation.

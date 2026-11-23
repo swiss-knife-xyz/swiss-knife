@@ -12,9 +12,10 @@ interface LayoutParams {
 export const CompilerLayout = ({ children }: LayoutParams) => {
   return (
     <Box display="flex" flexDir="column" minHeight="100vh">
-      <Box flexGrow={1} overflow="hidden">
+      {/* clip constrains wide content without creating a scroll container that breaks sticky panes. */}
+      <Box flexGrow={1} overflowX="clip">
         <HStack alignItems="flex-start" spacing={0}>
-          <Flex flexDir="column" flexGrow={1} overflow="hidden">
+          <Flex flexDir="column" flexGrow={1} minW={0} overflowX="clip">
             <Navbar />
             {children}
           </Flex>

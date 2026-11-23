@@ -27,7 +27,7 @@ import {
   parseAsString,
   useQueryStates,
 } from "nuqs";
-import { diffLines } from "diff";
+import { compareSourceFiles } from "@/lib/sourceDiff";
 import { FiGitBranch, FiFile } from "react-icons/fi";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { etherscanChains, chainIdToChain, chainIdToImage } from "@/data/networks";
@@ -44,55 +44,8 @@ const networkOptions = getNetworkOptions(Object.values(etherscanChains));
 const WETH_MAINNET = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const WETH_BASE_MAINNET = "0x4200000000000000000000000000000000000006";
 
-const getColoredOutput = (
-  sourceCodes: Record<string, string>[]
-): Record<string, DiffFileData> => {
-  if (sourceCodes.length < 2) return {};
-
-  const contracts = Array.from(new Set([...Object.keys(sourceCodes[0]), ...Object.keys(sourceCodes[1])]));
-  return contracts
-    .map((contract) => {
-      const oldCode = sourceCodes[0][contract] ?? "";
-      const newCode = sourceCodes[1][contract] ?? "";
-
-      const diff = diffLines(oldCode, newCode);
-
-      // Mark lines with special characters that we can replace with CSS classes
-      let diffCode = "";
-      let linesAdded = 0;
-      let linesRemoved = 0;
-
-      diff.forEach((part) => {
-        const lines = part.value.split("\n");
-        if (lines[lines.length - 1] === "") lines.pop();
-        lines.forEach((line) => {
-          if (part.added) {
-            diffCode += `+→${line}\n`;
-            linesAdded++;
-          } else if (part.removed) {
-            diffCode += `-→${line}\n`;
-            linesRemoved++;
-          } else {
-            diffCode += `${line}\n`;
-          }
-        });
-      });
-
-      return {
-        [contract]: {
-          oldCode,
-          oldExists: Object.hasOwn(sourceCodes[0], contract),
-          newExists: Object.hasOwn(sourceCodes[1], contract),
-          diffCode,
-          newCode,
-          changesCount: linesAdded + linesRemoved,
-          linesAdded,
-          linesRemoved,
-        },
-      };
-    })
-    .reduce((acc, obj) => ({ ...acc, ...obj }), {});
-};
+const getColoredOutput = (sourceCodes: Record<string, string>[]): Record<string, DiffFileData> =>
+  sourceCodes.length < 2 ? {} : compareSourceFiles(sourceCodes[0], sourceCodes[1]);
 
 function ContractDiffContent() {
   const searchParams = useSearchParams();

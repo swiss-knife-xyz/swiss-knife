@@ -17,6 +17,8 @@ export function FileExplorerPanel({
   body,
   background = "bg.muted",
   outline,
+  outlineMaxHeight,
+  stickySections,
   ...tree
 }: FileExplorerTreeProps & {
   actions?: ReactNode;
@@ -27,6 +29,8 @@ export function FileExplorerPanel({
   body?: ReactNode;
   background?: string;
   outline?: SourceOutlineInput;
+  outlineMaxHeight?: string;
+  stickySections?: boolean;
 }) {
   const [filesOpen, setFilesOpen] = useState(true);
   const [outlineOpen, setOutlineOpen] = useState(true);
@@ -66,6 +70,10 @@ export function FileExplorerPanel({
       bg={background}
     >
       <HStack
+        position={stickySections ? "sticky" : "relative"}
+        top={stickySections ? 0 : undefined}
+        zIndex={stickySections ? 2 : undefined}
+        bg={background}
         px={3}
         py={2}
         spacing={1}
@@ -136,6 +144,11 @@ export function FileExplorerPanel({
         <Box
           flex={outlineOpen ? (filesOpen ? "0 1 45%" : "1 1 0%") : "0 0 auto"}
           minH={outlineOpen ? "100px" : undefined}
+          maxH={outlineOpen ? outlineMaxHeight : undefined}
+          position={stickySections ? "sticky" : undefined}
+          bottom={stickySections ? 4 : undefined}
+          zIndex={stickySections ? 1 : undefined}
+          bg={background}
           minW={0}
           display="flex"
           flexDirection="column"

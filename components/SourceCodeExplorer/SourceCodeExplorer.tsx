@@ -58,6 +58,7 @@ export function SourceCodeExplorer({
   targetFileName,
   contractName,
   diffData,
+  onDiffNavigate,
   initialHeight = 400,
   initialSidebarWidth = 180,
   maxHeight,
@@ -783,6 +784,7 @@ export function SourceCodeExplorer({
             )}
             <Box ml="auto">
               <CopyToClipboard size="xs" h={7}
+                isDisabled={diffViewMode === 1 && activeFileDiff.previewOnly}
                 aria-label={diffViewMode === 0 ? "Copy old source" : diffViewMode === 2 ? "Copy new source" : "Copy diff"}
                 textToCopy={diffViewMode === 1 ? activeFileDiff.diffCode : displayedContent}
               />
@@ -793,7 +795,8 @@ export function SourceCodeExplorer({
         {/* Monaco Editor */}
         <Box flex={1} minW={0} minH={0} overflow="hidden">
           {activeTab && activeFileDiff && diffViewMode === 1 ? (
-            <PierreDiff path={activeTab.path} diff={activeFileDiff} diffStyle={diffStyle} showAllLines={showAllLines} />
+            <PierreDiff path={activeTab.path} diff={activeFileDiff} diffStyle={diffStyle} showAllLines={showAllLines}
+              onNavigate={onDiffNavigate && activeFileDiff.newExists !== false ? line => onDiffNavigate(activeTab.path, line) : undefined} />
           ) : activeTab ? (
             <Editor
               key={isDiffMode ? `${activeTabId}-${diffViewMode}` : activeTabId}
