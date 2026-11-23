@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { ContractSize } from "./ContractSize";
 import { flashSourceLine } from "@/components/SourceCodeExplorer/flashSourceLine";
 import { CompilationErrors } from "./CompilationErrors";
@@ -41,6 +42,7 @@ import {
   CheckCircle2,
   CircleAlert,
   Download,
+  History,
   PanelLeftOpen,
   Play,
 } from "lucide-react";
@@ -83,6 +85,7 @@ contract Counter {
         ++number;
     }
 }`;
+const LocalHistory = dynamic(() => import("./LocalHistory").then(module => module.LocalHistory), {ssr:false});
 const ARTIFACTS = ["ABI", "Bytecode", "Runtime"] as const;
 
 function downloadFile(name: string, content: string, type = "text/plain") {
@@ -132,6 +135,7 @@ export default function SolidityIDE() {
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null);
   const selectorLensesRef = useRef<ReturnType<typeof registerSelectorLenses> | null>(null);
   const [contractChoice, setContractName] = useState("");
+  const [historyRequest,setHistoryRequest] = useState<{workspaceId:string;fileId?:string}|null>(null);
   const [artifact, setArtifact] = useState(0);
   const [artifactOpen, setArtifactOpen] = useState(false);
   const [deploymentBusy, setDeploymentBusy] = useState(false);
@@ -219,7 +223,7 @@ export default function SolidityIDE() {
         current => updateEditorFile(current, fileId, content), workspaceId));
     editorBinding.current = binding;
     binding.sync();
-    return () => { binding.dispose(); if (editorBinding.current === binding) editorBinding.current = null; };
+  return () => { binding.dispose(); if (editorBinding.current === binding) editorBinding.current = null; };
   }, [editorMount, local.update]);
   useEffect(() => { editorBinding.current?.sync(); }, [local.workspace, editorMount]);
   useEffect(() => {
@@ -304,6 +308,16 @@ export default function SolidityIDE() {
     });
   };
 
+  useEffect(() => setHistoryRequest(null), [local.activeWorkspace?.id]);
+  const openLocalHistory = async (fileId?:string) => {
+    const workspaceId=local.activeWorkspace?.id;
+    if(!workspaceId)return;
+    filesDrawer.onClose();
+    await local.flush();
+    if(editorContext.current.workspaceId !== workspaceId)return;
+    setHistoryRequest({workspaceId,fileId});
+  };
+
   return (
     <Box
       as="main"
@@ -314,6 +328,9 @@ export default function SolidityIDE() {
       py={{ base: 6, md: 8 }}
       minW={0}
     >
+      {historyRequest && <LocalHistory request={historyRequest && historyRequest.workspaceId === local.activeWorkspace?.id ? historyRequest : null}
+        workspace={local.workspace} disabled={filesLocked} warning={local.historyWarning}
+        onClose={() => setHistoryRequest(null)} onRestore={local.restoreRevision} />}
       <Flex
         mb={6}
         gap={4}
@@ -345,6 +362,7 @@ export default function SolidityIDE() {
         </Box>
       </Flex>
 
+      {local.historyWarning && <Text role="alert" mb={4} fontSize="sm" color="warning.text">{local.historyWarning}</Text>}
       {local.error && (
         <Flex
           role="alert"
@@ -362,6 +380,7 @@ export default function SolidityIDE() {
           </Text>
           {local.workspace && (
             <>
+
               <Button
                 size="sm"
                 onClick={() =>
@@ -473,7 +492,7 @@ export default function SolidityIDE() {
               workspaceName={local.activeWorkspace?.name ?? "Workspace"}
               workspaceNames={local.workspaces.map((entry) => entry.name)}
               onCreate={local.importWorkspace}
-              update={(edit) => local.update(edit, local.activeWorkspace?.id)}
+              update={(edit) => local.update(edit, local.activeWorkspace?.id, "Before import")}
               disabled={
                 deploymentBusy || (deploymentHistory.hasUnsaved && !!deploymentHistory.error) || local.isChanging || local.status === "loading"
               }
@@ -505,6 +524,11 @@ export default function SolidityIDE() {
             />
           </HStack>
           <HStack spacing={3} flexWrap="wrap" rowGap={2}>
+            <Button size="sm" variant="outline" h={8} fontSize="sm" leftIcon={<History size={14} />}
+              color="text.secondary" borderColor="border.default" _hover={{ bg: "bg.emphasis", color: "text.primary" }}
+              isDisabled={filesLocked || !local.workspace} onClick={() => void openLocalHistory()}>
+              History
+            </Button>
             <CompilerConfiguration
               settings={
                 local.workspace?.compilerSettings ?? normalizeCompilerSettings()
@@ -554,7 +578,8 @@ export default function SolidityIDE() {
             paneRef={filesPaneRef}
             key={local.activeWorkspace?.id ?? "loading"}
             workspace={local.workspace}
-            update={(edit) => local.update(edit, local.activeWorkspace?.id)}
+            update={(edit, reason) => local.update(edit, local.activeWorkspace?.id, reason)}
+            onOpenHistory={(fileId) => void openLocalHistory(fileId)}
             disabled={filesLocked}
             isOpen={filesDrawer.isOpen}
             onClose={filesDrawer.onClose}

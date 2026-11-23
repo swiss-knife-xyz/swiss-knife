@@ -191,7 +191,7 @@ Reference: https://unpkg.com (exact-version URLs and file metadata/integrity API
 
 - [x] Optional auto-compile, inline Monaco diagnostics and click-to-jump errors.
 - [x] Workspace-wide find/replace and search/replace keyboard shortcuts.
-- [ ] Bounded local source revision history with preview and restore.
+- [x] Bounded local source revision history with preview and restore.
 - [x] Contract byte-size indicators and deployment-size limit warnings.
 - [x] Import a verified contract into a new workspace.
 
@@ -551,3 +551,29 @@ input. All 204 compiler tests and the production build passed.
   into view after expansion; initial rendering never triggers the scroll.
 - The initcode meter sits immediately below constructor parameters and above
   the deployment network, using the same visual treatment as the size meters.
+
+### Local revision history
+
+- File menus and the History toolbar button open Local history. The workspace view includes deleted
+  files; source snapshots are keyed by stable file IDs and survive renaming.
+- Save the pre-edit source at 30-second automatic checkpoint intervals. Immediate
+  checkpoints protect the actual in-memory pre-action source before replace all,
+  overwriting imports, deletion/rename, and restore, even before autosave catches up.
+- IndexedDB v3 adds revision metadata, content-addressed source blobs and per-file
+  heads. Sources and checkpoints commit atomically with optimistic revision checks.
+  Identical source content is stored once per workspace. Installed dependencies,
+  compiler builds/binaries and deployment records are not copied into history.
+- Retain at most 30 revisions per file, 25 MiB of unique source content per
+  workspace, and 3,000 metadata entries per workspace (including empty/deleted
+  files). Prune oldest history only and remove unreferenced blobs. Workspace
+  deletion explicitly removes its history; ZIP export contains current sources.
+- Preview current-to-selected changes through the existing Pierre diff renderer.
+  Large files or expensive diffs fall back to a read-only source preview. The
+  history modal and diff renderer load only when requested.
+- Restore one file without rolling back settings/dependencies/other sources. Keep
+  its current path after renames; recover deleted files at their saved path after
+  collision checks. Preserve a pre-restore checkpoint and reject stale previews,
+  concurrent workspace changes, and read-only dependency paths.
+- If checkpoint storage hits quota or optional history preparation fails, prioritize
+  saving current source and display a history warning. Hashing preserves exact
+  source strings, including unpaired Unicode surrogates.

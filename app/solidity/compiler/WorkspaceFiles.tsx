@@ -32,6 +32,7 @@ import {
 } from "@chakra-ui/react";
 import {
   ArrowLeft,
+  History,
   Download,
   Package,
   FolderPlus,
@@ -71,7 +72,8 @@ import {
 type Props = {
   paneRef?: RefObject<HTMLDivElement | null>;
   workspace: SolidityWorkspace | null;
-  update(edit: (workspace: SolidityWorkspace) => SolidityWorkspace): void;
+  update(edit: (workspace: SolidityWorkspace) => SolidityWorkspace, reason?: string): void;
+  onOpenHistory?(fileId: string): void;
   disabled: boolean;
   isOpen: boolean;
   onClose(): void;
@@ -128,6 +130,7 @@ export function WorkspaceFiles({
   disabled,
   isOpen,
   onClose,
+  onOpenHistory,
   onOpen,
   onRevealFile,
   revealFile,
@@ -179,7 +182,7 @@ export function WorkspaceFiles({
       !canApplyReplacements(workspace, plan)
     )
       return;
-    update((current) => applyReplacements(current, plan));
+    update((current) => applyReplacements(current, plan), "Before replace all");
     setReplacementPlan(null);
     const id = toast({
       duration: 12000,
@@ -206,7 +209,7 @@ export function WorkspaceFiles({
                 });
                 return;
               }
-              update((value) => applyReplacements(value, plan, true));
+              update((value) => applyReplacements(value, plan, true), "Before undo replacement");
               onClose();
             }}
           >
@@ -542,6 +545,7 @@ export function WorkspaceFiles({
         </MenuItem>
         {file && (
           <>
+            {onOpenHistory && <MenuItem icon={<History size={14} />} onClick={() => { onClose(); onOpenHistory(file.id); }}>Local history</MenuItem>}
             <MenuDivider />
             <MenuItem
               icon={<Download size={14} />}
@@ -811,8 +815,7 @@ export function WorkspaceFiles({
                 {workspace?.files.filter((file) =>
                   insideFolder(file.name, dialog.folder!)
                 ).length ?? 0}{" "}
-                files? This cannot be undone. Export a ZIP first if you need a
-                copy.
+                files? Recent file versions remain in Local history.
               </Text>
             ) : dialog?.type === "delete" ? (
               <Text fontSize="sm">

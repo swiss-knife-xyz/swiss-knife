@@ -1,3 +1,5 @@
+import { HISTORY_STORES, upgradeRevisionHistory, prepareRevisions, queueRevisions, clearWorkspaceHistory, type SourceCheckpoint, type SourceRevision } from "./revisionHistory";
+import { lockedPath } from "./dependencies";
 import type { DependencyLock } from "./dependencies";
 import { normalizeCompilerSettings, type CompilerSettings } from "./settings";
 import { validatePath, assertPaths } from "./paths";
@@ -16,6 +18,7 @@ export type WorkspaceSummary = { id: string; name: string; importedContract?: Im
 export type SavedWorkspace = WorkspaceSummary & {
   workspace: SolidityWorkspace;
   revision: number;
+  historyWarning?: string;
 };
 type WorkspaceRecord = WorkspaceSummary & {
   nameKey: string;
@@ -49,7 +52,7 @@ export class WorkspaceNameError extends Error {}
 function openDatabase() {
   if (!database)
     database = new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(DATABASE_NAME, 2);
+      const request = indexedDB.open(DATABASE_NAME, 4);
       let blocked = false;
       request.onupgradeneeded = (event) => {
         const db = request.result;
@@ -60,6 +63,7 @@ function openDatabase() {
             "workspaceId"
           );
         }
+        if (event.oldVersion < 3) upgradeRevisionHistory(db);
         if (event.oldVersion < 2) {
           db.createObjectStore("preferences", { keyPath: "key" });
           const workspaces = request.transaction!.objectStore("workspaces");
@@ -72,9 +76,23 @@ function openDatabase() {
             const record = cursor.value;
             const name =
               record.name ??
-              (++index === 1 ? "Workspace" : `Workspace ${index}`);
+              (++index === 1 ? "Default Workspace" : `Workspace ${index}`);
             cursor.update({ ...record, name, nameKey: name.toLowerCase() });
             cursor.continue();
+          };
+        }
+        if (event.oldVersion < 4) {
+          const store = request.transaction!.objectStore("workspaces");
+          const original = store.get("default");
+          original.onsuccess = () => {
+            const record = original.result;
+            // Only migrate the untouched generated name; preserve custom names.
+            if (record?.name !== "Workspace") return;
+            const existing = store.index("nameKey").get("default workspace");
+            existing.onsuccess = () => {
+              if (existing.result) return;
+              store.put({...record,name:"Default Workspace",nameKey:"default workspace",revision:record.revision+1});
+            };
           };
         }
       };
@@ -191,8 +209,8 @@ export async function loadWorkspace(
           const workspace = seed(initialCode);
           const created = {
             id: "default",
-            name: "Workspace",
-            nameKey: "workspace",
+            name: "Default Workspace",
+            nameKey: "default workspace",
             revision: 1,
             activeFileId: workspace.activeFileId,
             openFileIds: workspace.openFileIds,
@@ -249,17 +267,22 @@ export async function loadWorkspace(
   });
 }
 
-export async function saveWorkspace(
+class HistoryCheckpointError extends Error {}
+
+async function saveWorkspaceOnce(
   workspace: SolidityWorkspace,
-  previous: SavedWorkspace
+  previous: SavedWorkspace,
+  checkpoints: SourceCheckpoint[] = [],
+  skipHistory = false
 ): Promise<SavedWorkspace> {
   assertPaths(workspace.files, workspace.folders);
+  const candidates = skipHistory ? [] : await prepareRevisions(previous.workspace, workspace, checkpoints).catch(() => { throw new HistoryCheckpointError("Couldn't prepare source history."); });
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(["workspaces", "files"], "readwrite");
+    const tx = db.transaction(["workspaces", "files", ...HISTORY_STORES], "readwrite");
     let failure: Error | null = null;
     const revision = previous.revision + 1;
-    tx.oncomplete = () => resolve({ ...previous, workspace, revision });
+    tx.oncomplete = () => resolve({ ...previous, workspace, revision, historyWarning: skipHistory ? "Files saved without a history checkpoint because local history is unavailable." : undefined });
     tx.onabort = tx.onerror = () =>
       reject(failure ?? tx.error ?? new Error("Couldn't save files."));
     const request = tx.objectStore("workspaces").get(previous.id);
@@ -272,6 +295,7 @@ export async function saveWorkspace(
         return;
       }
       try {
+        queueRevisions(tx, previous.id, candidates, () => { failure = new HistoryCheckpointError("Couldn't write source history."); });
         const files = tx.objectStore("files");
         const oldFiles = new Map(
           previous.workspace.files.map((file) => [file.id, file])
@@ -391,7 +415,7 @@ export async function deleteWorkspace(previous: SavedWorkspace): Promise<void> {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(
-      ["workspaces", "files", "preferences"],
+      ["workspaces", "files", "preferences", ...HISTORY_STORES],
       "readwrite"
     );
     let failure: Error | null = null;
@@ -419,6 +443,7 @@ export async function deleteWorkspace(previous: SavedWorkspace): Promise<void> {
         return;
       }
       store.delete(previous.id);
+      clearWorkspaceHistory(tx, previous.id);
       const cursorRequest = tx
         .objectStore("files")
         .index("workspaceId")
@@ -440,4 +465,51 @@ export async function deleteWorkspace(previous: SavedWorkspace): Promise<void> {
       };
     };
   });
+}
+
+export async function saveWorkspace(workspace: SolidityWorkspace, previous: SavedWorkspace, checkpoints: SourceCheckpoint[] = []): Promise<SavedWorkspace> {
+  try { return await saveWorkspaceOnce(workspace, previous, checkpoints); }
+  catch(error) {
+    if (!(error instanceof HistoryCheckpointError) && !(error && typeof error === "object" && "name" in error && error.name === "QuotaExceededError")) throw error;
+    // Prioritize current files over optional snapshots. Never discard current source.
+    return saveWorkspaceOnce(workspace, previous, [], true);
+  }
+}
+export async function listSourceRevisions(workspaceId: string): Promise<SourceRevision[]> {
+  const db=await openDatabase();
+  return new Promise((resolve,reject)=> {
+    const request=db.transaction("sourceRevisions").objectStore("sourceRevisions").index("workspaceId").getAll(workspaceId);
+    request.onerror=()=>reject(request.error);
+    request.onsuccess=()=>resolve(request.result.sort((a:SourceRevision,b:SourceRevision)=>b.createdAt-a.createdAt));
+  });
+}
+export async function readSourceRevision(workspaceId: string, id: string): Promise<(SourceRevision & {content:string}) | null> {
+  const db=await openDatabase();
+  return new Promise((resolve,reject)=> {
+    const tx=db.transaction(["sourceRevisions","revisionContents"]);
+    tx.onabort=tx.onerror=()=>reject(tx.error);
+    let value: (SourceRevision & {content:string}) | null=null;
+    tx.oncomplete=()=>resolve(value);
+    const request=tx.objectStore("sourceRevisions").get(id);
+    request.onsuccess=()=> {
+      const row=request.result as SourceRevision|undefined;
+      if(!row || row.workspaceId!==workspaceId) return;
+      const source=tx.objectStore("revisionContents").get([workspaceId,row.hash]);
+      source.onsuccess=()=> { if(source.result) value={...row,content:source.result.content}; };
+    };
+  });
+}
+export async function restoreSourceRevision(previous: SavedWorkspace, revisionId: string, expected: SolidityFile|null): Promise<SavedWorkspace> {
+  const revision=await readSourceRevision(previous.id, revisionId);
+  if(!revision) throw new Error("This revision is no longer available.");
+  const current=previous.workspace.files.find(file=>file.id===revision.fileId);
+  if ((expected && (!current || current.name!==expected.name || current.content!==expected.content || current.id!==expected.id)) || (!expected && current))
+    throw new Error("The file changed after the preview. Reopen Local history and try again.");
+  const path=current?.name ?? revision.path;
+  if(lockedPath(previous.workspace,path)) throw new Error("Installed dependencies are read-only.");
+  validateFileName(path,previous.workspace.files,revision.fileId);
+  const file={id:revision.fileId,name:path,content:revision.content};
+  const workspace={...previous.workspace,files:current ? previous.workspace.files.map(value=>value.id===file.id?file:value) : [...previous.workspace.files,file], activeFileId:file.id,
+    openFileIds:previous.workspace.openFileIds.includes(file.id)?previous.workspace.openFileIds:[...previous.workspace.openFileIds,file.id]};
+  return saveWorkspace(workspace,previous,current ? [{files:[current],reason:"Before restore"}] : []);
 }

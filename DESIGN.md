@@ -447,3 +447,13 @@
   source rows. Reuse dark surfaces, semantic colors, crisp borders and typography.
 - Keep dependency results searchable but read-only. Preserve search drafts while
   switching views; apply edits together and offer a guarded Undo toast.
+
+### Local source history
+
+- Put the compact History action immediately before compiler settings; retain
+  file-specific Local history in each file action menu.
+- A dark modal pairs a compact revision timeline with the existing unified diff.
+  Narrow screens stack the timeline above the preview. Paths, times and action
+  labels provide hierarchy; no decorative surfaces or new typography.
+- Restore is an explicit primary action; stale/no-op previews disable it. Deleted
+  files stay discoverable through the workspace view and its Deleted files filter.

@@ -24,6 +24,7 @@ async function repository() {
 it("creates a default file once and restores multiple files and open tabs", async () => {
   const repo = await repository();
   const first = await repo.loadWorkspace("contract Counter {}");
+  expect(first.name).toBe("Default Workspace");
   const newFile = {
     id: "second",
     name: "Token.sol",
@@ -257,7 +258,7 @@ it("migrates the old single workspace without changing its files, IDs or tabs", 
   const migrated = await repo.loadWorkspace("must not replace existing data");
   expect(migrated).toMatchObject({
     id: "default",
-    name: "Workspace",
+    name: "Default Workspace",
     revision: 7,
     workspace: {
       activeFileId: "existing",
@@ -575,4 +576,27 @@ it("rejects editor callbacks belonging to a previous workspace after switching",
   const current=hook.result.current.workspace;
   act(()=>hook.result.current.update(value=>({...value,files:[]}),previousId));
   expect(hook.result.current.workspace).toBe(current);
+});
+
+it("renames the existing generated default workspace without changing source or history", async () => {
+  const repo=await repository();
+  const {upgradeRevisionHistory}=await import("@/lib/solidity/revisionHistory");
+  const db=await new Promise<IDBDatabase>((resolve,reject)=> {
+    const request=indexedDB.open("ethsh-solidity",3);
+    request.onupgradeneeded=()=> {
+      const store=request.result.createObjectStore("workspaces",{keyPath:"id"});
+      store.createIndex("nameKey","nameKey",{unique:true});
+      request.result.createObjectStore("files",{keyPath:"id"}).createIndex("workspaceId","workspaceId");
+      request.result.createObjectStore("preferences",{keyPath:"key"});
+      upgradeRevisionHistory(request.result);
+      store.put({id:"default",name:"Workspace",nameKey:"workspace",revision:3,activeFileId:"file",openFileIds:["file"]});
+      request.transaction!.objectStore("files").put({id:"file",workspaceId:"default",name:"A.sol",content:"keep"});
+    };
+    request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+  });
+  db.close();
+  const saved=await repo.loadWorkspace("ignored");
+  expect(saved.name).toBe("Default Workspace");
+  expect(saved.workspace.files).toEqual([{id:"file",name:"A.sol",content:"keep"}]);
+  expect(saved.revision).toBe(4);
 });

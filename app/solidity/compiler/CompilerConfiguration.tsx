@@ -91,9 +91,6 @@ export function CompilerConfiguration({
       <Button
         size="sm"
         variant="outline"
-        color="text.secondary"
-        borderColor="border.default"
-        _hover={{ bg: "bg.emphasis", color: "text.primary" }}
         leftIcon={<Settings2 size={14} />}
         fontWeight="normal"
         isDisabled={disabled}

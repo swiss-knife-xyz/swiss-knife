@@ -1,10 +1,14 @@
 "use client";
 import { importVerifiedWorkspace } from "@/lib/solidity/importVerifiedWorkspace";
+import { lockedPath } from "@/lib/solidity/dependencies";
+import type { SourceCheckpoint } from "@/lib/solidity/revisionHistory";
 import type { VerifiedContract } from "@/lib/solidity/verifiedContract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   loadWorkspace,
   saveWorkspace,
+  restoreSourceRevision,
+  type SolidityFile,
   listWorkspaces,
   createWorkspace,
   renameWorkspace,
@@ -43,12 +47,15 @@ export function useLocalWorkspace(initialCode: string) {
   const changing = useRef(false);
   const generation = useRef(0);
   const saveError = useRef("");
+  const checkpoints = useRef<SourceCheckpoint[]>([]);
+  const [historyWarning,setHistoryWarning] = useState("");
 
   const refreshList = useCallback(async () => {
     const entries = await listWorkspaces();
     if (mounted.current) setWorkspaces(entries);
   }, []);
   const adopt = useCallback((loaded: SavedWorkspace) => {
+    checkpoints.current = [];
     saved.current = loaded;
     latest.current = loaded.workspace;
     conflict.current = false;
@@ -56,6 +63,7 @@ export function useLocalWorkspace(initialCode: string) {
     if (!mounted.current) return;
     setWorkspace(loaded.workspace);
     setActiveWorkspace({ id: loaded.id, name: loaded.name, ...(loaded.workspace.importedContract ? { importedContract: loaded.workspace.importedContract } : {}) });
+    setHistoryWarning(loaded.historyWarning ?? "");
     setStatus("saved");
     setError("");
     setWorkspaces((entries) =>
@@ -106,10 +114,14 @@ export function useLocalWorkspace(initialCode: string) {
           saved.current &&
           latest.current !== saved.current.workspace &&
           requestGeneration === generation.current
-        )
-          saved.current = await saveWorkspace(latest.current, saved.current);
+        ) {
+          const pending = checkpoints.current.splice(0);
+          try { saved.current = await saveWorkspace(latest.current, saved.current, pending); }
+          catch(error) { checkpoints.current.unshift(...pending); throw error; }
+        }
         saveError.current = "";
         if (mounted.current && requestGeneration === generation.current) {
+          setHistoryWarning(saved.current?.historyWarning ?? "");
           setStatus("saved");
           setError("");
         }
@@ -230,7 +242,8 @@ export function useLocalWorkspace(initialCode: string) {
   const update = useCallback(
     (
       edit: (current: SolidityWorkspace) => SolidityWorkspace,
-      expectedWorkspaceId?: string
+      expectedWorkspaceId?: string,
+      reason?: string
     ) => {
       const current = latest.current;
       if (
@@ -241,6 +254,13 @@ export function useLocalWorkspace(initialCode: string) {
         return;
       const next = edit(current);
       if (next === current) return;
+      const nextById=new Map(next.files.map(file=>[file.id,file]));
+      const changed = current.files.filter(file => {
+        if (lockedPath(current,file.name)) return false;
+        const after = nextById.get(file.id);
+        return reason ? !after || after.content!==file.content || after.name!==file.name : !after || after.name!==file.name;
+      });
+      if(changed.length) checkpoints.current.push({files:changed, reason:reason ?? (changed.some(file=>!nextById.has(file.id)) ? "Before deletion" : "Before rename")});
       latest.current = next;
       setWorkspace(next);
       if (!conflict.current) setStatus("unsaved");
@@ -267,6 +287,11 @@ export function useLocalWorkspace(initialCode: string) {
     changeName,
     removeWorkspace,
     update,
+    historyWarning,
+    restoreRevision: (revisionId: string, expected: SolidityFile|null, workspaceId: string) => action(current => {
+      if(current.id!==workspaceId) throw new Error("The workspace changed. Reopen Local history.");
+      return restoreSourceRevision(current,revisionId,expected);
+    }),
     status,
     error,
     flush,

@@ -173,7 +173,7 @@ export function WorkspaceSelector({
             {dialog === "delete" ? (
               <Text fontSize="sm">
                 Delete “{active?.name}” and its {fileCount}{" "}
-                {fileCount === 1 ? "file" : "files"}? Export a ZIP first if you
+                {fileCount === 1 ? "file" : "files"}, including local history? Export a ZIP first if you
                 want to keep a copy.
               </Text>
             ) : (
