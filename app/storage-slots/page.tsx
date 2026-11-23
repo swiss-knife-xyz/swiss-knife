@@ -32,11 +32,11 @@ import { InputField } from "@/components/InputField";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { SelectedOptionState } from "@/types";
 import TabsSelector from "@/components/Tabs/TabsSelector";
-import { chainIdToChain } from "@/data/networks";
 import { Address, encodePacked, keccak256, erc20Abi } from "viem";
 import { resolveAddressToName, getNameAvatar } from "@/lib/nameResolution";
 import { getPublicClient } from "@/lib/publicClient";
-import { fetchContractAbi } from "@/utils";
+import { fetchContractAbi, getPath } from "@/utils";
+import subdomains from "@/subdomains";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import {
   EIP1967Options,
@@ -459,8 +459,6 @@ const AddressValue = ({
   const [labels, setLabels] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const explorerUrl = chainIdToChain[chainId]?.blockExplorers?.default?.url;
-
   const fetchAndSetLabels = useCallback(async () => {
     try {
       const client = getPublicClient(chainId);
@@ -539,20 +537,18 @@ const AddressValue = ({
       <Text fontFamily="mono" fontSize="sm">
         {address}
       </Text>
-      {explorerUrl && (
-        <Tooltip label="View on explorer" placement="top">
-          <IconButton
-            as={Link}
-            href={`${explorerUrl}/address/${address}`}
-            isExternal
-            aria-label="View on explorer"
-            icon={<ExternalLinkIcon />}
-            size="xs"
-            variant="ghost"
-            colorScheme="blue"
-          />
-        </Tooltip>
-      )}
+      <Tooltip label="View on explorer" placement="top">
+        <IconButton
+          as={Link}
+          href={`${getPath(subdomains.CONTRACT.base)}${chainId}/${address}`}
+          isExternal
+          aria-label="View on explorer"
+          icon={<ExternalLinkIcon />}
+          size="xs"
+          variant="ghost"
+          colorScheme="blue"
+        />
+      </Tooltip>
     </HStack>
   );
 };

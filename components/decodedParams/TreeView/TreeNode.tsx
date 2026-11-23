@@ -499,10 +499,7 @@ export function TreeNode({
         {(arg.baseType === "address" ||
           (arg.baseType === "bytes" && isAddress(arg.rawValue))) && (
           <Link
-            href={`${getPath(
-              subdomains.EXPLORER.base,
-              subdomains.EXPLORER.isRelativePath
-            )}address/${arg.baseType === "address" ? arg.value : arg.rawValue}`}
+            href={`${getPath(subdomains.CONTRACT.base)}${chainId ?? 1}/${arg.baseType === "address" ? arg.value : arg.rawValue}`}
             title="View on explorer"
             isExternal
             onClick={(e) => e.stopPropagation()}

@@ -441,7 +441,7 @@ it("keeps manual decoding, copy and explorer access when metadata is unavailable
     screen.getByRole("button", { name: "Copy" }).getAttribute("data-copy")
   ).toBe(address);
   expect(
-    document.querySelector(`a[href*="${address}?chainId=8453"]`)
+    document.querySelector(`a[href$="/8453/${address}"]`)
   ).toBeTruthy();
   expect(mocks.decode).toHaveBeenCalledTimes(1);
 });
@@ -714,4 +714,11 @@ it("recognizes only known explorer transaction URLs, not lookalike hosts or addr
     `https://basescan.org/address/${address}`,
     "https://basescan.org/tx/0x123",
   ]) expect(parseTransactionExplorerUrl(input)).toBeNull();
+});
+
+it.each([undefined, 1, 8453])("shared address rendering links to Contract Explorer with network %s", async (chainId) => {
+  render(param(chainId));
+  const link = await screen.findByRole("link", { name: `Open address ${address}` });
+  expect(link.getAttribute("href")).toBe(`/${chainId ?? 1}/${address}`);
+  expect(link.getAttribute("target")).toBe("_blank");
 });

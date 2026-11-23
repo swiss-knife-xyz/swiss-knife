@@ -115,10 +115,7 @@ export const ArrayParam = ({ arg: _arg, chainId }: Params) => {
                       {ar.baseType === "address" ||
                       (ar.baseType === "bytes" && isAddress(ar.rawValue)) ? (
                         <Link
-                          href={`${getPath(
-                            subdomains.EXPLORER.base,
-                            subdomains.EXPLORER.isRelativePath
-                          )}address/${
+                          href={`${getPath(subdomains.CONTRACT.base)}${chainId ?? 1}/${
                             ar.baseType === "address" ? ar.value : ar.rawValue
                           }`}
                           title="View on explorer"

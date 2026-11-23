@@ -386,7 +386,7 @@ const AddressParamContent = ({
               }
               address={address}
               chainId={chainId}
-              href={`${getPath(subdomains.EXPLORER.base, subdomains.EXPLORER.isRelativePath)}address/${address}${chainId ? "?chainId=" + chainId : ""}`}
+              href={`${getPath(subdomains.CONTRACT.base)}${chainId ?? 1}/${address}`}
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Open address ${address}`}

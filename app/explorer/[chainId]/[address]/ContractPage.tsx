@@ -1188,9 +1188,7 @@ const LoadedContractPage = ({
                   <ContractAddressLink
                     address={implementationAddress}
                     chainId={chainId}
-                    href={`${getPath(
-                      subdomains.EXPLORER.base
-                    )}contract/${chainId}/${implementationAddress}`}
+                    href={`${getPath(subdomains.CONTRACT.base)}${chainId}/${implementationAddress}`}
                     fontWeight="semibold"
                     color="primary.400"
                     fontSize="sm"
