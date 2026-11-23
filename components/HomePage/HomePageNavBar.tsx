@@ -1,3 +1,6 @@
+"use client";
+
+import { ToolsMenu } from "@/components/ToolsMenu";
 import Link from "next/link";
 import {
   HStack,
@@ -57,6 +60,7 @@ export const HomePageNavBar = () => {
         >
           <FontAwesomeIcon icon={faGithub} size="lg" color="white" />
         </ChakraLink>
+        <ToolsMenu />
       </HStack>
     </Flex>
   );

@@ -13,9 +13,9 @@ import {
   IconButton,
   Tooltip,
 } from "@chakra-ui/react";
-import { Menu, Github, BookOpen, Network } from "lucide-react";
+import { Github, BookOpen, Network } from "lucide-react";
 import { baseURL } from "@/config";
-import { ToolsDrawer } from "./ToolsDrawer";
+import { ToolsMenu } from "./ToolsMenu";
 import { NotificationBar } from "./NotificationBar";
 import { useAddressBook } from "@/hooks/useAddressBook";
 
@@ -25,11 +25,6 @@ const CustomChainDrawer = dynamic(() =>
 
 export const Navbar = () => {
   const networks = useDisclosure();
-  const {
-    isOpen: isMenuOpen,
-    onOpen: onMenuOpen,
-    onClose: onMenuClose,
-  } = useDisclosure();
   const isMobile = useBreakpointValue({ base: true, md: false });
   const { openDrawer } = useAddressBook();
 
@@ -107,15 +102,7 @@ export const Navbar = () => {
             />
           </Tooltip>
 
-          <IconButton
-            aria-label="Open menu"
-            icon={<Menu size={20} />}
-            variant="ghost"
-            color="text.secondary"
-            _hover={{ color: "text.primary", bg: "bg.emphasis" }}
-            onClick={onMenuOpen}
-            size="md"
-          />
+          <ToolsMenu />
         </HStack>
       </Flex>
 
@@ -130,7 +117,6 @@ export const Navbar = () => {
           onSaved={() => {}}
         />
       )}
-      <ToolsDrawer isOpen={isMenuOpen} onClose={onMenuClose} />
     </VStack>
   );
 };
