@@ -44,7 +44,7 @@ registry summary and nested MultiSend/ERC-20 summaries. The Zora mint has no
 registry descriptor and caches `null`; it shows only the regular tree.
 
 To refresh explicitly with the dev server running, use `pnpm exec vitest run
---config vitest.capture-clear-signing.config.ts` (optional
+--config vitest/vitest.capture-clear-signing.config.ts` (optional
 `CLEAR_SIGNING_CAPTURE_ORIGIN`). The capture uses the shared formatter and public
 registry/explorer metadata, validates implementation deployment binding, and
 writes both snapshots only after the complete capture succeeds. It never invents
@@ -64,7 +64,7 @@ payload and custom-RPC revision, so a previous request cannot decorate a new one
 The component is loaded dynamically and does not block the normal decoder.
 
 Run `pnpm test:clear-signing`, `pnpm exec vitest run --config
-vitest.decoder-metadata.config.ts`, and `pnpm exec tsc --noEmit` for changes here.
+vitest/vitest.decoder-metadata.config.ts`, and `pnpm exec tsc --noEmit` for changes here.
 
 ## Tx page
 
@@ -74,7 +74,7 @@ keystroke. Preview state is bound to the current calldata, resolved recipient,
 network, sender and native value. An empty recipient means deployment and does
 not synthesize a contract target. The decode modal and wallet request modal share
 `components/decodedParams/CalldataTree.tsx` with the decoder; no legacy tree is
-retained. `vitest.tx.config.ts` covers editor preview/envelope and modal wiring.
+retained. `vitest/vitest.tx.config.ts` covers editor preview/envelope and modal wiring.
 
 A disconnected Tx form may opt into `allowMissingSender`: ordinary `@.from`
 address display rows explicitly say “Connect wallet to set sender”. No sender

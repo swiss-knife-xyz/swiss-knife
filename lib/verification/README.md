@@ -62,7 +62,7 @@ compiler-specific adapters rather than being sent as Solidity.
 
 ```
 npx tsx --test lib/verification/*.test.ts
-npx vitest run --config vitest.verification.config.ts
+npx vitest run --config vitest/vitest.verification.config.ts
 npx tsc --noEmit
 ```
 

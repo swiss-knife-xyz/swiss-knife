@@ -71,7 +71,7 @@ redefine chain metadata.
 
 ## Verification
 
-`pnpm exec vitest run --config vitest.networks.config.ts` covers shared identity,
+`pnpm exec vitest run --config vitest/vitest.networks.config.ts` covers shared identity,
 retirement filtering, provider restrictions, independent selectors, name/ID search,
 configured endpoint precedence, public-only console endpoints, and RPC fallback.
 Run the affected tool suites and TypeScript checks when changing the registry.

@@ -1,4 +1,4 @@
-// Explicit maintenance capture: pnpm exec vitest run --config vitest.capture-clear-signing.config.ts
+// Explicit maintenance capture: pnpm exec vitest run --config vitest/vitest.capture-clear-signing.config.ts
 import { it } from "vitest";
 import { readFile, writeFile } from "node:fs/promises";
 import {
