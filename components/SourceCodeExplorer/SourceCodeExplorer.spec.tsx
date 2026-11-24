@@ -1,11 +1,11 @@
 import React from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { SourceCodeExplorer } from "./SourceCodeExplorer";
 
-const { mountedEditors, flash } = vi.hoisted(() => ({ mountedEditors: [] as any[], flash: vi.fn() }));
-vi.mock("./selectorLenses", () => ({ registerSelectorLenses: () => ({ dispose() {}, refreshContext() {} }) }));
+const { mountedEditors, flash, importActions } = vi.hoisted(() => ({ mountedEditors: [] as any[], flash: vi.fn(), importActions: { current: null as any } }));
+vi.mock("./selectorLenses", () => ({ registerSelectorLenses: (_editor: any, _monaco: any, actions: any) => { importActions.current = actions; return { dispose() {}, refreshContext() {} }; } }));
 vi.mock("./flashSourceLine", () => ({ flashSourceLine: flash }));
 vi.mock("@monaco-editor/react", () => ({ Editor: ({ value, onMount }: any) => {
   React.useEffect(() => {
@@ -58,4 +58,19 @@ it("opens an unopened source file, reveals its line after mount, and repeats the
   view.rerender(wrapper({ path: "Base.sol", line: 2, column: 3, revision: 2 }));
   await waitFor(() => expect(editor.revealLineInCenter).toHaveBeenCalledWith(2));
   expect(screen.getAllByRole("tab", { name: "Base.sol" })).toHaveLength(1);
+});
+
+it("returns from an annotation-opened tab to the last active file and its source view", async () => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+  const sources = { "A.sol": "contract A {}", "B.sol": "contract B {}", "C.sol": "contract C {}", "D.sol": "contract D {}" };
+  const diffData = Object.fromEntries(Object.entries(sources).map(([path, content]) => [path, { oldCode: "", oldExists: false, newCode: content, newExists: true, diffCode: content, changesCount: path === "D.sol" ? 0 : 1, linesAdded: 1, linesRemoved: 0 }]));
+  render(<ChakraProvider><SourceCodeExplorer sourceCode={sources} diffData={diffData} /></ChakraProvider>);
+  fireEvent.click(screen.getByRole("tab", { name: "B.sol" }));
+  fireEvent.click(screen.getByRole("button", { name: "New" }));
+  act(() => importActions.current.onOpenImport("D.sol"));
+  await waitFor(() => expect(screen.getByRole("tab", { name: "D.sol" }).getAttribute("aria-selected")).toBe("true"));
+  fireEvent.click(screen.getByRole("button", { name: "Close tab" }));
+  expect(screen.getByRole("tab", { name: "B.sol" }).getAttribute("aria-selected")).toBe("true");
+  expect(screen.queryByRole("tab", { name: "D.sol" })).toBeNull();
+  expect(mountedEditors.at(-1).value).toBe(sources["B.sol"]);
 });

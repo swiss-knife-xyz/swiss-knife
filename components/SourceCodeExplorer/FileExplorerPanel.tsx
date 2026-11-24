@@ -166,16 +166,15 @@ export function FileExplorerPanel({
           {sectionHeader("Outline", outlineOpen, () =>
             setOutlineOpen((value) => !value)
           )}
-          {outlineOpen && (
-            <Box
-              flex={1}
-              minH={0}
-              minW={0}
-              overflowY={stickySections ? "auto" : undefined}
-            >
-              <SourceOutline source={outline} fitContent={stickySections} />
-            </Box>
-          )}
+          <Box
+            display={outlineOpen ? "block" : "none"}
+            flex={1}
+            minH={0}
+            minW={0}
+            overflowY={stickySections ? "auto" : undefined}
+          >
+            <SourceOutline source={outline} fitContent={stickySections} onAvailabilityChange={setOutlineOpen} />
+          </Box>
         </Box>
       )}
     </Box>

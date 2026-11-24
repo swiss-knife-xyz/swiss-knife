@@ -7,7 +7,8 @@ import { getFiletypeFromFileName, parseDiffFromFile, preloadHighlighter, type Fi
 import { currentDiffLine } from "./diffNavigation";
 import type { DiffFileData } from "./types";
 
-export default function PierreDiff({ path, diff, diffStyle, showAllLines, onNavigate }: {
+export default function PierreDiff({ path, diff, diffStyle, showAllLines, onNavigate, diffLabels }: {
+  diffLabels?: { old: string; new: string };
   path: string;
   diff: DiffFileData;
   diffStyle: "split" | "unified";
@@ -70,17 +71,17 @@ export default function PierreDiff({ path, diff, diffStyle, showAllLines, onNavi
       <Grid templateColumns={diffStyle === "split" ? "1fr 1fr" : "1fr"}
         px={3} py={1.5} borderBottom="1px solid" borderColor="border.default" bg="bg.subtle" flexShrink={0}>
         {diffStyle === "split" ? <>
-          <Text fontSize="xs" color="text.secondary">Old source <Box as="span" color="red.400">−{diff.linesRemoved}</Box></Text>
-          <Text fontSize="xs" color="text.secondary">New source <Box as="span" color="green.400">+{diff.linesAdded}</Box></Text>
-        </> : <Text fontSize="xs" color="text.secondary">Old → New <Box as="span" ml={2} color="green.400">+{diff.linesAdded}</Box> <Box as="span" color="red.400">−{diff.linesRemoved}</Box></Text>}
+          <Text fontSize="xs" color="text.secondary">{diffLabels?.old ?? "Old source"} <Box as="span" color="red.400">−{diff.linesRemoved}</Box></Text>
+          <Text fontSize="xs" color="text.secondary">{diffLabels?.new ?? "New source"} <Box as="span" color="green.400">+{diff.linesAdded}</Box></Text>
+        </> : <Text fontSize="xs" color="text.secondary">{diffLabels?.old ?? "Old"} → {diffLabels?.new ?? "New"} <Box as="span" ml={2} color="green.400">+{diff.linesAdded}</Box> <Box as="span" color="red.400">−{diff.linesRemoved}</Box></Text>}
       </Grid>
       {diff.changesCount === 0 && <Text px={3} py={2} fontSize="sm" color="text.secondary" role="status">No differences in this file.</Text>}
       <Box flex={1} minW={0} w="full" overflowY="auto" overflowX="hidden" minH={0} fontSize="13px"
         sx={{ "diffs-container": { display: "block", width: "100%", minWidth: 0 } }}>
         {previewOnly ? <Box p={3}>
           <Text fontSize="xs" color="text.secondary" mb={2}>Large diff · source preview</Text>
-          <Text fontSize="xs" mb={1}>Old source</Text><Textarea aria-label="Original source" isReadOnly value={diff.oldCode} fontFamily="mono" fontSize="xs" h={48}/>
-          <Text fontSize="xs" my={1}>New source</Text><Textarea aria-label="Local source" isReadOnly value={diff.newCode} fontFamily="mono" fontSize="xs" h={48}/>
+          <Text fontSize="xs" mb={1}>{diffLabels?.old ?? "Old source"}</Text><Textarea aria-label="Original source" isReadOnly value={diff.oldCode} fontFamily="mono" fontSize="xs" h={48}/>
+          <Text fontSize="xs" my={1}>{diffLabels?.new ?? "New source"}</Text><Textarea aria-label="Local source" isReadOnly value={diff.newCode} fontFamily="mono" fontSize="xs" h={48}/>
         </Box> : highlighterState?.language !== language ? (
           <Text p={4} color="text.secondary" role="status">Loading diff…</Text>
         ) : highlighterState.error ? (

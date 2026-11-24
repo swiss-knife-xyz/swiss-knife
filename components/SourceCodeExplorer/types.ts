@@ -46,6 +46,7 @@ export interface SourceCodeExplorerProps {
   onCallFunction?(signature: string): void;
   /** When provided, enables diff mode with Old/Diff/New view switching */
   diffData?: Record<string, DiffFileData>;
+  diffLabels?: { old: string; new: string };
   onDiffNavigate?(path: string, lineNumber: number): void;
   /** Initial height in pixels (default: 400) */
   initialHeight?: number;

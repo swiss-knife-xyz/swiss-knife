@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -214,10 +214,12 @@ export function SourceOutline({
   source,
   enabled = true,
   fitContent = false,
+  onAvailabilityChange,
 }: {
   source: SourceOutlineInput;
   enabled?: boolean;
   fitContent?: boolean;
+  onAvailabilityChange?(available: boolean): void;
 }) {
   const supported = source.path.endsWith(".sol");
   const { symbols, loading, unavailable } = useSourceOutline(
@@ -225,6 +227,10 @@ export function SourceOutline({
     source.content,
     enabled && supported
   );
+  const available = supported && loading ? null : supported && !unavailable && symbols.length > 0;
+  useEffect(() => {
+    if (available !== null) onAvailabilityChange?.(available);
+  }, [source.path, available, onAvailabilityChange]);
   return (
     <Box
       role="region"

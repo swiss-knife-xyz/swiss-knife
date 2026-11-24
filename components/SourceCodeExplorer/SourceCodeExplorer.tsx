@@ -20,7 +20,6 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 type EditorInstance = Parameters<OnMount>[0];
 type MonacoInstance = Parameters<OnMount>[1];
 
-const DiffViewOptions = ["Old", "Diff", "New"];
 
 const PierreDiff = dynamic(() => import("./PierreDiff"), {
   ssr: false,
@@ -67,6 +66,7 @@ export function SourceCodeExplorer({
   initialSidebarWidth = 180,
   maxHeight,
   isFullscreen = false,
+  diffLabels,
 }: SourceCodeExplorerProps) {
   const [tabs, setTabs] = useState<TabData[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>("");
@@ -81,6 +81,14 @@ export function SourceCodeExplorer({
   const [isResizing, setIsResizing] = useState(false);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const [diffViewMode, setDiffViewMode] = useState(1); // 0=Old, 1=Diff, 2=New
+  const tabHistory = useRef<{ id: string; mode: number }[]>([]);
+  useEffect(() => {
+    if (!activeTabId || !tabs.some(tab => tab.id === activeTabId)) return;
+    tabHistory.current = [
+      ...tabHistory.current.filter(tab => tab.id !== activeTabId),
+      { id: activeTabId, mode: diffViewMode },
+    ];
+  }, [activeTabId, diffViewMode, tabs]);
   // Track which sourceCode we've initialized for
   const initializedForRef = useRef<Record<string, string> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -179,6 +187,7 @@ export function SourceCodeExplorer({
       return;
     }
 
+    tabHistory.current = [];
     if (isDiffMode && diffData) {
       // In diff mode, open all files with changes as pinned tabs
       const changedTabs: TabData[] = [];
@@ -265,26 +274,19 @@ export function SourceCodeExplorer({
     });
   }, []);
 
-  // Close a tab
+  // Return to the last viewed surviving file, including its source/diff view.
   const handleTabClose = useCallback((tabId: string) => {
-    setTabs((prevTabs) => {
-      const tabIndex = prevTabs.findIndex((t) => t.id === tabId);
-      if (tabIndex === -1) return prevTabs;
-
-      const tab = prevTabs[tabIndex];
-      if (tab.isPinned) return prevTabs; // Can't close pinned tab
-
-      const newTabs = prevTabs.filter((t) => t.id !== tabId);
-
-      // If closing active tab, switch to adjacent tab
-      if (tabId === activeTabId && newTabs.length > 0) {
-        const newActiveIndex = Math.min(tabIndex, newTabs.length - 1);
-        setActiveTabId(newTabs[newActiveIndex].id);
-      }
-
-      return newTabs;
-    });
-  }, [activeTabId]);
+    const tabIndex = tabs.findIndex(tab => tab.id === tabId);
+    if (tabIndex === -1 || tabs[tabIndex].isPinned) return;
+    const remaining = tabs.filter(tab => tab.id !== tabId);
+    tabHistory.current = tabHistory.current.filter(entry => remaining.some(tab => tab.id === entry.id));
+    setTabs(remaining);
+    if (tabId === activeTabId) {
+      const previous = tabHistory.current.at(-1);
+      setActiveTabId(previous?.id ?? remaining[Math.min(tabIndex, remaining.length - 1)]?.id ?? "");
+      if (previous) setDiffViewMode(previous.mode);
+    }
+  }, [tabs, activeTabId]);
 
   // Get active tab content
   const activeTab = useMemo(() => {
@@ -680,7 +682,7 @@ export function SourceCodeExplorer({
           <HStack px={2} py={1.5} spacing={2} flexWrap="wrap"
             borderBottom="1px solid" borderColor="whiteAlpha.100" bg="bg.subtle">
             <HStack spacing={0.5} role="group" aria-label="Source view">
-              {DiffViewOptions.map((mode, index) => (
+              {[diffLabels?.old ?? "Old", "Diff", diffLabels?.new ?? "New"].map((mode, index) => (
                 <Button key={mode} size="xs" h={7} variant={diffViewMode === index ? "solid" : "ghost"}
                   aria-pressed={diffViewMode === index} onClick={() => setDiffViewMode(index)}>
                   {mode}
@@ -719,7 +721,7 @@ export function SourceCodeExplorer({
         {/* Monaco Editor */}
         <Box flex={1} minW={0} minH={0} overflow="hidden">
           {activeTab && activeFileDiff && diffViewMode === 1 ? (
-            <PierreDiff path={activeTab.path} diff={activeFileDiff} diffStyle={diffStyle} showAllLines={showAllLines}
+            <PierreDiff diffLabels={diffLabels} path={activeTab.path} diff={activeFileDiff} diffStyle={diffStyle} showAllLines={showAllLines}
               onNavigate={onDiffNavigate && activeFileDiff.newExists !== false ? line => onDiffNavigate(activeTab.path, line) : undefined} />
           ) : activeTab ? (
             <Editor

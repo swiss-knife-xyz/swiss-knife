@@ -49,6 +49,72 @@ async function blobHash(content: string) {
   const hash = new Uint8Array(await crypto.subtle.digest("SHA-1", blob));
   return [...hash].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
+export async function githubSolidityTree(
+  repo: string,
+  commit: string,
+  signal: AbortSignal
+) {
+  repo = githubRepository(repo);
+  if (!COMMIT_SHA.test(commit))
+    throw new Error("Choose a pinned GitHub commit.");
+  const tree = JSON.parse(
+    await readBounded(
+      await fetch(
+        `https://api.github.com/repos/${repo}/git/trees/${commit}?recursive=1`,
+        apiOptions(signal)
+      ),
+      FILE_LIMIT
+    )
+  );
+  if (tree.truncated || !Array.isArray(tree.tree))
+    throw new Error(
+      "The repository file list is incomplete. Choose a smaller repository."
+    );
+  const available = new Map<string, { sha: string; size: number }>();
+  for (const item of tree.tree) {
+    if (
+      item.type !== "blob" ||
+      !["100644", "100755"].includes(item.mode) ||
+      typeof item.path !== "string" ||
+      !item.path.endsWith(".sol")
+    )
+      continue;
+    const path = item.path;
+    if (
+      validatePath(path, true) !== path ||
+      !COMMIT_SHA.test(item.sha) ||
+      !Number.isInteger(item.size) ||
+      item.size < 0 ||
+      item.size > FILE_LIMIT
+    )
+      continue;
+    available.set(path, item);
+  }
+  return available;
+}
+export async function githubSourceFile(
+  repo: string,
+  commit: string,
+  path: string,
+  sha: string,
+  signal: AbortSignal
+) {
+  repo = githubRepository(repo);
+  if (!COMMIT_SHA.test(commit) || !COMMIT_SHA.test(sha))
+    throw new Error("Invalid GitHub source revision.");
+  validatePath(path, true);
+  const relative = path.split("/").map(encodeURIComponent).join("/");
+  const content = await readBounded(
+    await fetch(
+      `https://raw.githubusercontent.com/${repo}/${commit}/${relative}`,
+      { signal, credentials: "omit", referrerPolicy: "no-referrer" }
+    ),
+    FILE_LIMIT
+  );
+  if ((await blobHash(content)) !== sha)
+    throw new Error(`GitHub source integrity check failed for ${path}.`);
+  return content;
+}
 export async function installGithubDependency(
   workspace: SolidityWorkspace,
   repository: string,
@@ -89,39 +155,10 @@ export async function installGithubDependency(
     }
   }
   if (!pending.size) throw new Error(`Add an import from ${name} first.`);
-  const tree = JSON.parse(
-    await readBounded(
-      await fetch(
-        `https://api.github.com/repos/${repo}/git/trees/${commit}?recursive=1`,
-        apiOptions(signal)
-      ),
-      FILE_LIMIT
-    )
+  const tree = await githubSolidityTree(repo, commit, signal);
+  const available = new Map(
+    [...tree].map(([path, item]) => [root + path, item])
   );
-  if (tree.truncated || !Array.isArray(tree.tree))
-    throw new Error(
-      "The repository file list is incomplete. Choose a smaller repository."
-    );
-  const available = new Map<string, { sha: string; size: number }>();
-  for (const item of tree.tree) {
-    if (
-      item.type !== "blob" ||
-      !["100644", "100755"].includes(item.mode) ||
-      typeof item.path !== "string" ||
-      !item.path.endsWith(".sol")
-    )
-      continue;
-    const path = root + item.path;
-    if (
-      validatePath(path, true) !== path ||
-      !COMMIT_SHA.test(item.sha) ||
-      !Number.isInteger(item.size) ||
-      item.size < 0 ||
-      item.size > FILE_LIMIT
-    )
-      continue;
-    available.set(path, item);
-  }
   const sources = new Map<string, string>(),
     integrities = new Map<string, string>();
   let total = 0;
@@ -136,20 +173,13 @@ export async function installGithubDependency(
           throw new Error(
             `The pinned repository doesn't contain a regular Solidity file at ${path}.`
           );
-        const relative = path
-          .slice(root.length)
-          .split("/")
-          .map(encodeURIComponent)
-          .join("/");
-        const content = await readBounded(
-          await fetch(
-            `https://raw.githubusercontent.com/${repo}/${commit}/${relative}`,
-            { signal, credentials: "omit", referrerPolicy: "no-referrer" }
-          ),
-          FILE_LIMIT
+        const content = await githubSourceFile(
+          repo,
+          commit,
+          path.slice(root.length),
+          item.sha,
+          signal
         );
-        if ((await blobHash(content)) !== item.sha)
-          throw new Error(`GitHub source integrity check failed for ${path}.`);
         return { path, content, integrity: await sourceIntegrity(content) };
       })
     );

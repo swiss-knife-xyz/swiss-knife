@@ -1,5 +1,6 @@
 "use client";
 
+import { useLayoutEffect, useRef } from "react";
 import { Box, HStack, Text, IconButton, Tooltip } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
 import { Pin } from "lucide-react";
@@ -18,10 +19,27 @@ export function CodeEditorTabs({
   onTabSelect,
   onTabClose,
 }: CodeEditorTabsProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const container = scrollRef.current;
+    const active = activeRef.current;
+    if (!container || !active) return;
+    const viewport = container.getBoundingClientRect();
+    const tab = active.getBoundingClientRect();
+    const left = viewport.left + container.clientLeft;
+    const right = left + container.clientWidth;
+    const offset = tab.left < left ? tab.left - left : tab.right > right ? tab.right - right : 0;
+    // Scroll only the tab strip, leaving the editor and page position intact.
+    if (offset) container.scrollTo?.({ left: container.scrollLeft + offset, behavior: "instant" });
+  }, [activeTabId, tabs.length]);
+
   if (tabs.length === 0) return null;
 
   return (
     <Box
+      ref={scrollRef}
       borderBottom="1px solid"
       borderColor="whiteAlpha.200"
       bg="bg.muted"
@@ -42,6 +60,7 @@ export function CodeEditorTabs({
           return (
             <HStack
               key={tab.id}
+              ref={isActive ? activeRef : undefined}
               role="tab"
               tabIndex={0}
               aria-selected={isActive}

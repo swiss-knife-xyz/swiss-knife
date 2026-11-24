@@ -829,3 +829,32 @@
 - Audit: browser-verified against an empty collapsed EntryPoint `handleOps` row;
   tests cover nested ancestors, first-field ordering, repeat attempts, all basic
   input types, fixed arrays, valid-input execution errors and unmount cleanup.
+
+## Contract Diff GitHub source
+
+- Scope: `/contract-diff`, a precise, compact, familiar developer tool. Preserve
+  the two-panel comparison, existing Inter/mono typography, blue action palette,
+  4px spacing scale and outlined surfaces. Essence: select, compare, inspect.
+- Keep the onchain new source on the right; the left panel has Contract / GitHub
+  tabs for the old source.
+  Retain each mode's URL-backed draft. GitHub takes a public repository, revision
+  and an optional folder in a gear popover beside the Repository label, with the
+  same primary comparison action and diff explorer.
+- Pin branches/tags to a commit when results load. Keep the results header to
+  existing diff statistics. Report ambiguous matches as actionable errors;
+  unmatched verified files appear on the new side of the source comparison.
+- Use native labelled fields, keyboard tabs, disabled pending inputs, visible
+  inline errors and the existing reduced-motion-aware result scrolling.
+- Audit (2026-11-24): retained the existing tool design and diff navigation;
+  verified a real WETH/repository comparison, reload of its pinned shared URL,
+  and stacked controls at 390px without horizontal page overflow.
+  Normalize newline conventions after integrity checks to avoid whole-file noise.
+- Changelog (2026-11-24): added GitHub comparison using the compiler's shared
+  commit, tree and integrity-checked source download helpers.
+
+- Refinement (2026-11-24): placed the optional folder in Repository settings,
+  right-aligned with its label. Removed the entire GitHub results summary and
+  file-matching disclosure; retain the existing diff statistics toolbar.
+- The source selector now occupies the old-source panel on the left. GitHub
+  sources form the old side of the diff; the onchain contract on the right is
+  the new side. Each contract/network draft keeps its original side.
