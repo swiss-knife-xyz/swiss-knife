@@ -92,6 +92,7 @@ const walletDeveloperSubdomains = [
   subdomains.UNISWAP.base,
   subdomains.SAFE.base,
   subdomains.STORAGE_SLOTS.base,
+  subdomains.IPFS.base,
   subdomains.CONVERTER.base,
   subdomains.EPOCH_CONVERTER.base,
   subdomains.DETERMINE_ADDRESS.base,
