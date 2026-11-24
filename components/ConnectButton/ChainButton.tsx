@@ -1,4 +1,5 @@
 import React from "react";
+import { getNetworkName, getNetworkIcon } from "@/data/networks";
 import { Button, Box, Image, Text, Flex } from "@chakra-ui/react";
 import { ChevronDownIcon } from "@chakra-ui/icons";
 
@@ -33,8 +34,8 @@ const ChainIcon = ({
     alignItems="center"
     justifyContent="center"
   >
-    {chain.iconUrl ? (
-      <Image alt={chain.name ?? "Chain icon"} src={chain.iconUrl} />
+    {getNetworkIcon(chain.id, chain.iconUrl) ? (
+      <Image alt={chain.name ?? "Chain icon"} src={getNetworkIcon(chain.id, chain.iconUrl)} />
     ) : null}
   </Box>
 );
@@ -55,7 +56,7 @@ export const ChainButton = ({ onClick, chain, isCompact }: Props) => {
     >
       <Flex align="center" justify="space-between" width="100%">
         <Flex align="center" minW={0}>
-          {chain.hasIcon ? (
+          {chain.hasIcon || getNetworkIcon(chain.id) ? (
             <ChainIcon chain={chain} size={isCompact ? "1.2rem" : "1.5rem"} />
           ) : null}
           <Text
@@ -63,7 +64,7 @@ export const ChainButton = ({ onClick, chain, isCompact }: Props) => {
             isTruncated
             maxW={isCompact ? "60px" : "auto"}
           >
-            {chain.name}
+            {getNetworkName(chain.id, chain.name)}
           </Text>
         </Flex>
         <ChevronDownIcon ml={1} fontSize={isCompact ? "lg" : "2xl"} />

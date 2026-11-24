@@ -1,9 +1,10 @@
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
-  title: "Ethereum Unit Converter | Swiss-Knife.xyz",
+  title: "Ethereum Unit Converter | ETH.sh",
   description: "Convert Ether to Wei, Gwei and vice versa.",
-  images: "https://swiss-knife.xyz/og/converter-eth.png",
+  canonical: "https://converter.eth.sh/eth",
+  images: "https://eth.sh/api/og/converter-eth",
 });
 
 const EthLayout = ({ children }: { children: React.ReactNode }) => {

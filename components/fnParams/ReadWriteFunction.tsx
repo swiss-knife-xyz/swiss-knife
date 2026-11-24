@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import React, {
   useEffect,
   useState,
@@ -15,6 +16,12 @@ import {
   Link,
   List,
   ListItem,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
   Text,
   Popover,
   PopoverContent,
@@ -29,9 +36,12 @@ import {
   ChevronUpIcon,
   ExternalLinkIcon,
   InfoIcon,
-  RepeatIcon,
+  LinkIcon,
   SettingsIcon,
+  WarningTwoIcon,
 } from "@chakra-ui/icons";
+import { FileCode2 } from "lucide-react";
+import type { FunctionLocation } from "@/components/SourceCodeExplorer/functionLocations";
 import { useWalletClient, useAccount } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { FunctionFragment, JsonFragment, JsonFragmentType } from "ethers";
@@ -39,7 +49,7 @@ import {
   ContractFunctionExecutionError,
   PublicClient,
   Hex,
-  encodeFunctionData,
+  encodeFunctionData as encodeAbiFunctionData,
   Abi,
   toHex,
   zeroAddress,
@@ -50,26 +60,54 @@ import {
   IntInput,
 } from "@/components/fnParams/inputs";
 import { ExtendedJsonFragmentType, HighlightedContent } from "@/types";
+import { useInvalidInputReveal } from "./useInvalidInputReveal";
+import { CompactParameterInputs } from "./ParameterInputStyle";
 import { renderInputFields, renderParamTypes } from "./Renderer";
 import { generateTenderlyUrl, slicedText } from "@/utils";
 import { getTransactionError, getContractError } from "viem/utils";
 import { config } from "@/app/providers";
 import { WriteButton } from "../WriteButton";
+import { ReadButton, type ReadAction } from "../ReadButton";
+import { SignatureRegistryForm } from "@/components/SignatureRegistryForm";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
 import axios from "axios";
+import { convertBooleans } from "@/lib/convertBooleans";
+import { inferFunctionInputs, type InferredFunctionInfo } from "@/lib/inferredContract";
+import { getPath } from "@/utils";
+import subdomains from "@/subdomains";
+import { erc165Interfaces } from "@/data/erc165Interfaces";
+import { createContractCallLink, contractFunctionSignature } from "@/lib/contractCall";
+import { formatHistoricalTimestamp, type HistoricalQueryResult } from "@/lib/historicalQuery";
+
+const HistoricalQuery = dynamic(() => import("./HistoricalQuery"), { ssr: false });
+
+const interfacePresetOptions = erc165Interfaces.map(({ label, id }) => ({
+  label: label.replace(" (optional)", ""),
+  value: id,
+}));
 
 interface ReadWriteFunctionProps {
   client: PublicClient;
   index: number;
   type: "read" | "write";
-  func: Omit<JsonFragment, "name" | "outputs"> & {
-    name: HighlightedContent;
-    outputs?: readonly JsonFragmentType[];
-    highlightedOutputs?: ExtendedJsonFragmentType[];
-  };
+  func: Omit<JsonFragment, "name" | "outputs"> &
+    InferredFunctionInfo & {
+      name: HighlightedContent;
+      outputs?: readonly JsonFragmentType[];
+      highlightedOutputs?: ExtendedJsonFragmentType[];
+    };
   address: string;
   chainId: number;
   isAbiDecoded?: boolean;
+  isCustomAdded?: boolean;
   readAllCollapsed?: boolean;
+  // Parent keys this form by prefill revision so child-local widget state resets.
+  initialCall?: { args: unknown[]; value: string };
+  abiMode?: "contract" | "implementation";
+  sourceLocation?: FunctionLocation;
+  onGoToSource?: (location: FunctionLocation) => void;
+  sourceUnavailableReason?: string;
+  sourceFocusRevision?: number;
 }
 
 const extractStringFromReactNode = (node: HighlightedContent): string => {
@@ -127,7 +165,7 @@ const EnhancedFunctionOutput: React.FC<{
 
   return (
     <Box
-      ml={4}
+      ml={{ base: 0, md: 4 }}
       maxW="30rem"
       sx={{
         wordBreak: "break-word",
@@ -164,18 +202,41 @@ export enum WriteButtonType {
   Write = "Write",
   CallAsViewFn = "Call as View Fn",
   SimulateOnTenderly = "Simulate on Tenderly",
+  EncodeCalldata = "Encode Calldata",
+  CallAtBlock = "Call as View Fn at Block",
+  CallAtTime = "Call as View Fn at Time",
 }
 
-export const ReadWriteFunction = ({
+/**
+ * Recursively converts boolean string values ("true"/"false") to actual
+ * booleans, handling nested arrays (bool[], bool[3]) and tuples.
+ */
+const ReadWriteFunctionComponent = ({
   client,
   index,
   type,
-  func: __func,
+  func: originalFunc,
   address,
   chainId,
   isAbiDecoded,
+  isCustomAdded,
   readAllCollapsed,
+  initialCall,
+  abiMode = "contract",
+  sourceLocation,
+  onGoToSource,
+  sourceUnavailableReason,
+  sourceFocusRevision,
 }: ReadWriteFunctionProps) => {
+  const [submittedSignature, setSubmittedSignature] = useState<{ context: string; signature: string }>();
+  const selectorContext = `${chainId}:${address.toLowerCase()}:${originalFunc.selector ?? ""}`;
+  const __func = React.useMemo(() => {
+    if (!originalFunc.selector || submittedSignature?.context !== selectorContext) return originalFunc;
+    return {
+      ...originalFunc,
+      ...inferFunctionInputs(originalFunc.selector, undefined, [submittedSignature.signature]),
+    };
+  }, [originalFunc, submittedSignature, selectorContext]);
   const { data: walletClient } = useWalletClient();
   const { address: userAddress, chain } = useAccount();
 
@@ -187,26 +248,47 @@ export const ReadWriteFunction = ({
     stateMutability,
     highlightedOutputs,
   } = __func;
-  const functionName = extractStringFromReactNode(__name);
+  const inputsUnknown = __func.inputInference?.source === "unknown";
+  // A display-only selector label is not a valid ABI function identifier.
+  const displayName = extractStringFromReactNode(__name);
+  const functionName =
+    __func.inputInference && displayName.startsWith("selector: ")
+      ? "inferred"
+      : displayName;
+  const encodeFunctionData = useCallback(
+    (parameters: Parameters<typeof encodeAbiFunctionData>[0]): Hex => {
+      if (__func.inputInference?.source === "unknown") {
+        throw new Error(
+          "Input types are unknown; supply an ABI or use Raw Calldata."
+        );
+      }
+      const encoded = encodeAbiFunctionData(parameters);
+      // Bytecode supplies the real selector even when no function name is known.
+      return __func.inputInference && __func.selector
+        ? (`${__func.selector}${encoded.slice(10)}` as Hex)
+        : encoded;
+    },
+    [__func]
+  );
 
   const _func = React.useMemo(
     () =>
-      ({ ...__func, name: functionName, type: "function" } as JsonFragment & {
+      ({ ...__func, name: functionName, type: "function" }) as JsonFragment & {
         type: "function";
-      }),
+      },
     [__func, functionName]
   );
 
   const outputs = _outputs
     ? _outputs
     : isAbiDecoded
-    ? [
-        {
-          type: "calldata", // set output type as custom calldata
-          name: "",
-        },
-      ]
-    : [];
+      ? [
+          {
+            type: "calldata", // set output type as custom calldata
+            name: "",
+          },
+        ]
+      : [];
 
   let tenderlyForkIdCache: string | null = null;
   if (localStorage !== undefined) {
@@ -215,16 +297,38 @@ export const ReadWriteFunction = ({
 
   const [fnSelector, setFnSelector] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
-    readAllCollapsed !== undefined ? readAllCollapsed : false
+    initialCall || sourceFocusRevision !== undefined
+      ? false
+      : readAllCollapsed !== undefined
+        ? readAllCollapsed
+        : false
   );
-  const [payableETH, setPayableETH] = useState<string>("0");
+  const [isSourceHighlighted, setIsSourceHighlighted] = useState(false);
+  const [payableETH, setPayableETH] = useState<string>(
+    initialCall?.value ?? "0"
+  );
   const [payableETHIsDisabled, setPayableETHIsDisabled] =
     useState<boolean>(false);
-  const [inputsState, setInputsState] = useState<any>({});
+  const [inputsState, setInputsState] = useState<any>(() =>
+    Object.fromEntries((initialCall?.args ?? []).map((value, i) => [i, value]))
+  );
+  const isSupportsInterface =
+    functionName === "supportsInterface" &&
+    inputs?.length === 1 &&
+    inputs[0].type === "bytes4";
   const [functionIsDisabled, setFunctionIsDisabled] = useState<any>({});
+  const [readAction, setReadAction] = useState<ReadAction>("Read");
   const [writeButtonType, setWriteButtonType] = useState<WriteButtonType>(
     WriteButtonType.Write
   );
+  const [historicalOpen, setHistoricalOpen] = useState(false);
+  const [historicalLoading, setHistoricalLoading] = useState(false);
+  const historicalActionRef = useRef<(() => void) | null>(null);
+  const [historicalResult, setHistoricalResult] = useState<HistoricalQueryResult>();
+  const historicalMode = type === "read"
+    ? readAction === "Query at Block" ? "block" : readAction === "Query at Time" ? "time" : null
+    : writeButtonType === WriteButtonType.CallAtBlock ? "block" : writeButtonType === WriteButtonType.CallAtTime ? "time" : null;
+  const queryContext = JSON.stringify([chainId, address.toLowerCase(), type, functionName, inputs, _outputs, inputsState, payableETH, abiMode, isAbiDecoded, __func.selector], (_, value) => typeof value === "bigint" ? value.toString() : value);
   const [settingsIsOpen, setSettingsIsOpen] = useState<boolean>(false);
   const [tenderlyForkId, setTenderlyForkId] = useState<string>(
     tenderlyForkIdCache ?? ""
@@ -238,9 +342,36 @@ export const ReadWriteFunction = ({
   const [confirmedTxHash, setConfirmedTxHash] = useState<string | null>(null);
 
   const [loading, setLoading] = useState<boolean>(false);
-  const [isError, setIsError] = useState<boolean>(false);
+  const [isError, setIsErrorState] = useState<boolean>(false);
+  const [validationAttempt, setValidationAttempt] = useState(0);
+  const setIsError = useCallback((value: boolean) => {
+    setIsErrorState(value);
+    if (value) setValidationAttempt(previous => previous + 1);
+  }, []);
+  const validationRootRef = useRef<HTMLDivElement>(null);
+  useInvalidInputReveal(validationRootRef, validationAttempt);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [enterPressed, setEnterPressed] = useState<boolean>(false);
+  const [calldataModalOpen, setCalldataModalOpen] = useState<boolean>(false);
+  const [encodedCalldata, setEncodedCalldata] = useState<string>("");
+  const [encodingError, setEncodingError] = useState("");
+  const [share, setShare] = useState<{ link: string; error: string } | null>(null);
+
+  useEffect(() => {
+    setEncodedCalldata("");
+    setCalldataModalOpen(false);
+    setEncodingError("");
+    setShare(null);
+  }, [
+    inputsState,
+    functionName,
+    inputs,
+    address,
+    chainId,
+    isAbiDecoded,
+    payableETH,
+    abiMode,
+  ]);
 
   const updateInputState = useCallback((index: number, value: string) => {
     setInputsState((prev: any) => ({
@@ -259,7 +390,42 @@ export const ReadWriteFunction = ({
     []
   );
 
+  const prepareArgs = useCallback(() => {
+    return inputs?.map((input, i) => convertBooleans(inputsState[i], input));
+  }, [inputs, inputsState]);
+
+  const latestReadAllowed = useRef(true);
+  latestReadAllowed.current = type === "read" && readAction === "Read";
+  const readRequestId = useRef(0);
+  const readContext = useRef({ key: "", client });
+  const readContextKey = `${queryContext}:${readAction}:${writeButtonType}`;
+  if (readContext.current.key !== readContextKey || readContext.current.client !== client) {
+    readContext.current = { key: readContextKey, client };
+  }
+  useEffect(() => () => { ++readRequestId.current; }, []);
+
+  const executeHistoricalQuery = useCallback(async (blockNumber: bigint) => {
+    const abi = [_func] as unknown as Abi;
+    const args = prepareArgs();
+    if (isAbiDecoded) {
+      const result = await client.call({
+        to: address as Hex,
+        data: encodeFunctionData({ abi, functionName, args }),
+        value: BigInt(payableETH),
+        blockNumber,
+      });
+      return result.data ?? "0x";
+    }
+    if (type === "read") return client.readContract({ address: address as Hex, abi, functionName, args, blockNumber });
+    const result = await client.simulateContract({ address: address as Hex, abi, functionName, args, value: BigInt(payableETH), blockNumber });
+    return result.result;
+  }, [client, address, _func, prepareArgs, encodeFunctionData, functionName, isAbiDecoded, payableETH, type]);
+
   const readFunction = useCallback(async () => {
+    if (inputsUnknown) return;
+    const id = ++readRequestId.current;
+    const context = readContext.current;
+    const isCurrent = () => id === readRequestId.current && context === readContext.current;
     if (isError) {
       setIsError(false);
     }
@@ -269,65 +435,138 @@ export const ReadWriteFunction = ({
       setRes(null);
 
       const abi = [_func] as unknown as Abi;
-      const args = inputs?.map((input, i) => inputsState[i]);
+      const args = prepareArgs();
 
+      const maxRetries = 3;
       try {
-        if (!isAbiDecoded) {
-          const result = await client.readContract({
-            address: address as Hex,
-            abi,
-            functionName,
-            args,
-          });
-          setRes(result);
-        } else {
-          const result = await client.call({
-            to: address as Hex,
-            data: encodeFunctionData({
-              abi,
-              functionName,
-              args,
-            }),
-            value: BigInt(payableETH),
-          });
-          console.log({
-            result,
-            abi,
-            functionName,
-            args,
-            outputs,
-            isAbiDecoded,
-          });
-          setRes(result.data);
-        }
-      } catch (e: any) {
-        console.error(e);
-        setIsError(true);
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            if (!isCurrent()) return;
+            if (!isAbiDecoded) {
+              const result = await client.readContract({
+                address: address as Hex,
+                abi,
+                functionName,
+                args,
+              });
+              if (isCurrent()) setRes(result);
+            } else {
+              const result = await client.call({
+                to: address as Hex,
+                data: encodeFunctionData({
+                  abi,
+                  functionName,
+                  args,
+                }),
+                value: BigInt(payableETH),
+              });
+              console.log({
+                result,
+                abi,
+                functionName,
+                args,
+                outputs,
+                isAbiDecoded,
+              });
+              if (isCurrent()) setRes(result.data);
+            }
+            // Success - break out of retry loop
+            break;
+          } catch (e: any) {
+            if (!isCurrent()) return;
+            // Check if this is a 429 rate limit error and we can retry
+            const is429 =
+              e?.cause?.message?.includes("429") ||
+              e?.message?.includes("429") ||
+              e?.cause?.message?.includes("rate limit") ||
+              e?.message?.includes("rate limit");
 
-        setRes(null);
+            if (is429 && attempt < maxRetries) {
+              // Exponential backoff: 1s, 2s, 4s
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * Math.pow(2, attempt))
+              );
+              continue;
+            }
 
-        if (e instanceof ContractFunctionExecutionError) {
-          // extract the error message
-          const errorMessage = e.cause?.message || e.message;
-          setErrorMsg(
-            getContractError(e, {
-              docsPath: "",
-              address: address as Hex,
-              abi,
-              functionName,
-              args,
-            }).shortMessage
-          );
-        } else {
-          setErrorMsg("An unknown error occurred");
+            console.error(e);
+            setIsError(true);
+            setRes(null);
+
+            if (e instanceof ContractFunctionExecutionError) {
+              setErrorMsg(
+                getContractError(e, {
+                  docsPath: "",
+                  address: address as Hex,
+                  abi,
+                  functionName,
+                  args,
+                }).shortMessage
+              );
+            } else {
+              setErrorMsg("An unknown error occurred");
+            }
+            break;
+          }
         }
       } finally {
-        setLoading(false);
+        if (isCurrent()) setLoading(false);
       }
     }
-  }, [isError, functionName, client, address, _func, inputs, inputsState]);
+  }, [isError, functionName, client, address, _func, prepareArgs, encodeFunctionData, inputsUnknown, isAbiDecoded, payableETH]);
 
-  const writeFunction = useCallback(async () => {
+  const [writePreview, setWritePreview] = useState<{
+    key: string;
+    status: "loading" | "ready" | "error";
+    result?: unknown;
+  } | null>(null);
+  const [writeStatus, setWriteStatus] = useState<{
+    key: string;
+    phase: "wallet" | "submitted" | "confirmed" | "rejected" | "error";
+  } | null>(null);
+  const writeContextKey = JSON.stringify([
+    chainId,
+    address,
+    _func,
+    inputsState,
+    payableETH,
+    userAddress,
+    chain?.id,
+    walletClient?.account?.address,
+    walletClient?.chain?.id,
+    client.chain?.id,
+    writeButtonType,
+    isAbiDecoded,
+  ]);
+  const writeContextRef = useRef(writeContextKey);
+  writeContextRef.current = writeContextKey;
+  const simulationId = useRef(0);
+  const writeInFlight = useRef(false);
+  useEffect(() => {
+    setRes(null);
+    setIsError(false);
+    if (!writeInFlight.current) setLoading(false);
+  }, [readContextKey, client]);
+  const cancelWritePreview = useCallback(() => {
+    simulationId.current++;
+    setWritePreview(null);
+    setWriteStatus(null);
+    setTxHash(null);
+    setConfirmedTxHash(null);
+    if (!writeInFlight.current) setLoading(false);
+  }, []);
+  useEffect(() => {
+    cancelWritePreview();
+    return () => {
+      simulationId.current++;
+    };
+  }, [writeContextKey, client, cancelWritePreview]);
+
+  const sendWriteTransaction = useCallback(async (calldata: Hex, key: string) => {
+    if (key !== writeContextRef.current || writeInFlight.current) return;
+    if (inputsUnknown) return;
+    const requestId = simulationId.current;
+    const isCurrent = () => key === writeContextRef.current && requestId === simulationId.current;
     if (isError) {
       setIsError(false);
     }
@@ -337,60 +576,111 @@ export const ReadWriteFunction = ({
       setTxHash(null);
       setConfirmedTxHash(null);
 
+      writeInFlight.current = true;
+      setWriteStatus({ key, phase: "wallet" });
       try {
-        // encode calldata
-        const calldata = await encodeFunctionData({
-          abi: [_func] as const,
-          functionName: functionName,
-          args: inputs?.map((input, i) => inputsState[i]),
-        });
-
-        // send transaction to wallet
+        // Send the exact calldata encoded from the submitted inputs.
         const hash = await walletClient.sendTransaction({
+          account: walletClient.account,
+          chain: walletClient.chain,
           to: address as Hex,
           data: calldata,
           value: BigInt(payableETH),
         });
 
-        setLoading(false);
-
+        if (!isCurrent()) return;
+        setWriteStatus({ key, phase: "submitted" });
         setTxIsTenderlySimulation(false);
         setTxHash(hash);
 
-        await waitForTransactionReceipt(config, {
+        const receipt = await waitForTransactionReceipt(config, {
           hash,
+          chainId,
         });
-
+        if (!isCurrent()) return;
+        if (receipt.status === "reverted") throw new Error("Transaction reverted.");
+        setWriteStatus({ key, phase: "confirmed" });
         setConfirmedTxHash(hash);
       } catch (e: any) {
-        console.error(e);
+        if (!isCurrent()) return;
+        const transactionError = getTransactionError(e, {
+          account: walletClient.account,
+          docsPath: "",
+        });
+        const rejected = e.code === 4001 || e.cause?.code === 4001 ||
+          /rejected|denied/i.test(transactionError.shortMessage || e.message || "");
+        setWriteStatus({ key, phase: rejected ? "rejected" : "error" });
         setIsError(true);
 
         setRes(null);
 
-        setErrorMsg(
-          getTransactionError(e, {
-            account: walletClient.account,
-            docsPath: "",
-          }).shortMessage
-        );
+        setErrorMsg(transactionError.shortMessage);
       } finally {
+        writeInFlight.current = false;
         setLoading(false);
       }
     }
-  }, [
-    isError,
-    functionName,
-    walletClient,
-    address,
-    _func,
-    inputs,
-    inputsState,
-    payableETH,
-  ]);
+  }, [isError, functionName, walletClient, address, payableETH, chainId, inputsUnknown]);
+
+  const writeFunction = useCallback(async () => {
+    if (inputsUnknown || !walletClient || loading || writeInFlight.current) return;
+    const key = writeContextKey;
+    const id = ++simulationId.current;
+    const isCurrent = () => id === simulationId.current && key === writeContextRef.current;
+    setWritePreview(null);
+    setWriteStatus(null);
+    setIsError(false);
+    setTxHash(null);
+    setConfirmedTxHash(null);
+    try {
+      if (chain?.id !== chainId || walletClient.chain?.id !== chainId ||
+          !userAddress || walletClient.account.address.toLowerCase() !== userAddress.toLowerCase()) {
+        throw new Error("Wallet account or network changed. Reconnect on the selected chain and retry.");
+      }
+      const args = prepareArgs();
+      const data = encodeFunctionData({ abi: [_func] as const, functionName, args });
+      const canSimulate = !isAbiDecoded && _outputs && _outputs.length > 0;
+      if (canSimulate && client.chain?.id !== chainId) {
+        throw new Error("Simulation client does not match the selected chain.");
+      }
+      // Request wallet confirmation immediately; simulation never gates sending.
+      const sending = sendWriteTransaction(data, key);
+      if (canSimulate) {
+        setWritePreview({ key, status: "loading" });
+        void (async () => {
+          try {
+            const simulation = await client.simulateContract({
+              abi: [_func] as unknown as Abi,
+              functionName,
+              address: address as Hex,
+              account: walletClient.account,
+              chain: walletClient.chain,
+              args,
+              value: BigInt(payableETH),
+            });
+            if (isCurrent()) setWritePreview({ key, status: "ready", result: simulation.result });
+          } catch {
+            if (isCurrent()) setWritePreview({ key, status: "error" });
+          }
+        })();
+      }
+      await sending;
+    } catch (error: any) {
+      if (isCurrent()) {
+        setIsError(true);
+        setErrorMsg(error.shortMessage || error.message || "Unable to request wallet confirmation.");
+      }
+    }
+  }, [inputsUnknown, walletClient, loading, writeContextKey, chain, chainId,
+    userAddress, prepareArgs, _func, functionName, isAbiDecoded, _outputs,
+    client, address, payableETH, sendWriteTransaction]);
 
   const callAsReadFunction = useCallback(
     async (bypassSettingError: boolean = false) => {
+      if (inputsUnknown) return;
+      const id = ++readRequestId.current;
+      const context = readContext.current;
+      const isCurrent = () => id === readRequestId.current && context === readContext.current;
       if (isError) {
         setIsError(false);
       }
@@ -400,7 +690,7 @@ export const ReadWriteFunction = ({
         setRes(null);
 
         const abi = [_func] as unknown as Abi;
-        const args = inputs?.map((input, i) => inputsState[i]);
+        const args = prepareArgs();
 
         try {
           // TODO: add caller address in the settings modal
@@ -412,7 +702,7 @@ export const ReadWriteFunction = ({
               args,
               value: BigInt(payableETH),
             });
-            setRes(result.result);
+            if (isCurrent()) setRes(result.result);
           } else {
             const result = await client.call({
               to: address as Hex,
@@ -423,9 +713,10 @@ export const ReadWriteFunction = ({
               }),
               value: BigInt(payableETH),
             });
-            setRes(result.data);
+            if (isCurrent()) setRes(result.data);
           }
         } catch (e: any) {
+          if (!isCurrent()) return;
           console.error(e);
           setRes(null);
           if (!bypassSettingError) {
@@ -447,7 +738,7 @@ export const ReadWriteFunction = ({
             }
           }
         } finally {
-          setLoading(false);
+          if (isCurrent()) setLoading(false);
         }
       }
     },
@@ -461,10 +752,14 @@ export const ReadWriteFunction = ({
       inputsState,
       payableETH,
       isAbiDecoded,
+      inputsUnknown,
+      prepareArgs,
+      encodeFunctionData,
     ]
   );
 
   const simulateOnTenderly = useCallback(async () => {
+    if (inputsUnknown) return;
     if (isError) {
       setIsError(false);
     }
@@ -472,14 +767,14 @@ export const ReadWriteFunction = ({
     setLoading(true);
 
     const abi = [_func] as unknown as Abi;
-    const args = inputs?.map((input, i) => inputsState[i]);
+    const args = prepareArgs();
 
     const tenderlyUrl = generateTenderlyUrl(
       {
         from:
           settingsSenderAddr.length > 0
             ? settingsSenderAddr
-            : userAddress ?? zeroAddress,
+            : (userAddress ?? zeroAddress),
         to: address,
         value: payableETH,
         data: encodeFunctionData({
@@ -521,7 +816,7 @@ export const ReadWriteFunction = ({
       setConfirmedTxHash(null);
 
       const abi = [_func] as unknown as Abi;
-      const args = inputs?.map((input, i) => inputsState[i]);
+      const args = prepareArgs();
 
       // send transaction to tenderly fork
       try {
@@ -586,9 +881,66 @@ export const ReadWriteFunction = ({
     tenderlyForkId,
   ]);
 
+  const encodeCalldataFn = useCallback(() => {
+    if (inputsUnknown) return;
+    setEncodingError("");
+    setEncodedCalldata("");
+    setCalldataModalOpen(false);
+    try {
+      const abi = [_func] as unknown as Abi;
+      const args = prepareArgs();
+
+      const calldata = encodeFunctionData({
+        abi,
+        functionName,
+        args,
+      });
+      setEncodedCalldata(calldata);
+      setCalldataModalOpen(true);
+    } catch (e: unknown) {
+      setEncodingError(
+        e instanceof Error ? e.message : "Failed to encode calldata"
+      );
+    }
+  }, [_func, prepareArgs, functionName, inputsUnknown, encodeFunctionData]);
+
+  const shareFunctionCall = () => {
+    try {
+      if (inputsUnknown) throw new Error("Input types are unavailable for this function.");
+      let payload: { data: string } | { args: unknown[] };
+      const isFilled = (value: unknown): boolean =>
+        value !== undefined && value !== null && value !== "" &&
+        (!Array.isArray(value) || value.every(isFilled));
+      try {
+        if (!(inputs ?? []).every((_, i) => isFilled(inputsState[i])))
+          throw new Error("Unfinished parameters");
+        payload = { data: encodeFunctionData({
+          abi: [_func] as unknown as Abi,
+          functionName,
+          args: prepareArgs(),
+        }) };
+      } catch {
+        payload = { args: (inputs ?? []).map((_, i) => inputsState[i] ?? null) };
+      }
+      const link = createContractCallLink(
+        new URL(getPath(subdomains.CONTRACT.base), window.location.origin).href,
+        chainId,
+        address,
+        { ...payload, value: payableETH, abiMode, signature: contractFunctionSignature(_func) }
+      );
+      setShare({ link, error: "" });
+    } catch (error) {
+      setShare({ link: "", error: error instanceof Error ? error.message : "Unable to share this function call." });
+    }
+  };
+
   useEffect(() => {
     try {
-      setFnSelector(FunctionFragment.from(_func).selector);
+      setFnSelector(
+        __func.inputInference && __func.selector
+          ? __func.selector
+          : FunctionFragment.from(_func).selector
+      );
     } catch (e) {
       console.error(e);
     }
@@ -596,15 +948,27 @@ export const ReadWriteFunction = ({
 
   useEffect(() => {
     if (enterPressed) {
-      readFunction();
+      if (historicalMode) { setHistoricalOpen(true); setIsCollapsed(false); }
+      else if (type === "read" && readAction === "Encode Calldata") encodeCalldataFn();
+      else readFunction();
       setEnterPressed(false);
     }
-  }, [inputsState, enterPressed, readFunction]);
+  }, [inputsState, enterPressed, readFunction, type, readAction, encodeCalldataFn, historicalMode]);
 
   useEffect(() => {
     // if there are no inputs, then auto fetch the value
-    if (type === "read" && (!inputs || (inputs && inputs.length === 0))) {
-      readFunction();
+    // stagger calls by 150ms per function to avoid RPC rate limits (429)
+    if (
+      !initialCall &&
+      !inputsUnknown &&
+      type === "read" &&
+      (!inputs || (inputs && inputs.length === 0))
+    ) {
+      const delay = index * 150;
+      const timer = setTimeout(() => {
+        if (latestReadAllowed.current) void readFunction();
+      }, delay);
+      return () => clearTimeout(timer);
     }
   }, []);
 
@@ -613,8 +977,22 @@ export const ReadWriteFunction = ({
   }, [inputsState]);
 
   useEffect(() => {
-    setIsCollapsed(readAllCollapsed !== undefined ? readAllCollapsed : false);
-  }, [readAllCollapsed]);
+    setIsCollapsed(
+      initialCall
+        ? false
+        : readAllCollapsed !== undefined
+          ? readAllCollapsed
+          : false
+    );
+  }, [readAllCollapsed, initialCall]);
+
+  useEffect(() => {
+    if (sourceFocusRevision === undefined) { setIsSourceHighlighted(false); return; }
+    setIsCollapsed(false);
+    setIsSourceHighlighted(true);
+    const timer = setTimeout(() => setIsSourceHighlighted(false), 1500);
+    return () => clearTimeout(timer);
+  }, [sourceFocusRevision]);
 
   useEffect(() => {
     // uncollapse if result fetched
@@ -639,8 +1017,11 @@ export const ReadWriteFunction = ({
   // }, [writeButtonType]);
 
   const renderHighlightedText = (content: HighlightedContent): ReactNode => {
+    const wrapName = (text: string) => text.split(/(?<=_)/).map((segment, index) => (
+      <React.Fragment key={index}>{segment}<wbr /></React.Fragment>
+    ));
     if (typeof content === "string") {
-      return content;
+      return wrapName(content);
     }
 
     return content.map((part, index) => (
@@ -655,24 +1036,40 @@ export const ReadWriteFunction = ({
           color: part.isHighlighted ? "black" : "inherit",
         }}
       >
-        {part.text}
+        {wrapName(part.text)}
       </span>
     ));
   };
 
-  const renderRes = () => {
-    if (isAbiDecoded ? res !== null && res !== undefined : outputs) {
+  const currentHistoricalResult = historicalMode && historicalResult?.mode === historicalMode &&
+    historicalResult.contextKey === queryContext && historicalResult.client === client ? historicalResult : undefined;
+  const resultValue = historicalMode ? currentHistoricalResult?.data : res;
+  const hasResultValue = historicalMode ? Boolean(currentHistoricalResult) : res !== null && res !== undefined;
+  const outputSchema = JSON.stringify([functionName, inputs, _outputs, isAbiDecoded]);
+  const lastOutput = useRef<{ schema: string; value: any }>({ schema: outputSchema, value: undefined });
+  if (lastOutput.current.schema !== outputSchema) lastOutput.current = { schema: outputSchema, value: undefined };
+  if (hasResultValue) lastOutput.current.value = resultValue;
+  const outputVisible = historicalMode ? Boolean(currentHistoricalResult)
+    : inputs && inputs.length > 0
+      ? (type === "read" || writeButtonType === WriteButtonType.CallAsViewFn) && (loading || hasResultValue)
+      : !isError;
+  const outputPending = !historicalMode && outputs.length > 0 && (loading || !hasResultValue);
+  const outputMounted = useRef(false);
+  if (outputVisible) outputMounted.current = true;
+
+  const renderRes = (value: any = res, isLoading = loading) => {
+    if (isAbiDecoded ? value !== null && value !== undefined : outputs) {
       return (
         <Box>
           {outputs.map((output, i) => (
             <Box
               key={i}
               mt={2}
-              bg={outputs.length > 1 ? "whiteAlpha.200" : undefined}
-              p={outputs.length > 1 ? 4 : 0}
-              rounded={"md"}
+              pt={outputs.length > 1 ? 3 : 0}
+              borderTopWidth={i > 0 ? "1px" : 0}
+              borderColor="whiteAlpha.100"
             >
-              {outputs.length > 1 && (
+              {outputs.length > 1 && output.type !== "tuple" && (
                 <InputInfo
                   input={{
                     name: output.name
@@ -686,12 +1083,14 @@ export const ReadWriteFunction = ({
                 renderParamTypes({
                   chainId,
                   type: output.type,
+                  components: output.components,
+                  name: outputs.length > 1 ? output.name : "",
                   value:
                     outputs.length > 1
-                      ? res !== null && res !== undefined
-                        ? res[i]
+                      ? value !== null && value !== undefined
+                        ? value[i]
                         : null
-                      : res,
+                      : value,
                 })}
             </Box>
           ))}
@@ -699,7 +1098,7 @@ export const ReadWriteFunction = ({
       );
     } else if (
       isAbiDecoded &&
-      loading &&
+      isLoading &&
       writeButtonType === WriteButtonType.CallAsViewFn
     ) {
       return <Skeleton mt={2} h={"5rem"} rounded={"lg"} />;
@@ -710,56 +1109,135 @@ export const ReadWriteFunction = ({
 
   return (
     <Box
+      ref={validationRootRef}
+      data-parameter-branch=""
+      minW={0}
+      w="full"
       mb={2}
       p={2}
       pb={!inputs || inputs.length === 0 ? undefined : 4}
-      border="2px solid"
-      borderColor="whiteAlpha.200"
+      border="1px solid"
+      data-source-highlighted={isSourceHighlighted ? "true" : undefined}
+      transition={isSourceHighlighted ? "none" : "background-color 900ms ease-out, border-color 900ms ease-out, box-shadow 900ms ease-out"}
+      sx={{ "@media (prefers-reduced-motion: reduce)": { transition: "none" } }}
+      boxShadow={isSourceHighlighted ? "0 0 0 1px rgba(236, 201, 75, 0.35)" : undefined}
+      borderColor={isSourceHighlighted ? "yellow.400" : isCustomAdded ? "rgba(236, 201, 75, 0.3)" : initialCall ? "blue.400" : "whiteAlpha.200"}
       rounded="md"
-      bg={!inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
+      bg={isSourceHighlighted ? "rgba(236, 201, 75, 0.12)" : initialCall ? "whiteAlpha.50" : !inputs || inputs.length === 0 ? "whiteAlpha.50" : undefined}
     >
-      {/* Function name and refetch button */}
-      <HStack mb={!fnSelector ? 2 : undefined}>
-        <HStack
-          flexGrow={1}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          cursor={"pointer"}
-        >
-          <HStack>
-            <Box fontSize={"2xl"}>
-              {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </Box>
-            <HStack alignItems={"flex-end"}>
-              <Box fontSize={"md"} fontWeight={"normal"}>
-                {index}.
-              </Box>
-              <Box fontWeight={"bold"}>
-                {renderHighlightedText(__func.name)}
-              </Box>
+      {/* Show the function name above its selector and tools. */}
+      <Box display="grid" gridTemplateColumns="1.5rem max-content minmax(0, 1fr) auto" columnGap={1.5} rowGap={0} alignItems="start" mb={1}>
+          <HStack gridColumn={3} gridRow={2} spacing={2} minW={0} flexWrap="wrap" rowGap={1} color="text.tertiary" fontSize="xs" lineHeight={5}>
+            {fnSelector && <Box
+              as="button"
+              type="button"
+              textAlign="left"
+              whiteSpace="nowrap"
+              aria-label={`Toggle ${displayName} selector`}
+              aria-expanded={!isCollapsed}
+              onClick={() => setIsCollapsed(collapsed => !collapsed)}
+              borderRadius="md"
+              _focusVisible={{outline:"2px solid", outlineColor:"blue.400"}}
+            >selector: {fnSelector}</Box>}
+          <HStack spacing={0.5} align="center" flexWrap="nowrap" minH={6} aria-label="Function tools">
+            {onGoToSource && (
+              <Tooltip label={sourceLocation ? "Go to source" : sourceUnavailableReason} hasArrow>
+                <span>
+                  <IconButton
+                    aria-label={`Go to source for ${displayName}`}
+                    icon={<FileCode2 size={12} />}
+                    size="xs" h={6} minW={6} variant="ghost" color="text.secondary"
+                    isDisabled={!sourceLocation}
+                    onClick={() => sourceLocation && onGoToSource(sourceLocation)}
+                  />
+                </span>
+              </Tooltip>
+            )}
+            <Tooltip label="Share function call" hasArrow>
+              <IconButton
+                aria-label={`Share ${displayName} function call`}
+                icon={<LinkIcon boxSize={3} />}
+                size="xs"
+                h={6}
+                minW={6}
+                variant="ghost"
+                color="text.secondary"
+                flexShrink={0}
+                onClick={shareFunctionCall}
+              />
+            </Tooltip>
+            {isAbiDecoded && (
+              <Tooltip label="Inferred from bytecode and signature lookups. Check the input types before use." hasArrow>
+                <Box display="flex" alignItems="center" justifyContent="center" boxSize={6} flexShrink={0} tabIndex={0} aria-label="Inferred signature, not verified" borderRadius="md" _focusVisible={{outline:"2px solid", outlineColor:"blue.400"}}>
+                  <WarningTwoIcon color="yellow.300" boxSize={3} />
+                </Box>
+              </Tooltip>
+            )}
+            {isAbiDecoded && displayName.startsWith("selector: ") && fnSelector && (
+              <SignatureRegistryForm
+                selector={fnSelector}
+                iconOnly
+                onSubmitted={(signature, selector) => {
+                  if (selector !== originalFunc.selector?.toLowerCase()) return;
+                  setSubmittedSignature({ context: selectorContext, signature });
+                  setInputsState({});
+                  setFunctionIsDisabled({});
+                  setRes(null);
+                }}
+              />
+            )}
             </HStack>
-          </HStack>{" "}
-          {/* If single output, then show inline */}
-          {__func.outputs && __func.outputs.length === 1 && (
-            <Box fontSize={"sm"} color="whiteAlpha.600">
-              (→&nbsp;{__func.outputs[0].type})
-            </Box>
-          )}
-        </HStack>
-        {/* Read/Write Buttons */}
-        {!loading && type === "read" && (
-          <Button
-            ml={4}
-            onClick={readFunction}
-            isDisabled={
-              inputs && inputs.some((_, i) => functionIsDisabled[i] === true)
-            }
-            size={"sm"}
-            title={res !== null ? "refetch" : "fetch"}
-            colorScheme={!isError ? "blue" : "red"}
+            {__func.outputs && __func.outputs.length > 0 && <Text whiteSpace="nowrap">→ {__func.outputs.length === 1 ? __func.outputs[0].type : `${__func.outputs.length} outputs`}</Text>}
+          </HStack>
+              <IconButton
+                gridColumn={1}
+                gridRow={1}
+                alignSelf="start"
+                data-parameter-toggle=""
+                aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${displayName}`}
+                aria-expanded={!isCollapsed}
+                icon={isCollapsed ? <ChevronUpIcon boxSize={5} /> : <ChevronDownIcon boxSize={5} />}
+                onClick={() => setIsCollapsed(collapsed => !collapsed)}
+                size="xs"
+                variant="ghost"
+                color="text.secondary"
+                h={6}
+                minW={6}
+              />
+              <Text gridColumn={2} gridRow={1} fontSize="sm" lineHeight={6} color="text.secondary">{index}.</Text>
+          <HStack
+            gridColumn={3}
+            gridRow={1}
+            as="button"
+            type="button"
+            w="full"
+            minW={0}
+            minH={6}
+            spacing={1.5}
+            align="start"
+            textAlign="left"
+            aria-label={`Toggle ${displayName}`}
+            aria-expanded={!isCollapsed}
+            onClick={() => setIsCollapsed(collapsed => !collapsed)}
+            borderRadius="md"
+            _focusVisible={{outline:"2px solid", outlineColor:"blue.400"}}
           >
-            {res !== null ? <RepeatIcon /> : "Read"}
-          </Button>
-        )}
+            <Box minW={0} fontSize="lg" lineHeight={6} fontWeight="semibold" overflowWrap="anywhere">{renderHighlightedText(__func.name)}</Box>
+          </HStack>
+          <HStack gridColumn={4} gridRow="1 / 3" justify="flex-end" alignSelf="start" spacing={1.5} flexWrap="nowrap" align="start">
+          {type === "read" && <ReadButton
+            action={readAction}
+            onActionChange={action => {
+              setReadAction(action); setIsError(false); setEncodingError(""); setRes(null);
+              if (action === "Query at Block" || action === "Query at Time") { setHistoricalOpen(true); setIsCollapsed(false); }
+            }}
+            onRead={readFunction}
+            onEncode={encodeCalldataFn}
+            onHistoricalQuery={() => { setIsCollapsed(false); if (historicalActionRef.current) historicalActionRef.current(); else setHistoricalOpen(true); }}
+            isLoading={historicalMode ? historicalLoading : loading}
+            isError={isError}
+            isDisabled={inputsUnknown || Boolean(inputs?.some((_, i) => functionIsDisabled[i] === true))}
+          />}
         {type === "write" && (
           <WriteButton
             isError={isError}
@@ -770,19 +1248,40 @@ export const ReadWriteFunction = ({
             writeFunction={writeFunction}
             callAsReadFunction={callAsReadFunction}
             simulateOnTenderly={simulateOnTenderly}
+            encodeCalldata={encodeCalldataFn}
+            onHistoricalQuery={() => { setIsCollapsed(false); if (historicalActionRef.current) historicalActionRef.current(); else setHistoricalOpen(true); }}
             isDisabled={
+              inputsUnknown ||
               (inputs &&
                 inputs.some((_, i) => functionIsDisabled[i] === true)) ||
               payableETHIsDisabled
             }
-            loading={loading}
-            setWriteButtonType={setWriteButtonType}
+            loading={historicalMode ? historicalLoading : loading}
+            setWriteButtonType={action => {
+              setWriteButtonType(action); setRes(null);
+              if (action === WriteButtonType.CallAtBlock || action === WriteButtonType.CallAtTime) { setHistoricalOpen(true); setIsCollapsed(false); }
+            }}
             setIsError={setIsError}
           />
         )}
+        {historicalMode && <HistoricalQuery
+          mode={historicalMode}
+          isOpen={historicalOpen}
+          onClose={() => setHistoricalOpen(false)}
+          onOpen={() => setHistoricalOpen(true)}
+          actionRef={historicalActionRef}
+          onLoadingChange={setHistoricalLoading}
+          onResultChange={setHistoricalResult}
+          client={client}
+          chainId={chainId}
+          contextKey={queryContext}
+          isDisabled={inputsUnknown || Boolean(inputs?.some((_, i) => functionIsDisabled[i] === true)) || (type === "write" && payableETHIsDisabled)}
+          execute={executeHistoricalQuery}
+        />}
         {type === "write" &&
           writeButtonType === WriteButtonType.SimulateOnTenderly && (
             <Popover
+              isLazy
               placement="bottom-start"
               isOpen={settingsIsOpen}
               onOpen={() => setSettingsIsOpen(true)}
@@ -801,7 +1300,8 @@ export const ReadWriteFunction = ({
                 </Box>
               </PopoverTrigger>
               <PopoverContent
-                minW="30rem"
+                w="min(30rem, calc(100vw - 2rem))"
+                minW={0}
                 border={"1px solid"}
                 borderColor={"whiteAlpha.400"}
                 bg="bg.900"
@@ -866,70 +1366,102 @@ export const ReadWriteFunction = ({
               </PopoverContent>
             </Popover>
           )}
-      </HStack>
-      {/* Function Selector */}
-      {fnSelector && (
-        <Box ml={12} mb={2} fontSize={"sm"} color="whiteAlpha.600">
-          [selector: {fnSelector}]
-        </Box>
-      )}
-      {/* If multiple outputs */}
-      {highlightedOutputs && highlightedOutputs.length > 1 && (
-        <Box ml={4} maxW="30rem" mb={4}>
-          <EnhancedFunctionOutput highlightedOutputs={highlightedOutputs} />
-        </Box>
-      )}
-
-      {/* Transaction status for Write */}
-      {txHash && !confirmedTxHash && (
-        <Box mb={4} ml={4}>
-          <HStack p={4} bg="blue.500" rounded={"md"}>
-            <HStack>
-              <Spinner />
-              <Box fontWeight={"bold"}>Transaction initiated:</Box>
-            </HStack>
-            <Box>
-              <Link
-                href={`${chain?.blockExplorers?.default.url}/tx/${txHash}`}
-                isExternal
-              >
-                <HStack>
-                  <Box>{slicedText(txHash, 10)}</Box>
-                  <ExternalLinkIcon />
-                </HStack>
-              </Link>
-            </Box>
           </HStack>
-        </Box>
+          {highlightedOutputs && highlightedOutputs.length > 1 && <Box gridColumn="3 / -1" gridRow={3} display={{base:"none",md:"block"}} mt={1}><EnhancedFunctionOutput highlightedOutputs={highlightedOutputs} /></Box>}
+      </Box>
+      {encodingError && (
+        <Text role="alert" color="red.300" p={2} wordBreak="break-word">
+          {encodingError}
+        </Text>
       )}
-      {confirmedTxHash && (
-        <Box mt={4} ml={4}>
-          <Box p={4} bg="green.500" rounded={"md"}>
-            <HStack>
-              <Box fontWeight={"bold"}>✅ Transaction confirmed:</Box>
-              <Box>
-                {txIsTenderlySimulation ? (
-                  <Box>{slicedText(confirmedTxHash, 10)}</Box>
-                ) : (
-                  <Link
-                    href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash}`}
-                    isExternal
-                  >
-                    <HStack>
-                      <Box>{slicedText(confirmedTxHash, 10)}</Box>
-                      <ExternalLinkIcon />
-                    </HStack>
-                  </Link>
-                )}
-              </Box>
-            </HStack>
-            {txIsTenderlySimulation && (
-              <Center fontSize={"sm"}>(view on your tenderly dashboard)</Center>
+      {/* Explain unavailable actions without repeating notices on usable functions. */}
+      {inputsUnknown && (
+        <Text role="note" ml={{ base: 0, md: 4 }} mb={2} fontSize="sm" color="orange.300">
+          {__func.inputInference?.message}
+        </Text>
+      )}
+      {/* Compact transaction status with an independently loaded return value. */}
+      {((writeStatus && writeStatus.key === writeContextKey) ||
+        (writePreview && writePreview.key === writeContextKey) || txHash || confirmedTxHash) && (
+        <Box
+          role="region"
+          aria-label="Transaction status"
+          mt={3}
+          mb={4}
+          mx={{ base: 0, md: 4 }}
+          minW={0}
+        >
+          <HStack spacing={2} flexWrap="wrap" fontSize="sm" px={4} py={3} bg="whiteAlpha.50" rounded="md">
+            {writeStatus?.key === writeContextKey && writeStatus.phase === "wallet" && <Spinner size="xs" />}
+            <Text fontWeight="medium">
+              {writeStatus?.key === writeContextKey && writeStatus.phase === "rejected"
+                ? "Request rejected"
+                : writeStatus?.key === writeContextKey && writeStatus.phase === "error"
+                  ? "Transaction failed"
+                  : confirmedTxHash ? "Transaction confirmed"
+                    : txHash ? "Transaction submitted" : "Confirm in your wallet"}
+            </Text>
+            {(confirmedTxHash || txHash) && (
+              txIsTenderlySimulation ? <Text>{slicedText(confirmedTxHash || txHash!, 10)}</Text> : (
+                <Link href={`${chain?.blockExplorers?.default.url}/tx/${confirmedTxHash || txHash}`} isExternal>
+                  <HStack spacing={1}><Text>{slicedText(confirmedTxHash || txHash!, 10)}</Text><ExternalLinkIcon /></HStack>
+                </Link>
+              )
             )}
-          </Box>
+          </HStack>
+          {writePreview && writePreview.key === writeContextKey && (
+            <Box mt={3} p={4} bg="whiteAlpha.50" borderWidth="1px" borderColor="whiteAlpha.200" rounded="md">
+              <HStack spacing={2} mb={2}>
+                <Text fontSize="sm" fontWeight="bold">Function return value:</Text>
+                <Tooltip
+                  label="Predicted output from a read-only simulation using the same function inputs. This value is not taken from the transaction receipt and may differ when the transaction executes."
+                  hasArrow
+                  placement="top"
+                >
+                  <Box
+                    as="button"
+                    type="button"
+                    aria-label="About function return values"
+                    display="inline-flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    boxSize={6}
+                    fontSize="xs"
+                    color="whiteAlpha.600"
+                    borderRadius="sm"
+                    _hover={{ color: "white" }}
+                    _focusVisible={{ outline: "2px solid", outlineColor: "blue.400" }}
+                  >
+                    <InfoIcon />
+                  </Box>
+                </Tooltip>
+              </HStack>
+              <Box role="status" aria-live="polite" fontSize="sm" overflowWrap="anywhere">
+                {writePreview.status === "loading" ? (
+                  <Text color="whiteAlpha.600">Fetching simulated return…</Text>
+                ) : writePreview.status === "error" ? (
+                  <Text color="whiteAlpha.600">Simulated return unavailable</Text>
+                ) : _outputs?.map((output, i) => (
+                  <HStack key={i} spacing={2} alignItems="baseline" flexWrap="wrap">
+                    <Text fontFamily="mono" fontSize="xs" color="whiteAlpha.600">
+                      {output.name ? `${output.name} (${output.type})` : output.type}
+                    </Text>
+                    <Text as="span" fontFamily="mono" whiteSpace="pre-wrap">
+                      {JSON.stringify(
+                        _outputs.length === 1 ? writePreview.result : (writePreview.result as unknown[])?.[i],
+                        (_, value) => typeof value === "bigint" ? value.toString() : value,
+                        2
+                      )}
+                    </Text>
+                  </HStack>
+                ))}
+              </Box>
+            </Box>
+          )}
+          {txIsTenderlySimulation && confirmedTxHash && <Text fontSize="xs" mt={1}>(view on your Tenderly dashboard)</Text>}
         </Box>
       )}
-      {isError && errorMsg && type === "write" && (
+      {!historicalMode && isError && errorMsg && type === "write" && (
         <Center mt={2} p={4} color="red.300" maxW="40rem">
           {errorMsg}
         </Center>
@@ -938,7 +1470,7 @@ export const ReadWriteFunction = ({
       <Box display={isCollapsed ? "none" : undefined}>
         {/* Input fields */}
         {(payable || stateMutability === "payable") && (
-          <Box ml={4} p={4} bg="whiteAlpha.100" rounded={"lg"}>
+          <Box ml={{ base: 0, md: 4 }} p={{ base: 2, md: 4 }} bg="whiteAlpha.100" rounded={"lg"}>
             <IntInput
               input={{
                 name: "Payable ETH",
@@ -962,49 +1494,172 @@ export const ReadWriteFunction = ({
           </Box>
         )}
         {inputs && inputs.length > 0 && (
-          <Box ml={4}>
-            {inputs.map((input, i) => (
-              <Box key={i} mt={2}>
-                {renderInputFields({
-                  chainId,
-                  input,
-                  value: inputsState[i] || "",
-                  onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                    updateInputState(i, e.target.value),
-                  setFunctionIsDisabled: (value: boolean) =>
-                    updateFunctionIsDisabled(i, value),
-                  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-                    if (e.key === "Enter" && !functionIsDisabled) {
-                      setEnterPressed(true);
-                    }
-                  },
-                  isError,
-                })}
-              </Box>
-            ))}
-          </Box>
-        )}
-        {/* Output fields for Read or Call as View Fn */}
-        <Box mt={2} ml={4} mb={inputs && inputs.length > 0 ? 0 : 4}>
-          {inputs && inputs.length > 0
-            ? // Show skeleton (res = null) if loading
-              (type === "read" ||
-                writeButtonType === WriteButtonType.CallAsViewFn) &&
-              (loading || (!loading && res !== null && res !== undefined)) && (
-                <Box p={4} bg="whiteAlpha.100" rounded={"md"}>
-                  <Box fontWeight={"bold"}>Result:</Box>
-                  {renderRes()}
+          <CompactParameterInputs.Provider value={true}>
+            <Box ml={{ base: 0, md: 4 }} minW={0}>
+              {inputs.map((input, i) => (
+                <Box key={i} mt={2}>
+                  {renderInputFields({
+                    chainId,
+                    input,
+                    suggestions: isSupportsInterface && i === 0 ? interfacePresetOptions : undefined,
+                    value: inputsState[i] ?? "",
+                    allowBytesBuilder: true,
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateInputState(i, e.target.value),
+                    setFunctionIsDisabled: (value: boolean) =>
+                      updateFunctionIsDisabled(i, value),
+                    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                      if (e.key === "Enter" && !functionIsDisabled) {
+                        setEnterPressed(true);
+                      }
+                    },
+                    isError,
+                  })}
                 </Box>
-              )
-            : !isError && renderRes()}
+              ))}
+            </Box>
+          </CompactParameterInputs.Provider>
+        )}
+        {/* Keep the same output widgets mounted across query modes and reloads. */}
+        <Box display={outputVisible ? undefined : "none"} mt={2} ml={{ base: 0, md: 4 }} mb={inputs && inputs.length > 0 ? 0 : 4}
+          aria-label={currentHistoricalResult ? "Historical query result" : undefined}>
+          <Box display={currentHistoricalResult ? undefined : "none"} pt={3} borderTopWidth="1px" borderColor="border.default">
+            <Text fontSize="xs" color="primary.300" fontFamily="mono">
+              {currentHistoricalResult && <>Block {currentHistoricalResult.block.number.toString()} · {formatHistoricalTimestamp(currentHistoricalResult.block.timestamp)}</>}
+            </Text>
+            <Text fontSize="xs" color="text.tertiary" mb={2}>State at the end of this block</Text>
+          </Box>
+          <Box display={!historicalMode && inputs && inputs.length > 0 ? undefined : "none"} pt={3} borderTopWidth="1px" borderColor="whiteAlpha.100">
+            {!(outputs.length === 1 && outputs[0].type === "tuple") && <Text fontSize="xs" color="whiteAlpha.600" mb={2}>Result</Text>}
+          </Box>
+          <Box position="relative">
+            <Box visibility={outputPending ? "hidden" : undefined}>
+              {outputMounted.current && renderRes(lastOutput.current.value, false)}
+            </Box>
+            {outputPending && <Skeleton position="absolute" inset={0} minH={8} rounded="md" />}
+            {currentHistoricalResult && outputs.length === 0 && <Text fontSize="sm" color="text.primary">Call completed with no return values.</Text>}
+          </Box>
         </Box>
 
-        {isError && errorMsg && type === "read" && (
+        {!historicalMode && isError && errorMsg && type === "read" && (
           <Center mt={2} p={4} color="red.300" maxW="40rem">
             {errorMsg}
           </Center>
         )}
       </Box>
+
+
+      <Modal isOpen={share !== null} onClose={() => setShare(null)} isCentered size="lg" scrollBehavior="inside">
+        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
+        <ModalContent mx={{ base: 3, sm: 4 }} maxW={{ base: "calc(100vw - 1.5rem)", sm: "lg" }} bg="bg.base" border="1px solid" borderColor="border.subtle">
+          <ModalHeader pb={2}>Share function call</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={5} px={{ base: 3, sm: 6 }}>
+            <Text fontSize="sm" color="text.secondary" mb={4}>
+              Share this function with its current parameters.
+            </Text>
+            {share?.error ? (
+              <Text role="alert" color="red.300" fontSize="sm">{share.error}</Text>
+            ) : (
+              <>
+                <Box position="relative">
+                  <Input aria-label="Function call link" value={share?.link ?? ""} isReadOnly pr={12} fontSize="sm" />
+                  <IconButton
+                    as="a"
+                    href={share?.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Open function call link"
+                    icon={<ExternalLinkIcon />}
+                    variant="ghost"
+                    size="sm"
+                    position="absolute"
+                    top={1}
+                    right={1}
+                    color="text.secondary"
+                  />
+                </Box>
+                <Center mt={4}>
+                  <CopyToClipboard
+                    textToCopy={share?.link ?? ""}
+                    labelText="Copy link"
+                    aria-label="Copy function call link"
+                    variant="outline"
+                  />
+                </Center>
+              </>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Encode Calldata Modal */}
+      <Modal
+        isOpen={calldataModalOpen}
+        onClose={() => setCalldataModalOpen(false)}
+        isCentered
+        size="lg"
+      >
+        <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(8px)" />
+        <ModalContent
+          mx={{ base: 3, sm: 4 }}
+          maxW={{ base: "calc(100vw - 1.5rem)", sm: "lg" }}
+          bg="bg.base"
+          border="1px solid"
+          borderColor="border.subtle"
+        >
+          <ModalHeader color="text.primary">Encoded Calldata</ModalHeader>
+          <ModalCloseButton
+            color="text.secondary"
+            _hover={{ color: "text.primary" }}
+          />
+          <ModalBody pb={6} px={{ base: 3, sm: 6 }}>
+            <Box
+              position="relative"
+              bg="bg.muted"
+              border="1px solid"
+              borderColor="border.default"
+              rounded="lg"
+              color="text.primary"
+            >
+              <Box
+                p={4}
+                pr={12}
+                fontFamily="mono"
+                fontSize="sm"
+                wordBreak="break-all"
+                maxH="300px"
+                overflowY="auto"
+              >
+                {encodedCalldata}
+              </Box>
+              <CopyToClipboard
+                textToCopy={encodedCalldata}
+                aria-label="Copy Calldata"
+                position="absolute"
+                top={2}
+                right={2}
+                size="sm"
+                minW={8}
+                w={8}
+                px={0}
+              />
+            </Box>
+            <HStack mt={3} spacing={3} justify="flex-end" flexWrap="wrap">
+              <Link
+                href={`${getPath(subdomains.CALLDATA.base)}decoder?calldata=${encodedCalldata}`}
+                isExternal
+                fontSize="sm"
+              >
+                Open in decoder <ExternalLinkIcon boxSize="3.5" ml={1} />
+              </Link>
+
+            </HStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };
+
+export const ReadWriteFunction = React.memo(ReadWriteFunctionComponent);

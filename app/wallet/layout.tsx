@@ -2,9 +2,10 @@ import { WalletLayout as WalletLayoutC } from "./WalletLayout";
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
-  title: "Wallet | Swiss-Knife.xyz",
+  title: "Wallet | ETH.sh",
   description: "Wallet Bridge: connect your mobile wallet to any desktop dapp.",
-  images: "https://swiss-knife.xyz/og/wallet-bridge.png",
+  canonical: "https://wallet.eth.sh/",
+  images: "https://eth.sh/api/og/wallet-bridge",
 });
 
 const WalletLayout = ({ children }: { children: React.ReactNode }) => {

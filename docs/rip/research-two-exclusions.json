@@ -1,0 +1,134 @@
+[
+  {
+    "name": "Storj Labs",
+    "status": "Excluded",
+    "reason": "Chapter 11 restructuring while operations, services and network continue.",
+    "sources": [
+      {
+        "label": "Official continuing-operations statement",
+        "url": "https://www.storj.io/blog/storj-announces-voluntary-financial-restructuring-to-resolve-legacy-liabilities-and-position-the-business-for-growth/",
+        "kind": "Primary"
+      }
+    ]
+  },
+  {
+    "name": "Pixiland",
+    "status": "Excluded",
+    "reason": "January15 announcement paused Web3 and proposed a continuing Web2 game. Later project update paused that transition while discussing a 3ULL takeover. No full project shutdown established.",
+    "sources": [
+      {
+        "label": "Official docs invalidate Web3 specs after January15",
+        "url": "https://docs.pixiland.app/nft-and-token/usdwpixi",
+        "kind": "Primary"
+      },
+      {
+        "label": "Mirrored official account transition and subsequent update",
+        "url": "https://www6.twstalker.com/pixilandsocial",
+        "kind": "Reporting"
+      },
+      {
+        "label": "Official January15 Web3 pause announcement",
+        "url": "https://x.com/pixilandsocial/status/2011772403924517133",
+        "kind": "Primary"
+      },
+      {
+        "label": "Official January31 takeover talks and transition pause",
+        "url": "https://x.com/pixilandsocial/status/2017622372443164837",
+        "kind": "Primary"
+      }
+    ]
+  },
+  {
+    "name": "Genome Protocol",
+    "status": "Unverified",
+    "reason": "Supplied commentary says March11; linked official post is deleted (HTTP404); no independently corroborated primary shutdown notice found.",
+    "sources": [
+      {
+        "label": "Unavailable original linked post",
+        "url": "https://x.com/genome_protocol/status/2031466677020598412",
+        "kind": "Primary"
+      }
+    ]
+  },
+  {
+    "name": "DataHaven",
+    "status": "Unverified primary",
+    "reason": "Multiple reports and mirrored project Telegram announcement confirm wind-down, but official shutdown letter domain is now DNS-unavailable. March4 announcement date is reporting-derived and no exact final closure date is primary-verified.",
+    "sources": [
+      {
+        "label": "March4 shutdown reported",
+        "url": "https://ourcryptotalk.com/news/datahaven-shuts-down-amid-funding-challenges",
+        "kind": "Reporting"
+      },
+      {
+        "label": "Mirrored official Telegram announcement",
+        "url": "https://telemetr.io/en/channels/2210572963-datahaven_announcements",
+        "kind": "Reporting"
+      },
+      {
+        "label": "Unavailable shutdown letter",
+        "url": "https://datahaven.xyz",
+        "kind": "Primary"
+      }
+    ]
+  },
+  {
+    "name": "Pixel Heroes Adventure / Z5 Games",
+    "status": "Unverified final closure",
+    "reason": "Studio layoffs and shutdown announced mid-April via Discord reporting. Founder subsequently said a game service transfer was being negotiated. Exact final game/server closure day not proven.",
+    "sources": [
+      {
+        "label": "Layoff and transfer discussion",
+        "url": "https://www.sidelinedco.com/p/limit-break-returns-from-the-dead",
+        "kind": "Reporting"
+      },
+      {
+        "label": "Contemporaneous report",
+        "url": "https://protos.com/web3-collapse-accelerates-as-eight-games-fail-this-year/",
+        "kind": "Reporting"
+      }
+    ]
+  },
+  {
+    "name": "Bit.com",
+    "status": "Unverified scope",
+    "reason": "Historical exchange reported closed March31 after Dec27 2025 announcement, but current official bit.com markets active trading/investment services and October launch. Need original notice to establish retired product vs continuing business accurately.",
+    "sources": [
+      {
+        "label": "Reported old exchange closure",
+        "url": "https://www.thestreet.com/crypto/bankruptcy/crypto-exchange-announces-phased-shutdown-by-2026",
+        "kind": "Reporting"
+      },
+      {
+        "label": "Current active brand website",
+        "url": "https://www.bit.com/",
+        "kind": "Primary"
+      }
+    ]
+  },
+  {
+    "name": "Story Protocol / DATA Foundation",
+    "status": "Excluded",
+    "reason": "100y labels Pivot; no project shutdown established."
+  },
+  {
+    "name": "YGG",
+    "status": "Excluded entity",
+    "reason": "100y labels corporate pivot; YGG Play product shutdown may be separately eligible if researched by other agent."
+  },
+  {
+    "name": "Immutable",
+    "status": "Excluded",
+    "reason": "100y labels Pivot; AI/growth repositioning is not a project shutdown."
+  },
+  {
+    "name": "Sleepagotchi",
+    "status": "Excluded",
+    "reason": "100y labels Pivot to AI wellness; no project shutdown established."
+  },
+  {
+    "name": "Limitless",
+    "status": "Excluded",
+    "reason": "Supplied tweet comments on Trepa and Fireplace closures. Does not announce a Limitless shutdown."
+  }
+]

@@ -5,22 +5,45 @@ import { ChainNotConfiguredError, createConnector } from "wagmi";
 frameConnector.type = "frameConnector" as const;
 
 export function frameConnector() {
-  let connected = true;
+  let connected = false;
 
-  return createConnector<typeof sdk.wallet.ethProvider>((config) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createConnector<any>((config) => ({
     id: "farcaster",
     name: "Farcaster Wallet",
     type: frameConnector.type,
 
     async setup() {
-      this.connect({ chainId: config.chains[0].id });
+      // Only attempt to connect if we're in a frame context
+      const provider = await this.getProvider();
+      if (provider) {
+        this.connect({ chainId: config.chains[0].id });
+      }
     },
+    // @ts-expect-error - wagmi connector type mismatch with withCapabilities generic
     async connect({ chainId } = {}) {
       try {
-        const provider = await this.getProvider();
-        const accounts = await provider.request({
-          method: "eth_requestAccounts",
-        });
+        const provider = await this.getProvider() as typeof sdk.wallet.ethProvider | undefined;
+        if (!provider) {
+          connected = false;
+          return { accounts: [] as readonly `0x${string}`[], chainId: chainId || config.chains[0].id };
+        }
+
+        let accounts: readonly string[];
+        try {
+          accounts = await provider.request({
+            method: "eth_requestAccounts",
+          });
+        } catch (requestError) {
+          // Provider request failed - likely not in a Frame context or SDK not ready
+          connected = false;
+          return { accounts: [] as readonly `0x${string}`[], chainId: chainId || config.chains[0].id };
+        }
+
+        if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+          connected = false;
+          return { accounts: [] as readonly `0x${string}`[], chainId: chainId || config.chains[0].id };
+        }
 
         let currentChainId = await this.getChainId();
         if (chainId && currentChainId !== chainId) {
@@ -31,30 +54,42 @@ export function frameConnector() {
         connected = true;
 
         return {
-          accounts: accounts.map((x) => getAddress(x)),
+          accounts: accounts.map((x: string) => getAddress(x)) as readonly `0x${string}`[],
           chainId: currentChainId,
         };
       } catch (error) {
         connected = false;
         console.error("Error connecting to Frame:", error);
-        return { accounts: [], chainId: 0 };
+        return { accounts: [] as readonly `0x${string}`[], chainId: chainId || config.chains[0].id };
       }
     },
     async disconnect() {
       connected = false;
     },
     async getAccounts() {
-      if (!connected) throw new Error("Not connected");
-      const provider = await this.getProvider();
-      const accounts = await provider.request({
-        method: "eth_requestAccounts",
-      });
-      return accounts.map((x) => getAddress(x));
+      if (!connected) return [];
+      const provider = await this.getProvider() as typeof sdk.wallet.ethProvider | undefined;
+      if (!provider) return [];
+      try {
+        const accounts = await provider.request({
+          method: "eth_requestAccounts",
+        });
+        if (!accounts || !Array.isArray(accounts)) return [];
+        return accounts.map((x: string) => getAddress(x));
+      } catch {
+        return [];
+      }
     },
     async getChainId() {
-      const provider = await this.getProvider();
-      const hexChainId = await provider.request({ method: "eth_chainId" });
-      return fromHex(hexChainId, "number");
+      const provider = await this.getProvider() as typeof sdk.wallet.ethProvider | undefined;
+      if (!provider) return config.chains[0].id;
+      try {
+        const hexChainId = await provider.request({ method: "eth_chainId" });
+        if (!hexChainId) return config.chains[0].id;
+        return fromHex(hexChainId, "number");
+      } catch {
+        return config.chains[0].id;
+      }
     },
     async isAuthorized() {
       if (!connected) {
@@ -64,22 +99,24 @@ export function frameConnector() {
       const accounts = await this.getAccounts();
       return !!accounts.length;
     },
-    async switchChain({ chainId }) {
-      const provider = await this.getProvider();
-      const chain = config.chains.find((x) => x.id === chainId);
+    async switchChain({ chainId }: { chainId: number }) {
+      const provider = await this.getProvider() as typeof sdk.wallet.ethProvider | undefined;
+      const chain = config.chains.find((x: { id: number }) => x.id === chainId);
       if (!chain) throw new SwitchChainError(new ChainNotConfiguredError());
 
-      await provider.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: numberToHex(chainId) }],
-      });
+      if (provider) {
+        await provider.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: numberToHex(chainId) }],
+        });
+      }
       return chain;
     },
-    onAccountsChanged(accounts) {
+    onAccountsChanged(accounts: string[]) {
       if (accounts.length === 0) this.onDisconnect();
       else
         config.emitter.emit("change", {
-          accounts: accounts.map((x) => getAddress(x)),
+          accounts: accounts.map((x: string) => getAddress(x)),
         });
     },
     onChainChanged(chain) {

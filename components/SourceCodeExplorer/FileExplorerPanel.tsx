@@ -1,0 +1,189 @@
+"use client";
+import { useEffect, useState, type ReactNode } from "react";
+import { Box, Button, HStack, Text } from "@chakra-ui/react";
+import {
+  FileExplorerTree,
+  type FileExplorerTreeProps,
+} from "./FileExplorerTree";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { SourceOutline, type SourceOutlineInput } from "./SourceOutline";
+
+export function FileExplorerPanel({
+  actions,
+  onRootSelect,
+  title = "Explorer",
+  titleIcon,
+  titleActionLabel = "Select workspace root",
+  body,
+  background = "bg.muted",
+  outline,
+  outlineMaxHeight,
+  stickySections,
+  ...tree
+}: FileExplorerTreeProps & {
+  actions?: ReactNode;
+  onRootSelect?: () => void;
+  title?: string;
+  titleIcon?: ReactNode;
+  titleActionLabel?: string;
+  body?: ReactNode;
+  background?: string;
+  outline?: SourceOutlineInput;
+  outlineMaxHeight?: string;
+  stickySections?: boolean;
+}) {
+  const [filesOpen, setFilesOpen] = useState(true);
+  const [outlineOpen, setOutlineOpen] = useState(true);
+  const [outlinePaused, setOutlinePaused] = useState(false);
+  // A manually collapsed outline stays idle until reopened or its source changes.
+  // Empty/unavailable outlines still need to detect declarations in later edits.
+  useEffect(() => {
+    setOutlinePaused(false);
+  }, [outline?.path, outline?.content]);
+  useEffect(() => {
+    if (tree.revealSelection !== undefined) setFilesOpen(true);
+  }, [tree.revealSelection]);
+  const sectionHeader = (name: string, open: boolean, toggle: () => void) => (
+    <Button
+      variant="unstyled"
+      display="flex"
+      alignItems="center"
+      justifyContent="flex-start"
+      gap={1.5}
+      w="full"
+      h={7}
+      px={2}
+      borderRadius="none"
+      fontSize="xs"
+      fontWeight="semibold"
+      textTransform="uppercase"
+      color="text.secondary"
+      flexShrink={0}
+      aria-expanded={open}
+      aria-label={`${open ? "Collapse" : "Expand"} ${name}`}
+      onClick={toggle}
+      _hover={{ bg: "whiteAlpha.50" }}
+    >
+      {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />} {name}
+    </Button>
+  );
+  return (
+    <Box
+      h="100%"
+      minW={0}
+      display="flex"
+      flexDirection="column"
+      bg={background}
+    >
+      <HStack
+        position={stickySections ? "sticky" : "relative"}
+        top={stickySections ? 0 : undefined}
+        zIndex={stickySections ? 2 : undefined}
+        bg={background}
+        px={3}
+        py={2}
+        spacing={1}
+        borderBottomWidth="1px"
+        borderColor="whiteAlpha.100"
+        flexShrink={0}
+        justify="space-between"
+      >
+        {onRootSelect ? (
+          <Button
+            variant="unstyled"
+            size="xs"
+            h="auto"
+            minW={0}
+            onClick={onRootSelect}
+            display="flex"
+            alignItems="center"
+            gap={1.5}
+            title={titleActionLabel}
+            aria-label={titleActionLabel}
+          >
+            {titleIcon}
+            <Text
+              as="span"
+              fontSize="xs"
+              fontWeight="semibold"
+              color="text.tertiary"
+              textTransform="uppercase"
+              letterSpacing="0.05em"
+            >
+              {title}
+            </Text>
+          </Button>
+        ) : (
+          <Text
+            fontSize="xs"
+            fontWeight="semibold"
+            color="text.tertiary"
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+          >
+            {title}
+          </Text>
+        )}
+        {actions && (
+          <HStack spacing={0} flexShrink={0}>
+            {actions}
+          </HStack>
+        )}
+      </HStack>
+      {outline &&
+        !body &&
+        sectionHeader("Files", filesOpen, () =>
+          setFilesOpen((value) => !value)
+        )}
+      {(filesOpen || !outline || body) && (
+        <Box
+          data-source-files-scroll=""
+          flex={1}
+          minW={0}
+          minH={0}
+          overflowY="auto"
+        >
+          {body ?? <FileExplorerTree height="100%" {...tree} />}
+        </Box>
+      )}
+      {outline && !body && (
+        <Box
+          flex={
+            stickySections
+              ? "0 1 auto"
+              : outlineOpen
+                ? filesOpen
+                  ? "0 1 45%"
+                  : "1 1 0%"
+                : "0 0 auto"
+          }
+          minH={stickySections ? 0 : outlineOpen ? "100px" : undefined}
+          maxH={outlineOpen ? outlineMaxHeight : undefined}
+          position={stickySections ? "sticky" : undefined}
+          bottom={stickySections ? 0 : undefined}
+          zIndex={stickySections ? 1 : undefined}
+          bg={background}
+          minW={0}
+          display="flex"
+          flexDirection="column"
+          borderTopWidth="1px"
+          borderColor="border.default"
+        >
+          {sectionHeader("Outline", outlineOpen, () => {
+            setOutlinePaused(outlineOpen);
+            setOutlineOpen((value) => !value);
+          })}
+          <Box
+            display={outlineOpen ? "block" : "none"}
+            flex={1}
+            minH={0}
+            minW={0}
+            overflowY={stickySections ? "auto" : undefined}
+          >
+            <SourceOutline source={outline} enabled={!outlinePaused} fitContent={stickySections} onAvailabilityChange={setOutlineOpen} />
+          </Box>
+        </Box>
+      )}
+    </Box>
+  );
+}

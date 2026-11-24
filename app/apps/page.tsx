@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -67,7 +69,7 @@ import { SafeDappInfo } from "@/types/safeDapps";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart } from "@fortawesome/free-solid-svg-icons";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { zeroAddress } from "viem";
+import { stringify, zeroAddress } from "viem";
 import { impersonatorConnectorId } from "@/utils/impersonatorConnector/connector";
 import subdomains from "@/subdomains";
 
@@ -268,7 +270,8 @@ function AppStoreContent({
         });
 
         console.log("Decoded transaction data:", decodedData);
-        setDecodedTxData(decodedData);
+        // Keep display state JSON-safe for React devtools, preserving integer precision.
+        setDecodedTxData(JSON.parse(stringify(decodedData)));
       } catch (error) {
         console.error("Failed to decode transaction data:", error);
       } finally {
@@ -644,6 +647,7 @@ function AppStoreContent({
         inset={0}
         bg="bg.900"
         style={{ backgroundColor: "#1A202C" }}
+        zIndex={10}
       >
         <Flex
           position="absolute"
@@ -926,11 +930,18 @@ function AppStoreContent({
           </Flex>
         )}
 
-        <Center flexDir={"column"} gap={2}>
-          <Heading size="xl" color="white" width="100%" textAlign="center">
-            🏪 Web3 App Store
+        <Center flexDir="column" gap={2}>
+          <Heading as="h1"
+            size="xl"
+            color="gray.100"
+            fontWeight="bold"
+            letterSpacing="tight"
+            width="100%"
+            textAlign="center"
+          >
+            Web3 App Store
           </Heading>
-          <Text color="whiteAlpha.800" fontSize="lg" fontStyle={"italic"}>
+          <Text color="gray.400" fontSize="lg" fontStyle="italic">
             Your Web3 Operating System
           </Text>
         </Center>
@@ -1388,7 +1399,7 @@ export default function WalletBridgeAppsPage() {
       signMessage={handleSignMessage}
       signTypedData={handleSignTypedData}
     >
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<ToolLoading title="Web3 App Store" description="Discover Web3 apps and inspect dapp requests with ETH.sh." />}>
         <AppStoreContent
           chainId={chainId}
           address={address}

@@ -1,0 +1,968 @@
+[
+  {
+    "version": 1,
+    "chainId": 1,
+    "hash": "0xb0f5a58df0ced3e28f113af534b0e6327e7be66539a9d794f95034fc28cd3647",
+    "capturedAt": "2026-11-20T23:14:07.078Z",
+    "stages": {
+      "abi:0xabefbc9fd2f806065b4f3c237d4b59d9a97bcac7": {
+        "at": "2026-11-20T23:14:07.797Z",
+        "status": "captured",
+        "source": "ETH.sh verified contract ABI route",
+        "sha256": "f7bc81acb961c4517da0f6a8477b2f72c473307bb5a56ce660a7f4f0d0013e9d"
+      },
+      "api.4byte.sourcify.dev:?function=0x15a22d48": {
+        "at": "2026-11-20T23:14:07.917Z",
+        "status": "captured",
+        "source": "api.4byte.sourcify.dev",
+        "sha256": "ce409f83ecbc058af33dd38d5319427c19e7cf914fd52164a9ab1e78aaa20119"
+      },
+      "api.4byte.sourcify.dev:?function=0xf2eba460": {
+        "at": "2026-11-20T23:14:07.974Z",
+        "status": "captured",
+        "source": "api.4byte.sourcify.dev",
+        "sha256": "d96677c477a18d8e1d96cb4da365f7213573ce445f308137ca5a83ccf9899f51"
+      },
+      "www.4byte.directory:?hex_signature=0x15a22d48": {
+        "at": "2026-11-20T23:14:08.063Z",
+        "status": "captured",
+        "source": "www.4byte.directory",
+        "sha256": "0595424161ea863805d9b92c0e52d7aa1e3c46ec58cd8f0d6933759006a5fb74"
+      },
+      "www.4byte.directory:?hex_signature=0xf2eba460": {
+        "at": "2026-11-20T23:14:08.115Z",
+        "status": "captured",
+        "source": "www.4byte.directory",
+        "sha256": "0595424161ea863805d9b92c0e52d7aa1e3c46ec58cd8f0d6933759006a5fb74"
+      },
+      "transaction": {
+        "at": "2026-11-20T23:14:08.136Z",
+        "status": "captured",
+        "source": "app/calldata/decoder/__fixtures__/samples.json#mint-20000.eth_getTransactionByHash",
+        "sha256": "6462250c91aae6425f445982a5b2f557f8270f4cf598400a3ab618fba3c13c0a"
+      },
+      "receipt": {
+        "at": "2026-11-20T23:14:08.136Z",
+        "status": "captured",
+        "source": "app/calldata/decoder/__fixtures__/samples.json#mint-20000.eth_getTransactionReceipt",
+        "sha256": "1a17abd9778efafa149c0aec518f2e551ba0655e1e43c27affda6f53edae2e18"
+      },
+      "decode": {
+        "at": "2026-11-20T23:14:08.136Z",
+        "status": "captured",
+        "source": "lib/decoder.ts decodeRecursive and decodeEvents",
+        "sha256": "81fe131f6635a21ebfe5204d84df2689250000ab918c5150fa591f8d36e10f11"
+      },
+      "address:1:0x0000000000000000000000000000000000000000": {
+        "at": "2026-11-20T23:14:08.136Z",
+        "status": "unavailable",
+        "source": "zero address"
+      },
+      "abi:0x2915524b0419561e5e211b3df95d4dd7bea37d60": {
+        "at": "2026-11-20T23:14:08.634Z",
+        "status": "unavailable",
+        "source": "ETH.sh verified contract ABI route; Blockscout verified contracts"
+      },
+      "address:1:0x2915524b0419561e5e211b3df95d4dd7bea37d60": {
+        "at": "2026-11-20T23:14:08.635Z",
+        "status": "unavailable",
+        "source": "ETH.sh verified contract ABI route"
+      },
+      "metadata": {
+        "at": "2026-11-20T23:14:12.959Z",
+        "status": "captured",
+        "source": "https://gateway.pinata.cloud/ipfs/bafkreihs5osgaf4pphbesznyj3slixc6qi26rfucwrnz2cvk5jyusthvxi",
+        "sha256": "f2eba460178f79c24965b84ee4b45c5e8235e89682b45b9d0aaaea71494cf5ba"
+      },
+      "artwork": {
+        "at": "2026-11-20T23:14:18.090Z",
+        "status": "captured",
+        "source": "public/decoder-examples/zora-20000.jpg (hash-verified local copy of ipfs://bafkreiavuiwuq4hkjh743g4j6s6vxk2mvrahwt7iveiblm6h6wuknj4tde)",
+        "sha256": "15a22d4870ea49ffcd9b89f4bd5bab4cac407b4fe8a91015b3c7f5a8a6a79319"
+      },
+      "clearSigning": {
+        "at": "2026-11-23T03:48:23.609Z",
+        "status": "captured",
+        "source": "WalletChan ERC-7730 renderer; registry descriptors and public Blockscout proxy/token metadata"
+      }
+    },
+    "result": {
+      "functionName": "mint",
+      "signature": "mint((string,string,bytes32,bytes32),((uint256),(uint256),(uint256)))",
+      "rawArgs": [
+        [
+          "ipfs://bafkreiavuiwuq4hkjh743g4j6s6vxk2mvrahwt7iveiblm6h6wuknj4tde",
+          "ipfs://bafkreihs5osgaf4pphbesznyj3slixc6qi26rfucwrnz2cvk5jyusthvxi",
+          "0x15a22d4870ea49ffcd9b89f4bd5bab4cac407b4fe8a91015b3c7f5a8a6a79319",
+          "0xf2eba460178f79c24965b84ee4b45c5e8235e89682b45b9d0aaaea71494cf5ba"
+        ],
+        [
+          [
+            {
+              "$bigint": "0"
+            }
+          ],
+          [
+            {
+              "$bigint": "1000000000000000000"
+            }
+          ],
+          [
+            {
+              "$bigint": "99000000000000000000"
+            }
+          ]
+        ]
+      ],
+      "args": [
+        {
+          "name": "data",
+          "baseType": "tuple",
+          "type": "tuple",
+          "rawValue": [
+            "ipfs://bafkreiavuiwuq4hkjh743g4j6s6vxk2mvrahwt7iveiblm6h6wuknj4tde",
+            "ipfs://bafkreihs5osgaf4pphbesznyj3slixc6qi26rfucwrnz2cvk5jyusthvxi",
+            "0x15a22d4870ea49ffcd9b89f4bd5bab4cac407b4fe8a91015b3c7f5a8a6a79319",
+            "0xf2eba460178f79c24965b84ee4b45c5e8235e89682b45b9d0aaaea71494cf5ba"
+          ],
+          "value": [
+            {
+              "name": "tokenURI",
+              "baseType": "string",
+              "type": "string",
+              "rawValue": "ipfs://bafkreiavuiwuq4hkjh743g4j6s6vxk2mvrahwt7iveiblm6h6wuknj4tde",
+              "value": "ipfs://bafkreiavuiwuq4hkjh743g4j6s6vxk2mvrahwt7iveiblm6h6wuknj4tde"
+            },
+            {
+              "name": "metadataURI",
+              "baseType": "string",
+              "type": "string",
+              "rawValue": "ipfs://bafkreihs5osgaf4pphbesznyj3slixc6qi26rfucwrnz2cvk5jyusthvxi",
+              "value": "ipfs://bafkreihs5osgaf4pphbesznyj3slixc6qi26rfucwrnz2cvk5jyusthvxi"
+            },
+            {
+              "name": "contentHash",
+              "baseType": "bytes32",
+              "type": "bytes32",
+              "rawValue": "0x15a22d4870ea49ffcd9b89f4bd5bab4cac407b4fe8a91015b3c7f5a8a6a79319",
+              "value": {
+                "decoded": null
+              }
+            },
+            {
+              "name": "metadataHash",
+              "baseType": "bytes32",
+              "type": "bytes32",
+              "rawValue": "0xf2eba460178f79c24965b84ee4b45c5e8235e89682b45b9d0aaaea71494cf5ba",
+              "value": {
+                "decoded": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "bidShares",
+          "baseType": "tuple",
+          "type": "tuple",
+          "rawValue": [
+            [
+              {
+                "$bigint": "0"
+              }
+            ],
+            [
+              {
+                "$bigint": "1000000000000000000"
+              }
+            ],
+            [
+              {
+                "$bigint": "99000000000000000000"
+              }
+            ]
+          ],
+          "value": [
+            {
+              "name": "prevOwner",
+              "baseType": "tuple",
+              "type": "tuple",
+              "rawValue": [
+                {
+                  "$bigint": "0"
+                }
+              ],
+              "value": [
+                {
+                  "name": "value",
+                  "baseType": "uint256",
+                  "type": "uint256",
+                  "rawValue": {
+                    "$bigint": "0"
+                  },
+                  "value": "0"
+                }
+              ]
+            },
+            {
+              "name": "creator",
+              "baseType": "tuple",
+              "type": "tuple",
+              "rawValue": [
+                {
+                  "$bigint": "1000000000000000000"
+                }
+              ],
+              "value": [
+                {
+                  "name": "value",
+                  "baseType": "uint256",
+                  "type": "uint256",
+                  "rawValue": {
+                    "$bigint": "1000000000000000000"
+                  },
+                  "value": "1000000000000000000"
+                }
+              ]
+            },
+            {
+              "name": "owner",
+              "baseType": "tuple",
+              "type": "tuple",
+              "rawValue": [
+                {
+                  "$bigint": "99000000000000000000"
+                }
+              ],
+              "value": [
+                {
+                  "name": "value",
+                  "baseType": "uint256",
+                  "type": "uint256",
+                  "rawValue": {
+                    "$bigint": "99000000000000000000"
+                  },
+                  "value": "99000000000000000000"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "events": [
+      {
+        "eventName": "Transfer",
+        "signature": "Transfer(address,address,uint256)",
+        "args": [
+          {
+            "name": "from",
+            "baseType": "address",
+            "type": "address",
+            "rawValue": "0x0000000000000000000000000000000000000000",
+            "value": "0x0000000000000000000000000000000000000000"
+          },
+          {
+            "name": "to",
+            "baseType": "address",
+            "type": "address",
+            "rawValue": "0x2915524B0419561e5E211b3dF95D4Dd7bea37d60",
+            "value": "0x2915524B0419561e5E211b3dF95D4Dd7bea37d60"
+          },
+          {
+            "name": "tokenId",
+            "baseType": "uint256",
+            "type": "uint256",
+            "rawValue": {
+              "$bigint": "20000"
+            },
+            "value": "20000"
+          }
+        ]
+      }
+    ],
+    "addresses": {},
+    "urls": {
+      "ipfs://bafkreihs5osgaf4pphbesznyj3slixc6qi26rfucwrnz2cvk5jyusthvxi": {
+        "json": {
+          "description": "imishra",
+          "mimeType": "image/jpeg",
+          "name": "dmxx",
+          "version": "zora-20210101"
+        }
+      },
+      "ipfs://bafkreiavuiwuq4hkjh743g4j6s6vxk2mvrahwt7iveiblm6h6wuknj4tde": {
+        "image": "/decoder-examples/zora-20000.jpg"
+      }
+    },
+    "clearSigningRequest": {
+      "calldata": "0x2cca3237000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000de0b6b3a76400000000000000000000000000000000000000000000000000055de6a779bbac00000000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000010015a22d4870ea49ffcd9b89f4bd5bab4cac407b4fe8a91015b3c7f5a8a6a79319f2eba460178f79c24965b84ee4b45c5e8235e89682b45b9d0aaaea71494cf5ba0000000000000000000000000000000000000000000000000000000000000042697066733a2f2f6261666b7265696176756977757134686b6a6837343367346a36733676786b326d7672616877743769766569626c6d36683677756b6e6a347464650000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000042697066733a2f2f6261666b7265696873356f73676166347070686265737a6e796a33736c69786336716932367266756377726e7a3263766b356a7975737468767869000000000000000000000000000000000000000000000000000000000000",
+      "chainId": 1,
+      "to": "0xabefbc9fd2f806065b4f3c237d4b59d9a97bcac7",
+      "from": "0x2915524b0419561e5e211b3df95d4dd7bea37d60",
+      "value": "0"
+    },
+    "clearSigning": {
+      "0xb07b06921bd4d7c3c2820e73506b895a96bfe168382bc6170a25c33d57c36cc3": null
+    }
+  },
+  {
+    "version": 1,
+    "chainId": 1,
+    "hash": "0x86091a6ec8e5e370cd01bf5fbf25e260ef177800b4ce57fd24d699cfc5ea9b06",
+    "capturedAt": "2026-11-20T23:14:18.091Z",
+    "stages": {
+      "abi:0xf5c27c6fe782cbb5c85989ea3e75754748153459": {
+        "at": "2026-11-20T23:14:18.516Z",
+        "status": "captured",
+        "source": "ETH.sh verified contract ABI route",
+        "sha256": "a3a216abaed237f010201c7d4ec2f2d6331f2037b9a9f67df741f5b0bca94bf1"
+      },
+      "abi:0xd9db270c1b5e3bd161e8c8503c55ceabee709552": {
+        "at": "2026-11-20T23:14:18.855Z",
+        "status": "captured",
+        "source": "ETH.sh verified contract ABI route",
+        "sha256": "44e15c4a9d98ad5fd036da81ec786b7f627f80ebc36075fc193808bf598bce3b"
+      },
+      "api.4byte.sourcify.dev:?function=0x8d80ff0a": {
+        "at": "2026-11-20T23:14:18.944Z",
+        "status": "captured",
+        "source": "api.4byte.sourcify.dev",
+        "sha256": "87fcaa08ad1398eced6f28e0e27a3abff1942dd4914ecaaa5d864a5ba2b03050"
+      },
+      "api.4byte.sourcify.dev:?function=0xedc54b93": {
+        "at": "2026-11-20T23:14:19.044Z",
+        "status": "captured",
+        "source": "api.4byte.sourcify.dev",
+        "sha256": "01898447d793ae1999ced08bf025c0cdf1d37c559bc9cc98890c189350f18656"
+      },
+      "api.4byte.sourcify.dev:?function=0x00a0b869": {
+        "at": "2026-11-20T23:14:19.092Z",
+        "status": "captured",
+        "source": "api.4byte.sourcify.dev",
+        "sha256": "fb6c79c05ce02b2c8b62a25484a68f8f40a50aae63420ed04a9db59ba9439451"
+      },
+      "www.4byte.directory:?hex_signature=0xedc54b93": {
+        "at": "2026-11-20T23:14:19.173Z",
+        "status": "captured",
+        "source": "www.4byte.directory",
+        "sha256": "0595424161ea863805d9b92c0e52d7aa1e3c46ec58cd8f0d6933759006a5fb74"
+      },
+      "www.4byte.directory:?hex_signature=0x00a0b869": {
+        "at": "2026-11-20T23:14:19.230Z",
+        "status": "captured",
+        "source": "www.4byte.directory",
+        "sha256": "0595424161ea863805d9b92c0e52d7aa1e3c46ec58cd8f0d6933759006a5fb74"
+      },
+      "abi:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+        "at": "2026-11-20T23:14:19.417Z",
+        "status": "captured",
+        "source": "ETH.sh verified contract ABI route",
+        "sha256": "af21c3369d0f866fe84f786547399d96ad70beaf46756c787db82ee70151cf1a"
+      },
+      "abi:0xc3d688b66703497daa19211eedff47f25384cdc3": {
+        "at": "2026-11-20T23:14:19.597Z",
+        "status": "captured",
+        "source": "ETH.sh verified contract ABI route",
+        "sha256": "184fc464b16fefc4843a68218cc13328c1c7802d33d1b70c379e7f45331e9fa0"
+      },
+      "abi:0x43506849d7c04f9138d1a2050bbf3a0c054402dd": {
+        "at": "2026-11-20T23:14:19.906Z",
+        "status": "captured",
+        "source": "ETH.sh verified contract ABI route",
+        "sha256": "2dbc0d1d7a487c97c3a5fe3cab9c5dac5a0ded94c8516402d6913a59fdc0dba9"
+      },
+      "abi:0x0b07565a8ef48170e15918b251ebd95109b23255": {
+        "at": "2026-11-20T23:14:20.105Z",
+        "status": "captured",
+        "source": "ETH.sh verified contract ABI route",
+        "sha256": "1776be372af6672a3d59552991903e259f4a7cdde2fc7b17205240d09efbbbd8"
+      },
+      "transaction": {
+        "at": "2026-11-20T23:14:20.179Z",
+        "status": "captured",
+        "source": "app/calldata/decoder/__fixtures__/samples.json#safe-supply.eth_getTransactionByHash",
+        "sha256": "f7aabf5dbf2fe90f2f66d2b28f335b43f3966d7a73eb64bb928212ded43206a2"
+      },
+      "receipt": {
+        "at": "2026-11-20T23:14:20.182Z",
+        "status": "captured",
+        "source": "app/calldata/decoder/__fixtures__/samples.json#safe-supply.eth_getTransactionReceipt",
+        "sha256": "b3f2bf3b3ca19972126e1e8ad45ec4f6d8f5439fd34d35d1429576c42fcd6706"
+      },
+      "decode": {
+        "at": "2026-11-20T23:14:20.184Z",
+        "status": "captured",
+        "source": "lib/decoder.ts decodeRecursive and decodeEvents",
+        "sha256": "f63bf9c989d38a2078bb8dadd624a5cc138cf510d8b3dd4a5323c68f93756ac7"
+      },
+      "abi:0x40a2accbd92bca938b02010e17a5b8929b49130d": {
+        "at": "2026-11-20T23:14:20.500Z",
+        "status": "captured",
+        "source": "ETH.sh verified contract ABI route",
+        "sha256": "f84e075096d64b46c874e0e7c3df373f1098aaca0ced6fec2a89b57b8f257e7e"
+      },
+      "address:1:0x40a2accbd92bca938b02010e17a5b8929b49130d": {
+        "at": "2026-11-20T23:14:20.501Z",
+        "status": "captured",
+        "source": "ETH.sh verified contract ABI route",
+        "sha256": "c2ecd537702c51899ba1aa8c6b1b7220864ab07a48308d96e3aa0624248a10a4"
+      },
+      "address:1:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+        "at": "2026-11-20T23:14:20.538Z",
+        "status": "captured",
+        "source": "https://ethereum-rpc.publicnode.com",
+        "sha256": "8591ee9090c0c02ca1f103cb637131d8f358870aba145245ff083e138fdd705b"
+      },
+      "address:1:0xc3d688b66703497daa19211eedff47f25384cdc3": {
+        "at": "2026-11-20T23:14:20.574Z",
+        "status": "captured",
+        "source": "https://ethereum-rpc.publicnode.com",
+        "sha256": "3d4545d640a8ef3186fa50dba6e7517b22b231b4c27444799d7cf727788f48f6"
+      },
+      "address:1:0x0000000000000000000000000000000000000000": {
+        "at": "2026-11-20T23:14:20.574Z",
+        "status": "unavailable",
+        "source": "zero address"
+      },
+      "clearSigning": {
+        "at": "2026-11-23T03:48:27.466Z",
+        "status": "captured",
+        "source": "WalletChan ERC-7730 renderer; registry descriptors and public Blockscout proxy/token metadata"
+      }
+    },
+    "result": {
+      "functionName": "execTransaction",
+      "signature": "execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)",
+      "rawArgs": [
+        "0x40A2aCCbd92BCA938b02010E17A5b8929b49130D",
+        {
+          "$bigint": "0"
+        },
+        "0x8d80ff0a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000013200a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044095ea7b3000000000000000000000000c3d688b66703497daa19211eedff47f25384cdc3000000000000000000000000000000000000000000000000000002a33578480000c3d688b66703497daa19211eedff47f25384cdc300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044f2b9fdb8000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000002a3357848000000000000000000000000000000",
+        {
+          "$bigint": "1"
+        },
+        {
+          "$bigint": "0"
+        },
+        {
+          "$bigint": "0"
+        },
+        {
+          "$bigint": "0"
+        },
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+        "0xedc54b93024f34b38fead34073833f3dcd23d7c9d1848594b1f21323a432c72423d06a4ea0d05713b70d6741db566b5fee8bd3f7e900fda91b28725bb244bb141c7780a2144eb269cb969b2312b99eff397108407d2c2d51c11007661f0976c3700fb72f2cb7622ac934a275b725824030bae212a535ccfb08a06011a58c0986e51bcd6d6dbde8c9a6577b08507897b3bd160b4a12da13a074989e481fc0a62515ac55e0f31890dc9f02ea3530af6ea477249e3dbba008b64549e85a6e51c1c09c9420"
+      ],
+      "args": [
+        {
+          "name": "to",
+          "baseType": "address",
+          "type": "address",
+          "rawValue": "0x40A2aCCbd92BCA938b02010E17A5b8929b49130D",
+          "value": "0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
+        },
+        {
+          "name": "value",
+          "baseType": "uint256",
+          "type": "uint256",
+          "rawValue": {
+            "$bigint": "0"
+          },
+          "value": "0"
+        },
+        {
+          "name": "data",
+          "baseType": "bytes",
+          "type": "bytes",
+          "rawValue": "0x8d80ff0a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000013200a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044095ea7b3000000000000000000000000c3d688b66703497daa19211eedff47f25384cdc3000000000000000000000000000000000000000000000000000002a33578480000c3d688b66703497daa19211eedff47f25384cdc300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044f2b9fdb8000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000002a3357848000000000000000000000000000000",
+          "value": {
+            "decoded": {
+              "functionName": "multiSend",
+              "signature": "multiSend(bytes)",
+              "rawArgs": [
+                "0x00a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044095ea7b3000000000000000000000000c3d688b66703497daa19211eedff47f25384cdc3000000000000000000000000000000000000000000000000000002a33578480000c3d688b66703497daa19211eedff47f25384cdc300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044f2b9fdb8000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000002a335784800"
+              ],
+              "args": [
+                {
+                  "name": "",
+                  "baseType": "bytes",
+                  "type": "bytes",
+                  "rawValue": "0x00a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044095ea7b3000000000000000000000000c3d688b66703497daa19211eedff47f25384cdc3000000000000000000000000000000000000000000000000000002a33578480000c3d688b66703497daa19211eedff47f25384cdc300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044f2b9fdb8000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000002a335784800",
+                  "value": {
+                    "decoded": {
+                      "functionName": "SafeMultiSend transactions",
+                      "signature": "transactions(tuple(uint256,address,uint256,uint256,bytes)[])",
+                      "rawArgs": [
+                        [
+                          [
+                            "00",
+                            "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                            "0",
+                            "68",
+                            "0x095ea7b3000000000000000000000000c3d688b66703497daa19211eedff47f25384cdc3000000000000000000000000000000000000000000000000000002a335784800"
+                          ],
+                          [
+                            "00",
+                            "0xc3d688b66703497daa19211eedff47f25384cdc3",
+                            "0",
+                            "68",
+                            "0xf2b9fdb8000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000002a335784800"
+                          ]
+                        ]
+                      ],
+                      "args": [
+                        {
+                          "name": "tx #0",
+                          "baseType": "bytes",
+                          "type": "bytes",
+                          "rawValue": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48, 0, 0x095ea7b3000000000000000000000000c3d688b66703497daa19211eedff47f25384cdc3000000000000000000000000000000000000000000000000000002a335784800",
+                          "value": {
+                            "decoded": {
+                              "functionName": "tx",
+                              "signature": "tx(string,address,uint256,bytes)",
+                              "rawArgs": [
+                                "CALL",
+                                "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                {
+                                  "$bigint": "0"
+                                },
+                                "0x095ea7b3000000000000000000000000c3d688b66703497daa19211eedff47f25384cdc3000000000000000000000000000000000000000000000000000002a335784800"
+                              ],
+                              "args": [
+                                {
+                                  "name": "OperationType",
+                                  "baseType": "string",
+                                  "type": "string",
+                                  "rawValue": "CALL",
+                                  "value": "CALL"
+                                },
+                                {
+                                  "name": "to",
+                                  "baseType": "address",
+                                  "type": "address",
+                                  "rawValue": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                  "value": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+                                },
+                                {
+                                  "name": "value",
+                                  "baseType": "uint256",
+                                  "type": "uint256",
+                                  "rawValue": {
+                                    "$bigint": "0"
+                                  },
+                                  "value": "0"
+                                },
+                                {
+                                  "name": "calldata",
+                                  "baseType": "bytes",
+                                  "type": "bytes",
+                                  "rawValue": "0x095ea7b3000000000000000000000000c3d688b66703497daa19211eedff47f25384cdc3000000000000000000000000000000000000000000000000000002a335784800",
+                                  "value": {
+                                    "decoded": {
+                                      "functionName": "approve",
+                                      "signature": "approve(address,uint256)",
+                                      "rawArgs": [
+                                        "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
+                                        {
+                                          "$bigint": "2900000000000"
+                                        }
+                                      ],
+                                      "args": [
+                                        {
+                                          "name": "spender",
+                                          "baseType": "address",
+                                          "type": "address",
+                                          "rawValue": "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
+                                          "value": "0xc3d688B66703497DAA19211EEdff47f25384cdc3"
+                                        },
+                                        {
+                                          "name": "value",
+                                          "baseType": "uint256",
+                                          "type": "uint256",
+                                          "rawValue": {
+                                            "$bigint": "2900000000000"
+                                          },
+                                          "value": "2900000000000"
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "name": "tx #1",
+                          "baseType": "bytes",
+                          "type": "bytes",
+                          "rawValue": "0xc3d688b66703497daa19211eedff47f25384cdc3, 0, 0xf2b9fdb8000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000002a335784800",
+                          "value": {
+                            "decoded": {
+                              "functionName": "tx",
+                              "signature": "tx(string,address,uint256,bytes)",
+                              "rawArgs": [
+                                "CALL",
+                                "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
+                                {
+                                  "$bigint": "0"
+                                },
+                                "0xf2b9fdb8000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000002a335784800"
+                              ],
+                              "args": [
+                                {
+                                  "name": "OperationType",
+                                  "baseType": "string",
+                                  "type": "string",
+                                  "rawValue": "CALL",
+                                  "value": "CALL"
+                                },
+                                {
+                                  "name": "to",
+                                  "baseType": "address",
+                                  "type": "address",
+                                  "rawValue": "0xc3d688B66703497DAA19211EEdff47f25384cdc3",
+                                  "value": "0xc3d688B66703497DAA19211EEdff47f25384cdc3"
+                                },
+                                {
+                                  "name": "value",
+                                  "baseType": "uint256",
+                                  "type": "uint256",
+                                  "rawValue": {
+                                    "$bigint": "0"
+                                  },
+                                  "value": "0"
+                                },
+                                {
+                                  "name": "calldata",
+                                  "baseType": "bytes",
+                                  "type": "bytes",
+                                  "rawValue": "0xf2b9fdb8000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000002a335784800",
+                                  "value": {
+                                    "decoded": {
+                                      "functionName": "supply",
+                                      "signature": "supply(address,uint256)",
+                                      "rawArgs": [
+                                        "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                        {
+                                          "$bigint": "2900000000000"
+                                        }
+                                      ],
+                                      "args": [
+                                        {
+                                          "name": "asset",
+                                          "baseType": "address",
+                                          "type": "address",
+                                          "rawValue": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                          "value": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+                                        },
+                                        {
+                                          "name": "amount",
+                                          "baseType": "uint256",
+                                          "type": "uint256",
+                                          "rawValue": {
+                                            "$bigint": "2900000000000"
+                                          },
+                                          "value": "2900000000000"
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "operation",
+          "baseType": "uint8",
+          "type": "uint8",
+          "rawValue": {
+            "$bigint": "1"
+          },
+          "value": "1"
+        },
+        {
+          "name": "safeTxGas",
+          "baseType": "uint256",
+          "type": "uint256",
+          "rawValue": {
+            "$bigint": "0"
+          },
+          "value": "0"
+        },
+        {
+          "name": "baseGas",
+          "baseType": "uint256",
+          "type": "uint256",
+          "rawValue": {
+            "$bigint": "0"
+          },
+          "value": "0"
+        },
+        {
+          "name": "gasPrice",
+          "baseType": "uint256",
+          "type": "uint256",
+          "rawValue": {
+            "$bigint": "0"
+          },
+          "value": "0"
+        },
+        {
+          "name": "gasToken",
+          "baseType": "address",
+          "type": "address",
+          "rawValue": "0x0000000000000000000000000000000000000000",
+          "value": "0x0000000000000000000000000000000000000000"
+        },
+        {
+          "name": "refundReceiver",
+          "baseType": "address",
+          "type": "address",
+          "rawValue": "0x0000000000000000000000000000000000000000",
+          "value": "0x0000000000000000000000000000000000000000"
+        },
+        {
+          "name": "signatures",
+          "baseType": "bytes",
+          "type": "bytes",
+          "rawValue": "0xedc54b93024f34b38fead34073833f3dcd23d7c9d1848594b1f21323a432c72423d06a4ea0d05713b70d6741db566b5fee8bd3f7e900fda91b28725bb244bb141c7780a2144eb269cb969b2312b99eff397108407d2c2d51c11007661f0976c3700fb72f2cb7622ac934a275b725824030bae212a535ccfb08a06011a58c0986e51bcd6d6dbde8c9a6577b08507897b3bd160b4a12da13a074989e481fc0a62515ac55e0f31890dc9f02ea3530af6ea477249e3dbba008b64549e85a6e51c1c09c9420",
+          "value": {
+            "decoded": null
+          }
+        }
+      ]
+    },
+    "events": [
+      {
+        "eventName": "ExecutionSuccess",
+        "signature": "ExecutionSuccess(bytes32,uint256)",
+        "args": [
+          {
+            "name": "txHash",
+            "baseType": "bytes32",
+            "type": "bytes32",
+            "rawValue": "0xc8118fdfd6bec7290533c14928c7fb2afd06e113ffebc4290db0b67d12f28496",
+            "value": {
+              "decoded": null
+            }
+          },
+          {
+            "name": "payment",
+            "baseType": "uint256",
+            "type": "uint256",
+            "rawValue": {
+              "$bigint": "0"
+            },
+            "value": "0"
+          }
+        ]
+      }
+    ],
+    "addresses": {
+      "1:0x40a2accbd92bca938b02010e17a5b8929b49130d": {
+        "labels": [
+          "MultiSendCallOnly"
+        ]
+      },
+      "1:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+        "labels": [
+          "USDC"
+        ]
+      },
+      "1:0xc3d688b66703497daa19211eedff47f25384cdc3": {
+        "labels": [
+          "cUSDCv3"
+        ]
+      }
+    },
+    "urls": {},
+    "clearSigningRequest": {
+      "calldata": "0x6a76120200000000000000000000000040a2accbd92bca938b02010e17a5b8929b49130d00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000001848d80ff0a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000013200a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044095ea7b3000000000000000000000000c3d688b66703497daa19211eedff47f25384cdc3000000000000000000000000000000000000000000000000000002a33578480000c3d688b66703497daa19211eedff47f25384cdc300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044f2b9fdb8000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000002a33578480000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c3edc54b93024f34b38fead34073833f3dcd23d7c9d1848594b1f21323a432c72423d06a4ea0d05713b70d6741db566b5fee8bd3f7e900fda91b28725bb244bb141c7780a2144eb269cb969b2312b99eff397108407d2c2d51c11007661f0976c3700fb72f2cb7622ac934a275b725824030bae212a535ccfb08a06011a58c0986e51bcd6d6dbde8c9a6577b08507897b3bd160b4a12da13a074989e481fc0a62515ac55e0f31890dc9f02ea3530af6ea477249e3dbba008b64549e85a6e51c1c09c94200000000000000000000000000000000000000000000000000000000000",
+      "chainId": 1,
+      "to": "0xf5c27c6fe782cbb5c85989ea3e75754748153459",
+      "from": "0x86d3ee9ff0983bc33b93cc8983371a500f873446",
+      "value": "0"
+    },
+    "clearSigning": {
+      "0x21dffdc740564a961e2fb469047005f2b05ef26fb0ffc7c67154cd7486a0823a": {
+        "fields": [
+          {
+            "label": "Operation type",
+            "values": [
+              {
+                "kind": "enum",
+                "text": "Delegate Call"
+              }
+            ],
+            "visible": true
+          },
+          {
+            "label": "From Safe",
+            "values": [
+              {
+                "kind": "address",
+                "address": "0xf5c27c6fe782cbb5c85989ea3e75754748153459"
+              }
+            ],
+            "visible": true
+          },
+          {
+            "label": "Execution signer",
+            "values": [
+              {
+                "kind": "address",
+                "address": "0x86d3ee9ff0983bc33b93cc8983371a500f873446"
+              }
+            ],
+            "visible": true
+          },
+          {
+            "label": "To",
+            "values": [
+              {
+                "kind": "address",
+                "address": "0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
+              }
+            ],
+            "visible": true
+          },
+          {
+            "label": "Amount",
+            "values": [
+              {
+                "kind": "amount",
+                "amountRaw": "0",
+                "chainId": 1,
+                "decimals": 18
+              }
+            ],
+            "visible": true
+          },
+          {
+            "label": "Transaction",
+            "values": [
+              {
+                "kind": "calldata",
+                "callee": "0x40A2aCCbd92BCA938b02010E17A5b8929b49130D",
+                "data": "0x8d80ff0a0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000013200a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044095ea7b3000000000000000000000000c3d688b66703497daa19211eedff47f25384cdc3000000000000000000000000000000000000000000000000000002a33578480000c3d688b66703497daa19211eedff47f25384cdc300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000044f2b9fdb8000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000002a3357848000000000000000000000000000000",
+                "amount": "0",
+                "from": "0xf5c27c6fe782cbb5c85989ea3e75754748153459"
+              }
+            ],
+            "visible": true
+          },
+          {
+            "label": "Gas amount",
+            "values": [
+              {
+                "kind": "raw",
+                "text": "0"
+              }
+            ],
+            "visible": true
+          },
+          {
+            "label": "Gas price",
+            "values": [
+              {
+                "kind": "tokenAmount",
+                "amountRaw": "0",
+                "native": true,
+                "chainId": 1,
+                "allowUnlimited": true
+              }
+            ],
+            "visible": true
+          },
+          {
+            "label": "Gas receiver",
+            "values": [
+              {
+                "kind": "address",
+                "address": "0x0000000000000000000000000000000000000000"
+              }
+            ],
+            "visible": true
+          }
+        ],
+        "intent": "sign multisig operation",
+        "owner": "Safe{Wallet}",
+        "source": "registry",
+        "sourcePath": "registry/safe/calldata-Safe-1.3.0.json"
+      },
+      "0xe8317016f7c91587d2f2252df1d5e082d4e1ccd019c02229fae845b27ae6047d": {
+        "fields": [
+          {
+            "label": "Call",
+            "values": [
+              {
+                "kind": "calldata",
+                "callee": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                "data": "0x095ea7b3000000000000000000000000c3d688b66703497daa19211eedff47f25384cdc3000000000000000000000000000000000000000000000000000002a335784800",
+                "amount": "0"
+              },
+              {
+                "kind": "calldata",
+                "callee": "0xc3d688b66703497daa19211eedff47f25384cdc3",
+                "data": "0xf2b9fdb8000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000002a335784800",
+                "amount": "0"
+              }
+            ],
+            "visible": true
+          }
+        ],
+        "intent": "Batched calls",
+        "owner": "Safe MultiSend",
+        "source": "builtin"
+      },
+      "0x2f2a0c486bfafdaa7c75d73ceafb98ef5bc5d71aafd943c2d99accb49c791871": {
+        "fields": [
+          {
+            "label": "Amount",
+            "values": [
+              {
+                "kind": "tokenAmount",
+                "amountRaw": "2900000000000",
+                "tokenAddress": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                "native": false,
+                "chainId": 1,
+                "allowUnlimited": true,
+                "tokenMetadata": {
+                  "symbol": "USDC",
+                  "decimals": 6
+                }
+              }
+            ],
+            "visible": true
+          },
+          {
+            "label": "Spender",
+            "values": [
+              {
+                "kind": "address",
+                "address": "0xc3d688B66703497DAA19211EEdff47f25384cdc3"
+              }
+            ],
+            "visible": true
+          }
+        ],
+        "intent": "Approve token",
+        "owner": "ERC-20",
+        "source": "builtin"
+      },
+      "0xdc5b1f927d61fc1c10aabae4522a72e17bb088e3476af95cd1b1403e08578dc5": null
+    }
+  }
+]

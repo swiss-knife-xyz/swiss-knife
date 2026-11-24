@@ -1,35 +1,30 @@
+import { getEthersProvider } from "@/lib/ethersProvider";
 import { useEffect, useState } from "react";
 import {
   Box,
   Button,
   Center,
-  Container,
   FormControl,
   FormLabel,
   Heading,
   HStack,
   Input,
+  Link,
   Text,
   useUpdateEffect,
 } from "@chakra-ui/react";
 import { ethers } from "ethers";
 import { SelectedOptionState } from "@/types";
-import { chainIdToChain, networkOptions } from "@/data/common";
 import { DarkSelect } from "../DarkSelect";
 import TabsSelector from "../Tabs/TabsSelector";
 import { CalldataParam } from "../decodedParams/CalldataParam";
-import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
-
-const Txt = ({ str, colorScheme }: { str: string; colorScheme: string }) => (
-  <Text
-    style={{
-      marginLeft: "0",
-    }}
-    color={`${colorScheme}.300`}
-  >
-    {str}
-  </Text>
-);
+import { ChevronDownIcon, ChevronUpIcon, ExternalLinkIcon } from "@chakra-ui/icons";
+import {
+  EIP1967Options,
+  getEIP1967StorageSlot,
+  getERC7201StorageSlot,
+  normalizeStorageSlot,
+} from "@/lib/storageSlots";
 
 const EIP1967Select = ({
   EIP1967Options,
@@ -41,34 +36,109 @@ const EIP1967Select = ({
   setSelectedEIP1967Slot: (value: SelectedOptionState) => void;
 }) => {
   return (
-    <Center mt={10}>
-      <HStack fontWeight={"bold"}>
-        <Txt colorScheme="orange" str={`bytes32(`} />
-        <Txt colorScheme="pink" str={`uint256(`} />
-        <Txt colorScheme="red" str={`keccak256(`} />
-        <Txt colorScheme="green" str={`'eip1967.proxy.`} />
+    <Box mt={4} minW={0} w="full" display="flex" flexDirection="column">
+      <FormControl order={1}>
+        <HStack justify="space-between" align="baseline" mb={1.5} spacing={2}>
+          <FormLabel fontSize="sm" color="text.secondary" mb={0}>Proxy slot</FormLabel>
+          <Link href="https://eip.tools/eip/1967" isExternal fontSize="xs" color="primary.400" flexShrink={0}>
+            EIP-1967 <ExternalLinkIcon ml={1} />
+          </Link>
+        </HStack>
         <DarkSelect
-          boxProps={{
-            minW: "14rem",
-          }}
+          ariaLabel="EIP-1967 proxy slot"
+          boxProps={{ minW: 0, w: "full" }}
           isCreatable
           selectedOption={selectedEIP1967Slot}
           setSelectedOption={setSelectedEIP1967Slot}
-          options={EIP1967Options.map((str) => ({
-            label: str,
-            value: str,
-          }))}
+          options={EIP1967Options.map(str => ({ label: str, value: str }))}
         />
-        <Txt colorScheme="green" str={`'`} />
-        <Txt colorScheme="red" str={`)`} />
-        <Txt colorScheme="pink" str={`) - 1`} />
-        <Txt colorScheme="orange" str={`)`} />
-      </HStack>
-    </Center>
+      </FormControl>
+      <Text
+        as="pre"
+        order={{ base: 0, md: 2 }}
+        mt={{ base: 0, md: 3 }}
+        mb={{ base: 3, md: 0 }}
+        fontSize="xs"
+        lineHeight="tall"
+        fontFamily="mono"
+        color="text.secondary"
+        whiteSpace="pre-wrap"
+        overflowWrap="anywhere"
+      >
+        <Text as="span" color="orange.300">bytes32(</Text>{"\n  "}
+        <Text as="span" color="pink.300">uint256(</Text>{"\n    "}
+        <Text as="span" color="red.300">keccak256(</Text>{"\n      "}
+        <Text as="span" color="green.300">{`'eip1967.proxy.${selectedEIP1967Slot?.value ?? "implementation"}'`}</Text>{"\n    "}
+        <Text as="span" color="red.300">)</Text>{"\n  "}
+        <Text as="span" color="pink.300">) - 1</Text>{"\n"}
+        <Text as="span" color="orange.300">)</Text>
+      </Text>
+    </Box>
   );
 };
 
-const Query = ({ query }: { query: () => {} }) => {
+const ERC7201Select = ({
+  namespaceId,
+  setNamespaceId,
+}: {
+  namespaceId: string;
+  setNamespaceId: (value: string) => void;
+}) => {
+  const normalizedNamespaceId = namespaceId.trim();
+  const storageSlot = normalizedNamespaceId
+    ? getERC7201StorageSlot(normalizedNamespaceId)
+    : undefined;
+
+  return (
+    <Box mt={4} minW={0} w="full" display="flex" flexDirection="column">
+      <FormControl order={1}>
+        <HStack justify="space-between" align="baseline" mb={1.5} spacing={2}>
+          <FormLabel fontSize="sm" color="text.secondary" mb={0}>Namespace ID</FormLabel>
+          <Link href="https://eip.tools/eip/7201" isExternal fontSize="xs" color="primary.400" flexShrink={0}>
+            ERC-7201 <ExternalLinkIcon ml={1} />
+          </Link>
+        </HStack>
+        <Input
+          autoComplete="off"
+          value={namespaceId}
+          onChange={(e) => setNamespaceId(e.target.value)}
+          bg={"blackAlpha.300"}
+          placeholder="example.main"
+        />
+      </FormControl>
+      <Text
+        as="pre"
+        order={{ base: 0, md: 2 }}
+        mt={{ base: 0, md: 3 }}
+        mb={{ base: 3, md: 0 }}
+        fontSize="xs"
+        lineHeight="tall"
+        fontFamily="mono"
+        color="text.secondary"
+        whiteSpace="pre-wrap"
+        overflowWrap="anywhere"
+      >
+        <Text as="span" color="red.300">keccak256(</Text>{"\n  "}
+        <Text as="span" color="blue.300">abi.encode(</Text>{"\n    "}
+        <Text as="span" color="pink.300">uint256(</Text>{"\n      "}
+        <Text as="span" color="red.300">keccak256(</Text>{"\n        "}
+        <Text as="span" color="green.300">{`'${normalizedNamespaceId || "namespace.id"}'`}</Text>{"\n      "}
+        <Text as="span" color="red.300">)</Text>{"\n    "}
+        <Text as="span" color="pink.300">) - 1</Text>{"\n  "}
+        <Text as="span" color="blue.300">)</Text>{"\n"}
+        <Text as="span" color="red.300">)</Text>{" "}
+        <Text as="span" color="orange.300">&amp; ~0xff</Text>
+      </Text>
+      {storageSlot && (
+        <Text order={3} mt={4} fontFamily="mono" fontSize="sm" wordBreak="break-all">
+          {storageSlot}
+        </Text>
+      )}
+    </Box>
+  );
+};
+
+const Query = ({ query }: { query: () => Promise<void> }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
@@ -101,12 +171,12 @@ const StorageSlotInput = ({
   setStorageSlot: (value: string) => void;
 }) => {
   return (
-    <Container mt={10}>
+    <Box mt={4} minW={0} w="full">
       <FormControl>
-        <FormLabel>Enter storage slot:</FormLabel>
+        <FormLabel fontSize="sm" color="text.secondary" mb={1.5}>Storage slot</FormLabel>
         <Input
           autoComplete="off"
-          value={storageSlot}
+          value={storageSlot ?? ""}
           onChange={(e) => {
             setStorageSlot(e.target.value);
           }}
@@ -114,11 +184,9 @@ const StorageSlotInput = ({
           placeholder="123 or 0xabc123..."
         />
       </FormControl>
-    </Container>
+    </Box>
   );
 };
-
-const EIP1967Options = ["implementation", "admin", "beacon", "rollback"];
 
 export const StorageSlot = ({
   address,
@@ -137,6 +205,7 @@ export const StorageSlot = ({
       label: EIP1967Options[0],
       value: EIP1967Options[0],
     });
+  const [erc7201NamespaceId, setErc7201NamespaceId] = useState("");
 
   const [storageSlot, setStorageSlot] = useState<string>();
   const [result, setResult] = useState<{
@@ -152,13 +221,21 @@ export const StorageSlot = ({
       return;
     }
 
-    const provider = new ethers.JsonRpcProvider(
-      chainIdToChain[chainId]?.rpcUrls.default.http[0]
-    );
-    let _storageSlot =
-      selectedTabIndex === 0
-        ? getEIP1967StorageSlot(selectedEIP1967Slot!.value.toString())
-        : storageSlot;
+    const provider = getEthersProvider(chainId);
+    let _storageSlot: string | bigint | undefined;
+
+    if (selectedTabIndex === 0) {
+      _storageSlot = getEIP1967StorageSlot(
+        selectedEIP1967Slot!.value.toString()
+      );
+    } else if (selectedTabIndex === 1) {
+      const normalizedNamespaceId = erc7201NamespaceId.trim();
+      _storageSlot = normalizedNamespaceId
+        ? getERC7201StorageSlot(normalizedNamespaceId)
+        : undefined;
+    } else {
+      _storageSlot = storageSlot;
+    }
 
     if (!_storageSlot) {
       setResult({ error: "Storage slot not entered." });
@@ -166,30 +243,18 @@ export const StorageSlot = ({
     }
 
     try {
-      const res = await provider.getStorage(address, _storageSlot);
-
-      _storageSlot = _storageSlot.toString(16);
-      // add 0x in the beginning if doesn't exist (as returned via getEIP1967StorageSlot)
-      if (_storageSlot.substring(0, 2) !== "0x") {
-        _storageSlot = `0x${_storageSlot}`;
-      }
+      const normalizedStorageSlot = normalizeStorageSlot(_storageSlot);
+      const res = await provider.getStorage(address, normalizedStorageSlot);
 
       setResult({
         value: res,
-        storageSlot: _storageSlot,
+        storageSlot: normalizedStorageSlot,
       });
     } catch (e) {
       setResult({
         error: "Invalid storage slot entered",
       });
     }
-  };
-
-  const getEIP1967StorageSlot = (key: string) => {
-    const khash = ethers.keccak256(ethers.toUtf8Bytes(`eip1967.proxy.${key}`));
-    const num = BigInt(khash);
-    const storageSlot = num - BigInt(1);
-    return storageSlot;
   };
 
   useUpdateEffect(() => {
@@ -208,9 +273,10 @@ export const StorageSlot = ({
       bg={"whiteAlpha.50"}
     >
       {/* Function name and refetch button */}
-      <HStack>
+      <HStack flexWrap="wrap" rowGap={2}>
         <HStack
-          flexGrow={1}
+          minW={0}
+          flex={{ base: "1 1 100%", sm: 1 }}
           onClick={() => setIsCollapsed(!isCollapsed)}
           cursor={"pointer"}
         >
@@ -227,11 +293,15 @@ export const StorageSlot = ({
           </HStack>
         </HStack>
         {/* Read/Write Buttons */}
-        <Query query={query} />
+        <HStack flex={{ base: "1 1 100%", sm: "0 0 auto" }} justify="flex-end">
+          <Query query={query} />
+        </HStack>
       </HStack>
-      <Box px={4} display={isCollapsed ? "none" : undefined}>
+      <Box px={{ base: 0, md: 4 }} display={isCollapsed ? "none" : undefined}>
         <TabsSelector
-          tabs={["EIP-1967", "Custom"]}
+          tabs={["EIP-1967", "ERC-7201", "Custom"]}
+          flexWrap="wrap"
+          justify="center"
           selectedTabIndex={selectedTabIndex}
           setSelectedTabIndex={setSelectedTabIndex}
         />
@@ -246,6 +316,13 @@ export const StorageSlot = ({
                 />
               );
             case 1:
+              return (
+                <ERC7201Select
+                  namespaceId={erc7201NamespaceId}
+                  setNamespaceId={setErc7201NamespaceId}
+                />
+              );
+            case 2:
               return (
                 <StorageSlotInput
                   storageSlot={storageSlot}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState, useEffect, memo, useRef, useMemo } from "react";
+import { useState, useEffect, memo, useMemo } from "react";
 import {
   Heading,
   Table,
@@ -33,72 +33,213 @@ import {
 } from "@chakra-ui/react";
 import { ExternalLinkIcon, CopyIcon } from "@chakra-ui/icons";
 import { publicClient, resolveAddressToName, fetchContractAbi } from "@/utils";
-import { formatDistanceToNow, format, differenceInDays } from "date-fns";
+import { differenceInDays } from "date-fns";
+import {
+  parseHistoryTimestamp,
+  formatHistoryDate,
+  relativeHistoryDate,
+  readHistoryTimestamp,
+} from "../lib/dates";
+import {
+  indexedDomainDetails,
+  withCurrentContenthash,
+  registrationDetails,
+  type DomainDetails,
+  type DomainRegistration,
+} from "../lib/domain";
 import { fetchAddressLabels } from "@/utils/addressLabels";
 import axios from "axios";
-import { normalize } from "viem/ens";
-import contentHash from "content-hash";
-import { encodePacked, erc721Abi, keccak256, labelhash } from "viem";
+import { namehash } from "viem/ens";
+import {
+  parseContenthash,
+  shortenContenthash,
+  type ContenthashRecord,
+} from "../lib/contenthash";
+import {
+  decodeEnsRouteName,
+  normalizeEnsInput,
+  fetchIndexedEvents,
+  DOMAIN_EVENTS_QUERY,
+  REGISTRATION_EVENTS_QUERY,
+  RESOLVER_EVENTS_QUERY,
+  eventSummary,
+  type IndexedEvent,
+} from "../lib/history";
+import {
+  readEnsAddressRecord,
+  readEnsContenthashRecord,
+} from "@/lib/ensUniversalResolver";
 
 const ENS_SUBGRAPH_URL = `https://gateway.thegraph.com/api/${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH`;
 
-interface ContentEvent {
-  blockNumber: number;
-  transactionID: string;
-  hash: string;
-}
-
-interface DomainDetails {
-  id: string;
-  createdAt: number;
-  expiryDate: number;
-  owner: string;
-  registrant: string | null;
-  resolver: {
-    id: string;
-  };
-}
-
-interface DomainTransfer {
-  blockNumber: number;
-  id: string;
-  owner: string;
-  transactionID: string;
-  timestamp?: number;
-}
-
-interface DomainRenewal {
-  blockNumber: number;
-  expiryDate: number;
-  transactionID: string;
-  timestamp?: number;
-}
-
-interface DomainRegistration {
-  blockNumber: number;
-  expiryDate: number;
-  timestamp?: number;
-}
-
 // Unified history event interface
 interface HistoryEvent {
-  type: "content" | "transfer" | "renewal";
-  timestamp: number;
+  id: string;
+  type: string;
+  label: string;
+  blockNumber: number;
+  logIndex: number;
+  timestamp: number | null;
   transactionID: string;
   details: {
-    hash?: string;
+    summary?: string;
+    hash?: ContenthashRecord;
     owner?: string;
-    expiryDate?: number;
+    expiryDate?: number | null;
   };
 }
+
+const shortenAddress = (address: string | null) => {
+  if (!address) return "N/A";
+  return `${address.substring(0, 6)}...${address.substring(
+    address.length - 4
+  )}`;
+};
+
+// AddressResolved component to display addresses with ENS resolution
+const AddressResolved = memo(
+  ({
+    address,
+    isExternal = true,
+    labelDirection = "vertical",
+  }: {
+    address: string | null;
+    isExternal?: boolean;
+    labelDirection?: "vertical" | "horizontal";
+  }) => {
+    const [resolvedEnsName, setResolvedEnsName] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [addressLabels, setAddressLabels] = useState<string[]>([]);
+
+    useEffect(() => {
+      const resolveEns = async () => {
+        if (!address) return;
+
+        setIsLoading(true);
+        try {
+          // Try to get ENS name or Basename
+          const name = await resolveAddressToName(address);
+          setResolvedEnsName(name);
+
+          // If no ENS name, try to fetch labels or contract name
+          if (!name) {
+            let labelsFound = false;
+
+            // First try to fetch labels from API
+            try {
+              const labels = await fetchAddressLabels(address, 1);
+              if (labels.length > 0) {
+                setAddressLabels([labels[0]]);
+                labelsFound = true;
+              }
+            } catch (error) {
+              console.error("Error fetching address labels:", error);
+              // Continue to next method if labels API fails
+            }
+
+            // If no labels found from API, try to get contract name
+            if (!labelsFound) {
+              try {
+                // first check if the address is a contract
+                const isContract = await publicClient.getCode({
+                  address: address as `0x${string}`,
+                });
+
+                if (isContract) {
+                  const contractInfo = await fetchContractAbi({
+                    address,
+                    chainId: 1, // Ethereum mainnet
+                  });
+
+                  if (contractInfo.name) {
+                    setAddressLabels([contractInfo.name]);
+                  }
+                }
+              } catch (error) {
+                console.error("Error fetching contract ABI:", error);
+                setAddressLabels([]);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error resolving ENS name:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      resolveEns();
+    }, [address]);
+
+    const displayText =
+      resolvedEnsName || (address ? shortenAddress(address) : "N/A");
+
+    return (
+      <Flex
+        direction={labelDirection === "vertical" ? "column" : "row"}
+        align={labelDirection === "vertical" ? "flex-start" : "center"}
+        gap={labelDirection === "vertical" ? 0 : 2}
+      >
+        {address && isExternal ? (
+          <Link
+            href={`https://etherscan.io/address/${address}`}
+            isExternal
+            color="blue.500"
+            fontWeight="medium"
+            fontSize="sm"
+            _hover={{ textDecoration: "underline" }}
+          >
+            {displayText}
+          </Link>
+        ) : (
+          <Text color="blue.500" fontWeight="medium" fontSize="sm">
+            {displayText}
+          </Text>
+        )}
+
+        {addressLabels.length > 0 && (
+          <HStack spacing={1} mt={labelDirection === "vertical" ? 1 : 0}>
+            {addressLabels.map((label, idx) => (
+              <Badge
+                key={idx}
+                colorScheme="green"
+                fontSize="xs"
+                px={2}
+                py={0.5}
+                rounded="md"
+              >
+                {label}
+              </Badge>
+            ))}
+          </HStack>
+        )}
+
+        {isLoading && (
+          <Spinner
+            size="xs"
+            ml={1}
+            mt={labelDirection === "vertical" ? 1 : 0}
+          />
+        )}
+      </Flex>
+    );
+  }
+);
+
+// Add display name to the memoized component
+AddressResolved.displayName = "AddressResolved";
 
 const ENSHistory = () => {
   const params = useParams();
 
-  const ensName = typeof params.ensName === "string" ? params.ensName : "";
+  const ensName =
+    typeof params.ensName === "string"
+      ? decodeEnsRouteName(params.ensName)
+      : "";
 
   const [loadedEnsName, setLoadedEnsName] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [domainDetails, setDomainDetails] = useState<DomainDetails | null>(
     null
   );
@@ -106,42 +247,22 @@ const ENSHistory = () => {
     useState<DomainRegistration | null>(null);
   const [historyEvents, setHistoryEvents] = useState<HistoryEvent[]>([]);
   const [contentEvents, setContentEvents] = useState<HistoryEvent[]>([]);
-  const [otherEvents, setOtherEvents] = useState<HistoryEvent[]>([]);
   const [isContentLoaded, setIsContentLoaded] = useState(false);
   const toast = useToast();
 
   // Update page title when component loads or ensName changes
   useEffect(() => {
     if (ensName) {
-      document.title = `${ensName} - ENS History | Swiss-Knife.xyz`;
+      document.title = `${ensName} - ENS History | ETH.sh`;
     }
 
     // Cleanup function to reset title when navigating away
     return () => {
-      document.title = "ENS History | Swiss-Knife.xyz";
+      document.title = "ENS History | ETH.sh";
     };
   }, [ensName]);
 
-  // Utility functions - moved to the top of the component
-  const formatDate = (timestamp: number) => {
-    return format(new Date(timestamp * 1000), "PPpp");
-  };
-
-  const shortenAddress = (address: string | null) => {
-    if (!address) return "N/A";
-    return `${address.substring(0, 6)}...${address.substring(
-      address.length - 4
-    )}`;
-  };
-
-  const shortenHash = (hash: string) => {
-    if (!hash) return "";
-    return `ipfs://${hash.substring(0, 10)}...${hash.substring(
-      hash.length - 4
-    )}`;
-  };
-
-  const getEventBadge = (type: string) => {
+  const getEventBadge = (type: string, label: string) => {
     switch (type) {
       case "content":
         return (
@@ -152,7 +273,7 @@ const ENSHistory = () => {
       case "transfer":
         return (
           <Badge colorScheme="green" fontSize="sm" px={2} py={1} rounded={"lg"}>
-            Transfer
+            {label}
           </Badge>
         );
       case "renewal":
@@ -170,13 +291,14 @@ const ENSHistory = () => {
       default:
         return (
           <Badge fontSize="sm" px={2} py={1} rounded={"lg"}>
-            Unknown
+            {label}
           </Badge>
         );
     }
   };
 
-  const getContentChangeColor = (timestamp: number) => {
+  const getContentChangeColor = (timestamp: number | null) => {
+    if (timestamp === null) return undefined;
     const now = new Date();
     const eventDate = new Date(timestamp * 1000);
     const daysDiff = differenceInDays(now, eventDate);
@@ -189,174 +311,45 @@ const ENSHistory = () => {
     return undefined;
   };
 
-  // AddressResolved component to display addresses with ENS resolution
-  const AddressResolved = memo(
-    ({
-      address,
-      isExternal = true,
-      labelDirection = "vertical",
-    }: {
-      address: string | null;
-      isExternal?: boolean;
-      labelDirection?: "vertical" | "horizontal";
-    }) => {
-      const [resolvedEnsName, setResolvedEnsName] = useState<string | null>(
-        null
-      );
-      const [isLoading, setIsLoading] = useState(false);
-      const [addressLabels, setAddressLabels] = useState<string[]>([]);
-
-      useEffect(() => {
-        const resolveEns = async () => {
-          if (!address) return;
-
-          setIsLoading(true);
-          try {
-            // Try to get ENS name or Basename
-            const name = await resolveAddressToName(address);
-            setResolvedEnsName(name);
-
-            // If no ENS name, try to fetch labels or contract name
-            if (!name) {
-              let labelsFound = false;
-
-              // First try to fetch labels from API
-              try {
-                const labels = await fetchAddressLabels(address, 1);
-                if (labels.length > 0) {
-                  setAddressLabels([labels[0]]);
-                  labelsFound = true;
-                }
-              } catch (error) {
-                console.error("Error fetching address labels:", error);
-                // Continue to next method if labels API fails
-              }
-
-              // If no labels found from API, try to get contract name
-              if (!labelsFound) {
-                try {
-                  // first check if the address is a contract
-                  const isContract = await publicClient.getCode({
-                    address: address as `0x${string}`,
-                  });
-
-                  if (isContract) {
-                    const contractInfo = await fetchContractAbi({
-                      address,
-                      chainId: 1, // Ethereum mainnet
-                    });
-
-                    if (contractInfo.name) {
-                      setAddressLabels([contractInfo.name]);
-                    }
-                  }
-                } catch (error) {
-                  console.error("Error fetching contract ABI:", error);
-                  setAddressLabels([]);
-                }
-              }
-            }
-          } catch (error) {
-            console.error("Error resolving ENS name:", error);
-          } finally {
-            setIsLoading(false);
-          }
-        };
-
-        resolveEns();
-      }, [address]);
-
-      const displayText =
-        resolvedEnsName || (address ? shortenAddress(address) : "N/A");
-
-      return (
-        <Flex
-          direction={labelDirection === "vertical" ? "column" : "row"}
-          align={labelDirection === "vertical" ? "flex-start" : "center"}
-          gap={labelDirection === "vertical" ? 0 : 2}
-        >
-          {address && isExternal ? (
-            <Link
-              href={`https://etherscan.io/address/${address}`}
-              isExternal
-              color="blue.500"
-              fontWeight="medium"
-              fontSize="sm"
-              _hover={{ textDecoration: "underline" }}
-            >
-              {displayText}
-            </Link>
-          ) : (
-            <Text color="blue.500" fontWeight="medium" fontSize="sm">
-              {displayText}
-            </Text>
-          )}
-
-          {addressLabels.length > 0 && (
-            <HStack spacing={1} mt={labelDirection === "vertical" ? 1 : 0}>
-              {addressLabels.map((label, idx) => (
-                <Badge
-                  key={idx}
-                  colorScheme="green"
-                  fontSize="xs"
-                  px={2}
-                  py={0.5}
-                  rounded="md"
-                >
-                  {label}
-                </Badge>
-              ))}
-            </HStack>
-          )}
-
-          {isLoading && (
-            <Spinner
-              size="xs"
-              ml={1}
-              mt={labelDirection === "vertical" ? 1 : 0}
-            />
-          )}
-        </Flex>
-      );
-    }
-  );
-
-  // Add display name to the memoized component
-  AddressResolved.displayName = "AddressResolved";
-
   // Memoize the domain details section to prevent re-renders when input changes
   const memoizedDomainDetails = useMemo(() => {
     if (!domainDetails) return null;
 
-    // Get the most recent content hash event (if any)
-    const latestContentEvent =
-      contentEvents.length > 0 ? contentEvents[0] : null;
-    const ipfsHash = latestContentEvent?.details.hash || null;
+    // Read current content independently of historical resolver events.
+    const currentContent = domainDetails.currentContenthash;
 
-    // Create the .eth.limo URL if we have an IPFS hash
-    const ethLimoUrl = ipfsHash && ensName ? `https://${ensName}.limo` : null;
+    // Only IPFS records receive the existing name gateway link.
+    const ethLimoUrl =
+      currentContent?.protocol === "ipfs" && ensName
+        ? `https://${ensName}.link`
+        : null;
 
     return (
-      <Card variant="outline" shadow="sm" bg="blackAlpha.300">
+      <Card
+        color="text.primary"
+        variant="outline"
+        shadow="sm"
+        bg="blackAlpha.300"
+      >
         <CardHeader pb={0}>
           <Heading size="sm">🔍 Domain Details</Heading>
         </CardHeader>
         <CardBody>
-          {/* IPFS Content Section - Added prominently at the top */}
-          {ipfsHash && (
+          {/* Current resolver content, independent of historical events. */}
+          {currentContent && (
             <Box mb={6}>
               <Flex alignItems="center" mb={2}>
                 <Heading size="sm" mr={2}>
-                  IPFS Content
+                  Content Hash
                 </Heading>
                 {ethLimoUrl && (
-                  <Tooltip label="Open in .eth.limo gateway">
+                  <Tooltip label="Open in .eth.link gateway">
                     <IconButton
                       as="a"
                       href={ethLimoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label="Open in .eth.limo gateway"
+                      aria-label="Open in .eth.link gateway"
                       icon={<ExternalLinkIcon />}
                       size="xs"
                       variant="ghost"
@@ -364,10 +357,23 @@ const ENSHistory = () => {
                   </Tooltip>
                 )}
               </Flex>
-              <Tooltip label={ipfsHash} placement="bottom" hasArrow>
-                <Code p={2} borderRadius="md" width="100%" position="relative">
+              <Tooltip
+                label={currentContent.display}
+                placement="bottom"
+                hasArrow
+              >
+                <Code
+                  p={2}
+                  borderRadius="md"
+                  width="100%"
+                  position="relative"
+                  bg="bg.subtle"
+                  color="text.primary"
+                >
                   <Flex align="center">
                     <Text
+                      color="inherit"
+                      minW={0}
                       fontFamily="mono"
                       fontSize="sm"
                       overflow="hidden"
@@ -375,11 +381,13 @@ const ENSHistory = () => {
                       whiteSpace="nowrap"
                       flex="1"
                     >
-                      {shortenHash(ipfsHash)}
+                      {shortenContenthash(currentContent)}
                     </Text>
                     <IconButton
                       icon={<CopyIcon />}
-                      onClick={() => navigator.clipboard.writeText(ipfsHash)}
+                      onClick={() =>
+                        navigator.clipboard.writeText(currentContent.value)
+                      }
                       size="xs"
                       variant="ghost"
                       aria-label="Copy full hash"
@@ -391,29 +399,39 @@ const ENSHistory = () => {
             </Box>
           )}
 
-          <SimpleGrid columns={2} spacing={6} mb={6}>
+          <SimpleGrid
+            columns={domainDetails.expiryDate ? 2 : 1}
+            spacing={6}
+            mb={6}
+          >
             <Stat>
               <StatLabel fontWeight="medium">Registration Date</StatLabel>
-              <StatNumber fontSize="md" mt={1}>
-                {formatDistanceToNow(domainDetails.createdAt * 1000, {
-                  addSuffix: true,
-                })}
-              </StatNumber>
-              <StatHelpText fontSize="xs" mt={1}>
-                {formatDate(domainDetails.createdAt)}
-              </StatHelpText>
+              {domainDetails.createdAt ? (
+                <>
+                  <StatNumber fontSize="md" mt={1}>
+                    {relativeHistoryDate(domainDetails.createdAt)}
+                  </StatNumber>
+                  <StatHelpText fontSize="xs" mt={1}>
+                    {formatHistoryDate(domainDetails.createdAt)}
+                  </StatHelpText>
+                </>
+              ) : (
+                <Text fontSize="sm" color="gray.500" mt={1}>
+                  Not indexed
+                </Text>
+              )}
             </Stat>
-            <Stat>
-              <StatLabel fontWeight="medium">Expiry Date</StatLabel>
-              <StatNumber fontSize="md" mt={1}>
-                {formatDistanceToNow(domainDetails.expiryDate * 1000, {
-                  addSuffix: true,
-                })}
-              </StatNumber>
-              <StatHelpText fontSize="xs" mt={1}>
-                {formatDate(domainDetails.expiryDate)}
-              </StatHelpText>
-            </Stat>
+            {domainDetails.expiryDate ? (
+              <Stat>
+                <StatLabel fontWeight="medium">Expiry Date</StatLabel>
+                <StatNumber fontSize="md" mt={1}>
+                  {relativeHistoryDate(domainDetails.expiryDate)}
+                </StatNumber>
+                <StatHelpText fontSize="xs" mt={1}>
+                  {formatHistoryDate(domainDetails.expiryDate)}
+                </StatHelpText>
+              </Stat>
+            ) : null}
           </SimpleGrid>
           <SimpleGrid columns={2} spacing={6}>
             <Stat>
@@ -435,7 +453,9 @@ const ENSHistory = () => {
                   />
                 ) : (
                   <Text fontSize="sm" color="gray.500">
-                    Not applicable for subdomains
+                    {domainDetails.isSubdomain
+                      ? "Not applicable for subdomains"
+                      : "Not indexed"}
                   </Text>
                 )}
               </StatNumber>
@@ -444,14 +464,19 @@ const ENSHistory = () => {
         </CardBody>
       </Card>
     );
-  }, [domainDetails, contentEvents, ensName]);
+  }, [domainDetails, ensName]);
 
   // Memoize the initial registration section
   const memoizedInitialRegistration = useMemo(() => {
     if (!initialRegistration) return null;
 
     return (
-      <Card variant="outline" shadow="sm" bg="blackAlpha.300">
+      <Card
+        color="text.primary"
+        variant="outline"
+        shadow="sm"
+        bg="blackAlpha.300"
+      >
         <CardHeader pb={0}>
           <Heading size="sm">📅 Registration Info</Heading>
         </CardHeader>
@@ -460,19 +485,26 @@ const ENSHistory = () => {
             <Stat>
               <StatLabel fontWeight="medium">Block Number</StatLabel>
               <StatNumber fontSize="md" mt={1}>
-                {initialRegistration.blockNumber.toLocaleString()}
+                <Link
+                  href={`https://etherscan.io/tx/${initialRegistration.transactionID}`}
+                  isExternal
+                  color="blue.500"
+                >
+                  {initialRegistration.blockNumber.toLocaleString()}{" "}
+                  <ExternalLinkIcon boxSize={3} />
+                </Link>
               </StatNumber>
             </Stat>
             <Stat>
               <StatLabel fontWeight="medium">Initial Expiry</StatLabel>
               <StatNumber fontSize="md" mt={1}>
-                {formatDistanceToNow(initialRegistration.expiryDate * 1000, {
-                  addSuffix: true,
-                })}
+                {relativeHistoryDate(initialRegistration.expiryDate)}
               </StatNumber>
-              <StatHelpText fontSize="xs" mt={1}>
-                {formatDate(initialRegistration.expiryDate)}
-              </StatHelpText>
+              {initialRegistration.expiryDate !== null && (
+                <StatHelpText fontSize="xs" mt={1}>
+                  {formatHistoryDate(initialRegistration.expiryDate)}
+                </StatHelpText>
+              )}
             </Stat>
           </SimpleGrid>
         </CardBody>
@@ -542,28 +574,32 @@ const ENSHistory = () => {
                 </Tr>
               ) : (
                 historyEvents.map((event, index) => (
-                  <Tr key={index}>
+                  <Tr key={event.id}>
                     <Td
                       width="220px"
                       whiteSpace="nowrap"
                       pl={6}
                       py={4}
-                      color={getContentChangeColor(event.timestamp)}
+                      color={
+                        event.type === "content"
+                          ? getContentChangeColor(event.timestamp)
+                          : undefined
+                      }
                     >
                       <Text fontWeight="medium">
-                        {formatDistanceToNow(event.timestamp * 1000, {
-                          addSuffix: true,
-                        })}
+                        {relativeHistoryDate(event.timestamp)}
                       </Text>
-                      <Text fontSize="xs" color="gray.500" mt={1}>
-                        {formatDate(event.timestamp)}
-                      </Text>
+                      {event.timestamp !== null && (
+                        <Text fontSize="xs" color="gray.500" mt={1}>
+                          {formatHistoryDate(event.timestamp)}
+                        </Text>
+                      )}
                     </Td>
-                    <Td py={4}>{getEventBadge(event.type)}</Td>
+                    <Td py={4}>{getEventBadge(event.type, event.label)}</Td>
                     <Td py={4}>
                       {event.type === "content" && event.details.hash && (
                         <Flex align="center">
-                          <Tooltip label={event.details.hash}>
+                          <Tooltip label={event.details.hash.display}>
                             <Text
                               fontFamily="mono"
                               fontSize="sm"
@@ -573,36 +609,49 @@ const ENSHistory = () => {
                               textOverflow="ellipsis"
                               whiteSpace="nowrap"
                             >
-                              {shortenHash(event.details.hash)}
+                              {shortenContenthash(event.details.hash)}
                             </Text>
                           </Tooltip>
                           <IconButton
                             icon={<CopyIcon />}
                             onClick={() =>
-                              navigator.clipboard.writeText(event.details.hash!)
+                              navigator.clipboard.writeText(
+                                event.details.hash!.value
+                              )
                             }
                             size="xs"
                             variant="ghost"
                             aria-label="Copy full hash"
                           />
-                          <Link
-                            ml={2}
-                            href={`https://${event.details.hash}.ipfs.inbrowser.link`}
-                            isExternal
-                          >
-                            <ExternalLinkIcon fontSize={"md"} />
-                          </Link>
+                          {event.details.hash.gatewayUrl && (
+                            <Link
+                              ml={2}
+                              href={event.details.hash.gatewayUrl}
+                              isExternal
+                            >
+                              <ExternalLinkIcon fontSize={"md"} />
+                            </Link>
+                          )}
                         </Flex>
                       )}
-                      {event.type === "transfer" && event.details.owner && (
+                      {event.type === "content" && !event.details.hash && (
+                        <Text fontSize="sm">Content hash cleared</Text>
+                      )}
+                      {event.details.summary && (
+                        <Text fontSize="sm" overflowWrap="anywhere">
+                          {event.details.summary}
+                        </Text>
+                      )}
+                      {event.details.owner && (
                         <AddressResolved
                           address={event.details.owner}
                           labelDirection="horizontal"
                         />
                       )}
-                      {event.type === "renewal" && event.details.expiryDate && (
+                      {event.details.expiryDate !== undefined && (
                         <Text>
-                          New expiry: {formatDate(event.details.expiryDate)}
+                          New expiry:{" "}
+                          {formatHistoryDate(event.details.expiryDate)}
                         </Text>
                       )}
                     </Td>
@@ -628,23 +677,36 @@ const ENSHistory = () => {
     );
   }, [historyEvents, contentEvents, isContentLoaded]);
 
-  const decodeContentHash = (encoded: string): string | null => {
-    try {
-      if (!encoded.startsWith("0xe3")) {
-        // Not an IPFS link
-        return null;
-      }
+  const fetchResolverBackedDomainDetails = async (
+    normalizedName: string,
+    isSubdomain: boolean
+  ): Promise<DomainDetails | null> => {
+    const [owner, rawContenthash] = await Promise.all([
+      readEnsAddressRecord(normalizedName).catch(() => null),
+      readEnsContenthashRecord(normalizedName).catch(() => null),
+    ]);
 
-      const ipfsv0 = contentHash.decode(encoded);
-      const ipfsv1 = contentHash.helpers.cidV0ToV1Base32(ipfsv0);
-      return ipfsv1;
-    } catch (error) {
-      console.error("Error decoding content hash:", error);
+    const decodedContenthash = rawContenthash
+      ? parseContenthash(rawContenthash)
+      : null;
+
+    if (!owner && !decodedContenthash) {
       return null;
     }
+
+    return {
+      id: namehash(normalizedName),
+      createdAt: null,
+      expiryDate: null,
+      owner,
+      registrant: null,
+      resolver: null,
+      isSubdomain,
+      currentContenthash: decodedContenthash,
+    };
   };
 
-  const fetchContentHash = async (_ensName?: string) => {
+  const fetchContentHash = async (_ensName?: string, signal?: AbortSignal) => {
     if (!ensName && !_ensName) {
       toast({
         title: "Error",
@@ -659,23 +721,28 @@ const ENSHistory = () => {
 
     try {
       setLoading(true);
+      setHistoryError(null);
       setHistoryEvents([]);
       setContentEvents([]);
-      setOtherEvents([]);
       setIsContentLoaded(false);
+      setDomainDetails(null);
+      setInitialRegistration(null);
 
       // Normalize the ENS name
-      const normalizedName = normalize(ens);
+      const normalizedName = normalizeEnsInput(ens);
       setLoadedEnsName(normalizedName);
-      const labelName = normalizedName.split(".")[0]; // Get the part before .eth
+      const nameParts = normalizedName.split(".");
+      const isSubdomain =
+        nameParts.length > 2 || nameParts[nameParts.length - 1] !== "eth";
 
       // 1. Query for domain details
       const domainDetailsQuery = `
-        query GetDomainId($ens: String!) {
-          domains(where: {name: $ens}) {
+        query GetDomainId($node: ID!) {
+          domain(id: $node) {
             id,
             expiryDate,
             createdAt,
+            wrappedOwner { id }
             owner {
               id
             }, 
@@ -689,279 +756,191 @@ const ENSHistory = () => {
         }
       `;
 
-      const domainResponse = await axios.post(ENS_SUBGRAPH_URL, {
-        query: domainDetailsQuery,
-        variables: { ens: normalizedName },
-      });
+      const domainResponse = await axios.post(
+        ENS_SUBGRAPH_URL,
+        {
+          query: domainDetailsQuery,
+          variables: { node: namehash(normalizedName) },
+        },
+        { signal }
+      );
+      signal?.throwIfAborted();
 
       if (domainResponse.data.errors) {
         throw new Error(domainResponse.data.errors[0].message);
       }
 
-      if (
-        !domainResponse.data.data.domains ||
-        domainResponse.data.data.domains.length === 0
-      ) {
-        throw new Error("Domain not found");
-      }
-
-      const domain = domainResponse.data.data.domains[0];
-      const resolverId = domain.resolver.id;
-      const domainId = domain.id;
-
-      // if the ENS name is wrapped, we need to get the owner of the token
-      const ENS_NAME_WRAPPER = "0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401";
-      let owner = domain.owner.id;
-      if (owner.toLowerCase() === ENS_NAME_WRAPPER.toLowerCase()) {
-        const labelHash = labelhash(normalizedName.split(".")[0]);
-
-        const ETH_NODE =
-          "0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae";
-        const node = keccak256(
-          encodePacked(["bytes32", "bytes32"], [ETH_NODE, labelHash])
+      if (!domainResponse.data.data.domain) {
+        const fallback = await fetchResolverBackedDomainDetails(
+          normalizedName,
+          isSubdomain
         );
-        const tokenId = BigInt(node);
 
-        owner = await publicClient.readContract({
-          address: ENS_NAME_WRAPPER,
-          abi: erc721Abi,
-          functionName: "ownerOf",
-          args: [tokenId],
-        });
+        if (!fallback) {
+          throw new Error("Domain not found");
+        }
+
+        signal?.throwIfAborted();
+        setDomainDetails(fallback);
+        setHistoryEvents([]);
+        setContentEvents([]);
+        setIsContentLoaded(true);
+        return;
       }
 
-      setDomainDetails({
-        id: domain.id,
-        createdAt: parseInt(domain.createdAt),
-        expiryDate: parseInt(domain.expiryDate),
-        owner,
-        registrant: domain.registrant?.id || null,
-        resolver: {
-          id: resolverId,
-        },
-      });
+      const domain = domainResponse.data.data.domain;
+      const domainId = domain.id;
+      setDomainDetails(indexedDomainDetails(domain, isSubdomain));
 
-      // Prioritize content hash changes
-      const fetchContentHashChanges = async () => {
-        // Query for content hash changes
-        const contentHashQuery = `
-          query GetENSContentHashes($resolverId: String!) {
-            contenthashChangeds(
-              orderBy: blockNumber
-              orderDirection: desc
-              where: {resolver: $resolverId}
-            ) {
-              blockNumber
-              transactionID
-              hash
-            }
-          }
-        `;
-
-        const contentHashResponse = await axios.post(ENS_SUBGRAPH_URL, {
-          query: contentHashQuery,
-          variables: { resolverId },
-        });
-
-        if (contentHashResponse.data.errors) {
-          throw new Error(contentHashResponse.data.errors[0].message);
-        }
-
-        const contentEvents = contentHashResponse.data.data
-          .contenthashChangeds as ContentEvent[];
-
-        // Process content events with Promise.all for parallel processing
-        const contentEventsPromises = contentEvents.map(async (event) => {
-          const block = await publicClient.getBlock({
-            blockNumber: BigInt(event.blockNumber),
-          });
-
-          return {
-            type: "content" as const,
-            timestamp: Number(block.timestamp),
-            transactionID: event.transactionID,
-            details: {
-              hash: decodeContentHash(event.hash) ?? "",
-            },
-          };
-        });
-
-        const processedContentEvents = await Promise.all(contentEventsPromises);
-
-        // Sort content events by timestamp (newest first)
-        processedContentEvents.sort((a, b) => b.timestamp - a.timestamp);
-
-        // Set content events and mark as loaded immediately
-        setContentEvents(processedContentEvents);
-        setIsContentLoaded(true);
-
-        return processedContentEvents;
+      const request = async (
+        query: string,
+        variables: Record<string, unknown>
+      ) => {
+        const response = await axios.post(
+          ENS_SUBGRAPH_URL,
+          { query, variables },
+          { signal }
+        );
+        if (response.data.errors?.length)
+          throw new Error(response.data.errors[0].message);
+        return response.data.data;
       };
+      const [domainEvents, registrationEvents, resolverEvents, currentHash] =
+        await Promise.all([
+          fetchIndexedEvents(
+            DOMAIN_EVENTS_QUERY,
+            "domainEvents",
+            domainId,
+            request
+          ),
+          isSubdomain
+            ? Promise.resolve([])
+            : fetchIndexedEvents(
+                REGISTRATION_EVENTS_QUERY,
+                "registrationEvents",
+                domainId,
+                request
+              ),
+          fetchIndexedEvents(
+            RESOLVER_EVENTS_QUERY,
+            "resolverEvents",
+            domainId,
+            request
+          ),
+          readEnsContenthashRecord(normalizedName).catch(() => null),
+        ]);
+      signal?.throwIfAborted();
 
-      // Start fetching content hash changes immediately
-      const contentHashPromise = fetchContentHashChanges();
-
-      // Fetch other data in parallel
-      const fetchOtherData = async () => {
-        const otherEvents: HistoryEvent[] = [];
-
-        // Prepare all queries
-        const transfersQuery = `
-          query GetDomainTransfers($domainId: String!) {
-            domainEvents(
-              where: {domain: $domainId}
-            ) {
-              ... on WrappedTransfer {
-                id
-                transactionID
-                blockNumber
-                owner {
-                  id
-                }
+      // Cache block lookups across streams and limit concurrent RPC requests.
+      const indexedEvents = [
+        ...domainEvents,
+        ...registrationEvents,
+        ...resolverEvents,
+      ];
+      const blocks = [
+        ...new Set(indexedEvents.map((event) => event.blockNumber)),
+      ];
+      const timestamps = new Map<number, number | null>();
+      for (let start = 0; start < blocks.length; start += 8) {
+        signal?.throwIfAborted();
+        await Promise.all(
+          blocks.slice(start, start + 8).map(async (blockNumber) => {
+            timestamps.set(
+              blockNumber,
+              await readHistoryTimestamp(async () => {
+                const block = await publicClient.getBlock({
+                  blockNumber: BigInt(blockNumber),
+                });
+                return block.timestamp;
+              })
+            );
+          })
+        );
+      }
+      signal?.throwIfAborted();
+      const processedEvents: HistoryEvent[] = indexedEvents
+        .map((event: IndexedEvent) => ({
+          id: `${event.__typename}:${event.id}`,
+          label:
+            (
+              {
+                Transfer: "Manager Transfer",
+                NewOwner: "Owner Assigned",
+                NameTransferred: "Registrant Transfer",
+                WrappedTransfer: "Wrapped Transfer",
+              } as Record<string, string>
+            )[event.__typename] ??
+            event.__typename.replace(/([a-z])([A-Z])/g, "$1 $2"),
+          type:
+            event.__typename === "ContenthashChanged"
+              ? "content"
+              : [
+                    "Transfer",
+                    "WrappedTransfer",
+                    "NameTransferred",
+                    "NewOwner",
+                  ].includes(event.__typename)
+                ? "transfer"
+                : event.__typename === "NameRenewed"
+                  ? "renewal"
+                  : event.__typename,
+          blockNumber: event.blockNumber,
+          logIndex: Number(event.id.split("-").at(-1)) || 0,
+          timestamp: timestamps.get(event.blockNumber) ?? null,
+          transactionID: event.transactionID,
+          details: {
+            hash:
+              event.hash && event.hash !== "0x"
+                ? parseContenthash(event.hash)!
+                : undefined,
+            owner:
+              event.owner?.id ?? event.newOwner?.id ?? event.registrant?.id,
+            expiryDate: [
+              "NameRegistered",
+              "NameRenewed",
+              "NameWrapped",
+              "ExpiryExtended",
+            ].includes(event.__typename)
+              ? parseHistoryTimestamp(event.expiryDate)
+              : undefined,
+            summary: eventSummary(event),
+          },
+        }))
+        .sort(
+          (a, b) =>
+            b.blockNumber - a.blockNumber ||
+            b.logIndex - a.logIndex ||
+            b.id.localeCompare(a.id)
+        );
+      const registrations = processedEvents.filter(
+        (event) => event.type === "NameRegistered"
+      );
+      const initial = registrations[registrations.length - 1];
+      setInitialRegistration(
+        registrationDetails(
+          initial
+            ? {
+                blockNumber: initial.blockNumber,
+                transactionID: initial.transactionID,
+                expiryDate: initial.details.expiryDate,
               }
-            }
-          }
-        `;
-
-        const renewalsQuery = `
-          query GetDomainRenewals($labelName: String!) {
-            nameReneweds(
-              orderBy: blockNumber
-              orderDirection: desc
-              where: {registration_: {labelName: $labelName}}
-            ) {
-              blockNumber
-              expiryDate
-              transactionID
-            }
-          }
-        `;
-
-        const registrationQuery = `
-          query GetDomainInitialExpiry($labelName: String!) {
-            registrationEvents(where: {registration_: {labelName: $labelName}}) {
-              ... on NameRegistered {
-                expiryDate,
-                blockNumber
-              }
-            }
-          }
-        `;
-
-        // Execute all queries in parallel
-        const [transfersResponse, renewalsResponse, registrationResponse] =
-          await Promise.all([
-            axios.post(ENS_SUBGRAPH_URL, {
-              query: transfersQuery,
-              variables: { domainId },
-            }),
-            axios.post(ENS_SUBGRAPH_URL, {
-              query: renewalsQuery,
-              variables: { labelName },
-            }),
-            axios.post(ENS_SUBGRAPH_URL, {
-              query: registrationQuery,
-              variables: { labelName },
-            }),
-          ]);
-
-        // Process transfers
-        if (!transfersResponse.data.errors) {
-          const transfers = transfersResponse.data.data.domainEvents
-            .filter((event: any) => event.id) // Filter out empty objects
-            .map((event: any) => ({
-              blockNumber: event.blockNumber,
-              id: event.id,
-              owner: event.owner.id,
-              transactionID: event.transactionID,
-            }));
-
-          // Process transfers with Promise.all
-          const transferPromises = transfers.map(
-            async (transfer: DomainTransfer) => {
-              const block = await publicClient.getBlock({
-                blockNumber: BigInt(transfer.blockNumber),
-              });
-
-              return {
-                type: "transfer" as const,
-                timestamp: Number(block.timestamp),
-                transactionID: transfer.transactionID,
-                details: {
-                  owner: transfer.owner,
-                },
-              };
-            }
-          );
-
-          const processedTransfers = await Promise.all(transferPromises);
-          otherEvents.push(...processedTransfers);
-        }
-
-        // Process renewals
-        if (!renewalsResponse.data.errors) {
-          const renewals = renewalsResponse.data.data
-            .nameReneweds as DomainRenewal[];
-
-          // Process renewals with Promise.all
-          const renewalPromises = renewals.map(async (renewal) => {
-            const block = await publicClient.getBlock({
-              blockNumber: BigInt(renewal.blockNumber),
-            });
-
-            return {
-              type: "renewal" as const,
-              timestamp: Number(block.timestamp),
-              transactionID: renewal.transactionID,
-              details: {
-                expiryDate: renewal.expiryDate,
-              },
-            };
-          });
-
-          const processedRenewals = await Promise.all(renewalPromises);
-          otherEvents.push(...processedRenewals);
-        }
-
-        // Process registration
-        if (!registrationResponse.data.errors) {
-          const registrations =
-            registrationResponse.data.data.registrationEvents.filter(
-              (event: any) => event.blockNumber
-            ); // Filter out empty objects
-
-          if (registrations.length > 0) {
-            const registration = registrations[0];
-            const block = await publicClient.getBlock({
-              blockNumber: BigInt(registration.blockNumber),
-            });
-
-            setInitialRegistration({
-              blockNumber: registration.blockNumber,
-              expiryDate: parseInt(registration.expiryDate),
-              timestamp: Number(block.timestamp),
-            });
-          }
-        }
-
-        return otherEvents;
-      };
-
-      // Execute other data fetching in parallel with content hash fetching
-      const [contentHashEvents, otherDataEvents] = await Promise.all([
-        contentHashPromise,
-        fetchOtherData(),
-      ]);
-
-      // Sort other events by timestamp (newest first)
-      otherDataEvents.sort((a, b) => b.timestamp - a.timestamp);
-      setOtherEvents(otherDataEvents);
-
-      // Combine all events
-      const allEvents = [...contentHashEvents, ...otherDataEvents];
-      allEvents.sort((a, b) => b.timestamp - a.timestamp);
-      setHistoryEvents(allEvents);
+            : undefined
+        )
+      );
+      setDomainDetails((details) =>
+        details ? withCurrentContenthash(details, currentHash) : details
+      );
+      setContentEvents(
+        processedEvents.filter((event) => event.type === "content")
+      );
+      setHistoryEvents(processedEvents);
+      setIsContentLoaded(true);
     } catch (error) {
+      if (signal?.aborted) return;
+      setIsContentLoaded(true);
+      setHistoryError(
+        error instanceof Error ? error.message : "Failed to fetch ENS history"
+      );
       console.error("Error fetching ENS data:", error);
       toast({
         title: "Error",
@@ -972,23 +951,33 @@ const ENSHistory = () => {
         isClosable: true,
       });
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   };
 
-  // Effect to load ENS data when ensName is provided
+  // Route changes cancel subgraph requests and prevent stale results being committed.
   useEffect(() => {
-    if (ensName && ensName !== loadedEnsName) {
-      fetchContentHash(ensName);
-    }
-  }, [ensName, loadedEnsName]);
+    const controller = new AbortController();
+    if (ensName) fetchContentHash(ensName, controller.signal);
+    return () => controller.abort();
+  }, [ensName]);
 
   return (
     <>
+      {historyError && !domainDetails && (
+        <Text color="red.300" role="alert">
+          {historyError}
+        </Text>
+      )}
       {loading ? (
         <Box mt={8}>
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mb={8}>
-            <Card variant="outline" shadow="sm" bg="blackAlpha.500">
+            <Card
+              color="text.primary"
+              variant="outline"
+              shadow="sm"
+              bg="blackAlpha.500"
+            >
               <CardHeader pb={3} pt={4} px={6}>
                 <Heading size="sm">🔍 Domain Details</Heading>
               </CardHeader>
@@ -1004,7 +993,12 @@ const ENSHistory = () => {
               </CardBody>
             </Card>
 
-            <Card variant="outline" shadow="sm" bg="blackAlpha.500">
+            <Card
+              color="text.primary"
+              variant="outline"
+              shadow="sm"
+              bg="blackAlpha.500"
+            >
               <CardHeader pb={3} pt={4} px={6}>
                 <Heading size="sm">📅 Registration Info</Heading>
               </CardHeader>
@@ -1073,7 +1067,18 @@ const ENSHistory = () => {
             📜 Domain History {loadedEnsName && `(${loadedEnsName})`}
           </Heading>
 
-          {memoizedHistoryEvents}
+          <Text fontSize="xs" color="gray.400" mb={4}>
+            Indexed registry, registrar and resolver events, including the old
+            ENS registry. Legacy auction bids and unindexed resolver activity
+            are not included.
+          </Text>
+          {historyError ? (
+            <Text color="red.300" role="alert">
+              History could not be loaded: {historyError}
+            </Text>
+          ) : (
+            <Box overflowX="auto">{memoizedHistoryEvents}</Box>
+          )}
         </Box>
       ) : (
         <Box pb={8}></Box>

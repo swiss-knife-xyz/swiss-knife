@@ -1,60 +1,46 @@
-import {
-  mainnet,
-  arbitrum,
-  arbitrumSepolia,
-  avalanche,
-  base,
-  baseSepolia,
-  bsc,
-  canto,
-  citreaTestnet,
-  evmos,
-  gnosis,
-  linea,
-  ink,
-  monadTestnet,
-  optimism,
-  polygon,
-  polygonMumbai,
-  pulsechain,
-  sei,
-  seiTestnet,
-  sepolia,
-  soneium,
-  sonic,
-  unichain,
-  zora,
-  Chain,
-} from "wagmi/chains";
-import { plasma, megaeth, citrea } from "./common";
+import type { Chain } from "viem";
+import { c, chainIdToChain, networks } from "./networks";
 
-export const walletChains: readonly [Chain, ...Chain[]] = [
-  // first chain is the default
-  mainnet,
-  base,
-  arbitrum,
-  avalanche,
-  bsc,
-  citrea,
-  gnosis,
-  ink,
-  megaeth,
-  optimism,
-  polygon,
-  sei,
-  unichain,
-  zora,
-  // no icon
-  plasma,
-  pulsechain,
-  soneium,
-  sonic,
-  // testnets
-  seiTestnet,
-  sepolia,
-  arbitrumSepolia,
-  baseSepolia,
-  citreaTestnet,
-  monadTestnet,
-  polygonMumbai,
+// Wallet ordering is a presentation preference. Chain definitions and RPCs come
+// exclusively from the registry; newly supported catalog networks follow these.
+const preferredWalletKeys = [
+  "base",
+  "robinhood",
+  "arbitrum",
+  "avalanche",
+  "bsc",
+  "citrea",
+  "gnosis",
+  "ink",
+  "megaeth",
+  "monad",
+  "optimism",
+  "polygon",
+  "sei",
+  "unichain",
+  "zora",
+  "plasma",
+  "pulsechain",
+  "soneium",
+  "sonic",
+  "seiTestnet",
+  "sepolia",
+  "arbitrumSepolia",
+  "baseSepolia",
+  "citreaTestnet",
+  "monadTestnet",
+];
+const preferred = preferredWalletKeys.flatMap((key) =>
+  c[key] ? [chainIdToChain[c[key].id]] : []
+);
+const preferredIds = new Set([
+  c.mainnet.id,
+  ...preferred.map((chain) => chain.id),
+]);
+
+export const walletChains: [Chain, ...Chain[]] = [
+  // First chain is the wallet default. Tool selectors keep their own state.
+  chainIdToChain[c.mainnet.id],
+  ...preferred,
+  ...networks.filter((chain) => !preferredIds.has(chain.id)),
 ];

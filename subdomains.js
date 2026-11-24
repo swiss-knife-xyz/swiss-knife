@@ -1,16 +1,24 @@
 const subdomains = {
+  IPFS: {
+    base: "ipfs",
+    paths: [],
+  },
   CALLDATA: {
     base: "calldata",
-    paths: ["decoder", "viem-error-simulate"],
+    paths: ["decoder", "encoder", "viem-error-simulate", "cowswap"],
+  },
+  CONTRACT: {
+    base: "explorer",
+    paths: ["verify"],
   },
   EXPLORER: {
-    base: "explorer",
-    // Address and transaction routes require an identifier; link to the search page.
+    base: "explorers",
     paths: [],
+    isRelativePath: true,
   },
   CONVERTER: {
     base: "converter",
-    paths: ["eth", "hexadecimal", "keccak256", "padding", "address-checksum"],
+    paths: ["eth", "gas-cost", "hexadecimal", "keccak256", "padding", "address-checksum"],
   },
   CONSTANTS: {
     base: "constants",
@@ -21,8 +29,8 @@ const subdomains = {
     paths: [],
   },
   TRANSACT: {
-    base: "transact",
-    paths: ["send-tx"],
+    base: "tx",
+    paths: [],
   },
   STORAGE_SLOTS: {
     base: "storage-slots",
@@ -34,11 +42,12 @@ const subdomains = {
   },
   UNISWAP: {
     base: "uniswap",
-    paths: ["tick-to-price"],
+    paths: ["tick-to-price", "pool-price-to-target", "initialize-pool", "add-liquidity", "swap", "positions"],
   },
   DETERMINE_ADDRESS: {
     base: "determine-address",
     paths: [],
+    isRelativePath: true,
   },
   CONTRACT_DIFF: {
     base: "contract-diff",
@@ -50,7 +59,15 @@ const subdomains = {
   },
   WALLET: {
     base: "wallet",
-    paths: ["bridge", "ds-proxy", "signatures"],
+    paths: ["bridge", "ds-proxy", "coinbase-smart-wallet", "signatures"],
+  },
+  MIGRATE: {
+    base: "migrate",
+    paths: [],
+  },
+  GWEI: {
+    base: "gwei",
+    paths: [],
   },
   ENS: {
     base: "ens",
@@ -78,6 +95,27 @@ const subdomains = {
   },
   SIWE: {
     base: "siwe",
+    paths: [],
+  },
+  FAUCET: {
+    base: "faucet",
+    paths: [],
+  },
+  SKILLS: {
+    base: "skills",
+    paths: [],
+  },
+  ORGS: {
+    base: "orgs",
+    paths: [],
+    isRelativePath: true,
+  },
+  RIP: {
+    base: "rip",
+    paths: [],
+  },
+  PRIVACY: {
+    base: "privacy",
     paths: [],
   },
 };

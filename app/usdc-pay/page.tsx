@@ -1,5 +1,7 @@
 "use client";
 
+import { ToolLoading } from "@/components/ToolLoading";
+
 import {
   Suspense,
   useState,
@@ -27,8 +29,9 @@ import {
   useToast,
   HStack,
 } from "@chakra-ui/react";
-import { parseAsString, useQueryState } from "next-usequerystate";
+import { parseAsString, useQueryState } from "nuqs";
 import { ConnectButton } from "@/components/ConnectButton";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 import { base, baseSepolia } from "wagmi/chains";
 import { baseURL } from "@/config";
 import { useAccount, useReadContract, useWalletClient } from "wagmi";
@@ -598,7 +601,7 @@ function USDCPayContent() {
             w={{ base: "2rem", md: "2.5rem" }}
             h={{ base: "2rem", md: "2.5rem" }}
             alt="Swiss Knife"
-            src="/icon.png"
+            src="/logo.svg"
             rounded="lg"
           />
         </Flex>
@@ -634,7 +637,7 @@ function USDCPayContent() {
             textAlign="center"
             mb={{ base: 0, md: 2 }}
           >
-            <Text
+            <Text as="h1"
               fontSize={{ base: "3xl", md: "4xl" }}
               fontWeight="900"
               color="white"
@@ -660,9 +663,14 @@ function USDCPayContent() {
 
           {/* Address Input */}
           <Box w="100%" position="relative">
-            <Text fontSize="xs" mb={1} color="gray.400">
-              To Address
-            </Text>
+            <HStack justify="space-between" mb={1}>
+              <Text fontSize="xs" color="gray.400">To Address</Text>
+              <AddressBookButton onSelect={(value) => {
+                handleInputChange(value);
+                setShowDropdown(false);
+                setSelectedIndex(-1);
+              }} />
+            </HStack>
             <InputGroup>
               {(ensAvatar || farcasterAvatar) && (
                 <InputLeftElement
@@ -1070,7 +1078,7 @@ function USDCPayContent() {
 
 export default function USDCPay() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<ToolLoading title="USDC Pay" description="Send USDC on Base using the x402 payment protocol." />}>
       <USDCPayContent />
     </Suspense>
   );

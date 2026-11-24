@@ -1,54 +1,75 @@
-import { useState, useEffect } from "react";
-import { Skeleton, Stack } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
+import { Box, Skeleton } from "@chakra-ui/react";
+import type { Arg, DecodeRecursiveResult } from "@/types";
 import { decodeRecursive } from "@/lib/decoder";
 import { startHexWith0x } from "@/utils";
-import { renderParams } from "../renderParams";
-import { BytesParam } from "./BytesParam";
+import { CalldataTree } from "./CalldataTree";
+
+interface DecodedOutput {
+  source: string;
+  chainId?: number;
+  args: Arg[];
+}
 
 export const CalldataParam = ({
   value,
   chainId,
 }: {
-  value: any;
+  value: string | null | undefined;
   chainId?: number;
 }) => {
-  // abi.encode bytes
-  const [result, setResult] = useState<any>();
-  const [isLoading, setIsLoading] = useState(true);
-
-  const decode = async () => {
-    if (!value) {
-      return;
-    }
-
-    const res = await decodeRecursive({
-      calldata: startHexWith0x(value as string),
-    });
-    console.log({ DECODED_RESULT: res });
-    setResult(res);
-    setIsLoading(false);
-  };
+  const [output, setOutput] = useState<DecodedOutput>();
+  const ready =
+    value != null && output?.source === value && output.chainId === chainId;
 
   useEffect(() => {
-    decode();
-  }, [value]);
+    if (value == null) return;
+    let cancelled = false;
+    const finish = (result: DecodeRecursiveResult) => {
+      if (cancelled) return;
+      setOutput({
+        source: value,
+        chainId,
+        args: [
+          {
+            name: "data",
+            type: "bytes",
+            baseType: "bytes",
+            rawValue: value || "0x",
+            value: { decoded: result },
+          },
+        ],
+      });
+    };
+    if (value === "" || value === "0x") finish(null);
+    else
+      decodeRecursive({ calldata: startHexWith0x(value) })
+        .then(finish)
+        .catch(() => finish(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [value, chainId]);
 
-  return result ? (
-    <Stack mt={2} p={4} spacing={4} bg={"whiteAlpha.50"} rounded={"lg"}>
-      {result.args.map((arg: any, i: number) => {
-        return renderParams(i, arg, chainId);
-      })}
-    </Stack>
-  ) : !isLoading ? (
-    <BytesParam
-      arg={
-        value === null || value === undefined
-          ? value
-          : { rawValue: value, value: { decoded: null } }
-      }
-      chainId={chainId}
-    />
-  ) : (
-    <Skeleton h={"5rem"} rounded={"lg"} />
+  return (
+    <Box minW={0}>
+      {!ready && (
+        <Skeleton
+          h="4rem"
+          w="full"
+          rounded="4px"
+          role="status"
+          aria-label="Decoding output"
+        />
+      )}
+      {/* Retain controls during decoding; never show a previous response as the current one. */}
+      <Box hidden={!ready}>
+        <CalldataTree
+          args={output?.args ?? []}
+          chainId={output?.chainId}
+          showControls={false}
+        />
+      </Box>
+    </Box>
   );
 };

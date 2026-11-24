@@ -1,18 +1,8 @@
-"use client";
+import { headers } from "next/headers";
+import { permanentRedirect } from "next/navigation";
+import { getToolEntryRedirect } from "@/lib/seo";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { getPath } from "@/utils";
-import subdomains from "@/subdomains";
-
-const Wallet = () => {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.push(`${getPath(subdomains.WALLET.base)}bridge`);
-  }, []);
-
-  return <></>;
-};
-
-export default Wallet;
+export default async function ToolEntry() {
+  const host = (await headers()).get("host");
+  permanentRedirect(getToolEntryRedirect("wallet", host));
+}

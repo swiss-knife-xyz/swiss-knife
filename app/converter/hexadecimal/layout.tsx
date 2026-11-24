@@ -1,9 +1,10 @@
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
-  title: "Hexadecimal Converter | Swiss-Knife.xyz",
+  title: "Hexadecimal Converter | ETH.sh",
   description: "Convert between Hexadecimal, decimal, text and binary.",
-  images: "https://swiss-knife.xyz/og/converter-hexadecimal.png",
+  canonical: "https://converter.eth.sh/hexadecimal",
+  images: "https://eth.sh/api/og/converter-hexadecimal",
 });
 
 const HexadecimalLayout = ({ children }: { children: React.ReactNode }) => {

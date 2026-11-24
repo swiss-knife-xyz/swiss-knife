@@ -1,0 +1,59 @@
+// Successful Ethereum mainnet transactions. samples.test.ts checks captured
+// public receipts and inputs; the task handoff includes the live-render comparison.
+// `preview` is static display copy only: samples.test.ts verifies every
+// function/parameter name and claim against the captured transaction.
+export const decoderSamples = [
+  {
+    id: "nft-mint",
+    label: "NFT mint · Zora",
+    chainId: 1,
+    hash: "0xb0f5a58df0ced3e28f113af534b0e6327e7be66539a9d794f95034fc28cd3647",
+    explorerUrl:
+      "https://etherscan.io/tx/0xb0f5a58df0ced3e28f113af534b0e6327e7be66539a9d794f95034fc28cd3647",
+    preview: {
+      calls: [{ name: "mint", args: ["data", "bidShares"] }],
+      // Fields of the `data` tuple argument.
+      detail: {
+        arg: "data",
+        fields: ["tokenURI", "metadataURI", "contentHash", "metadataHash"],
+      },
+      tokenId: 20000,
+      note: "Mints Zora token #20000",
+    },
+  },
+  {
+    id: "safe-multicall",
+    label: "Safe multicall · USDC supply",
+    chainId: 1,
+    hash: "0x86091a6ec8e5e370cd01bf5fbf25e260ef177800b4ce57fd24d699cfc5ea9b06",
+    explorerUrl:
+      "https://etherscan.io/tx/0x86091a6ec8e5e370cd01bf5fbf25e260ef177800b4ce57fd24d699cfc5ea9b06",
+    preview: {
+      calls: [
+        { name: "approve", args: ["spender", "value"] },
+        { name: "supply", args: ["asset", "amount"] },
+      ],
+      outer: "execTransaction",
+      note: "2 calls inside Safe execTransaction",
+    },
+  },
+] as const;
+
+// Captured eth_call revert from the deployed Base Universal Router. This is a
+// read-only simulation of a sub-plan sweeping more USDC than the router holds,
+// not a failed transaction hash. The supplied ABI keeps the example offline.
+export const decoderRevertSample = {
+  id: "uniswap-revert",
+  label: "Uniswap revert · Base",
+  chainId: 8453,
+  address: "0x6ff5693b99212da76ad316178a184ab56d299b43",
+  calldata: "0x2c4029e9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000004675cae3800000000000000000000000000000000000000000000000000000000",
+  abi: [
+    "error ExecutionFailed(uint256 commandIndex,bytes message)",
+    "error InsufficientToken()",
+  ],
+  preview: {
+    calls: [{ name: "ExecutionFailed", args: ["commandIndex", "message"] }],
+    detail: { arg: "message", fields: ["InsufficientToken()"] },
+  },
+} as const;

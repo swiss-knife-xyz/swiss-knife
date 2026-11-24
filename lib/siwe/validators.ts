@@ -240,7 +240,7 @@ export class FieldValidators {
         severity: "error",
         fixable: false,
         suggestion:
-          "Use valid chain ID: 1 (Ethereum), 5 (Goerli), 137 (Polygon), etc.",
+          "Use valid chain ID: 1 (Ethereum), 11155111 (Sepolia), 137 (Polygon), etc.",
         code: "CHAIN_ID_INVALID_FORMAT",
       });
     } else {
@@ -377,8 +377,7 @@ export class FieldValidators {
           field: "issuedAt",
           line,
           column: 1,
-          message:
-            "Issued At timestamp is more than 1 hour from current time",
+          message: "Issued At timestamp is more than 1 hour from current time",
           severity: "warning",
           fixable: false,
           suggestion: "Ensure timestamp reflects actual message creation time",
@@ -736,4 +735,3 @@ export class FieldValidators {
     }
   }
 }
-

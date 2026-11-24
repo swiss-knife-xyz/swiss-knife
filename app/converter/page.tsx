@@ -1,18 +1,8 @@
-"use client";
+import { headers } from "next/headers";
+import { permanentRedirect } from "next/navigation";
+import { getToolEntryRedirect } from "@/lib/seo";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { getPath } from "@/utils";
-import subdomains from "@/subdomains";
-
-const Converter = () => {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.push(`${getPath(subdomains.CONVERTER.base)}eth`);
-  }, []);
-
-  return <></>;
-};
-
-export default Converter;
+export default async function ToolEntry() {
+  const host = (await headers()).get("host");
+  permanentRedirect(getToolEntryRedirect("converter", host));
+}

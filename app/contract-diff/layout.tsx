@@ -1,10 +1,11 @@
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
-  title: "Contract Diff | Swiss-Knife.xyz",
+  title: "Contract Diff | ETH.sh",
   description:
-    "Compares and highlights differences between smart contracts deployed at two specified blockchain addresses.",
-  images: "https://swiss-knife.xyz/og/contract-diff.png",
+    "Compare verified smart contract sources across networks or against a pinned GitHub repository commit.",
+  canonical: "https://contract-diff.eth.sh/",
+  images: "https://eth.sh/api/og/contract-diff",
 });
 
 const ContractAddressLayout = ({ children }: { children: React.ReactNode }) => {

@@ -1,11 +1,12 @@
-import { CalldataLayout as CalldataLayoutC } from "@/components/layouts/CalldataLayout";
 import { getMetadata } from "@/utils";
+import { CalldataLayout as CalldataLayoutC } from "./CalldataLayout";
 
 export const metadata = getMetadata({
-  title: "ETH Calldata Decoder | Swiss-Knife.xyz",
+  title: "Calldata Decoder | ETH.sh",
   description:
-    "Decode any calldata, and view the parameters in a human-readable format, even without having the contract ABI with this Universal ETH Calldata Decoder.",
-  images: "https://swiss-knife.xyz/og/calldata-decoder.png",
+    "Decode any calldata, and view the parameters in a human-readable format, even without having the contract ABI with this Calldata Decoder.",
+  canonical: "https://calldata.eth.sh/",
+  images: "https://eth.sh/api/og/calldata-decoder",
 });
 
 const CalldataLayout = ({ children }: { children: React.ReactNode }) => {

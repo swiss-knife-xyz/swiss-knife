@@ -4,6 +4,7 @@ import { JsonFragmentType, TransactionDescription } from "ethers";
 export interface SelectedOption {
   label: string;
   value: number | string | boolean;
+  image?: string;
 }
 
 export type SelectedOptionState = SingleValue<SelectedOption>;
@@ -49,16 +50,11 @@ export type DecodeTupleParamResult =
     }[]
   | null;
 
-export type DecodeArrayParamResult =
-  | {
-      name: string;
-      baseType: string;
-      type: string;
-      rawValue: any;
-      value: DecodeParamTypesResult;
-    }[];
+export type DecodeArrayParamResult = Arg[];
 
 export interface ParsedTransaction extends TransactionDescription {
+  kind?: "revert";
+  decodeNote?: string;
   txType?: "safeMultiSend";
 }
 
@@ -69,6 +65,7 @@ export type DecodeParamTypesResult =
   | DecodeArrayParamResult;
 
 export type Arg = {
+  decodeNote?: string;
   name: string;
   baseType: string;
   type: string;
@@ -78,9 +75,13 @@ export type Arg = {
 
 export type DecodeRecursiveResult = {
   functionName: string;
+  kind?: "revert";
   signature: string;
   rawArgs: any;
   args: Arg[];
+  guessedFunctionName?: string;
+  decodeNote?: string;
+  decoding?: "heuristic";
 } | null;
 
 export type DecodeEventResult = {

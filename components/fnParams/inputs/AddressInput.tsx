@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
   Text,
   InputProps,
@@ -6,10 +6,10 @@ import {
   Box,
   HStack,
   Spacer,
-  Link,
   Button,
   Tag,
 } from "@chakra-ui/react";
+import { ContractAddressLink } from "@/components/ContractTabs";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   fetchContractAbi,
@@ -22,14 +22,29 @@ import {
 } from "@/utils";
 import { useAccount } from "wagmi";
 import { JsonFragment } from "ethers";
+import { useCompactParameterInputs } from "../ParameterInputStyle";
 import { InputInfo } from "@/components/fnParams/inputs";
 import subdomains from "@/subdomains";
 import debounce from "lodash/debounce";
 import { motion, AnimatePresence } from "framer-motion";
+import { keyframes } from "@emotion/react";
 import { InputField } from "@/components/InputField";
 import { Address, zeroAddress, erc20Abi } from "viem";
 import { fetchAddressLabels } from "@/utils/addressLabels";
+import { AddressBookButton } from "@/components/AddressBook";
 import { getPublicClient } from "@/lib/publicClient";
+
+const resolveGlow = keyframes`
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(59,130,246,0.5), 0 0 10px rgba(59,130,246,0.15);
+  }
+  33% {
+    box-shadow: 0 0 0 1px rgba(139,92,246,0.5), 0 0 15px rgba(139,92,246,0.15), 0 0 30px rgba(139,92,246,0.05);
+  }
+  66% {
+    box-shadow: 0 0 0 1px rgba(96,165,250,0.6), 0 0 12px rgba(96,165,250,0.2);
+  }
+`;
 
 interface InputFieldProps extends InputProps {
   chainId: number;
@@ -38,6 +53,9 @@ interface InputFieldProps extends InputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFunctionIsDisabled?: (value: boolean) => void;
   hideTags?: boolean;
+  labelAction?: React.ReactNode;
+  /** Hide the [zeroAddr] and [user address] quick-fill buttons rendered below the input. */
+  hideQuickFillButtons?: boolean;
 }
 
 export const AddressInput = ({
@@ -48,142 +66,186 @@ export const AddressInput = ({
   isInvalid,
   setFunctionIsDisabled,
   hideTags,
+  labelAction,
+  hideQuickFillButtons,
   ...rest
 }: InputFieldProps) => {
+  const compact = useCompactParameterInputs();
   const { address: userAddress } = useAccount();
 
   const [ensName, setEnsName] = useState("");
   const [ensAvatar, setEnsAvatar] = useState("");
   const [resolvedAddress, setResolvedAddress] = useState("");
   const [isResolving, setIsResolving] = useState(false);
-  const [lastResolvedValue, setLastResolvedValue] = useState("");
   const [errorResolving, setErrorResolving] = useState(false);
 
   const [addressLabels, setAddressLabels] = useState<string[]>([]);
 
-  const [isDelayedAnimating, setIsDelayedAnimating] = useState(isResolving);
-  const delayedAnimationDuration = 100;
-
+  // Use refs for values accessed inside debounced callbacks to avoid
+  // recreating the callbacks (which causes useEffect re-triggers and loops)
+  const lastResolvedValueRef = useRef("");
+  const lastFetchedLabelsRef = useRef("");
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const chainIdRef = useRef(chainId);
+  chainIdRef.current = chainId;
   const prevIsResolvingRef = useRef(isResolving);
+  const currentValueRef = useRef(value);
+  currentValueRef.current = value;
+  const mountedRef = useRef(true);
 
-  const resolveEns = useCallback(
-    debounce(async (val: string) => {
-      if (val === lastResolvedValue) return; // Prevent re-resolution of already resolved values
-      setErrorResolving(false);
-      console.log({ val });
-      try {
-        // Check if it's a resolvable name (ENS, Basename, etc.)
-        if (isResolvableName(val)) {
-          setIsResolving(true);
-          const address = await resolveNameToAddress(val);
-          if (address) {
-            setResolvedAddress(address);
-            setEnsName(val);
-            onChange({
-              target: { value: address },
-            } as any);
-            setLastResolvedValue(address);
-          } else {
-            throw new Error("Name resolution failed");
-          }
-        } else if (val.length === 42) {
-          // It's an address, try reverse resolution
-          try {
-            const name = await resolveAddressToName(val);
-            if (name) {
-              setEnsName(name);
-              setResolvedAddress(val);
-              setLastResolvedValue(val);
+  const resolveEns = useMemo(
+    () =>
+      debounce(async (val: string) => {
+        const isCurrent = () =>
+          mountedRef.current && currentValueRef.current === val;
+        if (!isCurrent()) return;
+        if (val === lastResolvedValueRef.current) return;
+        setErrorResolving(false);
+        try {
+          if (isResolvableName(val)) {
+            setIsResolving(true);
+            const address = await resolveNameToAddress(val);
+            if (!isCurrent()) return;
+            if (address) {
+              setResolvedAddress(address);
+              setEnsName(val);
+              setEnsAvatar("");
+              lastResolvedValueRef.current = address;
+              setIsResolving(false);
+              onChangeRef.current({
+                target: { value: address },
+              } as any);
             } else {
               setEnsName("");
-              setResolvedAddress(val);
-              setLastResolvedValue(val);
+              setResolvedAddress("");
+              lastResolvedValueRef.current = val;
+              setErrorResolving(true);
             }
-          } catch {
+          } else if (val.length === 42) {
+            try {
+              const name = await resolveAddressToName(val);
+              if (!isCurrent()) return;
+              if (name) {
+                setEnsName(name);
+                setResolvedAddress(val);
+              } else {
+                setResolvedAddress(val);
+              }
+              lastResolvedValueRef.current = val;
+            } catch {
+              if (!isCurrent()) return;
+              setResolvedAddress(val);
+              lastResolvedValueRef.current = val;
+            }
+          } else {
             setEnsName("");
-            setResolvedAddress(val);
-            setLastResolvedValue(val);
+            setResolvedAddress("");
+            lastResolvedValueRef.current = "";
           }
-        } else {
+        } catch {
+          if (!isCurrent()) return;
+          setErrorResolving(true);
           setEnsName("");
           setResolvedAddress("");
-          setLastResolvedValue("");
+          lastResolvedValueRef.current = val;
+        } finally {
+          if (isCurrent()) setIsResolving(false);
         }
-      } catch (error) {
-        console.error("Error resolving name:", error);
-        setErrorResolving(true);
-        setEnsName("");
-        setResolvedAddress("");
-        setLastResolvedValue(val);
-      } finally {
-        setIsResolving(false);
-      }
-    }, 500),
-    [lastResolvedValue, onChange]
+      }, 500),
+    []
   );
 
-  const fetchSetAddressLabels = useCallback(
-    debounce(async (val: string) => {
-      if (val === lastResolvedValue) return; // Prevent re-resolution of already resolved values
-      setErrorResolving(false);
-      setAddressLabels([]);
-      try {
-        const client = getPublicClient(chainId);
-
-        // check if the address is a contract
-        const res = await client.getBytecode({
-          address: val as Address,
-        });
-
-        // try fetching the contract symbol() if it's a token
+  const fetchSetAddressLabels = useMemo(
+    () =>
+      debounce(async (val: string) => {
+        if (!val || !val.startsWith("0x") || val.length !== 42) return;
+        if (val === lastFetchedLabelsRef.current) return;
+        lastFetchedLabelsRef.current = val;
+        setAddressLabels([]);
         try {
-          const symbol = await client.readContract({
+          const currentChainId = chainIdRef.current;
+          const client = getPublicClient(currentChainId);
+
+          const res = await client.getBytecode({
             address: val as Address,
-            abi: erc20Abi,
-            functionName: "symbol",
           });
-          setAddressLabels([symbol]);
+
+          try {
+            const symbol = await client.readContract({
+              address: val as Address,
+              abi: erc20Abi,
+              functionName: "symbol",
+            });
+            setAddressLabels([symbol]);
+          } catch {
+            const fetchedAbi = await fetchContractAbi({
+              address: val,
+              chainId: currentChainId,
+            });
+            if (fetchedAbi) {
+              setAddressLabels([fetchedAbi.name]);
+            }
+          }
         } catch {
-          // else try fetching the contract name if it's verified
-          const fetchedAbi = await fetchContractAbi({ address: val, chainId });
-          if (fetchedAbi) {
-            setAddressLabels([fetchedAbi.name]);
+          try {
+            const labels = await fetchAddressLabels(val, chainIdRef.current);
+            if (labels.length > 0) {
+              setAddressLabels(labels);
+            }
+          } catch {
+            setAddressLabels([]);
           }
         }
-      } catch {
-        try {
-          const labels = await fetchAddressLabels(val, chainId);
-          if (labels.length > 0) {
-            setAddressLabels(labels);
-          }
-        } catch {
-          setAddressLabels([]);
-        }
-      }
-    }, 500),
-    [lastResolvedValue, chainId]
+      }, 500),
+    []
   );
 
   useEffect(() => {
-    if (value && value !== lastResolvedValue) {
+    resolveEns.cancel();
+    if (value && value === lastResolvedValueRef.current) return;
+    if (!value) lastResolvedValueRef.current = "";
+    setEnsName("");
+    setEnsAvatar("");
+    setResolvedAddress("");
+    setErrorResolving(false);
+    setIsResolving(false);
+    if (value && value !== lastResolvedValueRef.current) {
       resolveEns(value);
     }
-  }, [value, resolveEns, lastResolvedValue]);
+  }, [value, resolveEns]);
 
   useEffect(() => {
-    if (value && value !== lastResolvedValue && !hideTags) {
+    fetchSetAddressLabels.cancel();
+    if (value && !hideTags) {
       fetchSetAddressLabels(value);
     }
-  }, [value, hideTags, fetchSetAddressLabels, lastResolvedValue, chainId]);
+  }, [value, hideTags, fetchSetAddressLabels, chainId]);
+
+  // Cancel debounced calls on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      resolveEns.cancel();
+      fetchSetAddressLabels.cancel();
+    };
+  }, [resolveEns, fetchSetAddressLabels]);
 
   useEffect(() => {
+    let cancelled = false;
     if (ensName) {
-      getNameAvatar(ensName).then((avatar) => {
-        setEnsAvatar(avatar || "");
-      });
+      getNameAvatar(ensName)
+        .then((avatar) => {
+          if (!cancelled) setEnsAvatar(avatar || "");
+        })
+        .catch(() => {});
     } else {
       setEnsAvatar("");
     }
+    return () => {
+      cancelled = true;
+    };
   }, [ensName]);
 
   useEffect(() => {
@@ -193,30 +255,94 @@ export const AddressInput = ({
     }
   }, [isResolving, setFunctionIsDisabled]);
 
-  useEffect(() => {
-    if (!isResolving) {
-      const timer = setTimeout(() => {
-        setIsDelayedAnimating(false);
-      }, delayedAnimationDuration);
-      return () => clearTimeout(timer);
-    } else {
-      setIsDelayedAnimating(true);
-    }
-  }, [isResolving]);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value.trim();
+    // Clear resolved state when user modifies the input
+    if (ensName) {
+      setEnsName("");
+      setEnsAvatar("");
+      setResolvedAddress("");
+      setErrorResolving(false);
+      setAddressLabels([]);
+      lastResolvedValueRef.current = "";
+      lastFetchedLabelsRef.current = "";
+    }
     onChange({
       target: { value: newValue },
     } as any);
   };
 
+  const quickFillButtons = !hideQuickFillButtons && (
+    <HStack
+      my={compact ? 0 : 2}
+      flexWrap="wrap"
+      rowGap={1}
+      sx={
+        compact
+          ? {
+              "& button": {
+                height: 6,
+                minHeight: 6,
+                borderRadius: "md",
+                fontSize: "xs",
+                fontWeight: "normal",
+                color: "text.secondary",
+              },
+            }
+          : undefined
+      }
+    >
+      <Spacer display={compact ? "none" : undefined} />
+      <AddressBookButton
+        onSelect={(address: string) => {
+          onChange({
+            target: { value: address },
+          } as any);
+        }}
+      />
+      <Button
+        onClick={() => {
+          onChange({
+            target: { value: zeroAddress },
+          } as any);
+        }}
+        size={"sx"}
+        fontWeight={"thin"}
+        variant={"ghost"}
+        color="whiteAlpha.300"
+      >
+        [zeroAddr]
+      </Button>
+      {userAddress && (
+        <Button
+          onClick={() => {
+            onChange({
+              target: { value: userAddress },
+            } as any);
+          }}
+          size={"sx"}
+          fontWeight={"thin"}
+          variant={"ghost"}
+          color="whiteAlpha.300"
+        >
+          [{slicedText(userAddress)}]
+        </Button>
+      )}
+    </HStack>
+  );
+
   return (
     <Box>
-      <HStack mb={2}>
+      <HStack
+        mb={compact ? 1.5 : 2}
+        minW={0}
+        flexWrap="wrap"
+        rowGap={1}
+        sx={compact ? { "& .fn-input-info": { mb: 0 } } : undefined}
+      >
         <InputInfo input={input} />
         {addressLabels.length > 0 && (
-          <HStack py="2">
+          <HStack py="2" flexWrap="wrap">
             <Text fontSize={"xs"} opacity={0.6}>
               Tags:{" "}
             </Text>
@@ -228,6 +354,8 @@ export const AddressInput = ({
           </HStack>
         )}
         <Spacer />
+        {compact && quickFillButtons}
+        {labelAction}
         <AnimatePresence>
           {ensName && (
             <motion.div
@@ -236,7 +364,13 @@ export const AddressInput = ({
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <HStack px={2} bg="whiteAlpha.200" rounded="md">
+              <HStack
+                px={2}
+                bg="whiteAlpha.200"
+                rounded="md"
+                minW={0}
+                maxW="full"
+              >
                 {ensAvatar && (
                   <Avatar
                     src={ensAvatar}
@@ -245,63 +379,46 @@ export const AddressInput = ({
                     ignoreFallback
                   />
                 )}
-                <Box>{ensName}</Box>
+                <Box overflowWrap="anywhere" fontSize="sm">
+                  {ensName}
+                </Box>
               </HStack>
             </motion.div>
           )}
         </AnimatePresence>
         {resolvedAddress && (
-          <Link
-            href={`${getPath(
-              subdomains.EXPLORER.base
-            )}address/${resolvedAddress}/contract?chainId=${chainId}`}
-            title="View on explorer"
+          <Button
+            as={ContractAddressLink}
+            displayName={addressLabels[0] || ensName || undefined}
+            address={resolvedAddress}
+            chainId={chainId}
+            href={`${getPath(subdomains.CONTRACT.base)}${chainId ?? 1}/${resolvedAddress}`}
+            aria-label={`Open address ${resolvedAddress}`}
+            title="Open address"
             isExternal
+            size="xs"
           >
-            <Button size="xs">
-              <ExternalLinkIcon />
-            </Button>
-          </Link>
+            <ExternalLinkIcon />
+          </Button>
         )}
       </HStack>
       <Box>
-        <motion.div
-          initial={false}
-          animate={{
-            background: isDelayedAnimating
-              ? [
-                  "linear-gradient(90deg, #3498db, #8e44ad, #3498db)",
-                  "linear-gradient(180deg, #3498db, #8e44ad, #3498db)",
-                  "linear-gradient(270deg, #3498db, #8e44ad, #3498db)",
-                  "linear-gradient(360deg, #3498db, #8e44ad, #3498db)",
-                ]
-              : "none",
-            backgroundSize: "200% 200%",
-            boxShadow: isResolving
-              ? [
-                  "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
-                  "0 0 5px #8e44ad, 0 0 10px #8e44ad, 0 0 15px #8e44ad",
-                  "0 0 5px #3498db, 0 0 10px #3498db, 0 0 15px #3498db",
-                ]
-              : "none",
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-          style={{
-            width: "100%",
-            borderRadius: "md",
-            padding: "2px",
-          }}
-        >
+        <Box position="relative">
+          <Box
+            position="absolute"
+            inset="0"
+            rounded="md"
+            pointerEvents="none"
+            zIndex={1}
+            opacity={isResolving ? 1 : 0}
+            transition="opacity 0.4s ease"
+            animation={`${resolveGlow} 2s ease-in-out infinite`}
+          />
           <InputField
             type="text"
             value={value}
             onChange={handleInputChange}
             isInvalid={isInvalid || errorResolving}
-            bg={isDelayedAnimating ? "#222" : undefined}
             color="white"
             rounded="md"
             _focus={{
@@ -311,39 +428,9 @@ export const AddressInput = ({
             placeholder={rest.placeholder ?? ""}
             {...rest}
           />
-        </motion.div>
+        </Box>
 
-        <HStack my={2}>
-          <Spacer />
-          <Button
-            onClick={() => {
-              onChange({
-                target: { value: zeroAddress },
-              } as any);
-            }}
-            size={"sx"}
-            fontWeight={"thin"}
-            variant={"ghost"}
-            color="whiteAlpha.300"
-          >
-            [zeroAddr]
-          </Button>
-          {userAddress && (
-            <Button
-              onClick={() => {
-                onChange({
-                  target: { value: userAddress },
-                } as any);
-              }}
-              size={"sx"}
-              fontWeight={"thin"}
-              variant={"ghost"}
-              color="whiteAlpha.300"
-            >
-              [{slicedText(userAddress)}]
-            </Button>
-          )}
-        </HStack>
+        {!compact && quickFillButtons}
       </Box>
     </Box>
   );

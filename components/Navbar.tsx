@@ -1,5 +1,5 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import {
   Box,
   Flex,
@@ -11,34 +11,22 @@ import {
   VStack,
   useDisclosure,
   IconButton,
-  Drawer,
-  DrawerBody,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerHeader,
-  DrawerOverlay,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
+  Tooltip,
 } from "@chakra-ui/react";
-import { HamburgerIcon } from "@chakra-ui/icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGithub } from "@fortawesome/free-brands-svg-icons";
+import { Github, BookOpen, Network } from "lucide-react";
 import { baseURL } from "@/config";
-import subdomains from "@/subdomains";
-import { getPath } from "@/utils";
+import { ToolsMenu } from "./ToolsMenu";
 import { NotificationBar } from "./NotificationBar";
+import { useAddressBook } from "@/hooks/useAddressBook";
+
+const CustomChainDrawer = dynamic(() =>
+  import("./CustomChainModal").then((module) => module.CustomChainModal)
+);
 
 export const Navbar = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const {
-    isOpen: isMenuOpen,
-    onOpen: onMenuOpen,
-    onClose: onMenuClose,
-  } = useDisclosure();
+  const networks = useDisclosure();
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const { openDrawer } = useAddressBook();
 
   return (
     <VStack w="100%" spacing={0}>
@@ -46,12 +34,12 @@ export const Navbar = () => {
       <Flex
         w="100%"
         py={3}
-        px={4}
+        px={{ base: 4, md: 6 }}
         alignItems="center"
         justifyContent="space-between"
         borderBottom="1px solid"
-        borderColor="whiteAlpha.200"
-        bg="blackAlpha.400"
+        borderColor="border.subtle"
+        bg="bg.base"
       >
         {/* Logo */}
         <Link href={baseURL}>
@@ -60,127 +48,75 @@ export const Navbar = () => {
               w={{ base: "2rem", sm: "2.5rem" }}
               h={{ base: "2rem", sm: "2.5rem" }}
               alt="icon"
-              src="/icon.png"
-              rounded="lg"
+              src="/logo.svg"
+              rounded="md"
             />
             <Heading
-              color="custom.pale"
+              color="text.primary"
               fontSize={{ base: "lg", sm: "xl", md: "2xl" }}
-              display={{ base: "block", sm: "block" }}
+              fontWeight="semibold"
+              letterSpacing="-0.02em"
             >
-              Swiss Knife
+              ETH.sh
             </Heading>
           </HStack>
         </Link>
 
         {/* Right side actions */}
-        <HStack spacing={4}>
+        <HStack spacing={3}>
           {/* GitHub link */}
           <ChakraLink
             href="https://github.com/swiss-knife-xyz/swiss-knife"
             isExternal
             display="flex"
             alignItems="center"
+            color="text.secondary"
+            _hover={{ color: "text.primary" }}
+            transition="color 0.2s"
           >
-            <FontAwesomeIcon icon={faGithub} size={isMobile ? "lg" : "xl"} />
+            <Github size={isMobile ? 20 : 22} />
           </ChakraLink>
 
-          <IconButton
-            aria-label="Open menu"
-            icon={<HamburgerIcon />}
-            variant="ghost"
-            color="white"
-            colorScheme="whiteAlpha"
-            onClick={onMenuOpen}
-            size="md"
-          />
+          <Tooltip label="Custom networks & RPCs" placement="bottom">
+            <IconButton
+              aria-label="Manage custom networks and RPCs"
+              icon={<Network size={isMobile ? 18 : 20} />}
+              variant="ghost"
+              color="text.secondary"
+              _hover={{ color: "text.primary", bg: "bg.emphasis" }}
+              onClick={networks.onOpen}
+              size="md"
+            />
+          </Tooltip>
+
+          {/* Address Book */}
+          <Tooltip label="Address Book" placement="bottom">
+            <IconButton
+              aria-label="Open address book"
+              icon={<BookOpen size={isMobile ? 18 : 20} />}
+              variant="ghost"
+              color="text.secondary"
+              _hover={{ color: "text.primary", bg: "bg.emphasis" }}
+              onClick={openDrawer}
+              size="md"
+            />
+          </Tooltip>
+
+          <ToolsMenu />
         </HStack>
       </Flex>
 
       {/* Notification Bar */}
       <NotificationBar />
 
-      {/* Mobile Menu Drawer */}
-      <Drawer isOpen={isMenuOpen} placement="right" onClose={onMenuClose}>
-        <DrawerOverlay backdropFilter="blur(5px)" />
-        <DrawerContent bg="bg.900" maxW="280px">
-          <DrawerCloseButton />
-          <DrawerHeader borderBottomWidth="1px">🔨 All Tools</DrawerHeader>
-          <DrawerBody pt={4}>
-            <Accordion allowMultiple defaultIndex={[]} width="100%">
-              {Object.keys(subdomains).map((key, index) => {
-                const subdomain = subdomains[key];
-                const hasPaths = subdomain.paths.length > 0;
-
-                return (
-                  <AccordionItem key={index} border="none" mb={2}>
-                    {hasPaths ? (
-                      <>
-                        <AccordionButton
-                          p={2}
-                          _hover={{ bg: "whiteAlpha.100" }}
-                          rounded="md"
-                        >
-                          <Box
-                            as="span"
-                            flex="1"
-                            textAlign="left"
-                            fontSize="sm"
-                          >
-                            {subdomain.base}
-                          </Box>
-                          <AccordionIcon />
-                        </AccordionButton>
-                        <AccordionPanel pb={2} pl={4}>
-                          <VStack align="start" spacing={1} width="100%">
-                            {subdomain.paths.map((path, pathIndex) => (
-                              <Link
-                                key={pathIndex}
-                                href={`${getPath(
-                                  subdomain.base,
-                                  subdomain.isRelativePath
-                                )}${path}`}
-                                style={{ width: "100%" }}
-                                onClick={onMenuClose}
-                              >
-                                <Box
-                                  p={2}
-                                  _hover={{ bg: "whiteAlpha.100" }}
-                                  rounded="md"
-                                  width="100%"
-                                  fontSize="xs"
-                                >
-                                  {path}
-                                </Box>
-                              </Link>
-                            ))}
-                          </VStack>
-                        </AccordionPanel>
-                      </>
-                    ) : (
-                      <Link
-                        href={getPath(subdomain.base, subdomain.isRelativePath)}
-                        style={{ width: "100%" }}
-                        onClick={onMenuClose}
-                      >
-                        <Box
-                          p={2}
-                          _hover={{ bg: "whiteAlpha.100" }}
-                          rounded="md"
-                          width="100%"
-                          fontSize="sm"
-                        >
-                          {subdomain.base}
-                        </Box>
-                      </Link>
-                    )}
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
+      {networks.isOpen && (
+        <CustomChainDrawer
+          presentation="drawer"
+          isOpen={networks.isOpen}
+          onClose={networks.onClose}
+          onSaved={() => {}}
+        />
+      )}
     </VStack>
   );
 };

@@ -1,15 +1,15 @@
-import { ExplorerLayout as ExplorerLayoutC } from "@/components/layouts/ExplorerLayout";
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
-  title: "Explorer | Swiss-Knife.xyz",
+  title: "Contract | ETH.sh",
   description:
-    "Quickly view any address/ens or transaction across ALL EVM explorers, in just a click!",
-  images: "https://swiss-knife.xyz/og/explorer.png",
+    "Interact with any smart contract - read & write functions, storage slots, and raw calldata. Works with both verified and unverified contracts.",
+  canonical: "https://explorer.eth.sh/",
+  images: "https://eth.sh/api/og/contract",
 });
 
-const ExplorerLayout = ({ children }: { children: React.ReactNode }) => {
-  return <ExplorerLayoutC>{children}</ExplorerLayoutC>;
+const ContractLayout = ({ children }: { children: React.ReactNode }) => {
+  return <>{children}</>;
 };
 
-export default ExplorerLayout;
+export default ContractLayout;

@@ -13,10 +13,14 @@ export const ConnectButton = ({
   expectedChainId,
   hideAccount,
   hideChain,
+  transparentWrongNetwork,
+  embedded,
 }: {
   expectedChainId?: number;
   hideAccount?: boolean;
   hideChain?: boolean;
+  transparentWrongNetwork?: boolean;
+  embedded?: boolean;
 }) => {
   const { switchChain } = useSwitchChain();
   const isMobile = useBreakpointValue({ base: true, md: false });
@@ -33,7 +37,6 @@ export const ConnectButton = ({
       {({
         account,
         chain,
-        openAccountModal,
         openChainModal,
         openConnectModal,
         authenticationStatus,
@@ -52,7 +55,7 @@ export const ConnectButton = ({
           <Box hidden={!ready}>
             {(() => {
               if (!connected) {
-                return <ConnectWalletBtn onClick={openConnectModal} />;
+                return <ConnectWalletBtn onClick={openConnectModal} embedded={embedded} />;
               }
 
               return (
@@ -82,6 +85,7 @@ export const ConnectButton = ({
                           }
                         }}
                         isCompact={isCompact}
+                        transparent={transparentWrongNetwork}
                       />
                     </Box>
                   ) : (
@@ -99,11 +103,7 @@ export const ConnectButton = ({
                   )}
                   {!shouldHideAccount && (
                     <Box flex={isMobile ? "1" : "initial"}>
-                      <AccountButton
-                        onClick={openAccountModal}
-                        account={account}
-                        isCompact={isCompact}
-                      />
+                      <AccountButton account={account} isCompact={isCompact} />
                     </Box>
                   )}
                 </Flex>

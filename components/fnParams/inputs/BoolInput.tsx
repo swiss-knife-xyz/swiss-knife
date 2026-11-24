@@ -1,8 +1,8 @@
 import { Box, InputProps } from "@chakra-ui/react";
-import { InputField } from "@/components/InputField";
+
 import { InputInfo } from "./InputInfo";
 import { JsonFragment } from "ethers";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect } from "react";
 import { DarkSelect } from "@/components/DarkSelect";
 
 interface InputFieldProps extends InputProps {
@@ -16,41 +16,35 @@ const boolOptions = [
   { label: "true", value: true },
 ] as const;
 
-type BoolOption = (typeof boolOptions)[number];
-
-interface SelectedBoolOptionState {
-  label: string;
-  value: boolean;
-}
-
 export const BoolInput = ({
   input,
   value,
   onChange,
   ...props
 }: InputFieldProps) => {
-  const [selectedBoolOption, setSelectedBoolOption] =
-    useState<SelectedBoolOptionState>(boolOptions[0]);
+  const selectedBoolOption = boolOptions[value === "true" ? 1 : 0];
 
   // set initial value
   useEffect(() => {
+    if (value !== undefined && value !== "") return;
     onChange({
       target: {
         value: boolOptions[0].value.toString(), // Convert boolean to string
       },
     } as React.ChangeEvent<HTMLInputElement>);
-  }, []);
+  }, [onChange, value]);
 
   return (
     <Box>
       <InputInfo input={input} />
       <DarkSelect
+        ariaLabel={props["aria-label"]}
+        isInvalid={props.isInvalid}
         boxProps={{
           w: "9rem",
         }}
         selectedOption={selectedBoolOption}
         setSelectedOption={(value) => {
-          setSelectedBoolOption(value as SelectedBoolOptionState);
           if (value) {
             onChange({
               target: {

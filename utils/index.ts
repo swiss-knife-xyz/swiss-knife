@@ -1,3 +1,5 @@
+import { getIPFSGatewayUrls } from "@/lib/ipfs";
+import { cachedContractMetadata } from "@/lib/contractMetadataCache";
 import { Metadata } from "next";
 import {
   Hex,
@@ -13,6 +15,7 @@ import {
   TX_KEY,
 } from "@/data/common";
 import { getPublicClient } from "@/lib/publicClient";
+import subdomains from "@/subdomains";
 import {
   ContractResponse,
   ExplorerData,
@@ -52,45 +55,67 @@ export const getPath = (subdomain: string, isRelativePath: boolean = false) => {
   if (subdomain.length === 0) {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? "/"
-      : "https://swiss-knife.xyz/";
+      : "https://eth.sh/";
   }
 
-  if (isRelativePath) {
+  const usesApexPath =
+    isRelativePath ||
+    Object.values(subdomains).some(
+      (tool) => tool.base === subdomain && tool.isRelativePath
+    );
+  if (usesApexPath) {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? `/${subdomain}/`
-      : `https://swiss-knife.xyz/${subdomain}/`;
+      : `https://eth.sh/${subdomain}/`;
   } else {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? `/${subdomain}/`
-      : `https://${subdomain}.swiss-knife.xyz/`;
+      : `https://${subdomain}.eth.sh/`;
   }
 };
 
 export const apiBasePath =
-  process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
-    ? ""
-    : "https://swiss-knife.xyz";
+  process.env.NEXT_PUBLIC_DEVELOPMENT === "true" ? "" : "https://eth.sh";
 
 export const getMetadata = (_metadata: {
   title: string;
   description: string;
   images: string;
+  canonical?: string;
 }) => {
   const metadata: Metadata = {
+    metadataBase: new URL(
+      process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
+        ? "http://localhost:3000"
+        : "https://eth.sh"
+    ),
     title: _metadata.title,
     description: _metadata.description,
+    alternates: _metadata.canonical ? { canonical: _metadata.canonical } : undefined,
     twitter: {
       card: "summary_large_image",
-      creator: "@swissknifexyz",
+      creator: "@ethdotsh",
       title: _metadata.title,
       description: _metadata.description,
       images: _metadata.images,
     },
     openGraph: {
       type: "website",
+      url: _metadata.canonical,
+      siteName: "ETH.sh",
+      locale: "en_US",
       title: _metadata.title,
       description: _metadata.description,
-      images: _metadata.images,
+      images: [{
+        url: _metadata.images,
+        alt: _metadata.title,
+        // Checked-in /og PNGs are 2144×1122; generated cards are 1200×630.
+        ...(_metadata.images.startsWith("https://eth.sh/og/")
+          ? { width: 2144, height: 1122 }
+          : /^https:\/\/eth\.sh\/api\/og(?:\/|\?|$)/.test(_metadata.images)
+            ? { width: 1200, height: 630 }
+            : {}),
+      }],
     },
     robots: "index, follow",
   };
@@ -146,7 +171,8 @@ export const slicedText = (txt: string, charCount: number = 6) => {
 };
 import { NextRequest } from "next/server";
 import { InterfaceAbi } from "ethers";
-import { fetchFunctionInterface } from "@/lib/decoder";
+import { fetchFunctionInterfaces } from "@/lib/decoder";
+import { inferFunctionInputs } from "@/lib/inferredContract";
 import { whatsabi } from "@shazow/whatsabi";
 
 export default function getIP(request: Request | NextRequest) {
@@ -315,12 +341,7 @@ export const decodeBase64 = (
   }
 };
 
-export const resolveIPFS = (value: string) => {
-  if (value.startsWith("ipfs://")) {
-    return `https://gateway.pinata.cloud/ipfs/${value.slice(7)}`;
-  }
-  return value;
-};
+export const resolveIPFS = (value: string) => getIPFSGatewayUrls(value)[0];
 
 export const isValidJSON = (str: string): boolean => {
   try {
@@ -335,28 +356,43 @@ export const isValidJSON = (str: string): boolean => {
   }
 };
 
+const loadContractMetadata = (
+  chainId: number,
+  address: string
+): Promise<ContractResponse> =>
+  cachedContractMetadata(chainId, address, async () => {
+    const res = await fetch(
+      `${apiBasePath}/api/source-code?address=${address}&chainId=${chainId}`
+    );
+    if (!res.ok) throw new Error("Unable to fetch contract metadata");
+    return res.json();
+  });
+
 export const getSourceCode = async (
   chainId: number,
   address: string
-): Promise<Record<string, string> | undefined> => {
-  const res = await fetch(
-    `${apiBasePath}/api/source-code?address=${address}&chainId=${chainId}`
-  );
+): Promise<Record<string, string> | undefined> =>
+  (await getSourceCodeWithMetadata(chainId, address))?.sourceCode;
 
+export const getSourceCodeWithMetadata = async (
+  chainId: number,
+  address: string
+): Promise<{ sourceCode: Record<string, string>; contractName: string } | undefined> => {
   try {
-    const data: ContractResponse = await res.json();
+    const data = await loadContractMetadata(chainId, address);
     const { SourceCode, ContractName } = data.result[0];
     const isMultiple = SourceCode.startsWith("{");
     if (isMultiple) {
       const { sources } = JSON.parse(
         SourceCode.substring(1, SourceCode.length - 1)
       ) as SourceCode;
-      return Object.keys(sources).reduce(
+      const sourceCode = Object.keys(sources).reduce<Record<string, string>>(
         (acc, key) => ({ ...acc, [key]: sources[key].content }),
         {}
       );
+      return { sourceCode, contractName: ContractName };
     } else {
-      return { [ContractName]: SourceCode };
+      return { sourceCode: { [ContractName]: SourceCode }, contractName: ContractName };
     }
   } catch {}
 };
@@ -376,32 +412,31 @@ export const fetchContractAbiRaw = async ({
     name: string;
   };
 }> => {
-  const res = await fetch(
-    `${apiBasePath}/api/source-code?address=${address}&chainId=${chainId}`
-  );
-
-  const data: ContractResponse = await res.json();
+  const data = await loadContractMetadata(chainId, address);
   const { ABI, ContractName, Implementation } = data.result[0];
 
-  if (Implementation.length > 0) {
-    const res = await fetch(
-      `${apiBasePath}/api/source-code?address=${Implementation}&chainId=${chainId}`
-    );
+  const parseAbi = (abiStr: string): InterfaceAbi => {
+    if (!abiStr || !abiStr.trim().startsWith("[")) {
+      throw new Error(abiStr || "No ABI returned");
+    }
+    return JSON.parse(abiStr);
+  };
 
-    const implData: ContractResponse = await res.json();
+  if (Implementation.length > 0) {
+    const implData = await loadContractMetadata(chainId, Implementation);
     const { ABI: implAbi, ContractName: implName } = implData.result[0];
 
     return {
-      abi: JSON.parse(ABI),
+      abi: parseAbi(ABI),
       name: ContractName,
       implementation: {
         address: Implementation,
-        abi: JSON.parse(implAbi),
+        abi: parseAbi(implAbi),
         name: implName,
       },
     };
   } else {
-    return { abi: JSON.parse(ABI), name: ContractName };
+    return { abi: parseAbi(ABI), name: ContractName };
   }
 };
 
@@ -517,7 +552,9 @@ export const parseEVMoleInputTypes = (argsString: string): EVMParameter[] => {
   const trimmed = argsString.trim();
   if (trimmed === "" || trimmed === "()") return [];
 
-  return [parseType(trimmed)];
+  // Split top-level components and parse each one
+  const components = splitComponents(trimmed);
+  return components.map((comp, idx) => parseType(comp, idx));
 };
 
 export const processContractBytecode = async ({
@@ -542,28 +579,12 @@ export const processContractBytecode = async ({
 
       const hexSelector = startHexWith0x(func.selector);
 
-      // Try to fetch function interface
-      const functionInterface = await fetchFunctionInterface({
-        selector: hexSelector,
-      });
-
-      let name: string | undefined;
-      if (functionInterface) {
-        name = functionInterface.split("(")[0].trim();
-      }
-
-      // evmole returns a bare comma-separated arg list (e.g. "address,uint256").
-      // Wrap in parens so parseEVMoleInputTypes treats it as a tuple, then
-      // unwrap the synthetic outer tuple to get a flat ABI inputs array.
-      const inputs = func.arguments
-        ? (parseEVMoleInputTypes(`(${func.arguments})`)[0] as any)
-            ?.components ?? []
-        : [];
+      const signatures = await fetchFunctionInterfaces({ selector: hexSelector });
+      const inferred = inferFunctionInputs(hexSelector, func.arguments, signatures);
 
       return {
         type: "function",
-        name: name || `selector: ${hexSelector}`,
-        inputs,
+        ...inferred,
         stateMutability,
         selector: hexSelector,
       };
@@ -594,13 +615,18 @@ export const getImplementationFromBytecodeIfProxy = async ({
     }
   | undefined
 > => {
-  const result = await whatsabi.autoload(address, { provider: client });
-  const followProxies = await result.followProxies;
-  if (followProxies) {
-    const proxies = await followProxies();
-    const implementationAddress = proxies.address;
+  // Proxy detection only needs on-chain data. ABI/signature loaders would
+  // repeat failed explorer requests and can block bytecode inference.
+  const result = await whatsabi.autoload(address, {
+    provider: client,
+    abiLoader: false,
+    signatureLookup: false,
+  });
+  if (result.followProxies && result.proxies.length > 0) {
+    const implementation = await result.followProxies();
+    if (implementation.address.toLowerCase() === address.toLowerCase()) return;
     return {
-      implementationAddress,
+      implementationAddress: implementation.address,
       proxyName: result.proxies[0].name,
     };
   }

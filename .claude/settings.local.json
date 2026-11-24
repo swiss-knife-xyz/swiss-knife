@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm build:*)",
+      "Bash(npx tsc:*)",
+      "mcp__ide__getDiagnostics"
+    ]
+  }
+}

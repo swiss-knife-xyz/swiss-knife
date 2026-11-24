@@ -2,10 +2,11 @@ import { ENSHistoryLayout as ENSHistoryLayoutC } from "./ENSHistoryLayout";
 import { getMetadata } from "@/utils";
 
 export const metadata = getMetadata({
-  title: "ENS History | Swiss-Knife.xyz",
+  title: "ENS History | ETH.sh",
   description:
     "Check IPFS content changes, ownership transfers and more over time.",
-  images: "https://swiss-knife.xyz/og/ens-history.png",
+  canonical: "https://ens.eth.sh/history",
+  images: "https://eth.sh/api/og/ens-history",
 });
 
 const ENSHistoryLayout = ({ children }: { children: React.ReactNode }) => {

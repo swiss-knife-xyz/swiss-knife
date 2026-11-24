@@ -1,19 +1,8 @@
-"use client";
+import { headers } from "next/headers";
+import { permanentRedirect } from "next/navigation";
+import { getToolEntryRedirect } from "@/lib/seo";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { getPath } from "@/utils";
-import subdomains from "@/subdomains";
-
-const Calldata = () => {
-  const router = useRouter();
-
-  // /decoder on load
-  useEffect(() => {
-    router.push(`${getPath(subdomains.CALLDATA.base)}decoder`);
-  }, []);
-
-  return <></>;
-};
-
-export default Calldata;
+export default async function ToolEntry() {
+  const host = (await headers()).get("host");
+  permanentRedirect(getToolEntryRedirect("calldata", host));
+}

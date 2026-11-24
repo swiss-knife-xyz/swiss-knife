@@ -1,52 +1,236 @@
 import {
   Box,
   Container,
-  Stack,
   Text,
-  Link,
-  Center,
+  Link as ChakraLink,
   HStack,
   Heading,
-  VStack,
+  Flex,
+  Grid,
+  Button,
+  Image,
 } from "@chakra-ui/react";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTwitter, faDiscord } from "@fortawesome/free-brands-svg-icons";
+import { ExternalLink, MessageCircle } from "lucide-react";
+import { getPath } from "@/utils";
+import subdomains from "@/subdomains";
+import { getPublicPageUrls } from "@/lib/seo";
+import { getFaucetChainSeoEntries } from "@/app/faucet/chains";
 
 export const Footer = () => {
   return (
     <Box
-      flexShrink={0}
-      bg={"blackAlpha.500"}
-      color={"gray.200"}
-      borderTop={"solid"}
-      borderTopWidth={1}
-      borderColor={"custom.greenDarker"}
+      mt={10}
+      bg="bg.base"
+      py={{ base: 10, md: 12 }}
+      borderTop="1px"
+      borderColor="border.subtle"
     >
-      <Container as={Stack} maxW={"8xl"} py={10}>
-        <VStack spacing={5}>
-          <Center flexDir={"column"}>
-            <Heading size="md">
-              <Link
-                color={"white"}
-                href="https://twitter.com/swissknifexyz"
-                isExternal
+      <Container maxW="container.xl" px={{ base: 4, md: 6 }}>
+        <Flex
+          direction={{ base: "column", md: "row" }}
+          justify="space-between"
+          align={{ base: "center", md: "flex-start" }}
+          gap={{ base: 8, md: 10 }}
+        >
+          {/* Logo and Description */}
+          <Flex
+            direction="column"
+            maxW={{ base: "100%", md: "30%" }}
+            mb={{ base: 6, md: 0 }}
+            align={{ base: "center", md: "flex-start" }}
+            textAlign={{ base: "center", md: "left" }}
+          >
+            <HStack spacing={3} mb={4}>
+              <Image
+                src="/logo.svg"
+                alt="ETH.sh"
+                boxSize="2.5rem"
+                rounded="md"
+              />
+              <Heading fontWeight="semibold" fontSize="2xl" color="text.primary">
+                ETH.sh
+              </Heading>
+            </HStack>
+            <Text color="text.secondary" fontSize="sm" lineHeight="tall">
+              ETH.sh is a comprehensive suite of tools for Ethereum developers
+              and users, designed to simplify blockchain interactions & making
+              the EVM human-friendly.
+            </Text>
+          </Flex>
+
+          {/* Quick Links, Popular Tools, and Newsletter in a grid */}
+          <Grid
+            templateColumns={{
+              base: "repeat(2, minmax(0, 1fr))",
+              md: "repeat(3, minmax(0, 1fr))",
+            }}
+            gap={{ base: 6, md: 10 }}
+            width={{ base: "100%", md: "auto" }}
+          >
+            {/* Quick Links */}
+            <Box>
+              <Heading
+                as="h4"
+                size="sm"
+                color="text.primary"
+                mb={4}
+                fontWeight="semibold"
+                textAlign="left"
               >
-                <HStack>
-                  <FontAwesomeIcon icon={faTwitter} size="lg" />
-                  {"  "}
-                  <Text display="inline">@swissknifexyz</Text>{" "}
-                  <ExternalLinkIcon />
-                </HStack>
-              </Link>
-            </Heading>
-          </Center>
-          <Center>
-            <Link href={"/discord"} color="twitter.200" isExternal>
-              <FontAwesomeIcon icon={faDiscord} size="2x" />
-            </Link>
-          </Center>
-        </VStack>
+                Quick Links
+              </Heading>
+              <Flex direction="column" gap={2} align="flex-start">
+                <ChakraLink
+                  href={`${getPath("")}#all-tools`}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
+                >
+                  All Tools
+                </ChakraLink>
+                <ChakraLink
+                  href="https://github.com/swiss-knife-xyz/swiss-knife"
+                  isExternal
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                >
+                  GitHub <ExternalLink size={12} />
+                </ChakraLink>
+                <ChakraLink
+                  href="/discord"
+                  isExternal
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                >
+                  Discord <ExternalLink size={12} />
+                </ChakraLink>
+                <ChakraLink
+                  href="https://x.com/ethdotsh"
+                  isExternal
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                >
+                  Twitter <ExternalLink size={12} />
+                </ChakraLink>
+              </Flex>
+            </Box>
+
+            {/* Popular Tools */}
+            <Box>
+              <Heading
+                as="h4"
+                size="sm"
+                color="text.primary"
+                mb={4}
+                fontWeight="semibold"
+                textAlign="left"
+              >
+                Popular Tools
+              </Heading>
+              <Flex direction="column" gap={2} align="flex-start">
+                <ChakraLink
+                  href={`${getPath(subdomains.CALLDATA.base)}decoder`}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
+                >
+                  Calldata Decoder
+                </ChakraLink>
+                <ChakraLink
+                  href={getPath(subdomains.CONTRACT.base)}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
+                >
+                  Explorer
+                </ChakraLink>
+                <ChakraLink
+                  href={`${getPath(subdomains.SOLIDITY.base)}compiler`}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
+                >
+                  Solidity Compiler
+                </ChakraLink>
+                <ChakraLink
+                  href={getPath(subdomains.TRANSACT.base)}
+                  color="text.secondary"
+                  fontSize="sm"
+                  _hover={{ color: "primary.400" }}
+                  transition="color 0.2s"
+                >
+                  Transact
+                </ChakraLink>
+              </Flex>
+            </Box>
+
+            {/* Community */}
+            <Box gridColumn={{ base: "1 / -1", md: "auto" }}>
+              <Heading
+                as="h4"
+                size="sm"
+                color="text.primary"
+                mb={4}
+                fontWeight="semibold"
+                textAlign={{ base: "center", sm: "left" }}
+              >
+                Stay Updated
+              </Heading>
+              <Text
+                color="text.secondary"
+                fontSize="sm"
+                mb={4}
+                textAlign={{ base: "center", sm: "left" }}
+              >
+                Join our community to get the latest updates and announcements.
+              </Text>
+              <Flex justify={{ base: "center", sm: "flex-start" }}>
+                <Button
+                  size="md"
+                  bg="custom.base"
+                  color="white"
+                  _hover={{ bg: "red.600" }}
+                  leftIcon={<MessageCircle size={18} />}
+                  as="a"
+                  href="/discord"
+                  borderRadius="lg"
+                  fontWeight="medium"
+                >
+                  Join Discord
+                </Button>
+              </Flex>
+            </Box>
+          </Grid>
+        </Flex>
+        <Box as="details" mt={8} color="text.secondary" fontSize="sm">
+          <Box as="summary" cursor="pointer">Public tools directory</Box>
+          <Flex as="nav" aria-label="Public tools directory" wrap="wrap" gap={4} mt={4}>
+            {[...getPublicPageUrls(), ...getFaucetChainSeoEntries().map(({ slug }) => `https://faucet.eth.sh/${slug}`)].map((url) => (
+              <ChakraLink key={url} href={url} _hover={{ color: "primary.400" }}>
+                {url.replace("https://", "").replace(/\/$/, "")}
+              </ChakraLink>
+            ))}
+          </Flex>
+        </Box>
       </Container>
     </Box>
   );

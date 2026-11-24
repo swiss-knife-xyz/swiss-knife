@@ -1,0 +1,78 @@
+export interface FileNode {
+  id: string;
+  name: string;
+  path: string;
+  children?: FileNode[];
+  content?: string;
+  isTarget?: boolean;
+}
+
+export interface DiffStats {
+  linesAdded: number;
+  linesRemoved: number;
+}
+
+export interface TabData {
+  id: string;
+  name: string;
+  path: string;
+  content: string;
+  isPinned?: boolean;
+  isTarget?: boolean;
+  diffStats?: DiffStats;
+}
+
+export interface DiffFileData {
+  /** Fall back to bounded source previews when diff computation exceeds its budget. */
+  previewOnly?: boolean;
+  oldCode: string;
+  oldExists?: boolean;
+  newExists?: boolean;
+  diffCode: string; // with +→ and -→ markers
+  newCode: string;
+  changesCount: number;
+  linesAdded: number;
+  linesRemoved: number;
+}
+
+export interface SourceCodeExplorerProps {
+  sourceCode: Record<string, string>;
+  targetFileName?: string;
+  /** A new request object also repeats navigation to an already open location. */
+  navigation?: { path: string; line: number; column: number; revision: number };
+  contractName?: string;
+  /** Explorer-only actions, already resolved against the contract ABI and source index. */
+  callableFunctions?: (import("@/lib/solidity/functionSelectors").FunctionSelector & { path: string })[];
+  onCallFunction?(signature: string): void;
+  /** When provided, enables diff mode with Old/Diff/New view switching */
+  diffData?: Record<string, DiffFileData>;
+  diffLabels?: { old: string; new: string };
+  onDiffNavigate?(path: string, lineNumber: number): void;
+  /** Initial height in pixels (default: 400) */
+  initialHeight?: number;
+  /** Initial file sidebar width in pixels (default: 180). */
+  initialSidebarWidth?: number;
+  /** Optional viewport cap for the editor pane, excluding outer toolbars. */
+  maxHeight?: string;
+  /** Whether the parent container is in fullscreen mode */
+  isFullscreen?: boolean;
+}
+
+// Search types
+export interface SearchMatch {
+  lineNumber: number;
+  lineContent: string;
+  matchStart: number;
+  matchEnd: number;
+}
+
+export interface SearchResult {
+  filePath: string;
+  fileName: string;
+  matches: SearchMatch[];
+}
+
+export interface SearchOptions {
+  caseSensitive: boolean;
+  regex: boolean;
+}

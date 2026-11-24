@@ -1,152 +1,111 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
-import {
-  Box,
-  Image as ChakraImage,
-  BoxProps,
-  Center,
-  Skeleton,
-} from "@chakra-ui/react";
+import { IPFS_GATEWAY_TIMEOUT_MS } from "@/lib/ipfs";
+import { useEffect, useState } from "react";
+import { Box, Image, Skeleton, Text, type BoxProps } from "@chakra-ui/react";
 
 interface ResizableImageProps extends Omit<BoxProps, "width" | "height"> {
   src: string;
+  fallbackSrcs?: string[];
+  onSourceLoad?: (src: string) => void;
   maxInitialWidth?: number;
   maxInitialHeight?: number;
 }
 
-interface Size {
-  width: number;
-  height: number;
-}
+// Native resizing stays bounded by the containing parameter column.
+export const ResizableImage = (props: ResizableImageProps) => (
+  <ResizableImageContent key={props.src} {...props} />
+);
 
-export const ResizableImage: React.FC<ResizableImageProps> = ({
+const ResizableImageContent = ({
   src,
+  fallbackSrcs = [],
+  onSourceLoad,
   maxInitialWidth = 300,
   maxInitialHeight = 200,
   ...boxProps
-}) => {
-  const [size, setSize] = useState<Size>({
+}: ResizableImageProps) => {
+  const [size, setSize] = useState({
     width: maxInitialWidth,
     height: maxInitialHeight,
   });
-  const [isResizing, setIsResizing] = useState<boolean>(false);
-  const [imageLoaded, setImageLoaded] = useState<boolean>(false);
-  const imageRef = useRef<HTMLImageElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const aspectRatioRef = useRef<number>(1);
-
-  const calculateAspectRatio = useCallback(
-    (originalWidth: number, originalHeight: number) => {
-      const aspectRatio = originalWidth / originalHeight;
-      aspectRatioRef.current = aspectRatio;
-      let newWidth = maxInitialWidth;
-      let newHeight = maxInitialWidth / aspectRatio;
-
-      if (newHeight > maxInitialHeight) {
-        newHeight = maxInitialHeight;
-        newWidth = maxInitialHeight * aspectRatio;
-      }
-
-      return { width: newWidth, height: newHeight };
-    },
-    [maxInitialWidth, maxInitialHeight]
-  );
-
-  const handleImageLoad = useCallback(
-    (event: Event) => {
-      const img = event.target as HTMLImageElement;
-      if (img) {
-        const { naturalWidth, naturalHeight } = img;
-        const newSize = calculateAspectRatio(naturalWidth, naturalHeight);
-        setSize(newSize);
-        setImageLoaded(true);
-      }
-    },
-    [calculateAspectRatio]
-  );
-
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const activeSrc = [src, ...fallbackSrcs][sourceIndex];
+  const hasFallbacks = fallbackSrcs.length > 0;
+  const advance = () => {
+    if (sourceIndex < fallbackSrcs.length) {
+      setLoaded(false);
+      setSourceIndex(sourceIndex + 1);
+    } else {
+      setFailed(true);
+      setLoaded(true);
+    }
+  };
   useEffect(() => {
-    const img = document.createElement("img");
-    img.src = src;
-    img.onload = handleImageLoad;
-  }, [src, handleImageLoad]);
-
-  const startResize = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  }, []);
-
-  const stopResize = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  const resize = useCallback(
-    (e: MouseEvent | TouchEvent) => {
-      if (isResizing && containerRef.current) {
-        const { clientX, clientY } = "touches" in e ? e.touches[0] : e;
-        const { left, top } = containerRef.current.getBoundingClientRect();
-        const newWidth = Math.max(100, clientX - left);
-        const newHeight = newWidth / aspectRatioRef.current;
-
-        setSize({
-          width: newWidth,
-          height: newHeight,
-        });
+    if (!hasFallbacks || loaded || failed) return;
+    const timer = window.setTimeout(() => {
+      if (sourceIndex < fallbackSrcs.length) setSourceIndex(sourceIndex + 1);
+      else {
+        setFailed(true);
+        setLoaded(true);
       }
-    },
-    [isResizing]
-  );
-
-  useEffect(() => {
-    document.addEventListener("mousemove", resize);
-    document.addEventListener("mouseup", stopResize);
-    document.addEventListener("touchmove", resize);
-    document.addEventListener("touchend", stopResize);
-
-    return () => {
-      document.removeEventListener("mousemove", resize);
-      document.removeEventListener("mouseup", stopResize);
-      document.removeEventListener("touchmove", resize);
-      document.removeEventListener("touchend", stopResize);
-    };
-  }, [resize, stopResize]);
-
+    }, IPFS_GATEWAY_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeSrc,
+    sourceIndex,
+    fallbackSrcs.length,
+    hasFallbacks,
+    loaded,
+    failed,
+  ]);
   return (
-    <Center flexDir="column">
-      <Box
-        ref={containerRef}
-        position="relative"
-        display="inline-block"
-        width={`${size.width}px`}
-        height={`${size.height}px`}
-        {...boxProps}
-      >
-        <Skeleton isLoaded={imageLoaded} width="100%" height="100%">
-          <ChakraImage
-            ref={imageRef}
-            src={src}
-            objectFit="cover"
-            width="100%"
-            height="100%"
-            style={{ opacity: imageLoaded ? 1 : 0 }}
-            transition="opacity 0.3s ease-in-out"
+    <Box
+      position="relative"
+      w={`${size.width}px`}
+      h={`${size.height}px`}
+      maxW="100%"
+      minW="80px"
+      minH="80px"
+      resize="both"
+      overflow="hidden"
+      borderRadius="4px"
+      bg="bg.muted"
+      title="Drag the corner to resize"
+      {...boxProps}
+    >
+      {failed ? (
+        <Text p={3} color="text.tertiary" fontSize="xs">
+          Image unavailable
+        </Text>
+      ) : (
+        <Skeleton
+          isLoaded={loaded}
+          w="full"
+          h="full"
+          startColor="whiteAlpha.50"
+          endColor="whiteAlpha.100"
+        >
+          <Image
+            key={activeSrc}
+            src={activeSrc}
+            alt="Image preview"
+            w="full"
+            h="full"
+            objectFit="contain"
+            draggable={false}
+            onLoad={(event) => {
+              const image = event.currentTarget;
+              const ratio = image.naturalWidth / image.naturalHeight || 1;
+              const width = Math.min(maxInitialWidth, maxInitialHeight * ratio);
+              setSize({ width, height: width / ratio });
+              setLoaded(true);
+              onSourceLoad?.(activeSrc);
+            }}
+            onError={advance}
           />
         </Skeleton>
-        {imageLoaded && (
-          <Box
-            position="absolute"
-            bottom="0"
-            right="0"
-            width="20px"
-            height="20px"
-            cursor="se-resize"
-            onMouseDown={startResize}
-            onTouchStart={startResize}
-          />
-        )}
-      </Box>
-      <Box mt={2} fontSize="sm" color="whiteAlpha.800">
-        *resizeable image*
-      </Box>
-    </Center>
+      )}
+    </Box>
   );
 };

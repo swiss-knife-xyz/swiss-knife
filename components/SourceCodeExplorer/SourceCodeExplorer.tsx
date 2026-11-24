@@ -1,0 +1,797 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { Box, HStack, Text, VStack, IconButton, Tooltip, Button, Icon } from "@chakra-ui/react";
+import { Editor, type OnMount } from "@monaco-editor/react";
+import { Search, Files, Columns2, Rows2 } from "lucide-react";
+import { resolveImport } from "@/lib/solidity/compilation";
+import { configureSolidityLanguage } from "./solidityLanguage";
+import { flashSourceLine } from "./flashSourceLine";
+import { registerSelectorLenses } from "./selectorLenses";
+import { FileExplorerPanel } from "./FileExplorerPanel";
+import { CodeEditorTabs } from "./CodeEditorTabs";
+import { SearchPanel } from "./SearchPanel";
+import { buildFileTree, findTargetFile, getLanguageForFile, detectLanguageFromContent } from "./utils";
+import { FileNode, TabData, SourceCodeExplorerProps, SearchOptions } from "./types";
+import { CopyToClipboard } from "@/components/CopyToClipboard";
+
+// Monaco editor instance type from OnMount callback
+type EditorInstance = Parameters<OnMount>[0];
+type MonacoInstance = Parameters<OnMount>[1];
+
+
+const PierreDiff = dynamic(() => import("./PierreDiff"), {
+  ssr: false,
+  loading: () => <Text p={4} color="text.secondary" fontSize="sm">Loading diff…</Text>,
+});
+
+// Inject search highlighting styles for Monaco decorations
+const useDiffStyles = () => {
+  useEffect(() => {
+    const styleId = "monaco-diff-styles";
+    const existingStyle = document.getElementById(styleId);
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      .search-highlight {
+        background: rgba(234, 179, 8, 0.35) !important;
+        border: 1px solid rgba(234, 179, 8, 0.6);
+        border-radius: 2px;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      const s = document.getElementById(styleId);
+      if (s) s.remove();
+    };
+  }, []);
+};
+
+export function SourceCodeExplorer({
+  sourceCode,
+  targetFileName,
+  navigation,
+  contractName,
+  callableFunctions,
+  onCallFunction,
+  diffData,
+  onDiffNavigate,
+  initialHeight = 400,
+  initialSidebarWidth = 180,
+  maxHeight,
+  isFullscreen = false,
+  diffLabels,
+}: SourceCodeExplorerProps) {
+  const [tabs, setTabs] = useState<TabData[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>("");
+  const [importReveal, setImportReveal] = useState<number>();
+  const [sidebarTab, setSidebarTab] = useState<"explorer" | "search">("explorer");
+  const [height, setHeight] = useState(initialHeight);
+  const [sidebarWidth, setSidebarWidth] = useState(initialSidebarWidth);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [sidebarOverride, setSidebarOverride] = useState<boolean | null>(null);
+  const [selectedDiffStyle, setSelectedDiffStyle] = useState<"split" | "unified" | null>(null);
+  const [showAllLines, setShowAllLines] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+  const [diffViewMode, setDiffViewMode] = useState(1); // 0=Old, 1=Diff, 2=New
+  const tabHistory = useRef<{ id: string; mode: number }[]>([]);
+  useEffect(() => {
+    if (!activeTabId || !tabs.some(tab => tab.id === activeTabId)) return;
+    tabHistory.current = [
+      ...tabHistory.current.filter(tab => tab.id !== activeTabId),
+      { id: activeTabId, mode: diffViewMode },
+    ];
+  }, [activeTabId, diffViewMode, tabs]);
+  // Track which sourceCode we've initialized for
+  const initializedForRef = useRef<Record<string, string> | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOptions, setSearchOptions] = useState<SearchOptions>({ caseSensitive: false, regex: false });
+  // Monaco editor instance ref
+  const editorRef = useRef<EditorInstance | null>(null);
+  // Monaco namespace ref (for creating Range objects)
+  const monacoRef = useRef<MonacoInstance | null>(null);
+  const selectorLensesRef = useRef<ReturnType<typeof registerSelectorLenses> | null>(null);
+  const callNavigationRef = useRef<{ targets: NonNullable<SourceCodeExplorerProps["callableFunctions"]>; onCall?: (signature: string) => void }>({ targets: [] });
+  callNavigationRef.current = {
+    targets: callableFunctions?.filter(item => item.path === activeTabId) ?? [],
+    onCall: onCallFunction,
+  };
+  const importNavigationRef = useRef<{resolve:(path:string)=>{id:string;name:string}|null;open:(path:string)=>void}>({resolve:()=>null,open:()=>{}});
+  useEffect(() => () => selectorLensesRef.current?.dispose(), []);
+  // Pending line to scroll to after file opens
+  const pendingLineRef = useRef<number | null>(null);
+  const pendingColumnRef = useRef(1);
+  // Container ref for resize calculations
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  // Search highlight decorations collection ref
+  const searchDecorationsRef = useRef<ReturnType<EditorInstance["createDecorationsCollection"]> | null>(null);
+
+  const isDiffMode = !!diffData;
+  const sidebarOpen = sidebarOverride ?? (containerWidth >= 800);
+  const editorWidth = containerWidth - (sidebarOpen ? sidebarWidth + 4 : 36);
+  const diffStyle = selectedDiffStyle ?? (editorWidth >= 760 ? "split" : "unified");
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width));
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+
+  // Inject diff styles (always called to satisfy React hooks rules; harmless when not in diff mode)
+  useDiffStyles();
+
+  // Build map of changed file paths with their diff stats for the file tree indicators
+  const changedFiles = useMemo(() => {
+    if (!diffData) return undefined;
+    const changed = new Map<string, { linesAdded: number; linesRemoved: number }>();
+    for (const [path, data] of Object.entries(diffData)) {
+      if (data.changesCount > 0) {
+        changed.set(path, { linesAdded: data.linesAdded, linesRemoved: data.linesRemoved });
+      }
+    }
+    return changed;
+  }, [diffData]);
+
+  // Get diff data for the active file
+  const activeFileDiff = useMemo(() => {
+    if (!diffData || !activeTabId) return null;
+    return diffData[activeTabId] || null;
+  }, [diffData, activeTabId]);
+
+  // Monaco unmounts while Pierre renders the diff; search must wait for a
+  // source editor to mount instead of targeting a disposed editor instance.
+  useEffect(() => {
+    if (activeFileDiff && diffViewMode === 1) {
+      editorRef.current = null;
+      monacoRef.current = null;
+      searchDecorationsRef.current = null;
+    }
+  }, [activeFileDiff, diffViewMode]);
+
+  // Build file tree from source code
+  const fileTree = useMemo(() => {
+    if (!sourceCode || Object.keys(sourceCode).length === 0) return [];
+    const target = targetFileName || findTargetFile(sourceCode, contractName);
+    const targetName = target?.split("/").pop();
+    return buildFileTree(sourceCode, targetName);
+  }, [sourceCode, targetFileName, contractName]);
+
+  // Find target file path
+  const targetPath = useMemo(() => {
+    return targetFileName || findTargetFile(sourceCode, contractName);
+  }, [sourceCode, targetFileName, contractName]);
+
+  // Initialize tabs
+  // In diff mode: auto-open all files with changes as pinned tabs
+  // In normal mode: open the target file as a pinned tab
+  useEffect(() => {
+    if (!sourceCode || Object.keys(sourceCode).length === 0) {
+      return;
+    }
+
+    // Reset tabs when a new comparison supplies fresh source content.
+    const sourceKey = sourceCode;
+
+    // Skip if already initialized for this sourceCode
+    if (initializedForRef.current === sourceKey) {
+      return;
+    }
+
+    tabHistory.current = [];
+    if (isDiffMode && diffData) {
+      // In diff mode, open all files with changes as pinned tabs
+      const changedTabs: TabData[] = [];
+      let firstChangedPath: string | null = null;
+
+      for (const [path, data] of Object.entries(diffData)) {
+        if (data.changesCount > 0 && Object.hasOwn(sourceCode, path)) {
+          if (!firstChangedPath) firstChangedPath = path;
+          const fileName = path.split("/").pop() || path;
+          changedTabs.push({
+            id: path,
+            name: fileName,
+            path,
+            content: sourceCode[path],
+            isPinned: true,
+            isTarget: false,
+            diffStats: { linesAdded: data.linesAdded, linesRemoved: data.linesRemoved },
+          });
+        }
+      }
+
+      if (changedTabs.length > 0) {
+        setTabs(changedTabs);
+        setActiveTabId(firstChangedPath!);
+      } else {
+        // No changes, fallback to first file
+        const filePath = Object.keys(sourceCode)[0];
+        const fileName = filePath.split("/").pop() || filePath;
+        setTabs([{ id: filePath, name: fileName, path: filePath, content: sourceCode[filePath], isPinned: true, isTarget: false }]);
+        setActiveTabId(filePath);
+      }
+    } else {
+      // Normal mode: open target file
+      let filePath: string;
+      let isTarget = false;
+
+      if (targetPath && sourceCode[targetPath]) {
+        filePath = targetPath;
+        isTarget = true;
+      } else {
+        filePath = Object.keys(sourceCode)[0];
+      }
+
+      const fileName = filePath.split("/").pop() || filePath;
+      const initialTab: TabData = {
+        id: filePath,
+        name: fileName,
+        path: filePath,
+        content: sourceCode[filePath],
+        isPinned: true,
+        isTarget,
+      };
+
+      setTabs([initialTab]);
+      setActiveTabId(filePath);
+    }
+
+    initializedForRef.current = sourceKey;
+  }, [sourceCode, targetPath, isDiffMode, diffData]);
+
+  // Open or switch to a file
+  const handleFileSelect = useCallback((path: string, content: string) => {
+    setTabs((prevTabs) => {
+      // Check if tab already exists
+      const existingTab = prevTabs.find((t) => t.path === path);
+      if (existingTab) {
+        setActiveTabId(existingTab.id);
+        return prevTabs;
+      }
+
+      // Create new tab
+      const fileName = path.split("/").pop() || path;
+      const newTab: TabData = {
+        id: path,
+        name: fileName,
+        path,
+        content,
+        isPinned: false,
+        isTarget: false,
+      };
+
+      setActiveTabId(path);
+      return [...prevTabs, newTab];
+    });
+  }, []);
+
+  // Return to the last viewed surviving file, including its source/diff view.
+  const handleTabClose = useCallback((tabId: string) => {
+    const tabIndex = tabs.findIndex(tab => tab.id === tabId);
+    if (tabIndex === -1 || tabs[tabIndex].isPinned) return;
+    const remaining = tabs.filter(tab => tab.id !== tabId);
+    tabHistory.current = tabHistory.current.filter(entry => remaining.some(tab => tab.id === entry.id));
+    setTabs(remaining);
+    if (tabId === activeTabId) {
+      const previous = tabHistory.current.at(-1);
+      setActiveTabId(previous?.id ?? remaining[Math.min(tabIndex, remaining.length - 1)]?.id ?? "");
+      if (previous) setDiffViewMode(previous.mode);
+    }
+  }, [tabs, activeTabId]);
+
+  // Get active tab content
+  const activeTab = useMemo(() => {
+    return tabs.find((t) => t.id === activeTabId);
+  }, [tabs, activeTabId]);
+
+  // Compute the displayed content based on diff view mode
+  const displayedContent = useMemo(() => {
+    if (!activeTab) return "";
+    if (!activeFileDiff) return activeTab.content;
+    if (diffViewMode === 0) return activeFileDiff.oldCode;
+    if (diffViewMode === 1) return activeFileDiff.diffCode;
+    return activeFileDiff.newCode;
+  }, [activeTab, activeFileDiff, diffViewMode]);
+
+  const importContent = (path: string) => {
+    const diff = diffData?.[path];
+    if (diff) return diffViewMode === 2 ? (diff.newExists === false ? null : diff.newCode) : (diff.oldExists === false ? null : diff.oldCode);
+    return Object.hasOwn(sourceCode,path) ? sourceCode[path] : null;
+  };
+  importNavigationRef.current = {
+    resolve: imported => {
+      if (!activeTab) return null;
+      const path = resolveImport(activeTab.path, imported);
+      return importContent(path) !== null ? {id:path,name:path} : null;
+    },
+    open: path => {
+      const content = importContent(path);
+      if (content !== null) { setSidebarTab("explorer"); setImportReveal(current => (current ?? 0) + 1); handleFileSelect(path,content); }
+    },
+  };
+
+  useEffect(() => { selectorLensesRef.current?.refreshContext(); }, [sourceCode, diffData, diffViewMode, activeTabId, callableFunctions, onCallFunction]);
+
+  // Get language for current file (falls back to content-based detection)
+  const language = useMemo(() => {
+    if (!activeTab) return "sol";
+    const lang = getLanguageForFile(activeTab.name);
+    if (lang === "plaintext" && activeTab.content) {
+      return detectLanguageFromContent(activeTab.content);
+    }
+    return lang;
+  }, [activeTab]);
+
+  // Compute search highlight decorations for the current editor content
+  const applySearchHighlights = useCallback((editor: EditorInstance, monaco: MonacoInstance) => {
+    // Clear previous search decorations
+    if (searchDecorationsRef.current) {
+      searchDecorationsRef.current.clear();
+      searchDecorationsRef.current = null;
+    }
+
+    if (sidebarTab !== "search" || !sidebarOpen || !searchQuery || !displayedContent) return;
+
+    try {
+      let regex: RegExp;
+      const flags = searchOptions.caseSensitive ? "g" : "gi";
+      if (searchOptions.regex) {
+        regex = new RegExp(searchQuery, flags);
+      } else {
+        regex = new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags);
+      }
+
+      const decorations: Array<{
+        range: InstanceType<typeof monaco.Range>;
+        options: { inlineClassName: string; minimap: { color: string; position: number } };
+      }> = [];
+
+      const lines = displayedContent.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        let match: RegExpExecArray | null;
+        regex.lastIndex = 0;
+        while ((match = regex.exec(lines[i])) !== null) {
+          const startCol = match.index + 1;
+          const endCol = match.index + match[0].length + 1;
+          decorations.push({
+            range: new monaco.Range(i + 1, startCol, i + 1, endCol),
+            options: {
+              inlineClassName: "search-highlight",
+              minimap: {
+                color: "#eab30890",
+                position: 1,
+              },
+            },
+          });
+          if (match[0].length === 0) break;
+        }
+      }
+
+      if (decorations.length > 0) {
+        searchDecorationsRef.current = editor.createDecorationsCollection(decorations);
+      }
+    } catch {
+      // Invalid regex - ignore
+    }
+  }, [searchQuery, searchOptions, displayedContent, sidebarTab, sidebarOpen]);
+
+  // Patch Solidity language to support single-quote strings
+
+
+  // Handle Monaco editor mount (with optional diff decorations)
+  const handleEditorMount = useCallback(
+    (editor: EditorInstance, monaco: MonacoInstance) => {
+      editorRef.current = editor;
+      monacoRef.current = monaco;
+      selectorLensesRef.current?.dispose();
+      selectorLensesRef.current = registerSelectorLenses(editor, monaco, {
+        resolveSourceImport: path => importNavigationRef.current.resolve(path),
+        onOpenImport: path => importNavigationRef.current.open(path),
+        getCallTargets: () => callNavigationRef.current.onCall ? callNavigationRef.current.targets : [],
+        onCallFunction: signature => callNavigationRef.current.onCall?.(signature),
+      });
+
+      // Patch Solidity single-quote string support
+      configureSolidityLanguage(monaco);
+
+      // Check if there's a pending line to scroll to
+      if (pendingLineRef.current !== null) {
+        editor.revealLineInCenter(pendingLineRef.current);
+        editor.setPosition({ lineNumber: pendingLineRef.current, column: pendingColumnRef.current });
+        flashSourceLine(editor, pendingLineRef.current);
+        editor.focus();
+        pendingLineRef.current = null;
+      }
+
+      // Apply search highlights on mount
+      applySearchHighlights(editor, monaco);
+    },
+    [applySearchHighlights]
+  );
+
+  // Scroll to line when active tab changes and we have a pending line
+  useEffect(() => {
+    if (editorRef.current && pendingLineRef.current !== null) {
+      // Small delay to ensure content is loaded
+      setTimeout(() => {
+        if (editorRef.current && pendingLineRef.current !== null) {
+          editorRef.current.revealLineInCenter(pendingLineRef.current);
+          editorRef.current.setPosition({ lineNumber: pendingLineRef.current, column: pendingColumnRef.current });
+          flashSourceLine(editorRef.current, pendingLineRef.current);
+          pendingLineRef.current = null;
+        }
+      }, 50);
+    }
+  }, [activeTabId]);
+
+  // Handle search query change from SearchPanel
+  const handleSearchQueryChange = useCallback((query: string, options: SearchOptions) => {
+    setSearchQuery(query);
+    setSearchOptions(options);
+  }, []);
+
+  // Retain the search draft when switching sidebar views.
+  const handleSidebarTabChange = useCallback((tab: "explorer" | "search") => {
+    setSidebarOverride(sidebarTab === tab ? !sidebarOpen : true);
+    setSidebarTab(tab);
+  }, [sidebarTab, sidebarOpen]);
+
+  // Apply search highlight decorations when query/content changes
+  useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editor || !monaco) return;
+    applySearchHighlights(editor, monaco);
+  }, [applySearchHighlights, activeTabId]);
+
+  // Handle vertical resize
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const containerTop = containerRef.current.getBoundingClientRect().top;
+      const newHeight = Math.max(200, Math.min(1200, e.clientY - containerTop));
+      setHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
+
+  // Handle horizontal sidebar resize
+  const handleSidebarResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingSidebar(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizingSidebar) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const containerLeft = containerRef.current.getBoundingClientRect().left;
+      const newWidth = Math.max(140, Math.min(320, e.clientX - containerLeft));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingSidebar(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizingSidebar]);
+
+  // Handle search result click - open file and scroll to line
+  const handleSearchResultClick = useCallback((path: string, content: string, lineNumber: number, column = 1) => {
+    pendingColumnRef.current = column;
+    if (isDiffMode) setDiffViewMode(diffData?.[path]?.oldExists === false ? 2 : 0);
+    // Store the line number to scroll to after file opens
+    pendingLineRef.current = lineNumber;
+
+    setTabs((prevTabs) => {
+      const existingTab = prevTabs.find((t) => t.path === path);
+      if (existingTab) {
+        setActiveTabId(existingTab.id);
+        // If tab already active, scroll immediately
+        if (existingTab.id === activeTabId && editorRef.current) {
+          editorRef.current.revealLineInCenter(lineNumber);
+          editorRef.current.setPosition({ lineNumber, column: pendingColumnRef.current });
+          flashSourceLine(editorRef.current, lineNumber);
+          editorRef.current.focus();
+          pendingLineRef.current = null;
+        }
+        return prevTabs;
+      }
+
+      const fileName = path.split("/").pop() || path;
+      const newTab: TabData = {
+        id: path,
+        name: fileName,
+        path,
+        content,
+        isPinned: false,
+        isTarget: false,
+      };
+
+      setActiveTabId(path);
+      return [...prevTabs, newTab];
+    });
+  }, [activeTabId, isDiffMode, diffData]);
+
+  const appliedNavigation = useRef<typeof navigation>(undefined);
+  useEffect(() => {
+    if (!navigation || appliedNavigation.current === navigation || !Object.hasOwn(sourceCode, navigation.path)) return;
+    appliedNavigation.current = navigation;
+    handleSearchResultClick(navigation.path, sourceCode[navigation.path], navigation.line, navigation.column);
+    setImportReveal(value => (value ?? 0) + 1);
+  }, [navigation, sourceCode, handleSearchResultClick]);
+
+  if (!sourceCode || Object.keys(sourceCode).length === 0) {
+    return (
+      <Box p={4} textAlign="center">
+        <Text color="text.secondary" fontSize="sm">
+          Source code not available
+        </Text>
+      </Box>
+    );
+  }
+
+  return (
+    <Box ref={containerRef} minW={0} w="full" h={isFullscreen ? "100%" : undefined}>
+      <HStack spacing={0} align="stretch" h={isFullscreen ? "100%" : `${height}px`} maxH={isFullscreen ? undefined : maxHeight} overflow="hidden">
+      {/* Sidebar Panel */}
+      <HStack spacing={0} w={sidebarOpen ? `${sidebarWidth}px` : "36px"} minW={0} h="100%" borderRight="none" borderColor="whiteAlpha.200" align="stretch" flexShrink={0}>
+        {/* Icon Tab Bar */}
+        <VStack
+          spacing={0}
+          w="36px"
+          minW="36px"
+          h="100%"
+          bg="bg.muted"
+          borderRight="1px solid"
+          borderColor="whiteAlpha.100"
+          pt={1}
+          align="center"
+        >
+          <Tooltip label={sidebarOpen && sidebarTab === "explorer" ? "Hide files" : "Show files"} placement="right" hasArrow>
+            <IconButton
+              aria-label="Toggle files"
+              aria-expanded={sidebarOpen && sidebarTab === "explorer"}
+              icon={<Icon as={Files} boxSize={4} />}
+              size="sm"
+              variant="ghost"
+              w="36px"
+              h="36px"
+              borderRadius={0}
+              color={sidebarOpen && sidebarTab === "explorer" ? "text.primary" : "text.tertiary"}
+              borderLeft="2px solid"
+              borderColor={sidebarOpen && sidebarTab === "explorer" ? "primary.400" : "transparent"}
+              _hover={{ color: "text.primary" }}
+              onClick={() => handleSidebarTabChange("explorer")}
+            />
+          </Tooltip>
+          <Tooltip label="Search" placement="right" hasArrow>
+            <IconButton
+              aria-label="Search"
+              icon={<Icon as={Search} boxSize={4} />}
+              size="sm"
+              variant="ghost"
+              w="36px"
+              h="36px"
+              borderRadius={0}
+              color={sidebarOpen && sidebarTab === "search" ? "text.primary" : "text.tertiary"}
+              borderLeft="2px solid"
+              borderColor={sidebarOpen && sidebarTab === "search" ? "primary.400" : "transparent"}
+              _hover={{ color: "text.primary" }}
+              onClick={() => handleSidebarTabChange("search")}
+            />
+          </Tooltip>
+        </VStack>
+
+        {/* Sidebar Content */}
+        <Box flex={1} minW={0} bg="bg.muted" overflow="hidden" h="100%" display={sidebarOpen ? "block" : "none"}>
+          {sidebarTab === "explorer" && (
+            <FileExplorerPanel
+              data={fileTree}
+              revealSelection={importReveal}
+              onFileSelect={handleFileSelect}
+              selectedPath={activeTabId}
+              changedFiles={changedFiles}
+              outline={{
+                path: activeTab?.path ?? "",
+                content: activeFileDiff ? (diffViewMode === 2 || activeFileDiff.oldExists === false ? activeFileDiff.newCode : activeFileDiff.oldCode) : displayedContent,
+                onSelect: (line) => {
+                  pendingColumnRef.current = 1;
+                  if (activeFileDiff && diffViewMode === 1) {
+                    pendingLineRef.current = line;
+                    setDiffViewMode(activeFileDiff.oldExists === false ? 2 : 0);
+                  } else if (editorRef.current) {
+                    editorRef.current.revealLineInCenter(line);
+                    editorRef.current.setPosition({lineNumber:line,column:1});
+                    flashSourceLine(editorRef.current, line);
+                    editorRef.current.focus();
+                  } else pendingLineRef.current = line;
+                },
+              }}
+            />
+          )}
+          <SearchPanel
+            sourceCode={sourceCode}
+            onResultClick={handleSearchResultClick}
+            isOpen={sidebarTab === "search" && sidebarOpen}
+            onSearchQueryChange={handleSearchQueryChange}
+          />
+        </Box>
+      </HStack>
+
+      {/* Sidebar Resize Handle */}
+      <Box
+        w="4px"
+        display={sidebarOpen ? "block" : "none"}
+        cursor="ew-resize"
+        bg={isResizingSidebar ? "primary.400" : "whiteAlpha.100"}
+        _hover={{ bg: "primary.400" }}
+        onMouseDown={handleSidebarResizeStart}
+        userSelect="none"
+        transition="background 0.15s"
+        flexShrink={0}
+      />
+
+      {/* Editor Panel */}
+      <VStack spacing={0} flex={1} minW={0} align="stretch" overflow="hidden">
+        {/* Tabs */}
+        <CodeEditorTabs
+          tabs={tabs}
+          activeTabId={activeTabId}
+          onTabSelect={setActiveTabId}
+          onTabClose={handleTabClose}
+        />
+
+        {/* Keep source, layout and context controls together. */}
+        {isDiffMode && activeFileDiff && (
+          <HStack px={2} py={1.5} spacing={2} flexWrap="wrap"
+            borderBottom="1px solid" borderColor="whiteAlpha.100" bg="bg.subtle">
+            <HStack spacing={0.5} role="group" aria-label="Source view">
+              {[diffLabels?.old ?? "Old", "Diff", diffLabels?.new ?? "New"].map((mode, index) => (
+                <Button key={mode} size="xs" h={7} variant={diffViewMode === index ? "solid" : "ghost"}
+                  aria-pressed={diffViewMode === index} onClick={() => setDiffViewMode(index)}>
+                  {mode}
+                </Button>
+              ))}
+            </HStack>
+            {diffViewMode === 1 && (
+              <>
+                <Box w="1px" h={4} bg="border.default" />
+                <HStack spacing={0.5} role="group" aria-label="Diff layout">
+                  {(["split", "unified"] as const).map((mode) => (
+                    <Button key={mode} size="xs" h={7} variant={diffStyle === mode ? "solid" : "ghost"}
+                      leftIcon={<Icon as={mode === "split" ? Columns2 : Rows2} boxSize={3} aria-hidden="true" />}
+                      aria-pressed={diffStyle === mode} onClick={() => setSelectedDiffStyle(mode)}>
+                      {mode === "split" ? "Split" : "Unified"}
+                    </Button>
+                  ))}
+                </HStack>
+                <Button size="xs" h={7} variant="ghost" aria-pressed={showAllLines}
+                  aria-label={showAllLines ? "Show changes only" : "Show all lines"}
+                  onClick={() => setShowAllLines((value) => !value)}>
+                  {showAllLines ? "Changes" : "All lines"}
+                </Button>
+              </>
+            )}
+            <Box ml="auto">
+              <CopyToClipboard size="xs" h={7}
+                isDisabled={diffViewMode === 1 && activeFileDiff.previewOnly}
+                aria-label={diffViewMode === 0 ? "Copy old source" : diffViewMode === 2 ? "Copy new source" : "Copy diff"}
+                textToCopy={diffViewMode === 1 ? activeFileDiff.diffCode : displayedContent}
+              />
+            </Box>
+          </HStack>
+        )}
+
+        {/* Monaco Editor */}
+        <Box flex={1} minW={0} minH={0} overflow="hidden">
+          {activeTab && activeFileDiff && diffViewMode === 1 ? (
+            <PierreDiff diffLabels={diffLabels} path={activeTab.path} diff={activeFileDiff} diffStyle={diffStyle} showAllLines={showAllLines}
+              onNavigate={onDiffNavigate && activeFileDiff.newExists !== false ? line => onDiffNavigate(activeTab.path, line) : undefined} />
+          ) : activeTab ? (
+            <Editor
+              key={isDiffMode ? `${activeTabId}-${diffViewMode}` : activeTabId}
+              theme="vs-dark"
+              language={language}
+              value={displayedContent}
+              height="100%"
+              onMount={handleEditorMount}
+              options={{
+                readOnly: true,
+                minimap: { enabled: true },
+                fontSize: 13,
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                wordWrap: "on",
+                lineNumbers: "on",
+                glyphMargin: false,
+                folding: true,
+                renderLineHighlight: isDiffMode && diffViewMode === 1 ? "none" : "all",
+                scrollbar: {
+                  useShadows: false,
+                  vertical: "visible",
+                  horizontal: "visible",
+                  verticalScrollbarSize: 12,
+                  horizontalScrollbarSize: 12,
+                },
+              }}
+            />
+          ) : (
+            <Box
+              h="100%"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Text color="text.tertiary" fontSize="sm">
+                Select a file to view
+              </Text>
+            </Box>
+          )}
+        </Box>
+      </VStack>
+    </HStack>
+
+      {/* Resize Handle Bar (hidden in fullscreen) */}
+      {!isFullscreen && (
+        <Box
+          h="10px"
+          cursor="ns-resize"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          bg="whiteAlpha.50"
+          borderTop="1px solid"
+          borderColor="whiteAlpha.100"
+          _hover={{ bg: "whiteAlpha.100" }}
+          onMouseDown={handleResizeStart}
+          userSelect="none"
+          transition="background 0.15s"
+        >
+          {/* Grip dots */}
+          <Box
+            w="36px"
+            h="4px"
+            borderRadius="full"
+            bg="whiteAlpha.300"
+          />
+        </Box>
+      )}
+    </Box>
+  );
+}

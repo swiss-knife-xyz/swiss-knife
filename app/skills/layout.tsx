@@ -1,0 +1,15 @@
+import { getMetadata } from "@/utils";
+
+export const metadata = getMetadata({
+  title: "Web3 AI Skills | ETH.sh",
+  description:
+    "A researched directory of Web3 AI skills, MCP servers, CLIs, wallets, models, and protocol tools for onchain agents.",
+  canonical: "https://skills.eth.sh/",
+  images: "https://eth.sh/api/og/skills",
+});
+
+const SkillsLayout = ({ children }: { children: React.ReactNode }) => {
+  return <>{children}</>;
+};
+
+export default SkillsLayout;

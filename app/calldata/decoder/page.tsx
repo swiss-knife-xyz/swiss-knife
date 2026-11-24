@@ -2,27 +2,28 @@ import { fetchFunctionInterface } from "@/lib/decoder";
 import { getMetadata, startHexWith0x } from "@/utils";
 import type { Metadata } from "next";
 // Putting the page into separate component as it uses "use client" which doesn't work with `generateMetadata`
-import { CalldataDecoderPage as CalldataDecoderP } from "@/components/pages/CalldataDecoderPage";
+import { CalldataDecoderPage as CalldataDecoderP } from "./CalldataDecoderPage";
 import { metadata } from "../layout";
 import { Chain, Hex } from "viem";
 import { c, chainIdToChain } from "@/data/common";
 import { getPublicClient } from "@/lib/publicClient";
 
 interface PageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata({
   searchParams,
 }: PageProps): Promise<Metadata> {
-  let title = "ETH Calldata Decoder | Swiss-Knife.xyz";
+  const params = await searchParams;
+  let title = "Calldata Decoder | ETH.sh";
 
-  let calldata = searchParams.calldata as string | undefined;
-  let tx = searchParams.tx as string | undefined;
+  let calldata = params.calldata as string | undefined;
+  let tx = params.tx as string | undefined;
 
   // add function name to the title if possible
   if (tx) {
-    let chainId = searchParams.chainId as string | undefined;
+    let chainId = params.chainId as string | undefined;
     let chain: Chain;
 
     try {
@@ -81,14 +82,15 @@ export async function generateMetadata({
     const functionInterface = await fetchFunctionInterface({ selector });
     if (functionInterface) {
       const functionName = functionInterface.split("(")[0];
-      title = `${functionName}() - Universal Calldata Decoder | Swiss-Knife.xyz`;
+      title = `${functionName}() - Calldata Decoder | ETH.sh`;
     }
   }
 
   return getMetadata({
     title,
+    canonical: "https://calldata.eth.sh/decoder",
     description: metadata.description as string,
-    images: metadata.openGraph?.images as string,
+    images: "https://eth.sh/api/og/calldata-decoder",
   });
 }
 

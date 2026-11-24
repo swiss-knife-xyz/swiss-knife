@@ -1,25 +1,23 @@
+import {
+  compactFormatSelectProps,
+  decodedValueFieldProps,
+} from "./paramStyles";
 import React, { useState } from "react";
 import {
   Button,
   HStack,
   InputLeftElement,
   Skeleton,
-  Text,
   Box,
   Flex,
-  Portal,
 } from "@chakra-ui/react";
 import { ethFormatOptions, convertTo, ETHSelectedOptionState } from "@/utils";
 import { InputField } from "../InputField";
-import { DarkSelect } from "../DarkSelect";
+import { DarkSelect, type FormatSelectProps } from "../DarkSelect";
 import { motion } from "framer-motion";
+import { formatDistanceToNow } from "date-fns";
 
-// Add helper functions for number formatting
-const formatWithCommas = (value: string) => {
-  const parts = value.split(".");
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return parts.join(".");
-};
+import { formatWithCommas } from "@/utils/formatWithCommas";
 
 const formatCompact = (value: string) => {
   const num = parseFloat(value);
@@ -41,10 +39,14 @@ const numericFormats = [
 ];
 
 interface Params {
+  formatSelectProps?: FormatSelectProps;
   value: any;
 }
 
-export const UintParam = ({ value: _value }: Params) => {
+export const UintParam = ({
+  value: _value,
+  formatSelectProps = compactFormatSelectProps,
+}: Params) => {
   // for skeleton loading
   const showSkeleton = _value === undefined || _value === null;
   const value = !showSkeleton ? (_value as BigInt).toString() : "1234";
@@ -56,14 +58,22 @@ export const UintParam = ({ value: _value }: Params) => {
     });
 
   const [showLocalTime, setShowLocalTime] = useState(false);
-  const [showFormatted, setShowFormatted] = useState(false);
 
   const conversionValue = convertTo(selectedEthFormatOption, value);
   const unixSelected =
     selectedEthFormatOption && selectedEthFormatOption.value === "Unix Time";
+  const unixDate = unixSelected ? new Date(Number(value) * 1_000) : null;
+  const relativeTime =
+    unixDate && !Number.isNaN(unixDate.getTime())
+      ? formatDistanceToNow(unixDate, { addSuffix: true })
+      : undefined;
   const isNumericFormat = numericFormats.includes(
     selectedEthFormatOption?.value
   );
+  const hasCompactNotation =
+    isNumericFormat && formatCompact(conversionValue) !== conversionValue;
+  const canFormat =
+    isNumericFormat && /^-?\d{4,}(?:\.\d+)?$/.test(conversionValue);
 
   return showSkeleton ? (
     <HStack w="full">
@@ -91,39 +101,25 @@ export const UintParam = ({ value: _value }: Params) => {
     >
       <Box width="100%">
         <Flex
+          className="decoded-integer"
           direction={{ base: "column", md: "row" }}
           width="100%"
           gap={2}
-          alignItems="flex-start"
+          alignItems="stretch"
         >
-          <Box flex="1" minW="0" maxW="100%">
+          <Box flex="1" minW="0" w="full" maxW="100%">
             <InputField
               InputLeftElement={
                 <>
                   {unixSelected && (
-                    <InputLeftElement>
+                    <InputLeftElement width="auto" h="full" pl={2}>
                       <Button
-                        px="1rem"
-                        ml="1rem"
                         size="xs"
+                        px="2"
+                        h="5"
                         onClick={() => setShowLocalTime((prev) => !prev)}
                       >
                         {showLocalTime ? "Local" : "UTC"}
-                      </Button>
-                    </InputLeftElement>
-                  )}
-                  {isNumericFormat && (
-                    <InputLeftElement>
-                      <Button
-                        size="xs"
-                        minW="14"
-                        px="2"
-                        py="4"
-                        ml="1.5rem"
-                        h="5"
-                        onClick={() => setShowFormatted((prev) => !prev)}
-                      >
-                        {showFormatted ? "Raw" : "Format"}
                       </Button>
                     </InputLeftElement>
                   )}
@@ -134,37 +130,44 @@ export const UintParam = ({ value: _value }: Params) => {
                   ? showLocalTime
                     ? new Date(Number(value) * 1_000).toString()
                     : conversionValue
-                  : isNumericFormat && showFormatted
-                  ? formatWithCommas(conversionValue)
                   : conversionValue
               }
-              pl={unixSelected || isNumericFormat ? "5rem" : undefined}
+              copyValue={!unixSelected ? conversionValue : undefined}
+              valueTooltip={
+                unixSelected
+                  ? relativeTime
+                  : canFormat && hasCompactNotation
+                    ? `${formatWithCommas(conversionValue)} (${formatCompact(conversionValue)})`
+                    : undefined
+              }
+              pl={
+                unixSelected
+                  ? showLocalTime
+                    ? "3.75rem"
+                    : "3.25rem"
+                  : undefined
+              }
               placeholder=""
               isReadOnly
               onChange={() => {}}
-              fontSize="sm"
+              {...decodedValueFieldProps}
               width="100%"
             />
           </Box>
           <Box
-            width={{ base: "100%", md: "auto" }}
-            zIndex="9999"
+            className="decoded-integer-format"
+            width={
+              formatSelectProps?.boxProps?.w ?? { base: "100%", md: "auto" }
+            }
             position="relative"
-            className="uint-select-container"
-            sx={{
-              "& .chakra-react-select__menu": {
-                zIndex: 9999,
-                position: "absolute !important",
-              },
-            }}
           >
             <DarkSelect
+              {...formatSelectProps}
               boxProps={{
                 minW: { base: "100%", md: "8rem" },
                 maxW: { base: "100%", md: "8rem" },
                 fontSize: "xs",
-                position: "static",
-                zIndex: 9999,
+                ...formatSelectProps?.boxProps,
               }}
               selectedOption={selectedEthFormatOption}
               setSelectedOption={(value) =>
@@ -177,16 +180,6 @@ export const UintParam = ({ value: _value }: Params) => {
             />
           </Box>
         </Flex>
-        {isNumericFormat && showFormatted && (
-          <Text
-            fontSize="xs"
-            color="whiteAlpha.700"
-            ml={unixSelected || isNumericFormat ? "5rem" : 0}
-            mt={1}
-          >
-            ({formatCompact(conversionValue)})
-          </Text>
-        )}
       </Box>
     </motion.div>
   );

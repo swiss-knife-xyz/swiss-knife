@@ -1,0 +1,111 @@
+.shell {
+  --omni-radius: 16px;
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--omni-radius);
+  padding: 1.5px;
+}
+
+/* A quiet halo under the field, independent of the moving edge. */
+.shell::before {
+  content: "";
+  position: absolute;
+  inset: -5px 10px;
+  z-index: -1;
+  border-radius: var(--omni-radius);
+  background: linear-gradient(100deg, #e84142, #ffb398 45%, #e84142 85%);
+  filter: blur(18px);
+  opacity: 0.18;
+  pointer-events: none;
+  transition: opacity 200ms ease-out;
+}
+
+.shell:focus-within::before,
+.shell:hover::before {
+  opacity: 0.34;
+}
+
+.track {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: rgb(255 255 255 / 12%);
+  pointer-events: none;
+}
+
+/* Two warm highlights travel around a steady, hairline perimeter. */
+.track::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 160%;
+  aspect-ratio: 1;
+  background: conic-gradient(
+    transparent 0deg 35deg,
+    rgb(232 65 66 / 18%) 80deg,
+    #e84142 100deg,
+    #ffb398 116deg,
+    #fff1e7 120deg,
+    transparent 124deg 215deg,
+    rgb(232 65 66 / 18%) 260deg,
+    #c74539 280deg,
+    #ffb398 296deg,
+    #fff1e7 300deg,
+    transparent 304deg 360deg
+  );
+  opacity: 0.8;
+  /* One continuous easing curve per half-turn, with matching end velocities. */
+  animation: orbit 6s cubic-bezier(0.65, 0.15, 0.35, 0.85) infinite;
+  transition: opacity 200ms ease-out;
+}
+
+.shell:focus-within .track::before,
+.shell:hover .track::before {
+  opacity: 1;
+}
+
+.field {
+  position: relative;
+  z-index: 1;
+  border-radius: calc(var(--omni-radius) - 1.5px);
+  background:
+    linear-gradient(110deg, rgb(232 65 66 / 5%), transparent 40%),
+    var(--chakra-colors-bg-subtle, #111113);
+}
+
+.shell[data-loading] .track::before {
+  animation-duration: 2s;
+}
+
+.shell[data-invalid] .track::before {
+  animation: none;
+  background: var(--chakra-colors-red-400);
+  opacity: 1;
+}
+
+@keyframes orbit {
+  0% {
+    transform: translate(-50%, -50%) rotate(150deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(330deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(510deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track::before,
+  .shell[data-loading] .track::before {
+    animation: none;
+    transform: translate(-50%, -50%) rotate(30deg);
+    transition: none;
+  }
+  .shell::before {
+    transition: none;
+  }
+}

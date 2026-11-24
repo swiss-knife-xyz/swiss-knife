@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { Box, HStack, InputProps } from "@chakra-ui/react";
+import { Box, Button, InputProps } from "@chakra-ui/react";
 import { JsonFragmentType } from "ethers";
+import { useCompactParameterInputs } from "../ParameterInputStyle";
 import { InputInfo } from "./InputInfo";
 import { renderInputFields } from "../Renderer";
-import { ChevronDownIcon, ChevronUpIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon, ChevronRightIcon } from "@chakra-ui/icons";
 import { isEqual } from "lodash";
 
 interface InputFieldProps extends InputProps {
@@ -12,6 +13,9 @@ interface InputFieldProps extends InputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFunctionIsDisabled: (value: boolean) => void;
   isError: boolean;
+  allowBytesBuilder?: boolean;
+  immediateUpdates?: boolean;
+  rawValues?: boolean;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   isArrayChild?: boolean;
 }
@@ -26,11 +30,20 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   onChange,
   setFunctionIsDisabled,
   isError,
+  allowBytesBuilder,
+  immediateUpdates,
+  rawValues,
   onKeyDown,
   isArrayChild,
   value,
 }) => {
-  const [tupleInputsState, setTupleInputsState] = useState<TupleInputState>({});
+  const compact = useCompactParameterInputs();
+  const [tupleInputsState, setTupleInputsState] = useState<TupleInputState>(
+    () =>
+      Array.isArray(value)
+        ? Object.fromEntries(value.map((v, i) => [i, v]))
+        : {}
+  );
   const [tupleReadIsDisabled, setTupleReadIsDisabled] = useState<
     Record<number, boolean>
   >({});
@@ -79,6 +92,11 @@ export const TupleInput: React.FC<InputFieldProps> = ({
   // Handle parent state updates with debouncing
   useEffect(() => {
     if (!isEqual(tupleInputsState, prevTupleInputStateRef.current)) {
+      if (immediateUpdates) {
+        prevTupleInputStateRef.current = tupleInputsState;
+        onChange({ target: { value: Object.values(tupleInputsState) } } as any);
+        return;
+      }
       const timeoutId = setTimeout(() => {
         onChange({
           target: {
@@ -90,7 +108,7 @@ export const TupleInput: React.FC<InputFieldProps> = ({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [tupleInputsState, onChange]);
+  }, [tupleInputsState, onChange, immediateUpdates]);
 
   // Handle disabled state updates with debouncing
   useEffect(() => {
@@ -110,38 +128,56 @@ export const TupleInput: React.FC<InputFieldProps> = ({
 
   return (
     <Box
-      p={2}
-      mb={!isCollapsed ? 4 : undefined}
-      pb={!isCollapsed ? 4 : undefined}
-      border="2px solid"
+      data-parameter-branch={compact && isArrayChild ? undefined : ""}
+      minW={0}
+      p={compact ? 0 : { base: 1.5, md: 2 }}
+      mb={compact ? 0 : !isCollapsed ? 4 : undefined}
+      pb={compact ? 0 : !isCollapsed ? 4 : undefined}
+      border={compact ? "none" : "2px solid"}
       borderColor={
         !isArrayChild
           ? "whiteAlpha.200"
           : isError && isAnyChildInvalid
-          ? "red.300"
-          : "transparent"
+            ? "red.300"
+            : "transparent"
       }
       rounded="md"
-      bg={"whiteAlpha.50"}
-      borderTopLeftRadius={isArrayChild ? 0 : "md"}
+      bg={compact ? "transparent" : "whiteAlpha.50"}
     >
-      <HStack flexGrow={1} onClick={toggleCollapse} cursor={"pointer"}>
-        {!isArrayChild && (
-          <Box fontSize={"2xl"}>
-            {isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
+      {!(compact && isArrayChild) && (
+        <Button
+          variant="ghost"
+          size="sm"
+          h="auto"
+          minH={7}
+          px={compact ? 0 : 1}
+          py={1}
+          mb={compact ? 2 : 0}
+          minW={0}
+          maxW="full"
+          textAlign="left"
+          justifyContent="flex-start"
+          fontWeight="normal"
+          data-parameter-toggle=""
+          aria-expanded={!isCollapsed}
+          aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${input.name || "tuple"}`}
+          onClick={toggleCollapse}
+          leftIcon={isCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
+        >
+          <Box sx={{ "& .fn-input-info": { mb: 0 } }}>
+            <InputInfo input={input} />
           </Box>
-        )}
-        <InputInfo input={input} />
-      </HStack>
+        </Button>
+      )}
       <Box
-        ml={2}
-        pl={4}
-        borderLeft={"1px"}
-        borderColor={"whiteAlpha.100"}
+        ml={compact ? 0 : { base: 0, md: 2 }}
+        pl={compact ? (isArrayChild ? 0 : 3) : { base: 2, md: 4 }}
+        borderLeft={compact && isArrayChild ? "none" : "1px solid"}
+        borderColor="border.default"
         display={isCollapsed ? "none" : undefined}
       >
         {input.components?.map((component, i) => (
-          <Box key={i} mt={2}>
+          <Box key={i} mt={compact ? (i === 0 ? 0 : 3) : 2} minW={0}>
             {renderInputFields({
               chainId,
               input: component,
@@ -152,6 +188,9 @@ export const TupleInput: React.FC<InputFieldProps> = ({
                 updateTupleReadIsDisabled(i, value),
               onKeyDown,
               isError,
+              allowBytesBuilder,
+              immediateUpdates,
+              rawValues,
             })}
           </Box>
         ))}
