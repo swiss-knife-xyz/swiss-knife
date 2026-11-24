@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { chainIdToChain, chainIdToImage } from "@/data/common";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
+import { Toast } from "@/components/Toast";
 import { getPath } from "@/utils";
 import { shortenAddress } from "@/utils/helpers";
 import subdomains from "@/subdomains";
@@ -67,37 +68,32 @@ function Row({
       toast({
         duration: 7000,
         position: "bottom",
-        render: ({ onClose }) => (
-          <HStack
-            bg="bg.emphasis"
-            borderWidth="1px"
-            borderColor="border.default"
-            borderRadius="lg"
-            p={3}
-            justify="space-between"
-            spacing={5}
-          >
-            <Text fontSize="sm">Deployment removed</Text>
-            <Button
-              size="xs"
-              variant="ghost"
-              onClick={() =>
-                void history
-                  .restore(record.id)
-                  .then(onClose)
-                  .catch((error) =>
-                    toast({
-                      status: "error",
-                      title: "Couldn't restore deployment",
-                      description:
-                        error instanceof Error ? error.message : "Try again.",
-                    })
-                  )
-              }
-            >
-              Undo
-            </Button>
-          </HStack>
+        render: ({ id, onClose }) => (
+          <Toast
+            id={id}
+            description="Deployment removed"
+            action={
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() =>
+                  void history
+                    .restore(record.id)
+                    .then(onClose)
+                    .catch((error) =>
+                      toast({
+                        status: "error",
+                        title: "Couldn't restore deployment",
+                        description:
+                          error instanceof Error ? error.message : "Try again.",
+                      }),
+                    )
+                }
+              >
+                Undo
+              </Button>
+            }
+          />
         ),
       });
     } catch (error) {

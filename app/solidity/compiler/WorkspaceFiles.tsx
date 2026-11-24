@@ -43,6 +43,7 @@ import {
   Search,
 } from "lucide-react";
 import { FileExplorerPanel } from "@/components/SourceCodeExplorer/FileExplorerPanel";
+import { Toast } from "@/components/Toast";
 import { ReplacePreview } from "./ReplacePreview";
 import {
   applyReplacements,
@@ -187,35 +188,35 @@ export function WorkspaceFiles({
     const id = toast({
       duration: 12000,
       position: "bottom",
-      render: ({ onClose }) => (
-        <HStack
-          bg="bg.muted"
-          borderWidth="1px"
-          borderColor="border.default"
-          borderRadius="lg"
-          p={3}
-        >
-          <Text fontSize="sm">Replaced {plan.count} matches</Text>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              const current = latestWorkspace.current;
-              if (!current || !canApplyReplacements(current, plan, true)) {
-                toast({
-                  status: "warning",
-                  description:
-                    "Files changed since replacement. Undo would overwrite newer edits.",
-                });
-                return;
-              }
-              update((value) => applyReplacements(value, plan, true), "Before undo replacement");
-              onClose();
-            }}
-          >
-            Undo
-          </Button>
-        </HStack>
+      render: ({ id, onClose }) => (
+        <Toast
+          id={id}
+          description={`Replaced ${plan.count} matches`}
+          action={
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                const current = latestWorkspace.current;
+                if (!current || !canApplyReplacements(current, plan, true)) {
+                  toast({
+                    status: "warning",
+                    description:
+                      "Files changed since replacement. Undo would overwrite newer edits.",
+                  });
+                  return;
+                }
+                update(
+                  (value) => applyReplacements(value, plan, true),
+                  "Before undo replacement",
+                );
+                onClose();
+              }}
+            >
+              Undo
+            </Button>
+          }
+        />
       ),
     });
     undoToasts.current.push(id);
@@ -333,49 +334,42 @@ export function WorkspaceFiles({
         const toastId = toast({
           duration: 8000,
           position: "bottom",
-          render: () => (
-            <HStack
-              p={3}
-              border="1px solid"
-              borderColor="border.default"
-              rounded="md"
-              bg="bg.muted"
-            >
-              <Text fontSize="sm">Deleted {file.name}</Text>
-              <Button
-                size="sm"
-                onClick={() => {
-                  update((current) => {
-                    let restoredName = file.name;
-                    for (
-                      let index = 2;
-                      current.files.some(
-                        (item) =>
-                          item.name.toLowerCase() === restoredName.toLowerCase()
+          render: ({ id }) => (
+            <Toast
+              id={id}
+              description={`Deleted ${file.name}`}
+              action={
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    update((current) => {
+                      let restoredName = file.name;
+                      for (
+                        let index = 2;
+                        current.files.some(
+                          (item) => item.name.toLowerCase() === restoredName.toLowerCase(),
+                        );
+                        index++
+                      )
+                        restoredName = file.name.replace(
+                          /\.sol$/,
+                          ` (restored ${index}).sol`,
+                        );
+                      return selectWorkspaceFile(
+                        {
+                          ...current,
+                          files: [...current.files, { ...file, name: restoredName }],
+                        },
+                        file.id,
                       );
-                      index++
-                    )
-                      restoredName = file.name.replace(
-                        /\.sol$/,
-                        ` (restored ${index}).sol`
-                      );
-                    return selectWorkspaceFile(
-                      {
-                        ...current,
-                        files: [
-                          ...current.files,
-                          { ...file, name: restoredName },
-                        ],
-                      },
-                      file.id
-                    );
-                  });
-                  toast.close(toastId);
-                }}
-              >
-                Undo
-              </Button>
-            </HStack>
+                    });
+                    toast.close(toastId);
+                  }}
+                >
+                  Undo
+                </Button>
+              }
+            />
           ),
         });
         undoToasts.current.push(toastId);

@@ -1,4 +1,5 @@
 import { extendTheme, ThemeConfig } from "@chakra-ui/react";
+import { toastVariant } from "./toast";
 import {
   colors as tokenColors,
   typography,
@@ -214,6 +215,9 @@ const transition = {
 // ============================================================================
 
 const components = {
+  Alert: {
+    variants: { "app-toast": toastVariant },
+  },
   // Button Component
   Button: {
     baseStyle: {

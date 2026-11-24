@@ -1,5 +1,26 @@
 # DESIGN.md - ETH.sh Orgs Directory
 
+## Shared notifications
+
+- Scope: all Chakra `useToast` calls under the app provider. Direction: compact,
+  precise, calm; essence: status, message, action. Reuse the existing Inter body
+  stack, 14px body/semibold titles, 4px spacing rhythm, `lg` radius, `bg.muted`,
+  `text.primary`/`text.secondary`, and `border.strong`. Defined edges, no shadow.
+- Signature: neutral notification surfaces with color confined to the status
+  icon/spinner. Status remains recognizable by icon shape, not color alone.
+- `components/Toast.tsx` owns the shared composition; `style/toast.ts` owns the
+  `app-toast` Alert variant. Other Alert variants keep their existing styles.
+- Keep Chakra's lifecycle, live region, placement, timeout, hover pause, IDs,
+  promise/update/close APIs, React content, custom icons and caller overrides.
+  Custom `render` callbacks take precedence. Compiler Undo actions compose the
+  shared Toast's `action` slot, preserving their existing restore handlers.
+- Wrap long hashes/URLs, let content shrink in the toast container, use a minimum
+  24px dismiss target with visible keyboard focus, and underline message links.
+  No additional motion. Inspiration: the existing ETH.sh tool surfaces and
+  Chakra's native toast composition; no external component assets added.
+- Audit (2026-11-24): scoped extension of existing tokens and typography; neutral
+  hierarchy, semantic icons, wrapping content and accessible dismissal.
+
 ## Explorer chain filter
 
 - Selected chains use the existing primary blue at 12% opacity, including while

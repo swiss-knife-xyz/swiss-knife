@@ -7,6 +7,7 @@ import { useCustomChains } from "@/lib/customChains/store";
 import { chainIdToChain, networks } from "@/data/networks";
 import { ChakraProvider } from "@chakra-ui/react";
 import theme from "@/style/theme";
+import { toastOptions } from "@/components/Toast";
 import "@rainbow-me/rainbowkit/styles.css";
 import { AppProgressProvider as ProgressProvider } from "@bprogress/next";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -135,7 +136,7 @@ const ToolProviders = ({ children }: { children: React.ReactNode }) => {
       options={{ showSpinner: false }}
       shallowRouting
     >
-      <ChakraProvider theme={theme}>
+      <ChakraProvider theme={theme} toastOptions={toastOptions}>
         <WagmiProvider config={config}>
           <QueryClientProvider client={queryClient}>
             <RainbowKitProvider theme={darkTheme()} modalSize={"compact"}>
