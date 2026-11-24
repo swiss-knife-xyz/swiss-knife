@@ -10,6 +10,10 @@ export type ToolOgCard = {
 };
 
 export const toolOgCards = {
+  ipfs: {
+    title: "IPFS Gateways",
+    description: ["Paste IPFS hash and view across public gateways"],
+  },
   "calldata-cowswap": {
     title: "CowSwap TWAP Verifier",
     description: [

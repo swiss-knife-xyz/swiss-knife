@@ -1,4 +1,8 @@
 const subdomains = {
+  IPFS: {
+    base: "ipfs",
+    paths: [],
+  },
   CALLDATA: {
     base: "calldata",
     paths: ["decoder", "encoder", "viem-error-simulate", "cowswap"],

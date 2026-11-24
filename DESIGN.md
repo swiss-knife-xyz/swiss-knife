@@ -1,5 +1,27 @@
 # DESIGN.md - ETH.sh Orgs Directory
 
+## IPFS gateway tool
+
+- Scope: `/ipfs`, served at `ipfs.eth.sh`. A compact developer utility for turning
+  a CID or existing IPFS URL into links across public gateways.
+- Direction: minimal, precise, familiar. Essence: input, inspect, open.
+- Reuse the ETH.sh tool palette, Inter headings/body and JetBrains Mono data,
+  4px spacing scale, `md` controls and `lg` directory edges from `STYLING.md`.
+  Use `bg.base`/`bg.subtle`, `text.primary`/`text.secondary`, `border.default`
+  and restrained `primary.400` accents. No new page fonts or shadows.
+- Layout: one labelled input, two small example buttons directly below, then
+  gateway rows. Each row shows the generated destination and opens a new tab.
+  Keep the directory visible before input; its links initially open provider sites.
+- States: derive links locally as the input changes, show an inline CID error,
+  clear without retaining stale destinations, wrap long URLs at mobile widths.
+- Sharing: synchronize input through `?cid=`, serializing valid gateway URLs to
+  their extracted CID and file suffix. Restore shared input on load; examples
+  and clear update the URL without reloading the page.
+- Accessibility: visible labels/focus, native links/buttons, safe external-link
+  attributes and text validation. No automatic content requests or animation.
+- Audit: follows the existing explorer directory's compact row pattern, shared
+  typography and semantic tokens; no decorative cards or extra workflow steps.
+
 ## Context
 
 - Artifact type: directory and ecosystem aggregation page.

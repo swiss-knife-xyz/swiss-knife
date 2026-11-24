@@ -182,6 +182,9 @@ importers:
       mongoose:
         specifier: ^8.7.3
         version: 8.7.3
+      multiformats:
+        specifier: 12.1.3
+        version: 12.1.3
       next:
         specifier: 16.1.4
         version: 16.1.4(@babel/core@7.28.6)(babel-plugin-macros@3.1.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)

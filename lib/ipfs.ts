@@ -1,9 +1,66 @@
-// Keep independent public providers in priority order.
-export const IPFS_GATEWAYS = [
-  "https://gateway.pinata.cloud/ipfs/",
-  "https://ipfs.filebase.io/ipfs/",
-  "https://ipfs.orbitor.dev/ipfs/",
-] as const;
+interface PublicIPFSGateway {
+  name: string;
+  url: string;
+  website: string;
+  faviconDomain?: string;
+  note?: string;
+  automaticFallback?: boolean;
+}
+
+// Directory order is independent of the HTTP preview fallback policy below.
+export const PUBLIC_IPFS_GATEWAYS: readonly PublicIPFSGateway[] = [
+  {
+    name: "Pinata",
+    url: "https://gateway.pinata.cloud/ipfs/",
+    website: "https://pinata.cloud",
+    automaticFallback: true,
+  },
+  {
+    name: "IPFS.io",
+    url: "https://ipfs.io/ipfs/",
+    website: "https://ipfs.io",
+    faviconDomain: "ipfs.tech",
+    note: "Browser retrieval via inbrowser.link",
+  },
+  {
+    name: "dweb.link",
+    url: "https://dweb.link/ipfs/",
+    website: "https://dweb.link",
+    faviconDomain: "ipfs.tech",
+    note: "Browser retrieval via inbrowser.link",
+  },
+  {
+    name: "Filebase",
+    url: "https://ipfs.filebase.io/ipfs/",
+    website: "https://filebase.com",
+    automaticFallback: true,
+  },
+  {
+    name: "Orbitor",
+    url: "https://ipfs.orbitor.dev/ipfs/",
+    website: "https://blog.chainsafe.io/orbitor-ipfs-announcement/",
+    faviconDomain: "chainsafe.io",
+    automaticFallback: true,
+  },
+  {
+    name: "inbrowser.link",
+    url: "https://inbrowser.link/ipfs/",
+    website: "https://inbrowser.link",
+    faviconDomain: "ipfs.tech",
+    note: "Retrieves and verifies content in your browser",
+  },
+  {
+    name: "4EVERLAND",
+    url: "https://4everland.io/ipfs/",
+    website: "https://www.4everland.org/ipfs/",
+    note: "Does not serve HTML",
+  },
+];
+// Browser resolvers and providers with content restrictions are for navigation;
+// background JSON/image previews retain the verified independent HTTP providers.
+export const IPFS_GATEWAYS = PUBLIC_IPFS_GATEWAYS.filter(
+  (gateway) => gateway.automaticFallback
+).map((gateway) => gateway.url);
 
 export const IPFS_GATEWAY_TIMEOUT_MS = 8_000;
 

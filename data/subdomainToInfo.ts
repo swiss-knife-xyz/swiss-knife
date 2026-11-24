@@ -1,6 +1,11 @@
 import subdomains from "@/subdomains";
 
 export const subdomainToInfo = {
+  [subdomains.IPFS.base]: {
+    emoji: "📦",
+    label: "IPFS Gateways",
+    description: "Open any IPFS hash or URL through public gateways",
+  },
   [subdomains.CALLDATA.base]: {
     emoji: "📞",
     label: "Calldata Decoder",
