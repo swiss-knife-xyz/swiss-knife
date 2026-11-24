@@ -470,6 +470,18 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
   const toast = useToast();
   const searchParams = useSearchParams();
   const beforeFooterSlot = useBeforeFooterSlot();
+  const focusInputOnMount = React.useRef(searchParams.toString() === "");
+
+  useEffect(() => {
+    if (!focusInputOnMount.current) return;
+    // Next's route transition can scroll the page heading above the navbar.
+    // Run after that layout pass so an empty visit starts at the page top.
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      document.getElementById("decoder-calldata")?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   // get data from URL
   const calldataFromURL = searchParams.get("calldata");
@@ -1354,7 +1366,6 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
                     id="decoder-calldata"
                     aria-label="Calldata"
                     spellCheck={false}
-                    autoFocus
                     placeholder={selectedTabIndex === 0 ? "0x calldata or tx url" : "0x..."}
                     value={calldata}
                     onChange={(e) => { setDecodeMode("auto"); setCalldata(e.target.value); }}

@@ -242,6 +242,28 @@ function stubReducedMotion(reduce: boolean) {
 }
 
 describe("decoder transaction examples", () => {
+  it.each(["", "chainId=1"])("only focuses an empty-URL visit at the page top (query: %s)", async (query) => {
+    mocks.query = query;
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    try {
+      mount();
+      const input = screen.getByRole("textbox", { name: "Calldata" });
+      if (query === "") {
+        await waitFor(() => expect(document.activeElement).toBe(input));
+        expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+        expect(scroll).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
+      } else {
+        expect(document.activeElement).not.toBe(input);
+        expect(focus).not.toHaveBeenCalled();
+        expect(scroll).not.toHaveBeenCalled();
+      }
+    } finally {
+      focus.mockRestore();
+      scroll.mockRestore();
+    }
+  });
+
   it("updates clear signing live from nested drafts and restores the saved summary on reset/cancel", async () => {
     mocks.savedReady = true;
     const snapshot = getExampleSnapshot(decoderSamples[1]);
