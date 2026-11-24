@@ -136,6 +136,17 @@ export const ExplorerGridBase = ({
     );
   }, [forContractsFromURL, setUrlForContracts, syncFiltersToUrl]);
 
+  const matchesChainFilter = useCallback(
+    (explorerName: string) => {
+      const explorer = explorersData[explorerName];
+      if (!explorer) return false;
+      return chainIdsSelected.length === 0 || chainIdsSelected.some((chainId) =>
+        Object.prototype.hasOwnProperty.call(explorer.chainIdToLabel, chainId)
+      );
+    },
+    [explorersData, chainIdsSelected]
+  );
+
   const filteredExplorerNames = useMemo(
     () => orderDirectoryExplorers(Object.keys(explorersData)
         .filter((explorerName) => {
@@ -147,22 +158,14 @@ export const ExplorerGridBase = ({
               .indexOf(searchExplorer.toLocaleLowerCase()) !== -1
           );
         })
-        .filter((explorerName) => {
-          if (chainIdsSelected.length === 0) return true;
-
-          return chainIdsSelected.some((chainIdSelected) =>
-            Object.keys(explorersData[explorerName].chainIdToLabel).includes(
-              chainIdSelected.toString()
-            )
-          );
-        })
+        .filter(matchesChainFilter)
         .filter((explorerName) => {
           if (explorerType === ExplorerType.ADDRESS && forContracts) {
             return explorersData[explorerName].forContracts;
           }
           return true;
         }), explorersData, chainIdsSelected),
-    [searchExplorer, chainIdsSelected, forContracts, explorerType, explorersData]
+    [searchExplorer, chainIdsSelected, forContracts, explorerType, explorersData, matchesChainFilter]
   );
 
   return (
@@ -276,10 +279,14 @@ export const ExplorerGridBase = ({
                             }}
                             bg={
                               chainIdsSelected.includes(chainId)
-                                ? "bg.muted"
+                                ? "rgba(59, 130, 246, 0.12)"
                                 : "transparent"
                             }
-                            _hover={{ bg: "bg.muted" }}
+                            _hover={{
+                              bg: chainIdsSelected.includes(chainId)
+                                ? "rgba(59, 130, 246, 0.12)"
+                                : "bg.muted",
+                            }}
                           >
                             <HStack spacing={2}>
                               <Image
@@ -346,7 +353,7 @@ export const ExplorerGridBase = ({
         </HStack>
       </Center>
       <Box mt={{ base: 3, md: 4 }} minW={0} w="full">
-        {favoriteExplorerNames.some((name) => explorersData[name]) && (
+        {favoriteExplorerNames.some(matchesChainFilter) && (
           <>
             <Box py={{ base: 2, md: 4 }}>
               <Text fontSize="sm" fontWeight="medium" color="gray.300" mb={3}>
@@ -354,7 +361,7 @@ export const ExplorerGridBase = ({
               </Text>
               <DndProvider backend={HTML5Backend}>
                 <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} gap={4}>
-                  {favoriteExplorerNames.map((explorerName, i) => explorersData[explorerName] && (
+                  {favoriteExplorerNames.map((explorerName, i) => matchesChainFilter(explorerName) && (
                     <FavoriteExplorerGridItem
                       key={explorerName}
                       explorerName={explorerName}

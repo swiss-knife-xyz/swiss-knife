@@ -1,5 +1,13 @@
 # DESIGN.md - ETH.sh Orgs Directory
 
+## Explorer chain filter
+
+- Selected chains use the existing primary blue at 12% opacity, including while
+  hovered. Unselected chains retain the neutral hover background. Existing
+  `aria-pressed` state and keyboard focus styling remain intact.
+- Audit (2026-11-24): scoped state refinement using the existing compact tool
+  layout, typography, and palette; no new visual system.
+
 ## IPFS gateway tool
 
 - Scope: `/ipfs`, served at `ipfs.eth.sh`. A compact developer utility for turning
