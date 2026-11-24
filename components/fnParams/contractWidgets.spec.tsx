@@ -1360,3 +1360,114 @@ it.each([
     await screen.findByDisplayValue("0");
   }
 );
+
+it.each([
+  { top: 100, height: 80, reducedMotion: false, shouldScroll: false },
+  { top: 1000, height: 80, reducedMotion: false, shouldScroll: true },
+  { top: -100, height: 80, reducedMotion: true, shouldScroll: true },
+  { top: 100, height: 2000, reducedMotion: false, shouldScroll: false },
+  { top: 1000, height: 2000, reducedMotion: false, shouldScroll: true },
+])(
+  "reveals completed reads only when outside the viewport: $top/$height/$reducedMotion",
+  async ({ top, height, reducedMotion, shouldScroll }) => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    const getClientRects = HTMLElement.prototype.getClientRects;
+    vi.spyOn(HTMLElement.prototype, "getClientRects").mockImplementation(
+      function (this: HTMLElement) {
+        return this.hasAttribute("data-contract-result")
+          ? ([{ height }] as any)
+          : getClientRects.call(this);
+      }
+    );
+    const getBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: HTMLElement) {
+        return this.hasAttribute("data-contract-result")
+          ? ({
+              top,
+              bottom: top + height,
+              height,
+              left: 0,
+              right: 100,
+              width: 100,
+            } as DOMRect)
+          : getBoundingClientRect.call(this);
+      }
+    );
+    vi.stubGlobal("matchMedia", () => ({
+      matches: reducedMotion,
+      addListener() {},
+      removeListener() {},
+    }));
+    client.readContract.mockResolvedValue(0n);
+    show(
+      {
+        type: "function",
+        name: "count",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [{ type: "uint256" }],
+      },
+      "read",
+      { args: [], value: "0" }
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Toggle count" }));
+    fireEvent.click(screen.getByRole("button", { name: "Read" }));
+    await screen.findByDisplayValue("0");
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("button", { name: "Toggle count" })
+          .getAttribute("aria-expanded")
+      ).toBe("true")
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+    if (shouldScroll) {
+      expect(scrollIntoView).toHaveBeenCalledOnce();
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        block: height > window.innerHeight - 48 ? "start" : "nearest",
+        behavior: reducedMotion ? "instant" : "smooth",
+      });
+      // Repeating a read with the same returned value must still reveal it.
+      fireEvent.click(screen.getByRole("button", { name: "Read" }));
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(2));
+    } else {
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    }
+  }
+);
+
+it("does not scroll for automatic page-load reads", async () => {
+  const scrollIntoView = vi.fn();
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: scrollIntoView,
+  });
+  vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([
+    {},
+  ] as any);
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+    top: 1000,
+    bottom: 1080,
+    height: 80,
+  } as DOMRect);
+  client.readContract.mockResolvedValue(7n);
+  show({
+    type: "function",
+    name: "count",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+  });
+  await screen.findByDisplayValue("7");
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  });
+  expect(scrollIntoView).not.toHaveBeenCalled();
+});
