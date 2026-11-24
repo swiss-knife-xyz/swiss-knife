@@ -8,6 +8,7 @@ export default defineConfig({
     environment: "jsdom",
     include: [
       "components/ToolsDrawer.spec.tsx",
+      "components/MigrationBanner.spec.tsx",
       "lib/heroOmnibox.spec.ts",
       "lib/nameResolution.spec.ts",
       "components/HomePage/HeroSection/Omnibox.spec.tsx",

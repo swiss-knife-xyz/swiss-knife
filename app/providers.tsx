@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
+import { MigrationBanner } from "@/components/MigrationBanner";
 import { usePathname } from "next/navigation";
 import { CustomChainsProvider } from "@/contexts/CustomChainsProvider";
 import { useCustomChains } from "@/lib/customChains/store";
@@ -143,7 +144,12 @@ const ToolProviders = ({ children }: { children: React.ReactNode }) => {
               <CustomChainsProvider>
                 <SyncCustomWalletChains />
                 <AddressBookProvider>
-                  <NuqsAdapter>{children}</NuqsAdapter>
+                  <NuqsAdapter>
+                    <Suspense fallback={null}>
+                      <MigrationBanner />
+                    </Suspense>
+                    {children}
+                  </NuqsAdapter>
                   <ModalComponent />
                   <ImpersonatorFloatingButton />
                   <AddressBookDrawer />

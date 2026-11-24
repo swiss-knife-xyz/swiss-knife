@@ -39,6 +39,16 @@
 
 ## Shared notifications
 
+- Legacy arrivals: `?migration=swiss-knife` displays a shared announcement above
+  page navigation. Use neutral `bg.muted`, `border.default`, `text.primary` and
+  `text.secondary`, with a subtle coral radial glow rising from the bottom near
+  the logo and copy (13% center opacity, fading to transparent). Use the existing
+  brand mark, a concise
+  heading, bookmark guidance, and an accessible dismiss button. Keep it in normal
+  document flow with wrapping copy on mobile; no modal, animation, or auto-focus.
+- Dismissing removes only the reserved query marker. Ordinary visits remain clear
+  of migration messaging. See `_docs/domain-migration-banner.md`.
+
 - Scope: all Chakra `useToast` calls under the app provider. Direction: compact,
   precise, calm; essence: status, message, action. Reuse the existing Inter body
   stack, 14px body/semibold titles, 4px spacing rhythm, `lg` radius, `bg.muted`,
