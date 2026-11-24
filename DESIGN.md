@@ -887,3 +887,27 @@
 - The source selector now occupies the old-source panel on the left. GitHub
   sources form the old side of the diff; the onchain contract on the right is
   the new side. Each contract/network draft keeps its original side.
+
+
+## Homepage catalog columns
+
+- Directories and Useful Tools form two equal columns from the desktop `lg`
+  breakpoint, each with a two-column card grid below its heading. Keep
+  sections stacked below that breakpoint and retain their existing mobile/tablet
+  card grids. Tools for Devs continues at full width beneath both columns.
+- Direction: familiar, scannable, practical; essence: browse grouped tools. Reuse
+  existing homepage typography, colors, card states and spacing tokens.
+- Audit/changelog (2026-11-24): scoped responsive layout change; native links and
+  heading order retained, with no new interaction, imagery or motion.
+
+- Popular Tools sits above the paired sections with Calldata Decoder, Explorer
+  and Solidity Compiler in that order, using three desktop columns and the
+  existing card treatment. These cards appear once on the homepage; the shared
+  catalog and drawer retain their Tools for Devs categorization. Cross-explorer
+  Verification remains in the homepage developer grid.
+- Changelog (2026-11-24): added the homepage-only Popular Tools grouping.
+
+- Hero text links draw their gradient underline as an inline background with
+  cloned box decorations, so each wrapped line retains its own underline. Keep
+  the hover gradient animation, disabled when reduced motion is requested.
+- Changelog (2026-11-24): fixed underlines on wrapped hero links.

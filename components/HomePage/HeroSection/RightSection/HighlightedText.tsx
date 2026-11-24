@@ -3,9 +3,9 @@ import { keyframes } from "@emotion/react";
 
 // Animation keyframes for the underline
 const underlineAnimation = keyframes`
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% { background-position: 0% 100%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 100%; }
 `;
 
 // Highlighted text component with gradient underline
@@ -18,32 +18,25 @@ export const HighlightedText = ({
 }) => (
   <ChakraLink
     href={href}
-    position="relative"
     color="white"
     fontWeight="bold"
     textDecoration="none"
-    _after={{
-      content: '""',
-      position: "absolute",
-      width: "100%",
-      height: "2px",
-      bottom: "-2px",
-      left: 0,
-      background: "linear-gradient(90deg, #e84142, #ff8a8b, #e84142)",
-      backgroundSize: "200% 100%",
-      transition: "all 0.3s ease",
-      transform: "scaleX(0.95)",
-      transformOrigin: "bottom right",
-      opacity: 0.7,
+    backgroundImage="linear-gradient(90deg, rgba(232, 65, 66, 0.7), rgba(255, 138, 139, 0.7), rgba(232, 65, 66, 0.7))"
+    backgroundSize="200% 2px"
+    backgroundPosition="0% 100%"
+    backgroundRepeat="no-repeat"
+    paddingBottom="2px"
+    sx={{
+      boxDecorationBreak: "clone",
+      WebkitBoxDecorationBreak: "clone",
+      "@media (prefers-reduced-motion: reduce)": {
+        animation: "none !important",
+      },
     }}
     _hover={{
       textDecoration: "none",
-      _after: {
-        transform: "scaleX(1)",
-        transformOrigin: "bottom left",
-        opacity: 1,
-        animation: `${underlineAnimation} 2s linear infinite`,
-      },
+      backgroundImage: "linear-gradient(90deg, #e84142, #ff8a8b, #e84142)",
+      animation: `${underlineAnimation} 2s linear infinite`,
     }}
   >
     {children}

@@ -154,22 +154,22 @@ export const Footer = () => {
                   Calldata Decoder
                 </ChakraLink>
                 <ChakraLink
-                  href={`${getPath(subdomains.CONVERTER.base)}eth`}
+                  href={getPath(subdomains.CONTRACT.base)}
                   color="text.secondary"
                   fontSize="sm"
                   _hover={{ color: "primary.400" }}
                   transition="color 0.2s"
                 >
-                  Unit Converter
+                  Explorer
                 </ChakraLink>
                 <ChakraLink
-                  href={`${getPath(subdomains.EXPLORER.base)}`}
+                  href={`${getPath(subdomains.SOLIDITY.base)}compiler`}
                   color="text.secondary"
                   fontSize="sm"
                   _hover={{ color: "primary.400" }}
                   transition="color 0.2s"
                 >
-                  Explorer Directory
+                  Solidity Compiler
                 </ChakraLink>
                 <ChakraLink
                   href={getPath(subdomains.TRANSACT.base)}
@@ -178,7 +178,7 @@ export const Footer = () => {
                   _hover={{ color: "primary.400" }}
                   transition="color 0.2s"
                 >
-                  Transaction Tools
+                  Transact
                 </ChakraLink>
               </Flex>
             </Box>

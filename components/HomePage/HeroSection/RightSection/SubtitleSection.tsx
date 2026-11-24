@@ -22,8 +22,8 @@ export const SubtitleSection = () => {
         interacting with contracts
       </HighlightedText>
       ,{" "}
-      <HighlightedText href={getPath(subdomains.STORAGE_SLOTS.base)}>
-        inspecting storage slots
+      <HighlightedText href={`${getPath(subdomains.SOLIDITY.base)}compiler`}>
+        compiling Solidity
       </HighlightedText>
       ,{" "}
       <HighlightedText href={getPath(subdomains.CONTRACT_DIFF.base)}>

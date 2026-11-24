@@ -322,7 +322,7 @@ export function Omnibox() {
               router.push(destinations(detected)[0].href);
             }}
             onKeyDown={onKeyDown}
-            placeholder="Enter 0x bytes, an address, tx hash, or number"
+            placeholder="Enter 0x bytes, an address, tx hash, explorer url, ipfs and more"
             aria-invalid={Boolean(error) || undefined}
             aria-describedby={error ? `${id}-error` : undefined}
             variant="unstyled"
