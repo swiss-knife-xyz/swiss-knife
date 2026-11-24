@@ -10,6 +10,8 @@ import { toolOgCards } from "./toolOgCards";
 import { readdirSync } from "node:fs";
 import nextConfig from "../next.config.js";
 import { defaultTools, getToolEntryRedirect } from "./seo";
+import { navigation, toolHref } from "./toolNavigation";
+import { metadata as determineAddressMetadata } from "../app/determine-address/layout";
 
 test("category redirects preserve arbitrary local ports and preview origins without a development flag", () => {
   for (const [base, tool] of Object.entries(defaultTools)) {
@@ -267,4 +269,38 @@ test("Transact is a standalone tool at the tx root", () => {
   const metadata = readFileSync(new URL("../app/tx/layout.tsx", import.meta.url), "utf8");
   assert.ok(metadata.includes('canonical: "https://tx.eth.sh/"'));
   assert.ok(metadata.includes('/api/og/tx'));
+});
+
+test("Determine Address uses the apex path in navigation, metadata, and discovery", () => {
+  const tool = navigation.flatMap(category => category.tools).find(tool => tool.subdomain === "determine-address")!;
+  assert.ok(tool);
+  assert.equal(toolHref(tool), "https://eth.sh/determine-address/");
+  assert.equal(getPath("determine-address"), "https://eth.sh/determine-address/");
+  assert.equal(getPath("explorer"), "https://explorer.eth.sh/");
+  const card = ToolsGridItem(tool);
+  assert.equal(card.props.href, "https://eth.sh/determine-address/");
+  assert.equal(determineAddressMetadata.alternates?.canonical, "https://eth.sh/determine-address");
+  assert.ok(getPublicPageUrls().includes("https://eth.sh/determine-address"));
+  assert.ok(!getPublicPageUrls().some(url => url.startsWith("https://determine-address.eth.sh")));
+});
+
+test("Determine Address stays local in development", () => {
+  const original = process.env.NEXT_PUBLIC_DEVELOPMENT;
+  process.env.NEXT_PUBLIC_DEVELOPMENT = "true";
+  try {
+    assert.equal(getPath("determine-address"), "/determine-address/");
+    assert.equal(getPath("explorer"), "/explorer/");
+  } finally {
+    if (original === undefined) delete process.env.NEXT_PUBLIC_DEVELOPMENT;
+    else process.env.NEXT_PUBLIC_DEVELOPMENT = original;
+  }
+});
+
+test("historical Determine Address host roots redirect to the canonical apex page", () => {
+  const rules = nextConfig.redirects();
+  for (const host of ["contract-address.eth.sh", "determine-address.eth.sh"]) {
+    const rule = rules.find((rule: any) => rule.source === "/" && rule.has?.some((condition: any) => condition.type === "host" && new RegExp(`^${condition.value}$`).test(host)));
+    assert.equal(rule?.destination, "https://eth.sh/determine-address");
+    assert.equal(rule?.permanent, true);
+  }
 });

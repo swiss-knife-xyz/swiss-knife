@@ -15,6 +15,7 @@ import {
   TX_KEY,
 } from "@/data/common";
 import { getPublicClient } from "@/lib/publicClient";
+import subdomains from "@/subdomains";
 import {
   ContractResponse,
   ExplorerData,
@@ -57,7 +58,12 @@ export const getPath = (subdomain: string, isRelativePath: boolean = false) => {
       : "https://eth.sh/";
   }
 
-  if (isRelativePath || subdomain === "explorers") {
+  const usesApexPath =
+    isRelativePath ||
+    Object.values(subdomains).some(
+      (tool) => tool.base === subdomain && tool.isRelativePath
+    );
+  if (usesApexPath) {
     return process.env.NEXT_PUBLIC_DEVELOPMENT === "true"
       ? `/${subdomain}/`
       : `https://eth.sh/${subdomain}/`;

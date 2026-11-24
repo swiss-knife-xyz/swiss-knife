@@ -32,7 +32,8 @@ check("explorer.eth.sh", "/", 200, canonical="https://explorer.eth.sh/")
 check("explorer.eth.sh", f"/1/{address}", 200, canonical=f"https://explorer.eth.sh/1/{address}")
 check("eth.sh", "/explorers", 200, canonical="https://eth.sh/explorers")
 check("usdc-pay.eth.sh", "/", 200, canonical="https://usdc-pay.eth.sh/")
-check("determine-address.eth.sh", "/", 200, canonical="https://determine-address.eth.sh/")
+check("eth.sh", "/determine-address", 200, canonical="https://eth.sh/determine-address")
+check("contract-address.eth.sh", "/?migration=swiss-knife&tag=kept", 308, "https://eth.sh/determine-address?migration=swiss-knife&tag=kept")
 check("solidity.eth.sh", "/", 308, "https://solidity.eth.sh/compiler")
 check("solidity.eth.sh", "/compiler", 200, canonical="https://solidity.eth.sh/compiler")
 for base, tool in {"calldata": "decoder", "converter": "eth", "ens": "history", "foundry": "forge-stack-tracer-ui", "safe": "eip-712-hash", "uniswap": "tick-to-price", "wallet": "bridge"}.items():
@@ -42,7 +43,7 @@ check("eth.sh", "/orgs", 200, canonical="https://eth.sh/orgs")
 check("eth.sh", f"/explorers/address/{address}", 200, canonical=f"https://eth.sh/explorers/address/{address}")
 check("eth.sh", "/explorers/tx/0x" + "a" * 64, 200, canonical="https://eth.sh/explorers/tx/0x" + "a" * 64)
 check("ens.eth.sh", "/history/vitalik.eth", 200, canonical="https://ens.eth.sh/history/vitalik.eth")
-for host in ["eth.sh", "explorer.eth.sh", "determine-address.eth.sh", "solidity.eth.sh", "usdc-pay.eth.sh"]:
+for host in ["eth.sh", "explorer.eth.sh", "solidity.eth.sh", "usdc-pay.eth.sh"]:
     check(host, "/robots.txt", 200)
     check(host, "/sitemap.xml", 200)
     check(host, "/api/og/home", 200)

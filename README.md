@@ -34,7 +34,7 @@ Formerly **Swiss-Knife.xyz**, rebuilt with a new interface and expanded toolset.
 | [ENS](https://ens.eth.sh/history) | Explore name history and visualize CCIP Read resolution. |
 | [Converter](https://converter.eth.sh/eth) | Convert ether, gwei, wei, hex, decimal, and binary; calculate hashes, selectors, padding, checksums, and gas costs. |
 | [Epoch Converter](https://epoch-converter.eth.sh/) | Convert Unix timestamps and dates, calculate relative times, and find Ethereum blocks by time. |
-| [Determine Address](https://determine-address.eth.sh/) | Calculate contract addresses for CREATE and CREATE2 deployments. |
+| [Determine Address](https://eth.sh/determine-address) | Calculate contract addresses for CREATE and CREATE2 deployments. |
 | [SIWE Validator](https://siwe.eth.sh/) | Validate, fix, sign, and share EIP-4361 Sign-In With Ethereum messages. |
 | [Foundry](https://foundry.eth.sh/forge-stack-tracer-ui) | Explore Foundry stack traces in a collapsible tree. |
 | [Character Counter](https://character-counter.eth.sh/) | Count characters in a string or selected text. |

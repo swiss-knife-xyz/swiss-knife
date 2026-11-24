@@ -84,6 +84,18 @@ const nextConfig = {
   redirects() {
     return [
       {
+        source: "/",
+        has: [{ type: "host", value: "(?:determine-address|contract-address)\\.eth\\.sh" }],
+        destination: "https://eth.sh/determine-address",
+        permanent: true,
+      },
+      {
+        source: "/contract-address",
+        has: [{ type: "host", value: "(?:www\\.)?eth\\.sh" }],
+        destination: "https://eth.sh/determine-address",
+        permanent: true,
+      },
+      {
         source: "/og/migrate.png",
         destination: "https://eth.sh/api/og/migrate",
         permanent: true,

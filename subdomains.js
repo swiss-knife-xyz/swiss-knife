@@ -47,6 +47,7 @@ const subdomains = {
   DETERMINE_ADDRESS: {
     base: "determine-address",
     paths: [],
+    isRelativePath: true,
   },
   CONTRACT_DIFF: {
     base: "contract-diff",

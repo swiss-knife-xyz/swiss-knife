@@ -106,6 +106,7 @@ export const subdomainToInfo = {
     emoji: "📝",
     label: "Determine Address",
     description: "Calculate contract address using CREATE or CREATE2 opcode",
+    isRelativePath: subdomains.DETERMINE_ADDRESS.isRelativePath,
   },
   [subdomains.CONSTANTS.base]: {
     emoji: "📊",
