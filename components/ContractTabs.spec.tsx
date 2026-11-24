@@ -23,6 +23,9 @@ const { code, client, mounts } = vi.hoisted(() => ({
   mounts: vi.fn(),
 }));
 vi.mock("@/lib/publicClient", () => ({ getPublicClient: client }));
+vi.mock("@/components/AddressBook/AddressBookButton", () => ({
+  AddressBookButton: () => null,
+}));
 vi.mock("@/utils", () => ({
   slicedText: (value: string) => value,
   getPath: (value: string) => `/${value}/`,
@@ -64,6 +67,7 @@ function Contract({ address, chainId }: { address: string; chainId: number }) {
       />
       <button onClick={() => setExpanded((v) => !v)}>Toggle result</button>
       <button onClick={() => tab?.onCacheReady?.()}>Finish cache restore</button>
+      <button onClick={() => tab?.onNoCode?.()}>Report empty account</button>
       {expanded && <p>Saved read result</p>}
       <ContractAddressLink
         address={contract}
@@ -342,6 +346,15 @@ it("rechecks code when changing an address tab's network and replaces it with th
   expect(screen.getAllByRole("tab")).toHaveLength(2);
   expect(screen.queryByText(`Explorer grid 1 ${account}`)).toBeNull();
   expect(screen.getByRole("textbox", { name: "Draft" })).toBeTruthy();
+});
+
+it("shows the explorer grid when a directly opened address reports empty code", async () => {
+  mount();
+  const url = window.location.href;
+  fireEvent.click(screen.getByRole("button", { name: "Report empty account" }));
+  await screen.findByText(`Explorer grid 1 ${root}`);
+  expect(window.location.href).toBe(url);
+  expect(code).not.toHaveBeenCalled();
 });
 
 it("shows explorers for the selected network when the address still has no code", async () => {

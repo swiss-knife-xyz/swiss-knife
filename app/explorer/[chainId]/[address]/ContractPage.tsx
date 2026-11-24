@@ -1134,6 +1134,7 @@ const LoadedContractPage = ({
   const [implementationSourceCode, setImplementationSourceCode] = useState<SourceCodeType>(undefined);
   const [isLoadingSourceCode, setIsLoadingSourceCode] = useState<boolean>(false);
 
+  const onNoCode = contractTab?.onNoCode;
   const fetchSetAbi = useCallback(async (isCurrent: () => boolean) => {
     let resolvingDelegation = false;
     let finished = false;
@@ -1160,9 +1161,14 @@ const LoadedContractPage = ({
       // Resolve the active authorization from on-chain code, as in 7702beat.
       // Load the delegate ABI while calls still target the EOA (`address`).
       const rpcClient = getPublicClient(chainId);
-      const code = await rpcClient.getCode({ address: address as Address }).catch(() => undefined);
+      // viem returns undefined for an empty account; keep RPC failures distinct.
+      const code = await rpcClient.getCode({ address: address as Address }).catch(() => null);
       if (!isCurrent()) return;
-      const delegate = getDelegatedImplementation(code);
+      if ((code === undefined || code === "0x") && onNoCode) {
+        onNoCode();
+        return;
+      }
+      const delegate = getDelegatedImplementation(code ?? undefined);
       setIsDelegated(Boolean(delegate));
       if (delegate) {
         finished = true;
@@ -1355,7 +1361,7 @@ const LoadedContractPage = ({
       finished = true;
       if (isCurrent()) setIsFetchingAbi(false);
     }
-  }, [address, chainId]);
+  }, [address, chainId, onNoCode]);
 
   // Track the current chainId to avoid unnecessary client updates
   const currentChainIdRef = useRef<number>(chainId);

@@ -73,6 +73,7 @@ type TabContext = {
   initial: boolean;
   isResolvingAddress?: boolean;
   onCacheReady?: () => void;
+  onNoCode?: () => void;
   openAddress: (address: string, chainId: number, displayName?: string) => void;
   setName: (name: string) => void;
 };
@@ -141,6 +142,7 @@ function AddressPanel({
     "loading" | "contract" | "address" | "error"
   >(tab.initial && !tab.checkCode ? "contract" : "loading");
   const [revision, setRevision] = useState(0);
+  const onNoCode = useCallback(() => setKind("address"), []);
   useEffect(() => {
     if (tab.initial && !tab.checkCode) return;
     let active = true;
@@ -176,6 +178,7 @@ function AddressPanel({
   return kind === "contract" || kind === "loading" ? (
     <ContractTabContext.Provider value={context ? {
       ...context,
+      onNoCode,
       isResolvingAddress: kind === "loading",
     } : null}>
       {renderContract(tab)}
