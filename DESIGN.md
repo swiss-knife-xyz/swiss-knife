@@ -1,5 +1,42 @@
 # DESIGN.md - ETH.sh Orgs Directory
 
+## Homepage hero brand mark
+
+- Tagline: **The Ultimate Ethereum Toolkit** across the homepage and shared OG branding.
+
+- Use the same transparent `public/logo.svg` in the hero and smaller brand placements.
+- The mark uses off-white `#F5F4EF` with a brand red `#E84142` right facet;
+  the SVG has no background rectangle.
+- Retain existing responsive sizing. The glow is a static, pointer-transparent
+  pseudo-element centered on the logo itself, not on a percentage of the page.
+  Its desktop ellipse is 1300px by 1200px (1100px at medium widths); mobile
+  uses 180vw by 1000px. Coral opacity falls from 36% at the center to 20% at
+  22% radius, 8.5% at 45%, 2.5% at 70%, and zero at the outer edge.
+- No page-wide warm wash. Keep the right side darker, with a faint radial tail
+  below the omnibox; the tools surface blends to `bg.800` over its first 280px.
+- The GitHub action uses a neutral outline; the primary action has no red glow.
+- Warm coral (option 3) is the current local draft selected for in-page review.
+- Audit (2026-11-24): one consistent geometric mark across placements; static
+  SVG with descriptive alternative text and no new motion.
+
+## Homepage and Explorer sharing images
+
+- Preserve the original 1200x630 OG compositions, Poppins type, dark background,
+  and white wordmark. Changes are limited to logo scale, placement, spacing,
+  and the tagline: The Ultimate Ethereum Toolkit.
+- Homepage: retain the scattered tool-name backdrop and centered brand lockup;
+  use the cropped mark at 104x163px, a 24px mark/text gap, and a 12px gap
+  between the existing wordmark and tagline.
+- Explorer: retain the existing title, description, and lower-right branding.
+  The shared OG footer uses the cropped mark at 52x82px across all cards using
+  that template, including Explorer, Calldata, Migrate Tokens and Wallet Bridge.
+- `assets/eth-mark.png` is a tightly cropped derivative of `public/logo.svg`
+  for OG lockups. The main logo retains its original square canvas.
+- Browser icons use `public/favicon.svg` with a tighter square viewBox, with PNG,
+  Apple touch and ICO derivatives. Cache-version icon URLs when artwork changes.
+- Audit (2026-11-24): retain existing style; check logo spacing and full tagline
+  in locally rendered homepage and Explorer images.
+
 ## Shared notifications
 
 - Scope: all Chakra `useToast` calls under the app provider. Direction: compact,

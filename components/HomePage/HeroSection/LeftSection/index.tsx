@@ -8,6 +8,7 @@ export const LeftSection = () => {
       justify="center"
       align="center"
       position="relative"
+      top={{ base: 0, md: -8 }}
       zIndex="1"
       mb={{ base: 10, md: 0 }}
     >

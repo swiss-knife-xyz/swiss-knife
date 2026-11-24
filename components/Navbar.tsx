@@ -48,7 +48,7 @@ export const Navbar = () => {
               w={{ base: "2rem", sm: "2.5rem" }}
               h={{ base: "2rem", sm: "2.5rem" }}
               alt="icon"
-              src="/icon.png"
+              src="/logo.svg"
               rounded="md"
             />
             <Heading

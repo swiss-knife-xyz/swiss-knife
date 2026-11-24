@@ -601,7 +601,7 @@ function USDCPayContent() {
             w={{ base: "2rem", md: "2.5rem" }}
             h={{ base: "2rem", md: "2.5rem" }}
             alt="Swiss Knife"
-            src="/icon.png"
+            src="/logo.svg"
             rounded="lg"
           />
         </Flex>

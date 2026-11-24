@@ -29,11 +29,11 @@ export const HomePageNavBar = () => {
     >
       <HStack spacing={{ base: 2, md: 4 }}>
         <Link href="/" passHref>
-          <HStack spacing={{ base: 2, md: 4 }} cursor="pointer">
+          <HStack spacing={1} cursor="pointer">
             <Image
-              src="/icon.png"
+              src="/logo.svg"
               alt="ETH.sh"
-              boxSize={{ base: "2.5rem", md: "3rem" }}
+              boxSize={{ base: "3rem", md: "3.5rem" }}
               rounded={"md"}
             />
             <Heading

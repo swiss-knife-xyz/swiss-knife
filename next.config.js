@@ -39,6 +39,14 @@ const nextConfig = {
           destination: "/icon.png",
         },
         {
+          source: "/favicon.svg",
+          destination: "/favicon.svg",
+        },
+        {
+          source: "/logo.svg",
+          destination: "/logo.svg",
+        },
+        {
           source: "/logo.png",
           destination: "/logo.png",
         },
@@ -52,7 +60,7 @@ const nextConfig = {
           .flatMap((subdomain) => [
             {
               source:
-                "/:path((?!_next|api|og(?:/|$)|frame(?:/|$)|robots\\.txt$|sitemap\\.xml$|favicon\\.ico$|apple-touch-icon\\.png$|chainIcons|tokenIcons|external|icon.png|logo.png|splashImage.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
+                "/:path((?!_next|api|og(?:/|$)|frame(?:/|$)|robots\\.txt$|sitemap\\.xml$|favicon\\.(?:ico|svg)$|apple-touch-icon\\.png$|chainIcons|tokenIcons|external|icon.png|logo.png|logo\\.svg$|splashImage.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
               has: [
                 {
                   type: "host",
@@ -75,6 +83,16 @@ const nextConfig = {
   },
   redirects() {
     return [
+      {
+        source: "/og/migrate.png",
+        destination: "https://eth.sh/api/og/migrate",
+        permanent: true,
+      },
+      {
+        source: "/frame/wallet-bridge.png",
+        destination: "https://eth.sh/api/og/wallet-bridge",
+        permanent: true,
+      },
       // Retired Send Tx subpaths point directly to the tool root.
       {
         source: "/send-tx",

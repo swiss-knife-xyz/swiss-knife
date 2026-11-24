@@ -24,7 +24,13 @@ const homepageDeveloperEntries = toolEntries.filter(
 
 export const ToolsGrid = () => {
   return (
-    <Box bg="bg.800" py={{ base: 10, md: 16 }} id="all-tools">
+    <Box
+      position="relative"
+      bgGradient="linear(to-b, transparent 0px, bg.800 280px)"
+      pt={{ base: 6, md: 8 }}
+      pb={{ base: 10, md: 16 }}
+      id="all-tools"
+    >
       <Container maxW="container.xl" px={{ base: 4, md: 6 }}>
         <Box mb={{ base: 12, md: 16 }}>
           <ToolsGridHeading title="Popular Tools" />

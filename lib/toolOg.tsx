@@ -15,13 +15,15 @@ const artworkLoaders: Record<ToolOgArtwork, () => Promise<ArrayBuffer>> = {
 };
 
 export async function loadToolOgAssets() {
-  const [bold, light, logo] = await Promise.all([
+  const [bold, light, logo, mark] = await Promise.all([
     read(new URL("../assets/Poppins-Bold.ttf", import.meta.url)),
     read(new URL("../assets/Poppins-Light.ttf", import.meta.url)),
     read(new URL("../public/logo.png", import.meta.url)),
+    read(new URL("../assets/eth-mark.png", import.meta.url)),
   ]);
   return {
     logo,
+    mark,
     fonts: [
       {
         name: "Poppins",
@@ -40,7 +42,7 @@ export async function loadToolOgAssets() {
 }
 
 export async function renderToolOg(card: ToolOgCard) {
-  const [{ logo, fonts }, artwork] = await Promise.all([
+  const [{ mark, fonts }, artwork] = await Promise.all([
     loadToolOgAssets(),
     card.artwork ? artworkLoaders[card.artwork]() : card.artworkSrc,
   ]);
@@ -138,7 +140,7 @@ export async function renderToolOg(card: ToolOgCard) {
             </span>
           </div>
         )}
-        <ToolOgBrand logo={logo} />
+        <ToolOgBrand logo={mark} />
       </div>
     ),
     {
@@ -168,9 +170,8 @@ export function ToolOgBrand({ logo }: { logo: ArrayBuffer }) {
         <img
           alt="ETH.sh logo"
           src={logo as unknown as string}
-          width={x(130)}
-          height={y(130)}
-          style={{ borderRadius: x(32) }}
+          width={52}
+          height={82}
         />
         <span style={{ fontSize: x(100), fontWeight: 700, lineHeight: 1 }}>
           ETH.sh
@@ -188,7 +189,7 @@ export function ToolOgBrand({ logo }: { logo: ArrayBuffer }) {
           whiteSpace: "nowrap",
         }}
       >
-        All your EVM dev tools in one place!
+        The Ultimate Ethereum Toolkit
       </div>
     </>
   );
@@ -225,7 +226,7 @@ export function StackedToolOgBrand({ logo }: { logo: ArrayBuffer }) {
         ETH.sh
       </div>
       <div style={{ marginTop: y(21), fontSize: x(26), whiteSpace: "nowrap" }}>
-        All your EVM dev tools in one place!
+        The Ultimate Ethereum Toolkit
       </div>
     </div>
   );

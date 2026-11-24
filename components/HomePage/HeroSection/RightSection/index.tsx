@@ -23,9 +23,9 @@ export const RightSection = () => {
         lineHeight="1.2"
         mb={{ base: 4, md: 6 }}
       >
-        All your EVM tools
+        The Ultimate
         <br />
-        in one place!
+        Ethereum Toolkit
       </Heading>
 
       <SubtitleSection />

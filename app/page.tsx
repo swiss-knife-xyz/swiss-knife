@@ -10,7 +10,7 @@ import { Footer } from "@/components/Footer";
 
 const Home = () => {
   return (
-    <Box minH="100vh" bg="bg.900">
+    <Box minH="100vh" bg="bg.900" overflowX="clip">
       <HomePageNavBar />
       <HeroSection />
       <ToolsGrid />

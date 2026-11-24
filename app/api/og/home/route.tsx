@@ -17,7 +17,7 @@ const backgroundTools = [
 ];
 
 export async function GET() {
-  const { logo, fonts } = await loadToolOgAssets();
+  const { mark, fonts } = await loadToolOgAssets();
 
   return new ImageResponse(
     (
@@ -62,22 +62,21 @@ export async function GET() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: x(86),
+            gap: 24,
           }}
         >
           <img
             alt="ETH.sh logo"
-            src={logo as unknown as string}
-            width={x(299)}
-            height={y(299)}
-            style={{ borderRadius: x(64) }}
+            src={mark as unknown as string}
+            width={104}
+            height={163}
           />
           <div
             style={{
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: y(48),
+              gap: 12,
             }}
           >
             <div
@@ -86,7 +85,7 @@ export async function GET() {
               ETH.sh
             </div>
             <div style={{ fontSize: x(40), whiteSpace: "nowrap" }}>
-              All your EVM dev tools in one place!
+              The Ultimate Ethereum Toolkit
             </div>
           </div>
         </div>

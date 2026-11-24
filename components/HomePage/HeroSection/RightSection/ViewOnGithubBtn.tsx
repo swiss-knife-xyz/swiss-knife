@@ -13,8 +13,8 @@ export const ViewOnGithubBtn = () => {
         bg="transparent"
         color="white"
         borderWidth={2}
-        borderColor="custom.base"
-        _hover={{ bg: "rgba(232, 65, 66, 0.1)" }}
+        borderColor="whiteAlpha.300"
+        _hover={{ bg: "whiteAlpha.100", borderColor: "whiteAlpha.500" }}
         borderRadius="full"
         px={{ base: 6, md: 8 }}
         width="100%"

@@ -12,7 +12,7 @@ const _metadataInfo = {
 // FIXME: update farcaster.json to use eth.sh
 const frame = {
   version: "next",
-  imageUrl: "https://eth.sh/frame/wallet-bridge.png",
+  imageUrl: "https://eth.sh/api/og/wallet-bridge",
   button: {
     title: "Wallet Bridge",
     action: {

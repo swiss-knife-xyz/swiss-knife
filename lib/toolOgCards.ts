@@ -10,6 +10,13 @@ export type ToolOgCard = {
 };
 
 export const toolOgCards = {
+  migrate: {
+    title: "Migrate Tokens",
+    description: [
+      "Sweep tokens to another address,",
+      "with batched transfers when supported.",
+    ],
+  },
   ipfs: {
     title: "IPFS Gateways",
     description: ["Paste IPFS hash and view across public gateways"],

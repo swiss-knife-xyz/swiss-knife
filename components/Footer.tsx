@@ -42,7 +42,7 @@ export const Footer = () => {
           >
             <HStack spacing={3} mb={4}>
               <Image
-                src="/icon.png"
+                src="/logo.svg"
                 alt="ETH.sh"
                 boxSize="2.5rem"
                 rounded="md"

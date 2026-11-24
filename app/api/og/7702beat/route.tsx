@@ -42,7 +42,7 @@ async function loadIcon(path: string | undefined, request: Request) {
 }
 
 export async function GET(request: Request) {
-  const [{ logo, fonts }, walletIcons] = await Promise.all([
+  const [{ mark, fonts }, walletIcons] = await Promise.all([
     loadToolOgAssets(),
     Promise.all(wallets.map((wallet) => loadIcon(wallet.logoUrl, request))),
   ]);
@@ -126,7 +126,8 @@ export async function GET(request: Request) {
                     alignItems: "center",
                     justifyContent: "center",
                     borderRadius: 8,
-                    background: wallet.name === "Bitget" ? "transparent" : "white",
+                    background:
+                      wallet.name === "Bitget" ? "transparent" : "white",
                   }}
                 >
                   <img
@@ -160,7 +161,7 @@ export async function GET(request: Request) {
             </div>
           ))}
         </div>
-        <ToolOgBrand logo={logo} />
+        <ToolOgBrand logo={mark} />
       </div>
     ),
     { width: 1200, height: 630, fonts }
