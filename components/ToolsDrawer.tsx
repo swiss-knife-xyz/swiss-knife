@@ -98,6 +98,7 @@ export function ToolsNavigation({
                   <ChakraLink
                     as={Link}
                     href={href}
+                    data-tool-href={href}
                     data-tool-result={
                       !search ||
                       matches(tool.info.label, tool.subdomain, tool.path ?? "")
@@ -186,6 +187,7 @@ export function ToolsNavigation({
                           as={Link}
                           key={child.path}
                           href={childHref}
+                          data-tool-href={childHref}
                           data-tool-result=""
                           onClick={onNavigate}
                           display="flex"
@@ -263,6 +265,8 @@ export function ToolsDrawer({
     const target = event.target as HTMLElement;
     const fromSearch = target === searchRef.current;
     if (!fromSearch && target.tagName !== "A") return;
+    // Next.js can normalize rendered hrefs (for example, removing a trailing
+    // slash). Keep selection tied to the original href used for highlighting.
     const links = Array.from(
       resultsRef.current?.querySelectorAll<HTMLAnchorElement>(
         "a[href][data-tool-result]"
@@ -272,7 +276,7 @@ export function ToolsDrawer({
     if (event.key === "Enter" && fromSearch) {
       event.preventDefault();
       (
-        links.find((link) => link.getAttribute("href") === selectedHref) ??
+        links.find((link) => link.getAttribute("data-tool-href") === selectedHref) ??
         links[0]
       ).click();
       return;
@@ -280,7 +284,7 @@ export function ToolsDrawer({
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
     event.preventDefault();
     const selectedIndex = links.findIndex(
-      (link) => link.getAttribute("href") === selectedHref
+      (link) => link.getAttribute("data-tool-href") === selectedHref
     );
     const current = fromSearch
       ? selectedIndex >= 0
@@ -296,7 +300,7 @@ export function ToolsDrawer({
           : links.length - 1
         : (current + (event.key === "ArrowDown" ? 1 : -1) + links.length) %
           links.length;
-    setSelectedHref(links[next].getAttribute("href"));
+    setSelectedHref(links[next].getAttribute("data-tool-href"));
     searchRef.current?.focus({ preventScroll: true });
     links[next].scrollIntoView?.({ block: "nearest" });
   };
@@ -374,7 +378,7 @@ export function ToolsDrawer({
             onFocusCapture={(event) => {
               const target = event.target as HTMLElement;
               if (target.matches("a[data-tool-result]"))
-                setSelectedHref(target.getAttribute("href"));
+                setSelectedHref(target.getAttribute("data-tool-href"));
             }}
           >
             {isOpen && (

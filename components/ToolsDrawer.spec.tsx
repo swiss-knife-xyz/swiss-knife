@@ -2,7 +2,12 @@ import React from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
-vi.mock("next/link", () => ({ default: "a" }));
+vi.mock("next/link", () => ({
+  // Match Next.js Link's normalization of trailing slashes in rendered hrefs.
+  default: ({ href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <a {...props} href={href?.replace(/\/$/, "") || "/"} />
+  ),
+}));
 vi.mock("next/navigation", () => ({ usePathname: () => "/explorer/" }));
 vi.mock("@/utils", () => ({ getPath: (base: string) => `/${base}/` }));
 import { toolEntries, usefulToolEntries } from "@/data/toolCatalog";
@@ -29,7 +34,7 @@ it("puts developer tools first and links Explorer directly beside its verificati
     screen
       .getByRole("link", { name: "Explorer" })
       .getAttribute("href")
-  ).toBe("/explorer/");
+  ).toBe("/explorer");
   expect(
     screen
       .getByRole("link", { name: "Explorer" })
@@ -44,10 +49,10 @@ it("puts developer tools first and links Explorer directly beside its verificati
     screen
       .getByRole("link", { name: "Deploy Mock Tokens" })
       .getAttribute("href")
-  ).toBe("/mock-tokens/");
+  ).toBe("/mock-tokens");
   expect(
     screen.getByRole("link", { name: "RPC Console" }).getAttribute("href")
-  ).toBe("/rpc-console/");
+  ).toBe("/rpc-console");
 });
 it("expands related pages without intercepting the main link or navigating", () => {
   const onNavigate = mount();
@@ -190,4 +195,33 @@ it("opens the first search result on Enter and safely ignores empty results", as
   fireEvent.keyDown(search, { key: "Enter" });
   expect(navigate).toHaveBeenCalledOnce();
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+});
+
+it("highlights every explore result in both directions with normalized Next.js links", async () => {
+  render(<ChakraProvider><HomePageNavBar /></ChakraProvider>);
+  fireEvent.keyDown(window, { key: "k", metaKey: true });
+  const search = await screen.findByRole("textbox", { name: "Find a tool" });
+  await waitFor(() => expect(document.activeElement).toBe(search));
+  fireEvent.change(search, { target: { value: "explore" } });
+  const links = screen.getAllByRole("link");
+  expect(links.map((link) => link.textContent)).toEqual([
+    "Explorer", "Cross-explorer Verification", "Explorer Directory",
+  ]);
+  const expectSelected = (index: number) => {
+    expect(links.filter((link) => link.hasAttribute("data-keyboard-selected"))).toEqual([links[index]]);
+    expect(document.activeElement).toBe(search);
+  };
+  expectSelected(0);
+  for (const [key, index] of [
+    ["ArrowDown", 1], ["ArrowDown", 2], ["ArrowDown", 0],
+    ["ArrowUp", 2], ["ArrowUp", 1], ["ArrowUp", 0],
+  ] as const) {
+    fireEvent.keyDown(search, { key });
+    expectSelected(index);
+  }
+  fireEvent.keyDown(search, { key: "ArrowUp" });
+  const navigate = vi.fn((event: Event) => event.preventDefault());
+  links[2].addEventListener("click", navigate);
+  fireEvent.keyDown(search, { key: "Enter" });
+  expect(navigate).toHaveBeenCalledOnce();
 });
