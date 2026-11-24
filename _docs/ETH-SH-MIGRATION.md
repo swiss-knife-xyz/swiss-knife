@@ -33,6 +33,11 @@ contract-path chains use the directory too, translating the authoritative path
 chain ID into its query filter. ENS names use the directory because the unified
 contract workspace currently validates hex addresses.
 
+Determine Address uses the apex page `https://eth.sh/determine-address`. Both
+`determine-address.swiss-knife.xyz` and the configured historical alias
+`contract-address.swiss-knife.xyz` (including apex path forms) map directly there.
+They retain the migration marker, unrelated query fields, and inherited fragments.
+
 Other known paths retain their path on the same-named ETH.sh subdomain. Apex
 paths, e.g. `swiss-knife.xyz/wallet/signatures`, use the same mapping. The exact
 route list and default entries live in the resolver.
@@ -111,7 +116,7 @@ SWISS_KNIFE_MIGRATION_ENABLED=false MIGRATION_TEST_ORIGIN=http://127.0.0.1:3222 
 
 Without `MIGRATION_TEST_ORIGIN`, HTTP tests skip rather than contacting production.
 
-Verified locally on 2026-11-24:
+Initial implementation verified locally on 2026-11-24:
 
 - 59 route/parameter tests passed.
 - 15 enabled HTTP checks passed on both development and built production servers.
@@ -119,6 +124,10 @@ Verified locally on 2026-11-24:
 - 6 real-browser fragment/query checks passed on development and production.
 - TypeScript and production builds with the migration flag false and true passed.
   The legacy app still emits its existing Next config and React hook warnings.
+
+Determine Address follow-up on the same date: 60 unit checks, 17 enabled HTTP
+checks and 7 browser checks passed, including the historical alias and fragment
+inheritance. TypeScript and a production build with migration disabled passed.
 
 ## Cutover gate — not performed
 

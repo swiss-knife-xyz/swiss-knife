@@ -106,6 +106,7 @@ try {
   });
   const address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
   const cases = [
+    ["contract-address", "/?salt=0x1234#keep"],
     ["7702beat", "/#tools"],
     ["7702beat", "/#wall-of-shame"],
     ["wallet", "/signatures#sign?messageToSign=hello%20world"],
@@ -140,7 +141,7 @@ try {
     console.log(`PASS ${tool}${path}`);
   }
   console.log(
-    "6 real-browser redirect checks passed, including fragment inheritance."
+    `${cases.length} real-browser redirect checks passed, including fragment inheritance.`
   );
 } finally {
   socket?.close();

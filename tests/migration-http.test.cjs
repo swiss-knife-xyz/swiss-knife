@@ -25,6 +25,8 @@ function request(host, path, method = "GET") {
 }
 const address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const cases = [
+  ["contract-address.swiss-knife.xyz", "/?salt=0x1234&tag=one&tag=two"],
+  ["determine-address.swiss-knife.xyz", "/"],
   ["swiss-knife.xyz", "/"],
   ["www.swiss-knife.xyz", "/converter/eth?wei=9007199254740993123456789"],
   ["calldata.swiss-knife.xyz", "/"],

@@ -8,6 +8,7 @@ const tx = "0x" + "ab".repeat(32);
 const redirect = (url) => getMigrationRedirect(url, { enabled: true });
 const marker = "migration=swiss-knife";
 const roots = {
+  "determine-address": "https://eth.sh/determine-address",
   calldata: "https://calldata.eth.sh/decoder",
   converter: "https://converter.eth.sh/eth",
   explorer: "https://eth.sh/explorers",
@@ -244,4 +245,20 @@ test("does not throw on malformed query escapes", () => {
     redirect("https://swiss-knife.xyz/?%ZZ=hello"),
     `https://eth.sh/?%ZZ=hello&${marker}`
   );
+});
+
+test("Determine Address and historical Contract Address aliases use the apex tool with inputs preserved", () => {
+  for (const tool of ["determine-address", "contract-address"]) {
+    for (const source of [
+      `https://${tool}.swiss-knife.xyz/`,
+      `https://swiss-knife.xyz/${tool}`,
+    ]) {
+      assert.equal(
+        redirect(`${source}?salt=0x1234&bytecode=0x6000&tag=one&tag=two`),
+        `https://eth.sh/determine-address?salt=0x1234&bytecode=0x6000&tag=one&tag=two&${marker}`
+      );
+      assert.equal(getMigrationRedirect(source), null);
+    }
+    assert.equal(redirect(`https://${tool}.swiss-knife.xyz/not-a-tool`), null);
+  }
 });
