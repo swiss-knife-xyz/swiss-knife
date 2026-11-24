@@ -20,7 +20,11 @@ export function useSourceOutline(
   );
   useEffect(() => {
     const id = ++sequence.current;
-    if (!enabled) return;
+    if (!enabled) {
+      worker.current?.terminate();
+      worker.current = null;
+      return;
+    }
     let watchdog: ReturnType<typeof setTimeout> | undefined;
     const fail = () => {
       if (sequence.current !== id) return;

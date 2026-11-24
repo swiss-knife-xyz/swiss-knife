@@ -229,8 +229,8 @@ export function SourceOutline({
   );
   const available = supported && loading ? null : supported && !unavailable && symbols.length > 0;
   useEffect(() => {
-    if (available !== null) onAvailabilityChange?.(available);
-  }, [source.path, available, onAvailabilityChange]);
+    if (enabled && available !== null) onAvailabilityChange?.(available);
+  }, [source.path, enabled, available, onAvailabilityChange]);
   return (
     <Box
       role="region"

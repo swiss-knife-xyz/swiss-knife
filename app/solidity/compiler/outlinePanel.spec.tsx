@@ -56,7 +56,7 @@ it("shares Files/Outline sections, supports collapsing and jumps to the exact sy
   const source =
     "contract A {\n function mint(address to,uint amount) external {}\n}";
   const jump = vi.fn();
-  render(
+  const view = render(
     <FileExplorerPanel
       data={buildFileTree({ "A.sol": source })}
       onFileSelect={() => {}}
@@ -78,6 +78,74 @@ it("shares Files/Outline sections, supports collapsing and jumps to the exact sy
   expect(screen.queryByRole("button", { name: "A.sol" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Collapse Outline" }));
   expect(OutlineWorker.instances[0].terminated).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Expand Outline" }));
+  tick();
+  expect(OutlineWorker.instances).toHaveLength(2);
+  const resumedWorker = OutlineWorker.instances[1];
+  resumedWorker.finish();
+  expect(screen.getByRole("button", { name: "Go to contract A, line 1" })).toBeTruthy();
+  view.unmount();
+  expect(resumedWorker.terminated).toBe(true);
+});
+it("cancels hidden parsing, ignores late worker replies and resumes detection after source changes", () => {
+  const source = { path: "A.sol", content: "contract A{}", onSelect: vi.fn() };
+  const panel = (outline: typeof source) => (
+    <FileExplorerPanel data={[]} onFileSelect={() => {}} outline={outline} />
+  );
+  const view = render(panel(source), { wrapper });
+  fireEvent.click(screen.getByRole("button", { name: "Collapse Outline" }));
+  tick();
+  expect(OutlineWorker.instances).toHaveLength(0);
+
+  fireEvent.click(screen.getByRole("button", { name: "Expand Outline" }));
+  tick();
+  const worker = OutlineWorker.instances[0];
+  fireEvent.click(screen.getByRole("button", { name: "Collapse Outline" }));
+  expect(worker.terminated).toBe(true);
+  worker.finish();
+  expect(screen.getByRole("button", { name: "Expand Outline" })).toBeTruthy();
+
+  view.rerender(panel({ ...source, content: "contract B{}" }));
+  tick();
+  const resumedWorker = OutlineWorker.instances[1];
+  resumedWorker.finish();
+  expect(screen.getByRole("button", { name: "Collapse Outline" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Go to contract B, line 1" })).toBeTruthy();
+
+  view.rerender(panel({ ...source, path: "C.sol", content: "contract C{}" }));
+  tick();
+  resumedWorker.finish(1);
+  expect(screen.getByRole("button", { name: "Go to contract C, line 1" })).toBeTruthy();
+  view.unmount();
+  expect(resumedWorker.terminated).toBe(true);
+});
+it("detects declarations after an unavailable or empty outline automatically collapses", () => {
+  const onSelect = vi.fn();
+  const panel = (path: string, content: string) => (
+    <FileExplorerPanel data={[]} onFileSelect={() => {}} outline={{ path, content, onSelect }} />
+  );
+  const view = render(panel("notes.txt", "notes"), { wrapper });
+  tick();
+  expect(OutlineWorker.instances).toHaveLength(0);
+  expect(screen.getByRole("button", { name: "Expand Outline" })).toBeTruthy();
+
+  view.rerender(panel("A.sol", "// no declarations"));
+  tick();
+  const worker = OutlineWorker.instances[0];
+  worker.finish();
+  expect(screen.getByRole("button", { name: "Expand Outline" })).toBeTruthy();
+
+  view.rerender(panel("A.sol", "contract A{}"));
+  tick();
+  worker.finish(1);
+  expect(screen.getByRole("button", { name: "Go to contract A, line 1" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Collapse Outline" }));
+  expect(worker.terminated).toBe(true);
+
+  view.rerender(panel("B.sol", "contract B{}"));
+  tick();
+  OutlineWorker.instances[1].finish();
+  expect(screen.getByRole("button", { name: "Go to contract B, line 1" })).toBeTruthy();
 });
 it("debounces edits, discards old file replies and disables stale symbol navigation", () => {
   const jump = vi.fn();

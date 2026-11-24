@@ -34,6 +34,12 @@ export function FileExplorerPanel({
 }) {
   const [filesOpen, setFilesOpen] = useState(true);
   const [outlineOpen, setOutlineOpen] = useState(true);
+  const [outlinePaused, setOutlinePaused] = useState(false);
+  // A manually collapsed outline stays idle until reopened or its source changes.
+  // Empty/unavailable outlines still need to detect declarations in later edits.
+  useEffect(() => {
+    setOutlinePaused(false);
+  }, [outline?.path, outline?.content]);
   useEffect(() => {
     if (tree.revealSelection !== undefined) setFilesOpen(true);
   }, [tree.revealSelection]);
@@ -163,9 +169,10 @@ export function FileExplorerPanel({
           borderTopWidth="1px"
           borderColor="border.default"
         >
-          {sectionHeader("Outline", outlineOpen, () =>
-            setOutlineOpen((value) => !value)
-          )}
+          {sectionHeader("Outline", outlineOpen, () => {
+            setOutlinePaused(outlineOpen);
+            setOutlineOpen((value) => !value);
+          })}
           <Box
             display={outlineOpen ? "block" : "none"}
             flex={1}
@@ -173,7 +180,7 @@ export function FileExplorerPanel({
             minW={0}
             overflowY={stickySections ? "auto" : undefined}
           >
-            <SourceOutline source={outline} fitContent={stickySections} onAvailabilityChange={setOutlineOpen} />
+            <SourceOutline source={outline} enabled={!outlinePaused} fitContent={stickySections} onAvailabilityChange={setOutlineOpen} />
           </Box>
         </Box>
       )}
