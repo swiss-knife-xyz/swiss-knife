@@ -92,7 +92,6 @@ const walletDeveloperSubdomains = [
   subdomains.UNISWAP.base,
   subdomains.SAFE.base,
   subdomains.STORAGE_SLOTS.base,
-  subdomains.IPFS.base,
   subdomains.CONVERTER.base,
   subdomains.EPOCH_CONVERTER.base,
   subdomains.DETERMINE_ADDRESS.base,
@@ -132,6 +131,10 @@ export const toolEntries = Object.entries(subdomainToInfo)
           ? [
               tool,
               {
+                subdomain: subdomains.IPFS.base,
+                info: subdomainToInfo[subdomains.IPFS.base],
+              },
+              {
                 subdomain: "rpc-console",
                 info: {
                   emoji: "🔎",
@@ -144,7 +147,7 @@ export const toolEntries = Object.entries(subdomainToInfo)
           : [tool];
       });
     }
-    if (walletDeveloperSubdomainSet.has(subdomain)) return [];
+    if (walletDeveloperSubdomainSet.has(subdomain) || subdomain === subdomains.IPFS.base) return [];
     return [{ subdomain, info }];
   })
   .concat({
