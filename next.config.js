@@ -7,6 +7,8 @@ const nextConfig = {
   // Let migration middleware canonicalize trailing slashes in one hop.
   skipTrailingSlashRedirect:
     process.env.SWISS_KNIFE_MIGRATION_ENABLED === "true",
+  skipMiddlewareUrlNormalize:
+    process.env.SWISS_KNIFE_MIGRATION_ENABLED === "true",
   rewrites() {
     return {
       beforeFiles: [

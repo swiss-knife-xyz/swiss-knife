@@ -28,6 +28,7 @@ const cases = [
   ["contract-address.swiss-knife.xyz", "/?salt=0x1234&tag=one&tag=two"],
   ["determine-address.swiss-knife.xyz", "/"],
   ["swiss-knife.xyz", "/"],
+  ["swiss-knife.xyz", "/?empty=&bare&space=+&tag=&tag=two&payload=a%2Bb%3D"],
   ["www.swiss-knife.xyz", "/converter/eth?wei=9007199254740993123456789"],
   ["calldata.swiss-knife.xyz", "/"],
   [
