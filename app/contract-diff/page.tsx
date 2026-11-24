@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import { getNetworkOptions } from "@/data/networks";
 import { NetworkSelect } from "@/components/NetworkSelect";
@@ -523,6 +524,10 @@ function ContractDiffContent() {
                       <TabPanels>
                         <TabPanel px={0} pb={0} pt={4}>
                           <VStack spacing={4} align="stretch">
+                            <HStack justify="space-between" w="full">
+                              <Text fontSize="sm" color="text.secondary">Contract address</Text>
+                              <AddressBookButton onSelect={(address) => setComparison({ contractOld: address })} />
+                            </HStack>
                             <InputField
                               placeholder="Contract address"
                               aria-label="Old contract address"
@@ -663,17 +668,18 @@ function ContractDiffContent() {
                       </Text>
                     </HStack>
                     <FormControl>
-                      {sourceOld === "github" && (
+                      <HStack justify="space-between" mb={2}>
                         <FormLabel
                           htmlFor="diff-contract-new"
                           fontSize="sm"
-                          h={6}
+                          mb={0}
                           display="flex"
                           alignItems="center"
                         >
                           Contract address
                         </FormLabel>
-                      )}
+                        <AddressBookButton onSelect={(address) => setComparison({ contractNew: address })} />
+                      </HStack>
                       <InputField
                         id="diff-contract-new"
                         aria-label="New contract address"

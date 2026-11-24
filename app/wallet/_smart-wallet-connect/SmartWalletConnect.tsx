@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import { useState, useEffect, useCallback } from "react";
 import { useLocalStorage } from "usehooks-ts";
@@ -7,6 +8,7 @@ import {
   Container,
   Flex,
   Heading,
+  HStack,
   Text,
   VStack,
   useToast,
@@ -592,7 +594,15 @@ export default function SmartWalletConnect({
                     </Heading>
                     <VStack spacing={{ base: 3, md: 4 }}>
                       <FormControl isRequired>
+                        <HStack justify="space-between" mb={2}>
+                          <Text fontSize="sm" color="text.secondary">Wallet contract address</Text>
+                          <AddressBookButton
+                            onSelect={setWalletAddress}
+                            isDisabled={validation.isValidating}
+                          />
+                        </HStack>
                         <Input
+                          aria-label="Wallet contract address"
                           placeholder="0x..."
                           value={walletAddress}
                           onChange={(e) => setWalletAddress(e.target.value)}

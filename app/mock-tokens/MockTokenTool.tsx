@@ -50,6 +50,7 @@ import { CopyToClipboard } from "@/components/CopyToClipboard";
 import { MockTokenVerification } from "./MockTokenVerification";
 import { MockContractFiles } from "./MockContractFiles";
 import { AddressInput } from "@/components/fnParams/inputs/AddressInput";
+import { AddressBookButton } from "@/components/AddressBook";
 import { IntInput } from "@/components/fnParams/inputs/IntInput";
 import { getGroupedNetworkOptions } from "@/data/networks";
 import { VERIFICATION_CHAINS } from "@/lib/verification/source";
@@ -345,16 +346,24 @@ export function MockTokenTool({
                 autoComplete="off"
                 spellCheck={false}
                 labelAction={
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant="ghost"
-                    leftIcon={<Wallet size={13} />}
-                    isDisabled={!wallet.account || formDisabled}
-                    onClick={() => edit("recipient", wallet.account ?? "")}
-                  >
-                    Use my wallet
-                  </Button>
+                  <HStack spacing={1}>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="ghost"
+                      leftIcon={<Wallet size={13} />}
+                      isDisabled={!wallet.account || formDisabled}
+                      onClick={() => edit("recipient", wallet.account ?? "")}
+                    >
+                      Use my wallet
+                    </Button>
+                    <AddressBookButton
+                      isDisabled={formDisabled}
+                      onSelect={(address) => {
+                        if (!formDisabled) edit("recipient", address);
+                      }}
+                    />
+                  </HStack>
                 }
               />
             </FormControl>

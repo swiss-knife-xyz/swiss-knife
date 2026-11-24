@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -243,6 +244,9 @@ const DetermineContractAddress = () => {
                 </VStack>
               </Box>
               <Box flex={1}>
+                <HStack justify="flex-end" mb={1}>
+                  <AddressBookButton onSelect={setDeployerAddress} />
+                </HStack>
                 <InputField
                   autoFocus
                   placeholder="address or ENS"

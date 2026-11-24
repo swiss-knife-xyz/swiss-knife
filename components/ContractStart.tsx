@@ -4,6 +4,7 @@ import { NetworkSelect } from "@/components/NetworkSelect";
 import { useState } from "react";
 import { useTopLoaderRouter } from "@/hooks/useTopLoaderRouter";
 import { InputField } from "@/components/InputField";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 import React from "react";
 import { SelectedOptionState } from "@/types";
 import { networkOptions } from "@/data/common";
@@ -215,9 +216,13 @@ export default function ContractStart({
       >
         <VStack spacing={4}>
           <Box w="full">
-            <Text color="text.secondary" fontSize="sm" mb={2}>
-              Contract Address
-            </Text>
+            <HStack justify="space-between" mb={2}>
+              <Text color="text.secondary" fontSize="sm">Contract Address</Text>
+              <AddressBookButton onSelect={(value) => {
+                setAddress(value);
+                setIsInvalidAddress(false);
+              }} />
+            </HStack>
             <InputField
               placeholder="0x... or eth:0x... or explorer URL"
               aria-label="Contract Address"

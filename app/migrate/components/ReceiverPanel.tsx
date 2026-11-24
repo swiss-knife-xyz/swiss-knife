@@ -14,6 +14,7 @@ import { ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { isAddress, getAddress } from "viem";
 import { AddressInput } from "@/components/fnParams/inputs/AddressInput";
+import { AddressBookButton } from "@/components/AddressBook";
 import { PortfolioToken } from "../lib/portfolioApi";
 import {
   resolveAddressToName,
@@ -104,6 +105,7 @@ export function ReceiverPanel({
           placeholder="0x… or name.eth"
           hideTags
           hideQuickFillButtons
+          labelAction={<AddressBookButton onSelect={onReceiverChange} />}
         />
       </Box>
 

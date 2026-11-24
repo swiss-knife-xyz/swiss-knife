@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -258,9 +259,12 @@ export function RegisteredTokenList({
             </Text>
             <Stack spacing={4}>
               <FormControl>
-                <FormLabel color="text.secondary" fontSize="sm">
-                  Base token address
-                </FormLabel>
+                <HStack justify="space-between" mb={2}>
+                  <FormLabel color="text.secondary" fontSize="sm" mb={0}>
+                    Base token address
+                  </FormLabel>
+                  <AddressBookButton onSelect={(address) => updateAddress(setBaseToken, address)} />
+                </HStack>
                 <HStack align="stretch" spacing={2}>
                   <Input
                     value={baseToken}
@@ -283,9 +287,12 @@ export function RegisteredTokenList({
                 </HStack>
               </FormControl>
               <FormControl>
-                <FormLabel color="text.secondary" fontSize="sm">
-                  Robinhood token address
-                </FormLabel>
+                <HStack justify="space-between" mb={2}>
+                  <FormLabel color="text.secondary" fontSize="sm" mb={0}>
+                    Robinhood token address
+                  </FormLabel>
+                  <AddressBookButton onSelect={(address) => updateAddress(setRobinToken, address)} />
+                </HStack>
                 <Input
                   value={robinToken}
                   onChange={(event) =>

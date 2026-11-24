@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 import type { ContractImportRequest } from "./useWorkspaceUrl";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -282,9 +283,13 @@ export function ImportVerifiedContract({
               {!contract ? (
                 <>
                   <FormControl>
-                    <FormLabel fontSize="sm">
-                      Contract address or explorer URL
-                    </FormLabel>
+                    <HStack justify="space-between" mb={2}>
+                      <FormLabel fontSize="sm" mb={0}>Contract address or explorer URL</FormLabel>
+                      <AddressBookButton isDisabled={creating} onSelect={(value) => {
+                        edit();
+                        setAddress(value);
+                      }} />
+                    </HStack>
                     <Input
                       aria-label="Verified contract address"
                       value={address}

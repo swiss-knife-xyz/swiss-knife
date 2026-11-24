@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import {
   Box,
@@ -86,6 +87,8 @@ export const PoolInfoForm: React.FC<PoolInfoFormProps> = ({
               <Text color="gray.300" fontSize="sm" fontWeight="medium">
                 Currency 0
               </Text>
+              <Box flex={1} />
+              <AddressBookButton onSelect={setCurrency0} />
             </HStack>
             <InputGroup>
               <Input
@@ -126,6 +129,8 @@ export const PoolInfoForm: React.FC<PoolInfoFormProps> = ({
               <Text color="gray.300" fontSize="sm" fontWeight="medium">
                 Currency 1
               </Text>
+              <Box flex={1} />
+              <AddressBookButton onSelect={setCurrency1} />
             </HStack>
             <InputGroup>
               <Input
@@ -216,6 +221,8 @@ export const PoolInfoForm: React.FC<PoolInfoFormProps> = ({
                   (optional)
                 </Text>
               </Text>
+              <Box flex={1} />
+              <AddressBookButton onSelect={setHookAddress} />
             </HStack>
             <Input
               {...inputStyles}

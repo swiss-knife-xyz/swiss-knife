@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 import {
   Alert,
   AlertIcon,
@@ -8,6 +9,7 @@ import {
   FormControl,
   FormLabel,
   Heading,
+  HStack,
   Select,
   SimpleGrid,
   Text,
@@ -141,7 +143,12 @@ export function ManualSafeTransaction() {
           </FormControl>
           {fields.map(({ key, label, placeholder }) => (
             <FormControl key={key}>
-              <FormLabel htmlFor={`safe-${key}`}>{label}</FormLabel>
+              <HStack justify="space-between" mb={2}>
+                <FormLabel htmlFor={`safe-${key}`} mb={0}>{label}</FormLabel>
+                {["safeAddress", "to", "gasToken", "refundReceiver"].includes(key) && (
+                  <AddressBookButton onSelect={(address) => update(key, address)} />
+                )}
+              </HStack>
               <InputField
                 id={`safe-${key}`}
                 value={input[key]}

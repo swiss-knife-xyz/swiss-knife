@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import { networkOptions } from "@/data/networks";
 import { NetworkSelect } from "@/components/NetworkSelect";
@@ -1041,6 +1042,8 @@ const StorageSlots = () => {
                 >
                   Contract Address
                 </FormLabel>
+                <Box flex={1} />
+                <AddressBookButton onSelect={setAddress} />
               </HStack>
               <InputField
                 autoFocus

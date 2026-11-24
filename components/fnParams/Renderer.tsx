@@ -15,6 +15,7 @@ import { CalldataTree } from "../decodedParams/CalldataTree";
 import { CalldataParam } from "../decodedParams/CalldataParam";
 import type { SelectedOption } from "@/types";
 import { ContractBytesInput } from "./ContractBytesInput";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 export interface RenderInputFieldsProps {
   ariaLabel?: string;
@@ -110,6 +111,11 @@ export const renderInputFields = ({
         onChange={onChange}
         onKeyDown={onKeyDown}
         isInvalid={isInvalid}
+        labelAction={input.type === "address" ? (
+          <AddressBookButton onSelect={(address) => onChange({
+            target: { value: address },
+          } as React.ChangeEvent<HTMLInputElement>)} />
+        ) : undefined}
       />
     );
   } else if (input.type?.includes("int")) {

@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import { useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
@@ -150,9 +151,12 @@ const TokenInput = ({
           </FormControl>
 
           <FormControl isInvalid={!!addressError}>
-            <FormLabel color="gray.400" fontSize="sm" fontWeight="medium">
-              Contract Address
-            </FormLabel>
+            <HStack justify="space-between" mb={2}>
+              <FormLabel color="gray.400" fontSize="sm" fontWeight="medium" mb={0}>
+                Contract Address
+              </FormLabel>
+              <AddressBookButton onSelect={handleAddressChange} />
+            </HStack>
             <Input
               bg="whiteAlpha.50"
               border="1px solid"

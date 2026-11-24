@@ -190,7 +190,7 @@ export function AddressBookDrawer() {
               </Text>
               <VStack spacing={3}>
                 <Input
-                  placeholder="Address (0x...) or ENS name"
+                  placeholder="0x..., .eth, .gwei, .wei"
                   value={newAddress}
                   onChange={(e) => setNewAddress(e.target.value)}
                   autoComplete="off"

@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
@@ -439,13 +440,19 @@ export function BytesBuilderDialog({
                     <>
                       <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
                         <FormControl>
-                          <FormLabel
-                            fontSize="xs"
-                            color="text.secondary"
-                            mb={1.5}
-                          >
-                            Contract address
-                          </FormLabel>
+                          <HStack justify="space-between" mb={1.5}>
+                            <FormLabel
+                              fontSize="xs"
+                              color="text.secondary"
+                              mb={0}
+                            >
+                              Contract address
+                            </FormLabel>
+                            <AddressBookButton onSelect={(address) => {
+                              clearFetchedAbi();
+                              setContractAddress(address);
+                            }} />
+                          </HStack>
                           <Input
                             aria-label="Contract address"
                             value={contractAddress}

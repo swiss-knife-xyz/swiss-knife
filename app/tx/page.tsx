@@ -53,6 +53,7 @@ import {
 import { useWalletClient, useAccount, useSwitchChain } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { InputField } from "@/components/InputField";
+import { AddressBookButton } from "@/components/AddressBook";
 import { NetworkSelect } from "@/components/NetworkSelect";
 import { DarkSelect } from "@/components/DarkSelect";
 import { CopyToClipboard } from "@/components/CopyToClipboard";
@@ -784,6 +785,7 @@ function SendTxContent() {
                       <CopyToClipboard textToCopy={resolvedAddress} size="xs" />
                     </HStack>
                   )}
+                <AddressBookButton onSelect={setTo} />
               </HStack>
               <HStack spacing={2} align="stretch">
                 <InputField

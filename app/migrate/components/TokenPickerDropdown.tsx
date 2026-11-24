@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import {
   useEffect,
@@ -327,6 +328,13 @@ export function TokenPickerDropdown({
         >
           {/* Search */}
           <Box p={2} borderBottom="1px solid" borderColor="whiteAlpha.200">
+            <HStack justify="space-between" mb={1}>
+              <Text fontSize="xs" color="text.secondary">Token address or name</Text>
+              <AddressBookButton onOpen={() => setIsOpen(false)} onSelect={(address) => {
+                setSearch(address);
+                setIsOpen(true);
+              }} />
+            </HStack>
             <Input
               ref={inputRef}
               placeholder="Search or paste address"

@@ -39,6 +39,7 @@ import { ChainPickerDropdown } from "./ChainPickerDropdown";
 import { TokenPickerDropdown } from "./TokenPickerDropdown";
 import { SlippageSettings } from "./SlippageSettings";
 import { AddressInput } from "@/components/fnParams/inputs/AddressInput";
+import { AddressBookButton } from "@/components/AddressBook";
 import { chainIdToImage } from "@/data/common";
 import { resolveAddressToName, getNameAvatar } from "@/lib/nameResolution";
 
@@ -1178,6 +1179,7 @@ function RecipientField({
         placeholder="0x… or name.eth"
         hideTags
         hideQuickFillButtons
+        labelAction={<AddressBookButton onSelect={onChange} />}
       />
     </Box>
   );

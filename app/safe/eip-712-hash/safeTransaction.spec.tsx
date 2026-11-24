@@ -1,3 +1,6 @@
+vi.mock("@/hooks/useAddressBook", () => ({
+  useAddressBook: () => ({ openSelector: vi.fn() }),
+}));
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";

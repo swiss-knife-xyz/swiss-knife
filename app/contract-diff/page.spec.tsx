@@ -12,6 +12,9 @@ import { ChakraProvider } from "@chakra-ui/react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import ContractDiff from "./page";
 import { loadGithubComparison } from "@/lib/contractDiffGithub";
+vi.mock("@/hooks/useAddressBook", () => ({
+  useAddressBook: () => ({ openSelector: vi.fn() }),
+}));
 vi.mock("@/lib/contractDiffGithub", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/contractDiffGithub")>()),
   loadGithubComparison: vi.fn(),

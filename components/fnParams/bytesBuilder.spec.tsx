@@ -1,3 +1,6 @@
+vi.mock("@/hooks/useAddressBook", () => ({
+  useAddressBook: () => ({ openSelector: openAddressSelector }),
+}));
 import React from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
@@ -14,7 +17,10 @@ import { Interface, AbiCoder, type JsonFragment } from "ethers";
 import { CalldataEncoderPage } from "@/app/calldata/encoder/CalldataEncoderPage";
 import { ReadWriteFunction } from "./ReadWriteFunction";
 
-const { fetchBuilderAbi } = vi.hoisted(() => ({ fetchBuilderAbi: vi.fn() }));
+const { fetchBuilderAbi, openAddressSelector } = vi.hoisted(() => ({
+  fetchBuilderAbi: vi.fn(),
+  openAddressSelector: vi.fn(),
+}));
 vi.mock("@/utils", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/utils")>()),
   fetchContractAbi: fetchBuilderAbi,
@@ -597,13 +603,18 @@ it("rejects odd-length or non-hex inner bytes without changing the raw contract 
   }
 });
 
-it("keeps builder addresses local without background name or metadata lookups", async () => {
+it("selects builder addresses from the book without background name or metadata lookups", async () => {
   show(outer, "write");
   const dialog = await openBuilder();
   await selectType(dialog, "Parameter 1 type", "address");
-  fireEvent.change(builderFields(dialog)[1], {
-    target: { value: address },
-  });
+  fireEvent.click(dialog.getByRole("button", { name: "Select from Address Book" }));
+  expect(openAddressSelector).toHaveBeenCalledOnce();
+  act(() => openAddressSelector.mock.calls[0][0](address));
+  expect((builderFields(dialog)[1] as HTMLInputElement).value).toBe(address);
+  fireEvent.click(dialog.getByRole("button", { name: "Generate bytes" }));
+  fireEvent.click(dialog.getByRole("button", { name: "Set bytes value" }));
+  expect((screen.getAllByRole("textbox")[0] as HTMLInputElement).value)
+    .toBe(AbiCoder.defaultAbiCoder().encode(["address"], [address]));
   await act(() => new Promise((resolve) => setTimeout(resolve, 600)));
   const names = await import("@/lib/nameResolution");
   expect(names.resolveAddressToName).not.toHaveBeenCalled();

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 import { verifyMessage, verifyTypedData } from "viem";
 import {
   VStack,
@@ -119,7 +120,13 @@ export default function VerifySignatures() {
   return (
     <VStack spacing={4} align="stretch" w="full">
       <FormControl>
-        <FormLabel color="gray.300" fontSize="sm">Address</FormLabel>
+        <HStack justify="space-between" mb={2}>
+          <FormLabel color="gray.300" fontSize="sm" mb={0}>Address</FormLabel>
+          <AddressBookButton onSelect={(value) => {
+            setAddress(value);
+            setVerificationResult(null);
+          }} />
+        </HStack>
         <Input
           value={address}
           onChange={(e) => setAddress(e.target.value)}

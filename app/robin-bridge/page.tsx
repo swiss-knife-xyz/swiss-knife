@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { keyframes } from "@emotion/react";
@@ -1213,9 +1214,15 @@ export default function RobinBridgePage() {
                       </FormControl>
 
                       <FormControl isInvalid={hasInvalidRecipient}>
-                        <FormLabel color="text.secondary" fontSize="sm" mb={2}>
-                          Recipient on {route.destinationName}
-                        </FormLabel>
+                        <HStack justify="space-between" mb={2}>
+                          <FormLabel color="text.secondary" fontSize="sm" mb={0}>
+                            Recipient on {route.destinationName}
+                          </FormLabel>
+                          <AddressBookButton onSelect={(address) => {
+                            setRecipient(address);
+                            resetQuote();
+                          }} />
+                        </HStack>
                         <Input
                           id="recipient"
                           value={recipient}

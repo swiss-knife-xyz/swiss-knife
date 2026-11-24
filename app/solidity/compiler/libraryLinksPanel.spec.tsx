@@ -11,6 +11,9 @@ import { ChakraProvider } from "@chakra-ui/react";
 import { LibraryLinks } from "./LibraryLinks";
 import { checkLibraryAddresses } from "@/lib/solidity/libraryCode";
 const rpc = vi.hoisted(() => ({ getCode: vi.fn(), client: vi.fn() }));
+vi.mock("@/hooks/useAddressBook", () => ({
+  useAddressBook: () => ({ openSelector: vi.fn() }),
+}));
 vi.mock("@/lib/publicClient", () => ({
   getPublicClient: (...args: any[]) => {
     rpc.client(...args);

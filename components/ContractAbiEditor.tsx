@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import { NetworkSelect } from "@/components/NetworkSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -481,14 +482,21 @@ export function ContractAbiEditor({
                 <TabPanel px={0} pt={5} pb={0}>
                   <VStack align="stretch" spacing={5}>
                     <FormControl>
-                      <FormLabel
-                        htmlFor="abi-source-address"
-                        fontSize="sm"
-                        fontWeight="medium"
-                        color="text.secondary"
-                      >
-                        Source contract
-                      </FormLabel>
+                      <HStack justify="space-between" mb={2}>
+                        <FormLabel
+                          htmlFor="abi-source-address"
+                          mb={0}
+                          fontSize="sm"
+                          fontWeight="medium"
+                          color="text.secondary"
+                        >
+                          Source contract
+                        </FormLabel>
+                        <AddressBookButton isDisabled={loading} onSelect={(address) => {
+                          setSourceAddress(address);
+                          setError("");
+                        }} />
+                      </HStack>
                       <Input
                         id="abi-source-address"
                         isDisabled={loading}

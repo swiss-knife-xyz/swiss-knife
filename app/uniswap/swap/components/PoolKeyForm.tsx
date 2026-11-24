@@ -1,4 +1,5 @@
 import React from "react";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 import {
   Box,
   Grid,
@@ -73,11 +74,14 @@ export const PoolKeyForm: React.FC<PoolKeyFormProps> = ({
               <Text color="gray.400" fontSize="xs">
                 Currency 0
               </Text>
-              {poolKey.currency0 && (
-                <Badge colorScheme="blue" fontSize="xs" px={2} py={0.5}>
-                  {getCurrencyInfo(poolKey.currency0)?.symbol || "Unknown"}
-                </Badge>
-              )}
+              <HStack spacing={1}>
+                {poolKey.currency0 && (
+                  <Badge colorScheme="blue" fontSize="xs" px={2} py={0.5}>
+                    {getCurrencyInfo(poolKey.currency0)?.symbol || "Unknown"}
+                  </Badge>
+                )}
+                <AddressBookButton onSelect={(address) => handleUpdate("currency0", address as Address)} />
+              </HStack>
             </HStack>
             <Input
               placeholder="0x... or use 0x0000000000000000000000000000000000000000 for ETH"
@@ -103,11 +107,14 @@ export const PoolKeyForm: React.FC<PoolKeyFormProps> = ({
               <Text color="gray.400" fontSize="xs">
                 Currency 1
               </Text>
-              {poolKey.currency1 && (
-                <Badge colorScheme="green" fontSize="xs" px={2} py={0.5}>
-                  {getCurrencyInfo(poolKey.currency1)?.symbol || "Unknown"}
-                </Badge>
-              )}
+              <HStack spacing={1}>
+                {poolKey.currency1 && (
+                  <Badge colorScheme="green" fontSize="xs" px={2} py={0.5}>
+                    {getCurrencyInfo(poolKey.currency1)?.symbol || "Unknown"}
+                  </Badge>
+                )}
+                <AddressBookButton onSelect={(address) => handleUpdate("currency1", address as Address)} />
+              </HStack>
             </HStack>
             <Input
               placeholder="0x..."
@@ -182,9 +189,12 @@ export const PoolKeyForm: React.FC<PoolKeyFormProps> = ({
         </Grid>
 
         <Box>
-          <Text color="gray.400" fontSize="xs" mb={1}>
-            Hooks Address
-          </Text>
+          <HStack justify="space-between" mb={1}>
+            <Text color="gray.400" fontSize="xs">
+              Hooks Address
+            </Text>
+            <AddressBookButton onSelect={(address) => handleUpdate("hooks", address as Address)} />
+          </HStack>
           <Input
             placeholder="0x0000000000000000000000000000000000000000"
             value={poolKey.hooks}

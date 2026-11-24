@@ -42,6 +42,7 @@ import {
 import { ChevronDownIcon, ChevronUpIcon, CloseIcon } from "@chakra-ui/icons";
 import { useAddressBook } from "@/hooks/useAddressBook";
 import { AddressBookInlineButton } from "@/components/AddressBook";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { JsonFragment } from "ethers";
 import { Address, PublicClient, isAddress } from "viem";
@@ -1840,6 +1841,11 @@ const LoadedContractPage = ({
                   defaultLabel={isRealContractName ? abi?.name : ""}
                   isReady={isAddressBookReady}
                 />
+                <Box flex={1} />
+                <AddressBookButton onSelect={(value) => {
+                  setAddressInput(value);
+                  setInputError(null);
+                }} />
               </HStack>
               <InputGroup>
                 <Input

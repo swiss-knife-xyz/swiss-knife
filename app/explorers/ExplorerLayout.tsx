@@ -29,7 +29,8 @@ import {
   IconButton,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
-import { FiExternalLink, FiBook } from "react-icons/fi";
+import { FiExternalLink } from "react-icons/fi";
+import { BookOpen } from "lucide-react";
 import { isAddress } from "viem";
 import { useLocalStorage } from "usehooks-ts";
 import {
@@ -263,17 +264,6 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                     Explorer Directory
                   </NLink>
                 </Heading>
-                <Tooltip label="Select from address book" hasArrow>
-                  <IconButton
-                    aria-label="Select from address book"
-                    icon={<FiBook size={16} />}
-                    variant="ghost" size="sm" color="text.secondary"
-                    onClick={() => openSelector(
-                      address => { setUserInput(address); handleSearch(address); },
-                      pathname.includes("/address/") ? resolvedAddress || userInput : ""
-                    )}
-                  />
-                </Tooltip>
               </HStack>
               {isExplorerHome && (
                 <Text mt={2} fontSize="sm" color="text.secondary">
@@ -311,7 +301,21 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
             {/* Search Section */}
             <Box w="full" gridRow={2} gridColumn="1 / -1">
               <VStack spacing={3} align="stretch">
-                <HStack w="full" spacing={0} gap={2} justify="flex-end">
+                <HStack w="full" spacing={0} gap={2} justify="flex-end" align="flex-end">
+                  <Box flex={1} minW={0}>
+                    <HStack justify="flex-end" mb={1}>
+                      <Tooltip label="Select from address book" hasArrow>
+                        <IconButton
+                          aria-label="Select from address book"
+                          icon={<BookOpen size={16} />}
+                          variant="ghost" size="sm" color="text.secondary"
+                          onClick={() => openSelector(
+                            address => { setUserInput(address); handleSearch(address); },
+                            pathname.includes("/address/") ? resolvedAddress || userInput : ""
+                          )}
+                        />
+                      </Tooltip>
+                    </HStack>
                   <InputGroup flex={1} minW={0}>
                     <Input
                       placeholder="address / ens / transaction"
@@ -384,6 +388,7 @@ function ExplorerLayoutContent({ children }: { children: ReactNode }) {
                       </Button>
                     </InputRightElement>
                   </InputGroup>
+                  </Box>
                   {userInput && (pathname.includes("/address/") || pathname.includes("/tx/")) && (
                     <Tooltip label="View on Etherscan" hasArrow>
                       <IconButton

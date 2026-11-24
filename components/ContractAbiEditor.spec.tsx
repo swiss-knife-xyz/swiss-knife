@@ -10,6 +10,9 @@ import {
 import { ChakraProvider } from "@chakra-ui/react";
 import { ContractAbiEditor } from "./ContractAbiEditor";
 import { parseContractAbi } from "@/lib/contractAbi";
+vi.mock("@/hooks/useAddressBook", () => ({
+  useAddressBook: () => ({ openSelector: vi.fn() }),
+}));
 
 const { fetchAbi } = vi.hoisted(() => ({ fetchAbi: vi.fn() }));
 vi.mock("@monaco-editor/react", () => ({

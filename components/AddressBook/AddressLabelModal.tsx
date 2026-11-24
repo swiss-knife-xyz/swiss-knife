@@ -170,7 +170,7 @@ export function AddressLabelModal({
               </Text>
               : <Input
                   aria-label="Address or ENS name"
-                  placeholder="0x... or name.eth"
+                  placeholder="0x..., .eth, .gwei, .wei"
                   value={newAddress}
                   onChange={(event) => setNewAddress(event.target.value)}
                   autoFocus

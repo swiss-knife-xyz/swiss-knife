@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import { useState } from "react";
 import {
@@ -20,8 +21,7 @@ const AddressChecksum = () => {
   const [checksummed, setChecksummed] = useState<string>();
   const [lowercased, setLowercased] = useState<string>();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  const updateAddress = (value: string) => {
     setUserInput(value);
 
     if (value.length > 0) {
@@ -94,10 +94,13 @@ const AddressChecksum = () => {
               </VStack>
             </Box>
             <Box flex={1}>
+              <HStack justify="flex-end" mb={1}>
+                <AddressBookButton onSelect={updateAddress} />
+              </HStack>
               <InputField
                 placeholder="Enter Ethereum address (0x...)"
                 value={userInput || ""}
-                onChange={handleInputChange}
+                onChange={(event) => updateAddress(event.target.value)}
                 autoComplete="one-time-code"
                 data-1p-ignore
                 autoFocus

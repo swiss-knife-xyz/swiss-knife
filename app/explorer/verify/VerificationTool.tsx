@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import { getGroupedNetworkOptions } from "@/data/networks";
 import { NetworkSelect } from "@/components/NetworkSelect";
@@ -403,13 +404,20 @@ export function VerificationTool() {
           gap={4}
         >
           <FormControl minW={0} gridColumn="1 / -1">
-            <FormLabel
-              htmlFor="verification-address"
-              fontSize="sm"
-              color="text.secondary"
-            >
-              Contract address or explorer URL
-            </FormLabel>
+            <HStack justify="space-between" mb={2}>
+              <FormLabel
+                htmlFor="verification-address"
+                mb={0}
+                fontSize="sm"
+                color="text.secondary"
+              >
+                Contract address or explorer URL
+              </FormLabel>
+              <AddressBookButton isDisabled={!editable} onSelect={(value) => {
+                invalidate();
+                setAddress(value);
+              }} />
+            </HStack>
             <Input
               id="verification-address"
               name="verification-contract"
@@ -527,9 +535,15 @@ export function VerificationTool() {
                 />
               </FormControl>
               <FormControl minW={0}>
-                <FormLabel htmlFor="verification-target-address" fontSize="xs">
-                  Destination address
-                </FormLabel>
+                <HStack justify="space-between" mb={2}>
+                  <FormLabel htmlFor="verification-target-address" fontSize="xs" mb={0}>
+                    Destination address
+                  </FormLabel>
+                  <AddressBookButton isDisabled={!editable} onSelect={(value) => {
+                    invalidate();
+                    setTargetAddress(value);
+                  }} />
+                </HStack>
                 <Input
                   id="verification-target-address"
                   value={targetAddress}

@@ -80,6 +80,7 @@ import subdomains from "@/subdomains";
 import { ContentSizedEditor } from "@/components/ContentSizedEditor";
 
 import { InputField } from "@/components/InputField";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 import { CalldataTree } from "@/components/decodedParams/CalldataTree";
 import { EditableCalldata } from "@/components/calldata/EditableCalldata";
 import { SignatureRegistryForm } from "@/components/SignatureRegistryForm";
@@ -1047,6 +1048,9 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
             </VStack>
           </Box>
           <Box flex={1} minW="200px">
+            <HStack justify="flex-end" mb={1}>
+              <AddressBookButton onSelect={setContractAddress} />
+            </HStack>
             <InputField
               placeholder="0x... or eth:0x..."
               value={contractAddress}

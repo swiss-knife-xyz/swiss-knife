@@ -1,4 +1,5 @@
 "use client";
+import { AddressBookButton } from "@/components/AddressBook/AddressBookButton";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getWalletClient } from "@wagmi/core";
@@ -627,9 +628,19 @@ export function TokenSetupPanel({
                 (!pastedAddress || customToken.isInvalid)
               }
             >
-              <FormLabel color="text.secondary" fontSize="sm">
-                Base token contract
-              </FormLabel>
+              <HStack justify="space-between" mb={2}>
+                <FormLabel color="text.secondary" fontSize="sm" mb={0}>
+                  Base token contract
+                </FormLabel>
+                <AddressBookButton onSelect={(value) => {
+                  if (address) clearSetupResumeToken(address);
+                  resumeTokenRef.current = null;
+                  setTokenInput(value);
+                  setSelectedToken(null);
+                  setReviewed(false);
+                  setError("");
+                }} />
+              </HStack>
               <HStack align="stretch" spacing={2}>
                 <Box position="relative" flex={1}>
                   <Input

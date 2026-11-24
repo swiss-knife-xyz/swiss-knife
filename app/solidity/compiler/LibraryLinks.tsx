@@ -14,6 +14,7 @@ import {
 } from "@chakra-ui/react";
 import { CheckCircle2, ChevronDown, History, RefreshCw } from "lucide-react";
 import { AddressInput } from "@/components/fnParams/inputs/AddressInput";
+import { AddressBookButton } from "@/components/AddressBook";
 import {
   libraryAddress,
   libraryKey,
@@ -121,32 +122,40 @@ function LibraryField({
         hideTags
         onChange={(event) => onChange(event.target.value)}
         labelAction={
-          previous.length ? (
-            <Menu size="compact" placement="bottom-end">
-              <MenuButton
-                as={Button}
-                size="xs"
-                variant="ghost"
-                color="primary.300"
-                isDisabled={disabled}
-                leftIcon={<History size={12} />}
-                rightIcon={<ChevronDown size={12} />}
-              >
-                Use previous
-              </MenuButton>
-              <MenuList>
-                {previous.map((record) => (
-                  <MenuItem
-                    key={record.id}
-                    onClick={() => onChange(record.address!)}
-                  >
-                    {slicedText(record.address!)} ·{" "}
-                    {new Date(record.createdAt).toLocaleDateString()}
-                  </MenuItem>
-                ))}
-              </MenuList>
-            </Menu>
-          ) : undefined
+          <HStack spacing={1}>
+            {previous.length > 0 && (
+              <Menu size="compact" placement="bottom-end">
+                <MenuButton
+                  as={Button}
+                  size="xs"
+                  variant="ghost"
+                  color="primary.300"
+                  isDisabled={disabled}
+                  leftIcon={<History size={12} />}
+                  rightIcon={<ChevronDown size={12} />}
+                >
+                  Use previous
+                </MenuButton>
+                <MenuList>
+                  {previous.map((record) => (
+                    <MenuItem
+                      key={record.id}
+                      onClick={() => onChange(record.address!)}
+                    >
+                      {slicedText(record.address!)} ·{" "}
+                      {new Date(record.createdAt).toLocaleDateString()}
+                    </MenuItem>
+                  ))}
+                </MenuList>
+              </Menu>
+            )}
+            <AddressBookButton
+              isDisabled={disabled}
+              onSelect={(address) => {
+                if (!disabled) onChange(address);
+              }}
+            />
+          </HStack>
         }
       />
       <HStack mt={1.5} minH={4} spacing={1} justify={valid ? "center" : undefined}>
