@@ -194,7 +194,7 @@ export const ethFormatOptions = [
   "Gwei",
   "10^6",
   "Unix Time",
-  "Bps ↔️ %",
+  "Bps %",
   "Minutes",
   "Hours",
   "Days",
@@ -226,8 +226,8 @@ export function convertTo(
       return value === "0" ? "0" : formatUnits(BigInt(value), 6);
     case "Unix Time":
       return convertUnixSecondsToGMT(Number(value));
-    case "Bps ↔️ %":
-      return `${((parseFloat(value) * 1_00) / 10_000).toFixed(2)}%`;
+    case "Bps %":
+      return `${((parseFloat(value?.toString().trim() || "0") * 1_00) / 10_000).toFixed(2)}%`;
     case "Days":
       return (value / 86400).toString();
     case "Hours":
@@ -260,8 +260,12 @@ export function convertFrom(
       // value in unix seconds
       return BigInt(Math.floor(Number(value))).toString();
     }
-    case "Bps ↔️ %":
-      return BigInt(Math.floor((parseFloat(value) * 10_000) / 1_00)).toString();
+    case "Bps %":
+      return BigInt(
+        Math.floor(
+          (parseFloat(value?.toString().trim() || "0") * 10_000) / 1_00
+        )
+      ).toString();
     case "Days":
       return BigInt(Math.floor(Number(value) * 86400)).toString();
     case "Hours":

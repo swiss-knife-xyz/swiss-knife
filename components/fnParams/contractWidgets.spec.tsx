@@ -1325,3 +1325,38 @@ describe("revealing invalid parameter inputs", () => {
     expect(scrolled).toHaveLength(0);
   });
 });
+
+it.each([
+  { raw: "", percent: "0.00", encoded: 0n },
+  { raw: "400", percent: "4.00", encoded: 400n },
+])(
+  "converts '$raw' to Bps % and encodes the integer value",
+  async ({ raw, percent, encoded }) => {
+    const func: JsonFragment = {
+      type: "function",
+      name: "setSlippage",
+      stateMutability: "view",
+      inputs: [{ type: "uint256", name: "slippageBps" }],
+      outputs: [],
+    };
+    show(func);
+    const field = screen.getByRole("textbox");
+    if (raw) fireEvent.change(field, { target: { value: raw } });
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "Bps %" }));
+    await screen.findByDisplayValue(percent);
+    expect(field.getAttribute("aria-invalid")).not.toBe("true");
+    await encodeCurrent();
+    expect(
+      await screen.findByText(
+        new Interface([func]).encodeFunctionData("setSlippage", [encoded])
+      )
+    ).toBeTruthy();
+
+    fireEvent.change(field, { target: { value: "" } });
+    expect(field.getAttribute("aria-invalid")).not.toBe("true");
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "Wei" }));
+    await screen.findByDisplayValue("0");
+  }
+);

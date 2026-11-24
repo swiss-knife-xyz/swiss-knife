@@ -107,8 +107,8 @@ export const IntInput = ({
 
   // Add new effect to handle initial value
   useEffect(() => {
-    if (value) {
-      handleValueUpdate(value, selectedEthFormatOption);
+    if (value || selectedEthFormatOption.value === "Bps %") {
+      handleValueUpdate(value || "0", selectedEthFormatOption);
     }
   }, []);
 
@@ -146,7 +146,7 @@ export const IntInput = ({
         const weiAmount = newValue;
         const convertedValue = convertTo(format, weiAmount);
 
-        if (format.value === "Bps ↔️ %") {
+        if (format.value === "Bps %") {
           setDisplayValue(convertedValue.slice(0, -1));
         } else if (format.value === "Unix Time") {
           setDisplayValue(
@@ -186,13 +186,13 @@ export const IntInput = ({
             label: prevValueRef.current as EthFormatOption,
             value: prevValueRef.current as EthFormatOption,
           },
-          displayValue
+          displayValue.trim() || "0"
         );
 
         // Convert Wei to new format for display
         const newDisplayValue = convertTo(selectedEthFormatOption, weiAmount);
 
-        if (selectedEthFormatOption.value === "Bps ↔️ %") {
+        if (selectedEthFormatOption.value === "Bps %") {
           setDisplayValue(newDisplayValue.slice(0, -1));
         } else if (selectedEthFormatOption.value === "Unix Time") {
           setDisplayValue(
@@ -267,7 +267,7 @@ export const IntInput = ({
     ) {
       return "Please enter an integer value";
     }
-    if (selectedEthFormatOption.value === "Bps ↔️ %") {
+    if (selectedEthFormatOption.value === "Bps %") {
       return "Please enter a value between 0 and 10,000";
     }
     return stringify(e.message);
@@ -358,11 +358,21 @@ export const IntInput = ({
       <InputField
         {...(compactControls ? compactValueFieldProps : {})}
         InputLeftElement={
-          selectedEthFormatOption?.value === "Bps ↔️ %" ? (
-            <InputLeftElement bg="whiteAlpha.100">%</InputLeftElement>
+          selectedEthFormatOption?.value === "Bps %" ? (
+            <InputLeftElement
+              bg="whiteAlpha.100"
+              top="1px"
+              bottom="1px"
+              left="1px"
+              h="auto"
+              borderLeftRadius={compactControls ? "3px" : "md"}
+              pointerEvents="none"
+            >
+              %
+            </InputLeftElement>
           ) : undefined
         }
-        pl={selectedEthFormatOption?.value === "Bps ↔️ %" ? "14" : undefined}
+        pl={selectedEthFormatOption?.value === "Bps %" ? "14" : undefined}
         {...(isDelayedAnimating ? { bg: "bg.900" } : {})}
         value={displayValue}
         type={
