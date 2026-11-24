@@ -82,6 +82,7 @@ import {
   Result,
   TransactionDescription,
   LogDescription,
+  Indexed,
 } from "ethers";
 import {
   decodeAbiParameters,
@@ -1610,6 +1611,27 @@ export async function decodeEvents({
 // =============================================================================
 // PARAMETER TYPE DECODERS
 // =============================================================================
+
+/** Shared typed value model for calldata, function returns and indexed event logs. */
+export async function decodeAbiValues({ params, values, chainId, abi, namePrefix = "arg" }: {
+  params: readonly ParamType[];
+  values: readonly unknown[];
+  chainId?: number;
+  abi?: InterfaceAbi;
+  namePrefix?: string;
+}): Promise<import("@/types").Arg[]> {
+  return Promise.all(params.map(async (input, index) => {
+    const rawValue = values[index];
+    if (Indexed.isIndexed(rawValue)) return {
+      name: input.name || `${namePrefix}${index}`, type: "bytes32", baseType: "bytes32",
+      rawValue: rawValue.hash, value: { decoded: null }, decodeNote: `Indexed ${input.type} hash`,
+    };
+    return {
+      name: input.name || `${namePrefix}${index}`, type: input.type, baseType: input.baseType,
+      rawValue, value: await decodeParamTypes({ input, value: rawValue, chainId, abi }),
+    };
+  }));
+}
 
 /**
  * Recursively decodes a function parameter based on its type.

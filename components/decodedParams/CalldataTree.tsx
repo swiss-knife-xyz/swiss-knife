@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useId } from "react";
 import { Badge, Box, Button, Flex, HStack, Icon, Text } from "@chakra-ui/react";
-import { ChevronDownIcon, ChevronRightIcon } from "@chakra-ui/icons";
+import { TreeBranchHeader } from "@/components/tree/TreeBranchHeader";
 import { FiTerminal, FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import {
   TypeIcon,
@@ -25,6 +25,8 @@ export interface CalldataTreeEditor {
 
 interface Props {
   editor?: CalldataTreeEditor;
+  resolveAddressMetadata?: boolean;
+  rawUnitLabel?: string;
   args: Arg[];
   chainId?: number;
   functionName?: string;
@@ -36,6 +38,9 @@ interface Props {
 const TreeState = createContext<{
   expanded: Set<string>;
   editor?: CalldataTreeEditor;
+  idPrefix?: string;
+  resolveAddressMetadata?: boolean;
+  rawUnitLabel?: string;
   toggle: (id: string) => void;
 }>({ expanded: new Set(), toggle: () => {} });
 
@@ -49,93 +54,17 @@ function childrenOf(arg: Arg): Arg[] | undefined {
     return (arg.value as DecodeBytesParamResult | null)?.decoded?.args;
 }
 
-function BranchHeader({
-  id,
-  level,
-  children,
-  extra,
-  label,
-}: {
-  id: string;
-  level: number;
-  children: React.ReactNode;
-  extra?: React.ReactNode;
-  label: string;
-}) {
+function BranchHeader(
+  props: Omit<React.ComponentProps<typeof TreeBranchHeader>, "open" | "toggle">
+) {
   const { expanded, toggle } = useContext(TreeState);
-  const open = expanded.has(id);
   return (
-    <Box
-      position="sticky"
-      top={`${level * 28}px`}
-      zIndex={100 - level}
-      _before={
-        level > 0
-          ? {
-              content: '""',
-              position: "absolute",
-              left: { base: "-9px", md: "-13px" },
-              top: "14px",
-              width: { base: "9px", md: "13px" },
-              borderTop: "1px solid",
-              borderColor: "whiteAlpha.200",
-              pointerEvents: "none",
-            }
-          : undefined
-      }
-    >
-      <Flex
-        role="button"
-        tabIndex={0}
-        aria-expanded={open}
-        aria-label={`${label}`}
-        onClick={() => toggle(id)}
-        onKeyDown={(event) => {
-          if (
-            event.target === event.currentTarget &&
-            (event.key === "Enter" || event.key === " ")
-          ) {
-            event.preventDefault();
-            toggle(id);
-          }
-        }}
-        bg="bg.subtle"
-        minH="28px"
-        h="28px"
-        gap={{ base: 1, md: 2 }}
-        align="center"
-        px={1}
-        overflowX="auto"
-        overflowY="hidden"
-        sx={{
-          scrollbarWidth: "none",
-          "& > *": { flexShrink: 0 },
-          "&::-webkit-scrollbar": { display: "none" },
-        }}
-        cursor="pointer"
-        borderBottom="1px solid"
-        borderColor="whiteAlpha.100"
-        _hover={{ bg: "bg.muted" }}
-        _focusVisible={{
-          outline: "2px solid",
-          outlineColor: "blue.400",
-          outlineOffset: "-2px",
-        }}
-        data-calldata-header={id}
-      >
-        {open ? (
-          <ChevronDownIcon boxSize={4} color="text.tertiary" />
-        ) : (
-          <ChevronRightIcon boxSize={4} color="text.tertiary" />
-        )}
-        {children}
-        {extra && (
-          <Box ml="auto" onClick={(event) => event.stopPropagation()}>
-            {extra}
-          </Box>
-        )}
-      </Flex>
-    </Box>
+    <TreeBranchHeader
+      {...props}
+      calldataId={props.id}
+      open={expanded.has(props.id)}
+      toggle={toggle}
+    />
   );
 }
 
@@ -154,7 +83,7 @@ function Parameter({
   indexed?: boolean;
   chainId?: number;
 }) {
-  const { expanded, editor } = useContext(TreeState);
+  const { expanded, editor, idPrefix, resolveAddressMetadata, rawUnitLabel } = useContext(TreeState);
   const [showRaw, setShowRaw] = useState(false);
   const children = childrenOf(arg);
   const decoded = arg.baseType.includes("bytes")
@@ -232,7 +161,7 @@ function Parameter({
           )}
         </Box>
         <Box flex="1" minW={0} className="calldata-value">
-          {editor ? editor.value(arg, id) : <ParamValue arg={arg} chainId={chainId} />}
+          {editor ? editor.value(arg, id) : <ParamValue arg={arg} chainId={chainId} resolveAddressMetadata={resolveAddressMetadata} rawUnitLabel={rawUnitLabel} />}
           {editor?.actions(arg, id)}
         </Box>
       </Flex>
@@ -262,7 +191,7 @@ function Parameter({
                 borderRadius: "2px",
               }}
               aria-expanded={showRaw}
-              aria-controls={`raw-${id}`}
+              aria-controls={`${idPrefix}raw-${id}`}
               onClick={() => setShowRaw(!showRaw)}
             >
               {showRaw ? "Hide raw" : "Raw bytes"}
@@ -336,7 +265,7 @@ function Parameter({
       </BranchHeader>
       {editor?.raw(arg, id)}
       {showRaw && (
-        <Box id={`raw-${id}`} pl={5} py={2} className="calldata-value">
+        <Box id={`${idPrefix}raw-${id}`} pl={5} py={2} className="calldata-value">
           <TreeBytesParam
             formatSelectProps={formatSelectProps}
             arg={{
@@ -386,8 +315,11 @@ export function CalldataTree({
   kind,
   decodeNote,
   editor,
+  resolveAddressMetadata = true,
+  rawUnitLabel,
 }: Props) {
   const hasRoot = !!functionName && functionName !== "__abi_decoded__";
+  const idPrefix = useId();
   const ids = useMemo(() => {
     const result = hasRoot ? ["root"] : [];
     function visit(items: Arg[], prefix: string) {
@@ -425,12 +357,15 @@ export function CalldataTree({
   const state = useMemo(() => ({
     expanded,
     editor,
+    idPrefix,
+    resolveAddressMetadata,
+    rawUnitLabel,
     toggle: (id: string) => setCollapsed(previous => {
       const next = new Set(previous);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     }),
-  }), [expanded, editor]);
+  }), [expanded, editor, idPrefix, resolveAddressMetadata, rawUnitLabel]);
   const treeControls = showControls ? (
     <HStack spacing={1}>
       <Button
@@ -520,7 +455,7 @@ export function CalldataTree({
                   <Badge fontSize="9px">inferred</Badge>
                 )}
                 <Text fontSize="11px" color="text.tertiary">
-                  {args.length} params
+                  {args.length} {args.length === 1 ? "param" : "params"}
                 </Text>
               </BranchHeader>
             )}

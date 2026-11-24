@@ -41,10 +41,12 @@ const numericFormats = [
 interface Params {
   formatSelectProps?: FormatSelectProps;
   value: any;
+  rawUnitLabel?: string;
 }
 
 export const UintParam = ({
   value: _value,
+  rawUnitLabel,
   formatSelectProps = compactFormatSelectProps,
 }: Params) => {
   // for skeleton loading
@@ -169,12 +171,23 @@ export const UintParam = ({
                 fontSize: "xs",
                 ...formatSelectProps?.boxProps,
               }}
-              selectedOption={selectedEthFormatOption}
+              selectedOption={
+                rawUnitLabel && selectedEthFormatOption?.value === "Wei"
+                  ? { ...selectedEthFormatOption, label: rawUnitLabel }
+                  : selectedEthFormatOption
+              }
               setSelectedOption={(value) =>
-                setSelectedEthFormatOption(value as ETHSelectedOptionState)
+                setSelectedEthFormatOption(
+                  value
+                    ? {
+                        ...(value as ETHSelectedOptionState),
+                        label: (value as ETHSelectedOptionState).value,
+                      }
+                    : { label: "Wei", value: "Wei" }
+                )
               }
               options={ethFormatOptions.map((str) => ({
-                label: str,
+                label: str === "Wei" && rawUnitLabel ? rawUnitLabel : str,
                 value: str,
               }))}
             />

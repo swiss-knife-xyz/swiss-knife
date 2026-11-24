@@ -958,3 +958,60 @@
   cloned box decorations, so each wrapped line retains its own underline. Keep
   the hover gradient animation, disabled when reduced motion is requested.
 - Changelog (2026-11-24): fixed underlines on wrapped hero links.
+
+
+## Transaction tracer
+
+- Scope: `/calldata/trace`, a technical inspection tool next to the decoder.
+- Direction: compact, precise, inspectable; essence: follow executed calls.
+- Reuse existing ETH.sh Inter/JetBrains Mono typography, semantic background,
+  text and border tokens, 4px spacing, `md` radii, and defined edges without
+  shadows. The existing token table above governs the new UI.
+- Signature: the decoder's sticky branch headers and connectors now also frame
+  executed calls. Decode visible frames automatically and select a frame for details;
+  decoded parameter trees stay inside the inspector, separate from execution.
+- Desktop: centered 1040px form; full-width execution tree beside a 420px sticky
+  inspector. Mobile: a single column,
+  horizontally scrollable branch headers, wrapping addresses and bounded raw
+  data panels. Failed and rolled-back states include text badges.
+- Load only expanded execution branches; load the decoder when a trace is opened and schedule
+  visible frames with three workers. Inputs retain their drafts on failure, and stale fetch results
+  are ignored after cancellation, input changes, or endpoint replacement.
+- Audit/changelog (2026-11-25): extended existing tool tokens and accessible
+  keyboard disclosures; native labelled form controls, explicit source/network
+  context, no decorative cards, new fonts, shadows, or animation.
+
+- Refinement (2026-11-25): removed instructional paragraphs and the empty-state
+  filler. Center the heading and compact form; put transaction, network and Trace
+  on one desktop row. Explorer links select their network and trace on paste.
+- Explicit call colors bypass the neutral global Badge style: blue calls, cyan
+  static reads, orange delegate calls, green creation/success, red reverts.
+  The selected row uses an opaque dark blue so sticky headers stay legible.
+- Search preserves matching ancestors; the reverted-call filter isolates failures.
+  Keep call rows clickable when headers scroll horizontally. Address/byte fields have
+  copy controls; native values use the selected chain's currency definition.
+  Move decoding caveats into a focusable info tooltip, paginate long log lists,
+  and scroll to the inspector after a mobile selection.
+- Audit: desktop and 390px browser checks; no page overflow, explicit colored
+  states with text labels, no marketing copy or decorative surfaces.
+
+- Refinement: call rows select the inspector on click or Enter/Space. Only the
+  separate chevron expands/collapses children; the redundant Inspect button was
+  removed. The calldata decoder retains its existing disclosure behavior.
+
+- Decoded traces: call headers show function arguments and return values directly,
+  with red decoded reverts and positioned purple event rows. A Parameters toggle
+  renders full input/return trees inside execution branches. The inspector opens
+  decoded data by default; Raw and ABI are secondary modes, with no Decode button.
+- Keep actual execution calls separate from nested calldata descriptions. Unknown
+  returns stay raw; inferred input signatures have a visible marker. Resolve proxy
+  ABIs using the executed delegation path and allow per-contract ABI overrides.
+- Decode the first 200 visible frames automatically, then new branches as they
+  open; Decode all is explicit for larger traces. Cache ABIs, selectors and repeated
+  frames per trace. Full parameter trees in the call list suppress background
+  address/ENS requests; the selected inspector retains normal address controls.
+- Validation: automatic inline calls, returns, custom errors, event logs, full
+  nested trees, decoded/raw switching and mobile overflow checked in the browser.
+
+- Trace numeric controls default to Raw, retaining the decoder's optional format
+  conversions without labelling arbitrary uint values as native Wei.

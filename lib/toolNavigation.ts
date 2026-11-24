@@ -6,6 +6,7 @@ import { getPath } from "@/utils";
 const pageLabels: Record<string, string> = {
   decoder: "Calldata Decoder",
   encoder: "Calldata Encoder",
+  trace: "Transaction Tracer",
   "viem-error-simulate": "Viem Error Simulator",
   cowswap: "CowSwap Decoder",
   verify: "Cross-explorer Verification",

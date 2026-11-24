@@ -40,6 +40,7 @@ interface Params {
   showLink?: boolean;
   chainId?: number;
   name?: string;
+  resolveMetadata?: boolean;
 }
 
 const skeletonAddress = "0x1111222233334444000000000000000000000000";
@@ -63,6 +64,7 @@ const AddressParamContent = ({
   showLink,
   chainId,
   name,
+  resolveMetadata = true,
 }: Params) => {
   const example = useContext(ExampleSnapshotContext);
   const showSkeleton = _address === null || _address === undefined;
@@ -147,7 +149,7 @@ const AddressParamContent = ({
   };
 
   useEffect(() => {
-    if (example || address === skeletonAddress) return;
+    if (!resolveMetadata || example || address === skeletonAddress) return;
     let cancelled = false;
 
     const fetchLabels = async (): Promise<string[]> => {
@@ -185,11 +187,11 @@ const AddressParamContent = ({
     return () => {
       cancelled = true;
     };
-  }, [address, chainId, example]);
+  }, [address, chainId, example, resolveMetadata]);
 
   useEffect(() => {
     let cancelled = false;
-    if (!example && address !== skeletonAddress) {
+    if (resolveMetadata && !example && address !== skeletonAddress) {
       resolveAddressToName(address)
         .then((res) => {
           if (!cancelled && res) {
@@ -201,7 +203,7 @@ const AddressParamContent = ({
     return () => {
       cancelled = true;
     };
-  }, [address, example]);
+  }, [address, example, resolveMetadata]);
 
   // Resolve the preference from current metadata, not the address-book value
   // captured when an asynchronous ENS lookup started.
@@ -211,7 +213,7 @@ const AddressParamContent = ({
 
   useEffect(() => {
     let cancelled = false;
-    if (!example && ensName) {
+    if (resolveMetadata && !example && ensName) {
       getNameAvatar(ensName)
         .then((res) => {
           if (!cancelled && res) {
@@ -223,7 +225,7 @@ const AddressParamContent = ({
     return () => {
       cancelled = true;
     };
-  }, [ensName, example]);
+  }, [ensName, example, resolveMetadata]);
 
   useEffect(() => {
     if (!showSkeleton) {

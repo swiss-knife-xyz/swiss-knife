@@ -1,4 +1,6 @@
 import { chainIdToChain, erc3770ShortNameToChain } from "@/data/common";
+import { CHAINLABEL_KEY, TX_KEY } from "@/data/networks";
+import { txExplorers } from "@/data/txExplorers";
 
 export function parseChainPrefixedAddress(input: string) {
   const match = /^([^:]+):(0x[a-fA-F0-9]{40})$/.exec(
@@ -16,18 +18,51 @@ export function parseTransactionExplorerUrl(input: string) {
   try {
     const value = input.trim();
     const url = new URL(value.includes("://") ? value : `https://${value}`);
-    if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) return null;
+    if (
+      !["https:", "http:"].includes(url.protocol) ||
+      url.username ||
+      url.password
+    )
+      return null;
+    const hashes = url.pathname.match(/0x[a-fA-F0-9]{64}/g);
+    if (hashes?.length !== 1) return null;
+    const hash = hashes[0];
     const match = /^(.*)\/tx\/(0x[a-fA-F0-9]{64})\/?$/.exec(url.pathname);
-    if (!match) return null;
+    const candidates = new Set<number>();
     for (const chain of Object.values(chainIdToChain)) {
       for (const explorer of Object.values(chain.blockExplorers ?? {})) {
         const base = new URL(explorer.url);
-        if (url.host === base.host && match[1] === base.pathname.replace(/\/$/, "")) {
-          return { hash: match[2], chainId: chain.id };
+        if (
+          match &&
+          url.host === base.host &&
+          match[1] === base.pathname.replace(/\/$/, "")
+        ) {
+          candidates.add(chain.id);
         }
       }
     }
-  } catch { /* Not a known explorer transaction URL. */ }
+    // Alternative explorers use the same directory metadata as outbound links.
+    // Multi-chain URLs without a chain in their path remain ambiguous.
+    for (const explorer of Object.values(txExplorers)) {
+      for (const [id, label] of Object.entries(explorer.chainIdToLabel)) {
+        if (!chainIdToChain[Number(id)]) continue;
+        const candidate = new URL(
+          explorer.urlLayout
+            .replace(CHAINLABEL_KEY, label)
+            .replace(TX_KEY, hash)
+        );
+        if (
+          url.host === candidate.host &&
+          url.pathname.replace(/\/$/, "") ===
+            candidate.pathname.replace(/\/$/, "")
+        )
+          candidates.add(Number(id));
+      }
+    }
+    if (candidates.size === 1) return { hash, chainId: [...candidates][0] };
+  } catch {
+    /* Not a known explorer transaction URL. */
+  }
   return null;
 }
 
