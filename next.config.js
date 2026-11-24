@@ -4,6 +4,9 @@ require("dotenv/config");
 
 const nextConfig = {
   reactStrictMode: true,
+  // Let migration middleware canonicalize trailing slashes in one hop.
+  skipTrailingSlashRedirect:
+    process.env.SWISS_KNIFE_MIGRATION_ENABLED === "true",
   rewrites() {
     return {
       beforeFiles: [

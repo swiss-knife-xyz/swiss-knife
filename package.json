@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "test:migration": "node --test tests/migration.test.cjs",
+    "test:migration:http": "node --test tests/migration-http.test.cjs",
+    "test:migration:browser": "node scripts/testMigrationBrowser.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
