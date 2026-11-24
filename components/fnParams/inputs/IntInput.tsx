@@ -43,7 +43,7 @@ interface IntInputProps extends InputProps {
   compact?: boolean;
 }
 
-const futureTimeOptions = ["minutes", "hours", "days"] as const;
+const futureTimeOptions = ["seconds", "minutes", "hours", "days"] as const;
 type FutureTimeOption = (typeof futureTimeOptions)[number];
 interface SelectedFutureTimeOptionState {
   label: FutureTimeOption;
@@ -97,8 +97,8 @@ export const IntInput = ({
   );
   const [selectedFutureTimeOption, setSelectedFutureTimeOption] =
     useState<SelectedFutureTimeOptionState>({
-      label: futureTimeOptions[0],
-      value: futureTimeOptions[0],
+      label: "minutes",
+      value: "minutes",
     });
   const [futureTimeInput, setFutureTimeInput] = useState<number>();
   const [futureTimeInputError, setFutureTimeInputError] = useState(false);
@@ -282,6 +282,9 @@ export const IntInput = ({
     const currentTimestamp = Math.floor(Date.now() / 1000);
     let multiplier = 1;
     switch (selectedFutureTimeOption.value) {
+      case "seconds":
+        multiplier = 1;
+        break;
       case "minutes":
         multiplier = 60;
         break;
