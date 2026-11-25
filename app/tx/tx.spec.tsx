@@ -93,6 +93,7 @@ vi.mock("@/components/decodedParams/CalldataTree", async (importOriginal) => {
   </div> };
 });
 vi.mock("@/components/AddressBook", () => ({ AddressBookButton: () => null }));
+vi.mock("@/components/ConnectButton", () => ({ ConnectButton: () => <button>Connect Wallet</button> }));
 vi.mock("@/lib/publicClient", () => ({ getPublicClient: () => ({}) }));
 vi.mock("@/utils/addressLabels", () => ({ fetchAddressLabels: async () => [] }));
 vi.mock("@/components/NetworkSelect", () => ({

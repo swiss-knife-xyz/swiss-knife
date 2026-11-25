@@ -7,6 +7,7 @@ import { transactionExamples } from "./examples";
 import type { DecodeRecursiveResult } from "@/types";
 import type { ClearSigningRequest } from "@/lib/clearSigning/resolve";
 import { ToolLoading } from "@/components/ToolLoading";
+import { ConnectButton } from "@/components/ConnectButton";
 
 import { useSearchParams } from "next/navigation";
 import React, {
@@ -19,6 +20,7 @@ import React, {
 } from "react";
 import {
   HStack,
+  Flex,
   Heading,
   VStack,
   Text,
@@ -81,6 +83,7 @@ import { getDisplayFunctionName } from "@/utils/functionNames";
 
 const loadEditableCalldata = () => import("@/components/calldata/EditableCalldata")
   .then(module => ({ default: module.EditableCalldata }));
+const TX_SKILL_URL = "https://tx.eth.sh/skill.md";
 const EditableCalldata = dynamic(
   loadEditableCalldata,
   { ssr: false, loading: () => <DecodedCalldataSkeleton /> }
@@ -547,7 +550,7 @@ function SendTxContent() {
       data-tx-review-layout
       display="grid"
       gridTemplateColumns="minmax(0, 1fr)"
-      gridTemplateAreas={'"form"'}
+      gridTemplateAreas={'"toolbar" "form"'}
       alignItems="start"
       gap={6}
       w="full"
@@ -556,17 +559,61 @@ function SendTxContent() {
       mx="auto"
       sx={{
         "&:has(> [data-tx-clear-signing] section)": {
-          gridTemplateAreas: '"form" "summary"',
+          gridTemplateAreas: '"toolbar" "form" "summary"',
         },
         "@media (min-width: 1100px)": {
           "&:has(> [data-tx-clear-signing] section)": {
             maxWidth: "1200px",
             gridTemplateColumns: "minmax(320px, 420px) minmax(0, 1fr)",
-            gridTemplateAreas: '"summary form"',
+            gridTemplateAreas: '". toolbar" "summary form"',
           },
         },
       }}
     >
+      <Flex gridArea="toolbar" align="flex-end" justify="space-between" gap={4} flexWrap="wrap" minW={0}>
+        <Box w="fit-content" maxW="full" minW={0} textAlign="left">
+          <Text color="text.tertiary" fontSize="11px" fontWeight="semibold" textTransform="uppercase" mb={1.5}>
+            For your Agent
+          </Text>
+          <HStack spacing={0} border="1px solid" borderColor="border.default" borderRadius="lg" bg="bg.subtle" overflow="hidden" minW={0}>
+            <Text fontFamily="mono" fontSize="sm" color="text.primary" px={3} py={2.5} flex={1} minW={0} noOfLines={1}>
+              {TX_SKILL_URL}
+            </Text>
+            <Tooltip label="Copy skill.md URL" shouldWrapChildren>
+              <CopyToClipboard
+                textToCopy={TX_SKILL_URL}
+                aria-label="Copy skill.md URL"
+                h="39px"
+                minW="42px"
+                px={0}
+                borderRadius={0}
+                borderLeft="1px solid"
+                borderColor="border.default"
+              />
+            </Tooltip>
+            <Tooltip label="Open skill.md">
+              <IconButton
+                as={Link}
+                href={`${getPath(subdomains.TRANSACT.base)}skill.md`}
+                isExternal
+                aria-label="Open skill.md"
+                icon={<ExternalLinkIcon boxSize={4} />}
+                variant="ghost"
+                size="sm"
+                h="39px"
+                minW="42px"
+                px={0}
+                borderRadius={0}
+                borderLeft="1px solid"
+                borderColor="border.default"
+                color="text.primary"
+                _hover={{ bg: "bg.emphasis", textDecoration: "none" }}
+              />
+            </Tooltip>
+          </HStack>
+        </Box>
+        <Box ml="auto" flexShrink={0}><ConnectButton /></Box>
+      </Flex>
       {summaryRequest && (
         <TransactionSummaryRail>
           <ClearSigningSummary {...summaryRequest} />

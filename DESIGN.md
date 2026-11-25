@@ -1,5 +1,14 @@
 # DESIGN.md - ETH.sh Orgs Directory
 
+## Transaction agent guide
+
+- Reuse the skills directory's compact `For your Agent` URL row in the wallet
+  connection toolbar, aligned with the transaction form's left edge, with the canonical skill.md URL, copy and open actions.
+  Preserve the existing technical, restrained tool styling, body/mono fonts,
+  semantic neutral tokens and defined edge; allow the row to shrink on mobile.
+- Audit/changelog (2026-11-26): labelled native link and copy button, existing
+  focus styles and no animation. The guide prepares links for user execution.
+
 ## Calldata decoder attribution
 
 - Add a centered `Powered by data from:` credit below the signature registry at the

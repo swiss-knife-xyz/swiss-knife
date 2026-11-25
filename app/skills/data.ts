@@ -38,6 +38,20 @@ export type SkillResource = {
 
 const skillResourcesData: SkillResource[] = [
   {
+    id: "eth-sh-tx",
+    name: "ETH.sh Transactions",
+    provider: "ETH.sh",
+    url: "https://tx.eth.sh/skill.md",
+    logoDomain: "eth.sh",
+    logoSrc: "/logo.svg",
+    toolTypes: ["Skill"],
+    categories: ["Wallet", "Developer"],
+    tags: ["Transaction links", "Calldata", "EVM", "User execution"],
+    description:
+      "Prepare a transaction link with a destination, calldata, native-currency value, and chain ID. Share the prefilled tx.eth.sh form so the user can review and execute it with their own wallet.",
+    sourceUrls: ["https://tx.eth.sh/skill.md", "https://tx.eth.sh/"],
+  },
+  {
     id: "web3ctx",
     name: "web3ctx",
     provider: "Farseen Shaikh (ScarAI)",
