@@ -225,3 +225,12 @@ it("keeps noncanonical event payloads raw rather than ignoring trailing words", 
   );
   expect(result.logs[0]).toBeUndefined();
 });
+it("retains fully verified fallback provenance in decoded calls", async () => {
+  const { decoder, fetchAbi } = setup();
+  fetchAbi.mockResolvedValue({ abi, name: "Token", source: "blockscout" });
+  const result = await decoder.decode(call());
+  expect(result.abiSource).toBe("blockscout");
+  expect(result.note).toContain("fully verified Blockscout ABI");
+  expect(result.inputInferred).toBe(false);
+  expect(result.outputs?.[0].type).toBe("uint256");
+});

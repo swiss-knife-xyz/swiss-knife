@@ -65,13 +65,16 @@ export default function TraceCallDetails({
       border="1px solid"
       borderColor="border.default"
       borderRadius="md"
-      p={4}
+      px={4}
+      pb={4}
       minW={0}
       bg="bg.subtle"
       maxH={{ xl: "calc(100dvh - 32px)" }}
       overflowY={{ xl: "auto" }}
+      isolation="isolate"
+      data-trace-details
     >
-      <HStack justify="space-between" mb={3} wrap="wrap">
+      <HStack justify="space-between" mb={3} pt={4} wrap="wrap">
         <Heading as="h2" fontSize="md">
           Call{" "}
           <Text as="span" fontFamily="mono" color="text.secondary">
@@ -247,6 +250,7 @@ export default function TraceCallDetails({
               <Raw
                 label={`Log ${index} data`}
                 value={JSON.stringify(log, null, 2)}
+                language="json"
               />
             )}
           </Box>

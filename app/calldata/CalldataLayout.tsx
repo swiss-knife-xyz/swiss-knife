@@ -10,7 +10,6 @@ import { usePathname } from "next/navigation";
 const CalldataTools = [
   { name: "Decoder", path: "decoder" },
   { name: "Encoder", path: "encoder" },
-  { name: "Transaction Tracer", path: "trace" },
   { name: "Viem Error Simulate", path: "viem-error-simulate" },
   { name: "CoWSwap TWAP Verifier", path: "cowswap" },
 ];
@@ -23,7 +22,7 @@ export const CalldataLayout = ({ children }: { children: React.ReactNode }) => {
       mt={0}
       maxW="1760px"
       minW={0}
-      allowSticky={pathname.endsWith("/decoder") || pathname.endsWith("/trace")}
+      allowSticky={pathname.endsWith("/decoder")}
       beforeFooterSlot={pathname.endsWith("/decoder")}
     >
       <Box w="full" minW={0}>

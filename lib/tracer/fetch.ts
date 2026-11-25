@@ -1,6 +1,7 @@
 import { getPublicClient } from "@/lib/publicClient";
 import { waitForCustomChains } from "@/lib/customChains/store";
 import { HASH, normalizeTrace, type TraceDocument } from "./model";
+import { getNetworkName } from "@/data/networks";
 
 type TraceRpc = {
   Method: "debug_traceTransaction";
@@ -10,6 +11,87 @@ type TraceRpc = {
   ];
   ReturnType: unknown;
 };
+
+function traceFailure(error: unknown, chainId: number): Error {
+  const codes = new Set<number>();
+  const statuses = new Set<number>();
+  const messages: string[] = [];
+  const seen = new Set<unknown>();
+  let current = error;
+  // viem wraps provider errors; the useful RPC code may be in a nested cause.
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    const entry = current as Record<string, unknown>;
+    if (typeof entry.code === "number") codes.add(entry.code);
+    if (typeof entry.status === "number") statuses.add(entry.status);
+    for (const field of ["shortMessage", "details", "message"]) {
+      if (typeof entry[field] === "string") messages.push(entry[field]);
+    }
+    current = entry.cause;
+  }
+  const detail = messages
+    .join("\n")
+    .replace(/https?:\/\/\S+/gi, "[RPC endpoint]");
+  if (statuses.has(429) || /rate.?limit|too many requests/i.test(detail))
+    return new Error(
+      "RPC rate limit reached. Wait and retry, or choose another endpoint."
+    );
+  if (codes.has(-32005))
+    return new Error(
+      "RPC request exceeds provider limits. Try another endpoint."
+    );
+  if (
+    statuses.has(401) ||
+    statuses.has(403) ||
+    codes.has(4100) ||
+    /unauthori[sz]ed|forbidden|access denied|authentication (?:failed|required)|(?:invalid|missing|expired|revoked) api.?key|api.?key (?:is )?(?:invalid|missing|expired|revoked)|upgrade.*plan|not available.*plan|payment required/i.test(
+      detail
+    )
+  )
+    return new Error(
+      "RPC access denied. Check the API key, provider plan and tracing permissions, or choose another endpoint."
+    );
+  if (
+    codes.has(-32601) ||
+    codes.has(-32004) ||
+    codes.has(4200) ||
+    /-32601|method(?:\s+["'`]?debug_traceTransaction["'`]?)?\s+(?:is\s+)?(?:not found|not supported|not available|does not exist|disabled|not enabled)|unsupported\s+(?:rpc\s+)?method|debug_traceTransaction["'`]?\s+(?:is\s+)?(?:not supported|not available|not enabled|disabled)|debug (?:api|namespace).*(?:disabled|not enabled|not available)/i.test(
+      detail
+    )
+  )
+    return new Error(
+      "Tracing is unavailable on this RPC. Add a trace-enabled RPC or import callTracer JSON."
+    );
+  if (
+    /unknown tracer|unsupported tracer|tracer.*(?:not found|not supported)|callTracer.*(?:not available|not supported|disabled)/i.test(
+      detail
+    )
+  )
+    return new Error(
+      "This RPC does not support callTracer. Choose a callTracer-enabled RPC or import callTracer JSON."
+    );
+  if (
+    /historical state|missing trie|pruned|state.*unavailable|historical.*(?:not available|not found)|required historical state/i.test(
+      detail
+    )
+  )
+    return new Error("Historical state is unavailable. Try an archive RPC.");
+  if (
+    /transaction.*(?:not found|unknown)|unknown transaction|transaction indexing is in progress/i.test(
+      detail
+    )
+  )
+    return new Error(
+      "Transaction not found on this RPC. Check the network and hash, or retry once the transaction is mined and indexed."
+    );
+  if (/timeout|timed out/i.test(detail))
+    return new Error(
+      `${getNetworkName(chainId)} public RPC doesn't support debug traces`
+    );
+  return new Error(
+    `Could not fetch trace. The ${getNetworkName(chainId)} RPC failed to complete debug_traceTransaction. Check the network and transaction hash, use an RPC with callTracer support, or import callTracer JSON.`
+  );
+}
 
 export async function fetchTransactionTrace(
   chainId: number,
@@ -48,22 +130,6 @@ export async function fetchTransactionTrace(
     );
     return { ...normalizeTrace(result), chainId, transactionHash };
   } catch (error) {
-    const detail =
-      error instanceof Error ? error.message : "Unknown RPC error.";
-    if (
-      /method.*(not found|not supported|not available|does not exist)|unsupported.*method|-32601/i.test(
-        detail
-      )
-    )
-      throw new Error(
-        "Tracing is unavailable on this RPC. Add a trace-enabled RPC or import callTracer JSON."
-      );
-    if (/historical state|missing trie|pruned|state.*unavailable/i.test(detail))
-      throw new Error("Historical state is unavailable. Try an archive RPC.");
-    if (/timeout|timed out/i.test(detail))
-      throw new Error("RPC timed out. Try another endpoint.");
-    throw new Error(
-      "Could not fetch trace. Check the network, RPC and transaction hash."
-    );
+    throw traceFailure(error, chainId);
   }
 }

@@ -13,7 +13,7 @@ import {
   decodeEventWithABI,
   fetchFunctionInterfaces,
 } from "@/lib/decoder";
-import { fetchContractAbi } from "@/utils";
+import { fetchTraceAbi, type TraceAbi } from "./abi";
 import type { TraceCall, TraceLog } from "./model";
 
 export interface DecodedTraceCall {
@@ -24,14 +24,14 @@ export interface DecodedTraceCall {
   logs: Record<number, DecodeEventResult>;
   codeAddress?: string;
   contractName?: string;
-  abiSource?: "explorer" | "provided";
+  abiSource?: "explorer" | "blockscout" | "provided";
   note: string;
 }
 export type TraceAbis = Record<string, InterfaceAbi>;
 type Contract = {
   abi: InterfaceAbi;
   name?: string;
-  source: "explorer" | "provided";
+  source: "explorer" | "blockscout" | "provided";
 };
 
 export { traceCodeAddress } from "./codeAddress";
@@ -115,11 +115,14 @@ export function createTraceDecoder(
   chainId?: number,
   provided: TraceAbis = {},
   dependencies: {
-    fetchAbi?: typeof fetchContractAbi;
+    fetchAbi?: (identity: {
+      address: string;
+      chainId: number;
+    }) => Promise<TraceAbi>;
     fetchSignatures?: typeof fetchFunctionInterfaces;
   } = {}
 ) {
-  const lookupAbi = dependencies.fetchAbi ?? fetchContractAbi;
+  const lookupAbi = dependencies.fetchAbi ?? fetchTraceAbi;
   const lookupSignatures =
     dependencies.fetchSignatures ?? fetchFunctionInterfaces;
   const overrides = new Map(
@@ -144,9 +147,13 @@ export function createTraceDecoder(
     if (!result) {
       result = limited(
         lookupAbi({ address, chainId })
-          .then((value) => ({ ...value, source: "explorer" as const }))
+          .then((value) => ({
+            ...value,
+            source: value.source ?? ("explorer" as const),
+          }))
           .catch(() => null),
-        null
+        null,
+        20000
       );
       contracts.set(key, result);
     }
@@ -359,9 +366,11 @@ export function createTraceDecoder(
         ? "Multiple signatures match this selector. Supply an ABI to disambiguate."
         : metadata?.source === "provided"
           ? "Decoded using your ABI."
-          : match
-            ? "Decoded using the available ABI at the executed code address. Historical implementations may differ."
-            : "Signature/type inference. No matching verified ABI; unknown returns remain raw.",
+          : metadata?.source === "blockscout" && match
+            ? "Decoded using a fully verified Blockscout ABI at the executed code address. Historical implementations may differ."
+            : match
+              ? "Decoded using the available ABI at the executed code address. Historical implementations may differ."
+              : "Signature/type inference. No matching verified ABI; unknown returns remain raw.",
     };
   }
   return {

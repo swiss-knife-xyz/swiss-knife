@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -48,6 +48,9 @@ export function TraceCallTree({
   const [showLogs, setShowLogs] = useState(true);
   const [query, setQuery] = useState("");
   const [failuresOnly, setFailuresOnly] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const expandedContent = useRef(new Map<string, HTMLDivElement>());
+  const pendingReveal = useRef<string | null>(null);
   const calls = useMemo(() => flattenCalls(root), [root]);
   const [collapsed, setCollapsed] = useState(
     () =>
@@ -110,7 +113,42 @@ export function TraceCallTree({
   useEffect(() => {
     onVisibleCalls?.(visibleCalls);
   }, [onVisibleCalls, visibleCalls]);
+  useEffect(() => {
+    const id = pendingReveal.current;
+    pendingReveal.current = null;
+    if (!id) return;
+    const frame = requestAnimationFrame(() => {
+      const container = scrollRef.current;
+      const content = expandedContent.current.get(id);
+      if (!container || !content) return;
+      const bounds = container.getBoundingClientRect();
+      const rect = content.getBoundingClientRect();
+      // Leave room for the sticky ancestry above the newly revealed children.
+      const margin = id.split(".").length * 36 + 8;
+      const top = Math.max(bounds.top, 0) + margin;
+      const bottom = Math.min(bounds.bottom, window.innerHeight) - 8;
+      if (bottom <= top || rect.height === 0) return;
+      const oversized = rect.height > bottom - top;
+      if (
+        rect.top >= top &&
+        (rect.bottom <= bottom || (oversized && rect.top < bottom - 36))
+      )
+        return;
+      content.style.scrollMarginTop = `${margin}px`;
+      content.style.scrollMarginBottom = "8px";
+      content.scrollIntoView?.({
+        block: oversized ? "start" : "nearest",
+        inline: "nearest",
+        behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)")
+          .matches
+          ? "instant"
+          : "smooth",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [collapsed]);
   function toggle(id: string) {
+    pendingReveal.current = !visible && collapsed.has(id) ? id : null;
     setCollapsed((previous) => {
       const next = new Set(previous);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -254,13 +292,24 @@ export function TraceCallTree({
             (showLogs && call.logs.length > 0) ||
             (showParameters && decoded)) && (
             <Box
+              ref={(element: HTMLDivElement | null) => {
+                if (element) expandedContent.current.set(call.id, element);
+                else expandedContent.current.delete(call.id);
+              }}
+              data-trace-children={call.id}
               ml={{ base: 1, md: 2 }}
               pl={{ base: 2, md: 3 }}
               borderLeft="1px solid"
               borderColor="whiteAlpha.100"
             >
               {showParameters && decoded && (
-                <Box p={3} data-trace-parameters={call.id}>
+                <Box
+                  p={3}
+                  position="relative"
+                  zIndex={0}
+                  sx={{ "--tree-sticky-offset": `${(level + 1) * 36}px` }}
+                  data-trace-parameters={call.id}
+                >
                   <TraceDecodedValues
                     resolveAddresses={false}
                     call={call}
@@ -387,7 +436,15 @@ export function TraceCallTree({
           fontSize="xs"
         />
       </Box>
-      <Box px={2} py={2} maxH="72vh" overflowY="auto">
+      <Box
+        ref={scrollRef}
+        data-trace-scroll
+        px={2}
+        pb={2}
+        maxH="72vh"
+        overflowY="auto"
+        isolation="isolate"
+      >
         {visible?.size === 0 ? (
           <Text p={4} color="text.secondary" fontSize="sm">
             No matching calls.

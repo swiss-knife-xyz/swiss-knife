@@ -2,7 +2,11 @@
 
 Issue: https://github.com/swiss-knife-xyz/swiss-knife/issues/105
 
-Route: `/calldata/trace` locally; `https://calldata.eth.sh/trace` after deployment.
+Route: `/trace` locally; `https://trace.eth.sh/` after deployment.
+
+Registered as its own developer tool in navigation and crawler discovery. Legacy
+`calldata.eth.sh/trace` links redirect permanently with their query parameters;
+local and preview `/calldata/trace` links redirect to `/trace` on the same origin.
 
 ## Decoding and presentation
 
@@ -39,6 +43,20 @@ launching work; old results cannot overwrite a new trace or ABI override. Event
 decoding is capped at the first 200 logs per frame; the inspector can still show
 all raw logs, 50 at a time. The inline timeline shows the first 50 logs per frame.
 
+## ABI source fallback
+
+The shared explorer/exact-Sourcify lookup remains first. If it fails or exceeds
+10 seconds, the tracer tries the fixed Blockscout provider URL from the existing
+verification provider catalog (`lib/verification/networks.json`). It fetches no
+saved explorer or RPC URLs. Requests omit credentials, reject redirects, time out
+after 8 seconds, and stream at most 4 MiB.
+
+Only records explicitly marked fully verified are accepted. Partial verification,
+changed bytecode, bytecode twins, blueprint records and malformed ABIs are rejected.
+The decoding provenance names Blockscout. ABI lookup results are still cached per
+trace and bound to the executed code address. The shared metadata API and its
+exact-Sourcify policy are unchanged.
+
 ## Trace fetching and imports
 
 - Requests `debug_traceTransaction` with `callTracer`, `withLog: true` and a
@@ -49,6 +67,10 @@ all raw logs, 50 at a time. The inline timeline shows the first 50 logs per fram
   The shared parser matches registry explorers and alternative explorer-directory
   templates exactly; ambiguous multi-chain URLs are rejected. No explorer URL
   needs to be fetched to detect the chain. Bare hashes use the selected network.
+- Transaction links use `?tx=0x…&chainId=1`. Opening a link traces automatically
+  after saved RPC settings load. Form edits update these parameters without
+  submitting; demo/import views remove the transaction link. Other URL parameters
+  are preserved.
 - Imports Geth/Anvil callTracer objects, JSON-RPC envelopes and ETH.sh exports.
   Exports preserve network/transaction context. Raw imports without context use
   the selected network for ABI lookup. The demo supplies explicit synthetic ABIs
@@ -57,6 +79,14 @@ all raw logs, 50 at a time. The inline timeline shows the first 50 logs per fram
   the response; it cannot undo node work that has already started.
 
 A network in the selector does not guarantee trace support or historical state.
+`rpc_modules` reports namespaces, not individual tracing methods or provider-plan
+permissions. The actual `debug_traceTransaction` request checks support without a
+separate probe. Nested RPC error codes distinguish unavailable methods, unsupported
+callTracer, access restrictions, rate/provider limits, missing historical state,
+unknown transactions and timeouts. Displayed errors do not include endpoint URLs.
+Failed RPC traces offer Tenderly and Phalcon links for the same hash and chain,
+using the explorer directory's explicit provider mappings. Unsupported networks
+have no guessed links; editing inputs or switching networks clears stale links.
 No new guaranteed public tracing service has been enabled. Use a trace-capable
 RPC or import. Gas values are provider-supplied inclusive frame values; ERC-20
 amounts default to Raw base units unless the user chooses a conversion.
@@ -105,3 +135,8 @@ During live QA, the configured explorer source API was unavailable and USDT's
 Sourcify response was a partial match. The existing exact-match verification
 policy was preserved. The live trace still rendered signature-inferred inputs;
 unknown returns/events remained raw until an ABI was supplied.
+
+The Blockscout fallback was checked in the browser with a synthetic deposit-contract
+STATICCALL, a forced primary-provider failure, and the live Blockscout API. One
+fallback request supplied the fully verified ABI, decoded the input/return value,
+and displayed Blockscout provenance. Partial USDT records remained rejected.

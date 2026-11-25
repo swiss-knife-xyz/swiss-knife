@@ -2,7 +2,7 @@ import { Badge } from "@chakra-ui/react";
 
 export const callColors: Record<string, string> = {
   CALL: "blue.300",
-  STATICCALL: "cyan.300",
+  STATICCALL: "purple.300",
   DELEGATECALL: "orange.300",
   CALLCODE: "orange.300",
   CREATE: "green.300",

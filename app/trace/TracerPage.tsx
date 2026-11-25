@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   Box,
   Button,
@@ -18,7 +20,6 @@ import {
   Tabs,
   Text,
   Textarea,
-  Spinner,
   Icon,
 } from "@chakra-ui/react";
 import { NetworkSelect } from "@/components/NetworkSelect";
@@ -28,6 +29,7 @@ import { parseTransactionExplorerUrl } from "@/lib/contractExplorerInput";
 import { useCustomChains, waitForCustomChains } from "@/lib/customChains/store";
 import {
   MAX_TRACE_BYTES,
+  HASH,
   parseTraceJson,
   type TraceCall,
   type TraceDocument,
@@ -36,6 +38,8 @@ import { fetchTransactionTrace } from "@/lib/tracer/fetch";
 import { demoTrace, demoAbis } from "@/lib/tracer/demo";
 import { getRpcUrlsForChain, getNetworkName } from "@/data/networks";
 import { useTraceDecoding } from "@/components/tracer/useTraceDecoding";
+import { TraceResultSkeleton } from "@/components/tracer/TraceResultSkeleton";
+import { getTraceExplorerLinks } from "@/lib/tracer/links";
 
 const TraceCallTree = dynamic(() =>
   import("@/components/tracer/TraceCallTree").then(
@@ -48,6 +52,8 @@ const TraceCallDetails = dynamic(
 type Result = { document: TraceDocument; source: string; sequence: number };
 
 export default function TracerPage() {
+  const query = useSearchParams().toString();
+  const handledQuery = useRef<string | null>(null);
   const [chainId, setChainId] = useState(1);
   const [hash, setHash] = useState("");
   const [json, setJson] = useState("");
@@ -58,11 +64,20 @@ export default function TracerPage() {
   }>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [failedTrace, setFailedTrace] = useState<{
+    chainId: number;
+    hash: string;
+  }>();
   const request = useRef(0);
+  const mounted = useRef(false);
   const activeRpc = useRef<{ chainId: number; key: string } | null>(null);
   const inspector = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const saved = useCustomChains();
+  const fallbackLinks =
+    !saved.error && failedTrace
+      ? getTraceExplorerLinks(failedTrace.chainId, failedTrace.hash)
+      : [];
   const decoding = useTraceDecoding(
     result?.document,
     selection?.call,
@@ -76,6 +91,7 @@ export default function TracerPage() {
     setResult(undefined);
     setSelection(undefined);
     setError("");
+    setFailedTrace(undefined);
   }, []);
   // A saved RPC replacement invalidates in-flight work and its decoding context.
   useEffect(() => {
@@ -87,45 +103,94 @@ export default function TracerPage() {
     )
       clear();
   }, [rpcKey, saved.revision, saved.ready, clear]);
-  useEffect(
-    () => () => {
-      ++request.current;
+  useEffect(() => {
+    mounted.current = true;
+    const cancelIfUnmounted = () => {
+      if (!mounted.current) ++request.current;
+    };
+    return () => {
+      mounted.current = false;
+      // Strict Mode may reconnect this effect after a lazy tree mounts.
+      queueMicrotask(cancelIfUnmounted);
+    };
+  }, []);
+  const updateTraceUrl = useCallback((tx?: string, network?: number) => {
+    const url = new URL(window.location.href);
+    if (tx) url.searchParams.set("tx", tx);
+    else url.searchParams.delete("tx");
+    if (network) url.searchParams.set("chainId", String(network));
+    else url.searchParams.delete("chainId");
+    handledQuery.current = url.searchParams.toString();
+    window.history.replaceState(null, "", url.toString());
+  }, []);
+  const show = useCallback(
+    (document: TraceDocument, source: string, sequence: number) => {
+      setResult({ document, source, sequence });
+      setSelection({ call: document.call, rolledBack: !!document.call.error });
     },
     []
   );
-  function show(document: TraceDocument, source: string, sequence: number) {
-    setResult({ document, source, sequence });
-    setSelection({ call: document.call, rolledBack: !!document.call.error });
-  }
-  async function fetchTrace(input = hash) {
-    clear();
-    setHash(input.trim());
-    const sequence = ++request.current;
-    setLoading(true);
-    try {
-      await waitForCustomChains();
-      if (request.current !== sequence) return;
-      const parsed = parseTraceInput(input, chainId);
-      setChainId(parsed.chainId);
-      setHash(parsed.hash);
-      activeRpc.current = {
-        chainId: parsed.chainId,
-        key: getRpcUrlsForChain(parsed.chainId).join("\n"),
-      };
-      const document = await fetchTransactionTrace(parsed.chainId, parsed.hash);
-      if (request.current === sequence)
-        show(document, "RPC call trace", sequence);
-    } catch (error) {
-      if (request.current === sequence)
-        setError(
-          error instanceof Error ? error.message : "Could not load trace."
+  const fetchTrace = useCallback(
+    async (input: string, network: number) => {
+      clear();
+      setHash(input.trim());
+      const sequence = ++request.current;
+      setLoading(true);
+      let transaction: ReturnType<typeof parseTraceInput> | undefined;
+      try {
+        await waitForCustomChains();
+        if (request.current !== sequence) return;
+        const parsed = parseTraceInput(input, network);
+        transaction = parsed;
+        setChainId(parsed.chainId);
+        setHash(parsed.hash);
+        updateTraceUrl(parsed.hash, parsed.chainId);
+        activeRpc.current = {
+          chainId: parsed.chainId,
+          key: getRpcUrlsForChain(parsed.chainId).join("\n"),
+        };
+        const document = await fetchTransactionTrace(
+          parsed.chainId,
+          parsed.hash
         );
-    } finally {
-      if (request.current === sequence) setLoading(false);
+        if (request.current === sequence)
+          show(document, "RPC call trace", sequence);
+      } catch (error) {
+        if (request.current === sequence) {
+          setFailedTrace(transaction);
+          setError(
+            error instanceof Error ? error.message : "Could not load trace."
+          );
+        }
+      } finally {
+        if (request.current === sequence) setLoading(false);
+      }
+    },
+    [clear, show, updateTraceUrl]
+  );
+  useEffect(() => {
+    if (handledQuery.current === query) return;
+    handledQuery.current = query;
+    const params = new URLSearchParams(query);
+    const tx = params.get("tx") ?? "";
+    const chain = params.get("chainId");
+    const network = chain === null ? 1 : Number(chain);
+    clear();
+    setHash(tx);
+    if (
+      !Number.isSafeInteger(network) ||
+      network <= 0 ||
+      (chain !== null && !/^\d+$/.test(chain))
+    ) {
+      setError("Enter a valid chain ID in the URL.");
+      return;
     }
-  }
+    setChainId(network);
+    if (tx) void fetchTrace(tx, network);
+  }, [query, clear, fetchTrace]);
   function importJson(text: string) {
     clear();
+    updateTraceUrl();
     try {
       const document = parseTraceJson(text);
       show(
@@ -177,7 +242,7 @@ export default function TracerPage() {
       <Box
         maxW="1040px"
         mx="auto"
-        mb={result ? 6 : 10}
+        mb={result || loading ? 6 : 10}
         p={{ base: 4, md: 5 }}
         border="1px solid"
         borderColor="border.default"
@@ -201,13 +266,21 @@ export default function TracerPage() {
                 color="orange.300"
                 onClick={() => {
                   clear();
+                  updateTraceUrl();
                   show(demoTrace, "Demo", request.current);
                 }}
               >
                 Load demo
               </Button>
               {result && (
-                <Button size="xs" variant="ghost" onClick={clear}>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => {
+                    clear();
+                    updateTraceUrl(undefined, chainId);
+                  }}
+                >
                   Clear
                 </Button>
               )}
@@ -219,7 +292,7 @@ export default function TracerPage() {
                 as="form"
                 onSubmit={(event: React.FormEvent) => {
                   event.preventDefault();
-                  void fetchTrace();
+                  void fetchTrace(hash, chainId);
                 }}
                 display="grid"
                 gridTemplateColumns={{
@@ -239,15 +312,21 @@ export default function TracerPage() {
                     onChange={(event) => {
                       clear();
                       setHash(event.target.value);
+                      updateTraceUrl(
+                        HASH.test(event.target.value.trim())
+                          ? event.target.value.trim()
+                          : undefined,
+                        chainId
+                      );
                     }}
                     onPaste={(event) => {
                       const pasted = event.clipboardData.getData("text").trim();
                       if (parseTransactionExplorerUrl(pasted)) {
                         event.preventDefault();
-                        void fetchTrace(pasted);
+                        void fetchTrace(pasted, chainId);
                       }
                     }}
-                    placeholder="etherscan.io/tx/0x…"
+                    placeholder="0x.. or etherscan.io/tx/0x…"
                     fontFamily="mono"
                     fontSize="sm"
                     autoComplete="off"
@@ -262,6 +341,7 @@ export default function TracerPage() {
                     onChange={(id) => {
                       clear();
                       setChainId(id);
+                      updateTraceUrl(HASH.test(hash) ? hash : undefined, id);
                     }}
                   />
                 </FormControl>
@@ -271,10 +351,9 @@ export default function TracerPage() {
                   bg="primary.500"
                   color="white"
                   _hover={{ bg: "primary.600" }}
-                  isLoading={loading}
-                  isDisabled={!hash.trim() || !!saved.error}
+                  isDisabled={loading || !hash.trim() || !!saved.error}
                 >
-                  Trace
+                  {loading ? "Tracing…" : "Trace"}
                 </Button>
               </Box>
             </TabPanel>
@@ -338,6 +417,7 @@ export default function TracerPage() {
                     onChange={(id) => {
                       clear();
                       setChainId(id);
+                      updateTraceUrl(undefined, id);
                     }}
                   />
                 </Box>
@@ -365,22 +445,35 @@ export default function TracerPage() {
             >
               {saved.error || error}
             </Text>
+            {fallbackLinks.length > 0 && (
+              <Flex gap={2} mt={3} wrap="wrap">
+                {fallbackLinks.map(({ name, href }) => (
+                  <Button
+                    key={name}
+                    as="a"
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    size="sm"
+                    variant="outline"
+                    rightIcon={<ExternalLinkIcon />}
+                  >
+                    Open in {name}
+                  </Button>
+                ))}
+              </Flex>
+            )}
           </Box>
         )}
         {loading && (
-          <Flex align="center" justify="space-between" mt={4}>
-            <HStack color="blue.300">
-              <Spinner size="sm" />
-              <Text fontSize="sm" role="status">
-                Tracing…
-              </Text>
-            </HStack>
+          <Flex justify="flex-end" mt={3}>
             <Button size="xs" variant="ghost" onClick={clear}>
               Cancel
             </Button>
           </Flex>
         )}
       </Box>
+      {loading && <TraceResultSkeleton />}
       {result && selection ? (
         <Box key={result.sequence}>
           <Flex

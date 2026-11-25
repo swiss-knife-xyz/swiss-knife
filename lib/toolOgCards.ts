@@ -10,7 +10,7 @@ export type ToolOgCard = {
 };
 
 export const toolOgCards = {
-  "calldata-trace": {
+  trace: {
     title: "Transaction Tracer",
     description: ["Follow EVM calls, inspect calldata,", "return values and reverts."],
   },

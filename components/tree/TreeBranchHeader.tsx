@@ -36,8 +36,25 @@ export function TreeBranchHeader({
   return (
     <Box
       position="sticky"
-      top={`${level * rowHeight}px`}
+      top={`calc(var(--tree-sticky-offset, 0px) + ${level * rowHeight}px)`}
       zIndex={100 - level}
+      bg="bg.subtle"
+      _after={
+        level > 0
+          ? {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              right: 0,
+              // Cover the full indentation back to the tree's left edge.
+              left: { base: `${-level * 13}px`, md: `${-level * 21}px` },
+              bg: "bg.subtle",
+              zIndex: -1,
+              pointerEvents: "none",
+            }
+          : undefined
+      }
       _before={
         level > 0
           ? {
@@ -81,6 +98,17 @@ export function TreeBranchHeader({
           scrollbarWidth: "none",
           "& > *": { flexShrink: 0 },
           "&::-webkit-scrollbar": { display: "none" },
+          "&:hover [data-tree-activate-hint], &:focus-within [data-tree-activate-hint]":
+            {
+              opacity: 1,
+              transform: "translateX(0)",
+            },
+          "@media (prefers-reduced-motion: reduce)": {
+            "& [data-tree-activate-hint]": {
+              transition: "none",
+              transform: "none",
+            },
+          },
         }}
         cursor="pointer"
         borderBottom="1px solid"
@@ -162,6 +190,34 @@ export function TreeBranchHeader({
           </Flex>
         ) : (
           children
+        )}
+        {onActivate && (
+          <Box
+            aria-hidden="true"
+            position="sticky"
+            right={0}
+            ml="auto"
+            minW="24px"
+            h="full"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            bg="inherit"
+            pointerEvents="none"
+          >
+            <Box
+              as="span"
+              data-tree-activate-hint="true"
+              color="blue.300"
+              fontFamily="mono"
+              fontSize="md"
+              opacity={0}
+              transform="translateX(-4px)"
+              transition="opacity 160ms ease-out, transform 160ms ease-out"
+            >
+              &gt;
+            </Box>
+          </Box>
         )}
         {extra && (
           <Box ml="auto" onClick={(event) => event.stopPropagation()}>

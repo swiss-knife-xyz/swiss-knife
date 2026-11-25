@@ -75,3 +75,57 @@ it("reports unsupported tracing with an actionable import alternative", async ()
     "import callTracer JSON"
   );
 });
+it.each([
+  [
+    {
+      message: "Request failed",
+      cause: { code: -32601, message: "Unavailable" },
+    },
+    "Tracing is unavailable",
+  ],
+  [{ code: -32004, message: "Disabled" }, "Tracing is unavailable"],
+  [
+    new Error('Method "debug_traceTransaction" is not supported.'),
+    "Tracing is unavailable",
+  ],
+  [
+    new Error("debug_traceTransaction is not enabled"),
+    "Tracing is unavailable",
+  ],
+  [new Error("unknown tracer: callTracer"), "does not support callTracer"],
+  [{ cause: { status: 403, message: "Forbidden" } }, "RPC access denied"],
+  [new Error("Tracing is not available on your plan"), "RPC access denied"],
+  [{ cause: { status: 429 } }, "RPC rate limit reached"],
+  [new Error("missing trie node"), "Historical state is unavailable"],
+  [
+    new Error(
+      "method debug_traceTransaction returned error: transaction not found"
+    ),
+    "Transaction not found on this RPC",
+  ],
+  [new Error("Request timed out"), "public RPC doesn't support debug traces"],
+])(
+  "distinguishes tracing support from provider and transaction failures (%j)",
+  async (error, message) => {
+    mocks.request.mockRejectedValue(error);
+    await expect(fetchTransactionTrace(1, hash)).rejects.toThrow(message);
+    expect(mocks.request).toHaveBeenCalledTimes(1);
+  }
+);
+it("does not expose RPC credentials in displayed errors or loop on circular causes", async () => {
+  const error: { message: string; cause?: unknown } = {
+    message: "Request failed: https://rpc.example/PRIVATE_API_KEY",
+  };
+  error.cause = error;
+  mocks.request.mockRejectedValue(error);
+  await expect(fetchTransactionTrace(1, hash)).rejects.toThrow(
+    "Could not fetch trace."
+  );
+});
+it("names the network and tracing method on timeout without claiming tracing is unsupported", async () => {
+  mocks.getChainId.mockResolvedValue(8453);
+  mocks.request.mockRejectedValue(new Error("Request timed out"));
+  await expect(fetchTransactionTrace(8453, hash)).rejects.toThrow(
+    "Base public RPC doesn't support debug traces"
+  );
+});

@@ -9,7 +9,7 @@ export default defineConfig({
     include: [
       "lib/tracer/*.spec.ts",
       "components/tracer/*.spec.tsx",
-      "app/calldata/trace/*.spec.tsx",
+      "app/trace/*.spec.tsx",
       "components/decodedParams/ParameterTree.test.tsx",
     ],
     maxWorkers: 1,

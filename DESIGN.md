@@ -962,7 +962,7 @@
 
 ## Transaction tracer
 
-- Scope: `/calldata/trace`, a technical inspection tool next to the decoder.
+- Scope: standalone `trace.eth.sh` tool (`/trace` locally), sharing the decoder's tree components.
 - Direction: compact, precise, inspectable; essence: follow executed calls.
 - Reuse existing ETH.sh Inter/JetBrains Mono typography, semantic background,
   text and border tokens, 4px spacing, `md` radii, and defined edges without
@@ -984,9 +984,12 @@
 - Refinement (2026-11-25): removed instructional paragraphs and the empty-state
   filler. Center the heading and compact form; put transaction, network and Trace
   on one desktop row. Explorer links select their network and trace on paste.
-- Explicit call colors bypass the neutral global Badge style: blue calls, cyan
+- Explicit call colors bypass the neutral global Badge style: blue calls, purple
   static reads, orange delegate calls, green creation/success, red reverts.
   The selected row uses an opaque dark blue so sticky headers stay legible.
+- Expanded parameter headers stack below their call's sticky ancestry, using the
+  shared tree's `--tree-sticky-offset`. Keep their stacking context below call
+  headers, and cover the indentation gutters while scrolling.
 - Search preserves matching ancestors; the reverted-call filter isolates failures.
   Keep call rows clickable when headers scroll horizontally. Address/byte fields have
   copy controls; native values use the selected chain's currency definition.
@@ -1015,3 +1018,7 @@
 
 - Trace numeric controls default to Raw, retaining the decoder's optional format
   conversions without labelling arbitrary uint values as native Wei.
+
+- Call-row affordance: a decorative `>` fades and slides into the right edge on
+  hover or keyboard focus. Keep it pinned while long rows scroll horizontally;
+  the whole row remains the selection target. Reduced motion shows it instantly.

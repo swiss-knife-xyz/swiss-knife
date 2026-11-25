@@ -134,6 +134,7 @@ export const txExplorers: ExplorersData = activeExplorers({
     chainIdToLabel: {
       [c.mainnet.id]: "eth",
       [c.arbitrum.id]: "arbitrum",
+      [c.base.id]: "base",
       [c.avalanche.id]: "avax",
       [c.bsc.id]: "bsc",
       [c.cronos.id]: "cro",
@@ -185,6 +186,7 @@ export const txExplorers: ExplorersData = activeExplorers({
     chainIdToLabel: {
       [c.mainnet.id]: "mainnet",
       [c.arbitrum.id]: "arbitrum",
+      [c.base.id]: "base",
       [c.avalanche.id]: "avalanche-mainnet",
       [c.bsc.id]: "bsc-mainnet",
       [c.cronos.id]: "cronos",

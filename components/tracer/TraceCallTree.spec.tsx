@@ -1,12 +1,80 @@
 import React from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { TraceCallTree } from "./TraceCallTree";
 import { normalizeTrace } from "@/lib/tracer/model";
 import { demoTrace } from "@/lib/tracer/demo";
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 const from = `0x${"11".repeat(20)}`;
+it.each([
+  { top: 200, height: 100, expected: null },
+  { top: 480, height: 100, expected: "nearest" },
+  { top: 480, height: 900, expected: "start" },
+  { top: 200, height: 900, expected: null },
+])(
+  "reveals expanded children only when needed ($top, $height)",
+  async ({ top, height, expected }) => {
+    const scrollIntoView = vi.fn();
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    const geometry = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        const child = this.hasAttribute("data-trace-children");
+        return {
+          top: child ? top : 100,
+          bottom: child ? top + height : 500,
+          height: child ? height : 400,
+        } as DOMRect;
+      });
+    const ui = render(
+      <ChakraProvider>
+        <TraceCallTree
+          root={demoTrace.call}
+          selectedId="0"
+          onSelect={() => {}}
+        />
+      </ChakraProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Collapse call 0" }));
+    // Attach the spy to newly mounted contents without changing browser geometry.
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Expand call 0" }));
+      await waitFor(() =>
+        expect(
+          ui.container.querySelector('[data-trace-children="0"]')
+        ).toBeTruthy()
+      );
+      if (expected)
+        expect(scrollIntoView).toHaveBeenCalledWith(
+          expect.objectContaining({ block: expected, inline: "nearest" })
+        );
+      else expect(scrollIntoView).not.toHaveBeenCalled();
+      scrollIntoView.mockClear();
+      fireEvent.click(screen.getByRole("button", { name: "Collapse call 0" }));
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+      geometry.mockRestore();
+    }
+  }
+);
 it("passes rollback context to successful descendants and supports keyboard disclosure", () => {
   const root = normalizeTrace({
     type: "CALL",
