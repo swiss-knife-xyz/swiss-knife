@@ -1,5 +1,15 @@
 # DESIGN.md - ETH.sh Orgs Directory
 
+## Calldata decoder attribution
+
+- Add a centered `Powered by data from:` credit below the signature registry at the
+  bottom of the decoder. Sourcify is a linked pill with its official blue logo.
+- Direction: compact, familiar, credible; essence: quiet provider credit. Reuse
+  the existing body type, semantic neutral colors and 4px spacing scale; the
+  pill uses a defined edge, full radius, hover background and visible focus.
+- Audit/changelog (2026-11-25): native external link with a text name and a
+  decorative logo; no motion, extra font, or new interaction state.
+
 ## Homepage hero brand mark
 
 - Tagline: **The Ultimate Ethereum Toolkit** across the homepage and shared OG branding.
