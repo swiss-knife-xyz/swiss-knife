@@ -212,6 +212,8 @@ it("shows a useful empty state for unmatched text", () => {
 });
 
 it.each([
+  "vitalik@eth",
+  "alice@xns",
   "alice.gwei",
   "sub.alice.gwei",
   "alice.wei",
@@ -233,18 +235,21 @@ it.each([
   }
 );
 
-it("resolves typed names only on submission and avoids duplicate requests", async () => {
+it.each([
+  ["VITALIK.ETH", "vitalik.eth"],
+  ["vitalik@eth", "vitalik@eth"],
+])("resolves typed %s only on submission and avoids duplicate requests", async (typed, name) => {
   let finish!: (value: string) => void;
   resolveName.mockReturnValue(
     new Promise<string>((resolve) => {
       finish = resolve;
     })
   );
-  const input = enter("VITALIK.ETH");
+  const input = enter(typed);
   expect(resolveName).not.toHaveBeenCalled();
   fireEvent.submit(input.closest("form")!);
   fireEvent.submit(input.closest("form")!);
-  expect(resolveName).toHaveBeenCalledExactlyOnceWith("vitalik.eth");
+  expect(resolveName).toHaveBeenCalledExactlyOnceWith(name);
   await act(async () => finish(address));
   expect(push).toHaveBeenCalledExactlyOnceWith(`/explorer/1/${address}`);
 });

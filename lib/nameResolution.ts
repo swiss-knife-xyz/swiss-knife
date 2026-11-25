@@ -14,7 +14,9 @@ import { getPublicClient } from "./publicClient";
 import {
   GNS_UNIVERSAL_RESOLVER_ADDRESS,
   WNS_NAME_NFT_ADDRESS,
+  XNS_REGISTRY_ADDRESS,
 } from "./nameServiceContracts";
+import { isXnsName } from "./xnsName";
 
 import {
   readGnsPrimaryName,
@@ -25,6 +27,9 @@ import {
 
 const wnsAddressAbi = parseAbi([
   "function addr(bytes32 node) view returns (address)",
+]);
+const xnsAddressAbi = parseAbi([
+  "function getAddress(string fullName) view returns (address)",
 ]);
 
 // ============================================================================
@@ -49,11 +54,12 @@ export const baseClient = getPublicClient(base.id);
 // ============================================================================
 
 /**
- * Check if a string looks like a resolvable name (ENS, Basename, etc.)
- * Returns true for strings containing a dot that aren't addresses
+ * Check for an XNS name or a dotted name (ENS, Basename, etc.).
  */
 export const isResolvableName = (value: string): boolean => {
   if (!value || value.length === 0) return false;
+  value = value.trim();
+  if (value.includes("@")) return isXnsName(value);
   // Must contain a dot and not start with 0x (address)
   if (!value.includes(".") || value.toLowerCase().startsWith("0x"))
     return false;
@@ -106,13 +112,24 @@ export const convertReverseNodeToBytes = (
 // ============================================================================
 
 /**
- * Resolve ENS (including CCIP-read subdomains), GNS and WNS on mainnet.
+ * Resolve ENS (including CCIP-read subdomains), GNS, WNS and XNS on mainnet.
  */
 export const resolveNameToAddress = async (
   name: string
 ): Promise<Address | null> => {
   try {
-    const normalizedName = normalize(name.trim());
+    const trimmedName = name.trim();
+    if (trimmedName.includes("@")) {
+      if (!isXnsName(trimmedName)) return null;
+      const address = await mainnetClient.readContract({
+        address: XNS_REGISTRY_ADDRESS,
+        abi: xnsAddressAbi,
+        functionName: "getAddress",
+        args: [trimmedName],
+      });
+      return address && address !== zeroAddress ? address : null;
+    }
+    const normalizedName = normalize(trimmedName);
     const address = normalizedName.endsWith(".wei")
       ? await mainnetClient.readContract({
           address: WNS_NAME_NFT_ADDRESS,
@@ -254,6 +271,8 @@ export const getBasenameAvatar = async (
  * Automatically detects the name type and uses appropriate resolver
  */
 export const getNameAvatar = async (name: string): Promise<string | null> => {
+  // XNS only stores the address mapping; it has no ENS avatar records.
+  if (name.includes("@")) return null;
   if (name.toLowerCase().endsWith(".gwei")) return readGnsAvatar(name);
   if (name.toLowerCase().endsWith(".wei")) return readWnsAvatar(name);
   if (isBasename(name)) {

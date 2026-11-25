@@ -5,11 +5,13 @@ import {
   resolveNameToAddress,
   resolveAddressToName,
   getNameAvatar,
+  isResolvableName,
 } from "./nameResolution";
 import {
   GNS_NAME_NFT_ADDRESS,
   GNS_UNIVERSAL_RESOLVER_ADDRESS,
   WNS_NAME_NFT_ADDRESS,
+  XNS_REGISTRY_ADDRESS,
 } from "./nameServiceContracts";
 
 const rpc = vi.hoisted(() => ({
@@ -67,7 +69,7 @@ it.each(["alice.wei", "sub.alice.wei"])(
   }
 );
 
-it.each(["missing.eth", "missing.gwei", "missing.wei"])(
+it.each(["missing.eth", "missing.gwei", "missing.wei", "missing@xns"])(
   "returns null for zero records and RPC failures for %s",
   async (name) => {
     rpc.getEnsAddress.mockResolvedValue(zeroAddress);
@@ -78,6 +80,36 @@ it.each(["missing.eth", "missing.gwei", "missing.wei"])(
     expect(await resolveNameToAddress(name)).toBeNull();
   }
 );
+
+it.each(["alice@xns", "vitalik@eth", "2-rich@4-real", "0xwhale@xns", `${"a".repeat(20)}@${"b".repeat(20)}`])(
+  "resolves valid XNS name %s directly on mainnet without ENS normalization",
+  async (name) => {
+    expect(isResolvableName(` ${name} `)).toBe(true);
+    expect(await resolveNameToAddress(` ${name} `)).toBe(address);
+    expect(rpc.readContract).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      address: XNS_REGISTRY_ADDRESS,
+      functionName: "getAddress",
+      args: [name],
+    }));
+    expect(rpc.getEnsAddress).not.toHaveBeenCalled();
+  }
+);
+
+it.each(["alice@", "@xns", "alice@@xns", "Alice@xns", "alice@XNS", "-alice@xns", "alice-@xns", "alice@-xns", "alice@xns-", "a--b@xns", "alice@x--ns", "a.b@xns", "alice@xns.eth", "a b@xns", "аlice@xns", `${"a".repeat(21)}@xns`, `alice@${"b".repeat(21)}`])(
+  "rejects malformed XNS name %s without an RPC lookup",
+  async (name) => {
+    expect(isResolvableName(name)).toBe(false);
+    expect(await resolveNameToAddress(name)).toBeNull();
+    expect(rpc.readContract).not.toHaveBeenCalled();
+    expect(rpc.getEnsAddress).not.toHaveBeenCalled();
+  }
+);
+
+it("does not request ENS avatars for XNS names", async () => {
+  expect(await getNameAvatar("alice@xns")).toBeNull();
+  expect(rpc.getEnsAvatar).not.toHaveBeenCalled();
+  expect(rpc.readContract).not.toHaveBeenCalled();
+});
 
 it("does not query a resolver for invalid names", async () => {
   expect(await resolveNameToAddress("bad..eth")).toBeNull();
