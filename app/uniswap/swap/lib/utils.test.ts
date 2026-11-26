@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Address, getAddress, zeroAddress } from "viem";
-import { base, baseSepolia } from "viem/chains";
+import { base, baseSepolia, mainnet } from "viem/chains";
 import { robinhood } from "@/data/common";
 import { PoolWithHookData } from "@/lib/uniswap/types";
 import {
@@ -87,12 +87,17 @@ test("native maximum reserves gas and never becomes negative", () => {
 });
 
 test("swap support requires Quoter, Universal Router, and Permit2", () => {
+  assert.deepEqual(getSwapChainConfig(mainnet.id), {
+    quoter: "0x2d66ce93dC44CC21Fa68996cC3AD219a9d133E48",
+    universalRouter: "0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af",
+    permit2: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+  });
   assert.ok(getSwapChainConfig(base.id));
   assert.ok(getSwapChainConfig(baseSepolia.id));
   assert.equal(getSwapChainConfig(robinhood.id), null);
   assert.deepEqual(
     getSupportedSwapChainIds().sort(),
-    [base.id, baseSepolia.id].sort()
+    [mainnet.id, base.id, baseSepolia.id].sort()
   );
 });
 
