@@ -67,7 +67,7 @@ function BranchHeader({
   return (
     <Box
       position="sticky"
-      top={`${level * 28}px`}
+      top={`calc(var(--calldata-sticky-offset, 0px) + ${level * 28}px)`}
       zIndex={100 - level}
       _before={
         level > 0
@@ -459,6 +459,7 @@ export function CalldataTree({
         borderRadius="md"
         bg="bg.subtle"
         overflow="clip"
+        isolation="isolate"
         minW={0}
         sx={{ containerType: "inline-size", containerName: "calldata" }}
       >
@@ -482,7 +483,7 @@ export function CalldataTree({
                 "& .calldata-leaf": {
                   flexDirection: "column", alignItems: "stretch", paddingLeft: "4px", gap: "6px",
                 },
-                "& .calldata-leaf > :first-child": {
+                "& .calldata-leaf > :first-of-type": {
                   width: "100%", display: "flex", alignItems: "baseline", flexWrap: "wrap", columnGap: "8px",
                   "&::before": { display: "none" },
                 },

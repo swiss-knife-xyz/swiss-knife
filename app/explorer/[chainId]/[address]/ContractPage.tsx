@@ -579,6 +579,25 @@ const ReadWriteSection = ({
   sourceFunctionFocus: FunctionFocus | null;
 }) => {
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  const functionSectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const header = stickyHeaderRef.current;
+    const section = functionSectionRef.current;
+    if (!header || !section) return;
+    const updateStickyOffset = () => {
+      const top = parseFloat(getComputedStyle(header).top) || 0;
+      section.style.setProperty("--calldata-sticky-offset", `${Math.ceil(top + header.getBoundingClientRect().height)}px`);
+    };
+    updateStickyOffset();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateStickyOffset);
+    observer?.observe(header);
+    window.addEventListener("resize", updateStickyOffset);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", updateStickyOffset);
+    };
+  }, []);
 
   const [allCollapsed, setAllCollapsed] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -651,7 +670,6 @@ const ReadWriteSection = ({
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -720,22 +738,13 @@ const ReadWriteSection = ({
   const scrollToFunction = useCallback((index: number) => {
     if (
       functionRefs.current[index] &&
-      stickyHeaderRef.current &&
-      scrollContainerRef.current
+      stickyHeaderRef.current
     ) {
-      const containerRect = scrollContainerRef.current.getBoundingClientRect();
       const headerRect = stickyHeaderRef.current.getBoundingClientRect();
       const functionRect = functionRefs.current[index]!.getBoundingClientRect();
-
-      const yOffset = headerRect.height - 90; // Add extra 20px for padding
-      const scrollTop =
-        functionRect.top -
-        containerRect.top -
-        yOffset +
-        scrollContainerRef.current.scrollTop;
-
-      scrollContainerRef.current.scrollTo({
-        top: scrollTop,
+      const headerTop = parseFloat(getComputedStyle(stickyHeaderRef.current).top) || 0;
+      window.scrollTo({
+        top: window.scrollY + functionRect.top - headerTop - headerRect.height - 8,
         behavior: "smooth",
       });
     }
@@ -897,6 +906,7 @@ const ReadWriteSection = ({
 
   return (
     <Box
+      ref={functionSectionRef}
       minW={0}
       w="full"
       id={`contract-${chainId}-${address.toLowerCase()}-${type}-functions`}
@@ -906,6 +916,7 @@ const ReadWriteSection = ({
     >
       <Box
         ref={stickyHeaderRef}
+        data-contract-function-toolbar
         position="sticky"
         top={{ base: 12, md: 0 }}
         zIndex={1}
@@ -930,24 +941,10 @@ const ReadWriteSection = ({
         {renderSearchBox()}
       </Box>
       <Box
-        ref={scrollContainerRef}
-        overflowY="auto"
-        // maxHeight="calc(100vh - 1px)" // FIXME: set height such that scrollable on search, but still shows all functions
+        overflow="visible"
         rounded="lg"
         p={2}
         boxSizing="border-box"
-        sx={{
-          "&::-webkit-scrollbar": {
-            width: "8px",
-          },
-          "&::-webkit-scrollbar-thumb": {
-            background: "#888",
-            borderRadius: "10px",
-          },
-          "&::-webkit-scrollbar-thumb:hover": {
-            background: "#555",
-          },
-        }}
       >
         {client && type === "read" && (
           <StorageSlot

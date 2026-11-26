@@ -1,4 +1,4 @@
-import { contractOutputArg } from "@/lib/contractOutput";
+import { contractOutputArg, serializeContractOutput } from "@/lib/contractOutput";
 import { JsonFragmentType } from "ethers";
 import {
   AddressInput,
@@ -11,7 +11,7 @@ import {
 } from "./inputs";
 import { ParamValue } from "../decodedParams/ParamValue";
 import { Skeleton } from "@chakra-ui/react";
-import { CalldataTree } from "../decodedParams/CalldataTree";
+import { ContractOutputValue } from "../decodedParams/ContractOutputValue";
 import { CalldataParam } from "../decodedParams/CalldataParam";
 import type { SelectedOption } from "@/types";
 import { ContractBytesInput } from "./ContractBytesInput";
@@ -203,10 +203,12 @@ export const renderParamTypes = ({
 }) => {
   if (/\[\d*\]$/.test(type) || type === "tuple") {
     return value == null ? <Skeleton h="4rem" w="full" rounded="4px" /> : (
-      <CalldataTree args={[contractOutputArg({ type, components, name }, value)]} chainId={chainId} showControls={false} />
+      <ContractOutputValue serializedArg={serializeContractOutput({ type, components, name }, value)} chainId={chainId} />
     );
   } else if (type === "calldata") {
     return <CalldataParam value={value} chainId={chainId} />;
+  } else if (type.startsWith("bytes")) {
+    return <ContractOutputValue serializedArg={serializeContractOutput({ type, name }, value)} chainId={chainId} />;
   } else {
     return <ParamValue arg={contractOutputArg({ type, components, name }, value)} chainId={chainId} />;
   }

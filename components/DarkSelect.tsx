@@ -1,5 +1,5 @@
 import { useCompactParameterInputs } from "./fnParams/ParameterInputStyle";
-import { useEffect, useState, useRef, useId, useCallback } from "react";
+import { useState, useRef, useId, useCallback, useSyncExternalStore } from "react";
 import { Box, BoxProps, HStack, Image, useToken } from "@chakra-ui/react";
 import {
   Select as RSelect,
@@ -45,6 +45,10 @@ export type FormatSelectProps = Pick<
   "size" | "controlProps" | "boxProps"
 >;
 
+const subscribeToClientRender = () => () => {};
+const clientSnapshot = () => true;
+const serverSnapshot = () => false;
+
 export const DarkSelect = ({
   placeholder,
   ariaLabel,
@@ -79,13 +83,11 @@ export const DarkSelect = ({
   );
   const [menuIsOpen, setMenuIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  // Only SSR/hydration needs a placeholder. Controls created by async decodes
+  // are already client-side and must be interactive on their first render.
+  const isClient = useSyncExternalStore(subscribeToClientRender, clientSnapshot, serverSnapshot);
   const selectRef = useRef<any>(null);
   const uniqueId = useId();
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // Keep menus within a modal's focus trap and stacking context when present.
   const setContainerRef = useCallback((node: HTMLDivElement | null) => {
@@ -331,7 +333,7 @@ export const DarkSelect = ({
   };
 
   // Prevent hydration mismatch by not rendering select on server
-  if (!isMounted) {
+  if (!isClient) {
     return (
       <Box cursor="pointer" pos="relative" overflow="visible" {...boxProps}>
         <Box

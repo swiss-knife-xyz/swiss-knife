@@ -1,5 +1,38 @@
 # DESIGN.md - ETH.sh Orgs Directory
 
+## Explorer bytes responses
+
+- Function results attempt calldata decoding for hexadecimal bytes containing at
+  least a four-byte selector, including bytes inside tuples and arrays. Reuse
+  the existing nested parameter tree and its Raw bytes disclosure on success.
+- Keep the existing bytes controls while decoding or if no decode is available.
+  Text, packed-data and generic ABI guesses do not count as decoded calldata;
+  the decoded signature must match the payload's four-byte selector.
+  Response and chain changes immediately clear stale decoded content; repeated
+  payloads within one output share a lookup. Keep the returned call's target
+  unspecified rather than assuming it is the returning contract.
+- Audit/changelog (2026-11-26): existing typography, controls and tree layout;
+  covered nested results, raw access, failure fallback and stale async responses.
+- Unit selectors created after decoding render interactively on their first
+  client commit. Keep the static dropdown placeholder only for SSR/hydration,
+  using a shared client snapshot rather than a per-control mount effect.
+- Isolate each parameter tree's stacking context so sticky branch headers stay
+  beneath the explorer's sticky Read/Write function toolbar while scrolling.
+- Each function section measures its toolbar with ResizeObserver and shares its
+  bottom offset with result trees. Stack branch headers in 28px rows below it;
+  standalone trees retain a zero offset. Keep function results in the page's
+  scroll flow, and scroll search matches below the toolbar using page scrolling.
+- Verified on `getActions(33)` at 1440px and 390px: headers stack at the toolbar
+  bottom and successive 28px offsets, including the mobile tab-bar inset.
+- Serialize presentation records with exact decimal strings for BigInts before
+  passing them as component props. React's development render logger otherwise
+  throws on primitive BigInt arrays and interrupts commit effects. Keep the
+  original RPC and decoder results untouched. Use `:first-of-type` for the
+  responsive label selector to avoid Emotion's SSR warning.
+- Verified the real mainnet `getActions(33)` response: its nested mint amount
+  converts from `2500000000000000000000000` wei to `2500000` ETH, the outer value
+  remains zero, and the browser records no runtime exceptions or console errors.
+
 ## Transaction agent guide
 
 - Reuse the skills directory's compact `For your Agent` URL row in the wallet

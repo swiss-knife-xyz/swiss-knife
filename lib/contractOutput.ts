@@ -1,5 +1,11 @@
 import type { JsonFragmentType } from "ethers";
 import type { Arg } from "@/types";
+import { stringify } from "viem";
+
+// Serialize before passing response records into presentation components. React's
+// development render logger cannot inspect primitive arrays containing BigInts.
+export const serializeContractOutput = (output: JsonFragmentType, value: any): string =>
+  stringify(contractOutputArg(output, value));
 
 // viem returns named tuples as objects and unnamed tuples as positional arrays.
 export function contractOutputArg(output: JsonFragmentType, value: any): Arg {
