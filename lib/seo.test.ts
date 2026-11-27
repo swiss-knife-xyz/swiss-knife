@@ -256,6 +256,18 @@ test("subdomain rewrites leave crawler endpoints and OG assets on the root app",
   assert.equal(pattern.test("1/0x123"), true);
 });
 
+test("decoder example images remain public assets on every tool subdomain", () => {
+  const routes = nextConfig.rewrites().beforeFiles.filter((route: any) => route.has);
+  assert.ok(routes.length > 0);
+  for (const route of routes) {
+    const pattern = new RegExp(`^${route.source.replace('/:path(', '(')}$`);
+    assert.equal(pattern.test("decoder-examples/zora-20000.jpg"), false, route.destination);
+    assert.equal(pattern.test("decoder-examples-other"), true, route.destination);
+    assert.equal(pattern.test("decoder"), true, route.destination);
+  }
+  assert.ok(existsSync(new URL("../public/decoder-examples/zora-20000.jpg", import.meta.url)));
+});
+
 test("sitemap uses the orgs apex path, not an unsupported orgs host", () => {
   const urls = sitemap().map(({ url }) => url);
   assert.ok(urls.includes("https://eth.sh/orgs"));
