@@ -51,6 +51,12 @@ and test changed instances. Sources:
 - https://github.com/blockscout/chainscout/blob/main/data/chains.json
 - https://routescan.io/chains (API-enabled networks only)
 
+The refresh candidate list includes the shared RPC network catalog, but admits
+each network only when an upstream verification provider supports it. Routescan
+display names and testnet identities come from `data/networks.ts`; provider-only
+metadata does not enable RPCs. Reviewed 2026-11-27: restored 25 shared networks
+listed as supported by Sourcify, keeping existing provider routes unchanged.
+
 Only registered HTTPS explorer hosts are recognized in pasted URLs. API fetch URLs
 are built from the registry and validated chain/address values, never caller URLs.
 Source paths and compiler settings are preserved without flattening. Incomplete

@@ -47,6 +47,9 @@ Use `getNetworkOptions` or `getGroupedNetworkOptions` when supplying grouped or
 provider-specific options. Known IDs get their shared name and icon; unknown
 provider networks retain their supplied name. Preserve provider slugs in the API
 support mapping and translate them at the API boundary (see CoW verification).
+Display-only provider names and testnet logo families are also owned here; they
+do not enable RPC access. Select options without verified artwork use a neutral
+network icon instead of leaving an empty logo slot.
 
 Wallet switching remains with RainbowKit. Specialized bridge pickers and directory
 cards retain their behavior but use shared identity helpers. Network filters that

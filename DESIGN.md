@@ -1,5 +1,15 @@
 # DESIGN.md - ETH.sh Orgs Directory
 
+## Verified-contract network options
+
+- Preserve explicit verification-provider coverage independently of RPC support.
+  Include supported shared-catalog networks in import options and use canonical
+  display names, including provider-only names and correct testnet identities.
+- Reuse local chain logos across their testnets. Where no verified artwork is
+  available, render the neutral network icon rather than a blank logo slot.
+- Audit/changelog (2026-11-27): restored 25 Sourcify-supported networks, replaced
+  placeholder names, and added logo mappings without enabling new wallet RPCs.
+
 ## Transaction preview continuity
 
 - Key the transaction page's clear-signing card by transaction fields and saved
