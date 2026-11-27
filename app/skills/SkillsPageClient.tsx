@@ -27,7 +27,7 @@ import {
   RotateCcw,
   Search,
 } from "lucide-react";
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Layout } from "@/components/Layout";
 import {
   aiToolTypeOrder,
@@ -502,6 +502,12 @@ const ResourceRow = ({ resource }: { resource: SkillResource }) => (
 );
 
 const SkillsPageClient = () => {
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    searchInputRef.current?.focus({ preventScroll: true });
+  }, []);
+
   const [query, setQuery] = useState("");
   const [selectedType, setSelectedType] = useState<AiToolType | "all">("all");
   const [selectedCategory, setSelectedCategory] = useState<
@@ -714,6 +720,7 @@ const SkillsPageClient = () => {
               <Search size={16} color="#71717A" />
             </InputLeftElement>
             <Input
+              ref={searchInputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search skills, MCPs, protocols"
