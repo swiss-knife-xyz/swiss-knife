@@ -1,6 +1,7 @@
 "use client";
 
-import { readVerifiedContractMetadata, readDecompiledContractAbi, cacheDecompiledContractAbi, clearDecompiledContractAbi, type DecompiledContractAbi } from "@/lib/contractMetadataCache";
+import { readVerifiedContractMetadata, readDecompiledContractAbi, cacheDecompiledContractAbi, clearDecompiledContractAbi, markContractAsProxy, type DecompiledContractAbi } from "@/lib/contractMetadataCache";
+import { maintainFunctionScrollAnchor } from "@/lib/scrollAnchor";
 
 import { useCustomChains } from "@/lib/customChains/store";
 import { getRpcUrlsForChain } from "@/data/networks";
@@ -608,26 +609,40 @@ const ReadWriteSection = ({
 
   const functionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const scrolledPrefillRevision = useRef<number | null>(null);
+  const releasedPrefillRevision = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!prefilledCall || !client || !mobileActive || scrolledPrefillRevision.current === prefillRevision) return;
+    if (!prefilledCall || !client || !mobileActive || releasedPrefillRevision.current === prefillRevision) return;
     const index = functions.findIndex(func => {
       try { return contractFunctionSignature(func) === prefilledCall.signature; }
       catch { return false; }
     });
     if (index < 0) return;
+    let stopAnchoring: (() => void) | undefined;
     const frame = requestAnimationFrame(() => {
       const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       const target = functionRefs.current[index];
       if (!target) return;
-      scrolledPrefillRevision.current = prefillRevision;
-      target.scrollIntoView?.({
-        behavior: reduceMotion ? "instant" : "smooth",
-        block: "start",
-      });
-      onPrefillScrollStart?.();
+      if (scrolledPrefillRevision.current !== prefillRevision) {
+        scrolledPrefillRevision.current = prefillRevision;
+        target.scrollIntoView?.({
+          behavior: reduceMotion ? "instant" : "smooth",
+          block: "start",
+        });
+        onPrefillScrollStart?.();
+      }
+      const section = functionSectionRef.current;
+      if (section?.parentElement) {
+        stopAnchoring = maintainFunctionScrollAnchor(target, section.parentElement, () => {
+          const header = stickyHeaderRef.current;
+          const toolbarBottom = header
+            ? (parseFloat(getComputedStyle(header).top) || 0) + header.getBoundingClientRect().height + 8
+            : 0;
+          return Math.max(parseFloat(getComputedStyle(target).scrollMarginTop) || 0, toolbarBottom);
+        }, () => { releasedPrefillRevision.current = prefillRevision; });
+      }
     });
-    return () => cancelAnimationFrame(frame);
+    return () => { cancelAnimationFrame(frame); stopAnchoring?.(); };
   }, [prefilledCall, prefillRevision, functions, client, onPrefillScrollStart, mobileActive]);
 
   const scrolledAddedRevision = useRef<number | null>(null);
@@ -1070,6 +1085,7 @@ const LoadedContractPage = ({
   const [isFetchingAbi, setIsFetchingAbi] = useState<boolean>(false);
   // A local cache hit should paint functions directly, without a skeleton flash.
   const [isRestoringAbi, setIsRestoringAbi] = useState(true);
+  const [isResolvingContractIdentity, setIsResolvingContractIdentity] = useState(true);
   const isLoadingFunctions = !isRestoringAbi && (isFetchingAbi || Boolean(contractTab?.isResolvingAddress && !abi));
   useEffect(() => {
     if (!isRestoringAbi) contractTab?.onCacheReady?.();
@@ -1134,6 +1150,7 @@ const LoadedContractPage = ({
   const onNoCode = contractTab?.onNoCode;
   const fetchSetAbi = useCallback(async (isCurrent: () => boolean) => {
     let resolvingDelegation = false;
+    let proxyCheck: ReturnType<typeof getImplementationFromBytecodeIfProxy> | undefined;
     let finished = false;
     let cachedAbi: DecompiledContractAbi | undefined;
     // Restore functions independently of RPC and verification latency.
@@ -1152,6 +1169,7 @@ const LoadedContractPage = ({
       if (isCurrent()) setIsRestoringAbi(false);
     });
     try {
+      setIsResolvingContractIdentity(true);
       setIsFetchingAbi(true);
       setUnableToFetchAbi(false);
 
@@ -1200,20 +1218,35 @@ const LoadedContractPage = ({
       }
 
       // try fetching if contract is verified
-      const fetchedAbi = await fetchContractAbiRaw({ address, chainId });
+      // Source/ABI availability says nothing about whether a proxy lookup
+      // succeeded. In particular, legacy cached Sourcify records can have an
+      // empty Implementation for a real proxy. Always resolve identity live.
+      proxyCheck = getImplementationFromBytecodeIfProxy({ client: rpcClient, address });
+      const [verified, resolvedProxy] = await Promise.allSettled([
+        fetchContractAbiRaw({ address, chainId }), proxyCheck,
+      ]);
       if (!isCurrent()) return;
+      if (verified.status === "rejected") throw verified.reason;
+      const fetchedAbi = verified.value;
+      // Keep a positive explorer result usable during an RPC outage. A failed
+      // check without that evidence must never reach regular-ABI persistence.
+      if (resolvedProxy.status === "rejected" && !fetchedAbi.implementation)
+        throw resolvedProxy.reason;
+      const liveProxy = resolvedProxy.status === "fulfilled" ? resolvedProxy.value : undefined;
+      if (liveProxy) {
+        await markContractAsProxy(chainId, address);
+        if (!fetchedAbi.implementation || liveProxy.implementationAddress.toLowerCase() !== fetchedAbi.implementation.address.toLowerCase()) {
+          const latest = await fetchContractAbiRaw({ chainId, address: liveProxy.implementationAddress });
+          fetchedAbi.implementation = { address: liveProxy.implementationAddress, abi: latest.abi, name: latest.name };
+        }
+      }
       console.log("Verified contract ABI:", fetchedAbi);
       if (fetchedAbi.implementation) {
         finished = true;
         setAbi(null);
         setIsFetchingAbi(true);
         void clearDecompiledContractAbi(chainId, address);
-        // Explorer indexing can lag an upgrade; prefer the current on-chain target.
-        const liveProxy = await getImplementationFromBytecodeIfProxy({ client: rpcClient, address });
-        if (liveProxy && liveProxy.implementationAddress.toLowerCase() !== fetchedAbi.implementation.address.toLowerCase()) {
-          const latest = await fetchContractAbiRaw({ chainId, address: liveProxy.implementationAddress });
-          fetchedAbi.implementation = { address: liveProxy.implementationAddress, abi: latest.abi, name: latest.name };
-        }
+        if (!liveProxy) await markContractAsProxy(chainId, address);
         if (!isCurrent()) return;
         setImplementationAddress(fetchedAbi.implementation.address);
         setImplementationAbi({
@@ -1258,15 +1291,16 @@ const LoadedContractPage = ({
         }
 
         // check if contract is a proxy
-        const resGetImplementation = await getImplementationFromBytecodeIfProxy(
+        const resGetImplementation = await (proxyCheck ?? getImplementationFromBytecodeIfProxy(
           {
             client,
             address,
           }
-        );
+        ));
 
         if (!isCurrent()) return;
         if (resGetImplementation) {
+          await markContractAsProxy(chainId, address);
           finished = true;
           setAbi(null);
           setIsFetchingAbi(true);
@@ -1356,7 +1390,10 @@ const LoadedContractPage = ({
       }
     } finally {
       finished = true;
-      if (isCurrent()) setIsFetchingAbi(false);
+      if (isCurrent()) {
+        setIsFetchingAbi(false);
+        setIsResolvingContractIdentity(false);
+      }
     }
   }, [address, chainId, onNoCode]);
 
@@ -1924,7 +1961,7 @@ const LoadedContractPage = ({
                 <HStack spacing={3} flexWrap="wrap" minW={0} flex="1 1 20rem" justify="flex-start" sx={{ "@container (min-width: 620px)": { justifyContent: "center" } }} rowGap={2}>
                   <AbiSourceCodeToggle isCustom={abi?.isCustom} />
                   {abi && <ContractCallPrefill
-                    restoreFromUrl={contractTab?.initial ?? true}
+                    restoreFromUrl={(contractTab?.initial ?? true) && !isResolvingContractIdentity}
                     address={address}
                     chainId={chainId}
                     selectedAbi={abi.abi}

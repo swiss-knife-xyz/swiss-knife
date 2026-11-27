@@ -12,6 +12,7 @@ export default defineConfig({
       "components/fnParams/historicalQuery.spec.tsx",
       "components/fnParams/historicalDateTimePicker.spec.tsx",
       "lib/historicalQuery.spec.ts",
+      "lib/scrollAnchor.spec.ts",
       "components/fnParams/contractForm.spec.tsx",
       "components/fnParams/contractWidgets.spec.tsx",
       "components/fnParams/rawCallRefresh.spec.tsx",

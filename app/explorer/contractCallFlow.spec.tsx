@@ -38,6 +38,7 @@ vi.mock("wagmi", () => ({
 }));
 vi.mock("wagmi/actions", () => ({ waitForTransactionReceipt: vi.fn() }));
 vi.mock("@/app/providers", () => ({ config: {} }));
+vi.mock("@/components/ContractAddressExplorer", () => ({ default: () => null }));
 vi.mock("@/hooks/useTopLoaderRouter", () => ({
   useTopLoaderRouter: () => ({ push: vi.fn() }),
 }));
@@ -173,7 +174,7 @@ async function openRawCalldata() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getSourceCode).mockResolvedValue(undefined as any);
-  client.getCode.mockResolvedValue("0x");
+  client.getCode.mockResolvedValue("0x6000");
   fetchAbi.mockResolvedValue({ abi, name: "Verified contract" });
   window.history.replaceState(null, "", `/explorer/1/${address}`);
   HTMLElement.prototype.scrollTo = vi.fn();

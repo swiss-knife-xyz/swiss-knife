@@ -41,30 +41,56 @@ function cacheable(data: ContractResponse) {
     return false;
   }
 }
-async function read<T>(store: string, key: string): Promise<T | undefined> {
+async function readEntry<T>(store: string, key: string): Promise<{ data?: T; isProxy?: true } | undefined> {
   try {
     const db = await openDatabase();
     return await new Promise((resolve, reject) => {
       const tx = db.transaction(store);
       const request = tx.objectStore(store).get(key);
-      tx.oncomplete = () => resolve(request.result?.data);
+      tx.oncomplete = () => resolve(request.result);
       tx.onabort = tx.onerror = () => reject(tx.error);
     });
   } catch {
     return undefined;
   }
 }
+async function read<T>(store: string, key: string): Promise<T | undefined> {
+  const entry = await readEntry<T>(store, key);
+  return entry?.isProxy ? undefined : entry?.data;
+}
 async function write(store: string, key: string, data: unknown) {
   try {
     const db = await openDatabase();
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(store, "readwrite");
-      tx.objectStore(store).put({ key, data });
+      const tx = db.transaction([...new Set([store, "contracts"])], "readwrite");
+      const current = tx.objectStore("contracts").get(key);
+      current.onsuccess = () => {
+        // A lookup started before live proxy detection must not recreate a stale
+        // negative record after the proxy marker was committed.
+        if (!current.result?.isProxy) tx.objectStore(store).put({ key, data });
+      };
       tx.oncomplete = () => resolve();
       tx.onabort = tx.onerror = () => reject(tx.error);
     });
   } catch {
     /* Browser quota/disabled storage must never prevent loading. */
+  }
+}
+
+/** Retire legacy false negatives on discovery; never cache an implementation address. */
+export async function markContractAsProxy(chainId: number, address: string) {
+  try {
+    const db = await openDatabase();
+    const key = keyFor(chainId, address);
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(["contracts", "decompiled"], "readwrite");
+      tx.objectStore("contracts").put({ key, isProxy: true });
+      tx.objectStore("decompiled").delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onabort = tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    /* Live resolution remains authoritative when storage is unavailable. */
   }
 }
 export async function readVerifiedContractMetadata(

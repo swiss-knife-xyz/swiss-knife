@@ -15,6 +15,40 @@ const metadata = (name = "Token", implementation = ""): ContractResponse => ({
     },
   ],
 });
+
+it("retires legacy false negatives automatically and preserves regular contracts", async () => {
+  const cache = await import("./contractMetadataCache");
+  const load = vi.fn(async () => metadata("InitializableImmutableAdminUpgradeabilityProxy"));
+  await cache.cachedContractMetadata(1, address, load);
+  await cache.cachedContractMetadata(10, address, load);
+  await cache.cacheDecompiledContractAbi(1, address, { abi: [], name: "Old", isDecoded: true });
+  await cache.markContractAsProxy(1, address.toUpperCase());
+  expect(await cache.readVerifiedContractMetadata(1, address)).toBeUndefined();
+  expect(await cache.readDecompiledContractAbi(1, address)).toBeUndefined();
+  expect(await cache.readVerifiedContractMetadata(10, address)).toBeDefined();
+
+  vi.resetModules();
+  const next = await import("./contractMetadataCache");
+  // An explorer omitting Implementation again cannot resurrect the old entry.
+  await next.cachedContractMetadata(1, address, load);
+  await next.cachedContractMetadata(1, address, load);
+  await next.cacheDecompiledContractAbi(1, address, { abi: [], name: "Old", isDecoded: true });
+  expect(load).toHaveBeenCalledTimes(4);
+  expect(await next.readVerifiedContractMetadata(1, address)).toBeUndefined();
+  expect(await next.readDecompiledContractAbi(1, address)).toBeUndefined();
+});
+
+it("prevents in-flight metadata requests from overwriting a proxy repair", async () => {
+  const cache = await import("./contractMetadataCache");
+  let finish!: (data: ContractResponse) => void;
+  const load = vi.fn(() => new Promise<ContractResponse>(resolve => { finish = resolve; }));
+  const pending = cache.cachedContractMetadata(1, address, load);
+  await vi.waitFor(() => expect(load).toHaveBeenCalledOnce());
+  await cache.markContractAsProxy(1, address);
+  finish(metadata("Proxy with missing Implementation"));
+  await pending;
+  expect(await cache.readVerifiedContractMetadata(1, address)).toBeUndefined();
+});
 beforeEach(() => {
   vi.resetModules();
   vi.stubGlobal("indexedDB", new IDBFactory());

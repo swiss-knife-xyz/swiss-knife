@@ -1,5 +1,16 @@
 # DESIGN.md - ETH.sh Orgs Directory
 
+## Shared function scroll anchoring
+
+- Shared and imported calls reveal the target function below its sticky toolbar.
+  Maintain that position while asynchronous reads and metadata resize either
+  column, including native browser scroll anchoring and parent re-renders.
+- Release the anchor on wheel, touch, pointer or keyboard input, and keep it
+  released for that prefill revision. Clean up observers and queued work when
+  navigating away; new shared calls establish their own anchor.
+- Audit/changelog (2026-11-27): verified the supplied Aave withdraw link against
+  late layout expansion and user scroll release, without sending a transaction.
+
 ## Verified-contract network options
 
 - Preserve explicit verification-provider coverage independently of RPC support.

@@ -625,15 +625,19 @@ export const getImplementationFromBytecodeIfProxy = async ({
     provider: client,
     abiLoader: false,
     signatureLookup: false,
+    onError: (_phase, error) => { throw error; },
   });
   if (result.followProxies && result.proxies.length > 0) {
     const implementation = await result.followProxies();
-    if (implementation.address.toLowerCase() === address.toLowerCase()) return;
+    if (implementation.address.toLowerCase() === address.toLowerCase() || /^0x0{40}$/i.test(implementation.address))
+      throw new Error("Proxy detected but its implementation could not be resolved");
     return {
       implementationAddress: implementation.address,
       proxyName: result.proxies[0].name,
     };
   }
+  if (result.proxies.length > 0)
+    throw new Error("Proxy detected without a single resolvable implementation");
 };
 
 export const generateTenderlyUrl = (

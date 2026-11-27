@@ -9,9 +9,12 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
+import { Interface } from "ethers";
+import { createContractCallLink } from "@/lib/contractCall";
 import { ContractPage } from "./[chainId]/[address]/ContractPage";
 
-const { readVerifiedCache, readCache, writeCache, clearCache, fetchAbi, detectProxy, processCode, sourceCode, client } = vi.hoisted(() => ({
+const { readVerifiedCache, readCache, writeCache, clearCache, markProxy, fetchAbi, detectProxy, processCode, sourceCode, client } = vi.hoisted(() => ({
+  markProxy: vi.fn(),
   readVerifiedCache: vi.fn(),
   readCache: vi.fn(),
   writeCache: vi.fn(),
@@ -27,6 +30,7 @@ vi.mock("@/lib/contractMetadataCache", () => ({
   readDecompiledContractAbi: readCache,
   cacheDecompiledContractAbi: writeCache,
   clearDecompiledContractAbi: clearCache,
+  markContractAsProxy: markProxy,
 }));
 const router = { push: vi.fn() };
 vi.mock("@/hooks/useTopLoaderRouter", () => ({
@@ -149,6 +153,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  window.history.replaceState(null, "", "/");
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -511,6 +516,58 @@ it("renders permanently cached verified functions before RPC responds", async ()
   await inferred(false);
   expect(fetchAbi).not.toHaveBeenCalled();
   expect(screen.queryByRole("status", { name: "Loading contract functions" })).toBeNull();
+});
+
+it("repairs a cached verified proxy whose metadata omitted Implementation", async () => {
+  readVerifiedCache.mockResolvedValue({ status: "1", result: [{ ABI: JSON.stringify(abi), ContractName: "Proxy", SourceCode: "contract Proxy {}", Implementation: "" }] });
+  fetchAbi.mockResolvedValueOnce({ abi, name: "Proxy" })
+    .mockResolvedValueOnce({ abi: [{ ...abi[0], name: "implementationFunction" }], name: "Implementation" });
+  detectProxy.mockResolvedValue({ implementationAddress, proxyName: "Proxy" });
+  render(page());
+  await waitFor(() => expect(screen.getByTestId("function-provenance").textContent).toBe("implementationFunction"));
+  expect(markProxy).toHaveBeenCalledWith(1, address);
+  expect(screen.getByText("Proxy implementation:")).toBeTruthy();
+  expect(writeCache).not.toHaveBeenCalled();
+});
+
+it("waits for live identity before restoring a shared implementation call from a legacy cache", async () => {
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  const data = new Interface(abi).encodeFunctionData("candidate", [33]);
+  window.history.replaceState(null, "", new URL(createContractCallLink("https://explorer.eth.sh", 1, address, {
+    data, value: "0", abiMode: "implementation", signature: "candidate(uint256)",
+  })).hash);
+  readVerifiedCache.mockResolvedValue({ status: "1", result: [{ ABI: JSON.stringify(abi), ContractName: "Proxy", SourceCode: "contract Proxy {}", Implementation: "" }] });
+  fetchAbi.mockResolvedValue({ abi, name: "Verified" });
+  let finish!: (value: unknown) => void;
+  detectProxy.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  render(page());
+  await inferred(false);
+  await waitFor(() => expect(detectProxy).toHaveBeenCalledOnce());
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByText("Shared ABI context is unavailable for this contract.")).toBeNull();
+  await act(async () => finish({ implementationAddress, proxyName: "Proxy" }));
+  await waitFor(() => expect(document.querySelector('[data-prefilled="true"]')).toBeTruthy());
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+it("never persists an inferred regular ABI after an unresolved proxy check", async () => {
+  fetchAbi.mockRejectedValue(new Error("Not verified"));
+  detectProxy.mockRejectedValue(new Error("Proxy storage RPC unavailable"));
+  render(page());
+  await waitFor(() => expect(screen.getByText(/Unable to fetch ABI/i)).toBeTruthy());
+  expect(detectProxy).toHaveBeenCalledTimes(1);
+  expect(processCode).not.toHaveBeenCalled();
+  expect(writeCache).not.toHaveBeenCalled();
+  expect(markProxy).not.toHaveBeenCalled();
+});
+
+it("keeps a known verified implementation usable when the live RPC check fails", async () => {
+  fetchAbi.mockResolvedValue({ abi, name: "Proxy", implementation: { address: implementationAddress, abi: [{ ...abi[0], name: "implementationFunction" }], name: "Implementation" } });
+  detectProxy.mockRejectedValue(new Error("RPC unavailable"));
+  render(page());
+  await waitFor(() => expect(screen.getByTestId("function-provenance").textContent).toBe("implementationFunction"));
+  expect(markProxy).toHaveBeenCalledWith(1, address);
+  expect(writeCache).not.toHaveBeenCalled();
 });
 
 it("keeps cached inferred functions available if the refresh fails", async () => {
