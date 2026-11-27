@@ -333,6 +333,34 @@ it("does not invent a clear-signing target for deployment bytecode", async () =>
   expect(screen.queryByRole("region", { name: "Clear signing" })).toBeNull();
 });
 
+it("keeps the same preview mounted across connection, account, wallet-chain and disconnection changes", async () => {
+  const query = `to=${address}&calldata=0xa9059cbb&chainId=8453&eth=1.25`;
+  const ui = render(page(query));
+  const preview = await screen.findByRole("region", { name: "Clear signing" });
+  for (const [sender, chain] of [[address, 8453], ["0x0000000000000000000000000000000000000002", 1], [undefined, undefined]] as const) {
+    mocks.connected = sender;
+    mocks.accountChain = chain;
+    ui.rerender(page(query));
+    expect(screen.getByRole("region", { name: "Clear signing" })).toBe(preview);
+    expect(JSON.parse(preview.getAttribute("data-preview")!)).toMatchObject({
+      to: address, chainId: 8453, calldata: "0xa9059cbb", value: "1250000000000000000",
+      allowMissingSender: !sender, preserveOnSenderChange: true,
+    });
+    expect(JSON.parse(preview.getAttribute("data-preview")!).from).toBe(sender);
+  }
+});
+
+it("does not adopt the connected wallet's network after a transaction is prepared without a URL chain", async () => {
+  const query = `to=${address}&calldata=0xa9059cbb`;
+  const ui = render(page(query));
+  const preview = await screen.findByRole("region", { name: "Clear signing" });
+  connect(8453);
+  ui.rerender(page(query));
+  expect(screen.getByRole("region", { name: "Clear signing" })).toBe(preview);
+  expect(JSON.parse(preview.getAttribute("data-preview")!).chainId).toBe(1);
+  expect(within(screen.getByRole("region", { name: "Transaction network" })).getByText("Ethereum")).toBeTruthy();
+});
+
 function connect(chainId: number) {
   mocks.connected = address;
   mocks.accountChain = chainId;

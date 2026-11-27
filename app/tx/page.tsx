@@ -141,9 +141,10 @@ function SendTxContent() {
   useEffect(() => {
     if (chain && !initialChainInUrl.current && !adoptedWalletChain.current) {
       adoptedWalletChain.current = true;
-      setChainId(chain.id);
+      // A connection must not replace the network of an already prepared call.
+      if (!to && !calldata && !ethValue) setChainId(chain.id);
     }
-  }, [chain?.id, setChainId]);
+  }, [chain?.id, setChainId, to, calldata, ethValue]);
 
   useEffect(() => {
     if (!status) return;
@@ -278,7 +279,6 @@ function SendTxContent() {
     calldata,
     recipientAddress,
     chainId,
-    connectedAddress,
     ethValue,
   ]);
   const [summaryPreview, setSummaryPreview] = useState<{
@@ -286,7 +286,9 @@ function SendTxContent() {
     request: ClearSigningRequest;
   } | null>(null);
   const summaryRequest =
-    summaryPreview?.key === summaryKey ? summaryPreview.request : null;
+    summaryPreview?.key === summaryKey
+      ? { ...summaryPreview.request, from: connectedAddress, allowMissingSender: !connectedAddress }
+      : null;
   useEffect(() => {
     if (
       !recipientAddress ||
@@ -307,15 +309,13 @@ function SendTxContent() {
             calldata: startHexWith0x(calldata),
             to: recipientAddress,
             chainId,
-            from: connectedAddress,
-            allowMissingSender: !connectedAddress,
             value,
           },
         }),
       400
     );
     return () => clearTimeout(timer);
-  }, [calldata, recipientAddress, chainId, connectedAddress, ethValue]);
+  }, [calldata, recipientAddress, chainId, ethValue]);
 
   const decodeRequestId = useRef(0);
   const lastSuccessfulDecode = useRef<{
@@ -616,7 +616,7 @@ function SendTxContent() {
       </Flex>
       {summaryRequest && (
         <TransactionSummaryRail>
-          <ClearSigningSummary {...summaryRequest} />
+          <ClearSigningSummary {...summaryRequest} preserveOnSenderChange />
         </TransactionSummaryRail>
       )}
       <Box

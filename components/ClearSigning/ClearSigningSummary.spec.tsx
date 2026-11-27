@@ -65,6 +65,38 @@ it("waits for saved custom RPC settings", () => {
   render(view());
   expect(mocks.resolve).not.toHaveBeenCalled();
 });
+
+it("preserves a transaction card while sender details refresh and rejects late sender results", async () => {
+  const senderA = "0x0000000000000000000000000000000000000001";
+  const senderB = "0x0000000000000000000000000000000000000002";
+  const preview = (from?: string, calldata = "0xa9059cbb") => <ChakraProvider>
+    <ClearSigningSummary calldata={calldata} from={from} allowMissingSender={!from} preserveOnSenderChange />
+  </ChakraProvider>;
+  const ui = render(preview());
+  const card = await screen.findByRole("region", { name: "Clear signing" });
+  let finishA!: (value: unknown) => void;
+  let finishB!: (value: unknown) => void;
+  mocks.resolve.mockReturnValueOnce(new Promise(resolve => { finishA = resolve; }));
+  ui.rerender(preview(senderA));
+  expect(screen.getByRole("region", { name: "Clear signing" })).toBe(card);
+  mocks.resolve.mockReturnValueOnce(new Promise(resolve => { finishB = resolve; }));
+  ui.rerender(preview(senderB));
+  expect(screen.getByRole("region", { name: "Clear signing" })).toBe(card);
+  await act(async () => finishB({ ...summary, intent: "Current sender" }));
+  expect(screen.getByRole("region", { name: "Clear signing" })).toBe(card);
+  await act(async () => finishA({ ...summary, intent: "Stale sender" }));
+  expect(screen.queryByText("Stale sender")).toBeNull();
+  expect(screen.getByText("Current sender")).toBeTruthy();
+  let finishDisconnect!: (value: unknown) => void;
+  mocks.resolve.mockReturnValueOnce(new Promise(resolve => { finishDisconnect = resolve; }));
+  ui.rerender(preview());
+  expect(screen.getByRole("region", { name: "Clear signing" })).toBe(card);
+  await act(async () => finishDisconnect(summary));
+  expect(screen.getByRole("region", { name: "Clear signing" })).toBe(card);
+  mocks.resolve.mockReturnValueOnce(new Promise(() => {}));
+  ui.rerender(preview(undefined, "0x095ea7b3"));
+  expect(screen.queryByRole("region", { name: "Clear signing" })).toBeNull();
+});
 it("leaves no empty card for unmatched calldata or failed metadata", async () => {
   mocks.resolve.mockResolvedValue(null);
   render(view());

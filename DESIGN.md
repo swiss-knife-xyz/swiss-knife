@@ -1,5 +1,15 @@
 # DESIGN.md - ETH.sh Orgs Directory
 
+## Transaction preview continuity
+
+- Key the transaction page's clear-signing card by transaction fields and saved
+  RPC configuration. Connection, account and wallet-network changes keep the
+  card mounted; sender details refresh in place with stale requests cancelled.
+- Continue clearing old summaries immediately when transaction fields change.
+  A late wallet connection must not replace a prepared transaction's network.
+- Audit/changelog (2026-11-27): covered connection, account, disconnection,
+  wallet-chain changes, late sender results and transaction-edit invalidation.
+
 ## Explorer bytes responses
 
 - Function results attempt calldata decoding for hexadecimal bytes containing at
