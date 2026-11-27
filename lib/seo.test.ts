@@ -111,6 +111,19 @@ test("footer exposes a server-rendered directory of public tools for discovery",
   assert.ok(!source.includes('href="#all-tools"'));
 });
 
+test("public explorer records do not block indexing when discovered through external links", () => {
+  for (const path of [
+    "explorer/[chainId]/[address]/page.tsx",
+    "explorer/[chainId]/[address]/layout.tsx",
+    "explorers/[slug]/layout.tsx",
+    "explorers/address/[address]/layout.tsx",
+    "explorers/tx/[tx]/layout.tsx",
+  ]) {
+    const source = readFileSync(new URL(`../app/${path}`, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /index:\s*false|noindex/, path);
+  }
+});
+
 test("private inspection and test views opt out of indexing in the nearest layout", () => {
   for (const path of ["wallet/signatures/view", "7702beat/test", "skills/new"]) {
     const source = readFileSync(new URL(`../app/${path}/layout.tsx`, import.meta.url), "utf8");
