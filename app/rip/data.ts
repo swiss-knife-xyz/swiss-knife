@@ -24,9 +24,132 @@ export type ShutdownProject = {
   sources: { label: string; url: string; kind: "Primary" | "Reporting" }[];
 };
 
-export const archiveReviewedAt = "2026-10-16";
+export const archiveReviewedAt = "2026-11-28";
 
 export const shutdownProjects: ShutdownProject[] = [
+  {
+    id: "okto",
+    name: "Okto Wallet",
+    category: "Wallets",
+    status: "Winding down",
+    announced: "2026-11-26",
+    closed: "2026-12-22",
+    dateNote:
+      "December 22 is the scheduled end of the mobile wallet, web app and API/SDK. Private-key imports end December 7 and swaps end by December 14. Onchain assets and Hyperliquid positions remain; Solana assets require a transfer through Okto before shutdown because other SVM wallets do not support its key derivation path.",
+    summary:
+      "Non-custodial multichain wallet with integrated futures trading. Okto announced the shutdown of its wallet apps and developer services.",
+    reason:
+      "The team said it was refocusing on products that meet current market needs.",
+    website: "https://okto.tech",
+    social: "https://x.com/okto_web3",
+    logo: "/external/rip/okto.jpg",
+    sources: [
+      {
+        label: "Official sunset announcement",
+        url: "https://x.com/okto_web3/status/2125952405175181537",
+        kind: "Primary",
+      },
+      {
+        label: "Official shutdown timeline and migration guide",
+        url: "https://okto.tech/blog/okto-sunset-migration-guide",
+        kind: "Primary",
+      },
+    ],
+  },
+  {
+    id: "amplifi",
+    name: "Amplifi",
+    category: "Trading",
+    status: "Closed",
+    announced: "2026-11-18",
+    closed: "2026-11-25",
+    dateNote:
+      "The November 18 notice allowed in-app withdrawals through November 24. On November 24, the co-founder said shutdown would occur the next day, with best-effort position closure and automatic refunds. The official account confirmed all Predict and Trade user funds had been returned on November 25.",
+    summary:
+      "Leveraged trading platform for prediction markets and tokens. Amplifi wound down its Predict and Trade apps and returned user funds.",
+    reason: "No reason was specified in the shutdown announcements.",
+    website: "https://amplifi.finance",
+    social: "https://x.com/useamplifi",
+    logo: "/external/rip/amplifi.jpg",
+    sources: [
+      {
+        label: "Official wind-down and withdrawal announcement",
+        url: "https://x.com/useamplifi/status/2123146416034132040",
+        kind: "Primary",
+      },
+      {
+        label: "Co-founder shutdown and position-closure notice",
+        url: "https://x.com/OrestTa/status/2125309349597720965",
+        kind: "Primary",
+      },
+      {
+        label: "Official confirmation of completed user refunds",
+        url: "https://x.com/useamplifi/status/2125645029863465361",
+        kind: "Primary",
+      },
+    ],
+  },
+  {
+    id: "kosh",
+    name: "KOSH",
+    category: "Payments",
+    status: "Winding down",
+    announced: "2026-11-24",
+    closed: "2026-11-30",
+    dateNote:
+      "November 30 is the scheduled deactivation of cards, virtual bank accounts and off-ramp services. The separate withdrawal portal remains available until December 15; account and card statements are due by email December 15–30. The withdrawal deadline is not the service-end date.",
+    summary:
+      "Stablecoin finance platform serving individuals and businesses with cards, virtual bank accounts and payments. KOSH announced a phased shutdown of all its services.",
+    reason:
+      "The team said it had not built a sustainable business in difficult market conditions and lacked the runway to continue.",
+    website: "https://koshmoney.com",
+    social: "https://x.com/usekoshmoney",
+    logo: "/external/rip/kosh.jpg",
+    sources: [
+      {
+        label: "Official services shutdown announcement",
+        url: "https://x.com/usekoshmoney/status/2125218420249760051",
+        kind: "Primary",
+      },
+      {
+        label: "Official explanation of business sustainability and runway",
+        url: "https://x.com/usekoshmoney/status/2125218422623809542",
+        kind: "Primary",
+      },
+      {
+        label: "Official phased service-end and withdrawal timeline",
+        url: "https://support.koshmoney.com/en/articles/18556433-kosh-services-are-shutting-down-what-you-need-to-know",
+        kind: "Primary",
+      },
+    ],
+  },
+  {
+    id: "portis",
+    name: "Portis",
+    category: "Wallets",
+    status: "Closed",
+    closed: "2025-06-20",
+    dateNote:
+      "The official help-center notice gives June 20, 2025 as the complete service-discontinuation date. The original public announcement date is not established.",
+    summary:
+      "Embedded non-custodial wallet and developer SDK that let users access blockchain apps with an email and password. The Portis service was discontinued.",
+    reason: "No reason was specified in the official shutdown notice.",
+    website: "https://portis.io",
+    social: "https://x.com/portis_io",
+    logo: "/external/rip/portis.jpg",
+    sources: [
+      {
+        label: "Official complete service-discontinuation notice",
+        url: "https://portis.zendesk.com/hc/en-us/articles/35727224803604-Portis-Shutdown",
+        kind: "Primary",
+      },
+      {
+        label: "WalletScrutiny follow-up confirming shutdown and site redirect",
+        url: "https://walletscrutiny.com/mobile/com.shiftshape.app/",
+        kind: "Reporting",
+      },
+    ],
+  },
   {
     id: "blur",
     name: "Blur frontend",
