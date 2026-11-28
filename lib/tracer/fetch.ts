@@ -144,7 +144,7 @@ async function fetchPublicTrace(
   chainId: number,
   transactionHash: string
 ): Promise<TraceDocument> {
-  const client = getPublicClient(chainId, { timeout: 30000 });
+  const client = getPublicClient(chainId, { timeout: 30000, rpcPolicy: "trace" });
   // User-saved endpoints stay in the browser and retain the shared no-fallback policy.
   const actualChainId = await client.getChainId().catch(() => {
     throw new Error(

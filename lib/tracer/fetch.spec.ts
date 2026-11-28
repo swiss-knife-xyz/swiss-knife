@@ -51,6 +51,10 @@ it("waits for saved settings, verifies identity, then requests bounded callTrace
     },
     { retryCount: 0 }
   );
+  expect(mocks.getClient).toHaveBeenCalledWith(1, {
+    timeout: 30000,
+    rpcPolicy: "trace",
+  });
   expect(document.transactionHash).toBe(hash);
   expect(document.chainId).toBe(1);
 });
@@ -173,3 +177,17 @@ it("never calls hosted tracing for a saved RPC, even when that RPC fails", async
     applyCustomNetworks([]);
   }
 });
+
+it.each([369, 25, 8217, 250, 40, 1313161554])(
+  "traces chain %i with the direct public trace policy without hosted credentials",
+  async (chainId) => {
+    mocks.getChainId.mockResolvedValue(chainId);
+    const document = await fetchTransactionTrace(chainId, hash);
+    expect(document.chainId).toBe(chainId);
+    expect(mocks.getClient).toHaveBeenCalledWith(chainId, {
+      timeout: 30000,
+      rpcPolicy: "trace",
+    });
+    expect(mocks.hosted).not.toHaveBeenCalled();
+  }
+);

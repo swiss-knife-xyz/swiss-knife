@@ -68,6 +68,24 @@ only filter a directory should not change the wallet or another tool's network.
 - Explicit user-entered RPC testing and server-only credentials remain explicit
   exceptions. Do not use a guessed/default network when an ID is unsupported.
 
+### Public transaction tracing
+
+`getPublicClient(chainId, { rpcPolicy: "trace" })` uses the explicit
+`publicTraceRpcOverrides` in `data/networks.ts` before the normal public fallbacks.
+This policy is for the tracer only; it does not change normal tool reads, wallet
+transports, or the public-only RPC Console allowlist. Configured public environment
+overrides retain precedence. User-saved RPCs always replace the entire list, so
+local forks never fall through to a public trace endpoint.
+
+The direct endpoints cover PulseChain, Cronos, Kaia, Fantom, Telos, and Aurora.
+They were checked against real mined transactions and browser CORS on 2026-11-28.
+The Tatum endpoints for Cronos, Kaia, and Fantom have an explicit RPC Racer fallback
+because direct requests encountered rate limits. The racer also uses public RPCs;
+its upstream choice varies, so fallback availability is best-effort.
+Kaia/Fantom callTracer responses currently omit receipt logs even with `withLog`;
+call-tree support does not establish complete event history. These are public
+services with provider-specific availability, historical-state and rate limits.
+
 ### Hosted transaction tracing
 
 `alchemyTraceNetworks` in `data/networks.ts` is the explicit Alchemy host allowlist.

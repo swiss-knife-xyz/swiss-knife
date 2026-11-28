@@ -118,3 +118,34 @@ it("reports connection failures from the RPC Console's direct saved-chain reques
     reason: "unreachable",
   });
 });
+it("keeps the trace policy on a saved fork without trying the public trace endpoint", async () => {
+  const rpcUrl = "http://127.0.0.1:18545/";
+  localStorage.setItem(
+    CUSTOM_CHAINS_KEY,
+    JSON.stringify([
+      {
+        id: 369,
+        name: "PulseChain fork",
+        rpcUrl,
+        symbol: "PLS",
+        decimals: 18,
+        testnet: true,
+      },
+    ])
+  );
+  const requested: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: unknown) => {
+      requested.push(String(url));
+      throw new TypeError("Failed to fetch");
+    })
+  );
+  const { getPublicClient } = await import("@/lib/publicClient");
+  const client = getPublicClient(369, { rpcPolicy: "trace", timeout: 100 });
+  await expect(client.request({ method: "eth_blockNumber" })).rejects.toThrow();
+  expect(requested.length).toBeGreaterThan(0);
+  expect(requested.every((url) => url === rpcUrl)).toBe(true);
+  const { getRpcUrlsForChain } = await import("@/data/networks");
+  expect(getRpcUrlsForChain(369, "trace")).toEqual([rpcUrl]);
+});

@@ -12,6 +12,7 @@ import {
   chainIdToCustomRpcUrl,
   alchemyTraceNetworks,
   preferAlchemyTrace,
+  publicTraceRpcOverrides,
 } from "./networks";
 import * as legacy from "./common";
 import { walletChains } from "./chains";
@@ -132,4 +133,16 @@ it("uses the catalog public mainnet endpoint when no public env override is conf
   chainIdToCustomRpcUrl[1] = undefined;
   try { expect(getRpcUrlsForChain(1)[0]).toBe("https://eth.drpc.org"); }
   finally { chainIdToCustomRpcUrl[1] = previous; }
+});
+
+it("uses verified public endpoints only for the trace policy", () => {
+  for (const [id, urls] of Object.entries(publicTraceRpcOverrides)) {
+    const chainId = Number(id);
+    expect(networkRegistry[chainId]).toBeTruthy();
+    expect(getRpcUrlsForChain(chainId, "trace")[0]).toBe(urls![0]);
+    expect(new Set(getRpcUrlsForChain(chainId, "trace")).size).toBe(getRpcUrlsForChain(chainId, "trace").length);
+  }
+  expect(getRpcUrlsForChain(369, "configured")).not.toContain("https://rpc.degenprotocol.io");
+  expect(getRpcUrlsForChain(369, "public")).not.toContain("https://rpc.degenprotocol.io");
+  expect(getRpcUrlsForChain(999999123, "trace")).toEqual([]);
 });

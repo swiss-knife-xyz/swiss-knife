@@ -5,8 +5,14 @@ import {
   settleCustomRpcRequest,
 } from "./customChains/failures";
 
-function resolveTransport(chainId: number, timeout?: number) {
-  const urls = getRpcUrlsForChain(chainId);
+type RpcPolicy = "configured" | "trace";
+
+function resolveTransport(
+  chainId: number,
+  timeout?: number,
+  policy: RpcPolicy = "configured"
+) {
+  const urls = getRpcUrlsForChain(chainId, policy);
   if (!urls.length) throw new Error(`Unsupported RPC chain ${chainId}`);
   const transports = urls.map((url) => http(url, timeout ? { timeout } : {}));
   return transports.length === 1
@@ -15,10 +21,15 @@ function resolveTransport(chainId: number, timeout?: number) {
 }
 
 /** Browser requests wait for saved settings, then resolve the current endpoint. */
-export function getRpcTransport(chainId: number, timeout?: number): Transport {
+export function getRpcTransport(
+  chainId: number,
+  timeout?: number,
+  policy: RpcPolicy = "configured"
+): Transport {
   if (!chainIdToChain[chainId])
     throw new Error(`Unsupported RPC chain ${chainId}`);
-  if (typeof window === "undefined") return resolveTransport(chainId, timeout);
+  if (typeof window === "undefined")
+    return resolveTransport(chainId, timeout, policy);
   return (parameters) => {
     let key = "";
     let active: ReturnType<Transport> | undefined;
@@ -29,11 +40,12 @@ export function getRpcTransport(chainId: number, timeout?: number): Transport {
             "./customChains/store"
           );
           await waitForCustomChains();
-          const nextKey = getRpcUrlsForChain(chainId).join("\n");
+          const nextKey = getRpcUrlsForChain(chainId, policy).join("\n");
           if (!active || nextKey !== key) {
             active = resolveTransport(
               chainId,
-              timeout
+              timeout,
+              policy
             )({ ...parameters, chain: chainIdToChain[chainId] });
             key = nextKey;
           }

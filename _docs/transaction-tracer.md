@@ -73,6 +73,14 @@ missing runtime matches and incomplete source/ABI payloads remain rejected.
   calls without Geth log enrichment. Saved settings load first; RPC chain identity
   is checked before tracing. Saved RPCs remain direct browser requests with no
   public or hosted fallback, and are never sent to a server proxy.
+- PulseChain, Cronos, Kaia, Fantom, Telos, and Aurora use verified direct public
+  trace endpoints through the shared client's `rpcPolicy: "trace"`. The endpoints
+  live in `publicTraceRpcOverrides` in `data/networks.ts`; ordinary tool reads and
+  RPC Console endpoints remain unchanged. Saved custom RPCs take full precedence.
+  Cronos/Kaia/Fantom try RPC Racer after their direct Tatum endpoint fails or is
+  rate-limited, before the existing public fallback list.
+  Kaia and Fantom currently return calls without the receipt's logs; missing events
+  are not synthesized or assigned invented call positions.
 - Built-in chains whose public RPCs failed tracing use `POST /api/trace` first;
   other explicitly mapped chains try it after a public failure. Routing/slugs are
   in `data/networks.ts`. The browser submits only `{chainId, hash}` and receives a

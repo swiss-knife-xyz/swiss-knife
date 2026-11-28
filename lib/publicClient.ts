@@ -19,6 +19,8 @@ type GetPublicClientOptions = {
   // Disable EIP-3668 CCIP-read so callers handle the OffchainLookup error themselves.
   ccipRead?: false;
   timeout?: number;
+  // Tracing uses the registry's explicit public callTracer endpoints.
+  rpcPolicy?: "trace";
 };
 
 // Typed with `Chain` (not `Chain | undefined`) so consumers that call
@@ -33,7 +35,10 @@ export const getPublicClient = (
   options?: GetPublicClientOptions
 ): ChainPublicClient => {
   // Only the option-less form is cached; option variants build a fresh client.
-  const key = JSON.stringify([chainIdToChain[chainId], getRpcUrlsForChain(chainId)]);
+  const key = JSON.stringify([
+    chainIdToChain[chainId],
+    getRpcUrlsForChain(chainId),
+  ]);
   if (!options && cache[chainId]?.key === key) return cache[chainId].client;
 
   const chain = chainIdToChain[chainId];
@@ -43,7 +48,7 @@ export const getPublicClient = (
 
   const client = createPublicClient({
     chain,
-    transport: getRpcTransport(chainId, options?.timeout),
+    transport: getRpcTransport(chainId, options?.timeout, options?.rpcPolicy),
     ...(options?.ccipRead === false ? { ccipRead: false } : {}),
   }) as ChainPublicClient;
 

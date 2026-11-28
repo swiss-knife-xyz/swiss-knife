@@ -449,6 +449,19 @@ export const preferAlchemyTrace: ReadonlySet<number> = new Set([
   unichain.id, celo.id, ronin.id, robinhood.id, zkSync.id, opBNB.id, linea.id,
 ]);
 
+// Public callTracer endpoints verified against mined transactions (2026-11-28).
+// Kept separate from normal reads and RPC Console policy. These need no keys.
+// Tatum endpoints use RPC Racer as a secondary fallback for public rate limits.
+// Kaia/Fantom currently omit callTracer logs even with withLog enabled.
+export const publicTraceRpcOverrides: Readonly<Partial<Record<number, readonly string[]>>> = Object.freeze({
+  [pulsechain.id]: ["https://rpc.degenprotocol.io"],
+  [cronos.id]: ["https://cro-mainnet.gateway.tatum.io", "https://evm.stupidtech.net/v1/25?timeoutMs=10000"],
+  [kaia.id]: ["https://kaia-mainnet.gateway.tatum.io", "https://evm.stupidtech.net/v1/8217?timeoutMs=10000"],
+  [fantom.id]: ["https://fantom-mainnet.gateway.tatum.io", "https://evm.stupidtech.net/v1/250?timeoutMs=10000"],
+  [telos.id]: ["https://rpc.telos.net"],
+  [aurora.id]: ["https://mainnet.aurora.dev"],
+});
+
 // zkSync rejects Geth tracerConfig.withLog; its callTracer still returns calls.
 export const traceWithoutLogs: ReadonlySet<number> = new Set([zkSync.id, zkSyncSepoliaTestnet.id]);
 
@@ -471,18 +484,19 @@ const runtimeCustomChains = new Map<number, CustomChain>();
 
 export function getRpcUrlsForChain(
   chainId: number,
-  policy: "configured" | "public" = "configured"
+  policy: "configured" | "public" | "trace" = "configured"
 ): string[] {
-  if (policy === "configured" && runtimeCustomChains.has(chainId))
+  if (policy !== "public" && runtimeCustomChains.has(chainId))
     return [runtimeCustomChains.get(chainId)!.rpcUrl];
   const chain = activeChainsById[chainId];
   if (!chain) return [];
   return [
     ...new Set(
       [
-        ...(policy === "configured" && chainIdToCustomRpcUrl[chainId]
+        ...(policy !== "public" && chainIdToCustomRpcUrl[chainId]
           ? [chainIdToCustomRpcUrl[chainId]!]
           : []),
+        ...(policy === "trace" ? (publicTraceRpcOverrides[chainId] ?? []) : []),
         ...(publicRpcOverrides[chainId] ?? []),
         ...chain.rpcUrls.default.http,
       ].filter(Boolean)
