@@ -40,15 +40,23 @@ export default function ClearSigningSummary(
     showPending?: boolean;
     debounceMs?: number;
     onAvailabilityChange?: (visible: boolean) => void;
+    /** Keep a transaction preview mounted while its connected sender changes. */
+    preserveOnSenderChange?: boolean;
   }
 ) {
   const saved = useCustomChains();
+  const { preserveOnSenderChange, ...summaryProps } = props;
+  const identityProps = { ...summaryProps };
+  if (preserveOnSenderChange) {
+    delete identityProps.from;
+    delete identityProps.allowMissingSender;
+  }
   // Remount before painting a different payload or RPC configuration. A late
   // descriptor/metadata response can never decorate another decoded request.
   return (
     <SummaryContent
-      key={JSON.stringify([props, saved.revision, saved.ready])}
-      {...props}
+      key={JSON.stringify([identityProps, saved.revision, saved.ready])}
+      {...summaryProps}
       ready={saved.ready}
     />
   );
@@ -69,6 +77,7 @@ function SummaryContent({
   onAvailabilityChange?: (visible: boolean) => void;
 }) {
   const example = useContext(ExampleSnapshotContext);
+  const requestKey = clearSigningRequestKey(request);
   const [result, setResult] = useState<ClearSigningResult | null | undefined>(
     () => example ? example.clearSigning?.[clearSigningRequestKey(request)] ?? null : undefined
   );
@@ -86,7 +95,7 @@ function SummaryContent({
       cancelled = true;
       if (timer !== undefined) clearTimeout(timer);
     };
-  }, [ready]); // The keyed parent binds this instance to exactly one request.
+  }, [ready, requestKey]); // Sender updates can refresh an existing transaction preview.
 
   useEffect(() => {
     if (result !== undefined) onAvailabilityChange?.(!!result);

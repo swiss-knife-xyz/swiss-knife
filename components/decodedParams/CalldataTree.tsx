@@ -399,6 +399,7 @@ export function CalldataTree({
         borderRadius="md"
         bg="bg.subtle"
         overflow="clip"
+        isolation="isolate"
         minW={0}
         sx={{ containerType: "inline-size", containerName: "calldata" }}
       >

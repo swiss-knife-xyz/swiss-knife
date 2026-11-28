@@ -8,11 +8,27 @@ clearing site data or browser-managed eviction can remove cached data.
 
 Proxy responses (implementation address present or explorer `Proxy: "1"`) are
 never persisted. Old proxy entries from the previous expiring cache are ignored.
-Each proxy visit fetches fresh metadata; the explorer also checks the on-chain
-implementation before choosing its ABI, so an indexed implementation that lags an
+The explorer checks proxy identity on-chain even when verified source and ABI
+were restored from cache: an empty provider `Implementation` field is not proof
+that a contract is not a proxy. Each proxy visit fetches fresh metadata and resolves
+the on-chain implementation before choosing its ABI, so an indexed implementation that lags an
 upgrade does not override the live target. Implementation contracts can use their
 own permanent verified cache, keyed by their own chain/address identity.
 Live EIP-7702 delegation resolution remains in place.
+
+Legacy entries with missing proxy metadata repair themselves on the next explorer
+visit after deployment. Confirmed proxies replace their cached metadata with an
+`isProxy` marker and delete any inferred ABI. The marker contains no implementation
+address or ABI: future visits resolve the target again. Cache writes check this
+marker in the same transaction, so late responses cannot recreate the bad entry.
+This uses the existing version-2 stores; users need not clear site data or close
+other tabs for a database upgrade. Regular contract entries remain intact.
+
+RPC failures, unresolved proxies, and zero implementation addresses are not
+non-proxy results and cannot trigger inferred regular-ABI persistence. Verified
+positive proxy metadata remains usable if a live check fails. Shared URL decoding
+waits for identity resolution while cached functions can still render immediately,
+avoiding a premature missing-implementation error from legacy records.
 
 Unverified regular contracts save their reconstructed ABI in a separate
 `decompiled` store only after successful on-chain non-proxy resolution. On revisit,

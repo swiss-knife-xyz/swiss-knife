@@ -58,7 +58,7 @@ test("local preview navigation retains both tools on its current origin", () => 
   }
 });
 
-test("landing metadata separates contract and directory social identity; user records opt out", async () => {
+test("landing metadata separates contract and directory social identity; contract records allow indexing", async () => {
   assert.equal(rootMetadata.alternates?.canonical, "https://explorer.eth.sh/");
   assert.equal(rootMetadata.openGraph?.url, "https://explorer.eth.sh/");
   assert.equal(
@@ -75,7 +75,7 @@ test("landing metadata separates contract and directory social identity; user re
   const metadata = await contractMetadata({
     params: Promise.resolve({ chainId: "8453", address }),
   });
-  assert.deepEqual(metadata.robots, { index: false, follow: true });
+  assert.equal(metadata.robots, "index, follow");
   assert.equal(
     metadata.alternates?.canonical,
     `https://explorer.eth.sh/8453/${address}`

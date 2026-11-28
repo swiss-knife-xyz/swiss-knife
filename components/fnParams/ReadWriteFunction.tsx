@@ -336,6 +336,14 @@ const ReadWriteFunctionComponent = ({
   const [settingsSenderAddr, setSettingsSenderAddr] = useState<string>("");
 
   const [res, setRes] = useState<any>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const [resultRevealRevision, setResultRevealRevision] = useState(0);
+  const receiveHistoricalResult = useCallback((result: HistoricalQueryResult | undefined) => {
+    setHistoricalResult(result);
+    if (result && type === "read") {
+      setResultRevealRevision(revision => revision + 1);
+    }
+  }, [type]);
   const [txIsTenderlySimulation, setTxIsTenderlySimulation] =
     useState<boolean>(false);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -421,7 +429,7 @@ const ReadWriteFunctionComponent = ({
     return result.result;
   }, [client, address, _func, prepareArgs, encodeFunctionData, functionName, isAbiDecoded, payableETH, type]);
 
-  const readFunction = useCallback(async () => {
+  const readFunction = useCallback(async (revealResult = false) => {
     if (inputsUnknown) return;
     const id = ++readRequestId.current;
     const context = readContext.current;
@@ -469,6 +477,9 @@ const ReadWriteFunctionComponent = ({
                 isAbiDecoded,
               });
               if (isCurrent()) setRes(result.data);
+            }
+            if (isCurrent() && revealResult) {
+              setResultRevealRevision(revision => revision + 1);
             }
             // Success - break out of retry loop
             break;
@@ -950,7 +961,7 @@ const ReadWriteFunctionComponent = ({
     if (enterPressed) {
       if (historicalMode) { setHistoricalOpen(true); setIsCollapsed(false); }
       else if (type === "read" && readAction === "Encode Calldata") encodeCalldataFn();
-      else readFunction();
+      else readFunction(type === "read");
       setEnterPressed(false);
     }
   }, [inputsState, enterPressed, readFunction, type, readAction, encodeCalldataFn, historicalMode]);
@@ -995,8 +1006,8 @@ const ReadWriteFunctionComponent = ({
   }, [sourceFocusRevision]);
 
   useEffect(() => {
-    // uncollapse if result fetched
-    if (res) {
+    // Expand successful results, including zero and false.
+    if (res !== null && res !== undefined) {
       setIsCollapsed(false);
     }
   }, [res]);
@@ -1056,6 +1067,36 @@ const ReadWriteFunctionComponent = ({
   const outputPending = !historicalMode && outputs.length > 0 && (loading || !hasResultValue);
   const outputMounted = useRef(false);
   if (outputVisible) outputMounted.current = true;
+
+  useEffect(() => {
+    if (!resultRevealRevision) return;
+    let scrollFrame = 0;
+    // Wait for the result and any expanded function body to finish mounting.
+    const settleFrame = requestAnimationFrame(() => {
+      scrollFrame = requestAnimationFrame(() => {
+        const result = resultRef.current;
+        if (!result?.isConnected || !result.getClientRects().length) return;
+        const rect = result.getBoundingClientRect();
+        const margin = 24;
+        const availableHeight = window.innerHeight - margin * 2;
+        if (
+          rect.top >= margin &&
+          rect.top < window.innerHeight - margin &&
+          (rect.bottom <= window.innerHeight - margin || rect.height > availableHeight)
+        ) return;
+        result.style.scrollMarginBlock = `${margin}px`;
+        result.scrollIntoView?.({
+          block: rect.height > availableHeight ? "start" : "nearest",
+          behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+            ? "instant" : "smooth",
+        });
+      });
+    });
+    return () => {
+      cancelAnimationFrame(settleFrame);
+      cancelAnimationFrame(scrollFrame);
+    };
+  }, [resultRevealRevision]);
 
   const renderRes = (value: any = res, isLoading = loading) => {
     if (isAbiDecoded ? value !== null && value !== undefined : outputs) {
@@ -1231,7 +1272,7 @@ const ReadWriteFunctionComponent = ({
               setReadAction(action); setIsError(false); setEncodingError(""); setRes(null);
               if (action === "Query at Block" || action === "Query at Time") { setHistoricalOpen(true); setIsCollapsed(false); }
             }}
-            onRead={readFunction}
+            onRead={() => void readFunction(true)}
             onEncode={encodeCalldataFn}
             onHistoricalQuery={() => { setIsCollapsed(false); if (historicalActionRef.current) historicalActionRef.current(); else setHistoricalOpen(true); }}
             isLoading={historicalMode ? historicalLoading : loading}
@@ -1271,7 +1312,7 @@ const ReadWriteFunctionComponent = ({
           onOpen={() => setHistoricalOpen(true)}
           actionRef={historicalActionRef}
           onLoadingChange={setHistoricalLoading}
-          onResultChange={setHistoricalResult}
+          onResultChange={receiveHistoricalResult}
           client={client}
           chainId={chainId}
           contextKey={queryContext}
@@ -1521,7 +1562,7 @@ const ReadWriteFunctionComponent = ({
           </CompactParameterInputs.Provider>
         )}
         {/* Keep the same output widgets mounted across query modes and reloads. */}
-        <Box display={outputVisible ? undefined : "none"} mt={2} ml={{ base: 0, md: 4 }} mb={inputs && inputs.length > 0 ? 0 : 4}
+        <Box ref={resultRef} data-contract-result display={outputVisible ? undefined : "none"} mt={2} ml={{ base: 0, md: 4 }} mb={inputs && inputs.length > 0 ? 0 : 4}
           aria-label={currentHistoricalResult ? "Historical query result" : undefined}>
           <Box display={currentHistoricalResult ? undefined : "none"} pt={3} borderTopWidth="1px" borderColor="border.default">
             <Text fontSize="xs" color="primary.300" fontFamily="mono">

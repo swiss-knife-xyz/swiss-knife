@@ -1,11 +1,13 @@
 import { getFaucetChainSeoEntries } from "@/app/faucet/chains";
 import { getPublicPageUrls } from "@/lib/seo";
+import { knownContracts, getKnownContractUrl } from "@/data/contracts";
 
 /** Only checked-in public routes are eligible; never reflect untrusted URLs. */
 export function getSitemapUrls(host: string | null): string[] {
   const hostname = host?.toLowerCase().replace(/:\d+$/, "");
   return [
     ...getPublicPageUrls(),
+    ...knownContracts.map(getKnownContractUrl),
     ...getFaucetChainSeoEntries().map(
       ({ slug }) => `https://faucet.eth.sh/${slug}`
     ),

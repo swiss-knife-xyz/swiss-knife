@@ -15,6 +15,7 @@ import * as legacy from "./common";
 import { walletChains } from "./chains";
 import { RPC_ENDPOINTS } from "@/lib/rawRpc/chains";
 import { RETIRED_CHAINS } from "./retiredChains";
+import { VERIFICATION_CHAINS, providersFor } from "@/lib/verification/source";
 
 afterEach(() => vi.restoreAllMocks());
 it("resolves every wallet, catalog and selector entry through one registry without duplicate IDs", () => {
@@ -48,7 +49,7 @@ it("retains tool-specific restrictions, normalizes known identities and supports
   expect(options[1]).toEqual({
     value: 999999123,
     label: "Provider-only chain",
-    image: undefined,
+    image: "/chainIcons/network.svg",
   });
   expect(getNetworkOptions([999999123])).toEqual([]);
   expect(getRpcUrlsForChain(999999123)).toEqual([]);
@@ -56,6 +57,30 @@ it("retains tool-specific restrictions, normalizes known identities and supports
     "Provider-only chain"
   );
   expect(getNetworkIcon(999999123, "/provider.svg")).toBe("/provider.svg");
+});
+it("keeps provider-only names and logos without enabling their RPCs", () => {
+  expect(getNetworkName(153)).toBe("Redbelly Testnet");
+  expect(getNetworkName(13322)).toBe("FIFA Blockchain");
+  expect(getNetworkName(6911)).toBe("Nibiru Testnet-2");
+  expect(getNetworkIcon(1301)).toBe(getNetworkIcon(130));
+  expect(getNetworkIcon(88882)).toBe("/chainIcons/chiliz.svg");
+  expect(getNetworkIcon(2741)).toBe("/chainIcons/abstract.svg");
+  expect(getRpcUrlsForChain(153)).toEqual([]);
+  expect(getNetworkOptions([{ id: 153, name: "Chain 153", testnet: true }])[0].label).toBe("Redbelly Testnet");
+});
+it("preserves covered importer networks with named options and a logo or neutral fallback", () => {
+  for (const id of [25, 40, 122, 204, 250, 314, 1088, 42170, 1313161554])
+    expect(providersFor(String(id))).toContain("sourcify");
+  const options = getNetworkOptions(Object.entries(VERIFICATION_CHAINS).map(
+    ([id, chain]) => ({ id: Number(id), name: chain.name, testnet: chain.testnet })
+  ));
+  expect(options.length).toBe(Object.keys(VERIFICATION_CHAINS).length);
+  for (const option of options) {
+    expect(option.label).not.toMatch(/^Chain \d+$/);
+    expect(option.image).toBeTruthy();
+  }
+  expect(VERIFICATION_CHAINS[153].testnet).toBe(true);
+  expect(VERIFICATION_CHAINS[6911].testnet).toBe(true);
 });
 it("groups mainnets and testnets without changing what the tool supports", () => {
   const groups = getGroupedNetworkOptions([

@@ -182,6 +182,23 @@ describe("proxy discovery without external ABI services", () => {
     expect(result?.proxyName).toBeTruthy();
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it.each(["unavailable", "empty"])("does not classify a proxy as regular when implementation storage is %s", async (mode) => {
+    const slot = "360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+    const request = vi.fn(async ({ method }: { method: string }) => {
+      if (method === "eth_getCode") return `0x7f${slot}5400`;
+      if (method === "eth_getStorageAt") {
+        if (mode === "unavailable") throw new Error("Storage RPC unavailable");
+        return `0x${"0".repeat(64)}`;
+      }
+      throw new Error(`Unexpected RPC: ${method}`);
+    });
+    await expect(getImplementationFromBytecodeIfProxy({
+      client: { request } as unknown as PublicClient, address,
+    })).rejects.toThrow();
+    expect(request.mock.calls.some(([call]) => call.method === "eth_getStorageAt")).toBe(true);
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });
 
 it.each([false, true])("uses the unique verified-contract match from the full Sourcify collision response (reversed: %s)", async (reverse) => {

@@ -69,6 +69,26 @@ import { isRetiredChain } from "./retiredChains";
 
 import { defineChain } from "viem";
 
+// Display-only identities from https://routescan.io/chains (reviewed 2026-11-27).
+// These do not enable RPC access or establish support in individual tools.
+export const providerNetworkMetadata: Record<number, { name: string; testnet: boolean }> = {
+  151: { name: "Redbelly Mainnet", testnet: false },
+  153: { name: "Redbelly Testnet", testnet: true },
+  1015: { name: "PHASE", testnet: false },
+  3011: { name: "PLAYA3ULL Games", testnet: false },
+  5566: { name: "StraitsX", testnet: false },
+  6900: { name: "Nibiru", testnet: false },
+  6911: { name: "Nibiru Testnet-2", testnet: true },
+  8227: { name: "Space", testnet: false },
+  10507: { name: "Numbers Mainnet", testnet: false },
+  13322: { name: "FIFA Blockchain", testnet: false },
+  28882: { name: "Boba Sepolia", testnet: true },
+  68414: { name: "Henesys", testnet: false },
+  84358: { name: "Titan", testnet: false },
+  88882: { name: "Chiliz Spicy Testnet", testnet: true },
+  88888: { name: "Chiliz Mainnet", testnet: false },
+};
+
 // Directory-only networks are known identities without enabling RPC tools or wallet
 // switching. Keep their existing provider metadata until RPC support is added.
 export const directoryNetworks = {
@@ -508,19 +528,23 @@ export const chainIdToImage = (() => {
   const res: Record<number, string> = {};
   // Share each network's local artwork with its testnets instead of fetching
   // favicons from retired explorer domains. Asset sources are in chainIcons/SOURCES.md.
-  const iconFamilies: [string, readonly Chain[]][] = [
+  const iconFamilies: [string, readonly { id: number }[]][] = [
+    ["abstract.svg", [{ id: 2741 }]],
+    ["arc.svg", [{ id: 5042 }]],
     ["ethereum.svg", [mainnet, sepolia, hoodi]],
     ["arbitrum.svg", [arbitrum, arbitrumSepolia]],
     ["arbitrum-nova.svg", [arbitrumNova]],
     ["avalanche.svg", [avalanche, avalancheFuji]],
     ["aurora.svg", [aurora]],
     ["base.svg", [base, baseSepolia]],
-    ["berachain.svg", [berachain]],
+    ["berachain.svg", [berachain, { id: 80069 }]],
+    ["beam.svg", [{ id: 4337 }, { id: 13337 }]],
 
-    ["boba.svg", [boba]],
+    ["boba.svg", [boba, { id: 28882 }]],
     ["bsc.svg", [bsc, bscTestnet]],
     ["celo.webp", [celo, celoSepolia]],
     ["citrea.svg", [citrea, citreaTestnet]],
+    ["chiliz.svg", [{ id: 88888 }, { id: 88882 }]],
     ["conflux.svg", [confluxESpace]],
     ["cronos.svg", [cronos, cronosTestnet]],
 
@@ -528,36 +552,44 @@ export const chainIdToImage = (() => {
     ["filecoin.webp", [filecoin]],
     ["fraxtal.svg", [fraxtal, fraxtalHoodi]],
     ["fuse.svg", [fuse]],
-    ["gnosis.webp", [gnosis]],
+    ["gnosis.webp", [gnosis, { id: 10200 }]],
+    ["gunz.svg", [{ id: 43419 }]],
+    ["hemi.svg", [{ id: 43111 }, { id: 743111 }]],
 
-    ["ink.svg", [ink]],
+    ["ink.svg", [ink, { id: 763373 }]],
     ["iotex.svg", [iotex]],
     ["kaia.svg", [kaia]],
+    ["katana.svg", [{ id: 737373 }]],
 
     ["linea.svg", [linea, lineaSepolia]],
     ["manta-pacific.svg", [manta, mantaSepoliaTestnet]],
-    ["mantle.svg", [mantle]],
-    ["megaeth.svg", [megaeth]],
+    ["mantle.svg", [mantle, { id: 5003 }]],
+    ["megaeth.svg", [megaeth, { id: 6343 }]],
     ["metis-andromeda.svg", [metis]],
     ["monad.svg", [monad]],
+    ["nibiru.svg", [{ id: 6900 }, { id: 6911 }]],
 
     ["opbnb.png", [opBNB, opBNBTestnet]],
     ["optimism.svg", [optimism, optimismSepolia]],
-    ["plasma.svg", [plasma]],
+    ["plasma.svg", [plasma, { id: 9746 }]],
     ["polygon.svg", [polygon, polygonAmoy]],
 
     ["robinhood.svg", [robinhood]],
     ["ronin.svg", [ronin]],
     ["scroll.webp", [scroll]],
     ["sei.svg", [sei, seiTestnet]],
-    ["sonic.svg", [sonic]],
+    ["sonic.svg", [sonic, { id: 14601 }]],
+    ["step.svg", [{ id: 1234 }]],
+    ["mode.svg", [{ id: 34443 }, { id: 919 }]],
+    ["soneium.svg", [{ id: 1868 }, { id: 1946 }]],
 
-    ["taiko.svg", [taikoHoodi]],
+    ["taiko.svg", [taikoHoodi, { id: 167000 }]],
     ["telos.svg", [telos]],
-    ["unichain.svg", [unichain]],
+    ["unichain.svg", [unichain, { id: 1301 }]],
     ["wanchain.png", [wanchain]],
     ["wemix.svg", [wemix, wemixTestnet]],
-    ["worldchain.svg", [worldchain]],
+    ["worldchain.svg", [worldchain, { id: 4801 }]],
+    ["xdc.svg", [{ id: 50 }, { id: 51 }]],
     ["zksync.webp", [zkSync, zkSyncSepoliaTestnet]],
     ["zora.svg", [zora, zoraSepolia]],
   ];
@@ -591,6 +623,7 @@ const directoryNetworksById = Object.fromEntries(
 export const getNetworkName = (chainId: number, fallback?: string) =>
   networkRegistry[chainId]?.name ??
   directoryNetworksById[chainId]?.name ??
+  providerNetworkMetadata[chainId]?.name ??
   fallback ??
   `Chain ${chainId}`;
 export const getNetworkIcon = (chainId: number, fallback?: string) =>
@@ -614,7 +647,7 @@ export function getNetworkOptions(
         {
           value: id,
           label: getNetworkName(id, network.name),
-          image: getNetworkIcon(id),
+          image: getNetworkIcon(id, "/chainIcons/network.svg"),
         },
       ];
     })

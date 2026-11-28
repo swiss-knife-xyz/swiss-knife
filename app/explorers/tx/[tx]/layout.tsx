@@ -14,7 +14,6 @@ export async function generateMetadata({
         "Quickly view any address/ens or transaction across ALL EVM explorers, in just a click!",
       images: `https://eth.sh/api/og?explorerType=${"tx"}&value=${tx}`,
     }),
-    robots: { index: false, follow: true },
   };
 }
 

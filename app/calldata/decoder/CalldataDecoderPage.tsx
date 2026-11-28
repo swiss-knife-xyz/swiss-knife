@@ -14,6 +14,7 @@ import { createPortal } from "react-dom";
 import { useBeforeFooterSlot } from "@/components/BeforeFooterSlot";
 import {
   Heading,
+  Image,
   Box,
   useToast,
   Stack,
@@ -1798,6 +1799,29 @@ function CalldataDecoderPageContent({ headerText }: { headerText?: string }) {
               key={`${selectedTabIndex}:${fromTxInput}:${chainId}:${contractAddress}`}
               selector={selectedTabIndex === 3 ? "" : calldata.slice(0, 10)}
             />
+            <HStack justify="center" spacing={2} mt={6} fontSize="sm">
+              <Text color="text.secondary" fontWeight="bold">Powered by data from:</Text>
+              <Link
+                href="https://sourcify.dev"
+                isExternal
+                display="inline-flex"
+                alignItems="center"
+                gap={2}
+                px={3}
+                py={1.5}
+                borderRadius="full"
+                border="1px solid"
+                borderColor="border.default"
+                bg="bg.subtle"
+                color="text.primary"
+                fontWeight="medium"
+                _hover={{ bg: "bg.muted", borderColor: "border.strong", textDecoration: "none" }}
+                _focusVisible={{ outline: "2px solid", outlineColor: "primary.400", outlineOffset: "2px" }}
+              >
+                <Image src="/external/sourcify.png" alt="" boxSize={5} />
+                Sourcify
+              </Link>
+            </HStack>
           </Box>
         );
         return beforeFooterSlot ? (

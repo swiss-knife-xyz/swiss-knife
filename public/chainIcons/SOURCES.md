@@ -33,3 +33,16 @@ New assets:
 - `wanchain.png`: https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/wanchain/info/logo.png
 
 Web3 Icons declares an MIT license in its published package metadata (https://www.npmjs.com/package/@web3icons/common). Trust Wallet assets use the included MIT license.
+
+`network.svg` is a locally authored neutral fallback, not a chain's logo.
+
+- `abstract.svg`: https://raw.githubusercontent.com/0xa3k5/web3icons/172f57f38fca75007002a4d707e08f33d82ba3a5/packages/core/src/svgs/networks/background/abstract.svg
+- `arc.svg`: https://raw.githubusercontent.com/0xa3k5/web3icons/172f57f38fca75007002a4d707e08f33d82ba3a5/packages/core/src/svgs/networks/background/arc.svg
+- `beam.svg`: https://raw.githubusercontent.com/0xa3k5/web3icons/172f57f38fca75007002a4d707e08f33d82ba3a5/packages/core/src/svgs/networks/background/beam.svg
+- `chiliz.svg`: https://raw.githubusercontent.com/0xa3k5/web3icons/172f57f38fca75007002a4d707e08f33d82ba3a5/packages/core/src/svgs/networks/background/chiliz.svg
+- `gunz.svg`: https://raw.githubusercontent.com/0xa3k5/web3icons/172f57f38fca75007002a4d707e08f33d82ba3a5/packages/core/src/svgs/networks/background/gunz.svg
+- `hemi.svg`: https://raw.githubusercontent.com/0xa3k5/web3icons/172f57f38fca75007002a4d707e08f33d82ba3a5/packages/core/src/svgs/networks/background/hemi.svg
+- `katana.svg`: https://raw.githubusercontent.com/0xa3k5/web3icons/172f57f38fca75007002a4d707e08f33d82ba3a5/packages/core/src/svgs/networks/background/katana.svg
+- `nibiru.svg`: https://raw.githubusercontent.com/0xa3k5/web3icons/172f57f38fca75007002a4d707e08f33d82ba3a5/packages/core/src/svgs/networks/background/nibiru.svg
+- `step.svg`: https://raw.githubusercontent.com/0xa3k5/web3icons/172f57f38fca75007002a4d707e08f33d82ba3a5/packages/core/src/svgs/networks/background/step.svg
+- `xdc.svg`: https://raw.githubusercontent.com/0xa3k5/web3icons/172f57f38fca75007002a4d707e08f33d82ba3a5/packages/core/src/svgs/networks/background/xdc.svg

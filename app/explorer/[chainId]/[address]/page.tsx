@@ -4,6 +4,7 @@ import { Layout } from "@/components/Layout";
 // Putting the page into separate component as it uses "use client" which doesn't work with `generateMetadata`
 import { ContractPage as ContractP } from "./ContractPage";
 import { generateMetadata as layoutGenerateMetadata } from "./layout";
+import { getKnownContractSeo } from "@/lib/contractSeo";
 
 interface PageProps {
   params: Promise<{ address: string; chainId: string }>;
@@ -14,6 +15,13 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { address, chainId } = await params;
+  // Curated names are more useful than proxy/implementation names and need no
+  // external explorer request to produce metadata for crawlers.
+  if (getKnownContractSeo(chainId, address)) {
+    return layoutGenerateMetadata({
+      params: Promise.resolve({ address, chainId }),
+    });
+  }
   let title = `Contract ${address} | ETH.sh`;
 
   // add contract name to the title if possible
@@ -41,7 +49,6 @@ export async function generateMetadata({
       description: layoutMetadata.description as string,
       images: "https://eth.sh/api/og/contract",
     }),
-    robots: { index: false, follow: true },
   };
 }
 

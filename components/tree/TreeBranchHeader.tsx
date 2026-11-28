@@ -36,7 +36,7 @@ export function TreeBranchHeader({
   return (
     <Box
       position="sticky"
-      top={`calc(var(--tree-sticky-offset, 0px) + ${level * rowHeight}px)`}
+      top={`calc(var(--tree-sticky-offset, var(--calldata-sticky-offset, 0px)) + ${level * rowHeight}px)`}
       zIndex={100 - level}
       bg="bg.subtle"
       _after={

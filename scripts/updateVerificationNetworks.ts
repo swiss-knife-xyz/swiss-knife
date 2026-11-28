@@ -4,6 +4,7 @@
  */
 import { writeFile } from "node:fs/promises";
 import { isRetiredChain } from "../data/retiredChains";
+import { networks as rpcNetworks, getNetworkName, providerNetworkMetadata } from "../data/networks";
 async function main() {
   const [etherscan, sourcify, blockscout] = await Promise.all([
     fetch("https://api.etherscan.io/v2/chainlist").then((r) => r.json()),
@@ -30,6 +31,7 @@ async function main() {
     ...etherscan.result.map((c: any) => String(c.chainid)),
     ...extras.map(String),
     ...routescan.map(String),
+    ...rpcNetworks.map((chain) => String(chain.id)),
   ])) {
     // Upstream lists may retain archival explorers after a network shuts down.
     if (isRetiredChain(id)) continue;
@@ -38,13 +40,14 @@ async function main() {
     );
     const s: any = sourcifyById.get(id);
     const b = blockscout[id];
-    const testnet =
+    const testnet = providerNetworkMetadata[Number(id)]?.testnet ??
+      rpcNetworks.find((chain) => chain.id === Number(id))?.testnet ??
       b?.isTestnet ??
       /testnet|sepolia|hoodi|amoy|fuji|chiado|spicy/i.test(
         e?.chainname ?? s?.name ?? ""
       );
     const row: any = {
-      name: e?.chainname ?? b?.name ?? s?.name ?? `Chain ${id}`,
+      name: getNetworkName(Number(id), e?.chainname ?? b?.name ?? s?.name),
       testnet,
     };
     if (e) row.etherscan = e.blockexplorer.replace(/\/$/, "");

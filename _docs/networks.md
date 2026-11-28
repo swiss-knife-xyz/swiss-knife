@@ -47,6 +47,9 @@ Use `getNetworkOptions` or `getGroupedNetworkOptions` when supplying grouped or
 provider-specific options. Known IDs get their shared name and icon; unknown
 provider networks retain their supplied name. Preserve provider slugs in the API
 support mapping and translate them at the API boundary (see CoW verification).
+Display-only provider names and testnet logo families are also owned here; they
+do not enable RPC access. Select options without verified artwork use a neutral
+network icon instead of leaving an empty logo slot.
 
 Wallet switching remains with RainbowKit. Specialized bridge pickers and directory
 cards retain their behavior but use shared identity helpers. Network filters that
@@ -145,6 +148,12 @@ resolver, and `.wei` reads the WNS address record with the full namehash. Contra
 addresses live in `lib/nameServiceContracts.ts`; the Gwei tool re-exports its
 existing resolver constant for compatibility. Missing, expired, zero-address or
 failed lookups return `null`. Do not implement separate name resolvers in tools.
+
+XNS `label@namespace` names call `getAddress(string)` on the mainnet XNS registry.
+`lib/xnsName.ts` shares the registry's strict lowercase, 1–20 character label and
+namespace validation with address inputs and the homepage omnibox. Trim outer
+whitespace, but do not apply ENS normalization or accept malformed XNS names.
+XNS has no avatar record; reverse resolution keeps its existing service priority.
 
 `resolveAddressToName` shares the wallet's GNS primary-name reader from
 `lib/nameServiceIdentity.ts` and also queries WNS. Priority is ENS, GNS, WNS,

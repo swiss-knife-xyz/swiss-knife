@@ -111,6 +111,19 @@ test("footer exposes a server-rendered directory of public tools for discovery",
   assert.ok(!source.includes('href="#all-tools"'));
 });
 
+test("public explorer records do not block indexing when discovered through external links", () => {
+  for (const path of [
+    "explorer/[chainId]/[address]/page.tsx",
+    "explorer/[chainId]/[address]/layout.tsx",
+    "explorers/[slug]/layout.tsx",
+    "explorers/address/[address]/layout.tsx",
+    "explorers/tx/[tx]/layout.tsx",
+  ]) {
+    const source = readFileSync(new URL(`../app/${path}`, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /index:\s*false|noindex/, path);
+  }
+});
+
 test("private inspection and test views opt out of indexing in the nearest layout", () => {
   for (const path of ["wallet/signatures/view", "7702beat/test", "skills/new"]) {
     const source = readFileSync(new URL(`../app/${path}/layout.tsx`, import.meta.url), "utf8");
@@ -254,6 +267,18 @@ test("subdomain rewrites leave crawler endpoints and OG assets on the root app",
     assert.equal(pattern.test(path.slice(1)), false, path);
   }
   assert.equal(pattern.test("1/0x123"), true);
+});
+
+test("decoder example images remain public assets on every tool subdomain", () => {
+  const routes = nextConfig.rewrites().beforeFiles.filter((route: any) => route.has);
+  assert.ok(routes.length > 0);
+  for (const route of routes) {
+    const pattern = new RegExp(`^${route.source.replace('/:path(', '(')}$`);
+    assert.equal(pattern.test("decoder-examples/zora-20000.jpg"), false, route.destination);
+    assert.equal(pattern.test("decoder-examples-other"), true, route.destination);
+    assert.equal(pattern.test("decoder"), true, route.destination);
+  }
+  assert.ok(existsSync(new URL("../public/decoder-examples/zora-20000.jpg", import.meta.url)));
 });
 
 test("sitemap uses the orgs apex path, not an unsupported orgs host", () => {

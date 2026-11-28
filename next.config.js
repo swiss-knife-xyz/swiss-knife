@@ -35,6 +35,10 @@ const nextConfig = {
           destination: "/external/:asset*",
         },
         {
+          source: "/decoder-examples/:asset*",
+          destination: "/decoder-examples/:asset*",
+        },
+        {
           source: "/icon.png",
           destination: "/icon.png",
         },
@@ -60,7 +64,7 @@ const nextConfig = {
           .flatMap((subdomain) => [
             {
               source:
-                "/:path((?!_next|api|og(?:/|$)|frame(?:/|$)|robots\\.txt$|sitemap\\.xml$|favicon\\.(?:ico|svg)$|apple-touch-icon\\.png$|chainIcons|tokenIcons|external|icon.png|logo.png|logo\\.svg$|splashImage.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
+                "/:path((?!_next|api|og(?:/|$)|frame(?:/|$)|robots\\.txt$|sitemap\\.xml$|favicon\\.(?:ico|svg)$|apple-touch-icon\\.png$|chainIcons|tokenIcons|external|decoder-examples(?:/|$)|icon.png|logo.png|logo\\.svg$|splashImage.png|worker).*)", // Exclude API routes, static assets and worker from subdomain rewrites
               has: [
                 {
                   type: "host",

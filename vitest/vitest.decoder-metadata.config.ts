@@ -18,6 +18,8 @@ export default defineConfig({
       "components/decodedParams/parameterState.spec.tsx",
       "components/decodedParams/richString.spec.tsx",
       "components/decodedParams/calldataOutput.spec.tsx",
+      "components/decodedParams/contractOutput.spec.tsx",
+      "components/DarkSelect.spec.tsx",
       "components/decodedParams/parameterDispatch.spec.tsx",
     ],
     maxWorkers: 1,

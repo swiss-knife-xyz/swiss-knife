@@ -35,7 +35,7 @@ const numericFormats = [
   "Minutes",
   "Hours",
   "Days",
-  "Bps ↔️ %",
+  "Bps %",
 ];
 
 interface Params {

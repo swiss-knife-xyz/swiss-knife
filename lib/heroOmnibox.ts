@@ -3,6 +3,7 @@ import {
   parseTransactionExplorerUrl,
 } from "@/lib/contractExplorerInput";
 import { normalize } from "viem/ens";
+import { isXnsName } from "./xnsName";
 
 export type OmniboxInput =
   | { kind: "address"; value: string; chainId: number }
@@ -15,6 +16,8 @@ export type OmniboxInput =
 export function detectOmniboxInput(input: string): OmniboxInput | null {
   const value = input.trim();
   if (!value) return null;
+  if (value.includes("@"))
+    return isXnsName(value) ? { kind: "name", value } : null;
   if (/\.(eth|gwei|wei)$/i.test(value)) {
     try {
       const name = normalize(value);
