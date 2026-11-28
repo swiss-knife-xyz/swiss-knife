@@ -69,9 +69,20 @@ missing runtime matches and incomplete source/ABI payloads remain rejected.
 ## Trace fetching and imports
 
 - Requests `debug_traceTransaction` with `callTracer`, `withLog: true` and a
-  20-second tracer timeout through the shared public client. Saved settings load
-  first; RPC chain identity is checked before tracing. Saved RPCs remain direct
-  browser requests with no public fallback, and are never sent to a server proxy.
+  20-second tracer timeout. zkSync omits its unsupported log option and returns
+  calls without Geth log enrichment. Saved settings load first; RPC chain identity
+  is checked before tracing. Saved RPCs remain direct browser requests with no
+  public or hosted fallback, and are never sent to a server proxy.
+- Built-in chains whose public RPCs failed tracing use `POST /api/trace` first;
+  other explicitly mapped chains try it after a public failure. Routing/slugs are
+  in `data/networks.ts`. The browser submits only `{chainId, hash}` and receives a
+  normalized TraceDocument. The server uses `ALCHEMY_API_KEY`, fixed provider
+  hosts/methods, bounded streams/timeouts, same-origin validation and per-process
+  rate/concurrency gates. It never returns upstream credentials or raw provider
+  errors. Missing configuration allows public fallback; provider availability
+  depends on enabled networks and plan. No user RPC URL is accepted.
+  Configure the private key locally and in each Vercel environment; never reuse
+  it in `NEXT_PUBLIC_MAINNET_RPC_URL` or other browser-visible variables.
 - Pasting recognized explorer links selects the network and starts one trace.
   The shared parser matches registry explorers and alternative explorer-directory
   templates exactly; ambiguous multi-chain URLs are rejected. No explorer URL
@@ -99,6 +110,18 @@ missing runtime matches and incomplete source/ABI payloads remain rejected.
 - Limits: 8 MiB, 5,000 calls, 64 nested levels, 10,000 logs. Cancellation discards
   the response; it cannot undo node work that has already started.
 
+The hosted request body is:
+
+```json
+{"chainId": 8453, "hash": "0x<64 hex characters>"}
+```
+
+A successful response is `{version: 1, chainId, transactionHash, call}` with
+normalized nested `calls` and `logs`. Failures return `{error}` with an appropriate
+HTTP status. Unconfigured/unsupported hosting also returns `unavailable: true` so
+the client can try its public endpoint. This endpoint requires a matching Origin
+header; it is the trace page's transport, not an arbitrary RPC relay.
+
 A network in the selector does not guarantee trace support or historical state.
 `rpc_modules` reports namespaces, not individual tracing methods or provider-plan
 permissions. The actual `debug_traceTransaction` request checks support without a
@@ -112,8 +135,8 @@ The error row places external tracing links at the right, with a centered blue
 **Use your custom RPC** button beneath it. This opens the shared RPC editor on the failed
 chain and retries the same transaction after a verified save. Saved-RPC outages
 also show the shared edit/public-RPC recovery notice used by other tools.
-No new guaranteed public tracing service has been enabled. Use a trace-capable
-RPC or import. Gas values are provider-supplied inclusive frame values; ERC-20
+Hosted tracing is best-effort; use a custom trace-capable RPC or import if neither
+provider works. Gas values are provider-supplied inclusive frame values; ERC-20
 amounts default to Raw base units unless the user chooses a conversion.
 
 ## Reference review

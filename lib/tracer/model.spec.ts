@@ -115,3 +115,10 @@ describe("call trace normalization", () => {
     ).toThrow("log position");
   });
 });
+
+it("accepts zkSync null optional errors without marking successful calls failed", () => {
+  const document = normalizeTrace({ type: "call", from: "0x" + "11".repeat(20), error: null, revertReason: null });
+  expect(document.call.type).toBe("CALL");
+  expect(document.call).not.toHaveProperty("error");
+  expect(document.call).not.toHaveProperty("revertReason");
+});

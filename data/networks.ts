@@ -388,6 +388,70 @@ export const chainIdToCustomRpcUrl: Record<number, string | undefined> = {
   [base.id]: process.env.NEXT_PUBLIC_BASE_RPC_URL,
 };
 
+// Fixed Alchemy network identifiers for server-owned tracing, never user RPC URLs.
+// https://www.alchemy.com/docs/reference/node-supported-chains
+export const alchemyTraceNetworks: Readonly<Partial<Record<number, string>>> = Object.freeze({
+  [mainnet.id]: "eth-mainnet",
+  [sepolia.id]: "eth-sepolia",
+  [hoodi.id]: "eth-hoodi",
+  [base.id]: "base-mainnet",
+  [baseSepolia.id]: "base-sepolia",
+  [arbitrum.id]: "arb-mainnet",
+  [arbitrumSepolia.id]: "arb-sepolia",
+  [optimism.id]: "opt-mainnet",
+  [optimismSepolia.id]: "opt-sepolia",
+  [gnosis.id]: "gnosis-mainnet",
+  [polygon.id]: "polygon-mainnet",
+  [polygonAmoy.id]: "polygon-amoy",
+  [bsc.id]: "bnb-mainnet",
+  [bscTestnet.id]: "bnb-testnet",
+  [avalanche.id]: "avax-mainnet",
+  [avalancheFuji.id]: "avax-fuji",
+  [sonic.id]: "sonic-mainnet",
+  [sei.id]: "sei-mainnet",
+  [seiTestnet.id]: "sei-testnet",
+  [linea.id]: "linea-mainnet",
+  [lineaSepolia.id]: "linea-sepolia",
+  [mantle.id]: "mantle-mainnet",
+  [scroll.id]: "scroll-mainnet",
+  [ronin.id]: "ronin-mainnet",
+  [opBNB.id]: "opbnb-mainnet",
+  [opBNBTestnet.id]: "opbnb-testnet",
+  [celo.id]: "celo-mainnet",
+  [celoSepolia.id]: "celo-sepolia",
+  [berachain.id]: "berachain-mainnet",
+  [worldchain.id]: "worldchain-mainnet",
+  [unichain.id]: "unichain-mainnet",
+  [ink.id]: "ink-mainnet",
+  [zora.id]: "zora-mainnet",
+  [zoraSepolia.id]: "zora-sepolia",
+  [monad.id]: "monad-mainnet",
+  [monadTestnet.id]: "monad-testnet",
+  [plasma.id]: "plasma-mainnet",
+  [megaeth.id]: "megaeth-mainnet",
+  [robinhood.id]: "robinhood-mainnet",
+  [zkSync.id]: "zksync-mainnet",
+  [zkSyncSepoliaTestnet.id]: "zksync-sepolia",
+  [fraxtal.id]: "frax-mainnet",
+  [fraxtalHoodi.id]: "frax-hoodi",
+  [metis.id]: "metis-mainnet",
+  [boba.id]: "boba-mainnet",
+  [soneium.id]: "soneium-mainnet",
+  [citrea.id]: "citrea-mainnet",
+  [citreaTestnet.id]: "citrea-testnet",
+});
+
+// Public tracing failed or omitted logs in the mainnet RPC audit. Other mapped
+// networks try their existing endpoint first, then the hosted tracing endpoint.
+export const preferAlchemyTrace: ReadonlySet<number> = new Set([
+  mainnet.id, base.id, bsc.id, arbitrum.id, optimism.id, avalanche.id,
+  sonic.id, mantle.id, scroll.id, berachain.id, sei.id, worldchain.id,
+  unichain.id, celo.id, ronin.id, robinhood.id, zkSync.id, opBNB.id, linea.id,
+]);
+
+// zkSync rejects Geth tracerConfig.withLog; its callTracer still returns calls.
+export const traceWithoutLogs: ReadonlySet<number> = new Set([zkSync.id, zkSyncSepoliaTestnet.id]);
+
 const activeChainsById: Record<number, Chain> = Object.fromEntries(
   Object.values(c).map((chain) => [chain.id, chain])
 );
@@ -419,11 +483,7 @@ export function getRpcUrlsForChain(
         ...(policy === "configured" && chainIdToCustomRpcUrl[chainId]
           ? [chainIdToCustomRpcUrl[chainId]!]
           : []),
-        ...(policy === "public"
-          ? (publicRpcOverrides[chainId] ?? [])
-          : chainId === polygon.id
-            ? publicRpcOverrides[polygon.id]
-            : []),
+        ...(publicRpcOverrides[chainId] ?? []),
         ...chain.rpcUrls.default.http,
       ].filter(Boolean)
     ),

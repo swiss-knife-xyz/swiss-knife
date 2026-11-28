@@ -68,6 +68,29 @@ only filter a directory should not change the wallet or another tool's network.
 - Explicit user-entered RPC testing and server-only credentials remain explicit
   exceptions. Do not use a guessed/default network when an ID is unsupported.
 
+### Hosted transaction tracing
+
+`alchemyTraceNetworks` in `data/networks.ts` is the explicit Alchemy host allowlist.
+`preferAlchemyTrace` identifies networks whose public endpoints failed the tracing
+audit or omitted logs. Their traces use `POST /api/trace` first; other mapped
+networks use it only if their public trace request fails. This server-only
+credential exception does not change normal read transports or RPC Console policy.
+Normal clients honor catalogued public overrides after any configured public URL.
+
+Set `ALCHEMY_API_KEY` on the server. Do not put this key into a `NEXT_PUBLIC_*`
+variable: those URLs are bundled into browser JavaScript. The old production
+`NEXT_PUBLIC_MAINNET_RPC_URL` Alchemy setting was removed; ordinary mainnet reads
+use the catalogued public endpoint. Other explicitly public overrides remain
+supported. Hosted availability also depends on the app's enabled networks/plan.
+
+The endpoint accepts only a chain ID and transaction hash, checks upstream chain
+identity, requests a fixed callTracer configuration, bounds bodies and duration,
+and returns normalized calls with safe errors. It cannot proxy arbitrary RPC
+URLs/methods. Same-origin checks and per-process concurrency/rate gates reduce
+accidental abuse; these gates are not a distributed quota or authentication.
+User-saved RPC overrides bypass hosted tracing entirely, including local forks.
+They stay direct browser requests with no public or hosted fallback.
+
 Known RPC-backed wallet networks are included in the registry; wallet ordering is
 kept in `data/chains.ts`. Tool support lists reference network IDs and do not
 redefine chain metadata.

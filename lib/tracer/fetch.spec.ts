@@ -1,10 +1,12 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   wait: vi.fn(),
+  hosted: vi.fn(),
   getChainId: vi.fn(),
   request: vi.fn(),
   getClient: vi.fn(),
 }));
+vi.mock("./hosted", () => ({ fetchHostedTrace: mocks.hosted }));
 vi.mock("@/lib/publicClient", () => ({ getPublicClient: mocks.getClient }));
 vi.mock("@/lib/customChains/store", () => ({
   waitForCustomChains: mocks.wait,
@@ -14,6 +16,7 @@ const hash = `0x${"ab".repeat(32)}`;
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.wait.mockResolvedValue(undefined);
+  mocks.hosted.mockResolvedValue(null);
   mocks.getChainId.mockResolvedValue(1);
   mocks.getClient.mockReturnValue({
     getChainId: mocks.getChainId,
@@ -128,4 +131,45 @@ it("names the network and tracing method on timeout without claiming tracing is 
   await expect(fetchTransactionTrace(8453, hash)).rejects.toThrow(
     "Base public RPC doesn't support debug traces"
   );
+});
+
+it("uses hosted tracing first on audited unsupported public networks", async () => {
+  const document = { version: 1, chainId: 1, transactionHash: hash, call: {} };
+  mocks.hosted.mockResolvedValue(document);
+  expect(await fetchTransactionTrace(1, hash)).toBe(document);
+  expect(mocks.getClient).not.toHaveBeenCalled();
+  expect(mocks.wait.mock.invocationCallOrder[0]).toBeLessThan(
+    mocks.hosted.mock.invocationCallOrder[0]
+  );
+});
+it("tries the hosted fallback only after a public failure on other supported chains", async () => {
+  mocks.getChainId.mockResolvedValue(137);
+  await fetchTransactionTrace(137, hash);
+  expect(mocks.hosted).not.toHaveBeenCalled();
+  mocks.request.mockRejectedValue(new Error("method not found"));
+  mocks.hosted.mockResolvedValue({ chainId: 137 });
+  expect(await fetchTransactionTrace(137, hash)).toEqual({ chainId: 137 });
+});
+it("never calls hosted tracing for a saved RPC, even when that RPC fails", async () => {
+  const { applyCustomNetworks } = await import("@/data/networks");
+  // Registry API keeps saved endpoints isolated from provider routing.
+  applyCustomNetworks([
+    {
+      id: 1,
+      name: "Local fork",
+      rpcUrl: "http://localhost:8545",
+      symbol: "ETH",
+      decimals: 18,
+      testnet: false,
+    },
+  ]);
+  try {
+    mocks.request.mockRejectedValue(new Error("method not found"));
+    await expect(fetchTransactionTrace(1, hash)).rejects.toThrow(
+      "Tracing is unavailable"
+    );
+    expect(mocks.hosted).not.toHaveBeenCalled();
+  } finally {
+    applyCustomNetworks([]);
+  }
 });

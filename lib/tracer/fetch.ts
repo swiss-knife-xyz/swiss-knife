@@ -1,13 +1,20 @@
 import { getPublicClient } from "@/lib/publicClient";
 import { waitForCustomChains } from "@/lib/customChains/store";
 import { HASH, normalizeTrace, type TraceDocument } from "./model";
-import { getNetworkName, getRuntimeCustomChain } from "@/data/networks";
+import {
+  getNetworkName,
+  getRuntimeCustomChain,
+  preferAlchemyTrace,
+  alchemyTraceNetworks,
+  traceWithoutLogs,
+} from "@/data/networks";
+import { fetchHostedTrace } from "./hosted";
 
 type TraceRpc = {
   Method: "debug_traceTransaction";
   Parameters: [
     string,
-    { tracer: "callTracer"; timeout: string; tracerConfig: { withLog: true } },
+    { tracer: "callTracer"; timeout: string; tracerConfig?: { withLog: true } },
   ];
   ReturnType: unknown;
 };
@@ -104,6 +111,39 @@ export async function fetchTransactionTrace(
       "Enter a transaction hash (0x followed by 64 hex characters)."
     );
   await waitForCustomChains();
+  // Saved endpoints are intentional overrides, including forks sharing a public ID.
+  // They must never be sent to our server or fall back to an unrelated provider.
+  const custom = !!getRuntimeCustomChain(chainId);
+  const hostedFirst = !custom && preferAlchemyTrace.has(chainId);
+  let hostedError: unknown;
+  if (hostedFirst) {
+    try {
+      const result = await fetchHostedTrace(chainId, transactionHash);
+      if (result) return result;
+    } catch (error) {
+      hostedError = error;
+    }
+  }
+  try {
+    return await fetchPublicTrace(chainId, transactionHash);
+  } catch (error) {
+    if (!custom && !hostedFirst && alchemyTraceNetworks[chainId]) {
+      try {
+        const result = await fetchHostedTrace(chainId, transactionHash);
+        if (result) return result;
+      } catch {
+        /* Preserve the original endpoint error if the fallback also fails. */
+      }
+    }
+    if (hostedError) throw hostedError;
+    throw error;
+  }
+}
+
+async function fetchPublicTrace(
+  chainId: number,
+  transactionHash: string
+): Promise<TraceDocument> {
   const client = getPublicClient(chainId, { timeout: 30000 });
   // User-saved endpoints stay in the browser and retain the shared no-fallback policy.
   const actualChainId = await client.getChainId().catch(() => {
@@ -124,7 +164,9 @@ export async function fetchTransactionTrace(
           {
             tracer: "callTracer",
             timeout: "20s",
-            tracerConfig: { withLog: true },
+            ...(!traceWithoutLogs.has(chainId)
+              ? { tracerConfig: { withLog: true as const } }
+              : {}),
           },
         ],
       },

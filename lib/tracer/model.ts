@@ -128,7 +128,7 @@ export function normalizeTrace(value: unknown): TraceDocument {
       throw new Error("Trace data exceeds the viewer limit.");
     for (const field of ["error", "revertReason"] as const) {
       if (
-        item[field] !== undefined &&
+        item[field] != null &&
         (typeof item[field] !== "string" || item[field].length > 10000)
       )
         throw new Error(`Invalid ${field}.`);
@@ -151,8 +151,8 @@ export function normalizeTrace(value: unknown): TraceDocument {
             : [[field, hex(item[field], field, true)]]
         )
       ),
-      ...(item.error === undefined ? {} : { error: item.error as string }),
-      ...(item.revertReason === undefined
+      ...(item.error == null ? {} : { error: item.error as string }),
+      ...(item.revertReason == null
         ? {}
         : { revertReason: item.revertReason as string }),
     };

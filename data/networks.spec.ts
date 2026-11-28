@@ -10,6 +10,8 @@ import {
   getNetworkIcon,
   getRpcUrlsForChain,
   chainIdToCustomRpcUrl,
+  alchemyTraceNetworks,
+  preferAlchemyTrace,
 } from "./networks";
 import * as legacy from "./common";
 import { walletChains } from "./chains";
@@ -114,4 +116,20 @@ it("keeps a public endpoint and artwork for every selectable RPC network", () =>
     expect(getRpcUrlsForChain(chain.id, "public")[0]).toMatch(/^https?:\/\//);
     expect(getNetworkIcon(chain.id)).toBeTruthy();
   }
+});
+
+it("keeps hosted trace routing explicit and limited to registered networks", () => {
+  for (const [id, slug] of Object.entries(alchemyTraceNetworks)) {
+    expect(networkRegistry[Number(id)]).toBeTruthy();
+    expect(slug).toMatch(/^[a-z0-9-]+$/);
+  }
+  for (const id of preferAlchemyTrace) expect(alchemyTraceNetworks[id]).toBeTruthy();
+  expect(alchemyTraceNetworks[8453]).toBe("base-mainnet");
+  expect(alchemyTraceNetworks[369]).toBeUndefined();
+});
+it("uses the catalog public mainnet endpoint when no public env override is configured", () => {
+  const previous = chainIdToCustomRpcUrl[1];
+  chainIdToCustomRpcUrl[1] = undefined;
+  try { expect(getRpcUrlsForChain(1)[0]).toBe("https://eth.drpc.org"); }
+  finally { chainIdToCustomRpcUrl[1] = previous; }
 });
