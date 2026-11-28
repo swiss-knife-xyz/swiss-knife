@@ -101,7 +101,7 @@ export default function TraceCallDetails({
           {call.error ? "Reverted" : rolledBack ? "Rolled back" : "Success"}
         </TraceBadge>
       </HStack>
-      <Box display="grid" gap={3}>
+      <Box display="grid" gridTemplateColumns="minmax(0, 1fr)" gap={3} minW={0}>
         <HStack spacing={2}>
           <TraceBadge color={callColors[call.type]}>{call.type}</TraceBadge>
           <Text fontSize="xs" color="text.secondary">
@@ -236,7 +236,12 @@ export default function TraceCallDetails({
           </Flex>
           <TabPanels>
             <TabPanel p={0} pt={3}>
-              <Box display="grid" gap={3}>
+              <Box
+                display="grid"
+                gridTemplateColumns="minmax(0, 1fr)"
+                gap={3}
+                minW={0}
+              >
                 {decoded ? (
                   <TraceDecodedValues
                     call={call}
@@ -260,7 +265,12 @@ export default function TraceCallDetails({
               </Box>
             </TabPanel>
             <TabPanel p={0} pt={3}>
-              <Box display="grid" gap={3}>
+              <Box
+                display="grid"
+                gridTemplateColumns="minmax(0, 1fr)"
+                gap={3}
+                minW={0}
+              >
                 <Raw
                   label={call.type.startsWith("CREATE") ? "Initcode" : "Input"}
                   value={call.input}
@@ -283,7 +293,7 @@ export default function TraceCallDetails({
           Logs ({call.logs.length})
         </Heading>
         {call.logs.slice(0, logLimit).map((log, index) => (
-          <Box key={index}>
+          <Box key={index} minW={0}>
             <Text
               fontSize="xs"
               color={rolledBack ? "orange.300" : "text.secondary"}

@@ -62,33 +62,35 @@ export function TraceData({
     [language, value]
   );
   return (
-    <Box minW={0}>
-      {!hideLabel && <Flex align="center" justify="space-between" mb={1} minH="24px">
-        <Text {...traceFieldLabelProps} color="text.secondary">
-          {label}
-        </Text>
-        {address
-          ? explorerHref && (
-              <Button
-                as="a"
-                href={explorerHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                variant="ghost"
-                size="xs"
-                minW="24px"
-                h="24px"
-                px={1}
-                color="text.secondary"
-                aria-label={`Open ${label} in Explorer`}
-                title="Open in Explorer"
-              >
-                <ExternalLinkIcon boxSize={3} />
-              </Button>
-            )
-          : copy}
-      </Flex>}
-      <Box position="relative">
+    <Box minW={0} maxW="100%">
+      {!hideLabel && (
+        <Flex align="center" justify="space-between" mb={1} minH="24px">
+          <Text {...traceFieldLabelProps} color="text.secondary">
+            {label}
+          </Text>
+          {address
+            ? explorerHref && (
+                <Button
+                  as="a"
+                  href={explorerHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="ghost"
+                  size="xs"
+                  minW="24px"
+                  h="24px"
+                  px={1}
+                  color="text.secondary"
+                  aria-label={`Open ${label} in Explorer`}
+                  title="Open in Explorer"
+                >
+                  <ExternalLinkIcon boxSize={3} />
+                </Button>
+              )
+            : copy}
+        </Flex>
+      )}
+      <Box position="relative" minW={0} maxW="100%">
         <Box
           as="pre"
           fontSize="xs"
@@ -99,6 +101,8 @@ export function TraceData({
           border="1px solid"
           borderColor="border.subtle"
           borderRadius="md"
+          minW={0}
+          maxW="100%"
           whiteSpace="pre-wrap"
           overflowWrap="anywhere"
           maxH="200px"
@@ -109,8 +113,12 @@ export function TraceData({
           {highlighted === undefined ? (
             value
           ) : (
-            <code
+            <Box
+              as="code"
               className="language-json"
+              whiteSpace="inherit"
+              overflowWrap="anywhere"
+              sx={{ "& *": { whiteSpace: "inherit", overflowWrap: "inherit" } }}
               dangerouslySetInnerHTML={{ __html: highlighted }}
             />
           )}
