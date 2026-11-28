@@ -649,6 +649,14 @@
         "https://pbs.twimg.com/profile_images/1293275639534039043/fyTlpHZ6_400x400.jpg"
       ],
       "retrievedAt": "2026-11-28"
+    },
+    {
+      "id": "drake",
+      "local": "/external/rip/drake.jpg",
+      "sources": [
+        "https://pbs.twimg.com/profile_images/1974759389354491904/2vcC-dd4_400x400.jpg"
+      ],
+      "retrievedAt": "2026-11-28"
     }
   ],
   "failedDownloads": []

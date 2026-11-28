@@ -28,6 +28,36 @@ export const archiveReviewedAt = "2026-11-28";
 
 export const shutdownProjects: ShutdownProject[] = [
   {
+    id: "drake",
+    name: "Drake Exchange",
+    category: "Trading",
+    status: "Winding down",
+    announced: "2026-11-28",
+    closed: "2026-12-04",
+    dateNote:
+      "Reduce-only trading runs November 27\u2013December 4, with remaining positions scheduled to be force-closed December 4. The platform then remains online for withdrawals through December 31. December 4 is the trading service end; December 31 is the withdrawal deadline.",
+    summary:
+      "Fully onchain perpetual exchange on Monad combining an order book and automated liquidity. Drake announced a phased wind-down of trading and its withdrawal interface.",
+    reason:
+      "The team said its raised funds and subsequent self-funding had run out, while user acquisition costs and onchain activity made continued operation unsustainable.",
+    website: "https://drake.exchange",
+    social: "https://x.com/DrakeExchange",
+    logo: "/external/rip/drake.jpg",
+    sources: [
+      {
+        label: "Official wind-down announcement and attached article",
+        url: "https://x.com/DrakeExchange/status/2126528750980379031",
+        kind: "Primary",
+      },
+      {
+        label:
+          "Official wind-down article with trading and withdrawal timeline",
+        url: "https://x.com/i/article/2126525742162808832",
+        kind: "Primary",
+      },
+    ],
+  },
+  {
     id: "okto",
     name: "Okto Wallet",
     category: "Wallets",
