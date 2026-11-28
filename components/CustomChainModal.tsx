@@ -5,7 +5,6 @@ import {
   AlertIcon,
   Box,
   Button,
-  Checkbox,
   FormControl,
   FormLabel,
   HStack,
@@ -40,6 +39,7 @@ import {
   Pencil,
   Plus,
   Trash2,
+  Info,
 } from "lucide-react";
 import { builtinNetworks } from "@/data/networks";
 import {
@@ -53,6 +53,7 @@ import {
   removeCustomChain,
   saveCustomChain,
   useCustomChains,
+  getSavedCustomChain,
 } from "@/lib/customChains/store";
 
 type Draft = {
@@ -76,7 +77,9 @@ export function CustomChainModal({
   onClose,
   onSaved,
   presentation = "modal",
+  initialChainId,
 }: {
+  initialChainId?: number;
   presentation?: "modal" | "drawer";
   isOpen: boolean;
   onClose: () => void;
@@ -87,7 +90,6 @@ export function CustomChainModal({
   const saved = useCustomChains();
   const [draft, setDraft] = useState<Draft>(empty);
   const [editing, setEditing] = useState<number | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const lookup = useRef<AbortController | null>(null);
@@ -99,13 +101,42 @@ export function CustomChainModal({
   const request = useRef<AbortController | null>(null);
   const prefix = useId();
   const firstInput = useRef<HTMLInputElement>(null!);
+  const rpcInput = useRef<HTMLInputElement>(null!);
+  const initialInput = initialChainId === undefined ? firstInput : rpcInput;
   useEffect(() => {
     if (isOpen) {
-      setShowForm(!isDrawer);
+      setShowForm(!isDrawer || initialChainId !== undefined);
       setDetecting(false);
-      setDraft(empty);
-      setEditing(null);
-      setConfirmed(false);
+      const custom =
+        initialChainId === undefined
+          ? undefined
+          : getSavedCustomChain(initialChainId);
+      const builtin =
+        initialChainId === undefined
+          ? undefined
+          : builtinNetworks[initialChainId];
+      setDraft(
+        custom
+          ? {
+              name: custom.name,
+              rpcUrl: custom.rpcUrl,
+              id: String(custom.id),
+              symbol: custom.symbol,
+              decimals: String(custom.decimals),
+              explorerUrl: custom.explorerUrl ?? "",
+            }
+          : builtin
+            ? {
+                name: builtin.name,
+                rpcUrl: "",
+                id: String(builtin.id),
+                symbol: builtin.nativeCurrency.symbol,
+                decimals: String(builtin.nativeCurrency.decimals),
+                explorerUrl: builtin.blockExplorers?.default.url ?? "",
+              }
+            : empty
+      );
+      setEditing(custom?.id ?? null);
       setError("");
       void initializeCustomChains();
     }
@@ -113,19 +144,18 @@ export function CustomChainModal({
       request.current?.abort();
       lookup.current?.abort();
     };
-  }, [isOpen, isDrawer]);
+  }, [isOpen, isDrawer, initialChainId]);
   useEffect(() => {
-    if (isOpen && showForm) firstInput.current?.focus();
-  }, [isOpen, showForm]);
+    if (isOpen && showForm) initialInput.current?.focus();
+  }, [isOpen, showForm, initialInput]);
   const existing = builtinNetworks[Number(draft.id)];
   const previous = saved.chains.find((chain) => chain.id === Number(draft.id));
-  const requiresConfirmation =
+  const replacesExistingRpc =
     !!existing || (!!previous && editing !== previous.id);
   const change = (field: keyof Draft, value: string) => {
     if (field === "rpcUrl" || field === "id") cancelLookup();
     setDraft((current) => ({ ...current, [field]: value }));
     setError("");
-    if (field === "rpcUrl" || field === "id") setConfirmed(false);
   };
   const detectChainId = async (rpcUrl: string) => {
     cancelLookup();
@@ -138,7 +168,6 @@ export function CustomChainModal({
       if (editing !== null && id !== editing)
         throw new Error(`This RPC reports chain ID ${id}, not ${editing}.`);
       setDraft((current) => ({ ...current, id: String(id) }));
-      setConfirmed(false);
     } catch (failure) {
       if (!controller.signal.aborted)
         setError(
@@ -160,7 +189,6 @@ export function CustomChainModal({
       decimals: String(chain.decimals),
       explorerUrl: chain.explorerUrl ?? "",
     });
-    setConfirmed(false);
     setError("");
   };
   const submit = async () => {
@@ -169,8 +197,6 @@ export function CustomChainModal({
     const controller = new AbortController();
     request.current = controller;
     try {
-      if (requiresConfirmation && !confirmed)
-        throw new Error("Confirm the RPC override before saving.");
       if (saved.error) throw new Error(saved.error);
       const entry = parseCustomChain({
         ...draft,
@@ -216,7 +242,7 @@ export function CustomChainModal({
       onClose={close}
       size={isDrawer ? (showForm ? "md" : "sm") : "xl"}
       {...(isDrawer ? { placement: "right" as const } : { isCentered: true })}
-      initialFocusRef={showForm ? firstInput : undefined}
+      initialFocusRef={showForm ? initialInput : undefined}
       blockScrollOnMount={false}
       returnFocusOnClose={isDrawer}
     >
@@ -228,8 +254,12 @@ export function CustomChainModal({
         rounded={isDrawer ? 0 : "xl"}
         mx={isDrawer ? 0 : 4}
         maxH={isDrawer ? "100dvh" : "calc(100dvh - 3rem)"}
-        transition={isDrawer ? "max-width 240ms cubic-bezier(0.2, 0, 0, 1)" : undefined}
-        sx={{ "@media (prefers-reduced-motion: reduce)": { transition: "none" } }}
+        transition={
+          isDrawer ? "max-width 240ms cubic-bezier(0.2, 0, 0, 1)" : undefined
+        }
+        sx={{
+          "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+        }}
       >
         <Header pb={3} pr={12}>
           <HStack spacing={3}>
@@ -283,14 +313,9 @@ export function CustomChainModal({
           <VStack align="stretch" spacing={4}>
             {(!isDrawer || !showForm) && (
               <VStack align="stretch" spacing={3}>
-                <HStack
-                  justify="space-between"
-                  color="text.secondary"
-                  fontSize="xs"
-                >
-                  <Text>Saved networks</Text>
-                  <Text>{saved.chains.length}</Text>
-                </HStack>
+                <Text color="text.secondary" fontSize="xs">
+                  {saved.chains.length} Saved networks
+                </Text>
                 {!saved.ready ? (
                   <Spinner alignSelf="center" size="sm" my={6} />
                 ) : saved.chains.length === 0 ? (
@@ -397,7 +422,6 @@ export function CustomChainModal({
                               if (editing === chain.id) {
                                 setEditing(null);
                                 setDraft(empty);
-                                setConfirmed(false);
                               }
                             } catch (failure) {
                               setError(
@@ -425,7 +449,6 @@ export function CustomChainModal({
                       cancelLookup();
                       setEditing(null);
                       setDraft(empty);
-                      setConfirmed(false);
                       setError("");
                       setShowForm(true);
                     }}
@@ -459,6 +482,7 @@ export function CustomChainModal({
                   <InputGroup>
                     <Input
                       id={`${prefix}-rpc`}
+                      ref={rpcInput}
                       value={draft.rpcUrl}
                       onChange={(event) => change("rpcUrl", event.target.value)}
                       onPaste={(event) => {
@@ -568,73 +592,68 @@ export function CustomChainModal({
                     isDisabled={busy}
                   />
                 </FormControl>
-                {requiresConfirmation && (
+                {replacesExistingRpc && (
                   <Box
-                    bg={confirmed ? "whiteAlpha.50" : "whiteAlpha.25"}
+                    role="note"
+                    aria-label="RPC replacement"
+                    bg="whiteAlpha.25"
                     border="1px solid"
-                    borderColor={confirmed ? "blue.500" : "border.default"}
+                    borderColor="border.default"
                     p={4}
                     rounded="lg"
-                    transition="border-color 0.15s, background 0.15s"
                   >
-                    <Checkbox
-                      id={`${prefix}-confirm`}
-                      aria-label={`Replace the RPC for ${existing?.name ?? previous?.name} (${draft.id})`}
-                      aria-describedby={`${prefix}-override-details`}
-                      isChecked={confirmed}
-                      onChange={(event) => setConfirmed(event.target.checked)}
-                      isDisabled={busy}
-                      alignItems="flex-start"
-                      w="full"
-                      colorScheme="blue"
-                      spacing={3}
-                      sx={{
-                        ".chakra-checkbox__control": {
-                          mt: "2px",
-                          borderColor: confirmed
-                            ? "blue.500"
-                            : "whiteAlpha.400",
-                        },
-                        ".chakra-checkbox__label": { flex: 1, minW: 0 },
-                      }}
-                    >
-                      <HStack justify="space-between" align="start" spacing={3}>
-                        <Text
-                          fontSize="sm"
-                          fontWeight="medium"
-                          color="text.primary"
-                        >
-                          Replace the RPC for {existing?.name ?? previous?.name}
-                        </Text>
-                        <Text
-                          as="span"
-                          fontSize="xs"
-                          fontFamily="mono"
-                          color="text.secondary"
-                          whiteSpace="nowrap"
-                          bg="whiteAlpha.50"
-                          rounded="md"
-                          px={2}
-                          py={0.5}
-                        >
-                          Chain {draft.id}
-                        </Text>
-                      </HStack>
+                    <HStack align="start" spacing={3}>
                       <Box
-                        id={`${prefix}-override-details`}
-                        mt={1.5}
-                        fontSize="xs"
-                        lineHeight="tall"
-                        color="text.secondary"
-                      >
-                        <Text>
-                          Applies across tools, with no public RPC fallback.
-                        </Text>
-                        <Text color="text.tertiary">
-                          Remove this saved chain to restore the default RPC.
-                        </Text>
+                        as={Info}
+                        boxSize={4}
+                        mt={0.5}
+                        color="blue.300"
+                        flexShrink={0}
+                        aria-hidden
+                      />
+                      <Box flex="1" minW={0}>
+                        <HStack
+                          justify="space-between"
+                          align="start"
+                          spacing={3}
+                        >
+                          <Text
+                            fontSize="sm"
+                            fontWeight="medium"
+                            color="text.primary"
+                          >
+                            Replaces the RPC for{" "}
+                            {existing?.name ?? previous?.name}
+                          </Text>
+                          <Text
+                            as="span"
+                            fontSize="xs"
+                            fontFamily="mono"
+                            color="text.secondary"
+                            whiteSpace="nowrap"
+                            bg="whiteAlpha.50"
+                            rounded="md"
+                            px={2}
+                            py={0.5}
+                          >
+                            Chain {draft.id}
+                          </Text>
+                        </HStack>
+                        <Box
+                          mt={1.5}
+                          fontSize="xs"
+                          lineHeight="tall"
+                          color="text.secondary"
+                        >
+                          <Text>
+                            Applies across tools, with no public RPC fallback.
+                          </Text>
+                          <Text color="text.tertiary">
+                            Remove this saved chain to restore the default RPC.
+                          </Text>
+                        </Box>
                       </Box>
-                    </Checkbox>
+                    </HStack>
                   </Box>
                 )}
               </>
@@ -671,12 +690,7 @@ export function CustomChainModal({
               colorScheme="blue"
               isLoading={busy}
               loadingText="Checking RPC"
-              isDisabled={
-                detecting ||
-                !saved.ready ||
-                !!saved.error ||
-                (requiresConfirmation && !confirmed)
-              }
+              isDisabled={detecting || !saved.ready || !!saved.error}
             >
               {editing === null ? "Verify & add" : "Verify & save"}
             </Button>

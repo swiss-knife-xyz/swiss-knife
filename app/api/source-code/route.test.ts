@@ -82,6 +82,28 @@ test("existing source and raw ABI consumers read fallback metadata without infer
   });
 });
 
+test("Base source lookup accepts Sourcify runtime matches when Etherscan cannot resolve", async (t) => {
+  const target = "0x00000000fb2736c301e53904409f03de06c8467a";
+  t.mock.method(axios, "get", async (url: string) => {
+    if (!url.includes("sourcify.dev"))
+      throw Object.assign(new Error("DNS failure"), { code: "ENOTFOUND" });
+    return { data: {
+      ...exact,
+      chainId: "8453",
+      address: target,
+      match: "match",
+      runtimeMatch: "match",
+      compilation: { name: "KillSwitch" },
+    } };
+  });
+  const response = await GET(request("8453", target));
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.result[0].ContractName, "KillSwitch");
+  assert.equal(body.verification.match, "match");
+  assert.equal(body.verification.chainId, 8453);
+});
+
 test("no-match and unavailable responses expose CORS but no successful ABI result", async (t) => {
   t.mock.method(axios, "get", async () => {
     throw new Error("unavailable");

@@ -7,16 +7,29 @@ export function ParamValue({
   arg,
   chainId,
   inlinePreview,
+  resolveAddressMetadata = true,
+  rawUnitLabel,
 }: {
   arg: Arg;
   chainId?: number;
   inlinePreview?: boolean;
+  resolveAddressMetadata?: boolean;
+  rawUnitLabel?: string;
 }) {
   const type = arg.baseType;
   if (type === "address")
-    return <AddressParam address={arg.value} chainId={chainId} showLink />;
-  if (type.startsWith("uint")) return <UintParam value={arg.value} />;
-  if (type.startsWith("int")) return <IntParam value={arg.value} />;
+    return (
+      <AddressParam
+        address={arg.value}
+        chainId={chainId}
+        showLink
+        resolveMetadata={resolveAddressMetadata}
+      />
+    );
+  if (type.startsWith("uint"))
+    return <UintParam value={arg.value} rawUnitLabel={rawUnitLabel} />;
+  if (type.startsWith("int"))
+    return <IntParam value={arg.value} rawUnitLabel={rawUnitLabel} />;
   if (type.startsWith("bytes"))
     return (
       <TreeBytesParam

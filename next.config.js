@@ -87,6 +87,30 @@ const nextConfig = {
   },
   redirects() {
     return [
+      // The tracer is now a standalone tool. Query parameters pass through.
+      {
+        source: "/trace",
+        has: [{ type: "host", value: "calldata\\.eth\\.sh" }],
+        destination: "https://trace.eth.sh/",
+        permanent: true,
+      },
+      {
+        source: "/calldata/trace",
+        has: [{ type: "host", value: "(?:www\\.)?eth\\.sh" }],
+        destination: "https://trace.eth.sh/",
+        permanent: true,
+      },
+      {
+        source: "/calldata/trace",
+        missing: [{ type: "host", value: "(?:.*\\.)?eth\\.sh" }],
+        destination: "/trace",
+        permanent: true,
+      },
+      {
+        source: "/api/og/calldata-trace",
+        destination: "/api/og/trace",
+        permanent: true,
+      },
       {
         source: "/",
         has: [{ type: "host", value: "(?:determine-address|contract-address)\\.eth\\.sh" }],

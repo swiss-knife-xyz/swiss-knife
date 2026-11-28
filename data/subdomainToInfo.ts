@@ -12,6 +12,12 @@ export const subdomainToInfo = {
     description:
       "Decode calldata into human-readable format without needing contract ABI",
   },
+  [subdomains.TRACE.base]: {
+    emoji: "🌳",
+    label: "Transaction Tracer",
+    description:
+      "Inspect transaction call trees, decoded inputs, return values, events and reverts",
+  },
   [subdomains.CONTRACT.base]: {
     emoji: "📄",
     label: "Contract Explorer",

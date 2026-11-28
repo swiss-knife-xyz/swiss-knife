@@ -6,6 +6,7 @@ import { useLocalStorage } from "usehooks-ts";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { BeforeFooterSlotContext } from "@/components/BeforeFooterSlot";
+import { CustomRpcRecovery } from "@/components/CustomRpcRecovery";
 
 interface LayoutParams extends FlexProps {
   children: ReactNode;
@@ -63,6 +64,7 @@ export const Layout = ({
                 <BeforeFooterSlotContext.Provider
                   value={beforeFooterSlot ? slotElement : null}
                 >
+                  <CustomRpcRecovery />
                   {children}
                 </BeforeFooterSlotContext.Provider>
               </Container>

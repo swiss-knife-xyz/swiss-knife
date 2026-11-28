@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { customChainStorage } from "./storage";
 import { parseCustomChains, type CustomChain } from "./model";
 import { applyCustomNetworks } from "@/data/networks";
+import { clearCustomRpcFailure, getCustomRpcFailures } from "./failures";
 
 type Snapshot = {
   chains: readonly CustomChain[];
@@ -25,6 +26,15 @@ let subscribed = false;
 function publish(entries: CustomChain[], error: string | null = null) {
   const changed = JSON.stringify(entries) !== JSON.stringify(snapshot.chains);
   if (changed) applyCustomNetworks(entries);
+  for (const failure of getCustomRpcFailures()) {
+    if (
+      !entries.some(
+        (entry) =>
+          entry.id === failure.chainId && entry.rpcUrl === failure.rpcUrl
+      )
+    )
+      clearCustomRpcFailure(failure.chainId);
+  }
   snapshot = {
     chains: entries,
     ready: true,

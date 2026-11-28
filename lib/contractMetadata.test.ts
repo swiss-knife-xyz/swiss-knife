@@ -114,11 +114,29 @@ test("Routescan chains keep their provider and fallback order", async () => {
   assert.equal(result.statusCode, 200);
 });
 
+for (const [match, runtimeMatch] of [
+  ["match", "match"],
+  ["exact_match", "match"],
+  ["match", "exact_match"],
+]) {
+  test(`accepts Sourcify ${match}/${runtimeMatch} after Etherscan DNS failure`, async () => {
+    let calls = 0;
+    const result = await fetchContractMetadata(lookup, async () => {
+      if (++calls === 1) throw Object.assign(new Error("DNS failure"), { code: "ENOTFOUND" });
+      return { data: { ...exact, match, runtimeMatch } };
+    });
+    assert.equal(result.statusCode, 200);
+    assert.deepEqual(JSON.parse(result.body.result[0].ABI), abi);
+    assert.equal(result.body.result[0].ContractName, "Storage");
+    assert.equal(result.body.verification?.match, "match");
+  });
+}
+
 for (const [label, change] of Object.entries({
-  partial: { match: "match", runtimeMatch: "match" },
+  unknownMatch: { match: "unknown" },
+  unknownRuntime: { runtimeMatch: "unknown" },
   nullMatch: { match: null, runtimeMatch: null },
   creationOnly: { runtimeMatch: null },
-  partialRuntime: { runtimeMatch: "match" },
   wrongChain: { chainId: "1" },
   wrongAddress: { address: "0x" + "2".repeat(40) },
   missingIdentity: { address: undefined },

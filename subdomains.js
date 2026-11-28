@@ -7,6 +7,10 @@ const subdomains = {
     base: "calldata",
     paths: ["decoder", "encoder", "viem-error-simulate", "cowswap"],
   },
+  TRACE: {
+    base: "trace",
+    paths: [],
+  },
   CONTRACT: {
     base: "explorer",
     paths: ["verify"],

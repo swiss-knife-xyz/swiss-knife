@@ -12,10 +12,12 @@ import {
 interface Params {
   formatSelectProps?: FormatSelectProps;
   value: any;
+  rawUnitLabel?: string;
 }
 
 export const IntParam = ({
   value: _value,
+  rawUnitLabel,
   formatSelectProps = compactFormatSelectProps,
 }: Params) => {
   // for skeleton loading
@@ -70,12 +72,23 @@ export const IntParam = ({
             fontSize: "xs",
             ...formatSelectProps?.boxProps,
           }}
-          selectedOption={selectedEthFormatOption}
+          selectedOption={
+            rawUnitLabel && selectedEthFormatOption?.value === "Wei"
+              ? { ...selectedEthFormatOption, label: rawUnitLabel }
+              : selectedEthFormatOption
+          }
           setSelectedOption={(option) =>
-            setSelectedEthFormatOption(option as ETHSelectedOptionState)
+            setSelectedEthFormatOption(
+              option
+                ? {
+                    value: (option as ETHSelectedOptionState).value,
+                    label: (option as ETHSelectedOptionState).value,
+                  }
+                : { label: "Wei", value: "Wei" }
+            )
           }
           options={ethFormatOptions.map((str) => ({
-            label: str,
+            label: str === "Wei" && rawUnitLabel ? rawUnitLabel : str,
             value: str,
           }))}
         />

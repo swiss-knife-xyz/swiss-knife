@@ -256,3 +256,19 @@ test("contract output conversion preserves positional tuples and nested fixed ar
   );
   assert.equal(fields[1].baseType, "array");
 });
+
+test("multiple embedded parameter trees keep raw-byte disclosure targets unique", async () => {
+  const [{ ChakraProvider }, { CalldataTree }] = await modules;
+  const bytes: Arg = { name: "payload", type: "bytes", baseType: "bytes", rawValue: "0x12345678", value: { decoded: { functionName: "ping", signature: "ping()", rawArgs: [], args: [] } } };
+  const container = document.createElement("div"); document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => { root.render(<ChakraProvider><CalldataTree args={[bytes]} showControls={false} /><CalldataTree args={[bytes]} showControls={false} /></ChakraProvider>); });
+    const controls = [...container.querySelectorAll<HTMLButtonElement>('button[aria-controls]')];
+    assert.equal(controls.length, 2);
+    assert.notEqual(controls[0].getAttribute("aria-controls"), controls[1].getAttribute("aria-controls"));
+    await act(async () => controls[0].click());
+    assert.ok(document.getElementById(controls[0].getAttribute("aria-controls")!));
+    assert.equal(document.getElementById(controls[1].getAttribute("aria-controls")!), null);
+  } finally { await act(async () => root.unmount()); container.remove(); }
+});

@@ -11,6 +11,7 @@
     "build:robin-oft-artifacts": "tsx scripts/buildRobinOftArtifacts.ts",
     "test": "tsx --test",
     "test:networks": "vitest run --config vitest/vitest.networks.config.ts",
+    "test:tracer": "vitest run --config vitest/vitest.tracer.config.ts",
     "test:ipfs": "vitest run --config vitest/vitest.ipfs.config.ts",
     "test:rpc": "vitest run --config vitest/vitest.rpc.config.ts",
     "test:gas-cost": "vitest run --config vitest/vitest.gas-cost.config.ts",

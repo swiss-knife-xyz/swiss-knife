@@ -1,5 +1,9 @@
 import { fallback, http, custom, type Transport } from "viem";
 import { getRpcUrlsForChain, chainIdToChain } from "@/data/networks";
+import {
+  beginCustomRpcRequest,
+  settleCustomRpcRequest,
+} from "./customChains/failures";
 
 function resolveTransport(chainId: number, timeout?: number) {
   const urls = getRpcUrlsForChain(chainId);
@@ -21,7 +25,9 @@ export function getRpcTransport(chainId: number, timeout?: number): Transport {
     return custom(
       {
         request: async (args) => {
-          const { waitForCustomChains } = await import("./customChains/store");
+          const { waitForCustomChains, getSavedCustomChain } = await import(
+            "./customChains/store"
+          );
           await waitForCustomChains();
           const nextKey = getRpcUrlsForChain(chainId).join("\n");
           if (!active || nextKey !== key) {
@@ -31,7 +37,18 @@ export function getRpcTransport(chainId: number, timeout?: number): Transport {
             )({ ...parameters, chain: chainIdToChain[chainId] });
             key = nextKey;
           }
-          return active.request(args);
+          const saved = getSavedCustomChain(chainId);
+          const request = saved ? beginCustomRpcRequest() : 0;
+          try {
+            const result = await active.request(args);
+            if (saved && getSavedCustomChain(chainId)?.rpcUrl === saved.rpcUrl)
+              settleCustomRpcRequest(chainId, saved.rpcUrl, request);
+            return result;
+          } catch (error) {
+            if (saved && getSavedCustomChain(chainId)?.rpcUrl === saved.rpcUrl)
+              settleCustomRpcRequest(chainId, saved.rpcUrl, request, error);
+            throw error;
+          }
         },
       },
       { retryCount: 0 }

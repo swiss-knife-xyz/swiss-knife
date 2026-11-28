@@ -63,6 +63,7 @@ import {
   fetchFunctionInterfaceOpenApiSchema,
 } from "@/data/schemas";
 import {
+  type Arg,
   DecodeArrayParamResult,
   DecodeBytesParamResult,
   DecodeParamTypesResult,
@@ -82,6 +83,7 @@ import {
   Result,
   TransactionDescription,
   LogDescription,
+  Indexed,
 } from "ethers";
 import {
   decodeAbiParameters,
@@ -710,6 +712,32 @@ const decodeABIEncodedData = (calldata: string) => {
     );
   }
 };
+
+/** Untyped return data has no function selector: infer only canonical ABI values. */
+export async function inferAbiReturnValues(
+  data: string,
+  chainId?: number
+): Promise<Arg[] | undefined> {
+  if (!/^0x(?:[\da-f]{64})+$/i.test(data)) return undefined;
+  try {
+    const parsed = decodeABIEncodedData(data);
+    const params = parsed.fragment.inputs;
+    if (params.every(isOnlyFixedBytes)) return undefined;
+    if (
+      AbiCoder.defaultAbiCoder().encode(params, parsed.args).toLowerCase() !==
+      data.toLowerCase()
+    )
+      return undefined;
+    return await decodeAbiValues({
+      params,
+      values: parsed.args,
+      chainId,
+      namePrefix: "result",
+    });
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Decodes Uniswap Universal Router swap path.
@@ -1610,6 +1638,27 @@ export async function decodeEvents({
 // =============================================================================
 // PARAMETER TYPE DECODERS
 // =============================================================================
+
+/** Shared typed value model for calldata, function returns and indexed event logs. */
+export async function decodeAbiValues({ params, values, chainId, abi, namePrefix = "arg" }: {
+  params: readonly ParamType[];
+  values: readonly unknown[];
+  chainId?: number;
+  abi?: InterfaceAbi;
+  namePrefix?: string;
+}): Promise<import("@/types").Arg[]> {
+  return Promise.all(params.map(async (input, index) => {
+    const rawValue = values[index];
+    if (Indexed.isIndexed(rawValue)) return {
+      name: input.name || `${namePrefix}${index}`, type: "bytes32", baseType: "bytes32",
+      rawValue: rawValue.hash, value: { decoded: null }, decodeNote: `Indexed ${input.type} hash`,
+    };
+    return {
+      name: input.name || `${namePrefix}${index}`, type: input.type, baseType: input.baseType,
+      rawValue, value: await decodeParamTypes({ input, value: rawValue, chainId, abi }),
+    };
+  }));
+}
 
 /**
  * Recursively decodes a function parameter based on its type.
