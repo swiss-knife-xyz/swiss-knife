@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { ChakraProvider } from "@chakra-ui/react";
 import { NetworkSelect } from "./NetworkSelect";
+import { getNetworkIcon } from "@/data/networks";
+import { saveCustomChain, removeCustomChain } from "@/lib/customChains/store";
+import { customChainStorage } from "@/lib/customChains/storage";
 
 beforeEach(() => {
   vi.stubGlobal("matchMedia", () => ({
@@ -38,6 +41,24 @@ function Tools() {
     </ChakraProvider>
   );
 }
+it.each([8453, 1, 42161])("keeps chain %s's logo after saving a custom RPC", async (id) => {
+  const chain = { id, name: "Custom RPC", rpcUrl: "http://localhost:8545/", symbol: "ETH", decimals: 18, testnet: false };
+  const request = vi.spyOn(customChainStorage, "request").mockResolvedValue([chain]);
+  try {
+    render(<ChakraProvider><NetworkSelect chainId={id} onChange={() => {}} networks={[id]} /></ChakraProvider>);
+    const original = screen.getByRole("img").getAttribute("src");
+    await act(async () => { await saveCustomChain(chain); });
+    expect(screen.getByRole("img", { name: "Custom RPC" }).getAttribute("src")).toBe(original);
+    expect(original).toBe(getNetworkIcon(id));
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Network" }), { key: "ArrowDown" });
+    const option = await screen.findByRole("option", { name: /Custom RPC/ });
+    expect(within(option).getByRole("img", { name: "Custom RPC" }).getAttribute("src")).toBe(original);
+  } finally {
+    request.mockResolvedValue([]);
+    await act(async () => { await removeCustomChain(id); });
+    request.mockRestore();
+  }
+});
 it("searches by chain ID and keeps independent selections and supported lists", async () => {
   render(<Tools />);
   const source = await screen.findByRole("combobox", {

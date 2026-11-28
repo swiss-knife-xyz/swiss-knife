@@ -1,18 +1,29 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Box,
   Button,
   Heading,
   HStack,
   Text,
-  Tooltip,
+  Flex,
+  IconButton,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverBody,
+  PopoverCloseButton,
+  Portal,
   Textarea,
-  FormControl,
-  FormLabel,
   Spinner,
 } from "@chakra-ui/react";
-import { InfoOutlineIcon } from "@chakra-ui/icons";
+import { SettingsIcon } from "@chakra-ui/icons";
 import type { InterfaceAbi } from "ethers";
 import { TraceBadge, callColors } from "./TraceBadge";
 import { TraceData as Raw } from "./TraceData";
@@ -37,6 +48,7 @@ export default function TraceCallDetails({
   onAbi: (address: string, abi: InterfaceAbi) => Promise<void>;
 }) {
   const decoded = entry?.data;
+  const abiInput = useRef<HTMLTextAreaElement>(null!);
   const [raw, setRaw] = useState(false);
   const [showAbi, setShowAbi] = useState(false);
   const [abiText, setAbiText] = useState("");
@@ -102,18 +114,19 @@ export default function TraceCallDetails({
           )}
         </HStack>
         {decoded?.contractName && (
-          <Text fontSize="sm" color="blue.200">
+          <Text fontSize="sm" color="white">
             {decoded.contractName}
           </Text>
         )}
-        <Raw label="From" value={call.from} color="blue.200" />
-        <Raw label="To" value={call.to ?? "—"} color="blue.200" />
+        <Raw label="From" value={call.from} address chainId={chainId} />
+        <Raw label="To" value={call.to ?? "—"} address chainId={chainId} />
         {codeAddress &&
           codeAddress.toLowerCase() !== call.to?.toLowerCase() && (
             <Raw
               label="Executed implementation"
               value={codeAddress}
-              color="orange.200"
+              address
+              chainId={chainId}
             />
           )}
         {rolledBack && (
@@ -121,110 +134,151 @@ export default function TraceCallDetails({
             {call.revertReason || call.error || "Rolled back by parent call."}
           </Text>
         )}
-        <HStack justify="space-between">
-          <HStack spacing={1}>
-            <Button
-              size="xs"
-              variant="ghost"
-              aria-pressed={!raw}
-              color={!raw ? "blue.300" : "text.secondary"}
-              onClick={() => setRaw(false)}
-            >
-              Decoded
-            </Button>
-            <Button
-              size="xs"
-              variant="ghost"
-              aria-pressed={raw}
-              color={raw ? "blue.300" : "text.secondary"}
-              onClick={() => setRaw(true)}
-            >
-              Raw
-            </Button>
+        <Tabs
+          size="sm"
+          isLazy
+          lazyBehavior="keepMounted"
+          index={raw ? 1 : 0}
+          onChange={(index) => setRaw(index === 1)}
+          minW={0}
+        >
+          <Flex
+            align="center"
+            borderBottom="1px solid"
+            borderColor="border.default"
+          >
+            <TabList flex="1" borderBottom={0} aria-label="Call data format">
+              <Tab fontSize="xs" px={3}>
+                Decoded
+              </Tab>
+              <Tab fontSize="xs" px={3}>
+                Raw
+              </Tab>
+            </TabList>
             {codeAddress && (
-              <Button
-                size="xs"
-                variant="ghost"
-                aria-expanded={showAbi}
-                onClick={() => setShowAbi((value) => !value)}
+              <Popover
+                isOpen={showAbi}
+                onOpen={() => setShowAbi(true)}
+                onClose={() => setShowAbi(false)}
+                placement="bottom-end"
+                initialFocusRef={abiInput}
+                isLazy
               >
-                ABI
-              </Button>
+                <PopoverTrigger>
+                  <IconButton
+                    aria-label="Call settings"
+                    icon={<SettingsIcon boxSize={3.5} />}
+                    variant="ghost"
+                    size="xs"
+                    color="text.secondary"
+                  />
+                </PopoverTrigger>
+                <Portal>
+                  <PopoverContent
+                    bg="bg.subtle"
+                    borderColor="border.default"
+                    w="min(360px, calc(100vw - 32px))"
+                    borderRadius="md"
+                    boxShadow="none"
+                  >
+                    <PopoverHeader
+                      fontSize="sm"
+                      fontWeight="medium"
+                      borderColor="border.default"
+                      px={3}
+                      py={2}
+                    >
+                      ABI
+                    </PopoverHeader>
+                    <PopoverCloseButton />
+                    <PopoverBody p={3}>
+                      <Textarea
+                        ref={abiInput}
+                        aria-label="ABI"
+                        value={abiText}
+                        onChange={(event) => setAbiText(event.target.value)}
+                        placeholder="Paste ABI or function signature"
+                        rows={4}
+                        minH={28}
+                        maxH={64}
+                        resize="vertical"
+                        borderRadius="sm"
+                        bg="bg.base"
+                        fontFamily="mono"
+                        fontSize="xs"
+                        lineHeight="tall"
+                        spellCheck={false}
+                        isDisabled={applying}
+                      />
+                      {abiError && (
+                        <Text fontSize="xs" color="red.300" role="alert" mt={2}>
+                          {abiError}
+                        </Text>
+                      )}
+                      <Flex justify="flex-end" mt={2}>
+                        <Button
+                          size="sm"
+                          bg="primary.500"
+                          color="white"
+                          _hover={{ bg: "primary.600" }}
+                          isLoading={applying}
+                          isDisabled={!abiText.trim()}
+                          onClick={applyAbi}
+                        >
+                          Apply
+                        </Button>
+                      </Flex>
+                    </PopoverBody>
+                  </PopoverContent>
+                </Portal>
+              </Popover>
             )}
-          </HStack>
-          {decoded && (
-            <Tooltip label={decoded.note} hasArrow>
-              <span tabIndex={0} aria-label="About decoding">
-                <InfoOutlineIcon color="text.secondary" boxSize={3} />
-              </span>
-            </Tooltip>
-          )}
-        </HStack>
-        {showAbi && (
-          <Box display="grid" gap={2}>
-            <FormControl>
-              <FormLabel htmlFor="trace-abi" fontSize="xs">
-                ABI or function declaration
-              </FormLabel>
-              <Textarea
-                id="trace-abi"
-                value={abiText}
-                onChange={(event) => setAbiText(event.target.value)}
-                rows={4}
-                fontFamily="mono"
-                fontSize="xs"
-                placeholder="function transfer(address to, uint256 value) returns (bool)"
-              />
-            </FormControl>
-            <Button
-              size="sm"
-              variant="outline"
-              isLoading={applying}
-              isDisabled={!abiText.trim()}
-              onClick={applyAbi}
-            >
-              Apply to contract
-            </Button>
-            {abiError && (
-              <Text fontSize="xs" color="red.300" role="alert">
-                {abiError}
-              </Text>
-            )}
-          </Box>
-        )}
-        {raw ? (
-          <>
-            <Raw
-              label={call.type.startsWith("CREATE") ? "Initcode" : "Input"}
-              value={call.input}
-            />
-            <Raw
-              label={
-                call.error
-                  ? "Revert data"
-                  : call.type.startsWith("CREATE")
-                    ? "Deployed bytecode"
-                    : "Output"
-              }
-              value={call.output}
-            />
-          </>
-        ) : decoded ? (
-          <TraceDecodedValues call={call} decoded={decoded} chainId={chainId} />
-        ) : pending ? (
-          <HStack color="text.secondary">
-            <Spinner size="xs" />
-            <Text fontSize="xs">Decoding…</Text>
-          </HStack>
-        ) : (
-          <>
-            <Text fontSize="xs" color="text.secondary">
-              {entry?.error ?? "No matching ABI"}
-            </Text>
-            <Raw label="Input" value={call.input} />
-            <Raw label="Output" value={call.output} />
-          </>
-        )}
+          </Flex>
+          <TabPanels>
+            <TabPanel p={0} pt={3}>
+              <Box display="grid" gap={3}>
+                {decoded ? (
+                  <TraceDecodedValues
+                    call={call}
+                    decoded={decoded}
+                    chainId={chainId}
+                  />
+                ) : pending ? (
+                  <HStack color="text.secondary">
+                    <Spinner size="xs" />
+                    <Text fontSize="xs">Decoding…</Text>
+                  </HStack>
+                ) : (
+                  <>
+                    <Text fontSize="xs" color="text.secondary">
+                      {entry?.error ?? "No matching ABI"}
+                    </Text>
+                    <Raw label="Input" value={call.input} />
+                    <Raw label="Output" value={call.output} />
+                  </>
+                )}
+              </Box>
+            </TabPanel>
+            <TabPanel p={0} pt={3}>
+              <Box display="grid" gap={3}>
+                <Raw
+                  label={call.type.startsWith("CREATE") ? "Initcode" : "Input"}
+                  value={call.input}
+                />
+                <Raw
+                  label={
+                    call.error
+                      ? "Revert data"
+                      : call.type.startsWith("CREATE")
+                        ? "Deployed bytecode"
+                        : "Output"
+                  }
+                  value={call.output}
+                />
+              </Box>
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
         <Heading as="h3" fontSize="sm">
           Logs ({call.logs.length})
         </Heading>

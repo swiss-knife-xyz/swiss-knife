@@ -9,6 +9,7 @@ import {
   Text,
   Input,
   Spinner,
+  Switch,
 } from "@chakra-ui/react";
 import { TreeBranchHeader } from "@/components/tree/TreeBranchHeader";
 import { TraceBadge, callColors } from "./TraceBadge";
@@ -18,6 +19,8 @@ import type { TraceDecodeEntry } from "@/lib/tracer/decodingStore";
 import { flattenCalls, type TraceCall } from "@/lib/tracer/model";
 import { previewArgs } from "@/lib/tracer/preview";
 import { getDisplayFunctionName } from "@/utils/functionNames";
+import { tracePrecompile } from "@/lib/tracer/precompiles";
+import { FiMaximize2, FiMinimize2 } from "react-icons/fi";
 const TraceDecodedValues = dynamic(() =>
   import("./TraceDecodedValues").then((module) => module.TraceDecodedValues)
 );
@@ -34,6 +37,7 @@ export function TraceCallTree({
   completed = 0,
   requested = 0,
   chainId,
+  defaultExpanded = false,
 }: {
   root: TraceCall;
   chainId?: number;
@@ -43,19 +47,31 @@ export function TraceCallTree({
   onVisibleCalls?: (calls: readonly TraceCall[]) => void;
   completed?: number;
   requested?: number;
+  defaultExpanded?: boolean;
 }) {
   const [showParameters, setShowParameters] = useState(false);
-  const [showLogs, setShowLogs] = useState(true);
+  const [showStaticCalls, setShowStaticCalls] = useState(true);
   const [query, setQuery] = useState("");
   const [failuresOnly, setFailuresOnly] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const expandedContent = useRef(new Map<string, HTMLDivElement>());
   const pendingReveal = useRef<string | null>(null);
   const calls = useMemo(() => flattenCalls(root), [root]);
+  const shownCalls = useMemo(() => {
+    if (showStaticCalls) return calls;
+    const result: TraceCall[] = [];
+    function visit(call: TraceCall) {
+      if (call.type === "STATICCALL") return;
+      result.push(call);
+      call.calls.forEach(visit);
+    }
+    visit(root);
+    return result;
+  }, [calls, root, showStaticCalls]);
   const [collapsed, setCollapsed] = useState(
     () =>
       new Set(
-        calls
+        (defaultExpanded ? [] : calls)
           .filter((call) => call.id.split(".").length > 2)
           .map((call) => call.id)
       )
@@ -64,7 +80,7 @@ export function TraceCallTree({
     if (!query && !failuresOnly) return null;
     const ids = new Set<string>();
     const search = query.toLowerCase().trim();
-    for (const call of calls) {
+    for (const call of shownCalls) {
       if (
         (!failuresOnly || call.error) &&
         (!search ||
@@ -74,6 +90,8 @@ export function TraceCallTree({
             call.input.slice(0, 10),
             call.type,
             call.error,
+            tracePrecompile(call) ? "Precompiled" : "",
+            tracePrecompile(call),
             entries[call.id]?.data?.contractName,
             entries[call.id]?.data?.input?.functionName,
             entries[call.id]?.data?.input
@@ -93,10 +111,10 @@ export function TraceCallTree({
       }
     }
     return ids;
-  }, [calls, query, failuresOnly, entries]);
+  }, [shownCalls, query, failuresOnly, entries]);
   const visibleCalls = useMemo(
     () =>
-      calls
+      shownCalls
         .filter((call) => {
           if (visible) return visible.has(call.id);
           const parts = call.id.split(".");
@@ -108,7 +126,7 @@ export function TraceCallTree({
           return true;
         })
         .slice(0, 200),
-    [calls, visible, collapsed]
+    [shownCalls, visible, collapsed]
   );
   useEffect(() => {
     onVisibleCalls?.(visibleCalls);
@@ -160,11 +178,14 @@ export function TraceCallTree({
     level: number,
     ancestorFailed: boolean
   ): React.ReactNode {
+    if (!showStaticCalls && call.type === "STATICCALL") return null;
     if (visible && !visible.has(call.id)) return null;
     const rolledBack = ancestorFailed || !!call.error;
     const open = !!visible || !collapsed.has(call.id);
     const entry = entries[call.id];
     const decoded = entry?.data;
+    const precompile = tracePrecompile(call);
+    const contractName = precompile ? "Precompiled" : decoded?.contractName;
     const functionName = decoded?.input
       ? getDisplayFunctionName(
           decoded.input.functionName,
@@ -173,7 +194,7 @@ export function TraceCallTree({
       : undefined;
     const displayedLogs = call.logs.slice(0, 50);
     function logsAt(position?: number) {
-      if (!showLogs || (failuresOnly && !call.error)) return null;
+      if (failuresOnly && !call.error) return null;
       return displayedLogs.map((log, index) => {
         if (log.position !== position) return null;
         const event = decoded?.logs[index];
@@ -222,20 +243,15 @@ export function TraceCallTree({
         >
           <TraceBadge color={callColors[call.type]}>{call.type}</TraceBadge>
           <Text
-            fontSize="xs"
-            fontFamily="mono"
-            color="blue.200"
-            title={call.to}
-          >
-            {decoded?.contractName ||
-              (call.to ? shortAddress(call.to) : "Contract creation")}
-          </Text>
-          <Text
             as="span"
             fontSize="xs"
             fontFamily="mono"
             color={functionName ? "green.300" : "text.secondary"}
           >
+            <Text as="span" color="blue.200" title={call.to}>
+              {contractName || (call.to ? shortAddress(call.to) : "Contract creation")}
+            </Text>
+            {functionName ? "." : " "}
             {functionName ? (
               <>
                 {functionName}
@@ -243,6 +259,8 @@ export function TraceCallTree({
                   ({previewArgs(decoded!.input!.args)})
                 </Text>
               </>
+            ) : precompile ? (
+              <Text as="span" color="text.secondary">{precompile}</Text>
             ) : call.type.startsWith("CREATE") ? (
               "initcode"
             ) : call.input === "0x" ? (
@@ -266,6 +284,16 @@ export function TraceCallTree({
                   : call.output === "0x"
                     ? "()"
                     : `${call.output.slice(0, 18)}${call.output.length > 18 ? "…" : ""}`}
+              {decoded?.outputsInferred && (
+                <Text
+                  as="span"
+                  color="orange.300"
+                  ml={1}
+                  title="Inferred return types"
+                >
+                  ~
+                </Text>
+              )}
             </Text>
           </Text>
           {entry?.status === "loading" && (
@@ -289,7 +317,7 @@ export function TraceCallTree({
         </TreeBranchHeader>
         {open &&
           (call.calls.length > 0 ||
-            (showLogs && call.logs.length > 0) ||
+            call.logs.length > 0 ||
             (showParameters && decoded)) && (
             <Box
               ref={(element: HTMLDivElement | null) => {
@@ -326,7 +354,7 @@ export function TraceCallTree({
                 </Box>
               ))}
               {logsAt(undefined)}
-              {showLogs && call.logs.length > 50 && (
+              {call.logs.length > 50 && (
                 <Text fontSize="xs" color="text.secondary" px={3} py={1}>
                   +{call.logs.length - 50} logs in call details
                 </Text>
@@ -336,7 +364,7 @@ export function TraceCallTree({
       </Box>
     );
   }
-  const failed = calls.filter((call) => call.error).length;
+  const failed = shownCalls.filter((call) => call.error).length;
   return (
     <Box
       minW={0}
@@ -359,7 +387,7 @@ export function TraceCallTree({
             Call trace
           </Text>
           <Text fontSize="xs" color="text.secondary">
-            {calls.length} calls
+            {shownCalls.length} calls
           </Text>
           <TraceBadge color={root.error ? "red.300" : "green.300"}>
             {root.error ? "Reverted" : "Success"}
@@ -371,33 +399,47 @@ export function TraceCallTree({
               Decoding {completed}/{requested}
             </Text>
           )}
-          {onVisibleCalls && requested < calls.length && (
+          {onVisibleCalls && shownCalls.some((call) => !entries[call.id]) && (
             <Button
               size="xs"
               variant="ghost"
-              onClick={() => onVisibleCalls(calls)}
+              onClick={() => onVisibleCalls(shownCalls)}
             >
               Decode all
             </Button>
           )}
-          <Button
-            size="xs"
-            variant="ghost"
-            aria-pressed={showParameters}
+          <Switch
+            size="sm"
+            colorScheme="purple"
+            isChecked={showStaticCalls}
+            onChange={(event) => setShowStaticCalls(event.target.checked)}
+            fontSize="xs"
+            color={showStaticCalls ? "purple.300" : "text.secondary"}
+            px={2}
+            display="inline-flex"
+            alignItems="center"
+            h={6}
+            lineHeight={5}
+            sx={{ "& .chakra-switch__track[data-checked]": { bg: "purple.300" } }}
+          >
+            Static calls
+          </Switch>
+          <Switch
+            size="sm"
+            colorScheme="blue"
+            isChecked={showParameters}
+            onChange={(event) => setShowParameters(event.target.checked)}
+            fontSize="xs"
             color={showParameters ? "blue.300" : "text.secondary"}
-            onClick={() => setShowParameters((value) => !value)}
+            px={2}
+            display="inline-flex"
+            alignItems="center"
+            h={6}
+            lineHeight={5}
+            sx={{ "& .chakra-switch__track[data-checked]": { bg: "blue.300" } }}
           >
-            Parameters
-          </Button>
-          <Button
-            size="xs"
-            variant="ghost"
-            aria-pressed={showLogs}
-            color={showLogs ? "purple.200" : "text.secondary"}
-            onClick={() => setShowLogs((value) => !value)}
-          >
-            Logs
-          </Button>
+            Show params
+          </Switch>
           {failed > 0 && (
             <Button
               size="xs"
@@ -414,6 +456,7 @@ export function TraceCallTree({
             size="xs"
             variant="ghost"
             onClick={() => setCollapsed(new Set())}
+            leftIcon={<FiMaximize2 aria-hidden />}
           >
             Expand all
           </Button>
@@ -421,6 +464,7 @@ export function TraceCallTree({
             size="xs"
             variant="ghost"
             onClick={() => setCollapsed(new Set(calls.map((call) => call.id)))}
+            leftIcon={<FiMinimize2 aria-hidden />}
           >
             Collapse all
           </Button>
@@ -445,7 +489,7 @@ export function TraceCallTree({
         overflowY="auto"
         isolation="isolate"
       >
-        {visible?.size === 0 ? (
+        {shownCalls.length === 0 || visible?.size === 0 ? (
           <Text p={4} color="text.secondary" fontSize="sm">
             No matching calls.
           </Text>

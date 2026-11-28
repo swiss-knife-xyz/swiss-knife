@@ -1005,9 +1005,12 @@
 - Decoded traces: call headers show function arguments and return values directly,
   with red decoded reverts and positioned purple event rows. A Parameters toggle
   renders full input/return trees inside execution branches. The inspector opens
-  decoded data by default; Raw and ABI are secondary modes, with no Decode button.
-- Keep actual execution calls separate from nested calldata descriptions. Unknown
-  returns stay raw; inferred input signatures have a visible marker. Resolve proxy
+  decoded data by default, with Decoded/Raw tabs and ABI editing in a gear popover.
+- ABI popover: compact code field, small radii and a right-aligned blue Apply
+  button. Keep one ABI heading; omit duplicate field labels and explanatory prose.
+- Keep actual execution calls separate from nested calldata descriptions. Infer
+  untyped ABI return values with the shared decoder, mark inferred types, and offer
+  Decoded/Raw return tabs. Opaque returns stay raw. Resolve proxy
   ABIs using the executed delegation path and allow per-contract ABI overrides.
 - Decode the first 200 visible frames automatically, then new branches as they
   open; Decode all is explicit for larger traces. Cache ABIs, selectors and repeated
@@ -1018,6 +1021,13 @@
 
 - Trace numeric controls default to Raw, retaining the decoder's optional format
   conversions without labelling arbitrary uint values as native Wei.
+
+- Tracer examples reuse the calldata decoder's compact two-column cards below
+  the form, collapsing to one column on mobile. Show a protocol/action title,
+  one concise transaction description and an Ethereum/Trace footer. Examples
+  load captured mainnet traces on click and disappear during results; resetting
+  restores them. Examples include locally decoded calls/returns/logs and contract
+  names, with all call branches initially expanded. No synthetic Load demo action.
 
 - Call-row affordance: a decorative `>` fades and slides into the right edge on
   hover or keyboard focus. Keep it pinned while long rows scroll horizontally;

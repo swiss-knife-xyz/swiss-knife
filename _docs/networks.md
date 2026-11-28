@@ -83,8 +83,7 @@ name, numeric chain ID, RPC URL, native symbol/decimals, and optional explorer U
 Pasting an RPC URL automatically reads and fills its chain ID, with cancellable
 loading indicators on both fields. Saved custom chains appear first in their own
 dropdown group. It verifies `eth_chainId` before writing. A chain ID
-can have one saved configuration; replacing a built-in ID requires explicit
-confirmation. Its custom endpoint has **no public fallback**, even for IDs such
+can have one saved configuration; replacing a built-in ID is disclosed in an info box before saving. Its custom endpoint has **no public fallback**, even for IDs such
 as Ethereum's `1`. Removing the saved entry restores the built-in definition.
 
 - `lib/customChains/model.ts`: versioned schema, validation, RPC identity check,
@@ -92,7 +91,7 @@ as Ethereum's `1`. Removing the saved entry restores the built-in definition.
 - `lib/customChains/storage.ts`: local storage on the hub origin, authenticated
   iframe messages elsewhere, and cross-window change notifications.
 - `lib/customChains/store.ts`: external React store and browser catalog updates.
-- `components/CustomChainModal.tsx`: add, edit, remove, and confirmation UI.
+- `components/CustomChainModal.tsx`: add, edit, remove, and replacement info UI.
   The shared tool navbar opens this editor as a right-hand drawer from the
   network icon immediately before Address Book. The homepage omits this action.
   The drawer opens to the saved list; Add/Edit reveals the form, and saving
@@ -113,6 +112,18 @@ Browser RPC requests wait for saved settings before resolving their endpoint, so
 an existing-ID fork is honored on a fresh page load. Cached viem clients and wagmi
 transports follow endpoint changes. Explorer panels reset only when their own RPC
 changes; selected networks remain local to each tool.
+
+Saved-RPC connectivity failures are tracked by the shared browser transport and
+the RPC Console's direct saved-chain requests. Tool layouts show the failed chain
+and endpoint hostname, with **Edit RPC** and **Use public RPC** recovery actions.
+The latter explicitly removes an existing-ID override; it is omitted for chains
+without built-in public endpoints. Successful requests and endpoint changes clear
+the notice. Contract reverts and unsupported RPC methods do not mark an endpoint
+offline. Endpoint paths/query strings are never displayed in the recovery notice,
+and failures never trigger automatic public fallback.
+
+`CustomChainModal` accepts `initialChainId` to open an existing saved configuration
+or prefill built-in chain metadata, preserving endpoint verification and the replacement info box. The tracer uses this entry point from its error banner.
 
 Custom RPC Console reads run directly in the browser, with the existing read-method
 allowlist, request/response bounds, timeout, and chain-ID verification. **Never pass

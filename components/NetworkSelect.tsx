@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { DarkSelect, type DarkSelectProps } from "./DarkSelect";
 import {
   getNetworkOptions,
+  getNetworkIcon,
   chainIdToChain,
   type NetworkIdentity,
 } from "@/data/networks";
@@ -85,15 +86,20 @@ export function NetworkSelect(props: NetworkSelectProps) {
         if (remaining.length) original.push({ ...option, options: remaining });
       } else if (!customIds.has(String(option.value))) original.push(option);
     }
-    const first = baseOptions.flatMap((option) =>
+    const baseFlat = baseOptions.flatMap((option) =>
       "options" in option ? [...option.options] : [option]
-    )[0];
+    );
+    const first = baseFlat[0];
     return [
       {
         label: "Custom networks",
         options: saved.chains.map((chain) => ({
           label: chain.name,
           value: typeof first?.value === "string" ? String(chain.id) : chain.id,
+          image: getNetworkIcon(
+            chain.id,
+            baseFlat.find((option) => Number(option.value) === chain.id)?.image
+          ),
         })),
       },
       ...original,
@@ -193,6 +199,7 @@ export function NetworkSelect(props: NetworkSelectProps) {
                   ? String(chain.id)
                   : chain.id,
               label: chain.name,
+              image: getNetworkIcon(chain.id),
             });
         }}
       />

@@ -32,6 +32,7 @@ interface Props {
   functionName?: string;
   isFunctionNameGuessed?: boolean;
   showControls?: boolean;
+  defaultRootExpanded?: boolean;
   kind?: "revert";
   decodeNote?: string;
 }
@@ -112,6 +113,7 @@ function Parameter({
         pl={{ base: 1, md: 5 }}
       >
         <Box
+          className="calldata-label"
           flexShrink={0}
           w={{ base: "full", md: "150px" }}
           minW={0}
@@ -312,6 +314,7 @@ export function CalldataTree({
   functionName,
   isFunctionNameGuessed,
   showControls = true,
+  defaultRootExpanded = true,
   kind,
   decodeNote,
   editor,
@@ -338,7 +341,9 @@ export function CalldataTree({
     visit(args, "args");
     return result;
   }, [args, hasRoot]);
-  const [collapsed, setCollapsed] = useState(() => new Set<string>());
+  const [collapsed, setCollapsed] = useState(() => new Set<string>(
+    hasRoot && !defaultRootExpanded ? ["root"] : []
+  ));
   const reveal = editor?.reveal;
   useEffect(() => {
     if (!reveal) return;
@@ -417,7 +422,7 @@ export function CalldataTree({
                 "& .calldata-leaf": {
                   flexDirection: "column", alignItems: "stretch", paddingLeft: "4px", gap: "6px",
                 },
-                "& .calldata-leaf > :first-child": {
+                "& .calldata-leaf > .calldata-label": {
                   width: "100%", display: "flex", alignItems: "baseline", flexWrap: "wrap", columnGap: "8px",
                   "&::before": { display: "none" },
                 },

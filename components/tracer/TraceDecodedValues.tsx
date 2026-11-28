@@ -4,7 +4,8 @@ import { CalldataTree } from "@/components/decodedParams/CalldataTree";
 import type { DecodedTraceCall } from "@/lib/tracer/decode";
 import type { TraceCall } from "@/lib/tracer/model";
 import { getDisplayFunctionName } from "@/utils/functionNames";
-import { TraceData } from "./TraceData";
+import { TraceData, traceFieldLabelProps } from "./TraceData";
+import { TraceReturnValues } from "./TraceReturnValues";
 
 export function TraceDecodedValues({
   call,
@@ -20,21 +21,21 @@ export function TraceDecodedValues({
   return (
     <Box display="grid" gap={3} minW={0}>
       <Box minW={0}>
-        <Text fontSize="xs" color="text.secondary" mb={1}>
-          Input{decoded.inputInferred ? " · inferred" : ""}
+        <Text {...traceFieldLabelProps} color="text.secondary" mb={1}>
+          Input
         </Text>
         {decoded.input ? (
           <CalldataTree
             rawUnitLabel="Raw"
             resolveAddressMetadata={resolveAddresses}
             args={decoded.input.args}
+            defaultRootExpanded={decoded.input.args.length > 0}
             functionName={
               getDisplayFunctionName(
                 decoded.input.functionName,
                 decoded.input.guessedFunctionName
               ).name
             }
-            isFunctionNameGuessed={decoded.inputInferred}
             chainId={chainId}
             showControls={false}
           />
@@ -45,15 +46,16 @@ export function TraceDecodedValues({
         ) : (
           <TraceData
             label={
-              call.type.startsWith("CREATE") ? "Initcode" : "Unknown input"
+              call.type.startsWith("CREATE") ? "Initcode" : "Input"
             }
+            hideLabel={!call.type.startsWith("CREATE")}
             value={call.input}
           />
         )}
       </Box>
       <Box minW={0}>
         <Text
-          fontSize="xs"
+          {...traceFieldLabelProps}
           color={call.error ? "red.300" : "text.secondary"}
           mb={1}
         >
@@ -75,19 +77,12 @@ export function TraceDecodedValues({
             <TraceData label="Unknown revert data" value={call.output} />
           )
         ) : decoded.outputs !== undefined ? (
-          decoded.outputs.length ? (
-            <CalldataTree
-              rawUnitLabel="Raw"
-              resolveAddressMetadata={resolveAddresses}
-              args={decoded.outputs}
-              chainId={chainId}
-              showControls={false}
-            />
-          ) : (
-            <Text fontSize="xs" fontFamily="mono" color="text.secondary">
-              ()
-            </Text>
-          )
+          <TraceReturnValues
+            output={call.output}
+            outputs={decoded.outputs}
+            chainId={chainId}
+            resolveAddresses={resolveAddresses}
+          />
         ) : call.output === "0x" ? (
           <Text fontSize="xs" fontFamily="mono" color="text.secondary">
             0x
@@ -97,8 +92,9 @@ export function TraceDecodedValues({
             label={
               call.type.startsWith("CREATE")
                 ? "Deployed bytecode"
-                : "Unknown return data"
+                : "Return values"
             }
+            hideLabel={!call.type.startsWith("CREATE")}
             value={call.output}
           />
         )}

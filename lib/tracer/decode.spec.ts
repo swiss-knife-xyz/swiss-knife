@@ -25,6 +25,45 @@ const call = (extra = {}) =>
     output: iface.encodeFunctionResult("balanceOf", [2n ** 100n]),
     ...extra,
   }).call;
+it.each([1, 10, 17])(
+  "keeps precompile 0x%s native data raw without ABI or selector lookups",
+  async (address) => {
+    const { decoder, fetchAbi, fetchSignatures } = setup();
+    const result = await decoder.decode(call({
+      type: "STATICCALL",
+      to: `0x${address.toString(16).padStart(40, "0")}`,
+      input: `0x${"45".repeat(128)}`,
+      output: "0x1234",
+    }));
+    expect(result.contractName).toBe("Precompiled");
+    expect(result.input).toBeNull();
+    expect(result.outputs).toBeUndefined();
+    expect(fetchAbi).not.toHaveBeenCalled();
+    expect(fetchSignatures).not.toHaveBeenCalled();
+  }
+);
+it.each([1, 4])("uses generic return inference for precompile %s", async (precompile) => {
+  const address = "0x73c0ada25913c6789a97183de9cba20abf2da923";
+  const { decoder, fetchAbi, fetchSignatures } = setup();
+  const result = await decoder.decode(call({
+    type: "STATICCALL", to: `0x${precompile.toString(16).padStart(40, "0")}`,
+    input: `0x${"45".repeat(128)}`,
+    output: `0x${"0".repeat(24)}${address.slice(2)}`,
+  }));
+  expect(result.outputs?.[0].type).toBe("address");
+  expect(String(result.outputs?.[0].value).toLowerCase()).toBe(address);
+  expect(result.outputsInferred).toBe(true);
+  expect(result.input).toBeNull();
+  expect(fetchAbi).not.toHaveBeenCalled();
+  expect(fetchSignatures).not.toHaveBeenCalled();
+});
+it("does not decode failed ecRecover calls as successful address returns", async () => {
+  const { decoder } = setup();
+  const result = await decoder.decode(call({
+    to: `0x${"0".repeat(39)}1`, error: "out of gas",
+  }));
+  expect(result.outputs).toBeUndefined();
+});
 function setup() {
   const fetchAbi = vi.fn().mockResolvedValue({ abi, name: "Token" });
   const fetchSignatures = vi.fn().mockResolvedValue(["balanceOf(address)"]);
@@ -34,6 +73,66 @@ function setup() {
     decoder: createTraceDecoder(1, {}, { fetchAbi, fetchSignatures }),
   };
 }
+it("does not treat other low addresses as precompiles", async () => {
+  const { decoder, fetchAbi } = setup();
+  const result = await decoder.decode(call({ to: `0x${"0".repeat(38)}12` }));
+  expect(result.contractName).toBe("Token");
+  expect(fetchAbi).toHaveBeenCalled();
+  expect(result.input?.functionName).toBe("balanceOf");
+});
+it("infers a padded return address without a contract ABI", async () => {
+  const address = "0x73c0ada25913c6789a97183de9cba20abf2da923";
+  const decoder = createTraceDecoder();
+  const result = await decoder.decode(
+    call({ input: "0x", output: `0x${"0".repeat(24)}${address.slice(2)}` })
+  );
+  expect(result.outputsInferred).toBe(true);
+  expect(result.outputs?.[0].type).toBe("address");
+  expect(String(result.outputs?.[0].value).toLowerCase()).toBe(address);
+});
+it("keeps ABI-declared integers even when their return bytes resemble an address", async () => {
+  const { decoder } = setup();
+  const value = BigInt("0x73c0ada25913c6789a97183de9cba20abf2da923");
+  const result = await decoder.decode(
+    call({ output: iface.encodeFunctionResult("balanceOf", [value]) })
+  );
+  expect(result.outputs?.[0].type).toBe("uint256");
+  expect(result.outputsInferred).toBe(false);
+});
+it("can infer returns when the available ABI omits the output declaration", async () => {
+  const inputAbi = ["function getter() view"];
+  const decoder = createTraceDecoder(
+    1,
+    {},
+    {
+    fetchAbi: async () => ({ abi: inputAbi, name: "Getter" }),
+    }
+  );
+  const result = await decoder.decode(
+    call({
+      input: new Interface(inputAbi).encodeFunctionData("getter"),
+      output: `0x${"0".repeat(24)}73c0ada25913c6789a97183de9cba20abf2da923`,
+    })
+  );
+  expect(result.outputsInferred).toBe(true);
+  expect(result.outputs?.[0].type).toBe("address");
+});
+it("keeps malformed, opaque and creation output raw rather than inventing return types", async () => {
+  const decoder = createTraceDecoder();
+  for (const output of ["0x1234", `0x${"ab".repeat(32)}`]) {
+    expect(
+      (await decoder.decode(call({ input: "0x", output }))).outputs
+    ).toBeUndefined();
+  }
+  const creation = await decoder.decode(
+    call({
+      type: "CREATE",
+      input: "0x",
+      output: `0x${"0".repeat(24)}${"11".repeat(20)}`,
+    })
+  );
+  expect(creation.outputs).toBeUndefined();
+});
 it("decodes typed input and exact large return values through the shared decoder", async () => {
   const { decoder } = setup();
   const result = await decoder.decode(call());
@@ -162,13 +261,17 @@ it("uses provided ABIs without a chain or network lookup and re-decodes after ov
   decoder.setAbi(to, replacement);
   expect((await decoder.decode(call())).outputs?.[0].name).toBe("quantity");
 });
-it("marks signature-only inputs inferred and leaves unknown return types raw", async () => {
+it("marks signature-only inputs and heuristically decoded return types inferred", async () => {
   const { decoder, fetchAbi, fetchSignatures } = setup();
   fetchAbi.mockRejectedValue(new Error("unverified"));
   const result = await decoder.decode(call());
   expect(result.input?.functionName).toBe("balanceOf");
   expect(result.inputInferred).toBe(true);
-  expect(result.outputs).toBeUndefined();
+  expect(result.outputsInferred).toBe(true);
+  expect(result.outputs?.[0]).toMatchObject({
+    type: "uint256",
+    value: (2n ** 100n).toString(),
+  });
   expect(fetchSignatures).toHaveBeenCalledTimes(1);
 });
 it("rejects ambiguous selector collisions instead of choosing a plausible signature", async () => {

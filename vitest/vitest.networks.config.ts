@@ -13,6 +13,7 @@ export default defineConfig({
       "lib/ethersProvider.spec.ts",
       "lib/customChains/*.spec.ts",
       "components/CustomChainModal.spec.tsx",
+      "components/CustomRpcRecovery.spec.tsx",
     ],
     maxWorkers: 1,
     testTimeout: 15000,

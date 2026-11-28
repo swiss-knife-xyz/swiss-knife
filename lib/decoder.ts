@@ -63,6 +63,7 @@ import {
   fetchFunctionInterfaceOpenApiSchema,
 } from "@/data/schemas";
 import {
+  type Arg,
   DecodeArrayParamResult,
   DecodeBytesParamResult,
   DecodeParamTypesResult,
@@ -711,6 +712,32 @@ const decodeABIEncodedData = (calldata: string) => {
     );
   }
 };
+
+/** Untyped return data has no function selector: infer only canonical ABI values. */
+export async function inferAbiReturnValues(
+  data: string,
+  chainId?: number
+): Promise<Arg[] | undefined> {
+  if (!/^0x(?:[\da-f]{64})+$/i.test(data)) return undefined;
+  try {
+    const parsed = decodeABIEncodedData(data);
+    const params = parsed.fragment.inputs;
+    if (params.every(isOnlyFixedBytes)) return undefined;
+    if (
+      AbiCoder.defaultAbiCoder().encode(params, parsed.args).toLowerCase() !==
+      data.toLowerCase()
+    )
+      return undefined;
+    return await decodeAbiValues({
+      params,
+      values: parsed.args,
+      chainId,
+      namePrefix: "result",
+    });
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Decodes Uniswap Universal Router swap path.

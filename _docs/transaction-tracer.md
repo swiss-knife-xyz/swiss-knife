@@ -31,10 +31,17 @@ failure does not mark a successful parent failed. Geth may omit reverted logs.
 `createTraceDecoder` caches ABIs, selectors and equivalent frames per trace. It
 follows same-input DELEGATECALL forwarding paths to the code address executed in
 that trace. Input inference is marked; ambiguous matching selector collisions
-require an ABI. Returns require canonical input/output matches against a known
-ABI; they are never guessed from input signatures. The ABI control accepts JSON
+require an ABI. Known return types require canonical input/output matches against
+their ABI. Without a matching ABI, the shared ABI-encoding guesser can infer return
+values such as padded addresses. The call tree marks inferred returns with `~`;
+the inspector uses standard typed controls and Decoded/Raw tabs preserving the
+exact original return bytes.
+Input signatures never establish return types; malformed data, opaque hashes and
+deployed bytecode stay raw. The ABI control accepts JSON
 ABIs and Solidity function/event/error declarations and re-decodes affected calls.
 Overrides are local to the current trace.
+The inspector's Decoded/Raw modes use tabs. A compact gear popover contains the ABI
+editor and Apply button; the return values retain their own Decoded/Raw tabs.
 
 Three workers decode the first 200 visible frames automatically. Opening more
 branches schedules their frames; selecting a queued frame gives it priority.
@@ -45,7 +52,7 @@ all raw logs, 50 at a time. The inline timeline shows the first 50 logs per fram
 
 ## ABI source fallback
 
-The shared explorer/exact-Sourcify lookup remains first. If it fails or exceeds
+The shared explorer/Sourcify lookup remains first. If it fails or exceeds
 10 seconds, the tracer tries the fixed Blockscout provider URL from the existing
 verification provider catalog (`lib/verification/networks.json`). It fetches no
 saved explorer or RPC URLs. Requests omit credentials, reject redirects, time out
@@ -54,8 +61,10 @@ after 8 seconds, and stream at most 4 MiB.
 Only records explicitly marked fully verified are accepted. Partial verification,
 changed bytecode, bytecode twins, blueprint records and malformed ABIs are rejected.
 The decoding provenance names Blockscout. ABI lookup results are still cached per
-trace and bound to the executed code address. The shared metadata API and its
-exact-Sourcify policy are unchanged.
+trace and bound to the executed code address. The shared metadata API accepts
+Sourcify `exact_match` and `match` records with a runtime bytecode match for the
+requested chain/address. Its verification metadata preserves the match quality;
+missing runtime matches and incomplete source/ABI payloads remain rejected.
 
 ## Trace fetching and imports
 
@@ -69,12 +78,24 @@ exact-Sourcify policy are unchanged.
   needs to be fetched to detect the chain. Bare hashes use the selected network.
 - Transaction links use `?tx=0x…&chainId=1`. Opening a link traces automatically
   after saved RPC settings load. Form edits update these parameters without
-  submitting; demo/import views remove the transaction link. Other URL parameters
+  submitting; imported views remove the transaction link. Other URL parameters
   are preserved.
 - Imports Geth/Anvil callTracer objects, JSON-RPC envelopes and ETH.sh exports.
   Exports preserve network/transaction context. Raw imports without context use
-  the selected network for ABI lookup. The demo supplies explicit synthetic ABIs
-  and demonstrates decoded reads, transfers, custom errors and events.
+  the selected network for ABI lookup. Empty-state cards load captured Ethereum
+  traces for a Safe/Compound multicall, reverted Uniswap multicall, Lido staking
+  deposit and Zora NFT mint from `app/trace/examples.v1.json`. Their full call
+  trees, logs, contract names, ABIs, decoded inputs/returns/events and enrichment
+  are local. Example deep links use the same snapshots, with all calls expanded;
+  other transactions retain lazy decoding and the normal initial expansion.
+  Snapshot-backed inspectors use the decoder's example context to suppress live
+  address/string metadata lookups. Explicit ABI overrides can still re-decode
+  affected frames without altering the shared fixture.
+  Examples show the normal result skeleton for 450 ms before revealing local
+  data. Reset/cancellation invalidates this delayed reveal like a live request.
+  Regenerate with `pnpm exec tsx scripts/captureTraceExamples.ts <RPC URL> <cache dir>`.
+  Capture checks trace logs and success/revert status against the receipt and
+  records its source/block/hash provenance. No RPC credentials enter the fixture.
 - Limits: 8 MiB, 5,000 calls, 64 nested levels, 10,000 logs. Cancellation discards
   the response; it cannot undo node work that has already started.
 
@@ -87,6 +108,10 @@ unknown transactions and timeouts. Displayed errors do not include endpoint URLs
 Failed RPC traces offer Tenderly and Phalcon links for the same hash and chain,
 using the explorer directory's explicit provider mappings. Unsupported networks
 have no guessed links; editing inputs or switching networks clears stale links.
+The error row places external tracing links at the right, with a centered blue
+**Use your custom RPC** button beneath it. This opens the shared RPC editor on the failed
+chain and retries the same transaction after a verified save. Saved-RPC outages
+also show the shared edit/public-RPC recovery notice used by other tools.
 No new guaranteed public tracing service has been enabled. Use a trace-capable
 RPC or import. Gas values are provider-supplied inclusive frame values; ERC-20
 amounts default to Raw base units unless the user chooses a conversion.
@@ -131,10 +156,9 @@ The new tracer files pass installed Next.js flat lint rules. The existing shared
 parameter components have pre-existing effect-related lint errors; their full
 regression suites are run when extending their opt-in display controls.
 
-During live QA, the configured explorer source API was unavailable and USDT's
-Sourcify response was a partial match. The existing exact-match verification
-policy was preserved. The live trace still rendered signature-inferred inputs;
-unknown returns/events remained raw until an ABI was supplied.
+Earlier live QA used an exact-match-only Sourcify policy. The shared source API
+now also accepts Sourcify bytecode matches when explorer lookup fails, so those
+ABIs can decode inputs, outputs and events without a manual override.
 
 The Blockscout fallback was checked in the browser with a synthetic deposit-contract
 STATICCALL, a forced primary-provider failure, and the live Blockscout API. One

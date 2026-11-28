@@ -18,6 +18,25 @@ vi.mock("@/lib/customChains/store", () => ({
   useCustomChains: () => ({ ready: true, error: null, revision: 0 }),
   waitForCustomChains: mocks.wait,
 }));
+vi.mock("@/components/CustomChainModal", () => ({
+  CustomChainModal: ({
+    isOpen,
+    initialChainId,
+    onSaved,
+  }: {
+    isOpen: boolean;
+    initialChainId: number;
+    onSaved: (chain: { id: number }) => void;
+  }) =>
+    isOpen ? (
+      <div role="dialog" aria-label="Custom RPC">
+        <span>Chain {initialChainId}</span>
+        <button onClick={() => onSaved({ id: initialChainId })}>
+          Save RPC
+        </button>
+      </div>
+    ) : null,
+}));
 vi.mock("@/components/NetworkSelect", () => ({
   NetworkSelect: ({
     chainId,
@@ -55,6 +74,7 @@ vi.mock("next/dynamic", () => ({
 }));
 import TracerPage from "./TracerPage";
 import { demoTrace } from "@/lib/tracer/demo";
+import { traceExamples } from "./examples";
 const hash = `0x${"ab".repeat(32)}`;
 afterEach(cleanup);
 beforeEach(() => {
@@ -73,6 +93,69 @@ const mount = () =>
       <TracerPage />
     </ChakraProvider>
   );
+it.each(traceExamples)("loads the $title example locally and restores cards on reset", async (example) => {
+  window.history.replaceState(null, "", "/trace?chainId=8453");
+  mount();
+  expect(screen.queryByRole("button", { name: "Load demo" })).toBeNull();
+  expect(screen.getByRole("region", { name: "Try tracing these:" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: `Trace ${example.title}` }));
+  expect(screen.getByRole("button", { name: "Tracing…" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("status", { name: "Tracing transaction" })).toBeTruthy();
+  expect(screen.queryByText("Loaded call tree")).toBeNull();
+  await screen.findByText("Loaded call tree");
+  expect(mocks.fetch).not.toHaveBeenCalled();
+  expect(mocks.wait).not.toHaveBeenCalled();
+  expect(screen.queryByRole("region", { name: "Try tracing these:" })).toBeNull();
+  expect(new URLSearchParams(window.location.search).get("tx")).toBe(example.hash);
+  expect(new URLSearchParams(window.location.search).get("chainId")).toBe("1");
+  fireEvent.click(screen.getByRole("button", { name: "Transaction Tracer" }));
+  expect(screen.getByRole("button", { name: `Trace ${example.title}` })).toBeTruthy();
+});
+it("does not restore a delayed example after resetting the page", async () => {
+  mount();
+  fireEvent.click(screen.getByRole("button", { name: `Trace ${traceExamples[0].title}` }));
+  fireEvent.click(screen.getByRole("button", { name: "Transaction Tracer" }));
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 500)); });
+  expect(screen.queryByText("Loaded call tree")).toBeNull();
+  expect(screen.getByRole("region", { name: "Try tracing these:" })).toBeTruthy();
+  expect(window.location.search).toBe("");
+});
+it("loads example deep links locally without waiting for RPC settings", async () => {
+  const example = traceExamples[0];
+  mocks.wait.mockRejectedValue(new Error("Storage unavailable"));
+  window.history.replaceState(null, "", `/trace?tx=${example.hash}&chainId=1`);
+  mount();
+  await screen.findByText("Loaded call tree");
+  expect(mocks.fetch).not.toHaveBeenCalled();
+  expect(mocks.wait).not.toHaveBeenCalled();
+});
+it("resets inputs, results, network, tab and URL when the heading is clicked", async () => {
+  window.history.replaceState(null, "", `/trace?tx=${hash}&chainId=8453`);
+  mount();
+  await screen.findByText("Loaded call tree");
+  fireEvent.click(screen.getByRole("tab", { name: "Import JSON" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "callTracer JSON" }), { target: { value: "test input" } });
+  fireEvent.click(screen.getByRole("button", { name: "Transaction Tracer" }));
+  expect(screen.queryByText("Loaded call tree")).toBeNull();
+  expect((screen.getByRole("textbox", { name: "Transaction hash or explorer URL" }) as HTMLInputElement).value).toBe("");
+  expect((screen.getByRole("combobox", { name: "Trace network" }) as HTMLSelectElement).value).toBe("1");
+  expect(screen.getByRole("tab", { name: "Transaction" }).getAttribute("aria-selected")).toBe("true");
+  expect(window.location.search).toBe("");
+  fireEvent.click(screen.getByRole("tab", { name: "Import JSON" }));
+  expect((screen.getByRole("textbox", { name: "callTracer JSON" }) as HTMLTextAreaElement).value).toBe("");
+  expect(mocks.fetch).toHaveBeenCalledTimes(1);
+});
+it("ignores an in-flight trace result after resetting from the heading", async () => {
+  let resolve!: (value: typeof demoTrace) => void;
+  mocks.fetch.mockImplementation(() => new Promise((done) => { resolve = done; }));
+  window.history.replaceState(null, "", `/trace?tx=${hash}&chainId=8453`);
+  mount();
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole("button", { name: "Transaction Tracer" }));
+  await act(async () => { resolve(demoTrace); });
+  expect(screen.queryByText("Loaded call tree")).toBeNull();
+  expect(window.location.search).toBe("");
+});
 it("pastes an explorer URL, selects its network and traces exactly once without a submit click", async () => {
   mount();
   fireEvent.paste(
@@ -160,7 +243,7 @@ it("updates draft hash and network URL state without automatically submitting", 
   fireEvent.click(screen.getByRole("button", { name: "Trace" }));
   await screen.findByText("Loaded call tree");
   expect(mocks.fetch).toHaveBeenCalledExactlyOnceWith(8453, hash);
-  fireEvent.click(screen.getByRole("button", { name: "Load demo" }));
+  fireEvent.click(screen.getByRole("button", { name: "Transaction Tracer" }));
   expect(window.location.search).toBe("?keep=yes");
 });
 it("does not auto trace a pasted bare hash or unrecognized URL", () => {
@@ -201,6 +284,26 @@ it("links failed RPC traces to the same transaction and chain, then clears stale
   );
   expect(screen.queryByRole("link", { name: "Open in Tenderly" })).toBeNull();
   expect(screen.queryByRole("link", { name: "Open in Phalcon" })).toBeNull();
+});
+it("opens the custom RPC flow on the failed chain and retries the transaction after saving", async () => {
+  mocks.fetch.mockRejectedValueOnce(
+    new Error("Base public RPC doesn't support debug traces")
+  );
+  mount();
+  fireEvent.paste(
+    screen.getByRole("textbox", { name: "Transaction hash or explorer URL" }),
+    {
+      clipboardData: { getData: () => `https://basescan.org/tx/${hash}` },
+    }
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Use your custom RPC" })
+  );
+  expect(screen.getByRole("dialog").textContent).toContain("Chain 8453");
+  fireEvent.click(screen.getByRole("button", { name: "Save RPC" }));
+  await screen.findByText("Loaded call tree");
+  expect(mocks.fetch).toHaveBeenCalledTimes(2);
+  expect(mocks.fetch).toHaveBeenLastCalledWith(8453, hash);
 });
 it("shows the result skeleton while tracing and removes it when cancelled", async () => {
   let resolve!: (value: unknown) => void;

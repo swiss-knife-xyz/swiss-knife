@@ -20,12 +20,13 @@ type Loader = () => Promise<{ createTraceDecoder: typeof createTraceDecoder }>;
 export function createTraceDecodeStore(
   chainId?: number,
   initialAbis: TraceAbis = {},
-  loader: Loader = () => import("./decode")
+  loader: Loader = () => import("./decode"),
+  initialEntries: Record<string, TraceDecodeEntry> = {}
 ) {
   let snapshot: TraceDecodeSnapshot = {
-    entries: {},
-    completed: 0,
-    requested: 0,
+    entries: { ...initialEntries },
+    completed: Object.values(initialEntries).filter((entry) => entry.status === "ready" || entry.status === "error").length,
+    requested: Object.keys(initialEntries).length,
   };
   const listeners = new Set<() => void>();
   const requested = new Map<string, TraceCall>();

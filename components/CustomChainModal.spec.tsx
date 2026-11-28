@@ -55,6 +55,24 @@ function Selectors() {
     </ChakraProvider>
   );
 }
+it("prefills the RPC editor and explains the built-in RPC replacement", async () => {
+  render(
+    <ChakraProvider>
+      <CustomChainModal
+        isOpen
+        initialChainId={8453}
+        onClose={() => {}}
+        onSaved={() => {}}
+      />
+    </ChakraProvider>
+  );
+  expect(await screen.findByDisplayValue("Base")).toBeTruthy();
+  expect(screen.getByDisplayValue("8453")).toBeTruthy();
+  expect(screen.getByRole("note", { name: "RPC replacement" })).toBeTruthy();
+  await waitFor(() =>
+    expect(document.activeElement).toBe(screen.getByLabelText(/RPC URL/))
+  );
+});
 async function fill(id = "31337") {
   fireEvent.change(await screen.findByLabelText(/Network name/), {
     target: { value: "My local fork" },
@@ -96,7 +114,7 @@ it("adds a verified chain from the dropdown, persists it, and changes only the i
   );
   expect(screen.getByText("Custom networks")).toBeTruthy();
 });
-it("requires confirmation for an existing chain ID and never falls back to its public RPC", async () => {
+it("discloses an existing chain replacement and verifies it before saving without public fallback", async () => {
   const fetcher = vi.fn(async () => Response.json({ result: "0x1" }));
   vi.stubGlobal("fetch", fetcher);
   const saved = vi.fn();
@@ -109,11 +127,12 @@ it("requires confirmation for an existing chain ID and never falls back to its p
   const button = screen.getByRole("button", {
     name: "Verify & add",
   }) as HTMLButtonElement;
-  expect(button.disabled).toBe(true);
+  expect(button.disabled).toBe(false);
   expect(fetcher).not.toHaveBeenCalled();
-  fireEvent.click(
-    screen.getByRole("checkbox", { name: /Replace the RPC for Ethereum/ })
+  expect(screen.getByRole("note").textContent).toContain(
+    "Replaces the RPC for Ethereum"
   );
+  expect(screen.queryByRole("checkbox")).toBeNull();
   fireEvent.click(button);
   await waitFor(() => expect(saved).toHaveBeenCalledTimes(1));
   expect(getRpcUrlsForChain(1)).toEqual(["http://127.0.0.1:18545/"]);
@@ -150,7 +169,6 @@ it("retains editable saved settings on reopening and restores the built-in netwo
     </ChakraProvider>
   );
   await fill("1");
-  fireEvent.click(screen.getByRole("checkbox", { name: /Replace the RPC/ }));
   fireEvent.click(screen.getByRole("button", { name: "Verify & add" }));
   await waitFor(() => expect(getCustomChainsSnapshot().chains).toHaveLength(1));
   page.unmount();

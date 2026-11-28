@@ -17,6 +17,71 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 const from = `0x${"11".repeat(20)}`;
+it("opens all depths for local examples while normal traces keep deep branches collapsed", () => {
+  const root = normalizeTrace({ type: "CALL", from, calls: [
+    { type: "CALL", from, calls: [{ type: "CALL", from, calls: [{ type: "CALL", from }] }] },
+  ] }).call;
+  const ui = render(<ChakraProvider><TraceCallTree root={root} selectedId="0" onSelect={() => {}} /></ChakraProvider>);
+  expect(screen.queryByRole("button", { name: "Select call 0.0.0.0" })).toBeNull();
+  ui.unmount();
+  render(<ChakraProvider><TraceCallTree root={root} selectedId="0" onSelect={() => {}} defaultExpanded /></ChakraProvider>);
+  expect(screen.getByRole("button", { name: "Select call 0.0.0.0" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
+  expect(screen.queryByRole("button", { name: "Select call 0.0.0.0" })).toBeNull();
+});
+it("toggles static call subtrees without restoring them through search or decoding", () => {
+  const root = normalizeTrace({ type: "CALL", from, calls: [
+    { type: "STATICCALL", from, to: from, calls: [{ type: "DELEGATECALL", from, to: from }] },
+    { type: "CALL", from, to: from },
+  ] }).call;
+  const onVisibleCalls = vi.fn();
+  render(<ChakraProvider><TraceCallTree root={root} selectedId="0" onSelect={() => {}} onVisibleCalls={onVisibleCalls} /></ChakraProvider>);
+  const toggle = screen.getByRole("checkbox", { name: "Static calls" }) as HTMLInputElement;
+  expect(toggle.checked).toBe(true);
+  expect(screen.getByRole("button", { name: "Select call 0.0.0" })).toBeTruthy();
+  fireEvent.click(toggle);
+  expect(toggle.checked).toBe(false);
+  expect(screen.queryByRole("button", { name: "Select call 0.0" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Select call 0.0.0" })).toBeNull();
+  expect(screen.getByText("2 calls")).toBeTruthy();
+  expect(onVisibleCalls.mock.lastCall?.[0].map((call: { id: string }) => call.id)).toEqual(["0", "0.1"]);
+  fireEvent.click(screen.getByRole("button", { name: "Decode all" }));
+  expect(onVisibleCalls.mock.lastCall?.[0].map((call: { id: string }) => call.id)).toEqual(["0", "0.1"]);
+  fireEvent.change(screen.getByRole("textbox", { name: "Search calls" }), { target: { value: "STATICCALL" } });
+  expect(screen.getByText("No matching calls.")).toBeTruthy();
+  fireEvent.change(screen.getByRole("textbox", { name: "Search calls" }), { target: { value: "" } });
+  fireEvent.click(toggle);
+  expect(screen.getByRole("button", { name: "Select call 0.0" })).toBeTruthy();
+  expect(screen.getByText("4 calls")).toBeTruthy();
+});
+it("shows an empty state when hiding a static root", () => {
+  const root = normalizeTrace({ type: "STATICCALL", from }).call;
+  render(<ChakraProvider><TraceCallTree root={root} selectedId="0" onSelect={() => {}} /></ChakraProvider>);
+  fireEvent.click(screen.getByRole("checkbox", { name: "Static calls" }));
+  expect(screen.getByText("No matching calls.")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Select call 0" })).toBeNull();
+});
+it.each(["KillSwitch", undefined])("joins the contract name or address and function with a dot (%s)", (contractName) => {
+  const root = normalizeTrace({ type: "STATICCALL", from, to: from }).call;
+  const { container } = render(
+    <ChakraProvider>
+      <TraceCallTree root={root} selectedId="0" onSelect={() => {}}
+        entries={{ [root.id]: { status: "ready", data: {
+          input: { functionName: "paused", signature: "paused()", args: [], rawArgs: [] },
+          inputInferred: false, contractName, revert: null, logs: {}, note: "",
+        } } }} />
+    </ChakraProvider>
+  );
+  expect(container.textContent).toContain(`${contractName ?? "0x111111…1111"}.paused()`);
+});
+it("labels precompiled calls before decoding instead of treating input as a selector", () => {
+  const root = normalizeTrace({ type: "STATICCALL", from,
+    to: `0x${"0".repeat(39)}1`, input: "0x4559f462" }).call;
+  render(<ChakraProvider><TraceCallTree root={root} selectedId="0" onSelect={() => {}} /></ChakraProvider>);
+  expect(screen.getByText("Precompiled")).toBeTruthy();
+  expect(screen.getByText("ecRecover")).toBeTruthy();
+  expect(screen.queryByText("0x4559f462")).toBeNull();
+});
 it.each([
   { top: 200, height: 100, expected: null },
   { top: 480, height: 100, expected: "nearest" },

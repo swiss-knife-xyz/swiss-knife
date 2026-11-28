@@ -9,7 +9,7 @@ interface Lookup {
 interface MetadataResponse extends ContractResponse {
   verification?: {
     provider: "sourcify";
-    match: "exact_match";
+    match: "exact_match" | "match";
     chainId: number;
     address: string;
   };
@@ -56,7 +56,7 @@ function primaryRecord(data: unknown): ContractResult | undefined {
   }
 }
 
-/** Preserve the explorer provider priority; use only exact Sourcify v2 matches.
+/** Preserve explorer priority; accept Sourcify v2 runtime bytecode matches.
  * No cross-request cache: every upstream lookup is bound to this chain + address.
  */
 export async function fetchContractMetadata(
@@ -100,8 +100,8 @@ export async function fetchContractMetadata(
     );
     if (
       object(data) &&
-      data.match === "exact_match" &&
-      data.runtimeMatch === "exact_match" &&
+      (data.match === "exact_match" || data.match === "match") &&
+      (data.runtimeMatch === "exact_match" || data.runtimeMatch === "match") &&
       data.chainId === String(chainId) &&
       typeof data.address === "string" &&
       data.address.toLowerCase() === address.toLowerCase() &&
@@ -133,14 +133,16 @@ export async function fetchContractMetadata(
           ],
           verification: {
             provider: "sourcify",
-            match: "exact_match",
+            // Never label a metadata-independent bytecode match as exact.
+            match: data.match === "exact_match" && data.runtimeMatch === "exact_match"
+              ? "exact_match" : "match",
             chainId,
             address: address.toLowerCase(),
           },
         },
       };
     }
-    // Partial/null matches and payloads for another identity are deliberately disallowed.
+    // Missing runtime matches and payloads for another identity are disallowed.
     // They are not a usable verified result, even if they contain ABI/source fields.
   } catch (error) {
     if (!axios.isAxiosError(error) || error.response?.status !== 404)
@@ -160,7 +162,7 @@ export async function fetchContractMetadata(
       result: [],
       error: unavailable
         ? "Contract metadata providers unavailable"
-        : "No verified exact contract metadata found",
+        : "No verified contract metadata found",
     },
   };
 }

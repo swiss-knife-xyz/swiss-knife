@@ -1,4 +1,6 @@
 import { verifyCustomChain, type CustomChain } from "./model";
+import { getSavedCustomChain } from "./store";
+import { beginCustomRpcRequest, settleCustomRpcRequest } from "./failures";
 import {
   checkedResponse,
   parseRpcInput,
@@ -12,6 +14,48 @@ export async function readCustomRpc(
   request: unknown,
   signal: AbortSignal,
   fetcher: typeof fetch = fetch
+) {
+  const saved = getSavedCustomChain(chain.id);
+  const tracked = saved?.rpcUrl === chain.rpcUrl;
+  const version = tracked ? beginCustomRpcRequest() : 0;
+  let providerFailure: unknown;
+  const checkedFetcher: typeof fetch = async (...args) => {
+    const response = await fetcher(...args);
+    if (!response.ok)
+      providerFailure = { name: "HttpRequestError", status: response.status };
+    return response;
+  };
+  const current = () =>
+    tracked && getSavedCustomChain(chain.id)?.rpcUrl === chain.rpcUrl;
+  try {
+    const result = await readCustomRpcResponse(
+      chain,
+      request,
+      signal,
+      checkedFetcher
+    );
+    if (current()) settleCustomRpcRequest(chain.id, chain.rpcUrl, version);
+    return result;
+  } catch (error) {
+    if (
+      current() &&
+      (!signal.aborted || signal.reason?.name === "TimeoutError")
+    )
+      settleCustomRpcRequest(
+        chain.id,
+        chain.rpcUrl,
+        version,
+        providerFailure ?? error
+      );
+    throw error;
+  }
+}
+
+async function readCustomRpcResponse(
+  chain: CustomChain,
+  request: unknown,
+  signal: AbortSignal,
+  fetcher: typeof fetch
 ) {
   const input = parseRpcInput({ chain: String(chain.id), request }, [
     String(chain.id),

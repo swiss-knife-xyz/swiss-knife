@@ -1,7 +1,7 @@
 import { getPublicClient } from "@/lib/publicClient";
 import { waitForCustomChains } from "@/lib/customChains/store";
 import { HASH, normalizeTrace, type TraceDocument } from "./model";
-import { getNetworkName } from "@/data/networks";
+import { getNetworkName, getRuntimeCustomChain } from "@/data/networks";
 
 type TraceRpc = {
   Method: "debug_traceTransaction";
@@ -86,7 +86,9 @@ function traceFailure(error: unknown, chainId: number): Error {
     );
   if (/timeout|timed out/i.test(detail))
     return new Error(
-      `${getNetworkName(chainId)} public RPC doesn't support debug traces`
+      getRuntimeCustomChain(chainId)
+        ? `${getNetworkName(chainId)} custom RPC timed out`
+        : `${getNetworkName(chainId)} public RPC doesn't support debug traces`
     );
   return new Error(
     `Could not fetch trace. The ${getNetworkName(chainId)} RPC failed to complete debug_traceTransaction. Check the network and transaction hash, use an RPC with callTracer support, or import callTracer JSON.`

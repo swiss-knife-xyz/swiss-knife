@@ -1,17 +1,18 @@
 "use client";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
-import { createTraceDecodeStore } from "@/lib/tracer/decodingStore";
+import { createTraceDecodeStore, type TraceDecodeEntry } from "@/lib/tracer/decodingStore";
 import type { TraceAbis } from "@/lib/tracer/decode";
 import type { TraceCall, TraceDocument } from "@/lib/tracer/model";
 
 export function useTraceDecoding(
   document?: TraceDocument,
   selected?: TraceCall,
-  abis?: TraceAbis
+  abis?: TraceAbis,
+  entries?: Record<string, TraceDecodeEntry>
 ) {
   const store = useMemo(
-    () => createTraceDecodeStore(document?.chainId, abis),
-    [document, abis]
+    () => createTraceDecodeStore(document?.chainId, abis, undefined, entries),
+    [document, abis, entries]
   );
   const snapshot = useSyncExternalStore(
     store.subscribe,

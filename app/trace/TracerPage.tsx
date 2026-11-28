@@ -21,9 +21,11 @@ import {
   Text,
   Textarea,
   Icon,
+  SimpleGrid,
 } from "@chakra-ui/react";
 import { NetworkSelect } from "@/components/NetworkSelect";
-import { FiGitBranch, FiUpload, FiDownload } from "react-icons/fi";
+import { CustomChainModal } from "@/components/CustomChainModal";
+import { FiGitBranch, FiUpload, FiDownload, FiArrowRight } from "react-icons/fi";
 import { parseTraceInput } from "@/lib/tracer/input";
 import { parseTransactionExplorerUrl } from "@/lib/contractExplorerInput";
 import { useCustomChains, waitForCustomChains } from "@/lib/customChains/store";
@@ -35,7 +37,9 @@ import {
   type TraceDocument,
 } from "@/lib/tracer/model";
 import { fetchTransactionTrace } from "@/lib/tracer/fetch";
-import { demoTrace, demoAbis } from "@/lib/tracer/demo";
+import { traceExamples } from "./examples";
+import { getTraceExampleSnapshot, type TraceExampleSnapshot } from "./exampleSnapshots";
+import { ExampleSnapshotContext } from "@/components/decodedParams/ExampleSnapshotContext";
 import { getRpcUrlsForChain, getNetworkName } from "@/data/networks";
 import { useTraceDecoding } from "@/components/tracer/useTraceDecoding";
 import { TraceResultSkeleton } from "@/components/tracer/TraceResultSkeleton";
@@ -49,7 +53,7 @@ const TraceCallTree = dynamic(() =>
 const TraceCallDetails = dynamic(
   () => import("@/components/tracer/TraceCallDetails")
 );
-type Result = { document: TraceDocument; source: string; sequence: number };
+type Result = { document: TraceDocument; source: string; sequence: number; snapshot?: TraceExampleSnapshot };
 
 export default function TracerPage() {
   const query = useSearchParams().toString();
@@ -57,6 +61,7 @@ export default function TracerPage() {
   const [chainId, setChainId] = useState(1);
   const [hash, setHash] = useState("");
   const [json, setJson] = useState("");
+  const [inputTab, setInputTab] = useState(0);
   const [result, setResult] = useState<Result>();
   const [selection, setSelection] = useState<{
     call: TraceCall;
@@ -64,6 +69,7 @@ export default function TracerPage() {
   }>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [rpcEditorOpen, setRpcEditorOpen] = useState(false);
   const [failedTrace, setFailedTrace] = useState<{
     chainId: number;
     hash: string;
@@ -81,7 +87,8 @@ export default function TracerPage() {
   const decoding = useTraceDecoding(
     result?.document,
     selection?.call,
-    result?.source === "Demo" ? demoAbis : undefined
+    result?.snapshot?.abis,
+    result?.snapshot?.entries
   );
   const rpcKey = getRpcUrlsForChain(chainId).join("\n");
   const clear = useCallback(() => {
@@ -124,8 +131,8 @@ export default function TracerPage() {
     window.history.replaceState(null, "", url.toString());
   }, []);
   const show = useCallback(
-    (document: TraceDocument, source: string, sequence: number) => {
-      setResult({ document, source, sequence });
+    (document: TraceDocument, source: string, sequence: number, snapshot?: TraceExampleSnapshot) => {
+      setResult({ document, source, sequence, snapshot });
       setSelection({ call: document.call, rolledBack: !!document.call.error });
     },
     []
@@ -138,6 +145,18 @@ export default function TracerPage() {
       setLoading(true);
       let transaction: ReturnType<typeof parseTraceInput> | undefined;
       try {
+        let exampleInput: ReturnType<typeof parseTraceInput> | undefined;
+        try { exampleInput = parseTraceInput(input, network); } catch { /* Saved explorers may not be loaded yet. */ }
+        const snapshot = exampleInput && getTraceExampleSnapshot(exampleInput.hash, exampleInput.chainId);
+        if (snapshot) {
+          setChainId(snapshot.chainId);
+          setHash(snapshot.hash);
+          updateTraceUrl(snapshot.hash, snapshot.chainId);
+          await new Promise((resolve) => setTimeout(resolve, 450));
+          if (request.current === sequence)
+            show(snapshot.document, "Example", sequence, snapshot);
+          return;
+        }
         await waitForCustomChains();
         if (request.current !== sequence) return;
         const parsed = parseTraceInput(input, network);
@@ -236,7 +255,24 @@ export default function TracerPage() {
       <HStack justify="center" spacing={3} mb={6} mt={2}>
         <Icon as={FiGitBranch} color="orange.300" boxSize={7} />
         <Heading as="h1" fontSize={{ base: "2xl", md: "3xl" }}>
-          Transaction Tracer
+          <Box
+            as="button"
+            type="button"
+            borderRadius="sm"
+            _focusVisible={{ outline: "2px solid", outlineColor: "blue.300", outlineOffset: "4px" }}
+            onClick={() => {
+              clear();
+              setHash("");
+              setJson("");
+              setChainId(1);
+              setInputTab(0);
+              setRpcEditorOpen(false);
+              if (fileInput.current) fileInput.current.value = "";
+              updateTraceUrl();
+            }}
+          >
+            Transaction Tracer
+          </Box>
         </Heading>
       </HStack>
       <Box
@@ -249,7 +285,7 @@ export default function TracerPage() {
         borderRadius="lg"
         bg="bg.subtle"
       >
-        <Tabs isLazy>
+        <Tabs isLazy index={inputTab} onChange={setInputTab}>
           <Flex align="center" justify="space-between" gap={2} mb={4}>
             <TabList borderBottom="0">
               <Tab px={3} py={2} fontSize="sm">
@@ -260,18 +296,6 @@ export default function TracerPage() {
               </Tab>
             </TabList>
             <HStack spacing={1}>
-              <Button
-                size="xs"
-                variant="ghost"
-                color="orange.300"
-                onClick={() => {
-                  clear();
-                  updateTraceUrl();
-                  show(demoTrace, "Demo", request.current);
-                }}
-              >
-                Load demo
-              </Button>
               {result && (
                 <Button
                   size="xs"
@@ -437,30 +461,47 @@ export default function TracerPage() {
             borderColor="red.700"
             borderRadius="md"
           >
-            <Text
-              fontSize="sm"
-              color="red.200"
-              role="alert"
-              overflowWrap="anywhere"
-            >
-              {saved.error || error}
-            </Text>
-            {fallbackLinks.length > 0 && (
-              <Flex gap={2} mt={3} wrap="wrap">
-                {fallbackLinks.map(({ name, href }) => (
-                  <Button
-                    key={name}
-                    as="a"
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    size="sm"
-                    variant="outline"
-                    rightIcon={<ExternalLinkIcon />}
-                  >
-                    Open in {name}
-                  </Button>
-                ))}
+            <Flex align="center" justify="space-between" gap={3} wrap="wrap">
+              <Text
+                fontSize="sm"
+                color="red.200"
+                role="alert"
+                overflowWrap="anywhere"
+                flex={{ base: "1 1 100%", md: "1" }}
+                minW={0}
+              >
+                {saved.error || error}
+              </Text>
+              {fallbackLinks.length > 0 && (
+                <Flex gap={2} ml="auto" wrap="wrap">
+                  {fallbackLinks.map(({ name, href }) => (
+                    <Button
+                      key={name}
+                      as="a"
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      size="sm"
+                      variant="outline"
+                      rightIcon={<ExternalLinkIcon />}
+                    >
+                      Open in {name}
+                    </Button>
+                  ))}
+                </Flex>
+              )}
+            </Flex>
+            {!saved.error && failedTrace && (
+              <Flex justify="center" mt={3}>
+                <Button
+                  h="40px"
+                  bg="primary.500"
+                  color="white"
+                  _hover={{ bg: "primary.600" }}
+                  onClick={() => setRpcEditorOpen(true)}
+                >
+                  Use your custom RPC
+                </Button>
               </Flex>
             )}
           </Box>
@@ -473,9 +514,66 @@ export default function TracerPage() {
           </Flex>
         )}
       </Box>
+      {!result && !loading && !error && inputTab === 0 && !hash.trim() && !json.trim() && (
+        <Box as="section" aria-labelledby="trace-examples-heading" maxW="920px" mx="auto">
+          <Text as="h2" id="trace-examples-heading" fontSize="20px" fontWeight="semibold" color="text.secondary" mb={3}>
+            Try tracing these:
+          </Text>
+          <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+            {traceExamples.map((example) => (
+              <Box
+                as="button"
+                type="button"
+                key={example.hash}
+                aria-label={`Trace ${example.title}`}
+                data-group=""
+                display="flex"
+                flexDirection="column"
+                gap={3}
+                minW={0}
+                minH="124px"
+                p={5}
+                textAlign="left"
+                bg="whiteAlpha.50"
+                border="1px solid"
+                borderColor="whiteAlpha.200"
+                borderRadius="lg"
+                cursor="pointer"
+                _hover={{ bg: "whiteAlpha.100", borderColor: "blue.400" }}
+                _active={{ bg: "whiteAlpha.200" }}
+                _focusVisible={{ outline: "2px solid", outlineColor: "blue.400", outlineOffset: "2px" }}
+                onClick={() => { void fetchTrace(example.hash, example.chainId); }}
+              >
+                <Box as="span" display="flex" flexDirection="column" gap={0}>
+                  <Text as="span" fontSize="20px" lineHeight="24px" fontWeight="semibold" color="white">{example.title}</Text>
+                  <Text as="span" fontSize="sm" lineHeight="20px" color="text.secondary">{example.detail}</Text>
+                </Box>
+                <Flex as="span" justify="space-between" align="center" gap={3} mt="auto">
+                  <Text as="span" fontSize="xs" color="text.tertiary">Ethereum</Text>
+                  <HStack as="span" spacing={1} color="blue.400" _groupHover={{ color: "blue.300" }} aria-hidden>
+                    <Text as="span" fontSize="xs" fontWeight="medium">Trace</Text>
+                    <Icon as={FiArrowRight} boxSize={3.5} />
+                  </HStack>
+                </Flex>
+              </Box>
+            ))}
+          </SimpleGrid>
+        </Box>
+      )}
+      <CustomChainModal
+        isOpen={rpcEditorOpen}
+        initialChainId={failedTrace?.chainId ?? chainId}
+        onClose={() => setRpcEditorOpen(false)}
+        onSaved={(chain) => {
+          setRpcEditorOpen(false);
+          setChainId(chain.id);
+          void fetchTrace(hash, chain.id);
+        }}
+      />
       {loading && <TraceResultSkeleton />}
       {result && selection ? (
-        <Box key={result.sequence}>
+        <ExampleSnapshotContext.Provider key={result.sequence} value={result.snapshot ?? null}>
+        <Box>
           <Flex
             justify="space-between"
             align="center"
@@ -526,6 +624,7 @@ export default function TracerPage() {
               onVisibleCalls={decoding.enqueue}
               completed={decoding.completed}
               requested={decoding.requested}
+              defaultExpanded={!!result.snapshot}
               onSelect={(call, rolledBack) => {
                 setSelection({ call, rolledBack });
                 if (window.innerWidth < 1280)
@@ -556,6 +655,7 @@ export default function TracerPage() {
             </Box>
           </Box>
         </Box>
+        </ExampleSnapshotContext.Provider>
       ) : null}
     </Box>
   );

@@ -89,7 +89,7 @@ export async function fetchVerifiedBlockscoutAbi(
   }
 }
 
-/** Keep the shared explorer/Sourcify lookup first; do not loosen its verification policy. */
+/** Keep the shared explorer/Sourcify lookup first. */
 export async function fetchTraceAbi(
   identity: Identity,
   dependencies: {

@@ -12,6 +12,7 @@ import {
   decodeAbiValues,
   decodeEventWithABI,
   fetchFunctionInterfaces,
+  inferAbiReturnValues,
 } from "@/lib/decoder";
 import { fetchTraceAbi, type TraceAbi } from "./abi";
 import type { TraceCall, TraceLog } from "./model";
@@ -20,6 +21,7 @@ export interface DecodedTraceCall {
   input: DecodeRecursiveResult;
   inputInferred: boolean;
   outputs?: Arg[];
+  outputsInferred?: boolean;
   revert: DecodeRecursiveResult;
   logs: Record<number, DecodeEventResult>;
   codeAddress?: string;
@@ -36,6 +38,7 @@ type Contract = {
 
 export { traceCodeAddress } from "./codeAddress";
 import { traceCodeAddress } from "./codeAddress";
+import { tracePrecompile } from "./precompiles";
 async function limited<T>(
   promise: Promise<T>,
   fallback: T,
@@ -187,6 +190,19 @@ export function createTraceDecoder(
       codeAddress,
       note: "",
     } satisfies DecodedTraceCall;
+    const precompile = tracePrecompile(call);
+    if (precompile) {
+      // Native inputs have no Solidity selector; return data can still be inferred.
+      const outputs = !call.error && call.output !== "0x"
+        ? await limited(inferAbiReturnValues(call.output, chainId), undefined)
+        : undefined;
+      return {
+        ...base,
+        contractName: "Precompiled",
+        outputs,
+        outputsInferred: outputs !== undefined,
+      };
+    }
     if (["CREATE", "CREATE2", "SELFDESTRUCT"].includes(call.type)) {
       return {
         ...base,
@@ -290,6 +306,7 @@ export function createTraceDecoder(
       }
     }
     let outputs: Arg[] | undefined;
+    let outputsInferred = false;
     if (!call.error && match) {
       try {
         const values = match.iface.decodeFunctionResult(
@@ -310,8 +327,16 @@ export function createTraceDecoder(
           });
         }
       } catch {
-        /* No guessed return types: retain the raw bytes when the ABI doesn't match. */
+        /* Unmatched return data can still use the explicitly marked inference below. */
       }
+    }
+    if (!call.error && outputs === undefined && call.output !== "0x") {
+      outputs = await limited(
+        inferAbiReturnValues(call.output, chainId),
+        undefined,
+        10000
+      );
+      outputsInferred = outputs !== undefined;
     }
     const logs: Record<number, DecodeEventResult> = {};
     for (const [index, log] of call.logs.slice(0, 200).entries()) {
@@ -357,6 +382,7 @@ export function createTraceDecoder(
           !!input.guessedFunctionName ||
           input.decoding === "heuristic"),
       outputs,
+      outputsInferred,
       revert,
       logs,
       codeAddress,
@@ -370,7 +396,7 @@ export function createTraceDecoder(
             ? "Decoded using a fully verified Blockscout ABI at the executed code address. Historical implementations may differ."
             : match
               ? "Decoded using the available ABI at the executed code address. Historical implementations may differ."
-              : "Signature/type inference. No matching verified ABI; unknown returns remain raw.",
+              : "Signature/type inference. No matching verified ABI; return types may be inferred from their encoding.",
     };
   }
   return {

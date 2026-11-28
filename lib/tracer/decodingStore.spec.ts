@@ -21,6 +21,23 @@ const result: DecodedTraceCall = {
 async function flush() {
   for (let i = 0; i < 12; i++) await Promise.resolve();
 }
+it("serves predecoded entries without loading a decoder and allows explicit ABI replacement", async () => {
+  const decode = vi.fn(async () => ({ ...result, note: "override" }));
+  const loader = vi.fn(async () => ({ createTraceDecoder: () => ({ decode, setAbi: vi.fn() }) }));
+  const frame = call("0");
+  const store = createTraceDecodeStore(1, {}, loader, { "0": { status: "ready", data: result } });
+  expect(store.getSnapshot().completed).toBe(1);
+  const unsubscribe = store.subscribe(() => {});
+  store.enqueue([frame]);
+  await flush();
+  expect(loader).not.toHaveBeenCalled();
+  expect(store.getSnapshot().entries["0"].data).toBe(result);
+  await store.setAbi(frame.to!, ["function f()"]);
+  await flush();
+  expect(decode).toHaveBeenCalledTimes(1);
+  expect(store.getSnapshot().entries["0"].data?.note).toBe("override");
+  unsubscribe();
+});
 it("bounds decoding concurrency, deduplicates requests and pauses abandoned queues", async () => {
   const pending: Array<(data: DecodedTraceCall) => void> = [];
   const decode = vi.fn(
